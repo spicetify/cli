@@ -4,7 +4,9 @@
 1. Download correct package for your OS: https://github.com/khanhas/spicetify-cli/releases
 2. Unpack  
 #### Windows
-Extract zip package. Run `spicetify.exe` directly with its path.  
+Extract zip package. 
+  
+To use Spicetify, you can run `spicetify.exe` directly with its path,  
 Or optionally add its directory to enviroment path so you can run `spicetify` everywhere.  
   
 #### Linux and MacOS
@@ -16,6 +18,7 @@ cd spicetify
 tar xzf ~/Downloads/spicetify-xxx.tar.gz
 ```
 With `~/Downloads/spicetify-xxx.tar.gz` is path to just downloaded package.
+  
 Optionally, run:
 ```bash
 echo 'spicetify=~/spicetify/spicetify' >> .bashrc
