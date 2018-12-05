@@ -83,7 +83,7 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string, e
 		})
 
 		if appName == "zlink" && flags.ExposeAPIs {
-			utils.RunCopy(".", appPath, false, []string{"spicetifyWrapper.js"})
+			utils.RunCopy(utils.GetJsHelperDir(), appPath, false, []string{"spicetifyWrapper.js"})
 		}
 
 		if err != nil {
@@ -171,10 +171,10 @@ func StartCSS(extractedAppsPath string, callback func(appName string, err error)
 					content = utils.Replace(content, "#333", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
 					content = utils.Replace(content, "#444", "var(--modspotify_slider_bg)")
 					content = utils.Replace(content, "#fff", "var(--modspotify_main_fg)")
-					content = utils.Replace(content, "black;", " var(--modspotify_sidebar_and_player_bg)")
-					content = utils.Replace(content, "gray;", " var(--modspotify_main_bg)")
-					content = utils.Replace(content, "lightgray;", " var(--modspotify_pressing_button_fg)")
-					content = utils.Replace(content, "white;", " var(--modspotify_main_fg)")
+					content = utils.Replace(content, "black;", " var(--modspotify_sidebar_and_player_bg);")
+					content = utils.Replace(content, "gray;", " var(--modspotify_main_bg);")
+					content = utils.Replace(content, "lightgray;", " var(--modspotify_pressing_button_fg);")
+					content = utils.Replace(content, "white;", " var(--modspotify_main_fg);")
 					content = utils.Replace(content, `rgba\(0,\s?0,\s?0,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_cover_overlay_and_shadow),${1})")
 					content = utils.Replace(content, "#fff", "var(--modspotify_main_fg)")
 					content = utils.Replace(content, "#000", "var(--modspotify_sidebar_and_player_bg)")
@@ -233,14 +233,16 @@ func disableLogging(input, appName string) string {
 }
 
 func removeRTL(input string) string {
-	input = utils.Replace(input, `,\s?\[dir=rtl\].+?(\{.+?\})`, "$1")
-	input = utils.Replace(input, `\[dir=rtl\].+?\{.+?\}`, "")
-	input = utils.Replace(input, `\[dir=ltr\]`, "")
-	input = utils.Replace(input, `\[dir\]`, "")
-	input = utils.Replace(input, `,\s?\[lang=ar\].+?(\{.+?\})`, "$1")
-	input = utils.Replace(input, `\[lang=ar\].+?\{.+?\}`, "")
-	input = utils.Replace(input, `\[dir=\"rtl\"\].+?\{.+?\}`, "")
-	input = utils.Replace(input, `html\[dir=\"rtl\"\].+?\{.+?\}`, "")
+	input = utils.Replace(input, `(?s)\[dir=ltr\]`, "")
+	input = utils.Replace(input, `(?s)\[dir\]`, "")
+	input = utils.Replace(input, `(?s),\s?\[dir=rtl\].+?(\{.+?\})`, "$1")
+	input = utils.Replace(input, `(?s),\s?\[lang=ar\].+?(\{.+?\})`, "$1")
+	input = utils.Replace(input, `(?s)html\[dir="?rtl"?\].+?\{.+?\}`, "")
+	input = utils.Replace(input, `(?s)html\[lang=ar\].+?\{.+?\}`, "")
+	input = utils.Replace(input, `(?s)html:lang\(ar\).+?\{.+?\}`, "")
+	input = utils.Replace(input, `(?s)\[dir="?rtl"?\].+?\{.+?\}`, "")
+	input = utils.Replace(input, `(?s)html:not\(\[lang=ar\]\)(.+?\{.+?\})`, "html${1}")
+	input = utils.Replace(input, `(?s)\[lang=ar\].+?\{.+?\}`, "")
 
 	return input
 }
