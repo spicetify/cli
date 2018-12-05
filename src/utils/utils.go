@@ -299,14 +299,17 @@ func RunCopy(from, to string, recursive bool, filters []string) error {
 		var optionList = []string{"--recursive"}
 
 		if filters != nil && len(filters) > 0 {
-			optionList = append(optionList, `--exclude="*"`)
+			optionList = append(optionList, "--include", "*/")
+
 			for _, v := range filters {
-				optionList = append(optionList, `--include="`+v+`"`)
+				optionList = append(optionList, "--include", v)
 			}
+
+			optionList = append(optionList, "--exclude", "*")
 		}
 
 		optionList = append(optionList, from+"/", to)
-
+		fmt.Println(optionList)
 		cmd = exec.Command("rsync", optionList...)
 	} else {
 		return errors.New("Unsupported OS")
@@ -315,4 +318,22 @@ func RunCopy(from, to string, recursive bool, filters []string) error {
 	cmd.Run()
 
 	return nil
+}
+
+func GetExecutableDir() string {
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
+		exe, err := os.Executable()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return filepath.Dir(exe)
+	}
+
+	log.Fatal("Unsupported OS")
+	return ""
+}
+
+func GetJsHelperDir() string {
+	return filepath.Join(GetExecutableDir(), "jsHelper")
 }
