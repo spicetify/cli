@@ -309,7 +309,7 @@ func RunCopy(from, to string, recursive bool, filters []string) error {
 		}
 
 		optionList = append(optionList, from+"/", to)
-		fmt.Println(optionList)
+
 		cmd = exec.Command("rsync", optionList...)
 	} else {
 		return errors.New("Unsupported OS")
