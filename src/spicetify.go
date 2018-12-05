@@ -289,7 +289,7 @@ func getThemeFolder(themeName string) (string, error) {
 		return folder, nil
 	}
 
-	folder = filepath.Join(".", "Themes", themeName)
+	folder = filepath.Join(utils.GetExecutableDir(), "Themes", themeName)
 	_, err = os.Stat(folder)
 	if err == nil {
 		return folder, nil
