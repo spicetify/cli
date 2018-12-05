@@ -26,7 +26,7 @@ echo 'spicetify=~/spicetify/spicetify' >> .bashrc
 so you can run `spicetify` everywhere.
 
 ## Usage
-Run with no command one time to generate config file
+Run with no command once to generate config file
 ```bash
 spicetify
 ```
@@ -44,15 +44,15 @@ After changing theme colors and css, run `apply` again
 
 ## Customization
 #### Config file 
-Is located at:
-**Windows:** `%userprofile%\.spicetify\config.ini`
-**Linux and MacOS:** `~/.spicetify/config.ini`
+Is located at:  
+**Windows:** `%userprofile%\.spicetify\config.ini`  
+**Linux and MacOS:** `~/.spicetify/config.ini`  
 
 #### Themes
-There are 2 places you can put your themes:
-1. `Themes` folder in Home directory
-**Windows:** `%userprofile%\.spicetify\Themes\`
-**Linux and MacOS:** `~/.spicetify/Themes/`
+There are 2 places you can put your themes:  
+1. `Themes` folder in Home directory  
+**Windows:** `%userprofile%\.spicetify\Themes\`  
+**Linux and MacOS:** `~/.spicetify/Themes/`  
 2. `Themes` folder in Spicetify executable directory
 
 If there are 2 themes having same name, theme in Home directory is prioritized.
@@ -72,7 +72,7 @@ go build src/spicetify.go
 ```
 
 ### Future
-[ ] Implement additional features
-[ ] SASS
-[ ] Watch theme files change and automatically apply
-[ ] Inject extensions and custom apps
+[ ] Implement additional features  
+[ ] SASS  
+[ ] Watch theme files change and automatically apply  
+[ ] Inject extensions and custom apps  
