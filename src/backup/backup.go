@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +13,15 @@ import (
 func Start(spotifyPath, backupPath string) error {
 	appsFolder := filepath.Join(spotifyPath, "Apps")
 
-	utils.RunCopy(appsFolder, backupPath, false, []string{"*.spa"})
+	utils.RunCopy(appsFolder, backupPath, []string{"*.spa"})
+
+	// CLean up
+	appList, _ := ioutil.ReadDir(backupPath)
+	for _, v := range appList {
+		if v.IsDir() {
+			os.RemoveAll(filepath.Join(backupPath, v.Name()))
+		}
+	}
 
 	return nil
 }

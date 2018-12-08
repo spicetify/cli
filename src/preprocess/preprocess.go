@@ -13,16 +13,17 @@ import (
 
 // Flag enables/disables preprocesses to be applied
 type Flag struct {
-	DisableSentry  bool
+	// DisableSentry prevents Sentry to send console log/error/warning to Spotify developers.
+	DisableSentry bool
+	// DisableLogging stops various elements to log user interaction.
 	DisableLogging bool
-	RemoveRTL      bool
-	ExposeAPIs     bool
+	// RemoveRTL removes all Right-To-Left CSS rules to simplify CSS files.
+	RemoveRTL bool
+	// ExposeAPIs leaks some Spotify's API, functions, objects to Spicetify global object.
+	ExposeAPIs bool
 }
 
 // Start preprocessing apps assets in extractedAppPath
-// disableSentry: Prevents Sentry to send console log/error/warning to Spotify developers
-// disableLogging: Stops various elements to log user interaction
-// removeRTL: Removes all Right-To-Left CSS rules to simplify CSS files
 func Start(extractedAppsPath string, flags Flag, callback func(appName string, err error)) {
 	appList, err := ioutil.ReadDir(extractedAppsPath)
 
@@ -83,7 +84,7 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string, e
 		})
 
 		if appName == "zlink" && flags.ExposeAPIs {
-			utils.RunCopy(utils.GetJsHelperDir(), appPath, false, []string{"spicetifyWrapper.js"})
+			utils.RunCopy(utils.GetJsHelperDir(), appPath, []string{"spicetifyWrapper.js"})
 		}
 
 		if err != nil {
@@ -256,7 +257,7 @@ func findSymbol(debugInfo, content string, clues []string) []string {
 		}
 	}
 
-	utils.PrintColor("red", false, "\nCannot find symbol for "+debugInfo)
+	utils.PrintError("Cannot find symbol for " + debugInfo)
 	return nil
 }
 
