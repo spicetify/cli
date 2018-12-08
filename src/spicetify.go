@@ -133,13 +133,13 @@ func helpConfig() {
 	fmt.Print(`CONFIG MEANING
 [Setting]
 spotify_path
-	Path to Spotify directory
+    Path to Spotify directory
 
 current_theme
-	Name of folder of your theme
+    Name of folder of your theme
 
 inject_css
-	Whether custom css from user.css in theme folder is applied
+    Whether custom css from user.css in theme folder is applied
 
 replace_colors
     Whether custom colors is applied
