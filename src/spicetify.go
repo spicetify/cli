@@ -92,6 +92,8 @@ func main() {
 
 		case "disable-devtool":
 			cmd.SetDevTool(false)
+		case "watch":
+			cmd.Watch()
 
 		default:
 			if argv[0] != '-' {
@@ -114,12 +116,14 @@ Customize Spotify client UI and functionality
 COMMANDS
 backup              Start backup and preprocessing app files.
 apply               Apply customization.
+update              Update CSS.
 restore             Restore Spotify to original state.
 clear               Clear current backup files.
 enable-devtool      Enable Spotify's developer tools (Console, Inspect Elements,...),
                     Hit Ctrl + Shift + I in the client to start using.
 disable-devtool     Disable Spotify's developer tools.
-
+watch               Enter watch mode. Automatically update CSS when color.ini
+                    or user.css is changed.
 FLAGS
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations like
                     clear backup, restore will proceed without prompting permission.
