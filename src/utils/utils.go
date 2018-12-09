@@ -43,7 +43,7 @@ func ReadAnswer(info string, defaultAnswer bool) bool {
 func CheckExistAndCreate(dir string) {
 	_, err := os.Stat(dir)
 	if err != nil {
-		os.Mkdir(dir, 0644)
+		os.Mkdir(dir, 0700)
 	}
 }
 
@@ -64,20 +64,20 @@ func Unzip(src, dest string) error {
 
 		fpath := filepath.Join(dest, f.Name)
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(fpath, f.Mode())
+			os.MkdirAll(fpath, 0700)
 		} else {
 			var fdir string
 			if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
 				fdir = fpath[:lastIndex]
 			}
 
-			err = os.MkdirAll(fdir, f.Mode())
+			err = os.MkdirAll(fdir, 0700)
 			if err != nil {
 				log.Fatal(err)
 				return err
 			}
 			f, err := os.OpenFile(
-				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
 			if err != nil {
 				return err
 			}
@@ -110,7 +110,7 @@ func ModifyFile(path string, repl func(string) string) {
 
 	content := repl(string(raw))
 
-	ioutil.WriteFile(path, []byte(content), 0644)
+	ioutil.WriteFile(path, []byte(content), 0700)
 }
 
 // GetPrefsCfg finds `prefs` file path based on OS and returns an `ini.File` ref.
