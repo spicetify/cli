@@ -24,11 +24,6 @@ func init() {
 
 	log.SetFlags(0)
 
-	if len(os.Args) < 2 {
-		help()
-		os.Exit(0)
-	}
-
 	quiet := false
 	for _, v := range os.Args {
 		if v == "-q" || v == "--quiet" {
@@ -38,6 +33,11 @@ func init() {
 	}
 
 	cmd.Init(quiet)
+
+	if len(os.Args) < 2 {
+		help()
+		os.Exit(0)
+	}
 
 	for k, v := range os.Args {
 		switch v {
@@ -108,7 +108,7 @@ func main() {
 func help() {
 	fmt.Println("spicetify v" + version)
 	fmt.Print(`USAGE
-spicetify <command>
+spicetify [<flag>] <command>
 
 DESCRIPTION
 Customize Spotify client UI and functionality
@@ -124,12 +124,15 @@ enable-devtool      Enable Spotify's developer tools (Console, Inspect Elements,
 disable-devtool     Disable Spotify's developer tools.
 watch               Enter watch mode. Automatically update CSS when color.ini
                     or user.css is changed.
+
 FLAGS
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations like
                     clear backup, restore will proceed without prompting permission.
 -c, --config        Print config file path and quit
 -h, --help          Print this help text and quit
 -v, --version       Print version number and quit
+
+For config information, run "spicetify -h config".
 `)
 }
 
