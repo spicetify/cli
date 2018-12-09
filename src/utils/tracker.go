@@ -41,6 +41,7 @@ func (t tracker) Finish() {
 }
 
 func (t tracker) Reset() {
+	t.instance.SetCurrent(0)
 	t.instance.Start()
 }
 
