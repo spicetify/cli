@@ -54,14 +54,15 @@ func GetSpotifyPath() string {
 }
 
 func getSpicetifyFolder() string {
-	home := "/"
+	result := "/"
 	if runtime.GOOS == "windows" {
-		home = os.Getenv("USERPROFILE")
-	} else if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
-		home = os.Getenv("HOME")
+		result = filepath.Join(os.Getenv("USERPROFILE"), ".spicetify")
+	} else if runtime.GOOS == "linux" {
+		result = filepath.Join(os.Getenv("HOME"), ".spicetify")
+	} else if runtime.GOOS == "darwin" {
+		result = filepath.Join(os.Getenv("HOME"), "spicetify_data")
 	}
 
-	result := filepath.Join(home, ".spicetify")
 	utils.CheckExistAndCreate(result)
 
 	return result
