@@ -218,6 +218,6 @@ func RestartSpotify(spotifyPath string) {
 		exec.Command(filepath.Join(spotifyPath, "spotify")).Start()
 	} else if runtime.GOOS == "darwin" {
 		exec.Command("pkill", "Spotify").Run()
-		exec.Command("open", "/Application/Spotify.app").Start()
+		exec.Command("open", "/Applications/Spotify.app").Start()
 	}
 }
