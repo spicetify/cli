@@ -2,8 +2,10 @@ package utils
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/go-ini/ini"
 )
@@ -35,7 +37,7 @@ func ParseConfig(configPath string) Config {
 			content: getDefaultConfig(),
 		}
 		defaultConfig.Write()
-		PrintSuccess("Default config generated!")
+		PrintSuccess("Default config.ini generated.")
 		return defaultConfig
 	}
 
@@ -74,10 +76,38 @@ func getDefaultConfig() *ini.File {
 	var defaultSpotifyPath string
 	if runtime.GOOS == "windows" {
 		defaultSpotifyPath = filepath.Join(os.Getenv("APPDATA"), "Spotify")
+		_, err := os.Stat(defaultSpotifyPath)
+		if err != nil {
+			PrintError(`Spotify content is not found at location "` + defaultSpotifyPath + `"`)
+			PrintInfo(`Please make sure you are using normal Spotify version, not Windows Store version.`)
+		}
 	} else if runtime.GOOS == "linux" {
-		defaultSpotifyPath = filepath.Join("/usr", "share", "spotify")
+		path, err := exec.Command("whereis", "spotify").Output()
+
+		if err == nil {
+			pathString := strings.Replace(string(path), "spotify: ", "", 1)
+			pathString = strings.Replace(pathString, "\n", "", -1)
+			pathList := strings.Split(pathString, " ")
+
+			for _, v := range pathList {
+				_, err := os.Stat(filepath.Join(v, "Apps"))
+
+				if err == nil {
+					defaultSpotifyPath = v
+					break
+				}
+			}
+		}
+
+		if len(defaultSpotifyPath) == 0 {
+			PrintWarning("Could not detect Spotify location.")
+		}
 	} else if runtime.GOOS == "darwin" {
 		defaultSpotifyPath = filepath.Join("/Applications", "Spotify.app", "Contents", "Resources")
+		_, err := os.Stat(defaultSpotifyPath)
+		if err != nil {
+			PrintError(`Spotify content is not found at location "` + defaultSpotifyPath + `"`)
+		}
 	}
 
 	setting.NewKey("spotify_path", defaultSpotifyPath)
