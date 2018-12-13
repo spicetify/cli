@@ -35,15 +35,15 @@ func Apply() {
 
 	if status != spotifystatus.APPLIED {
 		os.RemoveAll(appFolder)
-		utils.RunCopy(rawFolder, appFolder, nil)
+		utils.Copy(rawFolder, appFolder, true, nil)
 	}
 
 	replaceColors := settingSection.Key("replace_colors").MustInt(0) == 1
 	injectCSS := settingSection.Key("inject_css").MustInt(0) == 1
 	if replaceColors {
-		utils.RunCopy(themedFolder, appFolder, nil)
+		utils.Copy(themedFolder, appFolder, true, nil)
 	} else {
-		utils.RunCopy(rawFolder, appFolder, nil)
+		utils.Copy(rawFolder, appFolder, true, nil)
 	}
 
 	themeName, err := settingSection.GetKey("current_theme")

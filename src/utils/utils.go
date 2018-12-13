@@ -92,6 +92,60 @@ func Unzip(src, dest string) error {
 	return nil
 }
 
+// Copy .
+func Copy(src, dest string, recursive bool, filters []string) error {
+	dir, err := ioutil.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	os.MkdirAll(dest, 0700)
+
+	for _, file := range dir {
+		fSrcPath := filepath.Join(src, file.Name())
+
+		fDestPath := filepath.Join(dest, file.Name())
+		if file.IsDir() && recursive {
+			os.MkdirAll(fDestPath, 0700)
+			Copy(fSrcPath, fDestPath, true, filters)
+		} else {
+			if filters != nil && len(filters) > 0 {
+				isMatch := false
+
+				for _, filter := range filters {
+					if strings.Contains(file.Name(), filter) {
+						isMatch = true
+						break
+					}
+				}
+
+				if !isMatch {
+					continue
+				}
+			}
+
+			fSrc, err := os.Open(fSrcPath)
+			if err != nil {
+				return err
+			}
+			defer fSrc.Close()
+
+			fDest, err := os.OpenFile(
+				fDestPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+			if err != nil {
+				return err
+			}
+			defer fDest.Close()
+
+			_, err = io.Copy(fDest, fSrc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // Replace uses Regexp to find any matched from `input` with `regexpTerm`
 // and replaces them with `replaceTerm` then returns new string.
 func Replace(input string, regexpTerm string, replaceTerm string) string {
@@ -147,46 +201,6 @@ func GetSpotifyVersion(spotifyPath string) string {
 
 	version := rootSection.Key("app.last-launched-version")
 	return version.MustString("")
-}
-
-// RunCopy copies all files
-// or uses `filters` to copy certain of files that match patterns.
-func RunCopy(from, to string, filters []string) error {
-	var cmd *exec.Cmd
-	var paraList = []string{from, to}
-
-	if runtime.GOOS == "windows" {
-		roboCopy := filepath.Join(os.Getenv("windir"), "System32\\robocopy.exe")
-		paraList = append(paraList, "/E")
-
-		if filters != nil && len(filters) > 0 {
-			paraList = append(paraList, filters...)
-		}
-
-		cmd = exec.Command(roboCopy, paraList...)
-	} else if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
-		var optionList = []string{"--recursive"}
-
-		if filters != nil && len(filters) > 0 {
-			optionList = append(optionList, "--include", "*/")
-
-			for _, v := range filters {
-				optionList = append(optionList, "--include", v)
-			}
-
-			optionList = append(optionList, "--exclude", "*")
-		}
-
-		optionList = append(optionList, from+"/", to)
-
-		cmd = exec.Command("rsync", optionList...)
-	} else {
-		return errors.New("Unsupported OS")
-	}
-
-	cmd.Run()
-
-	return nil
 }
 
 // GetExecutableDir returns directory of current process

@@ -84,7 +84,7 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string, e
 		})
 
 		if appName == "zlink" && flags.ExposeAPIs {
-			utils.RunCopy(utils.GetJsHelperDir(), appPath, []string{"spicetifyWrapper.js"})
+			utils.Copy(utils.GetJsHelperDir(), appPath, false, []string{"spicetifyWrapper.js"})
 		}
 
 		if err != nil {
