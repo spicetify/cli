@@ -264,45 +264,52 @@ func findSymbol(debugInfo, content string, clues []string) []string {
 func exposeAPIs(input string) string {
 	playerUI := findSymbol("playerUI", input, []string{
 		`([\w_]+)\.prototype\.updateProgressBarLabels`,
-		`([\w_]+)\.prototype\._onConnectionStateChange`})
+		`([\w_]+)\.prototype\._onConnectionStateChange`},
+	)
 
 	if playerUI != nil {
 		input = utils.Replace(
 			input,
 			playerUI[0]+`\.prototype\.setup=function\(\)\{`,
-			"${0}"+spicetifyPlayerJS)
+			"${0}"+spicetifyPlayerJS,
+		)
 
 		// Register progress change event
 		input = utils.Replace(
 			input,
 			playerUI[0]+`\.prototype\._onProgressBarProgress=function.+?\{`,
-			`${0}Spicetify.Player.dispatchEvent&&Spicetify.Player.dispatchEvent(new Event("onprogress"));`)
+			`${0}Spicetify.Player.dispatchEvent&&Spicetify.Player.dispatchEvent(new Event("onprogress"));`,
+		)
 	}
 
 	// Leak track meta data, player state, current playlist to Spicetify.Player.data
 	input = utils.Replace(
 		input,
 		`(const [\w_]+=([\w_]+)\.track\.metadata;)`,
-		`${1}Spicetify.Player.data=${2};`)
+		`${1}Spicetify.Player.data=${2};`,
+	)
 
 	// Find Event Dispatcher (eventSymbol[0]) and Event Creator (eventSymbol[1]) symbol
 	eventSymbols := findSymbol("EventDispatcher and Event Creatir", input, []string{
 		`([\w_]+)\.default\.dispatchEvent\(new ([\w_]+)\.default\([\w_]+\.default\.NAVIGATION_OPEN_URI`,
-		`([\w_]+)\.default\.dispatchEvent\(new ([\w_]+)\.default\("show\-notification\-bubble"`})
+		`([\w_]+)\.default\.dispatchEvent\(new ([\w_]+)\.default\("show\-notification\-bubble"`},
+	)
 
 	showNotification := ""
 	if eventSymbols != nil {
 		showNotification = fmt.Sprintf(
 			`Spicetify.showNotification = (text) => {%s.default.dispatchEvent(new %s.default("show-notification-bubble", {i18n: text}))};`,
 			eventSymbols[0],
-			eventSymbols[1])
+			eventSymbols[1],
+		)
 	}
 
 	// Leak localStorage and showNotification
 	input = utils.Replace(
 		input,
 		`(const [\w_]+=([\w_]+)\.default\.get\([\w_]+\);)`,
-		`${1}Spicetify.LocalStorage=${2}.default;`+showNotification)
+		`${1}Spicetify.LocalStorage=${2}.default;`+showNotification,
+	)
 
 	// Find Player (playerCosmosSymbols[0]) and Cosmos API (playerCosmosSymbols[1]) symbols
 	playerCosmosSymbols := findSymbol("player and cosmos in PlayerHelper", input, []string{
@@ -318,38 +325,52 @@ func exposeAPIs(input string) string {
 			fmt.Sprintf(
 				`;new %s(%s.resolver,"spotify:internal:queue","queue","1.0.0").subscribeToQueue((e,r)=>{if(e){console.log(e);return;}Spicetify.Queue=r.getJSONBody();});${1}`,
 				playerCosmosSymbols[0],
-				playerCosmosSymbols[1]))
+				playerCosmosSymbols[1],
+			),
+		)
 	}
 
 	// Leak addToQueue and removeFromQueue methods
 	input = utils.Replace(
 		input,
 		`(const [\w_]+=function\([\w_]+,[\w_]+\)\{)this\._bridge`,
-		"${1}"+spicetifyQueueJS+"this._bridge")
+		"${1}"+spicetifyQueueJS+"this._bridge",
+	)
 
 	// Register play/pause state change event
 	input = utils.Replace(
 		input,
 		`this\.playing\([\w_]+\.is_playing&&![\w_]+\.is_paused\).+?;`,
-		`${0}(this.playing()!==this._isPlaying)&&(this._isPlaying=this.playing(),Spicetify.Player.dispatchEvent&&Spicetify.Player.dispatchEvent(new Event("onplaypause")));`)
+		`${0}(this.playing()!==this._isPlaying)&&(this._isPlaying=this.playing(),Spicetify.Player.dispatchEvent&&Spicetify.Player.dispatchEvent(new Event("onplaypause")));`,
+	)
 
 	// Register song change event
 	input = utils.Replace(
 		input,
 		`this\._uri=[\w_]+\.uri,this\._trackMetadata=[\w_]+\.metadata`,
-		`${0},Spicetify.Player.dispatchEvent&&Spicetify.Player.dispatchEvent(new Event("songchange"))`)
+		`${0},Spicetify.Player.dispatchEvent&&Spicetify.Player.dispatchEvent(new Event("songchange"))`,
+	)
+
+	// Register app change event
+	input = utils.Replace(
+		input,
+		`(_onActivate\(\)\{)([\w_]+\.default\.dispatch\([\w_]+\.default\.activatePage)`,
+		`${1}const appChangeEvent=new Event("appchange");appChangeEvent.data=this._state._uri;Spicetify.Player.dispatchEvent(appChangeEvent);${2}`,
+	)
 
 	// Leak playbackControl to Spicetify.PlaybackControl
 	input = utils.Replace(
 		input,
 		`,(([\w_]+)\.playFromPlaylistResolver=)`,
-		`;Spicetify.PlaybackControl = ${2};${1}`)
+		`;Spicetify.PlaybackControl = ${2};${1}`,
+	)
 
 	// Disable expose function restriction
 	input = utils.Replace(
 		input,
 		`(expose=function.+?)[\w_]+\.__spotify&&[\w_]+\.__spotify\.developer_mode&&`,
-		"${1}")
+		"${1}",
+	)
 
 	return input
 }
@@ -397,7 +418,7 @@ Spicetify.Player.removeEventListener = (type, callback) => {
         return;
     }
     var stack = Spicetify.Player.eventListeners[type];
-    for (var i = 0, l = stack.length; i < l; i += 1) {
+    for (let i = 0; i < stack.length; i++) {
         if (stack[i] === callback) {
             stack.splice(i, 1);
             return;
@@ -409,8 +430,10 @@ Spicetify.Player.dispatchEvent = (event) => {
         return true;
     }
     var stack = Spicetify.Player.eventListeners[event.type];
-    for (var i = 0, l = stack.length; i < l; i += 1) {
-        stack[i](event);
+    for (let i = 0; i < stack.length; i++) {
+		if (typeof stack[i] === "function") {
+			stack[i](event);
+		}
     }
     return !event.defaultPrevented;
 };
