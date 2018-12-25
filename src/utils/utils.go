@@ -3,7 +3,6 @@ package utils
 import (
 	"archive/zip"
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,6 +13,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/go-ini/ini"
 )
@@ -146,6 +146,30 @@ func Copy(src, dest string, recursive bool, filters []string) error {
 	return nil
 }
 
+// CopyFile .
+func CopyFile(srcPath, dest string) error {
+	fSrc, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer fSrc.Close()
+
+	destPath := filepath.Join(dest, filepath.Base(srcPath))
+	fDest, err := os.OpenFile(
+		destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+	if err != nil {
+		return err
+	}
+	defer fDest.Close()
+
+	_, err = io.Copy(fDest, fSrc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Replace uses Regexp to find any matched from `input` with `regexpTerm`
 // and replaces them with `replaceTerm` then returns new string.
 func Replace(input string, regexpTerm string, replaceTerm string) string {
@@ -176,8 +200,6 @@ func GetPrefsCfg(spotifyPath string) (*ini.File, string, error) {
 		path = filepath.Join(os.Getenv("HOME"), ".config", "spotify", "prefs")
 	} else if runtime.GOOS == "darwin" {
 		path = filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "Spotify", "prefs")
-	} else {
-		return nil, "", errors.New("Unsupported OS")
 	}
 
 	cfg, err := ini.Load(path)
@@ -205,16 +227,12 @@ func GetSpotifyVersion(spotifyPath string) string {
 
 // GetExecutableDir returns directory of current process
 func GetExecutableDir() string {
-	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
-		exe, err := os.Executable()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		return filepath.Dir(exe)
+	exe, err := os.Executable()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	return ""
+	return filepath.Dir(exe)
 }
 
 // GetJsHelperDir retuns jsHelper directory in executable directory
@@ -234,4 +252,24 @@ func RestartSpotify(spotifyPath string) {
 		exec.Command("pkill", "Spotify").Run()
 		exec.Command("open", "/Applications/Spotify.app").Start()
 	}
+}
+
+// FindFlag finds flags in arrays of arguments
+// returns true if one of requested flags is found
+func FindFlag(args []string, flags ...string) bool {
+	for _, a := range args {
+		for _, f := range flags {
+			if a == f {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// PrependTime prepends current time string to text and returns new string
+func PrependTime(text string) string {
+	date := time.Now()
+	return fmt.Sprintf("%02d:%02d:%02d ", date.Hour(), date.Minute(), date.Second()) + text
 }
