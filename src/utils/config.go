@@ -10,6 +10,35 @@ import (
 	"github.com/go-ini/ini"
 )
 
+var (
+	configLayout = map[string]map[string]string{
+		"Setting": map[string]string{
+			"spotify_path":   "",
+			"current_theme":  "SpicetifyDefault",
+			"inject_css":     "1",
+			"replace_colors": "1",
+		},
+		"Preprocesses": map[string]string{
+			"disable_sentry":     "1",
+			"disable_ui_logging": "1",
+			"remove_rtl_rule":    "1",
+			"expose_apis":        "1",
+		},
+		"AdditionalOptions": map[string]string{
+			"experimental_features":        "0",
+			"fastUser_switching":           "0",
+			"home":                         "0",
+			"lyric_always_show":            "0",
+			"lyric_force_no_sync":          "0",
+			"made_for_you_hub":             "0",
+			"radio":                        "0",
+			"song_page":                    "0",
+			"visualization_high_framerate": "0",
+			"extensions":                   "",
+		},
+	}
+)
+
 type config struct {
 	path    string
 	content *ini.File
@@ -41,6 +70,26 @@ func ParseConfig(configPath string) Config {
 		return defaultConfig
 	}
 
+	needRewrite := false
+	for sectionName, keyList := range configLayout {
+		section, err := cfg.GetSection(sectionName)
+		if err != nil {
+			section, _ = cfg.NewSection(sectionName)
+			needRewrite = true
+		}
+		for keyName, defaultValue := range keyList {
+			if _, err := section.GetKey(keyName); err != nil {
+				section.NewKey(keyName, defaultValue)
+				needRewrite = true
+			}
+		}
+	}
+
+	if needRewrite {
+		PrintSuccess("Config is updated.")
+		cfg.SaveTo(configPath)
+	}
+
 	return config{
 		path:    configPath,
 		content: cfg,
@@ -68,10 +117,6 @@ func (c config) GetPath() string {
 
 func getDefaultConfig() *ini.File {
 	var cfg = ini.Empty()
-	setting, err := cfg.NewSection("Setting")
-	if err != nil {
-		panic(err)
-	}
 
 	var defaultSpotifyPath string
 	if runtime.GOOS == "windows" {
@@ -110,35 +155,17 @@ func getDefaultConfig() *ini.File {
 		}
 	}
 
-	setting.NewKey("spotify_path", defaultSpotifyPath)
-	setting.NewKey("current_theme", "SpicetifyDefault")
-	setting.NewKey("inject_css", "1")
-	setting.NewKey("replace_colors", "1")
+	configLayout["Setting"]["spotify_path"] = defaultSpotifyPath
 
-	preProc, err := cfg.NewSection("Preprocesses")
-	if err != nil {
-		panic(err)
+	for sectionName, keyList := range configLayout {
+		section, err := cfg.NewSection(sectionName)
+		if err != nil {
+			panic(err)
+		}
+		for keyName, defaultValue := range keyList {
+			section.NewKey(keyName, defaultValue)
+		}
 	}
-
-	preProc.NewKey("disable_sentry", "1")
-	preProc.NewKey("disable_ui_logging", "1")
-	preProc.NewKey("remove_rtl_rule", "1")
-	preProc.NewKey("expose_apis", "1")
-
-	feature, err := cfg.NewSection("AdditionalOptions")
-	if err != nil {
-		panic(err)
-	}
-
-	feature.NewKey("experimental_features", "0")
-	feature.NewKey("fastUser_switching", "0")
-	feature.NewKey("home", "0")
-	feature.NewKey("lyric_always_show", "0")
-	feature.NewKey("lyric_force_no_sync", "0")
-	feature.NewKey("made_for_you_hub", "0")
-	feature.NewKey("radio", "0")
-	feature.NewKey("song_page", "0")
-	feature.NewKey("visualization_high_framerate", "0")
 
 	version, err := cfg.NewSection("Backup")
 	if err != nil {
