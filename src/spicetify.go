@@ -24,28 +24,33 @@ func init() {
 
 	log.SetFlags(0)
 
-	quiet := false
-	for _, v := range os.Args {
-		if v == "-q" || v == "--quiet" {
-			quiet = true
-			break
-		}
+	quiet := utils.FindFlag(os.Args, "-q", "--quite")
+
+	if quiet {
+		log.SetOutput(ioutil.Discard)
+	} else {
+		// Supports print color output for Windows
+		log.SetOutput(colorable.NewColorableStdout())
 	}
 
 	cmd.Init(quiet)
 
 	if len(os.Args) < 2 {
-		help()
+		utils.PrintInfo(`Run "spicetify -h" for commands list.`)
 		os.Exit(0)
 	}
 
 	for k, v := range os.Args {
 		switch v {
 		case "-c", "--config":
-			log.Print(cmd.GetConfigPath())
+			fmt.Print(cmd.GetConfigPath())
 			os.Exit(0)
 		case "-h", "--help":
-			if len(os.Args) > k+1 && os.Args[k+1] == "config" {
+			kind := ""
+			if len(os.Args) > k+1 {
+				kind = os.Args[k+1]
+			}
+			if kind == "config" {
 				helpConfig()
 			} else {
 				help()
@@ -53,16 +58,9 @@ func init() {
 
 			os.Exit(0)
 		case "-v", "--version":
-			log.Print(version)
+			fmt.Print(version)
 			os.Exit(0)
 		}
-	}
-
-	if quiet {
-		log.SetOutput(ioutil.Discard)
-	} else {
-		// Supports print color output for Windows
-		log.SetOutput(colorable.NewColorableStdout())
 	}
 }
 
@@ -82,7 +80,11 @@ func main() {
 			cmd.Apply()
 
 		case "update":
-			cmd.UpdateCSS()
+			if utils.FindFlag(args, "-e", "--extension") {
+				cmd.UpdateAllExtension()
+			} else {
+				cmd.UpdateCSS()
+			}
 
 		case "restore":
 			cmd.Restore()
@@ -92,8 +94,13 @@ func main() {
 
 		case "disable-devtool":
 			cmd.SetDevTool(false)
+
 		case "watch":
-			cmd.Watch()
+			if utils.FindFlag(args, "-e", "--extension") {
+				cmd.WatchExtensions()
+			} else {
+				cmd.Watch()
+			}
 
 		default:
 			if argv[0] != '-' {
@@ -127,7 +134,8 @@ watch               Enter watch mode. Automatically update CSS when color.ini
 
 FLAGS
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations like
-                    clear backup, restore will proceed without prompting permission.
+					clear backup, restore will proceed without prompting permission.
+-e, --extension     Use with "update" or "watch" command to focus on extensions.
 -c, --config        Print config file path and quit
 -h, --help          Print this help text and quit
 -v, --version       Print version number and quit

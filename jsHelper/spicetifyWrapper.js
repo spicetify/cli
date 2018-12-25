@@ -1,36 +1,61 @@
 const Spicetify = {
     Player: {
-        addEventListener: undefined,
+        addEventListener: (type, callback) => {
+            if (!(type in Spicetify.Player.eventListeners)) {
+                Spicetify.Player.eventListeners[type] = [];
+            }
+            Spicetify.Player.eventListeners[type].push(callback)
+        },
         back: undefined,
         data: undefined,
         decreaseVolume: undefined,
-        dispatchEvent: undefined,
-        eventListeners: undefined,
+        dispatchEvent: (event) => {
+            if (!(event.type in Spicetify.Player.eventListeners)) {
+                return true;
+            }
+            var stack = Spicetify.Player.eventListeners[event.type];
+            for (let i = 0; i < stack.length; i++) {
+                if (typeof stack[i] === "function") {
+                    stack[i](event);
+                }
+            }
+            return !event.defaultPrevented;
+        },
+        eventListeners: {},
         formatTime: undefined,
         getDuration: undefined,
+        getHeart: () => {Spicetify.LiveAPI(Spicetify.Player.data.track.uri).get("added")},
         getMute: undefined,
         getProgressMs: undefined,
         getProgressPercent: undefined,
         getRepeat: undefined,
         getShuffle: undefined,
-        getThumbDown: undefined,
-        getThumbUp: undefined,
         getVolume: undefined,
         increaseVolume: undefined,
         isPlaying: undefined,
         next: undefined,
-        pause: undefined,
-        play: undefined,
-        removeEventListener: undefined,
+        pause: () => {Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
+        play: () => {!Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
+        removeEventListener: (type, callback) => {
+            if (!(type in Spicetify.Player.eventListeners)) {
+                return;
+            }
+            var stack = Spicetify.Player.eventListeners[type];
+            for (let i = 0; i < stack.length; i++) {
+                if (stack[i] === callback) {
+                    stack.splice(i, 1);
+                    return;
+                }
+            }
+        },
         seek: undefined,
         setMute: undefined,
         setRepeat: undefined,
         setShuffle: undefined,
         setVolume: undefined,
-        skipBack: undefined,
-        skipForward: undefined,
-        thumbDown: undefined,
-        thumbUp: undefined,
+        skipBack: (amount = 15e3) => {Spicetify.Player.seek(Spicetify.Player.getProgressMs() - amount)},
+        skipForward: (amount = 15e3) => {Spicetify.Player.seek(Spicetify.Player.getProgressMs() + amount)},
+        toggleHeart: () => {document.querySelector('[data-interaction-target="save-remove-button"]').click()},
         toggleMute: undefined,
         togglePlay: undefined,
         toggleRepeat: undefined,
@@ -43,7 +68,15 @@ const Spicetify = {
 
     CosmosAPI: undefined,
 
+    Event: undefined,
+
+    EventDispatcher: undefined,
+
+    extractColors: undefined,
+
     getAudioData: undefined,
+
+    Keyboard: undefined,
 
     LibURI: undefined,
 
@@ -57,13 +90,21 @@ const Spicetify = {
 
     removeFromQueue: undefined,
 
+    showNotification: (text) => {
+        Spicetify.EventDispatcher.dispatchEvent(
+            new Spicetify.Event(Spicetify.Event.TYPES.SHOW_NOTIFICATION_BUBBLE, { i18n: text }))
+    },
+
     test: () => {
         const SPICETIFY_METHOD = [
             "Player",
             "addToQueue",
             "BridgeAPI",
             "CosmosAPI",
+            "Event",
+            "EventDispatcher",
             "getAudioData",
+            "Keyboard",
             "LibURI",
             "LiveAPI",
             "LocalStorage",
@@ -82,13 +123,12 @@ const Spicetify = {
             "eventListeners",
             "formatTime",
             "getDuration",
+            "getHeart",
             "getMute",
-            "getProgressMs",
+            "getProgress",
             "getProgressPercent",
             "getRepeat",
             "getShuffle",
-            "getThumbDown",
-            "getThumbUp",
             "getVolume",
             "increaseVolume",
             "isPlaying",
@@ -103,8 +143,7 @@ const Spicetify = {
             "setVolume",
             "skipBack",
             "skipForward",
-            "thumbDown",
-            "thumbUp",
+            "toggleHeart",
             "toggleMute",
             "togglePlay",
             "toggleRepeat",
@@ -897,13 +936,6 @@ Spicetify.LibURI = (function () {
         configurable: true
     });
 
-    /**
-     * Creates an application URI object from the current URI object.
-     *
-     * If the current URI object is already an application type, a copy is made.
-     *
-     * @return {URI} The current URI as an application URI.
-     */
     URI.prototype.toAppType = function () {
         if (this.type == URI.Type.APPLICATION) {
             return URI.applicationURI(this.id, this.args);
@@ -923,14 +955,6 @@ Spicetify.LibURI = (function () {
             return result;
         }
     };
-
-    /**
-     * Creates a URI object from an application URI object.
-     *
-     * If the current URI object is not an application type, a copy is made.
-     *
-     * @return {URI} The current URI as a real typed URI.
-     */
     URI.prototype.toRealType = function () {
         if (this.type == URI.Type.APPLICATION) {
             return _parseFromComponents([this.id].concat(this.args), Format.URI);
@@ -938,32 +962,12 @@ Spicetify.LibURI = (function () {
             return new URI(null, this);
         }
     };
-
-    /**
-     * Returns the URI representation of this URI.
-     *
-     * @return {String} The URI representation of this uri.
-     */
     URI.prototype.toURI = function () {
         return URI_PREFIX + _getComponents(this, Format.URI).join(':');
     };
-
-    /**
-     * Returns the String representation of this URI.
-     *
-     * @return {String} The URI representation of this uri.
-     * @see {URI#toURI}
-     */
     URI.prototype.toString = function () {
         return this.toURI();
     };
-
-    /**
-     * Get the URL path of this uri.
-     *
-     * @param {boolean} opt_leadingSlash True if a leading slash should be prepended.
-     * @return {String} The path of this uri.
-     */
     URI.prototype.toURLPath = function (opt_leadingSlash) {
         var components = _getComponents(this, Format.URL);
         if (components[0] === URI.Type.APP) {
@@ -996,68 +1000,24 @@ Spicetify.LibURI = (function () {
         var path = components.join('/');
         return opt_leadingSlash ? '/' + path : path;
     };
-
-    /**
-     * Returns the Play URL string for the uri.
-     *
-     * @return {string} The Play URL string for the uri.
-     */
     URI.prototype.toPlayURL = function () {
         return PLAY_HTTPS_PREFIX + this.toURLPath();
     };
-
-    /**
-     * Returns the URL string for the uri.
-     *
-     * @return {string} The URL string for the uri.
-     * @see {URL#toPlayURL}
-     */
     URI.prototype.toURL = function () {
         return this.toPlayURL();
     };
-
-    /**
-     * Returns the Open URL string for the uri.
-     *
-     * @return {string} The Open URL string for the uri.
-     */
     URI.prototype.toOpenURL = function () {
         return OPEN_HTTPS_PREFIX + this.toURLPath();
     };
-
-    /**
-     * Returns the Play HTTPS URL string for the uri.
-     *
-     * @return {string} The Play HTTPS URL string for the uri.
-     */
     URI.prototype.toSecurePlayURL = function () {
         return this.toPlayURL();
     };
-
-    /**
-     * Returns the HTTPS URL string for the uri.
-     *
-     * @return {string} The HTTPS URL string for the uri.
-     * @see {URL#toSecurePlayURL}
-     */
     URI.prototype.toSecureURL = function () {
         return this.toPlayURL();
     };
-
-    /**
-     * Returns the Open HTTPS URL string for the uri.
-     *
-     * @return {string} The Open HTTPS URL string for the uri.
-     */
     URI.prototype.toSecureOpenURL = function () {
         return this.toOpenURL();
     };
-
-    /**
-     * Returns the id of the uri as a bytestring.
-     *
-     * @return {Array} The id of the uri as a bytestring.
-     */
     URI.prototype.idToByteString = function () {
         var hexId = Base62.toHex(this._base62Id);
         if (!hexId) {
@@ -1085,20 +1045,6 @@ Spicetify.LibURI = (function () {
     URI.prototype.getBase62Id = function () {
         return this._base62Id;
     }
-
-
-    /**
-    * Checks whether two URI:s refer to the same thing even though they might
-    * not necessarily be equal.
-    *
-    * These two Playlist URIs, for example, refer to the same playlist:
-    *
-    *   spotify:user:napstersean:playlist:3vxotOnOGDlZXyzJPLFnm2
-    *   spotify:playlist:3vxotOnOGDlZXyzJPLFnm2
-    *
-    * @param {*} uri The uri to compare identity for.
-    * @return {boolean} Whether they shared idenitity
-    */
     URI.prototype.isSameIdentity = function (uri) {
         var uriObject = URI.from(uri);
         if (!uriObject) return false;
@@ -1118,15 +1064,6 @@ Spicetify.LibURI = (function () {
             return false;
         }
     }
-
-    /**
-     * The various URI Types.
-     *
-     * Note that some of the types in this enum are not real URI types, but are
-     * actually URI particles. They are marked so.
-     *
-     * @enum {string}
-     */
     URI.Type = {
         EMPTY: 'empty',
         ALBUM: 'album',
@@ -1185,34 +1122,10 @@ Spicetify.LibURI = (function () {
         /** Deprecated contant. Please use USER_TOP_TRACKS. */
         USET_TOP_TRACKS: 'user-top-tracks'
     };
-
-    /**
-     * Creates a new URI object from a parsed string argument.
-     *
-     * @param {string} str The string that will be parsed into a URI object.
-     * @throws TypeError If the string argument is not a valid URI, a TypeError will
-     *     be thrown.
-     * @return {URI} The parsed URI object.
-     */
     URI.fromString = function (str) {
         var splitted = _splitIntoComponents(str);
         return _parseFromComponents(splitted.components, splitted.format, splitted.query);
     };
-
-    /**
-     * Parses a given object into a URI instance.
-     *
-     * Unlike URI.fromString, this function could receive any kind of value. If
-     * the value is already a URI instance, it is simply returned.
-     * Otherwise the value will be stringified before parsing.
-     *
-     * This function also does not throw an error like URI.fromString, but
-     * instead simply returns null if it can't parse the value.
-     *
-     * @param {*} value The value to parse.
-     * @return {URI?} The corresponding URI instance, or null if the
-     *     passed value is not a valid value.
-     */
     URI.from = function (value) {
         try {
             if (value instanceof URI) {
@@ -1226,15 +1139,6 @@ Spicetify.LibURI = (function () {
             return null;
         }
     };
-
-    /**
-     * Creates a new URI from a bytestring.
-     *
-     * @param {URI.Type} type The type of the URI.
-     * @param {ByteString} idByteString The ID of the URI as a bytestring.
-     * @param {Object} opt_args Optional arguments to the URI constructor.
-     * @return {URI} The URI object created.
-     */
     URI.fromByteString = function (type, idByteString, opt_args) {
         while (idByteString.length != 16) {
             idByteString = String.fromCharCode(0) + idByteString;
@@ -1249,162 +1153,54 @@ Spicetify.LibURI = (function () {
         args.id = id;
         return new URI(type, args);
     };
-
-    /**
-     * Clones a given SpotifyURI instance.
-     *
-     * @param {URI} uri The uri to clone.
-     * @return {URI?} An instance of URI.
-     */
     URI.clone = function (uri) {
         if (!(uri instanceof URI)) {
             return null;
         }
         return new URI(null, uri);
     };
-
-    /**
-     * @deprecated
-     */
-    URI.getCanonical = function (username) {
-        return this.getCanonical(username);
-    };
-
-    /**
-     * Returns the canonical representation of a username.
-     *
-     * @param {string} username The username to encode.
-     * @return {string} The encoded canonical representation of the username.
-     */
     URI.getCanonicalUsername = function (username) {
         return _encodeComponent(username, Format.URI);
     };
-
-    /**
-     * Returns the non-canonical representation of a username.
-     *
-     * @param {string} username The username to encode.
-     * @return {string} The unencoded canonical representation of the username.
-     */
     URI.getDisplayUsername = function (username) {
         return _decodeComponent(username, Format.URI);
     };
-
-    /**
-     * Returns the hex representation of a Base62 encoded id.
-     *
-     * @param {string} id The base62 encoded id.
-     * @return {string} The hex representation of the base62 id.
-     */
     URI.idToHex = function (id) {
         if (id.length == 22) {
             return Base62.toHex(id);
         }
         return id;
     };
-
-    /**
-     * Returns the base62 representation of a hex encoded id.
-     *
-     * @param {string} hex The hex encoded id.
-     * @return {string} The base62 representation of the id.
-     */
     URI.hexToId = function (hex) {
         if (hex.length == 32) {
             return Base62.fromHex(hex);
         }
         return hex;
     };
-
-    /**
-     * Creates a new empty URI.
-     *
-     * @return {URI} The empty URI.
-     */
     URI.emptyURI = function () {
         return new URI(URI.Type.EMPTY, {});
     };
-
-    /**
-     * Creates a new 'album' type URI.
-     *
-     * @param {string} id The id of the album.
-     * @param {number} disc The disc number of the album.
-     * @return {URI} The album URI.
-     */
     URI.albumURI = function (id, disc) {
         return new URI(URI.Type.ALBUM, { id: id, disc: disc });
     };
-
-    /**
-     * Creates a new 'ad' type URI.
-     *
-     * @param {string} id The id of the ad.
-     * @return {URI} The ad URI.
-     */
     URI.adURI = function (id) {
         return new URI(URI.Type.AD, { id: id });
     };
-
-    /**
-     * Creates a new 'audiofile' type URI.
-     *
-     * @param {string} extension The extension of the audiofile.
-     * @param {string} id The id of the extension.
-     * @return {URI} The audiofile URI.
-     */
     URI.audioFileURI = function (extension, id) {
         return new URI(URI.Type.AUDIO_FILE, { id: id, extension: extension });
     };
-
-    /**
-     * Creates a new 'artist' type URI.
-     *
-     * @param {string} id The id of the artist.
-     * @return {URI} The artist URI.
-     */
     URI.artistURI = function (id) {
         return new URI(URI.Type.ARTIST, { id: id });
     };
-
-    /**
-     * Creates a new 'artist-toplist' type URI.
-     *
-     * @param {string} id The id of the artist.
-     * @param {string} toplist The toplist type.
-     * @return {URI} The artist-toplist URI.
-     */
     URI.artistToplistURI = function (id, toplist) {
         return new URI(URI.Type.ARTIST_TOPLIST, { id: id, toplist: toplist });
     };
-
-    /**
-     * Creates a new 'dailymix' type URI.
-     *
-     * @param {Array.<string>} args An array of arguments for the dailymix.
-     * @return {URI} The dailymix URI.
-     */
     URI.dailyMixURI = function (id) {
         return new URI(URI.Type.DAILY_MIX, { id: id });
     };
-
-    /**
-     * Creates a new 'search' type URI.
-     *
-     * @param {string} query The unencoded search query.
-     * @return {URI} The search URI
-     */
     URI.searchURI = function (query) {
         return new URI(URI.Type.SEARCH, { query: query });
     };
-
-    /**
-     * Creates a new 'track' type URI.
-     *
-     * @param {string} id The id of the track.
-     * @param {string} anchor The point in the track formatted as mm:ss
-     * @return {URI} The track URI.
-     */
     URI.trackURI = function (id, anchor, context, play) {
         return new URI(URI.Type.TRACK, {
             id: id,
@@ -1413,15 +1209,6 @@ Spicetify.LibURI = (function () {
             play: play
         });
     };
-
-    /**
-     * Creates a new 'trackset' type URI.
-     *
-     * @param {Array.<URI>} tracks An array of 'track' type URIs.
-     * @param {string} name The name of the trackset.
-     * @param {number} index The index in the trackset.
-     * @return {URI} The trackset URI.
-     */
     URI.tracksetURI = function (tracks, name, index) {
         return new URI(URI.Type.TRACKSET, {
             tracks: tracks,
@@ -1429,184 +1216,54 @@ Spicetify.LibURI = (function () {
             index: isNaN(index) ? null : index
         });
     };
-
-    /**
-     * Creates a new 'facebook' type URI.
-     *
-     * @param {string} uid The user id.
-     * @return {URI} The facebook URI.
-     */
     URI.facebookURI = function (uid) {
         return new URI(URI.Type.FACEBOOK, { uid: uid });
     };
-
-    /**
-     * Creates a new 'followers' type URI.
-     *
-     * @param {string} username The non-canonical username.
-     * @return {URI} The followers URI.
-     */
     URI.followersURI = function (username) {
         return new URI(URI.Type.FOLLOWERS, { username: username });
     };
-
-    /**
-     * Creates a new 'following' type URI.
-     *
-     * @param {string} username The non-canonical username.
-     * @return {URI} The following URI.
-     */
     URI.followingURI = function (username) {
         return new URI(URI.Type.FOLLOWING, { username: username });
     };
-
-    /**
-     * Creates a new 'playlist' type URI.
-     *
-     * @param {string} username The non-canonical username of the playlist owner.
-     * @param {string} id The id of the playlist.
-     * @return {URI} The playlist URI.
-     */
     URI.playlistURI = function (username, id) {
         return new URI(URI.Type.PLAYLIST, { username: username, id: id });
     };
-
-    /**
-     * Creates a new 'playlist-v2' type URI.
-     *
-     * @param {string} id The id of the playlist.
-     * @return {URI} The playlist URI.
-     */
     URI.playlistV2URI = function (id) {
         return new URI(URI.Type.PLAYLIST_V2, { id: id });
     };
-
-    /**
-     * Creates a new 'folder' type URI.
-     *
-     * @param {string} username The non-canonical username of the folder owner.
-     * @param {string} id The id of the folder.
-     * @return {URI} The folder URI.
-     */
     URI.folderURI = function (username, id) {
         return new URI(URI.Type.FOLDER, { username: username, id: id });
     };
-
-    /**
-     * Creates a new 'collectiontracklist' type URI.
-     *
-     * @param {string} username The non-canonical username of the collection owner.
-     * @param {string} id The id of the tracklist.
-     * @return {URI} The collectiontracklist URI.
-     */
     URI.collectionTrackList = function (username, id) {
         return new URI(URI.Type.COLLECTION_TRACK_LIST, { username: username, id: id });
     };
-
-    /**
-     * Creates a new 'starred' type URI.
-     *
-     * @param {string} username The non-canonical username of the starred list owner.
-     * @return {URI} The starred URI.
-     */
     URI.starredURI = function (username) {
         return new URI(URI.Type.STARRED, { username: username });
     };
-
-    /**
-     * Creates a new 'user-toplist' type URI.
-     *
-     * @param {string} username The non-canonical username of the toplist owner.
-     * @param {string} toplist The toplist type.
-     * @return {URI} The user-toplist URI.
-     */
     URI.userToplistURI = function (username, toplist) {
         return new URI(URI.Type.USER_TOPLIST, { username: username, toplist: toplist });
     };
-
-    /**
-     * Creates a new 'user-top-tracks' type URI.
-     *
-     * @deprecated
-     * @param {string} username The non-canonical username of the toplist owner.
-     * @return {URI} The user-top-tracks URI.
-     */
     URI.userTopTracksURI = function (username) {
         return new URI(URI.Type.USER_TOP_TRACKS, { username: username });
     };
-
-    /**
-     * Creates a new 'toplist' type URI.
-     *
-     * @param {string} toplist The toplist type.
-     * @param {string} country The country code for the toplist.
-     * @param {boolean} global True if this is a global rather than a country list.
-     * @return {URI} The toplist URI.
-     */
     URI.toplistURI = function (toplist, country, global) {
         return new URI(URI.Type.TOPLIST, { toplist: toplist, country: country, global: !!global });
     };
-
-    /**
-     * Creates a new 'inbox' type URI.
-     *
-     * @param {string} username The non-canonical username of the inbox owner.
-     * @return {URI} The inbox URI.
-     */
     URI.inboxURI = function (username) {
         return new URI(URI.Type.INBOX, { username: username });
     };
-
-    /**
-     * Creates a new 'rootlist' type URI.
-     *
-     * @param {string} username The non-canonical username of the rootlist owner.
-     * @return {URI} The rootlist URI.
-     */
     URI.rootlistURI = function (username) {
         return new URI(URI.Type.ROOTLIST, { username: username });
     };
-
-    /**
-     * Creates a new 'published-rootlist' type URI.
-     *
-     * @param {string} username The non-canonical username of the published-rootlist owner.
-     * @return {URI} The published-rootlist URI.
-     */
     URI.publishedRootlistURI = function (username) {
         return new URI(URI.Type.PUBLISHED_ROOTLIST, { username: username });
     };
-
-    /**
-     * Creates a new 'local-artist' type URI.
-     *
-     * @param {string} artist The artist name.
-     * @return {URI} The local-artist URI.
-     */
     URI.localArtistURI = function (artist) {
         return new URI(URI.Type.LOCAL_ARTIST, { artist: artist });
     };
-
-    /**
-     * Creates a new 'local-album' type URI.
-     *
-     * @param {string} artist The artist name.
-     * @param {string} album The album name.
-     * @return {URI} The local-album URI.
-     */
     URI.localAlbumURI = function (artist, album) {
         return new URI(URI.Type.LOCAL_ALBUM, { artist: artist, album: album });
     };
-
-    /**
-     * Creates a new 'local' type URI.
-     *
-     * @param {string} artist The artist name.
-     * @param {string} album The album name.
-     * @param {string} track The track name.
-     * @param {number} duration The track duration in ms.
-     * @return {URI} The local URI.
-     */
     URI.localURI = function (artist, album, track, duration) {
         return new URI(URI.Type.LOCAL, {
             artist: artist,
@@ -1615,169 +1272,52 @@ Spicetify.LibURI = (function () {
             duration: duration
         });
     };
-
-    /**
-     * Creates a new 'library' type URI.
-     *
-     * @param {string} username The non-canonical username of the rootlist owner.
-     * @param {string} category The category of the library.
-     * @return {URI} The library URI.
-     */
     URI.libraryURI = function (username, category) {
         return new URI(URI.Type.LIBRARY, { username: username, category: category });
     };
-
-    /**
-     * Creates a new 'collection' type URI.
-     *
-     * @param {string} username The non-canonical username of the rootlist owner.
-     * @param {string} category The category of the collection.
-     * @return {URI} The collection URI.
-     */
     URI.collectionURI = function (username, category) {
         return new URI(URI.Type.COLLECTION, { username: username, category: category });
     };
-
-    /**
-     * Creates a new 'temp-playlist' type URI.
-     *
-     * @param {string} origin The origin of the temporary playlist.
-     * @param {string} data Additional data for the playlist.
-     * @return {URI} The temp-playlist URI.
-     */
     URI.temporaryPlaylistURI = function (origin, data) {
         return new URI(URI.Type.TEMP_PLAYLIST, { origin: origin, data: data });
     };
-
-    /**
-     * Creates a new 'context-group' type URI.
-     *
-     * @deprecated
-     * @param {string} origin The origin of the temporary playlist.
-     * @param {string} name The name of the context group.
-     * @return {URI} The context-group URI.
-     */
     URI.contextGroupURI = function (origin, name) {
         return new URI(URI.Type.CONTEXT_GROUP, { origin: origin, name: name });
     };
-
-    /**
-     * Creates a new 'profile' type URI.
-     *
-     * @param {string} username The non-canonical username of the rootlist owner.
-     * @param {Array.<string>} args A list of arguments.
-     * @return {URI} The profile URI.
-     */
     URI.profileURI = function (username, args) {
         return new URI(URI.Type.PROFILE, { username: username, args: args });
     };
-
-    /**
-     * Creates a new 'image' type URI.
-     *
-     * @param {string} id The id of the image.
-     * @return {URI} The image URI.
-     */
     URI.imageURI = function (id) {
         return new URI(URI.Type.IMAGE, { id: id });
     };
-
-    /**
-     * Creates a new 'mosaic' type URI.
-     *
-     * @param {Array.<string>} ids The ids of the mosaic immages.
-     * @return {URI} The mosaic URI.
-     */
     URI.mosaicURI = function (ids) {
         return new URI(URI.Type.MOSAIC, { ids: ids });
     };
-
-    /**
-     * Creates a new 'radio' type URI.
-     *
-     * @param {string} args The radio seed arguments.
-     * @return {URI} The radio URI.
-     */
     URI.radioURI = function (args) {
         args = typeof args === 'undefined' ? '' : args;
         return new URI(URI.Type.RADIO, { args: args });
     };
-
-    /**
-     * Creates a new 'special' type URI.
-     *
-     * @param {Array.<string>} args An array containing the other arguments.
-     * @return {URI} The special URI.
-     */
     URI.specialURI = function (args) {
         args = typeof args === 'undefined' ? [] : args;
         return new URI(URI.Type.SPECIAL, { args: args });
     };
-
-    /**
-     * Creates a new 'station' type URI.
-     *
-     * @param {Array.<string>} args An array of arguments for the station.
-     * @return {URI} The station URI.
-     */
     URI.stationURI = function (args) {
         args = typeof args === 'undefined' ? [] : args;
         return new URI(URI.Type.STATION, { args: args });
     };
-
-    /**
-     * Creates a new 'application' type URI.
-     *
-     * @param {string} id The id of the application.
-     * @param {Array.<string>} args An array containing the arguments to the app.
-     * @return {URI} The application URI.
-     */
     URI.applicationURI = function (id, args) {
         args = typeof args === 'undefined' ? [] : args;
         return new URI(URI.Type.APPLICATION, { id: id, args: args });
     };
-
-    /**
-     * Creates a new 'collection-album' type URI.
-     *
-     * @param {string} username The non-canonical username of the rootlist owner.
-     * @param {string} id The id of the album.
-     * @return {URI} The collection-album URI.
-     */
     URI.collectionAlbumURI = function (username, id) {
         return new URI(URI.Type.COLLECTION_ALBUM, { username: username, id: id });
     };
-
-    /**
-     * Creates a new 'collection-album-missing' type URI.
-     *
-     * @param {string} username The non-canonical username of the rootlist owner.
-     * @param {string} id The id of the album.
-     * @return {URI} The collection-album-missing URI.
-     */
     URI.collectionMissingAlbumURI = function (username, id) {
         return new URI(URI.Type.COLLECTION_MISSING_ALBUM, { username: username, id: id });
     };
-
-    /**
-     * Creates a new 'collection-artist' type URI.
-     *
-     * @param {string} username The non-canonical username of the rootlist owner.
-     * @param {string} id The id of the artist.
-     * @return {URI} The collection-artist URI.
-     */
     URI.collectionArtistURI = function (username, id) {
         return new URI(URI.Type.COLLECTION_ARTIST, { username: username, id: id });
     };
-
-    /**
-     * Creates a new 'episode' type URI.
-     *
-     * @param {string} id The id of the episode.
-     * @param {string} context An optional context URI
-     * @param {boolean} play Toggles autoplay in the episode URI
-     * @return {URI} The episode URI.
-     */
     URI.episodeURI = function (id, context, play) {
         return new URI(URI.Type.EPISODE, {
             id: id,
@@ -1785,23 +1325,9 @@ Spicetify.LibURI = (function () {
             play: play
         });
     };
-
-    /**
-     * Creates a new 'show' type URI.
-     *
-     * @param {string} id The id of the show.
-     * @return {URI} The show URI.
-     */
     URI.showURI = function (id) {
         return new URI(URI.Type.SHOW, { id: id });
     };
-
-    /**
-     * Creates a new 'concert' type URI.
-     *
-     * @param {string} id The id of the concert.
-     * @return {URI} The concert URI.
-     */
     URI.concertURI = function (id) {
         return new URI(URI.Type.CONCERT, { id: id });
     };
@@ -1842,29 +1368,57 @@ Spicetify.LibURI = (function () {
     return URI;
 })();
 
-Spicetify.getAudioData = (callback, uri) => {
-    uri = uri || Spicetify.Player.data.track.uri;
-    if (typeof(callback) !== "function" ) {
-        console.log("Spicetify.getAudioData: callback has to be a function");
-        return;
-    };
-    var id = Spicetify.LibURI.from(uri).id;
-    if (id) {
-        window.cosmos.resolver.get(`hm://audio-attributes/v1/audio-analysis/${id}`, (error, payload) => {
-            if (error) {
-                console.log(error);
-                callback(null);
-                return;
+Spicetify.getAudioData = (uri) => {
+    return new Promise((resolve, reject) => {
+        uri = uri || Spicetify.Player.data.track.uri;
+        const uriObj = Spicetify.LibURI.from(uri);
+        if (!uriObj && uriObj.Type !== Spicetify.LibURI.Type.TRACK) {
+            reject("URI is invalid.");
+            return;
+        }
+
+        Spicetify.CosmosAPI.resolver.get(
+            `hm://audio-attributes/v1/audio-analysis/${uriObj.getBase62Id()}`,
+            (error, payload) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+
+                resolve(payload.getJSONBody());
+            })
+    });
+}
+
+Spicetify.getAblumArtColors = (uri) => {
+    return new Promise((resolve, reject) => {
+        uri = uri || Spicetify.Player.data.track.uri;
+        if (Spicetify.LibURI.isTrack(uri)) {
+            reject("URI is invalid.");
+            return;
+        }
+
+        Spicetify.CosmosAPI.resolver.get(
+            `hm://colorextractor/v1/extract-presets?uri=${uri}&format=json`,
+            (error, payload) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+
+                const body = payload.getJSONBody();
+                if (body.entries && body.entries.length) {
+                    const list = {};
+                    for (const color of body.entries[0].color_swatches) {
+                        list[color.preset] = `#${color.color.toString(16).padStart(3, "0")}`;
+                    }
+                    resolve(list);
+                } else {
+                    resolve(null);
+                }
             }
-            if (payload._status === 200 && payload._body && payload._body !== "") {
-                var data = JSON.parse(payload._body);
-                data.uri=uri;
-                callback(data);
-            } else {
-                callback(null)
-            }
-        })
-    };
+        );
+    });
 }
 
 /**
@@ -1882,8 +1436,8 @@ Spicetify.getAudioData = (callback, uri) => {
     }
 
     if (!Spicetify.CosmosAPI
-    || !Spicetify.BridgeAPI
-    || !Spicetify.LiveAPI) {
+        || !Spicetify.BridgeAPI
+        || !Spicetify.LiveAPI) {
         setTimeout(findAPI, 1000)
     }
 })();

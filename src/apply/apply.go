@@ -22,6 +22,7 @@ type Flag struct {
 	Radio                bool
 	SongPage             bool
 	VisHighFramerate     bool
+	Extension            []string
 }
 
 // AdditionalOptions .
@@ -49,6 +50,14 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 				}
 			case ".css":
 			case ".html":
+				if appName == "zlink" && len(flags.Extension) > 0 {
+					utils.ModifyFile(path, func(content string) string {
+						for _, v := range flags.Extension {
+							content = utils.Replace(content, `</body>`, `<script class="spicetify-extension" src="`+v+`"></script>${0}`)
+						}
+						return content
+					})
+				}
 			}
 			return nil
 		})
