@@ -369,7 +369,7 @@ func exposeAPIs(input string) string {
 	};
 
 	const eventCB = ({data: info}) => {
-		if (info && info.type === "notify_loaded") {
+		if (info && info.type === "notify_ready") {
 			Spicetify.Player.dispatchEvent(appEvent);
 			window.removeEventListener("message", eventCB)
 		}
