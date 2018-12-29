@@ -3,13 +3,13 @@ package cmd
 import (
 	"log"
 
-	"../utils"
 	"github.com/go-ini/ini"
+	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
 // SetDevTool enables/disables developer mode of Spotify client
 func SetDevTool(enable bool) {
-	pref, prefFilePath, err := utils.GetPrefsCfg(spotifyPath)
+	pref, err := ini.Load(prefsPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,11 +28,12 @@ func SetDevTool(enable bool) {
 	}
 
 	ini.PrettyFormat = false
-	if pref.SaveTo(prefFilePath) == nil {
+	if pref.SaveTo(prefsPath) == nil {
 		if enable {
-			utils.PrintSuccess("DevTool enabled! Restart your Spotify client.")
+			utils.PrintSuccess("DevTool enabled!")
 		} else {
-			utils.PrintSuccess("DevTool disabled! Restart your Spotify client.")
+			utils.PrintSuccess("DevTool disabled!")
 		}
+		RestartSpotify()
 	}
 }

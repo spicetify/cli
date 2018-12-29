@@ -6,16 +6,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"../backup"
-	"../preprocess"
-	"../status/backup"
-	"../utils"
+	"github.com/khanhas/spicetify-cli/src/backup"
+	"github.com/khanhas/spicetify-cli/src/preprocess"
+	backupstatus "github.com/khanhas/spicetify-cli/src/status/backup"
+	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
 // Backup .
 func Backup() {
 	backupVersion := backupSection.Key("version").MustString("")
-	curBackupStatus := backupstatus.Get(spotifyPath, backupFolder, backupVersion)
+	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 	if curBackupStatus != backupstatus.EMPTY {
 		utils.PrintWarning("There is available backup, clear current backup first!")
 		ClearBackup()
@@ -78,7 +78,7 @@ func Backup() {
 	preprocess.StartCSS(themedFolder, tracker.Update)
 	tracker.Finish()
 
-	backupSection.Key("version").SetValue(utils.GetSpotifyVersion(spotifyPath))
+	backupSection.Key("version").SetValue(utils.GetSpotifyVersion(prefsPath))
 	cfg.Write()
 	utils.PrintSuccess("Everything is ready, you can start applying now!")
 }
@@ -102,7 +102,7 @@ func ClearBackup() {
 // Restore .
 func Restore() {
 	backupVersion := backupSection.Key("version").MustString("")
-	curBackupStatus := backupstatus.Get(spotifyPath, backupFolder, backupVersion)
+	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 
 	if curBackupStatus == backupstatus.EMPTY {
 		utils.PrintError(`You haven't backed up.`)
@@ -121,5 +121,5 @@ func Restore() {
 	os.RemoveAll(appFolder)
 	utils.Copy(backupFolder, appFolder, false, []string{".spa"})
 	utils.PrintSuccess("Spotify is restored.")
-	utils.RestartSpotify(spotifyPath)
+	RestartSpotify()
 }

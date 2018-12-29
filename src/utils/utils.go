@@ -8,10 +8,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
@@ -191,27 +189,9 @@ func ModifyFile(path string, repl func(string) string) {
 	ioutil.WriteFile(path, []byte(content), 0700)
 }
 
-// GetPrefsCfg finds `prefs` file path based on OS and returns an `ini.File` ref.
-func GetPrefsCfg(spotifyPath string) (*ini.File, string, error) {
-	var path string
-	if runtime.GOOS == "windows" {
-		path = filepath.Join(spotifyPath, "prefs")
-	} else if runtime.GOOS == "linux" {
-		path = filepath.Join(os.Getenv("HOME"), ".config", "spotify", "prefs")
-	} else if runtime.GOOS == "darwin" {
-		path = filepath.Join(os.Getenv("HOME"), "Library", "Application Support", "Spotify", "prefs")
-	}
-
-	cfg, err := ini.Load(path)
-	if err != nil {
-		cfg = ini.Empty()
-	}
-	return cfg, path, nil
-}
-
 // GetSpotifyVersion .
-func GetSpotifyVersion(spotifyPath string) string {
-	pref, _, err := GetPrefsCfg(spotifyPath)
+func GetSpotifyVersion(prefsPath string) string {
+	pref, err := ini.Load(prefsPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -238,20 +218,6 @@ func GetExecutableDir() string {
 // GetJsHelperDir retuns jsHelper directory in executable directory
 func GetJsHelperDir() string {
 	return filepath.Join(GetExecutableDir(), "jsHelper")
-}
-
-// RestartSpotify .
-func RestartSpotify(spotifyPath string) {
-	if runtime.GOOS == "windows" {
-		exec.Command("taskkill", "/F", "/IM", "spotify.exe").Run()
-		exec.Command(filepath.Join(spotifyPath, "spotify.exe")).Start()
-	} else if runtime.GOOS == "linux" {
-		exec.Command("pkill", "spotify").Run()
-		exec.Command(filepath.Join(spotifyPath, "spotify")).Start()
-	} else if runtime.GOOS == "darwin" {
-		exec.Command("pkill", "Spotify").Run()
-		exec.Command("open", "/Applications/Spotify.app").Start()
-	}
 }
 
 // FindFlag finds flags in arrays of arguments

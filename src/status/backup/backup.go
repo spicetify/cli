@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"../../utils"
+	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
 // Enum is type of backup status constants
@@ -21,7 +21,7 @@ const (
 )
 
 // Get returns status of backup folder
-func Get(spotifyPath, backupPath, backupVersion string) Enum {
+func Get(prefsPath, backupPath, backupVersion string) Enum {
 	fileList, err := ioutil.ReadDir(backupPath)
 	if err != nil {
 		log.Fatal(err)
@@ -39,7 +39,7 @@ func Get(spotifyPath, backupPath, backupVersion string) Enum {
 	}
 
 	if spaCount > 0 {
-		spotifyVersion := utils.GetSpotifyVersion(spotifyPath)
+		spotifyVersion := utils.GetSpotifyVersion(prefsPath)
 
 		if backupVersion != spotifyVersion {
 			return OUTDATED
