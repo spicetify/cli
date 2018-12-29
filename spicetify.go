@@ -7,13 +7,13 @@ import (
 	"os"
 	"runtime"
 
-	"./cmd"
-	"./utils"
-	"gopkg.in/mattn/go-colorable.v0"
+	"github.com/khanhas/spicetify-cli/src/cmd"
+	"github.com/khanhas/spicetify-cli/src/utils"
+	colorable "gopkg.in/mattn/go-colorable.v0"
 )
 
 const (
-	version = "0.2.0"
+	version = "0.4.0"
 )
 
 func init() {
@@ -102,6 +102,9 @@ func main() {
 				cmd.Watch()
 			}
 
+		case "restart":
+			cmd.RestartSpotify()
+
 		default:
 			if argv[0] != '-' {
 				utils.PrintError(`Command "` + argv + `" not found.`)
@@ -131,10 +134,11 @@ enable-devtool      Enable Spotify's developer tools (Console, Inspect Elements,
 disable-devtool     Disable Spotify's developer tools.
 watch               Enter watch mode. Automatically update CSS when color.ini
                     or user.css is changed.
+restart             Restart Spotify client.
 
 FLAGS
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations like
-					clear backup, restore will proceed without prompting permission.
+                    clear backup, restore will proceed without prompting permission.
 -e, --extension     Use with "update" or "watch" command to focus on extensions.
 -c, --config        Print config file path and quit
 -h, --help          Print this help text and quit
@@ -148,7 +152,10 @@ func helpConfig() {
 	fmt.Print(`CONFIG MEANING
 [Setting]
 spotify_path
-    Path to Spotify directory
+	Path to Spotify directory
+
+prefs_path
+	Path to Spotify's "prefs" file
 
 current_theme
     Name of folder of your theme
