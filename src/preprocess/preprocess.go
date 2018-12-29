@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"../utils"
+	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
 // Flag enables/disables preprocesses to be applied
@@ -74,7 +74,10 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string, e
 					}
 
 					if appName == "zlink" && flags.ExposeAPIs {
-						content = utils.Replace(content, `(<script src="init\.js"></script>)`, `${1}<script type="text/javascript" src="/spicetifyWrapper.js"></script>`)
+						content = utils.Replace(content, `<script src="init\.js"></script>`, `${0}
+	<script src="spicetifyWrapper.js"></script>
+	<!--Extension-->
+`)
 					}
 
 					return content
@@ -369,7 +372,7 @@ func exposeAPIs(input string) string {
 	};
 
 	const eventCB = ({data: info}) => {
-		if (info && info.type === "notify_ready") {
+		if (info && info.type === "notify_loaded") {
 			Spicetify.Player.dispatchEvent(appEvent);
 			window.removeEventListener("message", eventCB)
 		}
