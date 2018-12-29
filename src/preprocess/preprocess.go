@@ -446,16 +446,16 @@ this.getAlbumTracks && this.queueTracks && (Spicetify.addToQueue = async (uri) =
 	const trackUris = [];
 
 	const add = async (inputUri) => {
-		const uriObj = Spicetify.LibURI.from(inputUri);
+		const uriObj = Spicetify.URI.from(inputUri);
 		if (!uriObj) {
 			console.error("Invalid URI. Skipped ", inputUri);
 			return;
 		}
 
-		if (uriObj.type === Spicetify.LibURI.Type.ALBUM) {
+		if (uriObj.type === Spicetify.URI.Type.ALBUM) {
 			const tracks = await getAlbumAsync(inputUri);
 			trackUris.push(...tracks);
-		} else if (uriObj.type === Spicetify.LibURI.Type.TRACK || uriObj.type === Spicetify.LibURI.Type.EPISODE) {
+		} else if (uriObj.type === Spicetify.URI.Type.TRACK || uriObj.type === Spicetify.URI.Type.EPISODE) {
 			trackUris.push(inputUri);
 		} else {
 			console.error("Only Track, Album, Episode URIs are accepted. Skipped ", inputUri);
@@ -482,18 +482,18 @@ this.getAlbumTracks && this.removeTracksFromQueue && (Spicetify.removeFromQueue 
 
 	const indices = new Set();
 	const add = async (inputUri) => {
-		const uriObj = Spicetify.LibURI.from(inputUri);
+		const uriObj = Spicetify.URI.from(inputUri);
 		if (!uriObj) {
 			console.error("Invalid URI. Skipped ", inputUri);
 			return;
 		}
 
-		if (uriObj.type === Spicetify.LibURI.Type.ALBUM) {
+		if (uriObj.type === Spicetify.URI.Type.ALBUM) {
 			const tracks = await getAlbumAsync(inputUri);
 			tracks.forEach((trackUri) => {
 				Spicetify.Queue.next_tracks.forEach((t, i) => t.uri == trackUri && indices.add(i))
 			})
-		} else if (uriObj.type === Spicetify.LibURI.Type.TRACK || uriObj.type === Spicetify.LibURI.Type.EPISODE) {
+		} else if (uriObj.type === Spicetify.URI.Type.TRACK || uriObj.type === Spicetify.URI.Type.EPISODE) {
 			Spicetify.Queue.next_tracks.forEach((t, i) => t.uri == inputUri && indices.add(i))
 		} else {
 			console.error("Only Album, Track and Episode URIs are accepted. Skipped ", inputUri);
