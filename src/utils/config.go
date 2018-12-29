@@ -14,6 +14,7 @@ var (
 	configLayout = map[string]map[string]string{
 		"Setting": map[string]string{
 			"spotify_path":   "",
+			"prefs_path":     "",
 			"current_theme":  "SpicetifyDefault",
 			"inject_css":     "1",
 			"replace_colors": "1",
@@ -118,44 +119,20 @@ func (c config) GetPath() string {
 func getDefaultConfig() *ini.File {
 	var cfg = ini.Empty()
 
-	var defaultSpotifyPath string
-	if runtime.GOOS == "windows" {
-		defaultSpotifyPath = filepath.Join(os.Getenv("APPDATA"), "Spotify")
-		_, err := os.Stat(defaultSpotifyPath)
-		if err != nil {
-			PrintError(`Spotify content is not found at location "` + defaultSpotifyPath + `"`)
-			PrintInfo(`Please make sure you are using normal Spotify version, not Windows Store version.`)
-		}
-	} else if runtime.GOOS == "linux" {
-		path, err := exec.Command("whereis", "spotify").Output()
+	spotifyPath := FindAppPath()
+	prefsFilePath := FindPrefFilePath()
 
-		if err == nil {
-			pathString := strings.Replace(string(path), "spotify: ", "", 1)
-			pathString = strings.Replace(pathString, "\n", "", -1)
-			pathList := strings.Split(pathString, " ")
-
-			for _, v := range pathList {
-				_, err := os.Stat(filepath.Join(v, "Apps"))
-
-				if err == nil {
-					defaultSpotifyPath = v
-					break
-				}
-			}
-		}
-
-		if len(defaultSpotifyPath) == 0 {
-			PrintWarning("Could not detect Spotify location.")
-		}
-	} else if runtime.GOOS == "darwin" {
-		defaultSpotifyPath = filepath.Join("/Applications", "Spotify.app", "Contents", "Resources")
-		_, err := os.Stat(defaultSpotifyPath)
-		if err != nil {
-			PrintError(`Spotify content is not found at location "` + defaultSpotifyPath + `"`)
-		}
+	if len(spotifyPath) == 0 {
+		PrintError("Could not detect Spotify location.")
+	} else {
+		configLayout["Setting"]["spotify_path"] = spotifyPath
 	}
 
-	configLayout["Setting"]["spotify_path"] = defaultSpotifyPath
+	if len(prefsFilePath) == 0 {
+		PrintError(`Could not detect "prefs" file location.`)
+	} else {
+		configLayout["Setting"]["prefs_path"] = prefsFilePath
+	}
 
 	for sectionName, keyList := range configLayout {
 		section, err := cfg.NewSection(sectionName)
@@ -174,4 +151,120 @@ func getDefaultConfig() *ini.File {
 	version.Comment = "DO NOT CHANGE!"
 	version.NewKey("version", "")
 	return cfg
+}
+
+// FindAppPath finds Spotify location in various possible places
+// of each platform and returns it.
+// Returns blank string if none of default locations exists.
+func FindAppPath() string {
+	switch runtime.GOOS {
+	case "windows":
+		path := winApp()
+		if len(path) == 0 {
+			PrintInfo("Please make sure you are using normal Spotify version, not Windows Store version.")
+		}
+
+		return path
+
+	case "linux":
+		return linuxApp()
+
+	case "darwin":
+		return darwinApp()
+	}
+
+	return ""
+}
+
+// FindPrefFilePath finds Spotify "prefs" file location
+// in various possible places of each platform and returns it.
+// Returns blank string if none of default locations exists.
+func FindPrefFilePath() string {
+	switch runtime.GOOS {
+	case "windows":
+		return winPrefs()
+
+	case "linux":
+		return linuxPrefs()
+
+	case "darwin":
+		return darwinPrefs()
+	}
+
+	return ""
+}
+
+func winApp() string {
+	path := filepath.Join(os.Getenv("APPDATA"), "Spotify")
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+
+	return ""
+}
+
+func winPrefs() string {
+	path := filepath.Join(os.Getenv("APPDATA"), "Spotify", "prefs")
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+
+	return ""
+}
+
+func linuxApp() string {
+	path, err := exec.Command("whereis", "spotify").Output()
+
+	if err == nil {
+		pathString := strings.Replace(string(path), "spotify: ", "", 1)
+		pathString = strings.Replace(pathString, "\n", "", -1)
+		pathList := strings.Split(pathString, " ")
+
+		for _, v := range pathList {
+			if _, err := os.Stat(filepath.Join(v, "Apps")); err == nil {
+				return v
+			}
+		}
+	}
+
+	snap := "/snap/spotify/current/usr/share/spotify"
+	if _, err := os.Stat(snap); err == nil {
+		return snap
+	}
+
+	return ""
+}
+
+func linuxPrefs() string {
+	// Spotify installed from debian package
+	pref := filepath.Join(os.Getenv("HOME"), ".config/spotify/prefs")
+	if _, err := os.Stat(pref); err == nil {
+		return pref
+	}
+
+	// Spotify installed from Snap
+	pref = filepath.Join(os.Getenv("HOME"), "snap/spotify/current/.config/spotify/prefs")
+	if _, err := os.Stat(pref); err == nil {
+		return pref
+	}
+
+	return ""
+}
+
+func darwinApp() string {
+	path := filepath.Join("/Applications", "Spotify.app", "Contents", "Resources")
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+
+	return ""
+}
+
+func darwinPrefs() string {
+	pref := filepath.Join(os.Getenv("HOME"), "Library/Application Support/Spotify/prefs")
+	if _, err := os.Stat(pref); err == nil {
+		return pref
+	}
+
+	return ""
 }
