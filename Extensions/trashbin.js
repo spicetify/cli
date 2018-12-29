@@ -12,7 +12,7 @@
      * everything will be cleaned if Spotify is uninstalled. So instead
      * of collecting trash songs again, you can use JsonBin service to
      * store your list, which is totally free and fast. Go to website
-     * https://jsonbin.io/ , create a blank json:
+     * https://jsonbin.io/ , create a jsonbin with default object:
 
 {
     "trashSongList": {},
@@ -24,6 +24,7 @@
 
         https://api.jsonbin.io/b/XXXXXXXXXXXXXXXXXXXX
 
+     * Save this file, run "apply" command in Spicetify to push change.
      */
     const jsonBinURL = "";
 
@@ -162,7 +163,10 @@
     });
 
     function watchChange() {
-        const isBanned = trashSongList[Spicetify.Player.data.track.uri];
+        const data = Spicetify.Player.data || Spicetify.Queue;
+        if (!data) return;
+
+        const isBanned = trashSongList[data.track.uri];
         updateIconPosition();
         updateTrackIconState(isBanned);
 
@@ -177,7 +181,7 @@
         }
 
         let uriIndex = 0;
-        let artistUri = Spicetify.Player.data.track.metadata["artist_uri"];
+        let artistUri = data.track.metadata["artist_uri"];
 
         while (artistUri) {
             if (trashArtistList[artistUri]) {
@@ -186,8 +190,7 @@
             }
 
             uriIndex++;
-            artistUri =
-                Spicetify.Player.data.track.metadata["artist_uri:" + uriIndex];
+            artistUri = data.track.metadata["artist_uri:" + uriIndex];
         }
     }
 

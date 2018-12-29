@@ -8,7 +8,10 @@
 
 (function SkipVideo() {
     Spicetify.Player.addEventListener("songchange", () => {
-        const meta = Spicetify.Player.data.track.metadata;
+        const data = Spicetify.Player.data || Spicetify.Queue;
+        if (!data) return;
+
+        const meta = data.track.metadata;
         // Ads are also video media type so I need to exclude them out.
         if (
             meta["media.type"] === "video" &&
