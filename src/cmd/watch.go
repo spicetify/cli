@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"../status/spotify"
-	"../utils"
+	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
+	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
 // Watch .

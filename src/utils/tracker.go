@@ -3,7 +3,7 @@ package utils
 import (
 	"io/ioutil"
 
-	"gopkg.in/cheggaaa/pb.v2"
+	pb "gopkg.in/cheggaaa/pb.v2"
 )
 
 type tracker struct {

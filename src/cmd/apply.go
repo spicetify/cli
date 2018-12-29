@@ -6,16 +6,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"../apply"
-	"../status/backup"
-	"../status/spotify"
-	"../utils"
+	"github.com/khanhas/spicetify-cli/src/apply"
+	backupstatus "github.com/khanhas/spicetify-cli/src/status/backup"
+	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
+	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
 // Apply .
 func Apply() {
 	backupVersion := backupSection.Key("version").MustString("")
-	curBackupStatus := backupstatus.Get(spotifyPath, backupFolder, backupVersion)
+	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 
 	if curBackupStatus == backupstatus.EMPTY {
 		utils.PrintError(`You haven't backed up. Run "spicetify backup" before applying.`)
@@ -32,16 +32,18 @@ func Apply() {
 	appFolder := filepath.Join(spotifyPath, "Apps")
 	status := spotifystatus.Get(spotifyPath)
 
+	extractedStock := false
 	if status != spotifystatus.APPLIED {
 		os.RemoveAll(appFolder)
 		utils.Copy(rawFolder, appFolder, true, nil)
+		extractedStock = true
 	}
 
 	replaceColors := settingSection.Key("replace_colors").MustInt(0) == 1
 	injectCSS := settingSection.Key("inject_css").MustInt(0) == 1
 	if replaceColors {
 		utils.Copy(themedFolder, appFolder, true, nil)
-	} else {
+	} else if !extractedStock {
 		utils.Copy(rawFolder, appFolder, true, nil)
 	}
 
@@ -78,7 +80,7 @@ func Apply() {
 	pushExtensions(extentionList...)
 
 	utils.PrintSuccess("Spotify is spiced up!")
-	utils.RestartSpotify(spotifyPath)
+	RestartSpotify()
 }
 
 // UpdateCSS .
