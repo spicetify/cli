@@ -1,9 +1,8 @@
 // @ts-check
-// START METADATA
+
 // NAME: Shuffle+
 // AUTHOR: khanhas
 // DESCRIPTION: True shuffle with no bias.
-// END METADATA
 
 /// <reference path="../globals.d.ts" />
 
@@ -31,22 +30,22 @@
         );
         b.onclick = () => {
             const contextURI = Spicetify.Player.data.context_uri;
-            const uriObj = Spicetify.LibURI.fromString(contextURI);
+            const uriObj = Spicetify.URI.fromString(contextURI);
 
             switch (uriObj.type) {
-                case Spicetify.LibURI.Type.SHOW:
+                case Spicetify.URI.Type.SHOW:
                     showShuffle(uriObj.getBase62Id());
                     break;
-                case Spicetify.LibURI.Type.PLAYLIST:
+                case Spicetify.URI.Type.PLAYLIST:
                     playlistShuffle(contextURI);
                     break;
-                case Spicetify.LibURI.Type.FOLDER:
+                case Spicetify.URI.Type.FOLDER:
                     folderShuffle(contextURI);
                     break;
-                case Spicetify.LibURI.Type.ALBUM:
+                case Spicetify.URI.Type.ALBUM:
                     albumShuffle(contextURI);
                     break;
-                case Spicetify.LibURI.Type.COLLECTION:
+                case Spicetify.URI.Type.COLLECTION:
                     collectionShuffle();
                     break;
                 default:

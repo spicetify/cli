@@ -8,7 +8,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function DJMode() {
-    if (!Spicetify.LocalStorage || !Spicetify.addToQueue || !Spicetify.LibURI) {
+    if (!Spicetify.LocalStorage || !Spicetify.addToQueue || !Spicetify.URI) {
         setTimeout(DJMode, 1000);
         return;
     }

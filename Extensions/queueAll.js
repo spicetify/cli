@@ -111,11 +111,11 @@
      * @returns {boolean}
      */
     function filterURI(uri) {
-        const uriObj = Spicetify.LibURI.from(uri);
+        const uriObj = Spicetify.URI.from(uri);
         if (
-            uriObj.type === Spicetify.LibURI.Type.ALBUM ||
-            uriObj.type === Spicetify.LibURI.Type.TRACK ||
-            uriObj.type === Spicetify.LibURI.Type.EPISODE
+            uriObj.type === Spicetify.URI.Type.ALBUM ||
+            uriObj.type === Spicetify.URI.Type.TRACK ||
+            uriObj.type === Spicetify.URI.Type.EPISODE
         ) {
             return true;
         }
