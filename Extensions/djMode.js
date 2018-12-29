@@ -25,78 +25,31 @@
         Spicetify.LocalStorage.set("DJMode", JSON.stringify(setting));
     }
 
-    const item = document.createElement("div");
-    item.innerText = "DJ Mode";
-    item.classList.add("MenuItem", "MenuItem--has-submenu");
-
-    const subMenu = document.createElement("div");
-    subMenu.classList.add("Menu", "Menu--is-submenu");
-
-    const enableToggle = document.createElement("button");
-    enableToggle.innerText = "Enabled";
-    enableToggle.classList.add("MenuItem");
-    enableToggle.onclick = () => {
-        setting.enabled = !setting.enabled;
-        Spicetify.LocalStorage.set("DJMode", JSON.stringify(setting));
-        document.location.reload();
-    };
-
-    if (setting.enabled) {
-        enableToggle.classList.add(
-            "MenuItemToggle--checked",
-            "MenuItem--is-active"
-        );
-    }
-
-    const hideToggle = document.createElement("button");
-    hideToggle.innerText = "Hide controls";
-    hideToggle.classList.add("MenuItem");
-    hideToggle.onclick = () => {
-        setting.hideControls = !setting.hideControls;
-        showHideControl(setting.hideControls);
-        Spicetify.LocalStorage.set("DJMode", JSON.stringify(setting));
-        if (setting.hideControls) {
-            hideToggle.classList.add(
-                "MenuItemToggle--checked",
-                "MenuItem--is-active"
-            );
-        } else {
-            hideToggle.classList.remove(
-                "MenuItemToggle--checked",
-                "MenuItem--is-active"
-            );
+    const enableToggle = new Spicetify.Menu.Item(
+        "Enabled",
+        setting.enabled,
+        () => {
+            setting.enabled = !setting.enabled;
+            Spicetify.LocalStorage.set("DJMode", JSON.stringify(setting));
+            document.location.reload();
         }
-    };
-    if (setting.enabled && setting.hideControls) {
-        hideToggle.classList.add(
-            "MenuItemToggle--checked",
-            "MenuItem--is-active"
-        );
-    }
+    );
 
-    subMenu.appendChild(enableToggle);
-    subMenu.appendChild(hideToggle);
-    item.appendChild(subMenu);
-    item.onmouseenter = () => {
-        subMenu.classList.add("open");
-        item.classList.add("selected");
-    };
-    subMenu.onmouseleave = () => {
-        subMenu.classList.remove("open");
-        item.classList.remove("selected");
-    };
-
-    var menuEl = document.querySelector("#PopoverMenu-container");
-
-    // Observing profile menu
-    var menuObserver = new MutationObserver(() => {
-        const root = menuEl.querySelector(".Menu__root-items");
-        if (root) {
-            root.prepend(item);
+    const hideToggle = new Spicetify.Menu.Item(
+        "Hide controls",
+        setting.enabled && setting.hideControls,
+        () => {
+            setting.hideControls = !setting.hideControls;
+            showHideControl(setting.hideControls);
+            hideToggle.setState(setting.hideControls);
+            Spicetify.LocalStorage.set("DJMode", JSON.stringify(setting));
         }
-    });
+    );
 
-    menuObserver.observe(menuEl, { childList: true });
+    new Spicetify.Menu.SubMenu("DJ Mode", [
+        enableToggle,
+        hideToggle,
+    ]).register();
 
     if (!setting.enabled) {
         // Do nothing when DJ Mode is off
@@ -174,11 +127,11 @@
      * @returns {boolean} whether input uri is supported
      */
     function isValidURI(uri) {
-        const uriType = Spicetify.LibURI.fromString(uri).type;
+        const uriType = Spicetify.URI.fromString(uri).type;
         if (
-            uriType === Spicetify.LibURI.Type.ALBUM ||
-            uriType === Spicetify.LibURI.Type.TRACK ||
-            uriType === Spicetify.LibURI.Type.EPISODE
+            uriType === Spicetify.URI.Type.ALBUM ||
+            uriType === Spicetify.URI.Type.TRACK ||
+            uriType === Spicetify.URI.Type.EPISODE
         ) {
             return true;
         }
@@ -189,22 +142,14 @@
      *
      * @param {string} uri
      */
-    function clickFunc(uri) {
-        return () =>
-            Spicetify.addToQueue(uri).then(() => {
-                Spicetify.BridgeAPI.request(
-                    "track_metadata",
-                    [uri],
-                    (_, track) => {
-                        Spicetify.showNotification(
-                            `${track.name} - ${
-                                track.artists[0].name
-                            } added to queue.`
-                        );
-                    }
+    const clickFunc = (uri) => () =>
+        Spicetify.addToQueue(uri).then(() => {
+            Spicetify.BridgeAPI.request("track_metadata", [uri], (_, track) => {
+                Spicetify.showNotification(
+                    `${track.name} - ${track.artists[0].name} added to queue.`
                 );
             });
-    }
+        });
 
     /**
      *
@@ -271,7 +216,7 @@
                     "button-play"
                 );
 
-                playButton.removeChild(playButton.querySelector("button"))
+                playButton.removeChild(playButton.querySelector("button"));
                 playButton.appendChild(newButton);
                 playButton.setAttribute("djmode-injected", "true");
 
