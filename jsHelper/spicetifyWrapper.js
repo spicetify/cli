@@ -1,4 +1,7 @@
 const Spicetify = {
+    get CosmosAPI() {return window.cosmos},
+    get BridgeAPI() {return window.bridge},
+    get LiveAPI() {return window.live},
     Player: {
         addEventListener: (type, callback) => {
             if (!(type in Spicetify.Player.eventListeners)) {
@@ -6,14 +9,11 @@ const Spicetify = {
             }
             Spicetify.Player.eventListeners[type].push(callback)
         },
-        back: undefined,
-        data: undefined,
-        decreaseVolume: undefined,
         dispatchEvent: (event) => {
             if (!(event.type in Spicetify.Player.eventListeners)) {
                 return true;
             }
-            var stack = Spicetify.Player.eventListeners[event.type];
+            const stack = Spicetify.Player.eventListeners[event.type];
             for (let i = 0; i < stack.length; i++) {
                 if (typeof stack[i] === "function") {
                     stack[i](event);
@@ -22,25 +22,14 @@ const Spicetify = {
             return !event.defaultPrevented;
         },
         eventListeners: {},
-        formatTime: undefined,
-        getDuration: undefined,
         getHeart: () => {Spicetify.LiveAPI(Spicetify.Player.data.track.uri).get("added")},
-        getMute: undefined,
-        getProgressMs: undefined,
-        getProgressPercent: undefined,
-        getRepeat: undefined,
-        getShuffle: undefined,
-        getVolume: undefined,
-        increaseVolume: undefined,
-        isPlaying: undefined,
-        next: undefined,
         pause: () => {Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
         play: () => {!Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
         removeEventListener: (type, callback) => {
             if (!(type in Spicetify.Player.eventListeners)) {
                 return;
             }
-            var stack = Spicetify.Player.eventListeners[type];
+            const stack = Spicetify.Player.eventListeners[type];
             for (let i = 0; i < stack.length; i++) {
                 if (stack[i] === callback) {
                     stack.splice(i, 1);
@@ -48,53 +37,14 @@ const Spicetify = {
                 }
             }
         },
-        seek: undefined,
-        setMute: undefined,
-        setRepeat: undefined,
-        setShuffle: undefined,
-        setVolume: undefined,
         skipBack: (amount = 15e3) => {Spicetify.Player.seek(Spicetify.Player.getProgressMs() - amount)},
         skipForward: (amount = 15e3) => {Spicetify.Player.seek(Spicetify.Player.getProgressMs() + amount)},
         toggleHeart: () => {document.querySelector('[data-interaction-target="save-remove-button"]').click()},
-        toggleMute: undefined,
-        togglePlay: undefined,
-        toggleRepeat: undefined,
-        toggleShuffle: undefined,
     },
-
-    addToQueue: undefined,
-
-    BridgeAPI: undefined,
-
-    CosmosAPI: undefined,
-
-    Event: undefined,
-
-    EventDispatcher: undefined,
-
-    extractColors: undefined,
-
-    getAudioData: undefined,
-
-    Keyboard: undefined,
-
-    LibURI: undefined,
-
-    LiveAPI: undefined,
-
-    LocalStorage: undefined,
-
-    PlaybackControl: undefined,
-
-    Queue: undefined,
-
-    removeFromQueue: undefined,
-
     showNotification: (text) => {
         Spicetify.EventDispatcher.dispatchEvent(
             new Spicetify.Event(Spicetify.Event.TYPES.SHOW_NOTIFICATION_BUBBLE, { i18n: text }))
     },
-
     test: () => {
         const SPICETIFY_METHOD = [
             "Player",
@@ -105,7 +55,7 @@ const Spicetify = {
             "EventDispatcher",
             "getAudioData",
             "Keyboard",
-            "LibURI",
+            "URI",
             "LiveAPI",
             "LocalStorage",
             "PlaybackControl",
@@ -170,7 +120,7 @@ const Spicetify = {
     }
 }
 
-Spicetify.LibURI = (function () {
+Spicetify.URI = (function () {
     /**
     * Copyright (c) 2017 Spotify AB
     *
@@ -1421,23 +1371,99 @@ Spicetify.getAblumArtColors = (uri) => {
     });
 }
 
-/**
- * Set cosmos, bridge, live API to Spicetify object
- */
-(function findAPI() {
-    if (!Spicetify.CosmosAPI) {
-        Spicetify.CosmosAPI = window.cosmos;
-    }
-    if (!Spicetify.BridgeAPI) {
-        Spicetify.BridgeAPI = window.bridge;
-    }
-    if (!Spicetify.LiveAPI) {
-        Spicetify.LiveAPI = window.live;
+Spicetify.Menu = (function() {
+    const collection = new Set();
+
+    const menuEl = document.getElementById("PopoverMenu-container");
+
+    // Observing profile menu
+    new MutationObserver(() => {
+        const menuRoot = menuEl.querySelector(".Menu__root-items");
+        if (menuRoot) {
+            for (const item of collection) {
+                menuRoot.prepend(item);
+            }
+        }
+    }).observe(menuEl, { childList: true });
+
+    class Item {
+        constructor(name, isEnabled, onClick) {
+            this.item = document.createElement("button");
+            this.item.innerText = name;
+            this.item.classList.add("MenuItem");
+            this.item.onclick = () => {onClick(this)};
+            this.item.onmouseenter = () => {
+                menuEl.querySelectorAll(".selected").forEach(e => e.classList.remove("selected"));
+                this.item.classList.add("selected");
+            }
+            this.item.onmouseleave = () => {
+                this.item.classList.remove("selected");
+            }
+            this.setState(isEnabled);
+        }
+        setName(name) {
+            this.item.innerText = name
+        }
+        setState(isEnabled) {
+            if (isEnabled) {
+                this.item.classList.add(
+                    "MenuItemToggle--checked",
+                    "MenuItem--is-active"
+                );
+            } else {
+                this.item.classList.remove(
+                    "MenuItemToggle--checked",
+                    "MenuItem--is-active"
+                );
+            }
+        }
+        register() {
+            collection.add(this.item);
+        }
+        deregister() {
+            collection.delete(this.item);
+        }
+        getElement() {
+            return this.item;
+        }
     }
 
-    if (!Spicetify.CosmosAPI
-        || !Spicetify.BridgeAPI
-        || !Spicetify.LiveAPI) {
-        setTimeout(findAPI, 1000)
+    class SubMenu {
+        constructor(name, subItems) {
+            this.item = document.createElement("div");
+            this.item.innerText = name;
+            this.item.classList.add("MenuItem", "MenuItem--has-submenu");
+
+            const subMenu = document.createElement("div");
+            subMenu.classList.add("Menu", "Menu--is-submenu");
+
+            for (const item of subItems) {
+                subMenu.appendChild(item.getElement());
+            }
+
+            this.item.appendChild(subMenu);
+            this.item.onmouseenter = () => {
+                subMenu.classList.add("open");
+                this.item.classList.add("selected");
+            };
+            subMenu.onmouseleave = () => {
+                subMenu.classList.remove("open");
+                this.item.classList.remove("selected");
+            };
+        }
+        setName(name) {
+            this.item.innerText = name
+        }
+        register() {
+            collection.add(this.item);
+        }
+        deregister() {
+            collection.delete(this.item);
+        }
+        getElement() {
+            return this.item;
+        }
     }
+
+    return { Item, SubMenu }
 })();
