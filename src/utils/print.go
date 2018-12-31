@@ -35,9 +35,14 @@ func PrintRed(text string) {
 	log.Println("\x1B[31m" + text + "\033[0m")
 }
 
+// Bold .
+func Bold(text string) string {
+	return "\x1B[1m" + text + "\033[0m"
+}
+
 // PrintBold prints a bold message
 func PrintBold(text string) {
-	log.Println("\x1B[1m" + text + "\033[0m")
+	log.Println(Bold(text))
 }
 
 // Fatal prints fatal message and exits process
