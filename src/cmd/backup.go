@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/khanhas/spicetify-cli/src/status/spotify"
 	"io/ioutil"
 	"log"
 	"os"
@@ -88,7 +89,9 @@ func Backup() {
 
 // ClearBackup .
 func ClearBackup() {
-	if !quiet {
+	curSpotifystatus := spotifystatus.Get(spotifyPath)
+	
+	if curSpotifystatus != spotifystatus.STOCK && !quiet {
 		if !utils.ReadAnswer("Before clearing backup, make sure you have restored or re-installed Spotify to original state. Continue? [y/N]: ", false) {
 			os.Exit(1)
 		}
@@ -97,15 +100,21 @@ func ClearBackup() {
 	if err := os.RemoveAll(backupFolder); err != nil {
 		utils.Fatal(err)
 	}
+	os.Mkdir(backupFolder, 0700)
+	
 	if err := os.RemoveAll(rawFolder); err != nil {
 		utils.Fatal(err)
 	}
+	os.Mkdir(rawFolder, 0700)
+	
 	if err := os.RemoveAll(themedFolder); err != nil {
 		utils.Fatal(err)
 	}
+	os.Mkdir(themedFolder, 0700)
 
 	backupSection.Key("version").SetValue("")
 	cfg.Write()
+	utils.PrintSuccess("Backup is cleared.")
 }
 
 // Restore .
