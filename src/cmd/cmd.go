@@ -26,7 +26,7 @@ var (
 func Init(isQuiet bool) {
 	quiet = isQuiet
 
-	cfg = utils.ParseConfig(filepath.Join(spicetifyFolder, "config.ini"))
+	cfg = utils.ParseConfig(GetConfigPath())
 	settingSection = cfg.GetSection("Setting")
 	backupSection = cfg.GetSection("Backup")
 	featureSection = cfg.GetSection("AdditionalOptions")
@@ -64,7 +64,7 @@ func Init(isQuiet bool) {
 
 // GetConfigPath .
 func GetConfigPath() string {
-	return cfg.GetPath()
+	return filepath.Join(spicetifyFolder, "config.ini")
 }
 
 // GetSpotifyPath .
