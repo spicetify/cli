@@ -71,7 +71,10 @@ func Backup() {
 
 	tracker.Finish()
 
-	utils.Copy(rawFolder, themedFolder, true, []string{".html", ".js", ".css"})
+	err = utils.Copy(rawFolder, themedFolder, true, []string{".html", ".js", ".css"})
+	if err != nil {
+		utils.Fatal(err)
+	}
 
 	tracker.Reset()
 
@@ -91,9 +94,15 @@ func ClearBackup() {
 		}
 	}
 
-	os.RemoveAll(backupFolder)
-	os.RemoveAll(rawFolder)
-	os.RemoveAll(themedFolder)
+	if err := os.RemoveAll(backupFolder); err != nil {
+		utils.Fatal(err)
+	}
+	if err := os.RemoveAll(rawFolder); err != nil {
+		utils.Fatal(err)
+	}
+	if err := os.RemoveAll(themedFolder); err != nil {
+		utils.Fatal(err)
+	}
 
 	backupSection.Key("version").SetValue("")
 	cfg.Write()
@@ -118,8 +127,14 @@ func Restore() {
 
 	appFolder := filepath.Join(spotifyPath, "Apps")
 
-	os.RemoveAll(appFolder)
-	utils.Copy(backupFolder, appFolder, false, []string{".spa"})
+	if err := os.RemoveAll(appFolder); err != nil {
+		utils.Fatal(err)
+	}
+	
+	if err := utils.Copy(backupFolder, appFolder, false, []string{".spa"}); err != nil {
+		utils.Fatal(err)
+	}
+	
 	utils.PrintSuccess("Spotify is restored.")
 	RestartSpotify()
 }
