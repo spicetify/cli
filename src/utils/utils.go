@@ -170,9 +170,9 @@ func CopyFile(srcPath, dest string) error {
 
 // Replace uses Regexp to find any matched from `input` with `regexpTerm`
 // and replaces them with `replaceTerm` then returns new string.
-func Replace(input string, regexpTerm string, replaceTerm string) string {
+func Replace(input *string, regexpTerm string, replaceTerm string) {
 	re := regexp.MustCompile(regexpTerm)
-	return re.ReplaceAllString(input, replaceTerm)
+	*input = re.ReplaceAllString(*input, replaceTerm)
 }
 
 // ModifyFile opens file, changes file content by executing
@@ -215,23 +215,9 @@ func GetExecutableDir() string {
 	return filepath.Dir(exe)
 }
 
-// GetJsHelperDir retuns jsHelper directory in executable directory
+// GetJsHelperDir returns jsHelper directory in executable directory
 func GetJsHelperDir() string {
 	return filepath.Join(GetExecutableDir(), "jsHelper")
-}
-
-// FindFlag finds flags in arrays of arguments
-// returns true if one of requested flags is found
-func FindFlag(args []string, flags ...string) bool {
-	for _, a := range args {
-		for _, f := range flags {
-			if a == f {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 // PrependTime prepends current time string to text and returns new string

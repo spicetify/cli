@@ -57,8 +57,8 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 							extensionsHTML += `<script src="` + v + `"></script>` + "\n"
 						}
 						if len(extensionsHTML) > 0 {
-							content = utils.Replace(
-								content,
+							utils.Replace(
+								&content,
 								`<!\-\-Extension\-\->`,
 								"${0}\n"+extensionsHTML,
 							)
@@ -88,19 +88,23 @@ func UserCSS(appsFolderPath, themeFolder string, injectCSS, customColor bool) {
 	}
 
 	userCSSDestPath := filepath.Join(appsFolderPath, "zlink", "css", "user.css")
-	ioutil.WriteFile(userCSSDestPath, []byte(userCSS), 0700)
+	if err := ioutil.WriteFile(userCSSDestPath, []byte(userCSS), 0700); err != nil {
+		utils.Fatal(err)
+	}
 	userCSSDestPath = filepath.Join(appsFolderPath, "login", "css", "user.css")
-	ioutil.WriteFile(userCSSDestPath, []byte(userCSS), 0700)
+	if err := ioutil.WriteFile(userCSSDestPath, []byte(userCSS), 0700); err != nil {
+		utils.Fatal(err)
+	}
 }
 
 func lyricsMod(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		if flags.VisHighFramerate {
-			content = utils.Replace(content, `[\w_]+\.highVisualizationFrameRate\s?=`, `${0}true||`)
+			utils.Replace(&content, `[\w_]+\.highVisualizationFrameRate\s?=`, `${0}true||`)
 		}
 
 		if flags.LyricForceNoSync {
-			content = utils.Replace(content, `[\w_]+\.forceNoSyncLyrics\s?=`, `${0}true||`)
+			utils.Replace(&content, `[\w_]+\.forceNoSyncLyrics\s?=`, `${0}true||`)
 		}
 
 		return content
@@ -110,33 +114,33 @@ func lyricsMod(jsPath string, flags Flag) {
 func zlinkMod(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		if flags.ExperimentalFeatures {
-			content = utils.Replace(content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{name:"experiments)`, `true${1}`)
+			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{name:"experiments)`, `true${1}`)
 		}
 
 		if flags.FastUserSwitching {
-			content = utils.Replace(content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{name:"switch\-user)`, `true${1}`)
+			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{name:"switch\-user)`, `true${1}`)
 		}
 
 		if flags.Home {
-			content = utils.Replace(content, `this\._initialState\.isHomeEnabled`, "true")
-			content = utils.Replace(content, `[\w_]+(&&[\w_]+\.default\.createElement\([\w_]+\.default,{isActive:\/\^spotify:app:home\/)`, "true${1}")
-			content = utils.Replace(content, `[\w_]+\.isHomeEnabled`, "true")
+			utils.Replace(&content, `this\._initialState\.isHomeEnabled`, "true")
+			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default\.createElement\([\w_]+\.default,{isActive:\/\^spotify:app:home\/)`, "true${1}")
+			utils.Replace(&content, `[\w_]+\.isHomeEnabled`, "true")
 		}
 
 		if flags.LyricAlwaysShow {
-			content = utils.Replace(content, `(lyricsEnabled\()[\w_]+&&\(.+?\)`, `${1}true`)
+			utils.Replace(&content, `(lyricsEnabled\()[\w_]+&&\(.+?\)`, `${1}true`)
 		}
 
 		if flags.MadeForYouHub {
-			content = utils.Replace(content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{isActive:/\^spotify:app:made\-for\-you)`, `true${1}`)
+			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{isActive:/\^spotify:app:made\-for\-you)`, `true${1}`)
 		}
 
 		if flags.Radio {
-			content = utils.Replace(content, `radioIsVisible=`, `${0}true||`)
+			utils.Replace(&content, `radioIsVisible=`, `${0}true||`)
 		}
 
 		if flags.SongPage {
-			content = utils.Replace(content, `window\.initialState\.isSongPageEnabled`, `true`)
+			utils.Replace(&content, `window\.initialState\.isSongPageEnabled`, `true`)
 		}
 
 		return content
