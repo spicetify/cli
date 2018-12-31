@@ -129,10 +129,10 @@ func main() {
 
 func help() {
 	utils.PrintBold("spicetify v" + version)
-	log.Println(utils.Bold("USAGE") +
+	log.Println(utils.Bold("USAGE") + "\n" +
 		"spicetify [-q] [-e] \x1B[4mcommand\033[0m...\n" +
 		"spicetify {-c | --config} | {-v | --version} | {-h | --help}\n\n" +
-		utils.Bold("DESCRIPTION") +
+		utils.Bold("DESCRIPTION") + "\n" +
 		"Customize Spotify client UI and functionality\n\n" +
 		utils.Bold("COMMANDS") + `
 backup              Start backup and preprocessing app files.
