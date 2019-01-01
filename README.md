@@ -11,32 +11,39 @@ Supports Windows, MacOS and Linux.
 - Enable some additional, hidden features
 - Remove bloated components to improve performance
 
-![mac_demo1](https://i.imgur.com/8njve9b.png)
+![mac_demo1](https://i.imgur.com/JyWVzeC.png)
+
+![majaro_demo1](https://i.imgur.com/e4CWeRC.png)
 
 ## Install
 1. Download correct package for your OS: https://github.com/khanhas/spicetify-cli/releases
 2. Unpack  
 #### Windows
-Extract zip package. 
+In Powershell, run following commands:
+```powershell
+Expand-Archive "$HOME\Downloads\spicetify-xxx.zip" "$HOME\spicetify"
+```
+with `$HOME/Downloads/spicetify-xxx.tar.gz` is direct path to just downloaded package.
   
-To use Spicetify, you can run `spicetify.exe` directly with its path,  
-Or optionally add its directory to enviroment path so you can run `spicetify` everywhere.  
+Optionally, run:
+```powershell
+Add-Content $PROFILE "Set-Alias spicetify `"$HOME\spicetify\spicetify.exe`""
+```
+Restart Powershell. Now you can run `spicetify` everywhere.
   
 #### Linux and MacOS
 In terminal, run following commands:
 ```bash
-cd ~/
-mkdir spicetify
-cd spicetify
-tar xzf ~/Downloads/spicetify-xxx.tar.gz
+mkdir ~/spicetify
+tar xzf ~/Downloads/spicetify-xxx.tar.gz -C ~/spicetify
 ```
-With `~/Downloads/spicetify-xxx.tar.gz` is path to just downloaded package.
+with `~/Downloads/spicetify-xxx.tar.gz` is direct path to just downloaded package.
   
 Optionally, run:
 ```bash
-echo 'spicetify=~/spicetify/spicetify' >> .bashrc
+sudo ln -s ~/spicetify/spicetify /usr/bin/spicetify
 ```
-so you can run `spicetify` everywhere.
+Now you can run `spicetify` everywhere.
 
 ## Basic usage
 Run with no command once to generate config file
@@ -57,12 +64,22 @@ to update your theme.
 
 In Spotify, hit <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>R</kbd>/<kbd>Command</kbd> <kbd>Shift</kbd> <kbd>R</kbd> to reload and receive visual update of your theme.
 
+For other commands and additional flags information, please run:
+```bash
+spicetify --help
+```
+
 ## Customization
 #### Config file
-Is located at:
+Located at:  
 **Windows:** `%userprofile%\.spicetify\config.ini`  
 **Linux:** `~/.spicetify/config.ini`  
 **MacOS:** `~/spicetify_data/config.ini`  
+
+For detail information of each config field, please run:
+```bash
+spicetify --help config
+```
 
 #### Themes
 There are 2 places you can put your themes:  
@@ -99,14 +116,22 @@ Some Spotify API are leaked and put in global object `Spicetify`. Check out `glo
 ### Requirements
 - [Go](https://golang.org/dl/)
 
+Clone repo and download dependencies:
 ```bash
-git clone https://github.com/khanhas/spicetify-cli
+go get github.com/khanhas/spicetify-cli
 ```
 
 ### Build
+#### Windows
+```powershell
+cd $HOME\go\src\github.com\khanhas\spicetify-cli
+go build -o spicetify.exe
+```
+
+#### Linux and MacOS
 ```bash
-cd spicetify-cli
-go build src/spicetify.go
+cd ~/go/src/github.com/khanhas/spicetify-cli
+go build -o spicetify
 ```
 
 ### Future
