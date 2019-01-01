@@ -18,10 +18,8 @@ func Backup() {
 	backupVersion := backupSection.Key("version").MustString("")
 	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 	if curBackupStatus != backupstatus.EMPTY {
-		utils.PrintWarning("There is available backup, clear current backup first!")
+		utils.PrintInfo("There is available backup, clear current backup:")
 		ClearBackup()
-		backupSection.Key("version").SetValue("")
-		cfg.Write()
 	}
 
 	utils.PrintBold("Backing up app files:")
@@ -92,7 +90,8 @@ func ClearBackup() {
 	curSpotifystatus := spotifystatus.Get(spotifyPath)
 	
 	if curSpotifystatus != spotifystatus.STOCK && !quiet {
-		if !utils.ReadAnswer("Before clearing backup, make sure you have restored or re-installed Spotify to original state. Continue? [y/N]: ", false) {
+		utils.PrintWarning("Before clearing backup, please restore or re-install Spotify to stock state.")
+		if !utils.ReadAnswer("Continue clearing anyway? [y/N]: ", false) {
 			os.Exit(1)
 		}
 	}
@@ -121,16 +120,21 @@ func ClearBackup() {
 func Restore() {
 	backupVersion := backupSection.Key("version").MustString("")
 	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
+	curSpotifystatus := spotifystatus.Get(spotifyPath)
 
 	if curBackupStatus == backupstatus.EMPTY {
 		utils.PrintError(`You haven't backed up.`)
+		if curSpotifystatus != spotifystatus.STOCK {
+			utils.PrintWarning(`But Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup"`)
+		}
 		os.Exit(1)
 	} else if curBackupStatus == backupstatus.OUTDATED {
-		if !quiet {
-			utils.PrintWarning("Spotify version and backup version are mismatched.")
-			if !utils.ReadAnswer("Continue restoring anyway? [y/N] ", false) {
-				os.Exit(1)
-			}
+		utils.PrintWarning("Spotify version and backup version are mismatched.")
+		if curSpotifystatus == spotifystatus.STOCK {
+			utils.PrintInfo(`Spotify is at stock state. Run "spicetify backup" to backup current Spotify version.`)
+		}
+		if !quiet && !utils.ReadAnswer("Continue restoring anyway? [y/N] ", false) {
+			os.Exit(1)	
 		}
 	}
 
