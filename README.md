@@ -1,5 +1,5 @@
 # spicetify-cli
-[![Go Report Card](https://goreportcard.com/badge/github.com/khanhas/spicetify-cli)](https://goreportcard.com/report/github.com/khanhas/spicetify-cli) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/khanhas/spicetify-cli)](https://goreportcard.com/report/github.com/khanhas/spicetify-cli) [![GitHub release](https://img.shields.io/github/release/khanhas/spicetify-cli/all.svg?colorB=97CA00?label=version)](https://github.com/khanhas/spicetify-cli/releases/latest) [![Github All Releases](https://img.shields.io/github/downloads/khanhas/spicetify-cli/total.svg?colorB=97CA00)](https://github.com/khanhas/spicetify-cli/releases) [![Join the community on Spectrum](https://withspectrum.github.io/badge/badge.svg)](https://spectrum.chat/spicetify)
 
 Commandline tool to customize Spotify client.
 Supports Windows, MacOS and Linux.
