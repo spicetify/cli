@@ -16,14 +16,18 @@ Supports Windows, MacOS and Linux.
 ![majaro_demo1](https://i.imgur.com/e4CWeRC.png)
 
 ## Install
-1. Download correct package for your OS: https://github.com/khanhas/spicetify-cli/releases
-2. Unpack  
-#### Windows
-In Powershell, run following commands:
-```powershell
-Expand-Archive "$HOME\Downloads\spicetify-xxx.zip" "$HOME\spicetify"
+### MacOS (with Homebrew)
+```bash
+brew install khanhas/tap/spicetify-cli
 ```
-with `$HOME/Downloads/spicetify-xxx.tar.gz` is direct path to just downloaded package.
+
+### Windows
+1. Download `windows` package from: https://github.com/khanhas/spicetify-cli/releases
+2. Open Powershell and run following command:
+```powershell
+Expand-Archive "$HOME\Downloads\spicetify-x.x.x-windows-x64.zip" "$HOME\spicetify"
+```
+with `$HOME\Downloads\picetify-x.x.x-windows-x64.zip"` is direct path to just downloaded package.
   
 Optionally, run:
 ```powershell
@@ -31,11 +35,12 @@ Add-Content $PROFILE "Set-Alias spicetify `"$HOME\spicetify\spicetify.exe`""
 ```
 Restart Powershell. Now you can run `spicetify` everywhere.
   
-#### Linux and MacOS
-In terminal, run following commands:
+### Linux or MacOS
+1. Download `linux` or `darwin` package from: https://github.com/khanhas/spicetify-cli/releases
+2. In terminal, run following commands:
 ```bash
 mkdir ~/spicetify
-tar xzf ~/Downloads/spicetify-xxx.tar.gz -C ~/spicetify
+tar xzf ~/Downloads/spicetify-x.x.x-linux-amd64.tar.gz -C ~/spicetify
 ```
 with `~/Downloads/spicetify-xxx.tar.gz` is direct path to just downloaded package.
   
@@ -45,14 +50,14 @@ sudo ln -s ~/spicetify/spicetify /usr/bin/spicetify
 ```
 Now you can run `spicetify` everywhere.
 
-##### Note for Linux users
-###### Spotify installed from AUR
+#### Note for Linux users
+##### Spotify installed from AUR
 Before applying Spicetify, you need to gain write permission on Spotify files, by running command:
 ```bash
 sudo chmod 777 /usr/share/spotify -R
 ```
 
-###### Spotify installed from Snap 
+##### Spotify installed from Snap 
 Apps installed from Snap cannot be modified so you need to follow these steps to get Spicetify working:
 1. Uninstall Spotify in Snap or run command `snap remove spotify`
 2. Remove .spicetify folder: `rm -r ~/.spicetify`
@@ -154,5 +159,5 @@ go build -o spicetify
 ```
 
 ### Future
-[ ] SASS  
-[ ] Inject custom apps  
+- [ ] SASS  
+- [ ] Inject custom apps  
