@@ -16,12 +16,17 @@ Supports Windows, MacOS and Linux.
 ![majaro_demo1](https://i.imgur.com/e4CWeRC.png)
 
 ## Install
-### MacOS (with Homebrew)
+### Homebrew/LinuxBrew
 ```bash
 brew install khanhas/tap/spicetify-cli
 ```
 
-### Windows
+### AUR
+```bash
+yay spicetify-cli
+```
+
+### Windows (pre-built)
 1. Download `windows` package from: https://github.com/khanhas/spicetify-cli/releases
 2. Open Powershell and run following command:
 ```powershell
@@ -35,7 +40,7 @@ Add-Content $PROFILE "Set-Alias spicetify `"$HOME\spicetify\spicetify.exe`""
 ```
 Restart Powershell. Now you can run `spicetify` everywhere.
   
-### Linux or MacOS
+### Linux or MacOS (prebuilt)
 1. Download `linux` or `darwin` package from: https://github.com/khanhas/spicetify-cli/releases
 2. In terminal, run following commands:
 ```bash
