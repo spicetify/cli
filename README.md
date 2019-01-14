@@ -8,7 +8,7 @@ Supports Windows, MacOS and Linux.
 - [Install](#install)
   - [Homebrew/LinuxBrew](#homebrewlinuxbrew)
   - [AUR](#aur)
-  - [Windows (pre-built)](#windows)
+  - [Windows (pre-built)](#windows-pre-built)
   - [Linux or MacOS (pre-built)](#linux-or-macos-prebuilt)
 - [Basic Usage](#basic-usage)
 - [Customization](#customization)
@@ -163,11 +163,11 @@ Some Spotify API are leaked and put in global object `Spicetify`. Check out `glo
 Below are list of default extensions that comes with package:
 
 #### Auto Skip Videos 
-**Filename:** `autoSkipVideo.js`
+**Filename:** `autoSkipVideo.js`  
 Videos are unable to play in some regions because of Spotify's policy. Instead of jumping to next song in playlist, it just stops playing. And it's kinda annoying to open up the client to manually click next every times it happens. Use this extension to skip them automatically.
 
 #### Christian Spotify
-**Filename:** `autoSkipExplicit.js`   
+**Filename:** `autoSkipExplicit.js`  
 Auto skip explicit tracks
 
 ![Ext_ChristianDemo](https://i.imgur.com/yTUeWWn.png)
