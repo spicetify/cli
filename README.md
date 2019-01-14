@@ -1,9 +1,30 @@
 # spicetify-cli
 [![Go Report Card](https://goreportcard.com/badge/github.com/khanhas/spicetify-cli)](https://goreportcard.com/report/github.com/khanhas/spicetify-cli) [![GitHub release](https://img.shields.io/github/release/khanhas/spicetify-cli/all.svg?colorB=97CA00?label=version)](https://github.com/khanhas/spicetify-cli/releases/latest) [![Github All Releases](https://img.shields.io/github/downloads/khanhas/spicetify-cli/total.svg?colorB=97CA00)](https://github.com/khanhas/spicetify-cli/releases) [![Join the community on Spectrum](https://withspectrum.github.io/badge/badge.svg)](https://spectrum.chat/spicetify)
 
-Commandline tool to customize Spotify client.
+Command-line tool to customize Spotify client.
 Supports Windows, MacOS and Linux.
 
+- [Features](#features)
+- [Install](#install)
+  - [Homebrew/LinuxBrew](#homebrewlinuxbrew)
+  - [AUR](#aur)
+  - [Windows (pre-built)](#windows)
+  - [Linux or MacOS (pre-built)](#linux-or-macos-prebuilt)
+- [Basic Usage](#basic-usage)
+- [Customization](#customization)
+  - [Config](#configs)
+  - [Theme](#themes)
+  - [Extensions](#extensions)  
+- Default Extensions:
+  - [Auto Skip Videos](#auto-skip-videos)
+  - [Christian Spotify](#christian-spotify)
+  - [DJ Mode](#dj-mode)
+  - [Queue All](#queue-all)
+  - [Shuffle+](#shuffle)
+  - [Trash Bin](#trash-bin)
+
+- [Development](#development)
+  
 ## Features
 - Change colors whole UI
 - Inject CSS for advanced customization
@@ -27,19 +48,11 @@ yay spicetify-cli
 ```
 
 ### Windows (pre-built)
-1. Download `windows` package from: https://github.com/khanhas/spicetify-cli/releases
-2. Open Powershell and run following command:
+Open Powershell, run:
 ```powershell
-Expand-Archive "$HOME\Downloads\spicetify-x.x.x-windows-x64.zip" "$HOME\spicetify"
+iwr https://raw.githubusercontent.com/khanhas/spicetify-cli/master/install.ps1 | iex
 ```
-with `$HOME\Downloads\picetify-x.x.x-windows-x64.zip"` is direct path to just downloaded package.
-  
-Optionally, run:
-```powershell
-Add-Content $PROFILE "Set-Alias spicetify `"$HOME\spicetify\spicetify.exe`""
-```
-Restart Powershell. Now you can run `spicetify` everywhere.
-  
+
 ### Linux or MacOS (prebuilt)
 1. Download `linux` or `darwin` package from: https://github.com/khanhas/spicetify-cli/releases
 2. In terminal, run following commands:
@@ -99,8 +112,8 @@ spicetify --help
 ```
 
 ## Customization
-#### Config file
-Located at:  
+### Configs
+Config file is located at:  
 **Windows:** `%userprofile%\.spicetify\config.ini`  
 **Linux:** `~/.spicetify/config.ini`  
 **MacOS:** `~/spicetify_data/config.ini`  
@@ -110,7 +123,7 @@ For detail information of each config field, please run:
 spicetify --help config
 ```
 
-#### Themes
+### Themes
 There are 2 places you can put your themes:  
 1. `Themes` folder in Home directory  
 
@@ -122,13 +135,18 @@ There are 2 places you can put your themes:
 
 If there are 2 themes having same name, theme in Home directory is prioritized.
 
-#### Extensions
-Add your desired extension names in config, separated them by `|` character.  
+Every theme should contain:
+ - `color.ini`: store colors value that later will be converted to CSS variables
+ - `user.css`: set of custom CSS rules to manipulate, hide, move UI elements.
+
+### Extensions
+Basically are Javascript files that will be evaluated along with Spotify main javascript.
+Add your desired extension filenames in config, separated them by `|` character.  
 Example:
 ```ini
 [AdditionalOptions]
 ...
-extensions                   = autoSkipExplicit.js|queueAll.js|djMode.js|shuffle+.js|trashbin.js
+extensions = autoSkipExplicit.js|queueAll.js|djMode.js|shuffle+.js|trashbin.js
 ```
 
 Extension files can be store in:
@@ -140,26 +158,70 @@ Extension files can be store in:
 
 If there are 2 extensions having same name, extension in Home directory is prioritized.
 
-Some Spotify API are leaked and put in global object `Spicetify`. Check out `global.d.ts` for API documentation. 
+Some Spotify API are leaked and put in global object `Spicetify`. Check out `global.d.ts` for API documentation.  
+
+Below are list of default extensions that comes with package:
+
+#### Auto Skip Videos 
+**Filename:** `autoSkipVideo.js`
+Videos are unable to play in some regions because of Spotify's policy. Instead of jumping to next song in playlist, it just stops playing. And it's kinda annoying to open up the client to manually click next every times it happens. Use this extension to skip them automatically.
+
+#### Christian Spotify
+**Filename:** `autoSkipExplicit.js`   
+Auto skip explicit tracks
+
+![Ext_ChristianDemo](https://i.imgur.com/yTUeWWn.png)
+
+#### DJ Mode
+**Filename:** `djMode.js`  
+Easily setting up the client for your friends or audiences to choose, add song to queue but prevent them to control player. Plays button in album track list/playlist are re-purposed to add track to queue, instead of play track directly. Hide Controls option also allow you to hide all control button in player bar, Play/More/Follow buttons in cards.
+
+![Ext_DJDemo](https://i.imgur.com/pOFEqtM.png)
+
+#### Queue All
+**Filename:** `queueAll.js`  
+You like using Discover, New Releases page to find new music but adding each one of them to queue takes a lot of effort? If so, activate this  extensions and apply. At top of every carousel now has a "Queue All"  button to help you add all of them to queue. Note: Not available for playlist carousels. Just songs, albums ones.
+
+![QueueAllDemo](https://i.imgur.com/D9ytt7K.png)
+
+#### Shuffle+
+**Filename:** `shuffle+.js`  
+Detect current context (playlist, album, user collection or show), gather all its items and shuffle them with Fisher–Yates algorithm.
+After injecting this extension, go to Queue and you can find 2 new buttons at page header:
+    - Shuffle Context: detect current context and shuffle all its item.
+    - Shuffle Queue: shuffle only 80 items or less that are visible in Queue page. It's only useful for mixed context queue.
+For most of the time, just use Shuffle Context.
+
+![Shuffle_1](https://i.imgur.com/Vy8fwMy.png)
+![Shuffle_2](https://i.imgur.com/3CWieYj.png)
+
+#### Trash Bin
+**Filename:** `trashbin.js`  
+Throw songs/artists to trash bin and never hear them again (automatically skip). This extension will append a trash bin button in player bar and one in every artist page header. Button in player bar will immediately skip and add that song to trash list. Button in artist page will add that artist in trash list and skip whenever his/her songs play.
+
+![Ext_Trash1](https://i.imgur.com/k7A7oBI.png) | ![Ext_Trash2](https://i.imgur.com/dVZclSJ.png)
+---|---
+
 ## Development
 ### Requirements
 - [Go](https://golang.org/dl/)
 
 Clone repo and download dependencies:
 ```bash
-go get github.com/khanhas/spicetify-cli
+cd $HOME
+git clone https://github.com/khanhas/spicetify-cli
 ```
 
 ### Build
 #### Windows
 ```powershell
-cd $HOME\go\src\github.com\khanhas\spicetify-cli
+cd $HOME\spicetify-cli
 go build -o spicetify.exe
 ```
 
 #### Linux and MacOS
 ```bash
-cd ~/go/src/github.com/khanhas/spicetify-cli
+cd ~/spicetify-cli
 go build -o spicetify
 ```
 
