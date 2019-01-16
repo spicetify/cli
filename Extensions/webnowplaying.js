@@ -12,8 +12,13 @@
     const info = {
         STATE: () => (Spicetify.Player.isPlaying() ? 1 : 2),
         TITLE: () => Spicetify.Player.data.track.metadata.title || "N/A",
-        ARTIST: () =>
-            document.querySelector("#view-player-footer .artist").innerText,
+        ARTIST: () => {
+            if (Spicetify.URI.isShow(Spicetify.Player.data.track.uri)) {
+                return info.ALBUM();
+            }
+
+            return document.querySelector("#view-player-footer .artist").innerText
+        },
         ALBUM: () => Spicetify.Player.data.track.metadata.album_title || "N/A",
         DURATION: () => convertTimeToString(Spicetify.Player.getDuration()),
         POSITION: () => convertTimeToString(Spicetify.Player.getProgress()),
@@ -42,10 +47,8 @@
         if (!Spicetify.Player.data && currState !== 0) {
             ws.send("STATE:" + 0);
             currState = 0;
-            console.log("State 0")
             return;
         }
-        console.log("Updating")
         for (const field in info) {
             try {
                 const data = info[field].call();
@@ -105,14 +108,13 @@
 
         ws.onopen = () => {
             ws.send("PLAYER: Spotify Desktop");
-            console.log("Open")
+            currState = 1;
             currentMusicInfo = {};
             sendData = setInterval(updateInfo, 500);
         };
 
         ws.onclose = () => {
             clearInterval(sendData);
-            console.log("restart")
             setTimeout(init, 2000);
         };
 
