@@ -6,8 +6,6 @@
 .card-image,
 .card-placeholder-wrapper,
 .card-image-content-wrapper,
-.GlueCard:not(.GlueCard--artist) .GlueCard__image,
-.GlueCard:not(.GlueCard--artist) .GlueCard__image-wrapper,
 .Card:not(.Card--artist) .Card__image,
 .Card:not(.Card--artist) .Card__image-wrapper {
 	border-radius: 10px !important;
@@ -54,7 +52,6 @@
 
 /*Lift up cover when hovering on it*/
 .card-image-content-wrapper,
-.GlueCard__image-wrapper,
 .Card:not(.Card--artist) .Card__image-wrapper {
 	transition-property: transform, box-shadow !important;
 	transition-duration: 1s !important;
@@ -63,7 +60,6 @@
 }
 
 .card-image-hit-area:not(.no-hover):hover .card-image-content-wrapper,
-.GlueCard__image-hit-area-counter-scale:hover .GlueCard__image-wrapper,
 .Card:not(.Card--artist) .Card__image-hit-area-counter-scale:hover .Card__image-wrapper {
 	transform: translateY(-10px);
 	box-shadow: 0 15px 30px rgba(0,0,0,0.3);
@@ -72,13 +68,6 @@
 .card-image-hit-area .card-button-add,
 .card-image-hit-area .card-button-play,
 .card-image-hit-area .card-button-more,
-.GlueCard__image-hit-area .card-button-add,
-.GlueCard__image-hit-area .card-button-play,
-.GlueCard__image-hit-area .card-button-more,
-.GlueCard__image-hit-area .GlueCard__play-button,
-.GlueCard__image-hit-area .GlueCard__add-button,
-.GlueCard__image-hit-area .GlueCard__more-button,
-.GlueCard__image-hit-area .GlueCard__overlay,
 .Card__image-hit-area .card-button-add,
 .Card__image-hit-area .card-button-play,
 .Card__image-hit-area .card-button-more,
@@ -94,9 +83,6 @@
 .card-image-hit-area:not(.no-hover):hover .card-button-add,
 .card-image-hit-area:not(.no-hover):hover .card-button-play,
 .card-image-hit-area:not(.no-hover):hover .card-button-more,
-.GlueCard__image-hit-area:not(.no-hover):hover .card-button-add,
-.GlueCard__image-hit-area:not(.no-hover):hover .card-button-play,
-.GlueCard__image-hit-area:not(.no-hover):hover .card-button-more,
 .Card__image-hit-area:not(.no-hover):hover .card-button-add,
 .Card__image-hit-area:not(.no-hover):hover .card-button-play,
 .Card__image-hit-area:not(.no-hover):hover .card-button-more {
@@ -104,10 +90,6 @@
 	transform: translateY(-10px);
 }
 
-.GlueCard__image-hit-area:hover .GlueCard__play-button,
-.GlueCard__image-hit-area:hover .GlueCard__add-button,
-.GlueCard__image-hit-area:hover .GlueCard__more-button,
-.GlueCard__image-hit-area:hover .GlueCard__overlay,
 .Card__image-hit-area:hover .Card__play-button,
 .Card__image-hit-area:hover .Card__add-button,
 .Card__image-hit-area:hover .Card__more-button,
@@ -487,7 +469,7 @@ body:not(.body-container--windows) .content-top-bar__profile-menu-button .dropdo
 	color: var(--modspotify_main_bg) !important;
 }
 
-.glue-page-header:not(.glue-page-header--album):not(.glue-page-header--playlist):not(.glue-page-header--artist):not(.glue-page-header--dailymix)
+.glue-page-header:not(.glue-page-header--album):not(.glue-page-header--playlist):not(.glue-page-header--artist):not(.glue-page-header--dailymix):not(.glue-page-header--user):not(.glue-page-header--show)
 	.glue-page-header__content-inner .glue-page-header__title-text,
 .HomeHeader .Header__content-inner .Header__title-text-inner,
 .MadeForYouHeader .Header__content-inner .Header__title-text-inner,
@@ -505,10 +487,6 @@ body:not(.body-container--windows) .content-top-bar__profile-menu-button .dropdo
 .glue-page-header.glue-page-header--dailymix .glue-page-header__content-inner .glue-page-header__title,
 .glue-page-header.glue-page-header--playlist .glue-page-header__content-inner .glue-page-header__title {
 	margin-top: 10px;
-}
-
-.glue-page-header:not(.glue-page-header--album):not(.glue-page-header--playlist):not(.glue-page-header--artist):not(.glue-page-header--dailymix) .glue-page-header__description {
-	padding-top: 20px;
 }
 
 span.glue-page-header__title-text {
@@ -616,10 +594,6 @@ span.glue-page-header__title-text {
 	overflow: unset;
 }
 
-#main-container #header {
-	left: -40px;
-}
-
 .Button--style-icon-stroke:after,
 .Button--style-icon-stroke:hover:after,
 .Button--style-icon-stroke,
@@ -641,7 +615,8 @@ span.glue-page-header__title-text {
 	z-index: 2;
 }
 
-.glue-page-header__label span{
+.glue-page-header__label span,
+.Header__label span {
 	background-color: var(--modspotify_main_fg);
     color: var(--modspotify_main_bg);
     padding: 2px 10px;
