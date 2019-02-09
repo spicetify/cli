@@ -24,6 +24,7 @@ var (
 			"disable_ui_logging": "1",
 			"remove_rtl_rule":    "1",
 			"expose_apis":        "1",
+			"stop_autoupdate":    "0",
 		},
 		"AdditionalOptions": map[string]string{
 			"experimental_features":        "0",

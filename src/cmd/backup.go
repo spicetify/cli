@@ -64,6 +64,7 @@ func Backup() {
 			DisableLogging: preprocSec.Key("disable_ui_logging").MustInt(0) == 1,
 			RemoveRTL:      preprocSec.Key("remove_rtl_rule").MustInt(0) == 1,
 			ExposeAPIs:     preprocSec.Key("expose_apis").MustInt(0) == 1,
+			StopAutoUpdate: preprocSec.Key("stop_autoupdate").MustInt(0) == 1,
 		},
 		tracker.Update,
 	)
@@ -88,7 +89,7 @@ func Backup() {
 // ClearBackup .
 func ClearBackup() {
 	curSpotifystatus := spotifystatus.Get(spotifyPath)
-	
+
 	if curSpotifystatus != spotifystatus.STOCK && !quiet {
 		utils.PrintWarning("Before clearing backup, please restore or re-install Spotify to stock state.")
 		if !utils.ReadAnswer("Continue clearing anyway? [y/N]: ", false) {
@@ -100,12 +101,12 @@ func ClearBackup() {
 		utils.Fatal(err)
 	}
 	os.Mkdir(backupFolder, 0700)
-	
+
 	if err := os.RemoveAll(rawFolder); err != nil {
 		utils.Fatal(err)
 	}
 	os.Mkdir(rawFolder, 0700)
-	
+
 	if err := os.RemoveAll(themedFolder); err != nil {
 		utils.Fatal(err)
 	}
@@ -134,7 +135,7 @@ func Restore() {
 			utils.PrintInfo(`Spotify is at stock state. Run "spicetify backup" to backup current Spotify version.`)
 		}
 		if !quiet && !utils.ReadAnswer("Continue restoring anyway? [y/N] ", false) {
-			os.Exit(1)	
+			os.Exit(1)
 		}
 	}
 
@@ -143,11 +144,11 @@ func Restore() {
 	if err := os.RemoveAll(appFolder); err != nil {
 		utils.Fatal(err)
 	}
-	
+
 	if err := utils.Copy(backupFolder, appFolder, false, []string{".spa"}); err != nil {
 		utils.Fatal(err)
 	}
-	
+
 	utils.PrintSuccess("Spotify is restored.")
 	RestartSpotify()
 }
