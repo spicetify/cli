@@ -225,3 +225,16 @@ func PrependTime(text string) string {
 	date := time.Now()
 	return fmt.Sprintf("%02d:%02d:%02d ", date.Hour(), date.Minute(), date.Second()) + text
 }
+
+func findSymbol(debugInfo, content string, clues []string) []string {
+	for _, v := range clues {
+		re := regexp.MustCompile(v)
+		found := re.FindStringSubmatch(content)
+		if found != nil {
+			return found[1:]
+		}
+	}
+
+	PrintError("Cannot find symbol for " + debugInfo)
+	return nil
+}

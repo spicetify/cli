@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
@@ -265,21 +264,8 @@ func removeRTL(input string) string {
 	return input
 }
 
-func findSymbol(debugInfo, content string, clues []string) []string {
-	for _, v := range clues {
-		re := regexp.MustCompile(v)
-		found := re.FindStringSubmatch(content)
-		if found != nil {
-			return found[1:]
-		}
-	}
-
-	utils.PrintError("Cannot find symbol for " + debugInfo)
-	return nil
-}
-
 func exposeAPIs(input string) string {
-	playerUI := findSymbol("playerUI", input, []string{
+	playerUI := utils.findSymbol("playerUI", input, []string{
 		`([\w_]+)\.prototype\.updateProgressBarLabels`,
 		`([\w_]+)\.prototype\._onConnectionStateChange`},
 	)
@@ -311,7 +297,7 @@ func exposeAPIs(input string) string {
 	)
 
 	// Find Event Dispatcher (eventSymbol[0]) and Event Creator (eventSymbol[1]) symbol
-	eventSymbols := findSymbol("EventDispatcher and Event Creator", input, []string{
+	eventSymbols := utils.findSymbol("EventDispatcher and Event Creator", input, []string{
 		`([\w_]+)\.default\.dispatchEvent\(new ([\w_]+)\.default\([\w_]+\.default\.NAVIGATION_OPEN_URI`,
 		`([\w_]+)\.default\.dispatchEvent\(new ([\w_]+)\.default\("show\-notification\-bubble"`},
 	)
@@ -333,7 +319,7 @@ func exposeAPIs(input string) string {
 	)
 
 	// Find Player (playerCosmosSymbols[0]) and Cosmos API (playerCosmosSymbols[1]) symbols
-	playerCosmosSymbols := findSymbol("player and cosmos in PlayerHelper", input, []string{
+	playerCosmosSymbols := utils.findSymbol("player and cosmos in PlayerHelper", input, []string{
 		`this\._player=new ([\w_]+)\(([\w_]+)\.resolver,"spotify:app:zlink"`,
 		`return new ([\w_]+)\(([\w_]+)\.resolver,"spotify:app:zlink","zlink"`,
 	})
