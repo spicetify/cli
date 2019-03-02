@@ -80,6 +80,7 @@ func Apply() {
 	)
 
 	extentionList := featureSection.Key("extensions").Strings("|")
+	customAppsList := featureSection.Key("custom_apps").Strings("|")
 
 	apply.AdditionalOptions(appFolder, apply.Flag{
 		ExperimentalFeatures: featureSection.Key("experimental_features").MustInt(0) == 1,
@@ -92,9 +93,12 @@ func Apply() {
 		SongPage:             featureSection.Key("song_page").MustInt(0) == 1,
 		VisHighFramerate:     featureSection.Key("visualization_high_framerate").MustInt(0) == 1,
 		Extension:            extentionList,
+		CustomApp:            customAppsList,
 	})
 
 	pushExtensions(extentionList...)
+
+	pushApps(customAppsList...)
 
 	utils.PrintSuccess("Spotify is spiced up!")
 	RestartSpotify()
@@ -155,6 +159,43 @@ func pushExtensions(list ...string) {
 			}
 
 			if err = utils.CopyFile(extPath, zlinkFolder); err != nil {
+				utils.PrintError(err.Error())
+				continue
+			}
+		}
+	}
+}
+
+func getCustomAppPath(name string) (string, error) {
+	customAppFolderPath := filepath.Join(spicetifyFolder, "CustomApps", name)
+
+	if _, err := os.Stat(customAppFolderPath); err == nil {
+		return customAppFolderPath, nil
+	}
+
+	customAppFolderPath = filepath.Join(utils.GetExecutableDir(), "CustomApps", name)
+
+	if _, err := os.Stat(customAppFolderPath); err == nil {
+		return customAppFolderPath, nil
+	}
+
+	return "", errors.New("Custom app not found")
+}
+
+func pushApps(list ...string) {
+	if len(list) > 0 {
+		appFolder := filepath.Join(spotifyPath, "Apps")
+
+		for _, name := range list {
+			customAppPath, err := getCustomAppPath(name)
+			if err != nil {
+				utils.PrintError(`Custom app "` + name + `" not found.`)
+				continue
+			}
+
+			customAppDestPath := filepath.Join(appFolder, name)
+
+			if err = utils.Copy(customAppPath, customAppDestPath, true, nil); err != nil {
 				utils.PrintError(err.Error())
 				continue
 			}

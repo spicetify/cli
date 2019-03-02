@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-ini/ini"
 	"github.com/khanhas/spicetify-cli/src/utils"
@@ -23,6 +24,7 @@ type Flag struct {
 	SongPage             bool
 	VisHighFramerate     bool
 	Extension            []string
+	CustomApp            []string
 }
 
 // AdditionalOptions .
@@ -43,9 +45,9 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 
 			switch extension {
 			case ".js":
-				if appName == "lyrics" {
+				if fileName == "lyrics.bundle.js" {
 					lyricsMod(path, flags)
-				} else if appName == "zlink" {
+				} else if fileName == "zlink.bundle.js" {
 					zlinkMod(path, flags)
 				}
 			case ".css":
@@ -143,6 +145,10 @@ func zlinkMod(jsPath string, flags Flag) {
 			utils.Replace(&content, `window\.initialState\.isSongPageEnabled`, `true`)
 		}
 
+		if len(flags.CustomApp) > 0 {
+			insertCustomApp(&content, flags.CustomApp)
+		}
+
 		return content
 	})
 }
@@ -223,4 +229,57 @@ func getColorCSS(themeFolder string) string {
 	}
 
 	return fmt.Sprintf(":root {%s\n}\n", variableList)
+}
+
+func insertCustomApp(zlinkContent *string, appList []string) {
+	symbol1 := utils.FindSymbol("React and SidebarList", *zlinkContent, []string{
+		`([\w_]+)\.default\.createElement\(([\w_]+)\.default,\{title:[\w_]+\.default\.get\("your_music\.app_name"\)`,
+		`([\w_]+)\.default\.createElement\(([\w_]+)\.default,\{interactionId:"main"\}`,
+	})
+	if symbol1 == nil || len(symbol1) < 2 {
+		utils.PrintError("Cannot find enough symbol for React and SidebarList.")
+		return
+	}
+
+	symbol2 := utils.FindSymbol("Last requested URI", *zlinkContent, []string{
+		`([\w_]+)\.default,{isActive:/\^spotify:app:home/\.test\(([\w_]+)\)`,
+	})
+	if symbol2 == nil || len(symbol2) < 2 {
+		utils.PrintError("Cannot find enough symbol for Last requested URI.")
+		return
+	}
+
+	react := symbol1[0]
+	list := symbol1[1]
+
+	element := symbol2[0]
+	pageURI := symbol2[1]
+
+	pageLogger := ""
+	menuItems := ""
+
+	for _, name := range appList {
+		menuItems += react +
+			`.default.createElement(` + element +
+			`.default,{isActive:/^spotify:app:` + name +
+			`(\:.*)?$/.test(` + pageURI +
+			`),isBold:!0,label:"` + strings.Title(name) +
+			`",uri:"spotify:app:` + name + `"}),`
+
+		pageLogger += `"` + name + `":"` + name + `",`
+	}
+
+	utils.Replace(
+		zlinkContent,
+		`[\w_]+\.default\.createElement\([\w_]+\.default,\{title:[\w_]+\.default\.get\("your_music\.app_name"`,
+		react+`.default.createElement(`+list+
+			`.default,{title:"Your app"},`+menuItems+`)),`+
+			react+`.default.createElement("div",{className:"LeftSidebar__section"},${0}`,
+	)
+
+	utils.Replace(
+		zlinkContent,
+		`EMPTY:"empty"`,
+		pageLogger+`${0}`,
+	)
 }

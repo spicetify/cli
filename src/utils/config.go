@@ -37,6 +37,7 @@ var (
 			"song_page":                    "0",
 			"visualization_high_framerate": "0",
 			"extensions":                   "",
+			"custom_apps":                  "",
 		},
 	}
 )
