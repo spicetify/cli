@@ -226,7 +226,9 @@ func PrependTime(text string) string {
 	return fmt.Sprintf("%02d:%02d:%02d ", date.Hour(), date.Minute(), date.Second()) + text
 }
 
-func findSymbol(debugInfo, content string, clues []string) []string {
+// FindSymbol uses regexp from one or multiple clues to find variable or
+// function symbol in obfursted code.
+func FindSymbol(debugInfo, content string, clues []string) []string {
 	for _, v := range clues {
 		re := regexp.MustCompile(v)
 		found := re.FindStringSubmatch(content)
