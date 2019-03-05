@@ -212,7 +212,14 @@ func GetExecutableDir() string {
 		log.Fatal(err)
 	}
 
-	return filepath.Dir(exe)
+	exeDir := filepath.Dir(exe)
+
+	if link, err := os.Readlink(exe); err == nil {
+		linkDir := filepath.Dir(link)
+		return filepath.Join(exeDir, linkDir)
+	}
+
+	return exeDir
 }
 
 // GetJsHelperDir returns jsHelper directory in executable directory
