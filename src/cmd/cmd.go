@@ -19,6 +19,7 @@ var (
 	cfg                     utils.Config
 	settingSection          *ini.Section
 	backupSection           *ini.Section
+	preprocSection          *ini.Section
 	featureSection          *ini.Section
 )
 
@@ -29,6 +30,7 @@ func Init(isQuiet bool) {
 	cfg = utils.ParseConfig(GetConfigPath())
 	settingSection = cfg.GetSection("Setting")
 	backupSection = cfg.GetSection("Backup")
+	preprocSection = cfg.GetSection("Preprocesses")
 	featureSection = cfg.GetSection("AdditionalOptions")
 
 	spotifyPath = settingSection.Key("spotify_path").String()

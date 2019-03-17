@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"github.com/khanhas/spicetify-cli/src/status/spotify"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+
+	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
 
 	"github.com/khanhas/spicetify-cli/src/backup"
 	"github.com/khanhas/spicetify-cli/src/preprocess"
@@ -51,8 +52,6 @@ func Backup() {
 	backup.Extract(backupFolder, rawFolder, tracker.Update)
 	tracker.Finish()
 
-	preprocSec := cfg.GetSection("Preprocesses")
-
 	tracker.Reset()
 
 	utils.PrintBold("Preprocessing:")
@@ -60,11 +59,11 @@ func Backup() {
 	preprocess.Start(
 		rawFolder,
 		preprocess.Flag{
-			DisableSentry:  preprocSec.Key("disable_sentry").MustInt(0) == 1,
-			DisableLogging: preprocSec.Key("disable_ui_logging").MustInt(0) == 1,
-			RemoveRTL:      preprocSec.Key("remove_rtl_rule").MustInt(0) == 1,
-			ExposeAPIs:     preprocSec.Key("expose_apis").MustInt(0) == 1,
-			StopAutoUpdate: preprocSec.Key("stop_autoupdate").MustInt(0) == 1,
+			DisableSentry:  preprocSection.Key("disable_sentry").MustInt(0) == 1,
+			DisableLogging: preprocSection.Key("disable_ui_logging").MustInt(0) == 1,
+			RemoveRTL:      preprocSection.Key("remove_rtl_rule").MustInt(0) == 1,
+			ExposeAPIs:     preprocSection.Key("expose_apis").MustInt(0) == 1,
+			StopAutoUpdate: preprocSection.Key("stop_autoupdate").MustInt(0) == 1,
 		},
 		tracker.Update,
 	)
