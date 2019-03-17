@@ -462,10 +462,10 @@ this.getAlbumTracks && this.queueTracks && (Spicetify.addToQueue = async (uri) =
 			return;
 		}
 
-		if (uriObj.type === Spicetify.URI.Type.ALBUM) {
+		if (uriObj.type === Spicetify.URI.Type.ALBUM || uriObj.type === Spicetify.URI.Type.LOCAL_ALBUM) {
 			const tracks = await getAlbumAsync(inputUri);
 			trackUris.push(...tracks);
-		} else if (uriObj.type === Spicetify.URI.Type.TRACK || uriObj.type === Spicetify.URI.Type.EPISODE) {
+		} else if (uriObj.type === Spicetify.URI.Type.TRACK || uriObj.type === Spicetify.URI.Type.EPISODE || uriObj.type === Spicetify.URI.Type.LOCAL) {
 			trackUris.push(inputUri);
 		} else {
 			console.error("Only Track, Album, Episode URIs are accepted. Skipped ", inputUri);
