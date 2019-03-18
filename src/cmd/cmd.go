@@ -23,8 +23,8 @@ var (
 	featureSection          *ini.Section
 )
 
-// Init .
-func Init(isQuiet bool) {
+// InitConfig .
+func InitConfig(isQuiet bool) {
 	quiet = isQuiet
 
 	cfg = utils.ParseConfig(GetConfigPath())
@@ -32,7 +32,10 @@ func Init(isQuiet bool) {
 	backupSection = cfg.GetSection("Backup")
 	preprocSection = cfg.GetSection("Preprocesses")
 	featureSection = cfg.GetSection("AdditionalOptions")
+}
 
+// InitPaths .
+func InitPaths() {
 	spotifyPath = settingSection.Key("spotify_path").String()
 
 	if len(spotifyPath) != 0 {

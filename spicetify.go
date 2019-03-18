@@ -68,7 +68,7 @@ func init() {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	cmd.Init(quiet)
+	cmd.InitConfig(quiet)
 
 	if len(os.Args) < 2 {
 		utils.PrintInfo(`Run "spicetify -h" for commands list.`)
@@ -80,6 +80,17 @@ func main() {
 	utils.PrintBold("spicetify v" + version)
 	args := os.Args[1:]
 
+	// Non-chainable commands
+	switch args[0] {
+	case "config":
+		args = args[1:]
+		cmd.EditConfig(args)
+		return
+	}
+
+	cmd.InitPaths()
+
+	// Chainable commands
 	for _, argv := range args {
 		switch argv {
 		case "backup":
@@ -134,7 +145,7 @@ func help() {
 		"spicetify {-c | --config} | {-v | --version} | {-h | --help}\n\n" +
 		utils.Bold("DESCRIPTION") + "\n" +
 		"Customize Spotify client UI and functionality\n\n" +
-		utils.Bold("COMMANDS") + `
+		utils.Bold("CHAINABLE COMMANDS") + `
 backup              Start backup and preprocessing app files.
 apply               Apply customization.
 update              Update theme CSS and colors.
@@ -143,13 +154,28 @@ clear               Clear current backup files.
 enable-devtool      Enable Spotify's developer tools.
                     Hit Ctrl + Shift + I in the client to start using.
 disable-devtool     Disable Spotify's developer tools.
-watch               Enter watch mode. Automatically update CSS when color.ini
-                    or user.css is changed.
+watch               Enter watch mode.
+                    On default, update CSS on color.ini or user.css's changes.
+                    Use with flag "-e" to update extentions on changes.
 restart             Restart Spotify client.
 
+` + utils.Bold("NON-CHAINABLE COMMANDS") + `
+config              Change value of one or multiple config fields. Require at
+                    least one pair of "FIELD" "VALUE".
+                    "extensions" and "custom_apps" fields are arrays of values,
+                    so "VALUE" will be appended to those fields' current value.
+                    Example usage: 
+                    - Enable "disable_sentry" preprocess:
+                    spicetify config disable_sentry 1
+                    - Add extension "myFakeExt.js" to current extensions list:
+                    spicetify config extensions myFakeExt.js
+                    - Disable "inject_css" and enable "song_page"
+                    spicetify config inject_css 0 song_page 1
+
 ` + utils.Bold("FLAGS") + `
--q, --quiet         Quiet mode (no output). Be careful, dangerous operations like
-                    clear backup, restore will proceed without prompting permission.
+-q, --quiet         Quiet mode (no output). Be careful, dangerous operations
+                    like clear backup, restore will proceed without prompting
+                    permission.
 -e, --extension     Use with "update" or "watch" command to focus on extensions.
 -c, --config        Print config file path and quit
 -h, --help          Print this help text and quit
