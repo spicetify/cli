@@ -86,6 +86,10 @@ func main() {
 		args = args[1:]
 		cmd.EditConfig(args)
 		return
+	case "color":
+		args = args[1:]
+		cmd.EditColor(args)
+		return
 	}
 
 	cmd.InitPaths()
