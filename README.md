@@ -19,17 +19,20 @@ Supports Windows, MacOS and Linux.
   - [Auto Skip Videos](#auto-skip-videos)
   - [Christian Spotify](#christian-spotify)
   - [DJ Mode](#dj-mode)
+  - [Keyboard Shortcut](#keyboard-shortcut)
   - [Queue All](#queue-all)
   - [Shuffle+](#shuffle)
   - [Trash Bin](#trash-bin)
-
+- Default Custom apps:
+  - [Reddit](#reddit)
 - [Development](#development)
   
 ## Features
 - Change colors whole UI
 - Inject CSS for advanced customization
 - Inject Extensions (Javascript script) to extend functionalities, manipulate UI and control player.
-- Enable some additional, hidden features
+- Inject Custom apps
+- Enable additional, hidden features
 - Remove bloated components to improve performance
 
 ![mac_demo1](https://i.imgur.com/JyWVzeC.png)
@@ -104,7 +107,7 @@ spicetify update
 ```
 to update your theme.
 
-In Spotify, hit <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>R</kbd>/<kbd>Command</kbd> <kbd>Shift</kbd> <kbd>R</kbd> to reload and receive visual update of your theme.
+In Spotify, hit <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>R</kbd> / <kbd>Command</kbd> <kbd>Shift</kbd> <kbd>R</kbd> to reload and receive visual update of your theme.
 
 For other commands and additional flags information, please run:
 ```bash
@@ -178,6 +181,19 @@ Easily setting up the client for your friends or audiences to choose, add song t
 
 ![Ext_DJDemo](https://i.imgur.com/pOFEqtM.png)
 
+#### Keyboard Shortcut
+**Filename:** `keyboardShortcut.js`
+
+Register some useful keybinds to support keyboard-driven navigation in Spotify client. Less time touching the mouse.
+- <kbd>Ctrl</kbd> <kbd>Tab</kbd> / <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Tab</kbd>: Navigate items in left sidebar menu.
+- <kbd>Backspace</kbd>/<kbd>Shift</kbd> <kbd>Backspace</kbd>: Navigate history backward/forward.
+- <kbd>PageUp</kbd>/<kbd>PageDown</kbd>: Force scroll up/down app page only (because mouse focus is sometimes in sidebar region and they scroll sidebar instead of app page).
+- <kbd>J</kbd>/<kbd>K</kbd>: Scroll app page up/down. \*Tips hat to Vim users\*
+- <kbd>Ctrl</kbd> <kbd>Q</kbd>: Open Queue page.
+- <kbd>`</kbd>: Open up keyboard-driven navigation. Hit correct key sequences to open up place you want to go:
+
+![KeyboardDemo](https://i.imgur.com/YX09Lc1.png)
+
 #### Queue All
 **Filename:** `queueAll.js`  
 You like using Discover, New Releases page to find new music but adding each one of them to queue takes a lot of effort? If so, activate this  extensions and apply. At top of every carousel now has a "Queue All"  button to help you add all of them to queue. Note: Not available for playlist carousels. Just songs, albums ones.
@@ -201,6 +217,32 @@ Throw songs/artists to trash bin and never hear them again (automatically skip).
 
 ![Ext_Trash1](https://i.imgur.com/k7A7oBI.png) | ![Ext_Trash2](https://i.imgur.com/dVZclSJ.png)
 ---|---
+
+### Custom apps
+Inject custom apps to Spotify and access them in left sidebar.  
+Add your desired custom app folder names in config, separated them by `|` character.  
+Example:
+```ini
+[AdditionalOptions]
+...
+custom_apps = reddit|yourownapp
+```
+
+App folders can be store in:
+- `CustomApps`  folder in Home directory:  
+**Windows:** `%userprofile%\.spicetify\CustomApps\`  
+**Linux:** `~/.spicetify/CustomApps/`  
+**MacOS:** `~/spicetify_data/CustomApps`  
+- `CustomApps`  folder in Spicetify executable directory.
+
+If there are 2 apps having same name, app in Home directory is prioritized.
+
+I included my own app to demonstrate how to make and inject an app:
+
+#### Reddit
+Fetching top 100 Spotify posts in any subreddit. This app has native feels and behavior just like other Spotify apps: you can follow, save, play, open playlist/track/album directly. Moreover, it also can fetch Youtube posts and play them inside Spotify.  
+
+![RedditDemo](https://i.imgur.com/OTrW2e8.png)
 
 ## Development
 ### Requirements
@@ -226,5 +268,4 @@ go build -o spicetify
 ```
 
 ### Future
-- [ ] SASS  
-- [ ] Inject custom apps  
+- [ ] SASS 
