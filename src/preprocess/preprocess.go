@@ -498,12 +498,12 @@ this.getAlbumTracks && this.removeTracksFromQueue && (Spicetify.removeFromQueue 
 			return;
 		}
 
-		if (uriObj.type === Spicetify.URI.Type.ALBUM) {
+		if (uriObj.type === Spicetify.URI.Type.ALBUM || uriObj.type === Spicetify.URI.Type.LOCAL_ALBUM) {
 			const tracks = await getAlbumAsync(inputUri);
 			tracks.forEach((trackUri) => {
 				Spicetify.Queue.next_tracks.forEach((t, i) => t.uri == trackUri && indices.add(i))
 			})
-		} else if (uriObj.type === Spicetify.URI.Type.TRACK || uriObj.type === Spicetify.URI.Type.EPISODE) {
+		} else if (uriObj.type === Spicetify.URI.Type.TRACK || uriObj.type === Spicetify.URI.Type.EPISODE || uriObj.type === Spicetify.URI.Type.LOCAL) {
 			Spicetify.Queue.next_tracks.forEach((t, i) => t.uri == inputUri && indices.add(i))
 		} else {
 			console.error("Only Album, Track and Episode URIs are accepted. Skipped ", inputUri);
