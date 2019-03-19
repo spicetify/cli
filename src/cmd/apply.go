@@ -26,21 +26,24 @@ func Apply() {
 		}
 		os.Exit(1)
 	} else if curBackupStatus == backupstatus.OUTDATED {
-		if !quiet {
-			utils.PrintWarning("Spotify version and backup version are mismatched.")
-			if status == spotifystatus.STOCK {
-				utils.PrintInfo(`Please run "spicetify backup apply".`)
-			} else {
-				utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
-			}
-			if !utils.ReadAnswer("Continue applying anyway? [y/N] ", false) {
-				os.Exit(1)
-			}
+		utils.PrintWarning("Spotify version and backup version are mismatched.")
+		if status == spotifystatus.STOCK {
+			utils.PrintInfo(`Please run "spicetify backup apply".`)
+		} else {
+			utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
+		}
+
+		if !ReadAnswer("Continue applying anyway? [y/N] ", false, true) {
+			os.Exit(1)
 		}
 	}
 
 	appFolder := filepath.Join(spotifyPath, "Apps")
 
+	// Copy raw assets to Spotify Apps folder if Spotify is never applied
+	// before.
+	// extractedStock is for preventing copy raw assets 2 times when
+	// replaceColors is false.
 	extractedStock := false
 	if status != spotifystatus.APPLIED {
 		if err := os.RemoveAll(appFolder); err != nil {
@@ -54,6 +57,23 @@ func Apply() {
 
 	replaceColors := settingSection.Key("replace_colors").MustInt(0) == 1
 	injectCSS := settingSection.Key("inject_css").MustInt(0) == 1
+
+	themeKey, err := settingSection.GetKey("current_theme")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	themeName := themeKey.String()
+	themeFolder := ""
+
+	if len(themeName) == 0 {
+		injectCSS = false
+		replaceColors = false
+	} else {
+		themeFolder = getThemeFolder(themeName)
+	}
+
 	if replaceColors {
 		if err := utils.Copy(themedFolder, appFolder, true, nil); err != nil {
 			utils.Fatal(err)
@@ -63,14 +83,6 @@ func Apply() {
 			utils.Fatal(err)
 		}
 	}
-
-	themeName, err := settingSection.GetKey("current_theme")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	themeFolder := getThemeFolder(themeName.MustString("SpicetifyDefault"))
 
 	apply.UserCSS(
 		appFolder,
@@ -104,7 +116,7 @@ func Apply() {
 	RestartSpotify()
 }
 
-// UpdateCSS .
+// UpdateCSS updates user.css file in Spotify
 func UpdateCSS() {
 	appFolder := filepath.Join(spotifyPath, "Apps")
 	themeName, err := settingSection.GetKey("current_theme")
@@ -125,7 +137,7 @@ func UpdateCSS() {
 	utils.PrintSuccess(utils.PrependTime("Custom CSS is updated"))
 }
 
-// UpdateAllExtension .
+// UpdateAllExtension pushs all extensions to Spotify
 func UpdateAllExtension() {
 	pushExtensions(featureSection.Key("extensions").Strings("|")...)
 	utils.PrintSuccess(utils.PrependTime("All extensions are updated."))

@@ -101,7 +101,7 @@ func main() {
 			cmd.Backup()
 
 		case "clear":
-			cmd.ClearBackup()
+			cmd.Clear()
 
 		case "apply":
 			cmd.Apply()

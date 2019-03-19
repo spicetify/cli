@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"log"
 	"path/filepath"
 
 	"github.com/go-ini/ini"
@@ -10,13 +9,18 @@ import (
 
 // EditColor changes one or multiple colors' values
 func EditColor(args []string) {
-	themeName, err := settingSection.GetKey("current_theme")
-
+	themeKey, err := settingSection.GetKey("current_theme")
 	if err != nil {
-		log.Fatal(err)
+		utils.Fatal(err)
 	}
 
-	themeFolder := getThemeFolder(themeName.MustString("SpicetifyDefault"))
+	themeName := themeKey.String()
+	if len(themeName) == 0 {
+		utils.PrintError(`Config "current_theme" is blank.`)
+		return
+	}
+
+	themeFolder := getThemeFolder(themeName)
 
 	colorFilePath := filepath.Join(themeFolder, "color.ini")
 	colorCfg, err := ini.Load(colorFilePath)
@@ -31,6 +35,7 @@ func EditColor(args []string) {
 
 		color := utils.ParseColor(value).Hex()
 
+		// Find requested color key in both Base and More sections
 		if base, err := colorCfg.GetSection("Base"); err == nil {
 			if key, err := base.GetKey(field); err == nil {
 				key.SetValue(color)

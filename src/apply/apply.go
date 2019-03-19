@@ -93,6 +93,9 @@ func UserCSS(appsFolderPath, themeFolder string, injectCSS, customColor bool) {
 	if err := ioutil.WriteFile(userCSSDestPath, []byte(userCSS), 0700); err != nil {
 		utils.Fatal(err)
 	}
+
+	// "login" app is initially loaded apps so it needs its own assets,
+	// unlike other apps that are able to depend on zlink assets.
 	userCSSDestPath = filepath.Join(appsFolderPath, "login", "css", "user.css")
 	if err := ioutil.WriteFile(userCSSDestPath, []byte(userCSS), 0700); err != nil {
 		utils.Fatal(err)

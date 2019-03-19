@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/go-ini/ini"
 	"github.com/khanhas/spicetify-cli/src/utils"
@@ -23,7 +26,7 @@ var (
 	featureSection          *ini.Section
 )
 
-// InitConfig .
+// InitConfig gets and parses config file.
 func InitConfig(isQuiet bool) {
 	quiet = isQuiet
 
@@ -34,7 +37,9 @@ func InitConfig(isQuiet bool) {
 	featureSection = cfg.GetSection("AdditionalOptions")
 }
 
-// InitPaths .
+// InitPaths checks various essential paths' availablities,
+// tries to auto-detect them and stops spicetify when any one
+// of them is invalid.
 func InitPaths() {
 	spotifyPath = settingSection.Key("spotify_path").String()
 
@@ -67,12 +72,12 @@ func InitPaths() {
 	}
 }
 
-// GetConfigPath .
+// GetConfigPath returns location of config file
 func GetConfigPath() string {
 	return filepath.Join(spicetifyFolder, "config.ini")
 }
 
-// GetSpotifyPath .
+// GetSpotifyPath returns location of Spotify client
 func GetSpotifyPath() string {
 	return spotifyPath
 }
@@ -128,4 +133,29 @@ func getThemeFolder(themeName string) string {
 	utils.PrintError(`Theme "` + themeName + `" not found`)
 	os.Exit(1)
 	return ""
+}
+
+// ReadAnswer prints out a yes/no form with string from `info`
+// and returns boolean value based on user input (y/Y or n/N) or
+// return `defaultAnswer` if input is omitted.
+// If input is neither of them, print form again.
+// If app is in quiet mode, returns quietModeAnswer without promting.
+func ReadAnswer(info string, defaultAnswer bool, quietModeAnswer bool) bool {
+	if quiet {
+		return quietModeAnswer
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print(info)
+	text, _ := reader.ReadString('\n')
+	text = strings.Replace(text, "\r", "", 1)
+	text = strings.Replace(text, "\n", "", 1)
+	if len(text) == 0 {
+		return defaultAnswer
+	} else if text == "y" || text == "Y" {
+		return true
+	} else if text == "n" || text == "N" {
+		return false
+	}
+	return ReadAnswer(info, defaultAnswer, quietModeAnswer)
 }

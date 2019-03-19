@@ -8,7 +8,7 @@ import (
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
-// EditConfig .
+// EditConfig changes one or multiple config value
 func EditConfig(args []string) {
 	if len(args) < 2 {
 		utils.PrintError("Not enough argument.")
@@ -36,6 +36,7 @@ func EditConfig(args []string) {
 	cfg.Write()
 }
 
+// searchField finds requested field in all three config sections
 func searchField(field string) *ini.Key {
 	key, err := settingSection.GetKey(field)
 	if err != nil {
@@ -43,7 +44,7 @@ func searchField(field string) *ini.Key {
 		if err != nil {
 			key, err = featureSection.GetKey(field)
 			if err != nil {
-				utils.PrintError(`Cannot find field "` + field + `".`)
+				unchangeWarning(field, `Not a valid field.`)
 				os.Exit(1)
 			}
 		}
@@ -69,7 +70,7 @@ func arrayType(section *ini.Section, field, value string) {
 
 	for _, ext := range allExts {
 		if value == ext {
-			unchangeWarning(field, value+"is already in the list.")
+			unchangeWarning(field, value+" is already in the list.")
 			return
 		}
 	}
@@ -93,13 +94,13 @@ func stringType(section *ini.Section, field, value string) {
 }
 
 func toggleType(field, value string) {
+	key := searchField(field)
+
 	if value != "0" && value != "1" {
-		unchangeWarning(field, `"`+value+`" is not valid. Only "0" or "1".`)
+		unchangeWarning(field, `"`+value+`" is not valid value. Only "0" or "1".`)
 		return
 	}
 
-	key := searchField(field)
 	key.SetValue(value)
-
 	changeSuccess(field, value)
 }

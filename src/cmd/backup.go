@@ -14,13 +14,23 @@ import (
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
-// Backup .
+// Backup stores original apps packages, extracts them and preprocesses
+// extracted apps' assets
 func Backup() {
 	backupVersion := backupSection.Key("version").MustString("")
 	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 	if curBackupStatus != backupstatus.EMPTY {
-		utils.PrintInfo("There is available backup, clear current backup:")
-		ClearBackup()
+		utils.PrintInfo("There is available backup.")
+		utils.PrintInfo("Clear current backup:")
+
+		spotifyStatus := spotifystatus.Get(spotifyPath)
+		if spotifyStatus == spotifystatus.STOCK {
+			clearBackup()
+		} else {
+			utils.PrintWarning(`After clearing backup, Spotify will not be backed up again.`)
+			utils.PrintInfo(`Please restore first then backup, run "spicetify restore backup" or re-install Spotify then run "spicetify backup".`)
+			os.Exit(1)
+		}
 	}
 
 	utils.PrintBold("Backing up app files:")
@@ -85,17 +95,22 @@ func Backup() {
 	utils.PrintSuccess("Everything is ready, you can start applying now!")
 }
 
-// ClearBackup .
-func ClearBackup() {
+// Clear clears current backup. Before clearing, it checks whether Spotify is in
+// valid state to backup again.
+func Clear() {
 	curSpotifystatus := spotifystatus.Get(spotifyPath)
 
-	if curSpotifystatus != spotifystatus.STOCK && !quiet {
+	if curSpotifystatus != spotifystatus.STOCK {
 		utils.PrintWarning("Before clearing backup, please restore or re-install Spotify to stock state.")
-		if !utils.ReadAnswer("Continue clearing anyway? [y/N]: ", false) {
+		if !ReadAnswer("Continue clearing anyway? [y/N]: ", false, true) {
 			os.Exit(1)
 		}
 	}
 
+	clearBackup()
+}
+
+func clearBackup() {
 	if err := os.RemoveAll(backupFolder); err != nil {
 		utils.Fatal(err)
 	}
@@ -116,7 +131,7 @@ func ClearBackup() {
 	utils.PrintSuccess("Backup is cleared.")
 }
 
-// Restore .
+// Restore uses backup to revert every changes made by Spicetify.
 func Restore() {
 	backupVersion := backupSection.Key("version").MustString("")
 	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
@@ -133,7 +148,7 @@ func Restore() {
 		if curSpotifystatus == spotifystatus.STOCK {
 			utils.PrintInfo(`Spotify is at stock state. Run "spicetify backup" to backup current Spotify version.`)
 		}
-		if !quiet && !utils.ReadAnswer("Continue restoring anyway? [y/N] ", false) {
+		if !ReadAnswer("Continue restoring anyway? [y/N] ", false, true) {
 			os.Exit(1)
 		}
 	}
