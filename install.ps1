@@ -1,4 +1,5 @@
 # Copyright 2019 khanhas. GPL license.
+# Edited from project Denoland install script (https://github.com/denoland/deno_install)
 param (
   [string] $version
 )
@@ -74,8 +75,8 @@ if (-not $is_in_path) {
   Write-Part "ADDING         "; Write-Emphasized $sp_dir; Write-Part " to the "
   Write-Emphasized "PATH"; Write-Part " environment variable..."
   [Environment]::SetEnvironmentVariable("PATH", "${path};${sp_dir}", $user)
-  # Add Deno to the PATH variable of the current terminal session
-  # so `deno` can be used immediately without restarting the terminal.
+  # Add Spicetify to the PATH variable of the current terminal session
+  # so `spicetify` can be used immediately without restarting the terminal.
   $env:PATH += ";${sp_dir}"
   Write-Done
 }
