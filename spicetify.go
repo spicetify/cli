@@ -175,6 +175,14 @@ config              Change value of one or multiple config fields. Require at
                     spicetify config extensions myFakeExt.js
                     - Disable "inject_css" and enable "song_page"
                     spicetify config inject_css 0 song_page 1
+color               Change theme's one or multiple color value. Require at
+                    least one pair of "FIELD" "VALUE".
+                    "VALUE" can be in hex or decimal (rrr,ggg,bbb) format.
+                    Example usage:
+                    - Change main_bg to ff0000
+                    spicetify color main_bg ff0000
+                    - Change slider_bg to 00ff00 and pressing_fg to 0000ff
+                    spicetify color slider_bg 00ff00 pressing_fg 0000ff
 
 ` + utils.Bold("FLAGS") + `
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations
