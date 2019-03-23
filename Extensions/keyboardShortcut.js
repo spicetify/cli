@@ -114,6 +114,17 @@
         }
     });
 
+    // Register Ctrl + W to Like/Unlike track
+    Spicetify.Keyboard.registerShortcut(
+        {
+            key: Spicetify.Keyboard.KEYS.W,
+            ctrl: true,
+        },
+        () => {
+            Spicetify.Player.toggleHeart();
+        }
+    );
+
     function focusOnApp() {
         /** @type {HTMLIFrameElement} */
         const iframe = document.querySelector("iframe.active");
