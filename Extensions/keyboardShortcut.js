@@ -15,6 +15,10 @@
     const SCROLL_STEP = 50;
     const QUERY = `[href], button.button-green, button.button-with-stroke, button.Button--style-green, button.Button--style-stroke`;
 
+    const CAROUSEL_CLASSES = `.Carousel, .crsl-item.col-xs-12.col-sm-12.col-md-12.col-lg-12`;
+    const CAROUSEL_NEXT_CLASSES = `[data-ta-id="next-button"], [data-button="carousel-next"]`;
+    const CAROUSEL_PREVIOUS_CLASSES = `[data-ta-id="previous-button"], [data-button="carousel-previous"]`;
+
     // Register Ctrl + Tab and Ctrl + Shift + Tab to switch sidebar items
     Spicetify.Keyboard.registerShortcut(
         {
@@ -92,6 +96,21 @@
         const app = focusOnApp();
         if (app) {
             app.scrollBy(0, -SCROLL_STEP);
+        }
+    });
+
+     // Register H and L to scroll carousel horizontally
+     Spicetify.Keyboard.registerShortcut(Spicetify.Keyboard.KEYS.H, () => {
+        const app = focusOnApp();
+        if (app) {
+            scrollCarousel(app.querySelectorAll(CAROUSEL_CLASSES), false);
+        }
+    });
+
+    Spicetify.Keyboard.registerShortcut(Spicetify.Keyboard.KEYS.L, () => {
+        const app = focusOnApp();
+        if (app) {
+            scrollCarousel(app.querySelectorAll(CAROUSEL_CLASSES), true);
         }
     });
 
@@ -331,5 +350,37 @@
         }
 
         toClick.click();
+    }
+
+    /**
+     * Find first visible carousel and hit next/previous button
+     * @param {NodeListOf<Element>} carouselList 
+     * @param {boolean} isNext
+     */
+    function scrollCarousel(carouselList, isNext) {
+        if (carouselList.length === 0) {
+            return;
+        }
+
+        for (const carousel of carouselList) {
+            const bound = carousel.getBoundingClientRect();
+            if (bound.top < 0) {
+                continue;
+            }
+
+            if (isNext) {
+                const next = carousel.querySelector(CAROUSEL_NEXT_CLASSES);
+                if (next) {
+                    next.click();
+                }
+            } else {
+                const previous = carousel.querySelector(CAROUSEL_PREVIOUS_CLASSES);
+                if (previous) {
+                    previous.click();
+                }
+            }
+
+            return;
+        }
     }
 })();
