@@ -22,7 +22,7 @@ const Spicetify = {
             return !event.defaultPrevented;
         },
         eventListeners: {},
-        getHeart: () => {Spicetify.LiveAPI(Spicetify.Player.data.track.uri).get("added")},
+        getHeart: () => Spicetify.LiveAPI(Spicetify.Player.data.track.uri).get("added"),
         pause: () => {Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
         play: () => {!Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
         removeEventListener: (type, callback) => {
