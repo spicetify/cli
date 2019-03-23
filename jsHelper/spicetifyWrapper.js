@@ -37,8 +37,8 @@ const Spicetify = {
                 }
             }
         },
-        skipBack: (amount = 15e3) => {Spicetify.Player.seek(Spicetify.Player.getProgressMs() - amount)},
-        skipForward: (amount = 15e3) => {Spicetify.Player.seek(Spicetify.Player.getProgressMs() + amount)},
+        skipBack: (amount = 15e3) => {Spicetify.Player.seek(Spicetify.Player.getProgress() - amount)},
+        skipForward: (amount = 15e3) => {Spicetify.Player.seek(Spicetify.Player.getProgress() + amount)},
         toggleHeart: () => {document.querySelector('[data-interaction-target="save-remove-button"]').click()},
     },
     showNotification: (text) => {
