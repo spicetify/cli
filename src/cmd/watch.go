@@ -21,13 +21,19 @@ func Watch() {
 		os.Exit(1)
 	}
 
-	themeName, err := settingSection.GetKey("current_theme")
+	themeKey, err := settingSection.GetKey("current_theme")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	themeFolder := getThemeFolder(themeName.MustString("SpicetifyDefault"))
+	themeName := themeKey.String()
+	if len(themeName) == 0 {
+		utils.PrintError(`Config "current_theme" is blank. No theme asset to watch.`)
+		os.Exit(1)
+	}
+
+	themeFolder := getThemeFolder(themeName)
 	colorPath := filepath.Join(themeFolder, "color.ini")
 	cssPath := filepath.Join(themeFolder, "user.css")
 
