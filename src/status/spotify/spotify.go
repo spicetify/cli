@@ -17,6 +17,8 @@ const (
 	INVALID
 	// APPLIED Spotify is modified
 	APPLIED
+	// MIXED Spotify has modified files and stock files
+	MIXED
 )
 
 // Get returns status of Spotify's Apps folder
@@ -32,20 +34,16 @@ func Get(spotifyPath string) Enum {
 	for _, file := range fileList {
 		if file.IsDir() {
 			dirCount++
-			continue
-		}
-
-		if strings.HasSuffix(file.Name(), ".spa") {
+		} else if strings.HasSuffix(file.Name(), ".spa") {
 			spaCount++
 		}
 	}
 
-	totalFiles := len(fileList)
-	if spaCount == totalFiles {
+	if spaCount > 0 && dirCount > 0 {
+		return MIXED
+	} else if spaCount > 0 {
 		return STOCK
-	}
-
-	if dirCount == totalFiles {
+	} else if dirCount > 0 {
 		return APPLIED
 	}
 
