@@ -37,30 +37,45 @@ func Watch() {
 	colorPath := filepath.Join(themeFolder, "color.ini")
 	cssPath := filepath.Join(themeFolder, "user.css")
 
+	checkColor := false
+	checkCSS := false
+	if _, err := os.Stat(colorPath); err == nil {
+		checkColor = true
+	}
+
+	if _, err := os.Stat(cssPath); err == nil {
+		checkCSS = true
+	}
+
 	var colorCache []byte
 	var cssCache []byte
 
 	for {
 		shouldUpdate := false
-		currColor, err := ioutil.ReadFile(colorPath)
-		if err != nil {
-			utils.PrintError(err.Error())
-			os.Exit(1)
-		}
-		currCSS, err := ioutil.ReadFile(cssPath)
-		if err != nil {
-			utils.PrintError(err.Error())
-			os.Exit(1)
+		if checkColor {
+			currColor, err := ioutil.ReadFile(colorPath)
+			if err != nil {
+				utils.PrintError(err.Error())
+				os.Exit(1)
+			}
+
+			if !bytes.Equal(colorCache, currColor) {
+				shouldUpdate = true
+				colorCache = currColor
+			}
 		}
 
-		if !bytes.Equal(colorCache, currColor) {
-			shouldUpdate = true
-			colorCache = currColor
-		}
+		if checkCSS {
+			currCSS, err := ioutil.ReadFile(cssPath)
+			if err != nil {
+				utils.PrintError(err.Error())
+				os.Exit(1)
+			}
 
-		if !bytes.Equal(cssCache, currCSS) {
-			shouldUpdate = true
-			cssCache = currCSS
+			if !bytes.Equal(cssCache, currCSS) {
+				shouldUpdate = true
+				cssCache = currCSS
+			}
 		}
 
 		if shouldUpdate {
