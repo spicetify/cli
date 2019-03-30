@@ -216,9 +216,8 @@ func pushApps(list ...string) {
 
 			customAppDestPath := filepath.Join(appFolder, name)
 
-			if err = utils.Copy(customAppPath, customAppDestPath, true, nil); err != nil {
-				utils.PrintError(err.Error())
-				continue
+			if err = utils.CreateJunction(customAppPath, customAppDestPath); err != nil {
+				utils.Fatal(err)
 			}
 		}
 	}

@@ -7,8 +7,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -224,5 +226,20 @@ func FindSymbol(debugInfo, content string, clues []string) []string {
 	}
 
 	PrintError("Cannot find symbol for " + debugInfo)
+	return nil
+}
+
+// CreateJunction creates a junction in Windows or a symlink in Linux/Mac.
+func CreateJunction(location, destination string) error {
+	switch runtime.GOOS {
+	case "windows":
+		exec.Command("cmd", "/C", "del", "/F", destination).Run()
+		return exec.Command("cmd", "/C", "mklink", "/J", destination, location).Run()
+	case "linux":
+		return exec.Command("ln", "-F", "-s", location, destination).Run()
+	case "darwin":
+		return exec.Command("ln", "-F", "-s", location, destination).Run()
+	}
+
 	return nil
 }
