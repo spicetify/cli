@@ -55,24 +55,7 @@ func Apply() {
 		extractedStock = true
 	}
 
-	replaceColors := settingSection.Key("replace_colors").MustInt(0) == 1
-	injectCSS := settingSection.Key("inject_css").MustInt(0) == 1
-
-	themeKey, err := settingSection.GetKey("current_theme")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	themeName := themeKey.String()
-	themeFolder := ""
-
-	if len(themeName) == 0 {
-		injectCSS = false
-		replaceColors = false
-	} else {
-		themeFolder = getThemeFolder(themeName)
-	}
+	themeFolder, injectCSS, replaceColors := getThemeSettings()
 
 	if replaceColors {
 		if err := utils.Copy(themedFolder, appFolder, true, nil); err != nil {
@@ -119,19 +102,18 @@ func Apply() {
 // UpdateCSS updates user.css file in Spotify
 func UpdateCSS() {
 	appFolder := filepath.Join(spotifyPath, "Apps")
-	themeName, err := settingSection.GetKey("current_theme")
 
-	if err != nil {
-		log.Fatal(err)
+	themeFolder, injectCSS, replaceColors := getThemeSettings()
+	if len(themeFolder) == 0 {
+		utils.PrintWarning(`Nothing is updated: Config "current_theme" is blank.`)
+		os.Exit(1)
 	}
-
-	themeFolder := getThemeFolder(themeName.MustString("SpicetifyDefault"))
 
 	apply.UserCSS(
 		appFolder,
 		themeFolder,
-		settingSection.Key("inject_css").MustInt(0) == 1,
-		settingSection.Key("replace_colors").MustInt(0) == 1,
+		injectCSS,
+		replaceColors,
 	)
 
 	utils.PrintSuccess(utils.PrependTime("Custom CSS is updated"))
@@ -141,6 +123,33 @@ func UpdateCSS() {
 func UpdateAllExtension() {
 	pushExtensions(featureSection.Key("extensions").Strings("|")...)
 	utils.PrintSuccess(utils.PrependTime("All extensions are updated."))
+}
+
+// getThemeSettings returns
+// - Theme path
+// - Whether Spicetify should inject css
+// - Whether Spicetify should replace colors
+func getThemeSettings() (string, bool, bool) {
+	replaceColors := settingSection.Key("replace_colors").MustInt(0) == 1
+	injectCSS := settingSection.Key("inject_css").MustInt(0) == 1
+
+	themeKey, err := settingSection.GetKey("current_theme")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	themeName := themeKey.String()
+	themeFolder := ""
+
+	if len(themeName) == 0 {
+		injectCSS = false
+		replaceColors = false
+	} else {
+		themeFolder = getThemeFolder(themeName)
+	}
+
+	return themeFolder, injectCSS, replaceColors
 }
 
 func getExtensionPath(name string) (string, error) {
