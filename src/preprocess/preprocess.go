@@ -20,8 +20,6 @@ type Flag struct {
 	RemoveRTL bool
 	// ExposeAPIs leaks some Spotify's API, functions, objects to Spicetify global object.
 	ExposeAPIs bool
-	// StopAutoUpdate prevent Spotify to update its client to newer version.
-	StopAutoUpdate bool
 }
 
 // Start preprocessing apps assets in extractedAppPath
@@ -49,12 +47,6 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string, e
 
 					if flags.DisableLogging {
 						content = disableLogging(content, appName)
-					}
-
-					if flags.StopAutoUpdate {
-						if appName == "about" || appName == "zlink" {
-							content = stopAutoUpdate(content)
-						}
 					}
 
 					if appName == "zlink" && flags.ExposeAPIs {
@@ -406,16 +398,6 @@ func exposeAPIs(input string) string {
 		&input,
 		`(_registerKeyboardShortcuts=function\(\)\{)(([\w_]+)\.registerShortcut)`,
 		"${1}Spicetify.Keyboard=${3};${2}",
-	)
-
-	return input
-}
-
-func stopAutoUpdate(input string) string {
-	utils.Replace(
-		&input,
-		`"sp://desktop/v1/upgrade.+?"`,
-		`""`,
 	)
 
 	return input
