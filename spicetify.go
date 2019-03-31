@@ -21,6 +21,7 @@ var (
 	commands       = []string{}
 	quiet          = false
 	extensionFocus = false
+	appFocus       = false
 )
 
 func init() {
@@ -91,6 +92,24 @@ func main() {
 		return
 	case "color":
 		cmd.EditColor(commands[1:])
+		return
+
+	case "path":
+		path, err := (func() (string, error) {
+			if extensionFocus {
+				return cmd.ExtensionPath(commands[1])
+			} else if appFocus {
+				return cmd.AppPath(commands[1])
+			} else {
+				return cmd.ThemeAssetPath(commands[1])
+			}
+		})()
+
+		if err != nil {
+			utils.Fatal(err)
+		}
+
+		log.Println(path)
 		return
 	}
 
@@ -175,6 +194,18 @@ watch               Enter watch mode.
 restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
+path                Print path of color, css, extension file or
+                    custom app directory and quit.
+` + "                    \x1B[4mUsage:\033[0m" + `
+                    - Print theme's color.inc path:
+                    spicetify path color
+                    - Print theme's user.css path:
+                    spicetify path css
+                    - Print extension <name> path:
+                    spicetify -e path <name>
+                    - Print custom app <name> path:
+                    spicetify -a path <name>
+
 config              Change value of one or multiple config fields. Require at
                     least one pair of "FIELD" "VALUE".
                     "extensions" and "custom_apps" fields are arrays of values,
@@ -203,6 +234,8 @@ color               Change theme's one or multiple color value. Require at
 
 -e, --extension     Use with "update", "watch" or "path" command to
                     focus on extensions.
+
+-a, --app           Use with "path" to focus on custom apps.
 
 -c, --config        Print config file path and quit
 
