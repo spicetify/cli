@@ -27,7 +27,10 @@ func Apply() {
 		os.Exit(1)
 	} else if curBackupStatus == backupstatus.OUTDATED {
 		utils.PrintWarning("Spotify version and backup version are mismatched.")
-		if status == spotifystatus.STOCK {
+		if status == spotifystatus.MIXED {
+			utils.PrintInfo(`Spotify client possibly just had an new update.`)
+			utils.PrintInfo(`Please run "spicetify backup apply".`)
+		} else if status == spotifystatus.STOCK {
 			utils.PrintInfo(`Please run "spicetify backup apply".`)
 		} else {
 			utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
@@ -46,37 +49,46 @@ func Apply() {
 	// replaceColors is false.
 	extractedStock := false
 	if status != spotifystatus.APPLIED {
+		utils.PrintBold(`Copying raw assets:`)
 		if err := os.RemoveAll(appFolder); err != nil {
 			utils.Fatal(err)
 		}
 		if err := utils.Copy(rawFolder, appFolder, true, nil); err != nil {
 			utils.Fatal(err)
 		}
+		utils.PrintGreen("OK")
 		extractedStock = true
 	}
 
 	themeFolder, injectCSS, replaceColors := getThemeSettings()
 
 	if replaceColors {
+		utils.PrintBold(`Overwriting themed assets:`)
 		if err := utils.Copy(themedFolder, appFolder, true, nil); err != nil {
 			utils.Fatal(err)
 		}
+		utils.PrintGreen("OK")
 	} else if !extractedStock {
+		utils.PrintBold(`Overwriting raw assets:`)
 		if err := utils.Copy(rawFolder, appFolder, true, nil); err != nil {
 			utils.Fatal(err)
 		}
+		utils.PrintGreen("OK")
 	}
 
+	utils.PrintBold(`Transferring user.css:`)
 	apply.UserCSS(
 		appFolder,
 		themeFolder,
 		injectCSS,
 		replaceColors,
 	)
+	utils.PrintGreen("OK")
 
 	extentionList := featureSection.Key("extensions").Strings("|")
 	customAppsList := featureSection.Key("custom_apps").Strings("|")
 
+	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appFolder, apply.Flag{
 		ExperimentalFeatures: featureSection.Key("experimental_features").MustInt(0) == 1,
 		FastUserSwitching:    featureSection.Key("fastUser_switching").MustInt(0) == 1,
@@ -90,10 +102,19 @@ func Apply() {
 		Extension:            extentionList,
 		CustomApp:            customAppsList,
 	})
+	utils.PrintGreen("OK")
 
-	pushExtensions(extentionList...)
+	if len(extentionList) > 0 {
+		utils.PrintBold(`Transferring extensions:`)
+		pushExtensions(extentionList...)
+		utils.PrintGreen("OK")
+	}
 
-	pushApps(customAppsList...)
+	if len(customAppsList) > 0 {
+		utils.PrintBold(`Creating custom apps symlinks:`)
+		pushApps(customAppsList...)
+		utils.PrintGreen("OK")
+	}
 
 	utils.PrintSuccess("Spotify is spiced up!")
 	RestartSpotify()
@@ -121,8 +142,13 @@ func UpdateCSS() {
 
 // UpdateAllExtension pushs all extensions to Spotify
 func UpdateAllExtension() {
-	pushExtensions(featureSection.Key("extensions").Strings("|")...)
-	utils.PrintSuccess(utils.PrependTime("All extensions are updated."))
+	list := featureSection.Key("extensions").Strings("|")
+	if len(list) > 0 {
+		pushExtensions(list...)
+		utils.PrintSuccess(utils.PrependTime("All extensions are updated."))
+	} else {
+		utils.PrintError("No extension to update.")
+	}
 }
 
 // getThemeSettings returns
@@ -169,20 +195,18 @@ func getExtensionPath(name string) (string, error) {
 }
 
 func pushExtensions(list ...string) {
-	if len(list) > 0 {
-		zlinkFolder := filepath.Join(spotifyPath, "Apps", "zlink")
+	zlinkFolder := filepath.Join(spotifyPath, "Apps", "zlink")
 
-		for _, v := range list {
-			extPath, err := getExtensionPath(v)
-			if err != nil {
-				utils.PrintError(`Extension "` + v + `" not found.`)
-				continue
-			}
+	for _, v := range list {
+		extPath, err := getExtensionPath(v)
+		if err != nil {
+			utils.PrintError(`Extension "` + v + `" not found.`)
+			continue
+		}
 
-			if err = utils.CopyFile(extPath, zlinkFolder); err != nil {
-				utils.PrintError(err.Error())
-				continue
-			}
+		if err = utils.CopyFile(extPath, zlinkFolder); err != nil {
+			utils.PrintError(err.Error())
+			continue
 		}
 	}
 }
@@ -204,21 +228,19 @@ func getCustomAppPath(name string) (string, error) {
 }
 
 func pushApps(list ...string) {
-	if len(list) > 0 {
-		appFolder := filepath.Join(spotifyPath, "Apps")
+	appFolder := filepath.Join(spotifyPath, "Apps")
 
-		for _, name := range list {
-			customAppPath, err := getCustomAppPath(name)
-			if err != nil {
-				utils.PrintError(`Custom app "` + name + `" not found.`)
-				continue
-			}
+	for _, name := range list {
+		customAppPath, err := getCustomAppPath(name)
+		if err != nil {
+			utils.PrintError(`Custom app "` + name + `" not found.`)
+			continue
+		}
 
-			customAppDestPath := filepath.Join(appFolder, name)
+		customAppDestPath := filepath.Join(appFolder, name)
 
-			if err = utils.CreateJunction(customAppPath, customAppDestPath); err != nil {
-				utils.Fatal(err)
-			}
+		if err = utils.CreateJunction(customAppPath, customAppDestPath); err != nil {
+			utils.Fatal(err)
 		}
 	}
 }
