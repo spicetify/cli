@@ -67,6 +67,8 @@ func init() {
 			os.Exit(0)
 		case "-e", "--extension":
 			extensionFocus = true
+		case "-a", "--app":
+			appFocus = true
 		case "-q", "--quite":
 			quiet = true
 		}
@@ -166,7 +168,7 @@ func main() {
 func help() {
 	utils.PrintBold("spicetify v" + version)
 	log.Println(utils.Bold("USAGE") + "\n" +
-		"spicetify [-q] [-e] \x1B[4mcommand\033[0m...\n" +
+		"spicetify [-q] [-e] [-a] \x1B[4mcommand\033[0m...\n" +
 		"spicetify {-c | --config} | {-v | --version} | {-h | --help}\n\n" +
 		utils.Bold("DESCRIPTION") + "\n" +
 		"Customize Spotify client UI and functionality\n\n" +
