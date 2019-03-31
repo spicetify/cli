@@ -13,10 +13,12 @@ import (
 )
 
 const (
-	version = "0.6.0"
+	version = "0.7.0"
 )
 
 var (
+	flags          = []string{}
+	commands       = []string{}
 	quiet          = false
 	extensionFocus = false
 )
@@ -33,19 +35,24 @@ func init() {
 	// Supports print color output for Windows
 	log.SetOutput(colorable.NewColorableStdout())
 
-	for k, v := range os.Args {
-		if v[0] != '-' {
-			continue
+	// Separates flags and commands
+	for _, v := range os.Args[1:] {
+		if v[0] == '-' {
+			flags = append(flags, v)
+		} else {
+			commands = append(commands, v)
 		}
+	}
 
+	for _, v := range flags {
 		switch v {
 		case "-c", "--config":
 			fmt.Println(cmd.GetConfigPath())
 			os.Exit(0)
 		case "-h", "--help":
 			kind := ""
-			if len(os.Args) > k+1 {
-				kind = os.Args[k+1]
+			if len(commands) > 1 {
+				kind = commands[0]
 			}
 			if kind == "config" {
 				helpConfig()
@@ -70,33 +77,30 @@ func init() {
 
 	cmd.InitConfig(quiet)
 
-	if len(os.Args) < 2 {
+	if len(commands) < 1 {
 		utils.PrintInfo(`Run "spicetify -h" for commands list.`)
 		os.Exit(0)
 	}
 }
 
 func main() {
-	utils.PrintBold("spicetify v" + version)
-	args := os.Args[1:]
-
 	// Non-chainable commands
-	switch args[0] {
+	switch commands[0] {
 	case "config":
-		args = args[1:]
-		cmd.EditConfig(args)
+		cmd.EditConfig(commands[1:])
 		return
 	case "color":
-		args = args[1:]
-		cmd.EditColor(args)
+		cmd.EditColor(commands[1:])
 		return
 	}
+
+	utils.PrintBold("spicetify v" + version)
 
 	cmd.InitPaths()
 
 	// Chainable commands
-	for _, argv := range args {
-		switch argv {
+	for _, v := range commands {
+		switch v {
 		case "backup":
 			cmd.Backup()
 
@@ -133,11 +137,9 @@ func main() {
 			cmd.RestartSpotify()
 
 		default:
-			if argv[0] != '-' {
-				utils.PrintError(`Command "` + argv + `" not found.`)
-				utils.PrintInfo(`Run "spicetify -h" for list of valid commands.`)
-				os.Exit(1)
-			}
+			utils.PrintError(`Command "` + v + `" not found.`)
+			utils.PrintInfo(`Run "spicetify -h" for list of valid commands.`)
+			os.Exit(1)
 		}
 	}
 }
@@ -151,16 +153,25 @@ func help() {
 		"Customize Spotify client UI and functionality\n\n" +
 		utils.Bold("CHAINABLE COMMANDS") + `
 backup              Start backup and preprocessing app files.
+
 apply               Apply customization.
-update              Update theme CSS and colors.
+
+update              On default, update theme CSS and colors.
+                    Use with flag "-e" to update extensions.
+
 restore             Restore Spotify to original state.
+
 clear               Clear current backup files.
+
 enable-devtool      Enable Spotify's developer tools.
                     Hit Ctrl + Shift + I in the client to start using.
+
 disable-devtool     Disable Spotify's developer tools.
+
 watch               Enter watch mode.
                     On default, update CSS on color.ini or user.css's changes.
                     Use with flag "-e" to update extentions on changes.
+
 restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
@@ -168,13 +179,14 @@ config              Change value of one or multiple config fields. Require at
                     least one pair of "FIELD" "VALUE".
                     "extensions" and "custom_apps" fields are arrays of values,
                     so "VALUE" will be appended to those fields' current value.
-                    Example usage: 
+                    Example usage:
                     - Enable "disable_sentry" preprocess:
                     spicetify config disable_sentry 1
                     - Add extension "myFakeExt.js" to current extensions list:
                     spicetify config extensions myFakeExt.js
                     - Disable "inject_css" and enable "song_page"
                     spicetify config inject_css 0 song_page 1
+
 color               Change theme's one or multiple color value. Require at
                     least one pair of "FIELD" "VALUE".
                     "VALUE" can be in hex or decimal (rrr,ggg,bbb) format.
@@ -188,9 +200,14 @@ color               Change theme's one or multiple color value. Require at
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations
                     like clear backup, restore will proceed without prompting
                     permission.
--e, --extension     Use with "update" or "watch" command to focus on extensions.
+
+-e, --extension     Use with "update", "watch" or "path" command to
+                    focus on extensions.
+
 -c, --config        Print config file path and quit
+
 -h, --help          Print this help text and quit
+
 -v, --version       Print version number and quit
 
 For config information, run "spicetify -h config".`)
