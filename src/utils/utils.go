@@ -233,7 +233,7 @@ func FindSymbol(debugInfo, content string, clues []string) []string {
 func CreateJunction(location, destination string) error {
 	switch runtime.GOOS {
 	case "windows":
-		exec.Command("cmd", "/C", "del", "/F", destination).Run()
+		exec.Command("cmd", "/C", "rmdir", destination).Run()
 		return exec.Command("cmd", "/C", "mklink", "/J", destination, location).Run()
 	case "linux":
 		return exec.Command("ln", "-F", "-s", location, destination).Run()
