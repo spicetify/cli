@@ -8,12 +8,20 @@ import (
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
-// Enum is type of backup status constants
-type Enum int
+type status struct {
+	state int
+}
+
+// Status .
+type Status interface {
+	IsBackuped() bool
+	IsEmpty() bool
+	IsOutdated() bool
+}
 
 const (
 	// EMPTY No backup found
-	EMPTY Enum = iota
+	EMPTY int = iota
 	// BACKUPED There is available backup
 	BACKUPED
 	// OUTDATED Available backup has different version from Spotify version
@@ -21,32 +29,45 @@ const (
 )
 
 // Get returns status of backup folder
-func Get(prefsPath, backupPath, backupVersion string) Enum {
+func Get(prefsPath, backupPath, backupVersion string) Status {
 	fileList, err := ioutil.ReadDir(backupPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if len(fileList) == 0 {
-		return EMPTY
-	}
+	cur := EMPTY
 
-	spaCount := 0
-	for _, file := range fileList {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".spa") {
-			spaCount++
+	if len(fileList) != 0 {
+		spaCount := 0
+		for _, file := range fileList {
+			if !file.IsDir() && strings.HasSuffix(file.Name(), ".spa") {
+				spaCount++
+			}
+		}
+
+		if spaCount > 0 {
+			spotifyVersion := utils.GetSpotifyVersion(prefsPath)
+
+			if backupVersion != spotifyVersion {
+				cur = OUTDATED
+			}
+
+			cur = BACKUPED
 		}
 	}
 
-	if spaCount > 0 {
-		spotifyVersion := utils.GetSpotifyVersion(prefsPath)
+	return status{
+		state: cur}
+}
 
-		if backupVersion != spotifyVersion {
-			return OUTDATED
-		}
+func (s status) IsBackuped() bool {
+	return s.state == BACKUPED
+}
 
-		return BACKUPED
-	}
+func (s status) IsEmpty() bool {
+	return s.state == EMPTY
+}
 
-	return EMPTY
+func (s status) IsOutdated() bool {
+	return s.state == OUTDATED
 }

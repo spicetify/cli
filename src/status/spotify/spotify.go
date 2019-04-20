@@ -7,13 +7,24 @@ import (
 	"strings"
 )
 
-// Enum is type of Spotify status constants
-type Enum int
+type status struct {
+	state int
+}
+
+// Status .
+type Status interface {
+	IsBackupable() bool
+	IsModdable() bool
+	IsStock() bool
+	IsMixed() bool
+	IsApplied() bool
+	IsInvalid() bool
+}
 
 const (
 	// STOCK Spotify is in original state
-	STOCK Enum = iota
-	// INVALID Apps folder has mixing files and directories
+	STOCK int = iota
+	// INVALID Apps folder is empty
 	INVALID
 	// APPLIED Spotify is modified
 	APPLIED
@@ -22,7 +33,7 @@ const (
 )
 
 // Get returns status of Spotify's Apps folder
-func Get(spotifyPath string) Enum {
+func Get(spotifyPath string) Status {
 	appsFolder := filepath.Join(spotifyPath, "Apps")
 	fileList, err := ioutil.ReadDir(appsFolder)
 	if err != nil {
@@ -39,13 +50,39 @@ func Get(spotifyPath string) Enum {
 		}
 	}
 
+	cur := INVALID
 	if spaCount > 0 && dirCount > 0 {
-		return MIXED
+		cur = MIXED
 	} else if spaCount > 0 {
-		return STOCK
+		cur = STOCK
 	} else if dirCount > 0 {
-		return APPLIED
+		cur = APPLIED
 	}
 
-	return INVALID
+	return status{
+		state: cur}
+}
+
+func (s status) IsBackupable() bool {
+	return s.state == STOCK || s.state == MIXED
+}
+
+func (s status) IsModdable() bool {
+	return s.state == APPLIED || s.state == MIXED
+}
+
+func (s status) IsStock() bool {
+	return s.state == STOCK
+}
+
+func (s status) IsMixed() bool {
+	return s.state == MIXED
+}
+
+func (s status) IsApplied() bool {
+	return s.state == APPLIED
+}
+
+func (s status) IsInvalid() bool {
+	return s.state == INVALID
 }

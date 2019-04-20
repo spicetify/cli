@@ -15,23 +15,28 @@ import (
 // Apply .
 func Apply() {
 	backupVersion := backupSection.Key("version").MustString("")
-	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
-	status := spotifystatus.Get(spotifyPath)
+	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
+	spotStat := spotifystatus.Get(spotifyPath)
 
-	if curBackupStatus == backupstatus.EMPTY {
-		if status == spotifystatus.STOCK {
+	if backStat.IsEmpty() {
+		if spotStat.IsBackupable() {
 			utils.PrintError(`You haven't backed up. Run "spicetify backup apply".`)
+
 		} else {
 			utils.PrintError(`You haven't backed up and Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
 		}
 		os.Exit(1)
-	} else if curBackupStatus == backupstatus.OUTDATED {
+
+	} else if backStat.IsOutdated() {
 		utils.PrintWarning("Spotify version and backup version are mismatched.")
-		if status == spotifystatus.MIXED {
+
+		if spotStat.IsMixed() {
 			utils.PrintInfo(`Spotify client possibly just had an new update.`)
 			utils.PrintInfo(`Please run "spicetify backup apply".`)
-		} else if status == spotifystatus.STOCK {
+
+		} else if spotStat.IsStock() {
 			utils.PrintInfo(`Please run "spicetify backup apply".`)
+
 		} else {
 			utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
 		}
@@ -48,7 +53,7 @@ func Apply() {
 	// extractedStock is for preventing copy raw assets 2 times when
 	// replaceColors is false.
 	extractedStock := false
-	if status != spotifystatus.APPLIED {
+	if !spotStat.IsApplied() {
 		utils.PrintBold(`Copying raw assets:`)
 		if err := os.RemoveAll(appFolder); err != nil {
 			utils.Fatal(err)

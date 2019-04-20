@@ -14,10 +14,7 @@ import (
 
 // Watch .
 func Watch() {
-	status := spotifystatus.Get(spotifyPath)
-
-	if status != spotifystatus.APPLIED {
-		utils.PrintError(`You haven't applied. Run "spicetify apply" once before entering watch mode.`)
+	if !isValidForWatching() {
 		os.Exit(1)
 	}
 
@@ -88,6 +85,10 @@ func Watch() {
 
 // WatchExtensions .
 func WatchExtensions() {
+	if !isValidForWatching() {
+		os.Exit(1)
+	}
+
 	extNameList := featureSection.Key("extensions").Strings("|")
 	var extPathList []string
 
@@ -130,4 +131,15 @@ func WatchExtensions() {
 
 		time.Sleep(200 * time.Millisecond)
 	}
+}
+
+func isValidForWatching() bool {
+	status := spotifystatus.Get(spotifyPath)
+
+	if !status.IsModdable() {
+		utils.PrintError(`You haven't applied. Run "spicetify apply" once before entering watch mode.`)
+		return false
+	}
+
+	return true
 }

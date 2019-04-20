@@ -18,16 +18,17 @@ import (
 // extracted apps' assets
 func Backup() {
 	backupVersion := backupSection.Key("version").MustString("")
-	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
-	if curBackupStatus != backupstatus.EMPTY {
+	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
+	if !backStat.IsEmpty() {
 		utils.PrintInfo("There is available backup.")
 		utils.PrintInfo("Clear current backup:")
 
-		spotifyStatus := spotifystatus.Get(spotifyPath)
-		if spotifyStatus == spotifystatus.STOCK {
+		spotStat := spotifystatus.Get(spotifyPath)
+		if spotStat.IsBackupable() {
 			clearBackup()
+
 		} else {
-			utils.PrintWarning(`After clearing backup, Spotify will not be backed up again.`)
+			utils.PrintWarning(`After clearing backup, Spotify cannot be backed up again.`)
 			utils.PrintInfo(`Please restore first then backup, run "spicetify restore backup" or re-install Spotify then run "spicetify backup".`)
 			os.Exit(1)
 		}
@@ -97,9 +98,9 @@ func Backup() {
 // Clear clears current backup. Before clearing, it checks whether Spotify is in
 // valid state to backup again.
 func Clear() {
-	curSpotifystatus := spotifystatus.Get(spotifyPath)
+	spotStat := spotifystatus.Get(spotifyPath)
 
-	if curSpotifystatus != spotifystatus.STOCK {
+	if !spotStat.IsBackupable() {
 		utils.PrintWarning("Before clearing backup, please restore or re-install Spotify to stock state.")
 		if !ReadAnswer("Continue clearing anyway? [y/N]: ", false, true) {
 			os.Exit(1)
@@ -133,20 +134,24 @@ func clearBackup() {
 // Restore uses backup to revert every changes made by Spicetify.
 func Restore() {
 	backupVersion := backupSection.Key("version").MustString("")
-	curBackupStatus := backupstatus.Get(prefsPath, backupFolder, backupVersion)
-	curSpotifystatus := spotifystatus.Get(spotifyPath)
+	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
+	spotStat := spotifystatus.Get(spotifyPath)
 
-	if curBackupStatus == backupstatus.EMPTY {
+	if backStat.IsEmpty() {
 		utils.PrintError(`You haven't backed up.`)
-		if curSpotifystatus != spotifystatus.STOCK {
+
+		if !spotStat.IsBackupable() {
 			utils.PrintWarning(`But Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup"`)
 		}
 		os.Exit(1)
-	} else if curBackupStatus == backupstatus.OUTDATED {
+
+	} else if backStat.IsOutdated() {
 		utils.PrintWarning("Spotify version and backup version are mismatched.")
-		if curSpotifystatus == spotifystatus.STOCK {
+
+		if spotStat.IsBackupable() {
 			utils.PrintInfo(`Spotify is at stock state. Run "spicetify backup" to backup current Spotify version.`)
 		}
+
 		if !ReadAnswer("Continue restoring anyway? [y/N] ", false, true) {
 			os.Exit(1)
 		}
