@@ -39,7 +39,7 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		appName := app.Name()
 		appPath := filepath.Join(appsFolderPath, appName)
 
-		err = filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
+		filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
 			fileName := info.Name()
 			extension := filepath.Ext(fileName)
 
