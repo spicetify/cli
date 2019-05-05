@@ -93,12 +93,12 @@ func getSpicetifyFolder() string {
 	} else if runtime.GOOS == "linux" {
 		parent, isAvailable := os.LookupEnv("XDG_CONFIG_HOME")
 
-		if !isAvailable {
-			parent := filepath.Join(os.Getenv("HOME"), ".config")
+		if !isAvailable || len(parent) == 0 {
+			parent = filepath.Join(os.Getenv("HOME"), ".config")
 			utils.CheckExistAndCreate(parent)
 		}
 
-		result = filepath.Join(parent, ".spicetify")
+		result = filepath.Join(parent, "spicetify")
 
 	} else if runtime.GOOS == "darwin" {
 		result = filepath.Join(os.Getenv("HOME"), "spicetify_data")
