@@ -1,12 +1,8 @@
 package cmd
 
 import (
-	"bytes"
-	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
-	"time"
 
 	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
 	"github.com/khanhas/spicetify-cli/src/utils"
@@ -18,69 +14,45 @@ func Watch() {
 		os.Exit(1)
 	}
 
-	themeKey, err := settingSection.GetKey("current_theme")
+	appFolder := filepath.Join(spotifyPath, "Apps")
+	themeFolder, injectCSS, replaceColors, overwriteAssets := getThemeSettings()
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	themeName := themeKey.String()
-	if len(themeName) == 0 {
+	if len(themeFolder) == 0 {
 		utils.PrintError(`Config "current_theme" is blank. No theme asset to watch.`)
 		os.Exit(1)
 	}
 
-	themeFolder := getThemeFolder(themeName)
 	colorPath := filepath.Join(themeFolder, "color.ini")
 	cssPath := filepath.Join(themeFolder, "user.css")
 
-	checkColor := false
-	checkCSS := false
-	if _, err := os.Stat(colorPath); err == nil {
-		checkColor = true
+	fileList := []string{}
+	if replaceColors {
+		fileList = append(fileList, colorPath)
 	}
 
-	if _, err := os.Stat(cssPath); err == nil {
-		checkCSS = true
+	if injectCSS {
+		fileList = append(fileList, cssPath)
 	}
 
-	var colorCache []byte
-	var cssCache []byte
+	if overwriteAssets {
+		assetPath := filepath.Join(themeFolder, "assets")
 
-	for {
-		shouldUpdate := false
-		if checkColor {
-			currColor, err := ioutil.ReadFile(colorPath)
+		go utils.WatchRecursive(assetPath, func(_ string, err error) {
 			if err != nil {
-				utils.PrintError(err.Error())
-				os.Exit(1)
+				utils.Fatal(err)
 			}
 
-			if !bytes.Equal(colorCache, currColor) {
-				shouldUpdate = true
-				colorCache = currColor
-			}
-		}
-
-		if checkCSS {
-			currCSS, err := ioutil.ReadFile(cssPath)
-			if err != nil {
-				utils.PrintError(err.Error())
-				os.Exit(1)
-			}
-
-			if !bytes.Equal(cssCache, currCSS) {
-				shouldUpdate = true
-				cssCache = currCSS
-			}
-		}
-
-		if shouldUpdate {
-			UpdateCSS()
-		}
-
-		time.Sleep(200 * time.Millisecond)
+			updateAssets(appFolder, themeFolder)
+		})
 	}
+
+	utils.Watch(fileList, func(_ string, err error) {
+		if err != nil {
+			utils.Fatal(err)
+		}
+
+		updateCSS(appFolder, themeFolder, injectCSS, replaceColors)
+	})
 }
 
 // WatchExtensions .
@@ -108,29 +80,19 @@ func WatchExtensions() {
 
 	zlinkFolder := filepath.Join(spotifyPath, "Apps", "zlink")
 
-	var extCache = map[int][]byte{}
-
-	for {
-		for k, v := range extPathList {
-			currExt, err := ioutil.ReadFile(v)
-			if err != nil {
-				utils.PrintError(err.Error())
-				os.Exit(1)
-			}
-
-			if !bytes.Equal(extCache[k], currExt) {
-				if err = utils.CopyFile(v, zlinkFolder); err != nil {
-					utils.PrintError(err.Error())
-					os.Exit(1)
-				}
-				extCache[k] = currExt
-
-				utils.PrintSuccess(utils.PrependTime(`Extension "` + v + `" is updated.`))
-			}
+	utils.Watch(extPathList, func(filePath string, err error) {
+		if err != nil {
+			utils.PrintError(err.Error())
+			os.Exit(1)
 		}
 
-		time.Sleep(200 * time.Millisecond)
-	}
+		if err = utils.CopyFile(filePath, zlinkFolder); err != nil {
+			utils.PrintError(err.Error())
+			os.Exit(1)
+		}
+
+		utils.PrintSuccess(utils.PrependTime(`Extension "` + filePath + `" is updated.`))
+	})
 }
 
 func isValidForWatching() bool {

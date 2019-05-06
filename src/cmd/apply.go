@@ -92,11 +92,8 @@ func Apply() {
 
 	if overwriteAssets {
 		utils.PrintBold(`Overwriting custom assets:`)
-		if apply.UserAsset(appFolder, themeFolder) {
-			utils.PrintGreen("OK")
-		} else {
-			utils.PrintRed(`Theme's "assets" folder is not found`)
-		}
+		apply.UserAsset(appFolder, themeFolder)
+		utils.PrintGreen("OK")
 	}
 
 	extentionList := featureSection.Key("extensions").Strings("|")
@@ -134,8 +131,8 @@ func Apply() {
 	RestartSpotify()
 }
 
-// UpdateCSS updates user.css file in Spotify
-func UpdateCSS() {
+// UpdateTheme updates user.css and overwrites custom assets
+func UpdateTheme() {
 	appFolder := filepath.Join(spotifyPath, "Apps")
 
 	themeFolder, injectCSS, replaceColors, overwriteAssets := getThemeSettings()
@@ -144,6 +141,14 @@ func UpdateCSS() {
 		os.Exit(1)
 	}
 
+	updateCSS(appFolder, themeFolder, injectCSS, replaceColors)
+
+	if overwriteAssets {
+		updateAssets(appFolder, themeFolder)
+	}
+}
+
+func updateCSS(appFolder, themeFolder string, injectCSS, replaceColors bool) {
 	apply.UserCSS(
 		appFolder,
 		themeFolder,
@@ -152,10 +157,11 @@ func UpdateCSS() {
 	)
 
 	utils.PrintSuccess(utils.PrependTime("Custom CSS is updated"))
+}
 
-	if overwriteAssets && apply.UserAsset(appFolder, themeFolder) {
-		utils.PrintSuccess(utils.PrependTime("Custom Assets is updated"))
-	}
+func updateAssets(appFolder, themeFolder string) {
+	apply.UserAsset(appFolder, themeFolder)
+	utils.PrintSuccess(utils.PrependTime("Custom assets are updated"))
 }
 
 // UpdateAllExtension pushs all extensions to Spotify
@@ -170,10 +176,10 @@ func UpdateAllExtension() {
 }
 
 // getThemeSettings returns
-// - Theme path
-// - Whether Spicetify should inject css
-// - Whether Spicetify should replace colors
-// - Whether Spicetify should overwrite assets with theme's custom assets
+//   - Theme path
+//   - Whether Spicetify should inject css
+//   - Whether Spicetify should replace colors
+//   - Whether Spicetify should overwrite assets with theme's custom assets
 func getThemeSettings() (string, bool, bool, bool) {
 	replaceColors := settingSection.Key("replace_colors").MustInt(0) == 1
 	injectCSS := settingSection.Key("inject_css").MustInt(0) == 1
@@ -194,6 +200,25 @@ func getThemeSettings() (string, bool, bool, bool) {
 		overwriteAssets = false
 	} else {
 		themeFolder = getThemeFolder(themeName)
+
+		colorPath := filepath.Join(themeFolder, "color.ini")
+		cssPath := filepath.Join(themeFolder, "user.css")
+		assetsPath := filepath.Join(themeFolder, "assets")
+		
+		if replaceColors {
+			_, err := os.Stat(colorPath)
+			replaceColors = err == nil
+		}
+
+		if injectCSS {
+			_, err := os.Stat(cssPath)
+			injectCSS = err == nil
+		}
+
+		if overwriteAssets {
+			_, err := os.Stat(assetsPath)
+			overwriteAssets = err == nil
+		}
 	}
 
 	return themeFolder, injectCSS, replaceColors, overwriteAssets

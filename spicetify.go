@@ -135,7 +135,7 @@ func main() {
 			if extensionFocus {
 				cmd.UpdateAllExtension()
 			} else {
-				cmd.UpdateCSS()
+				cmd.UpdateTheme()
 			}
 
 		case "restore":

@@ -103,18 +103,12 @@ func UserCSS(appsFolderPath, themeFolder string, injectCSS, customColor bool) {
 }
 
 // UserAsset .
-func UserAsset(appsFolderPath, themeFolder string) bool {
+func UserAsset(appsFolderPath, themeFolder string) {
 	var assetsPath = getAssetsPath(themeFolder)
-
-	if len(assetsPath) == 0 {
-		return false
-	}
 
 	if err := utils.Copy(assetsPath, appsFolderPath, true, nil); err != nil {
 		utils.Fatal(err)
 	}
-
-	return true
 }
 
 func lyricsMod(jsPath string, flags Flag) {
