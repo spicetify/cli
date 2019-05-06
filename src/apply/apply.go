@@ -102,6 +102,21 @@ func UserCSS(appsFolderPath, themeFolder string, injectCSS, customColor bool) {
 	}
 }
 
+// UserAsset .
+func UserAsset(appsFolderPath, themeFolder string) bool {
+	var assetsPath = getAssetsPath(themeFolder)
+
+	if len(assetsPath) == 0 {
+		return false
+	}
+
+	if err := utils.Copy(assetsPath, appsFolderPath, true, nil); err != nil {
+		utils.Fatal(err)
+	}
+
+	return true
+}
+
 func lyricsMod(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		if flags.VisHighFramerate {
@@ -285,4 +300,14 @@ func insertCustomApp(zlinkContent *string, appList []string) {
 		`EMPTY:"empty"`,
 		pageLogger+`${0}`,
 	)
+}
+
+func getAssetsPath(themeFolder string) string {
+	dir := filepath.Join(themeFolder, "assets")
+
+	if _, err := os.Stat(dir); err != nil {
+		return ""
+	}
+
+	return dir
 }

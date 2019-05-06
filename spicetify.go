@@ -203,6 +203,8 @@ path                Print path of color, css, extension file or
                     spicetify path color
                     - Print theme's user.css path:
                     spicetify path css
+                    - Print theme's assets path:
+                    spicetify path assets
                     - Print extension <name> path:
                     spicetify -e path <name>
                     - Print custom app <name> path:

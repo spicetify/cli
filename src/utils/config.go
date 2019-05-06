@@ -18,6 +18,7 @@ var (
 			"current_theme":  "SpicetifyDefault",
 			"inject_css":     "1",
 			"replace_colors": "1",
+			"overwrite_assets": "0",
 		},
 		"Preprocesses": map[string]string{
 			"disable_sentry":     "1",

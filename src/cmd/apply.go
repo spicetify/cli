@@ -65,7 +65,7 @@ func Apply() {
 		extractedStock = true
 	}
 
-	themeFolder, injectCSS, replaceColors := getThemeSettings()
+	themeFolder, injectCSS, replaceColors, overwriteAssets := getThemeSettings()
 
 	if replaceColors {
 		utils.PrintBold(`Overwriting themed assets:`)
@@ -89,6 +89,15 @@ func Apply() {
 		replaceColors,
 	)
 	utils.PrintGreen("OK")
+
+	if overwriteAssets {
+		utils.PrintBold(`Overwriting custom assets:`)
+		if apply.UserAsset(appFolder, themeFolder) {
+			utils.PrintGreen("OK")
+		} else {
+			utils.PrintRed(`Theme's "assets" folder is not found`)
+		}
+	}
 
 	extentionList := featureSection.Key("extensions").Strings("|")
 	customAppsList := featureSection.Key("custom_apps").Strings("|")
@@ -129,7 +138,7 @@ func Apply() {
 func UpdateCSS() {
 	appFolder := filepath.Join(spotifyPath, "Apps")
 
-	themeFolder, injectCSS, replaceColors := getThemeSettings()
+	themeFolder, injectCSS, replaceColors, overwriteAssets := getThemeSettings()
 	if len(themeFolder) == 0 {
 		utils.PrintWarning(`Nothing is updated: Config "current_theme" is blank.`)
 		os.Exit(1)
@@ -143,6 +152,10 @@ func UpdateCSS() {
 	)
 
 	utils.PrintSuccess(utils.PrependTime("Custom CSS is updated"))
+
+	if overwriteAssets && apply.UserAsset(appFolder, themeFolder) {
+		utils.PrintSuccess(utils.PrependTime("Custom Assets is updated"))
+	}
 }
 
 // UpdateAllExtension pushs all extensions to Spotify
@@ -160,9 +173,11 @@ func UpdateAllExtension() {
 // - Theme path
 // - Whether Spicetify should inject css
 // - Whether Spicetify should replace colors
-func getThemeSettings() (string, bool, bool) {
+// - Whether Spicetify should overwrite assets with theme's custom assets
+func getThemeSettings() (string, bool, bool, bool) {
 	replaceColors := settingSection.Key("replace_colors").MustInt(0) == 1
 	injectCSS := settingSection.Key("inject_css").MustInt(0) == 1
+	overwriteAssets := settingSection.Key("overwrite_assets").MustInt(0) == 1
 
 	themeKey, err := settingSection.GetKey("current_theme")
 
@@ -176,11 +191,12 @@ func getThemeSettings() (string, bool, bool) {
 	if len(themeName) == 0 {
 		injectCSS = false
 		replaceColors = false
+		overwriteAssets = false
 	} else {
 		themeFolder = getThemeFolder(themeName)
 	}
 
-	return themeFolder, injectCSS, replaceColors
+	return themeFolder, injectCSS, replaceColors, overwriteAssets
 }
 
 func getExtensionPath(name string) (string, error) {

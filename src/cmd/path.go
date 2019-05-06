@@ -7,7 +7,7 @@ import (
 
 // ThemeAssetPath returns path of theme assets color.ini and user.css
 func ThemeAssetPath(kind string) (string, error) {
-	themeName, _, _ := getThemeSettings()
+	themeName, _, _, _ := getThemeSettings()
 	if len(themeName) == 0 {
 		return "", errors.New(`Config "current_theme" is blank`)
 	}
@@ -18,6 +18,9 @@ func ThemeAssetPath(kind string) (string, error) {
 	} else if kind == "css" {
 		css := filepath.Join(themeName, "user.css")
 		return css, nil
+	} else if kind == "assets" {
+		assets := filepath.Join(themeName, "assets")
+		return assets, nil
 	}
 
 	return "", errors.New(`Unrecognized theme assets kind. Only "color" or "css" is valid`)
