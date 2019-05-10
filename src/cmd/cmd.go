@@ -86,7 +86,12 @@ func GetSpotifyPath() string {
 }
 
 func getSpicetifyFolder() string {
-	result := "/"
+	result, isAvailable := os.LookupEnv("SPICETIFY_CONFIG")
+
+	if isAvailable && len(result) > 0 {
+		goto OUT
+	}
+
 	if runtime.GOOS == "windows" {
 		result = filepath.Join(os.Getenv("USERPROFILE"), ".spicetify")
 
@@ -104,8 +109,8 @@ func getSpicetifyFolder() string {
 		result = filepath.Join(os.Getenv("HOME"), "spicetify_data")
 	}
 
+OUT:
 	utils.CheckExistAndCreate(result)
-
 	return result
 }
 
