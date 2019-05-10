@@ -9,7 +9,7 @@ import (
 
 	"github.com/khanhas/spicetify-cli/src/cmd"
 	"github.com/khanhas/spicetify-cli/src/utils"
-	colorable "gopkg.in/mattn/go-colorable.v0"
+	colorable "github.com/mattn/go-colorable"
 )
 
 const (
