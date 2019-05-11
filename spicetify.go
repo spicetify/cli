@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	version = "0.7.0"
+	version = "0.8.0"
 )
 
 var (
@@ -76,6 +76,7 @@ func init() {
 
 	if quiet {
 		log.SetOutput(ioutil.Discard)
+		os.Stdout = nil
 	}
 
 	cmd.InitConfig(quiet)
