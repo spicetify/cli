@@ -17,7 +17,7 @@ func Start(spotifyPath, backupPath string) error {
 
 // Extract all SPA files from backupPath to extractPath
 // and call `callback` at every successfully extracted app
-func Extract(backupPath, extractPath string, callback func(finishedApp string, err error)) {
+func Extract(backupPath, extractPath string, callback func(finishedApp string)) {
 	filepath.Walk(backupPath, func(appPath string, info os.FileInfo, err error) error {
 		if !info.IsDir() && strings.HasSuffix(info.Name(), ".spa") {
 			appName := strings.Replace(info.Name(), ".spa", "", 1)
@@ -25,10 +25,10 @@ func Extract(backupPath, extractPath string, callback func(finishedApp string, e
 
 			err := utils.Unzip(appPath, appExtractToFolder)
 			if err != nil {
-				callback("", err)
-			} else {
-				callback(appName, nil)
+				utils.Fatal(err)
 			}
+
+			callback(appName)
 		}
 
 		return nil

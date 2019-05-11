@@ -56,10 +56,6 @@ func Backup() {
 	utils.PrintBold("Extracting:")
 	tracker := utils.NewTracker(totalApp)
 
-	if quiet {
-		tracker.Quiet()
-	}
-
 	backup.Extract(backupFolder, rawFolder, tracker.Update)
 	tracker.Finish()
 

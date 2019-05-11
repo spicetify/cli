@@ -23,7 +23,7 @@ type Flag struct {
 }
 
 // Start preprocessing apps assets in extractedAppPath
-func Start(extractedAppsPath string, flags Flag, callback func(appName string, err error)) {
+func Start(extractedAppsPath string, flags Flag, callback func(appName string)) {
 	appList, err := ioutil.ReadDir(extractedAppsPath)
 
 	if err != nil {
@@ -95,17 +95,13 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string, e
 			}
 		}
 
-		if err != nil {
-			callback("", err)
-		} else {
-			callback(appName, nil)
-		}
+		callback(appName)
 	}
 }
 
 // StartCSS modifies all CSS files in extractedAppsPath to change
 // all colors value with CSS variables.
-func StartCSS(extractedAppsPath string, callback func(appName string, err error)) {
+func StartCSS(extractedAppsPath string, callback func(appName string)) {
 	appList, err := ioutil.ReadDir(extractedAppsPath)
 
 	if err != nil {
@@ -116,7 +112,7 @@ func StartCSS(extractedAppsPath string, callback func(appName string, err error)
 		appName := app.Name()
 		appPath := filepath.Join(extractedAppsPath, appName)
 
-		err = filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
+		filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
 			if filepath.Ext(info.Name()) == ".css" {
 				utils.ModifyFile(path, func(content string) string {
 					utils.Replace(&content, "#1ed660", "var(--modspotify_sidebar_indicator_and_hover_button_bg)")
@@ -193,11 +189,7 @@ func StartCSS(extractedAppsPath string, callback func(appName string, err error)
 			return nil
 		})
 
-		if err != nil {
-			callback("", err)
-		} else {
-			callback(appName, nil)
-		}
+		callback(appName)
 	}
 }
 
