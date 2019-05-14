@@ -78,6 +78,11 @@ Before applying Spicetify, you need to gain write permission on Spotify files, b
 sudo chmod 777 /usr/share/spotify -R
 ```
 
+Or, if spotify isn't there:
+```
+sudo chmod 777 /opt/spotify -R
+```
+
 ##### Spotify installed from Snap 
 Apps installed from Snap cannot be modified so you need to follow these steps to get Spicetify working:
 1. Uninstall Spotify in Snap or run command `snap remove spotify`
@@ -88,6 +93,11 @@ You can see there are 2 deb files, for i386 and amd64. You should pick amd64 if 
 5. After Spotify's installed successfully, you need to gain write permission on Spotify files, by running command:
 ```bash
 sudo chmod 777 /usr/share/spotify -R
+```
+
+Or, if spotify isn't there:
+```
+sudo chmod 777 /opt/spotify -R
 ```
 
 ## Basic usage
