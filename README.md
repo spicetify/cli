@@ -81,7 +81,7 @@ sudo chmod 777 /usr/share/spotify -R
 ##### Spotify installed from Snap 
 Apps installed from Snap cannot be modified so you need to follow these steps to get Spicetify working:
 1. Uninstall Spotify in Snap or run command `snap remove spotify`
-2. Remove .spicetify folder: `rm -r ~/.spicetify`
+2. Remove spicetify config folder: `rm -r ~/.config/spicetify`
 3. Open http://repository.spotify.com/pool/non-free/s/spotify-client/  
 You can see there are 2 deb files, for i386 and amd64. You should pick amd64 if your Ubuntu is 64bit version because seems like they stopped upgrading the client for i386.
 4. Install deb file you just downloaded with Ubuntu Software. Might take a bit.
@@ -118,7 +118,7 @@ spicetify --help
 ### Configs
 Config file is located at:  
 **Windows:** `%userprofile%\.spicetify\config.ini`  
-**Linux:** `~/.spicetify/config.ini`  
+**Linux:** `~/.config/spicetify/config.ini`  
 **MacOS:** `~/spicetify_data/config.ini`  
 
 For detail information of each config field, please run:
@@ -131,7 +131,7 @@ There are 2 places you can put your themes:
 1. `Themes` folder in Home directory  
 
 **Windows:** `%userprofile%\.spicetify\Themes\`  
-**Linux:** `~/.spicetify/Themes/`  
+**Linux:** `~/.config/spicetify/Themes/`  
 **MacOS:** `~/spicetify_data/Themes`  
 
 2. `Themes` folder in Spicetify executable directory
@@ -155,7 +155,7 @@ extensions = autoSkipExplicit.js|queueAll.js|djMode.js|shuffle+.js|trashbin.js
 Extension files can be store in:
 - `Extensions`  folder in Home directory:  
 **Windows:** `%userprofile%\.spicetify\Extensions\`  
-**Linux:** `~/.spicetify/Extensions/`  
+**Linux:** `~/.config/spicetify/Extensions/`  
 **MacOS:** `~/spicetify_data/Extensions`  
 - `Extensions`  folder in Spicetify executable directory.
 
@@ -231,7 +231,7 @@ custom_apps = reddit|yourownapp
 App folders can be store in:
 - `CustomApps`  folder in Home directory:  
 **Windows:** `%userprofile%\.spicetify\CustomApps\`  
-**Linux:** `~/.spicetify/CustomApps/`  
+**Linux:** `~/.config/spicetify/CustomApps/`  
 **MacOS:** `~/spicetify_data/CustomApps`  
 - `CustomApps`  folder in Spicetify executable directory.
 
