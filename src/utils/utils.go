@@ -236,9 +236,9 @@ func CreateJunction(location, destination string) error {
 		exec.Command("cmd", "/C", "rmdir", destination).Run()
 		return exec.Command("cmd", "/C", "mklink", "/J", destination, location).Run()
 	case "linux":
-		return exec.Command("ln", "-F", "-s", location, destination).Run()
+		return exec.Command("ln", "-Fsf", location, destination).Run()
 	case "darwin":
-		return exec.Command("ln", "-F", "-s", location, destination).Run()
+		return exec.Command("ln", "-Fsf", location, destination).Run()
 	}
 
 	return nil
