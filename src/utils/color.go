@@ -126,8 +126,6 @@ func getXRDB() error {
 		line := scanner.Text()
 		for _, match := range re.FindAllStringSubmatch(line, -1) {
 			if match != nil {
-				PrintError(match[1])
-				PrintError(match[2])
 				db[match[1]] = match[2]
 			}
 		}
