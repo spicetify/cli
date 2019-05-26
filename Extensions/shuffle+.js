@@ -82,27 +82,28 @@
         return b;
     }
 
-    Spicetify.Player.addEventListener("appchange", ({ data: data }) => {
-        if (data.isEmbeddedApp === true) return;
-        if (data.id !== "queue") return;
+    const iframeInterval = setInterval(() => {
+        /** @type {HTMLIFrameElement} */
+        const currentIframe = document.querySelector("iframe.active");
+        if (!currentIframe || 
+            currentIframe.id !== "app-queue"
+        ) {
+            return;
+        }
 
-        const headers = data.container.contentDocument.querySelectorAll(
+        const headers = currentIframe.contentDocument.querySelectorAll(
             ".glue-page-header__buttons"
         );
 
         for (const e of headers) {
-            if (e.hasAttribute("shuffleplus")) {
-                continue;
-            }
-
-            e.setAttribute("shuffleplus", "1");
-
             e.append(createContextButton());
             if (showShuffleQueueButton) {
                 e.append(createQueueButton());
             }
         }
-    });
+
+        if (headers.length > 0) clearInterval(iframeInterval);
+    }, 500)
 
     /**
      *
