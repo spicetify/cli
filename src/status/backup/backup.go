@@ -50,9 +50,9 @@ func Get(prefsPath, backupPath, backupVersion string) Status {
 
 			if backupVersion != spotifyVersion {
 				cur = OUTDATED
+			} else {
+				cur = BACKUPED
 			}
-
-			cur = BACKUPED
 		}
 	}
 
