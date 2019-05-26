@@ -1,9 +1,9 @@
 package utils
 
 import (
-	"os"
 	"bytes"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 )

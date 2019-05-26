@@ -34,7 +34,7 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 		appName := app.Name()
 		appPath := filepath.Join(extractedAppsPath, appName)
 
-		err = filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
+		filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
 			fileName := info.Name()
 			extension := filepath.Ext(fileName)
 

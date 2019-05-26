@@ -204,7 +204,7 @@ func getThemeSettings() (string, bool, bool, bool) {
 		colorPath := filepath.Join(themeFolder, "color.ini")
 		cssPath := filepath.Join(themeFolder, "user.css")
 		assetsPath := filepath.Join(themeFolder, "assets")
-		
+
 		if replaceColors {
 			_, err := os.Stat(colorPath)
 			replaceColors = err == nil

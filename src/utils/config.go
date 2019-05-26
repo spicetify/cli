@@ -12,21 +12,21 @@ import (
 
 var (
 	configLayout = map[string]map[string]string{
-		"Setting": map[string]string{
-			"spotify_path":   "",
-			"prefs_path":     "",
-			"current_theme":  "SpicetifyDefault",
-			"inject_css":     "1",
-			"replace_colors": "1",
+		"Setting": {
+			"spotify_path":     "",
+			"prefs_path":       "",
+			"current_theme":    "SpicetifyDefault",
+			"inject_css":       "1",
+			"replace_colors":   "1",
 			"overwrite_assets": "0",
 		},
-		"Preprocesses": map[string]string{
+		"Preprocesses": {
 			"disable_sentry":     "1",
 			"disable_ui_logging": "1",
 			"remove_rtl_rule":    "1",
 			"expose_apis":        "1",
 		},
-		"AdditionalOptions": map[string]string{
+		"AdditionalOptions": {
 			"experimental_features":        "0",
 			"fastUser_switching":           "0",
 			"home":                         "0",

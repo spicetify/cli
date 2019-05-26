@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"os"
-	"bytes"
 	"bufio"
-	"os/exec"
+	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -37,12 +37,12 @@ func ParseColor(raw string) Color {
 	if strings.HasPrefix(raw, "${") {
 		endIndex := len(raw) - 1
 		raw = raw[2:endIndex]
-		
+
 		// From XResources database
-		if (strings.HasPrefix(raw, "xrdb:")) {
+		if strings.HasPrefix(raw, "xrdb:") {
 			raw = fromXResources(raw)
 
-		// From environment variable
+			// From environment variable
 		} else if env := os.Getenv(raw); len(env) > 0 {
 			raw = env
 		}
@@ -124,7 +124,7 @@ func getXRDB() error {
 	re := regexp.MustCompile(`^\*\.?(\w+?):\s*?#([A-Za-z0-9]+)`)
 	for scanner.Scan() {
 		line := scanner.Text()
-		for _, match := range(re.FindAllStringSubmatch(line, -1)) {
+		for _, match := range re.FindAllStringSubmatch(line, -1) {
 			if match != nil {
 				PrintError(match[1])
 				PrintError(match[2])

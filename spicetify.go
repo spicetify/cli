@@ -192,7 +192,7 @@ disable-devtool     Disable Spotify's developer tools.
 
 watch               Enter watch mode.
                     On default, update CSS on color.ini or user.css's changes.
-                    Use with flag "-e" to update extentions on changes.
+                    Use with flag "-e" to update extensions on changes.
 
 restart             Restart Spotify client.
 
