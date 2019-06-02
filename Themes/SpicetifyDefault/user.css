@@ -338,6 +338,32 @@ Change text color in playlist
 	border-radius: 30px !important;
 }
 
+#video-player .album-art__foreground {
+	flex-direction: row;
+	text-align: left;	
+}
+
+#video-player .album-art__background {
+	background-color: initial;
+}
+
+#video-player .album-art__track-details {
+	padding-left: 50px;
+	line-height: initial;
+}
+
+#video-player .album-art__track-title {
+	font-size: 84px;
+	margin-top: 0;
+	line-height: initial;
+}
+
+#video-player .album-art__artist-name {
+	font-size: 54px;
+	margin-top: 0;
+	line-height: initial;
+}
+
 /* Daily mixes */
 .carousel .card-info-wrapper.card-info-with-description.card-info-with-metadata {
 	height: 50px !important;
