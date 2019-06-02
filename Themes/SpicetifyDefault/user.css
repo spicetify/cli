@@ -381,24 +381,16 @@ and add little glowing effect
 }
 
 /* Small cover Big cover mechanism */
-.now-playing.cover-size-transition.active.image-expanded .cover-image {
-    width: 10px !important;
-	height: 10px !important;
+.now-playing.cover-size-transition.active.image-expanded #now-playing-image-small {
+    display: none;
 }
-.now-playing.cover-size-transition.active.image-expanded .caption {
-	padding-left: 0px !important;
+
+.now-playing.cover-size-transition.active.image-expanded .cover-image-link-wrapper {
+	flex: 0 1 10px;
 }
+
 #view-now-playing a.image {
 	overflow: visible !important;
-}
-
-#view-now-playing.expanded {
-	width: 200px;
-	height: 200px;
-}
-
-#now-playing-image-large .cover-image {
-	height: 200px !important;
 }
 
 /* Profile arrow in top left */
@@ -408,6 +400,7 @@ and add little glowing effect
 	-webkit-app-region: no-drag !important;
 }
 
+/* [WINDOWS] Change Profile menu horizontal position */
 body.body-container--windows .content-top-bar__profile-menu-button .dropdown {
 	right: 190px !important;
 }
@@ -518,6 +511,12 @@ span.glue-page-header__title-text {
 	overflow: unset;
 }
 
+.view-player .cover-image-container {
+	position: fixed !important;
+	left: 0;
+	bottom: 0;
+}
+
 .view-player .now-playing .cover-image-link,
 .view-player .now-playing .cover-image-link figure {
 	width: var(--bar-height);
@@ -525,11 +524,8 @@ span.glue-page-header__title-text {
 }
 
 #now-playing-image-small .cover-image {
-	position: fixed !important;
     width: var(--bar-height);
     height: var(--bar-height);
-    left: 0;
-    bottom: 0;
 }
 
 .view-player .now-playing .cover-image-link-wrapper {
