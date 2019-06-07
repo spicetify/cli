@@ -9,10 +9,8 @@ import (
 )
 
 // Start backing up Spotify Apps folder to backupPath
-func Start(spotifyPath, backupPath string) error {
-	appsFolder := filepath.Join(spotifyPath, "Apps")
-
-	return utils.Copy(appsFolder, backupPath, false, []string{".spa"})
+func Start(appPath, backupPath string) error {
+	return utils.Copy(appPath, backupPath, false, []string{".spa"})
 }
 
 // Extract all SPA files from backupPath to extractPath

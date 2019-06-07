@@ -16,6 +16,7 @@ var (
 			"spotify_path":     "",
 			"prefs_path":       "",
 			"current_theme":    "SpicetifyDefault",
+			"color_scheme":     "",
 			"inject_css":       "1",
 			"replace_colors":   "1",
 			"overwrite_assets": "0",
@@ -162,10 +163,6 @@ func FindAppPath() string {
 	switch runtime.GOOS {
 	case "windows":
 		path := winApp()
-		if len(path) == 0 {
-			PrintInfo("Please make sure you are using normal Spotify version, not Windows Store version.")
-		}
-
 		return path
 
 	case "linux":
@@ -202,6 +199,10 @@ func winApp() string {
 		return path
 	}
 
+	if len(path) == 0 {
+		PrintInfo("Please make sure you are using normal Spotify version, not Windows Store version.")
+	}
+
 	return ""
 }
 
@@ -215,37 +216,64 @@ func winPrefs() string {
 }
 
 func linuxApp() string {
-	path, err := exec.Command("whereis", "spotify").Output()
+	path, err := exec.Command("whereis", "-b", "spotify").Output()
 
 	if err == nil {
 		pathString := strings.Replace(string(path), "spotify: ", "", 1)
 		pathString = strings.Replace(pathString, "\n", "", -1)
-		pathList := strings.Split(pathString, " ")
+		binList := strings.Split(pathString, " ")
 
-		for _, v := range pathList {
-			if _, err := os.Stat(filepath.Join(v, "Apps")); err == nil {
-				return v
+		for _, v := range binList {
+			bin := v
+
+			stat, err := os.Lstat(bin)
+			if err != nil {
+				continue
+			}
+
+			if (stat.Mode() & os.ModeSymlink) != 0 {
+				binDest, err := os.Readlink(v)
+
+				if err != nil {
+					continue
+				}
+
+				bin = binDest
+			}
+
+			bin = filepath.Dir(bin)
+
+			if _, err := os.Stat(filepath.Join(bin, "Apps")); err == nil {
+				return bin
 			}
 		}
 	}
 
-	snap := "/snap/spotify/current/usr/share/spotify"
-	if _, err := os.Stat(snap); err == nil {
-		return snap
+	potentialList := []string{
+		"/opt/spotify/",
+		"/usr/share/spotify/",
+		"/var/lib/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
+	}
+
+	for _, v := range potentialList {
+		_, err := os.Stat(filepath.Join(v, "Apps"))
+		_, err2 := os.Stat(filepath.Join(v, "spotify"))
+		if err == nil && err2 == nil {
+			return v
+		}
 	}
 
 	return ""
 }
 
 func linuxPrefs() string {
-	// Spotify installed from debian package
-	pref := filepath.Join(os.Getenv("HOME"), ".config/spotify/prefs")
-	if _, err := os.Stat(pref); err == nil {
-		return pref
+	dotConfig := os.Getenv("XDG_CONFIG_HOME")
+
+	if len(dotConfig) == 0 {
+		dotConfig = filepath.Join(os.Getenv("HOME"), ".config")
 	}
 
-	// Spotify installed from Snap
-	pref = filepath.Join(os.Getenv("HOME"), "snap/spotify/current/.config/spotify/prefs")
+	pref := filepath.Join(dotConfig, "spotify", "prefs")
 	if _, err := os.Stat(pref); err == nil {
 		return pref
 	}

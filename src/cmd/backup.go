@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 
 	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
 
@@ -36,7 +35,7 @@ func Backup() {
 
 	utils.PrintBold("Backing up app files:")
 
-	if err := backup.Start(spotifyPath, backupFolder); err != nil {
+	if err := backup.Start(appPath, backupFolder); err != nil {
 		log.Fatal(err)
 	}
 
@@ -153,13 +152,11 @@ func Restore() {
 		}
 	}
 
-	appFolder := filepath.Join(spotifyPath, "Apps")
-
-	if err := os.RemoveAll(appFolder); err != nil {
+	if err := os.RemoveAll(appPath); err != nil {
 		utils.Fatal(err)
 	}
 
-	if err := utils.Copy(backupFolder, appFolder, false, []string{".spa"}); err != nil {
+	if err := utils.Copy(backupFolder, appPath, false, []string{".spa"}); err != nil {
 		utils.Fatal(err)
 	}
 

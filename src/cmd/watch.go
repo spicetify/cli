@@ -14,8 +14,7 @@ func Watch() {
 		os.Exit(1)
 	}
 
-	appFolder := filepath.Join(spotifyPath, "Apps")
-	themeFolder, injectCSS, replaceColors, overwriteAssets := getThemeSettings()
+	InitSetting()
 
 	if len(themeFolder) == 0 {
 		utils.PrintError(`Config "current_theme" is blank. No theme asset to watch.`)
@@ -42,7 +41,7 @@ func Watch() {
 				utils.Fatal(err)
 			}
 
-			updateAssets(appFolder, themeFolder)
+			updateAssets()
 		})
 	}
 
@@ -51,7 +50,8 @@ func Watch() {
 			utils.Fatal(err)
 		}
 
-		updateCSS(appFolder, themeFolder, injectCSS, replaceColors)
+		InitSetting()
+		updateCSS()
 	})
 }
 
@@ -78,7 +78,7 @@ func WatchExtensions() {
 		os.Exit(1)
 	}
 
-	zlinkFolder := filepath.Join(spotifyPath, "Apps", "zlink")
+	zlinkFolder := filepath.Join(appPath, "zlink")
 
 	utils.Watch(extPathList, func(filePath string, err error) {
 		if err != nil {

@@ -76,13 +76,13 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 }
 
 // UserCSS .
-func UserCSS(appsFolderPath, themeFolder string, injectCSS, customColor bool) {
+func UserCSS(appsFolderPath, themeFolder string, injectCSS, customColor bool, scheme *ini.Section) {
 	var userCSS string
 
 	if customColor {
-		userCSS += getColorCSS(themeFolder)
+		userCSS += getColorCSS(scheme)
 	} else {
-		userCSS += getColorCSS("")
+		userCSS += getColorCSS(nil)
 	}
 
 	if injectCSS {
@@ -201,43 +201,20 @@ var baseColorList = map[string]string{
 	"preserve_1":                            "ffffff",
 }
 
-func getColorCSS(themeFolder string) string {
-	var colorCfg *ini.File
-	var err error
-
-	if len(themeFolder) == 0 {
-		colorCfg = ini.Empty()
-	} else {
-		colorFilePath := filepath.Join(themeFolder, "color.ini")
-		if colorCfg, err = ini.Load(colorFilePath); err != nil {
-			colorCfg = ini.Empty()
-		}
+func getColorCSS(scheme *ini.Section) string {
+	if scheme == nil {
+		scheme = ini.Empty().Section("")
 	}
-
-	base := colorCfg.Section("Base")
 
 	var variableList string
 
 	for k, v := range baseColorList {
-		parsed := utils.ParseColor(base.Key(k).MustString(v))
+		parsed := utils.ParseColor(scheme.Key(k).MustString(v))
 		variableList += fmt.Sprintf(`
     --modspotify_%s: #%s;
     --modspotify_rgb_%s: %s;`,
 			k, parsed.Hex(),
 			k, parsed.RGB())
-	}
-
-	more, err := colorCfg.GetSection("More")
-
-	if err == nil {
-		for _, v := range more.KeyStrings() {
-			parsed := utils.ParseColor(more.Key(v).MustString("ffffff"))
-			variableList += fmt.Sprintf(`
-    --modspotify_more_%s: #%s;
-    --modspotify_more_rgb_%s: %s;`,
-				v, parsed.Hex(),
-				v, parsed.RGB())
-		}
 	}
 
 	return fmt.Sprintf(":root {%s\n}\n", variableList)

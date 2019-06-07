@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"errors"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -46,7 +45,7 @@ func Apply() {
 		}
 	}
 
-	appFolder := filepath.Join(spotifyPath, "Apps")
+	InitSetting()
 
 	// Copy raw assets to Spotify Apps folder if Spotify is never applied
 	// before.
@@ -55,27 +54,25 @@ func Apply() {
 	extractedStock := false
 	if !spotStat.IsApplied() {
 		utils.PrintBold(`Copying raw assets:`)
-		if err := os.RemoveAll(appFolder); err != nil {
+		if err := os.RemoveAll(appPath); err != nil {
 			utils.Fatal(err)
 		}
-		if err := utils.Copy(rawFolder, appFolder, true, nil); err != nil {
+		if err := utils.Copy(rawFolder, appPath, true, nil); err != nil {
 			utils.Fatal(err)
 		}
 		utils.PrintGreen("OK")
 		extractedStock = true
 	}
 
-	themeFolder, injectCSS, replaceColors, overwriteAssets := getThemeSettings()
-
 	if replaceColors {
 		utils.PrintBold(`Overwriting themed assets:`)
-		if err := utils.Copy(themedFolder, appFolder, true, nil); err != nil {
+		if err := utils.Copy(themedFolder, appPath, true, nil); err != nil {
 			utils.Fatal(err)
 		}
 		utils.PrintGreen("OK")
 	} else if !extractedStock {
 		utils.PrintBold(`Overwriting raw assets:`)
-		if err := utils.Copy(rawFolder, appFolder, true, nil); err != nil {
+		if err := utils.Copy(rawFolder, appPath, true, nil); err != nil {
 			utils.Fatal(err)
 		}
 		utils.PrintGreen("OK")
@@ -83,16 +80,17 @@ func Apply() {
 
 	utils.PrintBold(`Transferring user.css:`)
 	apply.UserCSS(
-		appFolder,
+		appPath,
 		themeFolder,
 		injectCSS,
 		replaceColors,
+		colorSection,
 	)
 	utils.PrintGreen("OK")
 
 	if overwriteAssets {
 		utils.PrintBold(`Overwriting custom assets:`)
-		apply.UserAsset(appFolder, themeFolder)
+		apply.UserAsset(appPath, themeFolder)
 		utils.PrintGreen("OK")
 	}
 
@@ -100,7 +98,7 @@ func Apply() {
 	customAppsList := featureSection.Key("custom_apps").Strings("|")
 
 	utils.PrintBold(`Applying additional modifications:`)
-	apply.AdditionalOptions(appFolder, apply.Flag{
+	apply.AdditionalOptions(appPath, apply.Flag{
 		ExperimentalFeatures: featureSection.Key("experimental_features").MustInt(0) == 1,
 		FastUserSwitching:    featureSection.Key("fastUser_switching").MustInt(0) == 1,
 		Home:                 featureSection.Key("home").MustInt(0) == 1,
@@ -133,34 +131,34 @@ func Apply() {
 
 // UpdateTheme updates user.css and overwrites custom assets
 func UpdateTheme() {
-	appFolder := filepath.Join(spotifyPath, "Apps")
+	InitSetting()
 
-	themeFolder, injectCSS, replaceColors, overwriteAssets := getThemeSettings()
 	if len(themeFolder) == 0 {
 		utils.PrintWarning(`Nothing is updated: Config "current_theme" is blank.`)
 		os.Exit(1)
 	}
 
-	updateCSS(appFolder, themeFolder, injectCSS, replaceColors)
+	updateCSS()
 
 	if overwriteAssets {
-		updateAssets(appFolder, themeFolder)
+		updateAssets()
 	}
 }
 
-func updateCSS(appFolder, themeFolder string, injectCSS, replaceColors bool) {
+func updateCSS() {
 	apply.UserCSS(
-		appFolder,
+		appPath,
 		themeFolder,
 		injectCSS,
 		replaceColors,
+		colorSection,
 	)
 
 	utils.PrintSuccess(utils.PrependTime("Custom CSS is updated"))
 }
 
-func updateAssets(appFolder, themeFolder string) {
-	apply.UserAsset(appFolder, themeFolder)
+func updateAssets() {
+	apply.UserAsset(appPath, themeFolder)
 	utils.PrintSuccess(utils.PrependTime("Custom assets are updated"))
 }
 
@@ -173,55 +171,6 @@ func UpdateAllExtension() {
 	} else {
 		utils.PrintError("No extension to update.")
 	}
-}
-
-// getThemeSettings returns
-//   - Theme path
-//   - Whether Spicetify should inject css
-//   - Whether Spicetify should replace colors
-//   - Whether Spicetify should overwrite assets with theme's custom assets
-func getThemeSettings() (string, bool, bool, bool) {
-	replaceColors := settingSection.Key("replace_colors").MustInt(0) == 1
-	injectCSS := settingSection.Key("inject_css").MustInt(0) == 1
-	overwriteAssets := settingSection.Key("overwrite_assets").MustInt(0) == 1
-
-	themeKey, err := settingSection.GetKey("current_theme")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	themeName := themeKey.String()
-	themeFolder := ""
-
-	if len(themeName) == 0 {
-		injectCSS = false
-		replaceColors = false
-		overwriteAssets = false
-	} else {
-		themeFolder = getThemeFolder(themeName)
-
-		colorPath := filepath.Join(themeFolder, "color.ini")
-		cssPath := filepath.Join(themeFolder, "user.css")
-		assetsPath := filepath.Join(themeFolder, "assets")
-
-		if replaceColors {
-			_, err := os.Stat(colorPath)
-			replaceColors = err == nil
-		}
-
-		if injectCSS {
-			_, err := os.Stat(cssPath)
-			injectCSS = err == nil
-		}
-
-		if overwriteAssets {
-			_, err := os.Stat(assetsPath)
-			overwriteAssets = err == nil
-		}
-	}
-
-	return themeFolder, injectCSS, replaceColors, overwriteAssets
 }
 
 func getExtensionPath(name string) (string, error) {
@@ -274,8 +223,6 @@ func getCustomAppPath(name string) (string, error) {
 }
 
 func pushApps(list ...string) {
-	appFolder := filepath.Join(spotifyPath, "Apps")
-
 	for _, name := range list {
 		customAppPath, err := getCustomAppPath(name)
 		if err != nil {
@@ -283,7 +230,7 @@ func pushApps(list ...string) {
 			continue
 		}
 
-		customAppDestPath := filepath.Join(appFolder, name)
+		customAppDestPath := filepath.Join(appPath, name)
 
 		if err = utils.CreateJunction(customAppPath, customAppDestPath); err != nil {
 			utils.Fatal(err)

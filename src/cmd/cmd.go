@@ -22,11 +22,17 @@ var (
 	quiet                   bool
 	spotifyPath             string
 	prefsPath               string
+	appPath                 string
 	cfg                     utils.Config
 	settingSection          *ini.Section
 	backupSection           *ini.Section
 	preprocSection          *ini.Section
 	featureSection          *ini.Section
+	themeFolder             string
+	colorSection            *ini.Section
+	injectCSS               bool
+	replaceColors           bool
+	overwriteAssets         bool
 )
 
 // InitConfig gets and parses config file.
@@ -73,6 +79,69 @@ func InitPaths() {
 		utils.PrintError(`Cannot detect Spotify "prefs" file location. Please manually set "prefs_path" in config.ini`)
 		os.Exit(1)
 	}
+
+	appPath = filepath.Join(spotifyPath, "Apps")
+}
+
+// InitSetting parses theme settings and gets color section.
+func InitSetting() {
+	replaceColors = settingSection.Key("replace_colors").MustInt(0) == 1
+	injectCSS = settingSection.Key("inject_css").MustInt(0) == 1
+	overwriteAssets = settingSection.Key("overwrite_assets").MustInt(0) == 1
+
+	themeName := settingSection.Key("current_theme").String()
+
+	if len(themeName) == 0 {
+		injectCSS = false
+		replaceColors = false
+		overwriteAssets = false
+		return
+	}
+
+	themeFolder = getThemeFolder(themeName)
+
+	colorPath := filepath.Join(themeFolder, "color.ini")
+	cssPath := filepath.Join(themeFolder, "user.css")
+	assetsPath := filepath.Join(themeFolder, "assets")
+
+	if replaceColors {
+		_, err := os.Stat(colorPath)
+		replaceColors = err == nil
+	}
+
+	if injectCSS {
+		_, err := os.Stat(cssPath)
+		injectCSS = err == nil
+	}
+
+	if overwriteAssets {
+		_, err := os.Stat(assetsPath)
+		overwriteAssets = err == nil
+	}
+
+	if !replaceColors {
+		return
+	}
+
+	colorCfg, err := ini.InsensitiveLoad(colorPath)
+	if err != nil || len(colorCfg.Sections()) == 0 {
+		replaceColors = false
+		return
+	}
+
+	schemeName := settingSection.Key("color_scheme").String()
+	if len(schemeName) == 0 {
+		colorSection = colorCfg.Sections()[1]
+		return
+	}
+
+	schemeSection, err := colorCfg.GetSection(schemeName)
+	if err != nil {
+		colorSection = colorCfg.Sections()[1]
+		return
+	}
+
+	colorSection = schemeSection
 }
 
 // GetConfigPath returns location of config file

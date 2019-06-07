@@ -23,7 +23,7 @@ func EditConfig(args []string) {
 		case "extensions", "custom_apps":
 			arrayType(featureSection, field, value)
 
-		case "prefs_path", "spotify_path", "current_theme":
+		case "prefs_path", "spotify_path", "current_theme", "color_scheme":
 			stringType(settingSection, field, value)
 
 		default:
