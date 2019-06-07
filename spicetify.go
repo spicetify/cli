@@ -52,7 +52,7 @@ func init() {
 			os.Exit(0)
 		case "-h", "--help":
 			kind := ""
-			if len(commands) > 1 {
+			if len(commands) > 0 {
 				kind = commands[0]
 			}
 			if kind == "config" {
