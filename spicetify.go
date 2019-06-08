@@ -308,8 +308,14 @@ lyric_force_no_sync
 made_for_you_hub
     Enable Made For You page. Access it in left sidebar.
 
+new_feedback_ui
+    Update in "add to library", "follow" buttons, icons, text.
+
 radio
     Enable Radio page. Access it in left sidebar.
+
+search_in_sidebar
+    Enable new Search page. Access it in left sidebar.
 
 song_page
     Clicks at song name in player bar will access that song page

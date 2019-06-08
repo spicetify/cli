@@ -23,6 +23,8 @@ type Flag struct {
 	Radio                bool
 	SongPage             bool
 	VisHighFramerate     bool
+	NewFeedbackUI        bool
+	SearchInSidebar      bool
 	Extension            []string
 	CustomApp            []string
 }
@@ -136,9 +138,7 @@ func zlinkMod(jsPath string, flags Flag) {
 		}
 
 		if flags.Home {
-			utils.Replace(&content, `this\._initialState\.isHomeEnabled`, "true")
-			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default\.createElement\([\w_]+\.default,{isActive:\/\^spotify:app:home\/)`, "true${1}")
-			utils.Replace(&content, `[\w_]+\.isHomeEnabled`, "true")
+			utils.Replace(&content, `(isHomeEnabled:)("Enabled")`, "${1}true||${2}")
 		}
 
 		if flags.LyricAlwaysShow {
@@ -155,6 +155,14 @@ func zlinkMod(jsPath string, flags Flag) {
 
 		if flags.SongPage {
 			utils.Replace(&content, `window\.initialState\.isSongPageEnabled`, `true`)
+		}
+
+		if flags.NewFeedbackUI {
+			utils.Replace(&content, `(useNftUi:)("Enabled")`, "${1}true||${2}")
+		}
+
+		if flags.SearchInSidebar {
+			utils.Replace(&content, `(isSearchInSidebarEnabled:)("Enabled")`, "${1}true||${2}")
 		}
 
 		if len(flags.CustomApp) > 0 {

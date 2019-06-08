@@ -108,6 +108,8 @@ func Apply() {
 		Radio:                featureSection.Key("radio").MustInt(0) == 1,
 		SongPage:             featureSection.Key("song_page").MustInt(0) == 1,
 		VisHighFramerate:     featureSection.Key("visualization_high_framerate").MustInt(0) == 1,
+		NewFeedbackUI:        featureSection.Key("new_feedback_ui").MustInt(0) == 1,
+		SearchInSidebar:      featureSection.Key("search_in_sidebar").MustInt(0) == 1,
 		Extension:            extentionList,
 		CustomApp:            customAppsList,
 	})
