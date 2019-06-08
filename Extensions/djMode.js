@@ -178,6 +178,11 @@
 
             playButton.setAttribute("djmode-injected", "true");
             playButton.onclick = clickFunc(songURI);
+
+            cell.parentElement.ondblclick = (event) => {
+                clickFunc(songURI)();
+                event.stopImmediatePropagation();
+            };
         });
 
         if (setting.hideControls) {
@@ -221,6 +226,11 @@
                 playButton.setAttribute("djmode-injected", "true");
 
                 newButton.onclick = clickFunc(songURI);
+            };
+
+            cell.parentElement.ondblclick = (event) => {
+                clickFunc(songURI)();
+                event.stopImmediatePropagation();
             };
         });
 
