@@ -1321,8 +1321,8 @@ Spicetify.URI = (function () {
 Spicetify.getAudioData = (uri) => {
     return new Promise((resolve, reject) => {
         uri = uri || Spicetify.Player.data.track.uri;
-        const uriObj = Spicetify.LibURI.from(uri);
-        if (!uriObj && uriObj.Type !== Spicetify.LibURI.Type.TRACK) {
+        const uriObj = Spicetify.URI.from(uri);
+        if (!uriObj && uriObj.Type !== Spicetify.URI.Type.TRACK) {
             reject("URI is invalid.");
             return;
         }
@@ -1343,7 +1343,7 @@ Spicetify.getAudioData = (uri) => {
 Spicetify.getAblumArtColors = (uri) => {
     return new Promise((resolve, reject) => {
         uri = uri || Spicetify.Player.data.track.uri;
-        if (Spicetify.LibURI.isTrack(uri)) {
+        if (Spicetify.URI.isTrack(uri)) {
             reject("URI is invalid.");
             return;
         }
