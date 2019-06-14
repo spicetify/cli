@@ -13,26 +13,64 @@ import (
 
 var (
 	xrdb map[string]string
+
+	// BaseColorList is color names list and their default values
+	BaseColorList = map[string]string{
+		"main_fg":                               "ffffff",
+		"secondary_fg":                          "c0c0c0",
+		"main_bg":                               "282828",
+		"sidebar_and_player_bg":                 "000000",
+		"cover_overlay_and_shadow":              "000000",
+		"indicator_fg_and_button_bg":            "1db954",
+		"pressing_fg":                           "cdcdcd",
+		"slider_bg":                             "404040",
+		"sidebar_indicator_and_hover_button_bg": "1ed660",
+		"scrollbar_fg_and_selected_row_bg":      "333333",
+		"pressing_button_fg":                    "cccccc",
+		"pressing_button_bg":                    "179443",
+		"selected_button":                       "18ac4d",
+		"miscellaneous_bg":                      "4687d6",
+		"miscellaneous_hover_bg":                "2e77d0",
+		"preserve_1":                            "ffffff",
+	}
+
+	// BaseColorOrder is color name list in an order
+	BaseColorOrder = []string{
+		"main_fg",
+		"secondary_fg",
+		"main_bg",
+		"sidebar_and_player_bg",
+		"cover_overlay_and_shadow",
+		"indicator_fg_and_button_bg",
+		"pressing_fg",
+		"slider_bg",
+		"sidebar_indicator_and_hover_button_bg",
+		"scrollbar_fg_and_selected_row_bg",
+		"pressing_button_fg",
+		"pressing_button_bg",
+		"selected_button",
+		"miscellaneous_bg",
+		"miscellaneous_hover_bg",
+		"preserve_1",
+	}
 )
 
 type color struct {
-	rgbValue string
-	hexValue string
+	red, green, blue int64
 }
 
 // Color stores hex and rgb value of color
 type Color interface {
 	Hex() string
 	RGB() string
+	TerminalRGB() string
 }
 
 // ParseColor parses a string in both hex or rgb
 // or from XResources or env variable
 // and converts to both rgb and hex value
 func ParseColor(raw string) Color {
-	var red int64
-	var green int64
-	var blue int64
+	var red, green, blue int64
 
 	if strings.HasPrefix(raw, "${") {
 		endIndex := len(raw) - 1
@@ -78,17 +116,19 @@ func ParseColor(raw string) Color {
 		blue = stringToInt(hex[4:6], 16)
 	}
 
-	return color{
-		rgbValue: fmt.Sprintf("%d,%d,%d", red, green, blue),
-		hexValue: fmt.Sprintf("%02x%02x%02x", red, green, blue)}
+	return color{red, green, blue}
 }
 
 func (c color) Hex() string {
-	return c.hexValue
+	return fmt.Sprintf("%02x%02x%02x", c.red, c.green, c.blue)
 }
 
 func (c color) RGB() string {
-	return c.rgbValue
+	return fmt.Sprintf("%d,%d,%d", c.red, c.green, c.blue)
+}
+
+func (c color) TerminalRGB() string {
+	return fmt.Sprintf("%d;%d;%d", c.red, c.green, c.blue)
 }
 
 func stringToInt(raw string, base int) int64 {

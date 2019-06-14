@@ -94,7 +94,12 @@ func main() {
 		cmd.EditConfig(commands[1:])
 		return
 	case "color":
-		cmd.EditColor(commands[1:])
+		commands = commands[1:]
+		if len(commands) == 0 {
+			cmd.DisplayColors()
+		} else {
+			cmd.EditColor(commands)
+		}
 		return
 
 	case "path":

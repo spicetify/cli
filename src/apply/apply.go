@@ -189,26 +189,6 @@ func getUserCSS(themeFolder string) string {
 	return string(content)
 }
 
-// Color names list and their default values
-var baseColorList = map[string]string{
-	"main_fg":                               "ffffff",
-	"secondary_fg":                          "c0c0c0",
-	"main_bg":                               "282828",
-	"sidebar_and_player_bg":                 "000000",
-	"cover_overlay_and_shadow":              "000000",
-	"indicator_fg_and_button_bg":            "1db954",
-	"pressing_fg":                           "cdcdcd",
-	"slider_bg":                             "404040",
-	"sidebar_indicator_and_hover_button_bg": "1ed660",
-	"scrollbar_fg_and_selected_row_bg":      "333333",
-	"pressing_button_fg":                    "cccccc",
-	"pressing_button_bg":                    "179443",
-	"selected_button":                       "18ac4d",
-	"miscellaneous_bg":                      "4687d6",
-	"miscellaneous_hover_bg":                "2e77d0",
-	"preserve_1":                            "ffffff",
-}
-
 func getColorCSS(scheme *ini.Section) string {
 	if scheme == nil {
 		scheme = ini.Empty().Section("")
@@ -216,7 +196,7 @@ func getColorCSS(scheme *ini.Section) string {
 
 	var variableList string
 
-	for k, v := range baseColorList {
+	for k, v := range utils.BaseColorList {
 		parsed := utils.ParseColor(scheme.Key(k).MustString(v))
 		variableList += fmt.Sprintf(`
     --modspotify_%s: #%s;

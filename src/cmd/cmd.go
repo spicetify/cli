@@ -29,6 +29,7 @@ var (
 	preprocSection          *ini.Section
 	featureSection          *ini.Section
 	themeFolder             string
+	colorCfg                *ini.File
 	colorSection            *ini.Section
 	injectCSS               bool
 	replaceColors           bool
@@ -123,21 +124,31 @@ func InitSetting() {
 		return
 	}
 
-	colorCfg, err := ini.InsensitiveLoad(colorPath)
-	if err != nil || len(colorCfg.Sections()) == 0 {
+	var err error
+	colorCfg, err = ini.InsensitiveLoad(colorPath)
+	if err != nil {
+		utils.PrintError("Cannot open file " + colorPath)
+		replaceColors = false
+		return
+	}
+
+	sections := colorCfg.Sections()
+
+	if len(sections) < 2 {
+		utils.PrintError("No section found in " + colorPath)
 		replaceColors = false
 		return
 	}
 
 	schemeName := settingSection.Key("color_scheme").String()
 	if len(schemeName) == 0 {
-		colorSection = colorCfg.Sections()[1]
+		colorSection = sections[1]
 		return
 	}
 
 	schemeSection, err := colorCfg.GetSection(schemeName)
 	if err != nil {
-		colorSection = colorCfg.Sections()[1]
+		colorSection = sections[1]
 		return
 	}
 
