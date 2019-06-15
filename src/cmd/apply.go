@@ -105,7 +105,6 @@ func Apply() {
 		Home:                 toTernary(featureSection, "home"),
 		LyricAlwaysShow:      toTernary(featureSection, "lyric_always_show"),
 		LyricForceNoSync:     toTernary(featureSection, "lyric_force_no_sync"),
-		MadeForYouHub:        toTernary(featureSection, "made_for_you_hub"),
 		Radio:                toTernary(featureSection, "radio"),
 		SongPage:             toTernary(featureSection, "song_page"),
 		VisHighFramerate:     toTernary(featureSection, "visualization_high_framerate"),

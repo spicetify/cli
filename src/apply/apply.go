@@ -19,7 +19,6 @@ type Flag struct {
 	Home                 utils.TernaryBool
 	LyricAlwaysShow      utils.TernaryBool
 	LyricForceNoSync     utils.TernaryBool
-	MadeForYouHub        utils.TernaryBool
 	Radio                utils.TernaryBool
 	SongPage             utils.TernaryBool
 	VisHighFramerate     utils.TernaryBool
@@ -143,10 +142,6 @@ func zlinkMod(jsPath string, flags Flag) {
 
 		if !flags.LyricAlwaysShow.IsDefault() {
 			utils.Replace(&content, `(lyricsEnabled\()[\w_]+&&\(.+?\)`, `${1}`+flags.LyricAlwaysShow.ToString())
-		}
-
-		if !flags.MadeForYouHub.IsDefault() {
-			utils.Replace(&content, `[\w_]+&?&?([\w_]+\.default.createElement\([\w_]+\.default,\{isActive:/\^spotify:app:made\-for\-you)`, flags.MadeForYouHub.ToString()+`${1}`)
 		}
 
 		if !flags.Radio.IsDefault() {
