@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-ini/ini"
 	"github.com/khanhas/spicetify-cli/src/apply"
 	backupstatus "github.com/khanhas/spicetify-cli/src/status/backup"
 	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
@@ -99,17 +100,17 @@ func Apply() {
 
 	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appPath, apply.Flag{
-		ExperimentalFeatures: featureSection.Key("experimental_features").MustInt(0) == 1,
-		FastUserSwitching:    featureSection.Key("fastUser_switching").MustInt(0) == 1,
-		Home:                 featureSection.Key("home").MustInt(0) == 1,
-		LyricAlwaysShow:      featureSection.Key("lyric_always_show").MustInt(0) == 1,
-		LyricForceNoSync:     featureSection.Key("lyric_force_no_sync").MustInt(0) == 1,
-		MadeForYouHub:        featureSection.Key("made_for_you_hub").MustInt(0) == 1,
-		Radio:                featureSection.Key("radio").MustInt(0) == 1,
-		SongPage:             featureSection.Key("song_page").MustInt(0) == 1,
-		VisHighFramerate:     featureSection.Key("visualization_high_framerate").MustInt(0) == 1,
-		NewFeedbackUI:        featureSection.Key("new_feedback_ui").MustInt(0) == 1,
-		SearchInSidebar:      featureSection.Key("search_in_sidebar").MustInt(0) == 1,
+		ExperimentalFeatures: toTernary(featureSection, "experimental_features"),
+		FastUserSwitching:    toTernary(featureSection, "fastUser_switching"),
+		Home:                 toTernary(featureSection, "home"),
+		LyricAlwaysShow:      toTernary(featureSection, "lyric_always_show"),
+		LyricForceNoSync:     toTernary(featureSection, "lyric_force_no_sync"),
+		MadeForYouHub:        toTernary(featureSection, "made_for_you_hub"),
+		Radio:                toTernary(featureSection, "radio"),
+		SongPage:             toTernary(featureSection, "song_page"),
+		VisHighFramerate:     toTernary(featureSection, "visualization_high_framerate"),
+		NewFeedbackUI:        toTernary(featureSection, "new_feedback_ui"),
+		SearchInSidebar:      toTernary(featureSection, "search_in_sidebar"),
 		Extension:            extentionList,
 		CustomApp:            customAppsList,
 	})
@@ -238,4 +239,8 @@ func pushApps(list ...string) {
 			utils.Fatal(err)
 		}
 	}
+}
+
+func toTernary(section *ini.Section, key string) utils.TernaryBool {
+	return utils.TernaryBool(section.Key(key).MustInt(0))
 }

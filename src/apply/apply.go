@@ -14,17 +14,17 @@ import (
 
 // Flag enables/disables additional feature
 type Flag struct {
-	ExperimentalFeatures bool
-	FastUserSwitching    bool
-	Home                 bool
-	LyricAlwaysShow      bool
-	LyricForceNoSync     bool
-	MadeForYouHub        bool
-	Radio                bool
-	SongPage             bool
-	VisHighFramerate     bool
-	NewFeedbackUI        bool
-	SearchInSidebar      bool
+	ExperimentalFeatures utils.TernaryBool
+	FastUserSwitching    utils.TernaryBool
+	Home                 utils.TernaryBool
+	LyricAlwaysShow      utils.TernaryBool
+	LyricForceNoSync     utils.TernaryBool
+	MadeForYouHub        utils.TernaryBool
+	Radio                utils.TernaryBool
+	SongPage             utils.TernaryBool
+	VisHighFramerate     utils.TernaryBool
+	NewFeedbackUI        utils.TernaryBool
+	SearchInSidebar      utils.TernaryBool
 	Extension            []string
 	CustomApp            []string
 }
@@ -115,12 +115,12 @@ func UserAsset(appsFolderPath, themeFolder string) {
 
 func lyricsMod(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
-		if flags.VisHighFramerate {
-			utils.Replace(&content, `[\w_]+\.highVisualizationFrameRate\s?=`, `${0}true||`)
+		if !flags.VisHighFramerate.IsDefault() {
+			utils.Replace(&content, `[\w_]+\.highVisualizationFrameRate\s?=`, `${0}`+flags.VisHighFramerate.ToForceOperator())
 		}
 
-		if flags.LyricForceNoSync {
-			utils.Replace(&content, `[\w_]+\.forceNoSyncLyrics\s?=`, `${0}true||`)
+		if !flags.LyricForceNoSync.IsDefault() {
+			utils.Replace(&content, `[\w_]+\.forceNoSyncLyrics\s?=`, `${0}`+flags.LyricForceNoSync.ToForceOperator())
 		}
 
 		return content
@@ -129,40 +129,40 @@ func lyricsMod(jsPath string, flags Flag) {
 
 func zlinkMod(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
-		if flags.ExperimentalFeatures {
-			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{name:"experiments)`, `true${1}`)
+		if !flags.ExperimentalFeatures.IsDefault() {
+			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{name:"experiments)`, flags.ExperimentalFeatures.ToString()+`${1}`)
 		}
 
-		if flags.FastUserSwitching {
-			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{name:"switch\-user)`, `true${1}`)
+		if !flags.FastUserSwitching.IsDefault() {
+			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{name:"switch\-user)`, flags.FastUserSwitching.ToString()+`${1}`)
 		}
 
-		if flags.Home {
-			utils.Replace(&content, `(isHomeEnabled:)("Enabled")`, "${1}true||${2}")
+		if !flags.Home.IsDefault() {
+			utils.Replace(&content, `(isHomeEnabled:)("Enabled")`, `${1}`+flags.Home.ToForceOperator()+`${2}`)
 		}
 
-		if flags.LyricAlwaysShow {
-			utils.Replace(&content, `(lyricsEnabled\()[\w_]+&&\(.+?\)`, `${1}true`)
+		if !flags.LyricAlwaysShow.IsDefault() {
+			utils.Replace(&content, `(lyricsEnabled\()[\w_]+&&\(.+?\)`, `${1}`+flags.LyricAlwaysShow.ToString())
 		}
 
-		if flags.MadeForYouHub {
-			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{isActive:/\^spotify:app:made\-for\-you)`, `true${1}`)
+		if !flags.MadeForYouHub.IsDefault() {
+			utils.Replace(&content, `[\w_]+&?&?([\w_]+\.default.createElement\([\w_]+\.default,\{isActive:/\^spotify:app:made\-for\-you)`, flags.MadeForYouHub.ToString()+`${1}`)
 		}
 
-		if flags.Radio {
-			utils.Replace(&content, `radioIsVisible=`, `${0}true||`)
+		if !flags.Radio.IsDefault() {
+			utils.Replace(&content, `"1"===[\w_]+\.productState\.radio`, flags.Radio.ToString())
 		}
 
-		if flags.SongPage {
-			utils.Replace(&content, `window\.initialState\.isSongPageEnabled`, `true`)
+		if !flags.SongPage.IsDefault() {
+			utils.Replace(&content, `window\.initialState\.isSongPageEnabled`, flags.SongPage.ToString())
 		}
 
-		if flags.NewFeedbackUI {
-			utils.Replace(&content, `(useNftUi:)("Enabled")`, "${1}true||${2}")
+		if !flags.NewFeedbackUI.IsDefault() {
+			utils.Replace(&content, `(useNftUi:)("Enabled")`, `${1}`+flags.NewFeedbackUI.ToForceOperator()+`${2}`)
 		}
 
-		if flags.SearchInSidebar {
-			utils.Replace(&content, `(isSearchInSidebarEnabled:)("Enabled")`, "${1}true||${2}")
+		if !flags.SearchInSidebar.IsDefault() {
+			utils.Replace(&content, `(isSearchInSidebarEnabled:)("Enabled")`, `${1}`+flags.SearchInSidebar.ToForceOperator()+`${2}`)
 		}
 
 		if len(flags.CustomApp) > 0 {
