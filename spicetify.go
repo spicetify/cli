@@ -91,7 +91,14 @@ func main() {
 	// Non-chainable commands
 	switch commands[0] {
 	case "config":
-		cmd.EditConfig(commands[1:])
+		commands = commands[1:]
+		if len(commands) == 0 {
+			cmd.DisplayAllConfig()
+		} else if len(commands) == 1 {
+			cmd.DisplayConfig(commands[0])
+		} else {
+			cmd.EditConfig(commands)
+		}
 		return
 	case "color":
 		commands = commands[1:]

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"log"
 	"os"
 	"strings"
 
@@ -10,11 +11,6 @@ import (
 
 // EditConfig changes one or multiple config value
 func EditConfig(args []string) {
-	if len(args) < 2 {
-		utils.PrintError("Not enough argument.")
-		os.Exit(1)
-	}
-
 	for len(args) >= 2 {
 		field := args[0]
 		value := args[1]
@@ -34,6 +30,59 @@ func EditConfig(args []string) {
 	}
 
 	cfg.Write()
+}
+
+// DisplayAllConfig displays all configs in all sections
+func DisplayAllConfig() {
+	maxLen := 30
+	utils.PrintBold("Settings")
+	for _, key := range settingSection.Keys() {
+		name := key.Name()
+		log.Println(name + strings.Repeat(" ", maxLen-len(name)) + key.Value())
+	}
+
+	log.Println()
+	utils.PrintBold("Preprocesses")
+	for _, key := range preprocSection.Keys() {
+		name := key.Name()
+		log.Println(name + strings.Repeat(" ", maxLen-len(name)) + key.Value())
+	}
+
+	log.Println()
+	utils.PrintBold("AdditionFeatures")
+	for _, key := range featureSection.Keys() {
+		name := key.Name()
+		if name == "extensions" || name == "custom_apps" {
+			list := key.Strings("|")
+			listLen := len(list)
+			if listLen == 0 {
+				log.Println(name)
+			} else {
+				log.Println(name + strings.Repeat(" ", maxLen-len(name)) + list[0])
+				for _, ext := range list[1:] {
+					log.Println(strings.Repeat(" ", maxLen) + ext)
+				}
+			}
+		} else {
+			log.Println(name + strings.Repeat(" ", maxLen-len(name)) + key.Value())
+		}
+	}
+}
+
+// DisplayConfig displays value of requested config field
+func DisplayConfig(field string) {
+	key := searchField(field)
+
+	name := key.Name()
+	if name == "extensions" || name == "custom_apps" {
+		list := key.Strings("|")
+		for _, ext := range list {
+			log.Println(ext)
+		}
+		return
+	}
+
+	log.Println(key.Value())
 }
 
 // searchField finds requested field in all three config sections
@@ -68,17 +117,38 @@ func arrayType(section *ini.Section, field, value string) {
 
 	allExts := key.Strings("|")
 
-	for _, ext := range allExts {
-		if value == ext {
-			unchangeWarning(field, value+" is already in the list.")
+	isSubstract := value[len(value)-1] == '-'
+	if isSubstract {
+		value = value[0 : len(value)-1]
+		found := false
+		newList := []string{}
+		for _, v := range allExts {
+			if value == v {
+				found = true
+			} else {
+				newList = append(newList, v)
+			}
+		}
+
+		if !found {
+			unchangeWarning(field, value+" is not on the list.")
 			return
 		}
+
+		allExts = newList
+	} else {
+		for _, ext := range allExts {
+			if value == ext {
+				unchangeWarning(field, value+" is already in the list.")
+				return
+			}
+		}
+
+		allExts = append(allExts, value)
 	}
 
-	allExts = append(allExts, value)
 	newList := strings.Join(allExts, "|")
 	key.SetValue(newList)
-
 	changeSuccess(field, newList)
 }
 
