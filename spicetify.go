@@ -38,7 +38,7 @@ func init() {
 
 	// Separates flags and commands
 	for _, v := range os.Args[1:] {
-		if v[0] == '-' {
+		if v[0] == '-' && v != "-1" {
 			flags = append(flags, v)
 		} else {
 			commands = append(commands, v)
@@ -110,12 +110,22 @@ func main() {
 		return
 
 	case "path":
+		commands = commands[1:]
 		path, err := (func() (string, error) {
 			if extensionFocus {
+				if len(commands) == 0 {
+					return cmd.ExtensionAllPath()
+				}
 				return cmd.ExtensionPath(commands[1])
 			} else if appFocus {
+				if len(commands) == 0 {
+					return cmd.AppAllPath()
+				}
 				return cmd.AppPath(commands[1])
 			} else {
+				if len(commands) == 0 {
+					return cmd.ThemeAllAssetsPath()
+				}
 				return cmd.ThemeAssetPath(commands[1])
 			}
 		})()
@@ -211,33 +221,61 @@ restart             Restart Spotify client.
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
 path                Print path of color, css, extension file or
                     custom app directory and quit.
-` + "                    \x1B[4mUsage:\033[0m" + `
-                    - Print theme's color.inc path:
+                    1. Print all theme's assests:
+                    spicetify path
+                    2. Print theme's color.inc path:
                     spicetify path color
-                    - Print theme's user.css path:
+                    3. Print theme's user.css path:
                     spicetify path css
-                    - Print theme's assets path:
+                    4. Print theme's assets path:
                     spicetify path assets
-                    - Print extension <name> path:
+                    5. Print all extensions path:
+                    spicetify -e path
+                    6. Print extension <name> path:
                     spicetify -e path <name>
-                    - Print custom app <name> path:
+                    7. Print all custom apps path:
+                    spicetify -a path
+                    8. Print custom app <name> path:
                     spicetify -a path <name>
 
-config              Change value of one or multiple config fields. Require at
-                    least one pair of "FIELD" "VALUE".
+config              1. Print all config fields and values:
+                    spicetify config
+                    
+                    2. Print one config field's value:
+                    spicetify config <field>
+
+                    Example usage:
+                    spicetify config color_scheme
+                    spicetify config custom_apps
+                    
+                    3. Change value of one or multiple config fields.
+                    spicetify config <field> <value> [<field> <value> ...]
+
                     "extensions" and "custom_apps" fields are arrays of values,
-                    so "VALUE" will be appended to those fields' current value.
+                    so <value> will be appended to those fields' current value.
+                    To remove one of array's values, postfix "-" to <value>.
+
                     Example usage:
                     - Enable "disable_sentry" preprocess:
                     spicetify config disable_sentry 1
                     - Add extension "myFakeExt.js" to current extensions list:
                     spicetify config extensions myFakeExt.js
+                    - Remove extension "wrongname.js" from extensions list:
+                    spicetify config extensions wrongname.js-
                     - Disable "inject_css" and enable "song_page"
                     spicetify config inject_css 0 song_page 1
 
-color               Change theme's one or multiple color value. Require at
-                    least one pair of "FIELD" "VALUE".
-                    "VALUE" can be in hex or decimal (rrr,ggg,bbb) format.
+color               1. Print all color fields and values. 
+                    spicetify color
+
+                    Color boxes require 24-bit color (True color) supported 
+                    terminal to show colors correctly.
+
+                    2. Change theme's one or multiple color values.
+                    spicetify color <field> <value> [<field> <value> ...]
+
+                    <value> can be in hex or decimal (rrr,ggg,bbb) format.
+
                     Example usage:
                     - Change main_bg to ff0000
                     spicetify color main_bg ff0000
@@ -260,7 +298,8 @@ color               Change theme's one or multiple color value. Require at
 
 -v, --version       Print version number and quit
 
-For config information, run "spicetify -h config".`)
+For config information, run "spicetify -h config".
+For more information and bug report: https://github.com/khanhas/spicetify-cli/`)
 }
 
 func helpConfig() {
@@ -275,64 +314,68 @@ prefs_path
 current_theme
     Name of folder of your theme
 
-inject_css
+inject_css <0 | 1>
     Whether custom css from user.css in theme folder is applied
 
-replace_colors
+replace_colors <0 | 1>
     Whether custom colors is applied
 
 ` + utils.Bold("[Preprocesses]") + `
-disable_sentry
+disable_sentry <0 | 1>
     Prevents Sentry to send console log/error/warning to Spotify developers.
     Enable if you don't want to catch their attention when developing extension or app.
 
-disable_ui_logging
+disable_ui_logging <0 | 1>
     Various elements logs every user clicks, scrolls.
     Enable to stop logging and improve user experience.
 
-remove_rtl_rule
+remove_rtl_rule <0 | 1>
     To support Arabic and other Right-To-Left language, Spotify added a lot of
     CSS rules that are obsoleted to Left-To-Right users.
     Enable to remove all of them and improve render speed.
 
-expose_apis
+expose_apis <0 | 1>
     Leaks some Spotify's API, functions, objects to Spicetify global object that
     are useful for making extensions to extend Spotify functionality.
 
 ` + utils.Bold("[AdditionalOptions]") + `
-experimental_features
-    Allow access to Experimental Features of Spotify.
+custom_apps <string>
+    List of custom apps. Separate each app with "|".
+
+extensions <string>
+    List of Javascript files to be executed along with Spotify main script.
+    Separate each extension with "|".
+
+experimental_features <-1 | 0 | 1>
+    Enable/Disable ability access to Experimental Features of Spotify.
     Open it in profile menu (top right corner).
 
-fastUser_switching
-    Allow change account immediately. Open it in profile menu.
+fastUser_switching <-1 | 0 | 1>
+    Enable/Disable ability to quickly change account. Open it in profile menu.
 
-home
-    Enable Home page. Access it in left sidebar.
+home <-1 | 0 | 1>
+    Enable/Disable Home page. Access it in left sidebar.
 
-lyric_always_show
+lyric_always_show <-1 | 0 | 1>
     Force Lyrics button to show all the time in player bar.
     Useful for who want to watch visualization page.
 
-lyric_force_no_sync
+lyric_force_no_sync <-1 | 0 | 1>
     Force displaying all of lyrics.
 
-made_for_you_hub
-    Enable Made For You page. Access it in left sidebar.
-
-new_feedback_ui
-    Update in "add to library", "follow" buttons, icons, text.
+new_feedback_ui <-1 | 0 | 1>
+    Enable/Disable new update in "add to library", follow buttons, icons, text.
 
 radio
-    Enable Radio page. Access it in left sidebar.
+    Enable/Disable Radio page. Access it in left sidebar.
 
-search_in_sidebar
-    Enable new Search page. Access it in left sidebar.
+search_in_sidebar <-1 | 0 | 1>
+    Enable/Disable new Search page. Access it in left sidebar.
 
-song_page
-    Clicks at song name in player bar will access that song page
-    (instead of its album page) to discover playlists it appearing on.
+song_page <-1 | 0 | 1>
+    Enable/Disable ability to click at song name in player bar will access that
+    song page (instead of its album page) to discover playlists it appearing on.
 
-visualization_high_framerate
+visualization_high_framerate <-1 | 0 | 1>
     Force Visualization in Lyrics app to render in 60fps.`)
 }
