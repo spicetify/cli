@@ -116,17 +116,17 @@ func main() {
 				if len(commands) == 0 {
 					return cmd.ExtensionAllPath()
 				}
-				return cmd.ExtensionPath(commands[1])
+				return cmd.ExtensionPath(commands[0])
 			} else if appFocus {
 				if len(commands) == 0 {
 					return cmd.AppAllPath()
 				}
-				return cmd.AppPath(commands[1])
+				return cmd.AppPath(commands[0])
 			} else {
 				if len(commands) == 0 {
 					return cmd.ThemeAllAssetsPath()
 				}
-				return cmd.ThemeAssetPath(commands[1])
+				return cmd.ThemeAssetPath(commands[0])
 			}
 		})()
 
