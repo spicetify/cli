@@ -1569,7 +1569,7 @@ Spicetify.ContextMenu = (function () {
     function _addItems(contextMenuInstance, uris) {
         for (const item of itemList) {
             if (!item._shouldAdd(uris)) {
-                return;
+                continue;
             }
 
             if (item._items) {
