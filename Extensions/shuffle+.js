@@ -7,7 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function ShufflePlus() {
-    if (!Spicetify.CosmosAPI) {
+    if (!Spicetify.CosmosAPI || !Spicetify.BridgeAPI) {
         setTimeout(ShufflePlus, 1000);
         return;
     }
@@ -30,29 +30,13 @@
         );
         b.onclick = () => {
             const contextURI = Spicetify.Player.data.context_uri;
-            const uriObj = Spicetify.URI.fromString(contextURI);
-
-            switch (uriObj.type) {
-                case Spicetify.URI.Type.SHOW:
-                    showShuffle(uriObj.getBase62Id());
-                    break;
-                case Spicetify.URI.Type.PLAYLIST:
-                    playlistShuffle(contextURI);
-                    break;
-                case Spicetify.URI.Type.FOLDER:
-                    folderShuffle(contextURI);
-                    break;
-                case Spicetify.URI.Type.ALBUM:
-                    albumShuffle(contextURI);
-                    break;
-                case Spicetify.URI.Type.COLLECTION:
-                    collectionShuffle();
-                    break;
-                default:
-                    Spicetify.showNotification(
-                        `Unsupported context URI type: ${uriObj.type}`
-                    );
-            }
+            fetchListFromUri(contextURI)
+                .then((list) => {
+                    if (list && list.length > 0) {
+                        setQueue(shuffle(list));
+                    }
+                })
+                .catch((err) => Spicetify.showNotification(`${err}`));
         };
         return b;
     }
@@ -85,7 +69,7 @@
     const iframeInterval = setInterval(() => {
         /** @type {HTMLIFrameElement} */
         const currentIframe = document.querySelector("iframe.active");
-        if (!currentIframe || 
+        if (!currentIframe ||
             currentIframe.id !== "app-queue"
         ) {
             return;
@@ -105,55 +89,99 @@
         if (headers.length > 0) clearInterval(iframeInterval);
     }, 500)
 
+    const cntxMenu = new Spicetify.ContextMenu.Item(
+        "Play with Shuffle+",
+        (uris) => {
+            if (uris.length === 1) {
+                fetchListFromUri(uris[0])
+                    .then((list) => playList(shuffle(list)))
+                    .catch((err) => Spicetify.showNotification(`${err}`));
+                return;
+            }
+
+            const list = uris.map((uri) => ({ uri }));
+            playList(shuffle(list));
+        },
+        (uris) => {
+            if (uris.length === 1) {
+                const uriObj = Spicetify.URI.fromString(uris[0]);
+                switch (uriObj.type) {
+                    case Spicetify.URI.Type.SHOW:
+                    case Spicetify.URI.Type.PLAYLIST:
+                    case Spicetify.URI.Type.FOLDER:
+                    case Spicetify.URI.Type.ALBUM:
+                    case Spicetify.URI.Type.COLLECTION:
+                        return true;
+                }
+                return false;
+            }
+            // User selects multiple tracks in a list.
+            return true;
+        },
+        "shuffle"
+    )
+    cntxMenu.register();
+
+    /**
+     * 
+     * @param {string} uri 
+     * @returns {Promise<{uri: string}[]>}
+     */
+    async function fetchListFromUri(uri) {
+        const uriObj = Spicetify.URI.fromString(uri);
+
+        switch (uriObj.type) {
+            case Spicetify.URI.Type.SHOW:
+                return await fetchShow(uriObj.getBase62Id())
+            case Spicetify.URI.Type.PLAYLIST:
+                return await fetchPlaylist(uri)
+            case Spicetify.URI.Type.FOLDER:
+                return await fetchFolder(uri)
+            case Spicetify.URI.Type.ALBUM:
+                return await fetchAlbum(uri)
+            case Spicetify.URI.Type.COLLECTION:
+                return await fetchCollection()
+        }
+        throw `Unsupported fetching URI type: ${uriObj.type}`;
+    }
+
     /**
      *
      * @param {string} uri
-     * @returns {Promise<Array<{ uri: string }>>}
+     * @returns {Promise<{uri: string}[]>}
      */
-    function requestPlaylist(uri) {
-        return new Promise((resolve, reject) => {
-            Spicetify.BridgeAPI.cosmosJSON(
-                {
-                    method: "GET",
-                    uri: `sp://core-playlist/v1/playlist/${uri}/rows`,
-                    body: {
-                        policy: {
-                            link: true,
-                        },
+    const fetchPlaylist = (uri) => new Promise((resolve, reject) => {
+        Spicetify.BridgeAPI.cosmosJSON(
+            {
+                method: "GET",
+                uri: `sp://core-playlist/v1/playlist/${uri}/rows`,
+                body: {
+                    policy: {
+                        link: true,
                     },
                 },
-                (error, res) => {
-                    if (error) {
-                        reject(error);
-                        return;
-                    }
-
-                    let replace = res.rows;
-                    replace = replace.map((item) => ({
-                        uri: item.link,
-                    }));
-
-                    resolve(replace);
+            },
+            (error, res) => {
+                if (error) {
+                    reject(error);
+                    return;
                 }
-            );
-        });
-    }
+
+                let replace = res.rows.map((item) => ({
+                    uri: item.link,
+                }));
+
+                resolve(replace);
+            }
+        );
+    });
 
     /**
      *
      * @param {string} uri
+     * @returns {Promise<{uri: string}[]>}
      */
-    function playlistShuffle(uri) {
-        requestPlaylist(uri)
-            .then((res) => setQueue(shuffle(res)))
-            .catch((error) => console.error("Playlist Shuffle:", error));
-    }
-
-    /**
-     *
-     * @param {string} uri
-     */
-    function folderShuffle(uri) {
+    const fetchFolder = (uri) => new Promise((resolve, reject) => {
         Spicetify.BridgeAPI.cosmosJSON(
             {
                 method: "GET",
@@ -169,7 +197,7 @@
             },
             (error, res) => {
                 if (error) {
-                    console.error("Folder Shuffle:", error);
+                    reject(error);
                     return;
                 }
 
@@ -178,12 +206,12 @@
                 );
 
                 if (requestFolder === 0) {
-                    console.error("Folder Shuffle: Cannot find folder");
+                    reject("Cannot find folder");
                     return;
                 }
 
                 const requestPlaylists = requestFolder[0].rows.map((item) =>
-                    requestPlaylist(item.link)
+                    fetchPlaylist(item.link)
                 );
                 Promise.all(requestPlaylists)
                     .then((playlists) => {
@@ -193,14 +221,18 @@
                             trackList.push(...p);
                         });
 
-                        setQueue(shuffle(trackList));
+                        resolve(trackList);
                     })
-                    .catch((error) => console.error("Folder Shuffle:", error));
+                    .catch(reject);
             }
         );
-    }
+    });
 
-    function collectionShuffle() {
+    /**
+     *
+     * @returns {Promise<{uri: string}[]>}
+     */
+    const fetchCollection = () => new Promise((resolve, reject) => {
         Spicetify.BridgeAPI.cosmosJSON(
             {
                 method: "GET",
@@ -215,67 +247,65 @@
             },
             (error, res) => {
                 if (error) {
-                    console.log("collectionShuffle", error);
+                    reject(error);
                     return;
                 }
-                let replace = res.items;
-                replace = replace.map((item) => ({
+                const list = res.items.map((item) => ({
                     uri: item.link,
                 }));
 
-                setQueue(shuffle(replace));
+                resolve(list);
             }
         );
-    }
+    });
 
     /**
      *
      * @param {string} uri
+     * @returns {Promise<{uri: string}[]>}
      */
-    function albumShuffle(uri) {
+    const fetchAlbum = (uri) => new Promise((resolve, reject) => {
         const arg = [uri, 0, -1];
         Spicetify.BridgeAPI.request(
             "album_tracks_snapshot",
             arg,
             (error, res) => {
                 if (error) {
-                    console.error("Album Shuffle: ", error);
+                    reject(error);
                     return;
                 }
-                let replace = res.array;
-                replace = replace.map((item) => ({
+                const list = res.array.map((item) => ({
                     uri: item,
                 }));
 
-                setQueue(shuffle(replace));
+                resolve(list);
             }
         );
-    }
+    });
 
     /**
      *
      * @param {string} uriBase62
+     * @returns {Promise<{uri: string}[]>}
      */
-    function showShuffle(uriBase62) {
+    const fetchShow = (uriBase62) => new Promise((resolve, reject) => {
         Spicetify.CosmosAPI.resolver.get(
             {
                 url: `sp://core-show/unstable/show/${uriBase62}`,
             },
             (error, res) => {
                 if (error) {
-                    console.error("Shows Shuffle:", error);
+                    reject(error);
                     return;
                 }
-                let replace = res.getJSONBody().items;
-
-                replace = replace.map((item) => ({
+                const list = res.getJSONBody().items.map((item) => ({
                     uri: item.link,
                 }));
 
-                setQueue(shuffle(replace));
+                resolve(list);
             }
         );
-    }
+    });
 
     /**
      *
@@ -304,33 +334,59 @@
     }
 
     /**
-     * @param {Array<{ uri: string }>} state
+     * 
+     * @param {number} total 
      */
-    function setQueue(state) {
-        const count = state.length;
+    function success(total) {
+        Spicetify.showNotification(NOTIFICATION_TEXT(total));
+    }
 
-        state.push({ uri: "spotify:delimiter" });
-        const currentQueue = Spicetify.Queue;
-        currentQueue.next_tracks = state;
+    /**
+     * 
+     * @param {{uri: string}[]} queue 
+     */
+    function putQueueRequest(queue) {
+        queue.push({ uri: "spotify:delimiter" });
+        const queueState = Spicetify.Queue;
+        queueState.next_tracks = queue;
 
-        const stringified = JSON.stringify(currentQueue);
+        return new Promise((resolve, reject) => {
+            Spicetify.CosmosAPI.resolver.put({
+                url: "sp://player/v2/main/queue",
+                body: {...queueState}
+            }, (error) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+                resolve();
+            });
+        })
+    }
 
-        state.length = 0; // Flush array.
+    /**
+     * Replaces current queue with new queue without playing it.
+     * @param {{uri: string}[]} list 
+     */
+    function setQueue(list) {
+        const count = list.length;
 
-        const request = new Spicetify.CosmosAPI.Request(
-            "PUT",
-            "sp://player/v2/main/queue",
-            null,
-            stringified
-        );
+        putQueueRequest(list)
+            .then(() => success(count))
+            .catch((err) => Spicetify.showNotification(`${err}`));
+    }
 
-        Spicetify.CosmosAPI.resolver.resolve(request, (error, _) => {
-            if (error) {
-                console.log(error);
-                return;
-            }
-
-            Spicetify.showNotification(NOTIFICATION_TEXT(count));
+    /**
+     * Replace queue and play first track immediately.
+     * @param {{uri: string}[]} list 
+     */
+    function playList(list) {
+        const count = list.length;
+        const firstTrack = list.shift().uri;
+        Spicetify.PlaybackControl.playTrack(firstTrack, {}, () => {
+            putQueueRequest(list)
+                .then(() => success(count))
+                .catch((err) => Spicetify.showNotification(`${err}`));
         });
     }
 })();
