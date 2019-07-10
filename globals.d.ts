@@ -297,7 +297,149 @@ declare namespace Spicetify {
     /**
      * Use to force playing a track/episode/album/show/playlist/artist URI.
      */
-    const PlaybackControl: any;
+    namespace PlaybackControl {
+        /**
+         * Set either `index` or `trackUri`
+         */
+        interface ResolverOption {
+            index?: number;
+            trackUri?: string;
+            seekTo?: number;
+        }
+        /**
+         * Request to play a context through the cosmos track resolver.
+         * @param contextUri Context URI.
+         * @param playOptions An object with play options.
+         * @param callback Optional callback function.
+         */
+        function playFromResolver(contextUri: string, playOptions: ResolverOption, callback?: Function): void;
+
+        interface ContextObject {
+            pages?: any;
+            metadata?: {
+                'zelda.context_uri': string;
+            };
+            entity_uri?: string;
+            uri?: string;
+            url?: string;
+        }
+
+        interface ContextOption {
+            index?: number | null;
+            range?: any;
+            uid?: string;
+            uri?: string;
+            page?: number;
+        }
+        /**
+         * Play a context directly, only supported on context player
+         *
+         * @param context Context object that CP can deal with.
+         * @param playOptions An object with play options.
+         * @param callback Optional callback function.
+         */
+        function playContext(context: ContextObject, playOptions: ContextOption, callback?: Function): void;
+        /**
+         * Update the player with a new context without changing what is currently
+         * playing.
+         *
+         * @param context Context object that CP can deal with.
+         * @param callback Optional callback function.
+         */
+        function updateContext(context: ContextObject, callback?: Function): void;
+
+        interface PlaylistResolverOptions {
+            context: string;
+            uids?: string[];
+            uid?: string;
+            uris?: string[];
+            trackUri?: string;
+            // fills in source_start & source_end
+            // example values: browse, playlist-owned-by-self-non-collaborative
+            source?: string;
+            // fills in referer
+            // example values: spotify:app:browse
+            referrerId?: string;
+            // fills in referrer version
+            referrerVersion?: string;
+        }
+        /**
+         * Request to play a context through the playlist resolver.
+         *
+         * @param contextUri Context URI.
+         * @param playOptions An object with play options.
+         * @param callback Optional callback function.
+         */
+        function playFromPlaylistResolver(contextUri: string, playOptions: PlaylistResolverOptions, callback?: Function): void;
+
+        interface CollectionResolverOption {
+            context: string;
+            index: number | null;
+            // fills in source_start & source_end
+            // example values: browse, playlist-owned-by-self-non-collaborative
+            source?: string;
+            // fills in referer
+            // example values: spotify:app:browse
+            referrerId?: string;
+            // fills in referrer version
+            referrerVersion?: string;
+        }
+        /**
+         * Request to play a context through the collection resolver.
+         *
+         * @param contextUri Context URI.
+         * @param playOptions An object with play options.
+         * @param callback Optional callback function.
+         */
+        function playFromCollectionResolver(contextUri: string, playOptions: CollectionResolverOption, callback?: Function): void;
+
+        /**
+         * Request to play a single track.
+         *
+         * @param uri The track URI.
+         * @param playOptions An object with play options.
+         * @param callback Optional callback function.
+         */
+        function playTrack(uri: string, playOptions: Object, callback?: Function): void;
+
+        interface RowsOption {
+            index: number | null;
+            range?: any;
+            uid?: string;
+            uri?: string;
+            page?: number;
+        }
+        /**
+         * Request to play tracks found in the list of rows.
+         *
+         * @param rows A live list of rows with tracks.
+         * @param playOptions An object with play options.
+         * @param callback Optional callback function.
+         */
+        function playRows(rows: any, playOptions: RowsOption, callback?: Function): void;
+        /**
+         * Request to play artist context.
+         *
+         * @param uri Context URI.
+         * @param playOptions An object with play options.
+         * @param callback Optional callback function.
+         */
+        function playFromArtist(uri: string, playOptions: ResolverOption, callback?: Function): void;
+        /**
+         * Request to update the player with tracks from the provided rows list.
+         * This will update the player silently without interrupting playback.
+         *
+         * @param rows A live list of rows with tracks.
+         * @param playOptions An object with play options.
+         * @param callback Optional callback function.
+         */
+        function updateWithRows(rows: any, playOptions: Object, callback?: Function): void;
+
+        function pause(callback?: Function): void;
+        function resume(callback?: Function): void;
+        function skipPrev(callback?: Function): void;
+        function skipNext(callback?: Function): void;
+    }
     /**
      * Queue object contains list of queuing tracks,
      * history of played tracks and current track metadata.
@@ -343,14 +485,12 @@ declare namespace Spicetify {
         toRealType(): URI;
 
         /**
-         * Returns the URI representation of this URI.
          *
          * @return The URI representation of this uri.
          */
         toURI(): string;
 
         /**
-         * Returns the String representation of this URI.
          *
          * @return The URI representation of this uri.
          */
@@ -365,49 +505,42 @@ declare namespace Spicetify {
         toURLPath(opt_leadingSlash: boolean): string;
 
         /**
-         * Returns the Play URL string for the uri.
          *
          * @return The Play URL string for the uri.
          */
         toPlayURL(): string;
 
         /**
-         * Returns the URL string for the uri.
          *
          * @return The URL string for the uri.
          */
         toURL(): string;
 
         /**
-         * Returns the Open URL string for the uri.
          *
          * @return The Open URL string for the uri.
          */
         toOpenURL(): string;
 
         /**
-         * Returns the Play HTTPS URL string for the uri.
          *
          * @return The Play HTTPS URL string for the uri.
          */
         toSecurePlayURL(): string;
 
         /**
-         * Returns the HTTPS URL string for the uri.
          *
          * @return The HTTPS URL string for the uri.
          */
         toSecureURL(): string;
 
         /**
-         * Returns the Open HTTPS URL string for the uri.
          *
          * @return The Open HTTPS URL string for the uri.
          */
         toSecureOpenURL(): string;
 
         /**
-         * Returns the id of the uri as a bytestring.
          *
          * @return The id of the uri as a bytestring.
          */
