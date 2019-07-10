@@ -392,6 +392,12 @@ func exposeAPIs(input string) string {
 		"${1}Spicetify.Keyboard=${3};${2}",
 	)
 
+	utils.Replace(
+		&input,
+		`(_populate=async function\([\w_]+,([\w_]+)\)\{)`,
+		"${1}Spicetify.ContextMenu._addItems(this._contextmenu, ${2}.uris);this._contextmenu.addItem({});",
+	)
+
 	return input
 }
 

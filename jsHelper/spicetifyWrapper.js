@@ -1467,3 +1467,145 @@ Spicetify.Menu = (function() {
 
     return { Item, SubMenu }
 })();
+
+Spicetify.ContextMenu = (function () {
+    let itemList = new Set();
+    const iconList = ["add-to-playlist", "add-to-queue", "addfollow", "addfollowers", "addsuggestedsong", "airplay", "album", "album-contained", "arrow-down", "arrow-left", "arrow-right", "arrow-up", "artist", "artist-active", "attach", "available-offline", "ban", "ban-active", "block", "bluetooth", "browse", "browse-active", "camera", "carplay", "chart-down", "chart-new", "chart-up", "check", "check-alt", "chevron-down", "chevron-left", "chevron-right", "chevron-up", "chromecast-connected", "chromecast-connecting-one", "chromecast-connecting-three", "chromecast-connecting-two", "chromecast-disconnected", "collaborative-playlist", "collection", "collection-active", "connect-to-devices", "copy", "destination-pin", "device-arm", "device-car", "device-computer", "device-mobile", "device-multispeaker", "device-other", "device-speaker", "device-tablet", "device-tv", "devices", "devices-alt", "discover", "download", "downloaded", "drag-and-drop", "edit", "email", "events", "facebook", "facebook-messenger", "filter", "flag", "follow", "fullscreen", "games-console", "gears", "googleplus", "grid-view", "headphones", "heart", "heart-active", "helpcircle", "highlight", "home", "home-active", "inbox", "info", "instagram", "library", "lightning", "line", "list-view", "localfile", "locked", "locked-active", "lyrics", "make—available-offline", "menu", "messages", "mic", "minimise", "mix", "more", "more-android", "new-spotify-connect", "new-volume", "newradio", "nikeplus", "notifications", "now-playing", "now-playing-active", "offline", "offline-sync", "pause", "payment", "paymenthistory", "play", "playback-speed-0point5x", "playback-speed-0point8x", "playback-speed-1point2x", "playback-speed-1point5x", "playback-speed-1x", "playback-speed-2x", "playback-speed-3x", "playlist", "playlist-folder", "plus", "plus-2px", "plus-alt", "podcasts", "podcasts-active", "public", "queue", "radio", "radio-active", "radioqueue", "redeem", "refresh", "released", "repeat", "repeatonce", "report-abuse", "running", "search", "search-active", "sendto", "share", "share-android", "sharetofollowers", "shows", "shuffle", "skip-back", "skip-forward", "skipback15", "skipforward15", "sleeptimer", "sms", "sort", "sortdown", "sortup", "spotify-connect", "spotify-connect-alt", "spotifylogo", "spotifypremium", "star", "star-alt", "subtitles", "tag", "thumbs-down", "thumbs-up", "time", "topcountry", "track", "trending", "trending-active", "tumblr", "twitter", "user", "user-active", "user-alt", "user-circle", "video", "volume", "volume-off", "volume-onewave", "volume-twowave", "warning", "watch", "whatsapp", "x", "settings"];
+
+    class Item {
+        constructor(name, onClick, shouldAdd = (uris) => true, icon = undefined) {
+            this.name = name;
+            this.onClick = onClick;
+            this.shouldAdd = shouldAdd;
+            if (icon) this.icon = icon;
+        }
+        set name(text) {
+            if (typeof text !== "string") {
+                throw "Spicetify.ContextMenu.Item: name is not a string";
+            }
+            this._name = text;
+        }
+        set shouldAdd(func) {
+            if (typeof func == "function") {
+                this._shouldAdd = func;
+            } else {
+                throw "Spicetify.ContextMenu.Item: shouldAdd is not a function";
+            }
+        }
+        set onClick(func) {
+            if (typeof func == "function") {
+                this._onClick = func;
+            } else {
+                throw "Spicetify.ContextMenu.Item: onClick is not a function";
+            }
+        }
+        set icon(name) {
+            if (!Item.iconList.includes(name)) {
+                throw "Spicetify.ContextMenu.Item: icon is not a valid icon name.";
+            }
+            this._icon = {
+                type: "spoticon",
+                value: name,
+            };
+        }
+        register() {
+            itemList.add(this);
+        }
+        deregister() {
+            itemList.remove(this);
+        }
+    }
+
+    Item.iconList = iconList;
+
+    class SubMenu {
+        constructor(name, items, shouldAdd = (uris) => true, icon = undefined) {
+            this.name = name;
+            this.items = items;
+            this.shouldAdd = shouldAdd;
+            if (icon) this.icon = icon;
+        }
+        set name(text) {
+            if (typeof text !== "string") {
+                throw "Spicetify.ContextMenu.Item.setName: name is not a string";
+            }
+            this._name = text;
+        }
+        set items(items) {
+            this._items = new Set(items);
+        }
+        addItem(item) {
+            this._items.add(item);
+        }
+        removeItem(item) {
+            this._items.remove(item);
+        }
+        set shouldAdd(func) {
+            if (typeof func == "function") {
+                this._shouldAdd = func;
+            } else {
+                throw "Spicetify.ContextMenu.Item: shouldAdd is not a function";
+            }
+        }
+        set icon(name) {
+            if (!SubMenu.iconList.includes(name)) {
+                throw "Spicetify.ContextMenu.Item: icon is not a valid icon name.";
+            }
+            this._icon = {
+                type: "spoticon",
+                value: name,
+            };
+        }
+        register() {
+            itemList.add(this);
+        }
+        deregister() {
+            itemList.remove(this);
+        }
+    }
+
+    SubMenu.iconList = iconList;
+
+    function _addItems(contextMenuInstance, uris) {
+        for (const item of itemList) {
+            if (!item._shouldAdd(uris)) {
+                return;
+            }
+
+            if (item._items) {
+                const subItemsList = []
+                for (const subItem of item._items) {
+                    subItemsList.push({
+                        fn: () => {
+                            subItem._onClick(uris);
+                            contextMenuInstance.hide();
+                        },
+                        icon: subItem._icon,
+                        id: "",
+                        text: subItem._name,
+                    });
+                }
+
+                contextMenuInstance.addItem({
+                    icon: item._icon,
+                    id: "",
+                    items: subItemsList,
+                    text: item._name,
+                });
+                continue;
+            }
+
+            contextMenuInstance.addItem({
+                fn: () => {
+                    item._onClick(uris);
+                    contextMenuInstance.hide();
+                },
+                icon: item._icon,
+                id: "",
+                text: item._name,
+            })
+        }
+    }
+
+    return { Item, SubMenu, _addItems };
+})();

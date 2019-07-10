@@ -981,4 +981,70 @@ declare namespace Spicetify {
         static isProfile(uri: any): boolean;
         static isPlaylistV1OrV2(uri: any): boolean;
     }
+
+    /**
+     * Create custom menu item and prepend to right click context menu
+     */
+    namespace ContextMenu {
+        type Icon = "add-to-playlist" | "add-to-queue" | "addfollow" | "addfollowers" | "addsuggestedsong" | "airplay" | "album" | "album-contained" | "arrow-down" | "arrow-left" | "arrow-right" | "arrow-up" | "artist" | "artist-active" | "attach" | "available-offline" | "ban" | "ban-active" | "block" | "bluetooth" | "browse" | "browse-active" | "camera" | "carplay" | "chart-down" | "chart-new" | "chart-up" | "check" | "check-alt" | "chevron-down" | "chevron-left" | "chevron-right" | "chevron-up" | "chromecast-connected" | "chromecast-connecting-one" | "chromecast-connecting-three" | "chromecast-connecting-two" | "chromecast-disconnected" | "collaborative-playlist" | "collection" | "collection-active" | "connect-to-devices" | "copy" | "destination-pin" | "device-arm" | "device-car" | "device-computer" | "device-mobile" | "device-multispeaker" | "device-other" | "device-speaker" | "device-tablet" | "device-tv" | "devices" | "devices-alt" | "discover" | "download" | "downloaded" | "drag-and-drop" | "edit" | "email" | "events" | "facebook" | "facebook-messenger" | "filter" | "flag" | "follow" | "fullscreen" | "games-console" | "gears" | "googleplus" | "grid-view" | "headphones" | "heart" | "heart-active" | "helpcircle" | "highlight" | "home" | "home-active" | "inbox" | "info" | "instagram" | "library" | "lightning" | "line" | "list-view" | "localfile" | "locked" | "locked-active" | "lyrics" | "make—available-offline" | "menu" | "messages" | "mic" | "minimise" | "mix" | "more" | "more-android" | "new-spotify-connect" | "new-volume" | "newradio" | "nikeplus" | "notifications" | "now-playing" | "now-playing-active" | "offline" | "offline-sync" | "pause" | "payment" | "paymenthistory" | "play" | "playback-speed-0point5x" | "playback-speed-0point8x" | "playback-speed-1point2x" | "playback-speed-1point5x" | "playback-speed-1x" | "playback-speed-2x" | "playback-speed-3x" | "playlist" | "playlist-folder" | "plus" | "plus-2px" | "plus-alt" | "podcasts" | "podcasts-active" | "public" | "queue" | "radio" | "radio-active" | "radioqueue" | "redeem" | "refresh" | "released" | "repeat" | "repeatonce" | "report-abuse" | "running" | "search" | "search-active" | "sendto" | "share" | "share-android" | "sharetofollowers" | "shows" | "shuffle" | "skip-back" | "skip-forward" | "skipback15" | "skipforward15" | "sleeptimer" | "sms" | "sort" | "sortdown" | "sortup" | "spotify-connect" | "spotify-connect-alt" | "spotifylogo" | "spotifypremium" | "star" | "star-alt" | "subtitles" | "tag" | "thumbs-down" | "thumbs-up" | "time" | "topcountry" | "track" | "trending" | "trending-active" | "tumblr" | "twitter" | "user" | "user-active" | "user-alt" | "user-circle" | "video" | "volume" | "volume-off" | "volume-onewave" | "volume-twowave" | "warning" | "watch" | "whatsapp" | "x" | "settings";
+
+        // Single context menu item
+        class Item {
+            /**
+             * List of valid icons to use.
+             */
+            static readonly iconList: Icon[];
+            constructor(name: string, onClick: (uris: string[]) => void, shouldAdd: (uris: string[]) => boolean = (uris: string[]) => true, icon?: Icon);
+            set name(text: string);
+            set icon(name: Icon);
+            /**
+             * A function returning boolean determines whether item should be prepended.
+             */
+            set shouldAdd(func: (uris: string[]) => boolean);
+            /**
+             * A function to call when item is clicked
+             */
+            set onClick(func: (uris: string[]) => void);
+            /**
+             * Item is only available in Context Menu when method "register" is called.
+             */
+            register: () => void;
+            /**
+             * Stop Item to be prepended into Context Menu.
+             */
+            deregister: () => void;
+        }
+
+        /**
+         * Create a sub menu to contain `Item`s.
+         * `Item`s in `subItems` array shouldn't be registered.
+         */
+        class SubMenu {
+            /**
+             * List of valid icons to use.
+             */
+            static readonly iconList: Icon[];
+            constructor(name: string, subItems: Iterable<Item>, shouldAdd = (uris) => true, icon?: Icon);
+            set name(text: string);
+            set icon(name: Icon);
+            /**
+             * Replace current `Item`s list
+             */
+            set items(items: Iterable<Item>);
+            addItem: (item: Item) => void;
+            removeItem: (item: Item) => void;
+            /**
+             * A function returning boolean determines whether item should be prepended.
+             */
+            set shouldAdd(func: (uris: string[]) => boolean);
+            /**
+             * SubMenu is only available in Context Menu when method "register" is called.
+             */
+            register: () => void;
+            /**
+             * Stop SubMenu to be prepended into Context Menu.
+             */
+            deregister: () => void;
+        }
+    }
 }
