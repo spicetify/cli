@@ -49,11 +49,18 @@
             currState = 0;
             return;
         }
+
         for (const field in info) {
             try {
                 const data = info[field].call();
                 if (data !== undefined && currentMusicInfo[field] !== data) {
-                    ws.send(`${field}:${data}`);
+                    if (field === 'POSITION') {
+                        // Change the field/type to the one that supports milliseconds 
+                        ws.send(`POSITIONMS:${data}`);
+                    } else {
+                        ws.send(`${field}:${data}`);
+                    }
+
                     currentMusicInfo[field] = data;
                 }
             } catch (e) {
@@ -145,14 +152,9 @@
      * @returns {string}
      */
     function convertTimeToString(timeInMs) {
-        const seconds = Math.round(timeInMs / 1000);
+        const seconds = Math.floor(timeInMs / 1000);
         const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) {
-            return `${minutes}:${pad(seconds % 60, 2)}`;
-        }
-        return `${Math.floor(minutes / 60)}:${pad(minutes % 60, 2)}:${pad(
-            seconds % 60,
-            2
-        )}`;
+
+        return `${Math.floor(minutes / 60)}:${minutes % 60}:${seconds % 60}.${pad(timeInMs % 1000, 3)}`;
     }
 })();
