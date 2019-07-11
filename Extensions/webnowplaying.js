@@ -21,7 +21,7 @@
         },
         ALBUM: () => Spicetify.Player.data.track.metadata.album_title || "N/A",
         DURATION: () => convertTimeToString(Spicetify.Player.getDuration()),
-        POSITION: () => convertTimeToString(Spicetify.Player.getProgress()),
+        POSITIONMS: () => convertTimeToString(Spicetify.Player.getProgress()),
         VOLUME: () => Math.round(Spicetify.Player.getVolume() * 100),
         RATING: () =>
             Spicetify.LiveAPI(Spicetify.Player.data.track.uri).get("added")
@@ -54,13 +54,7 @@
             try {
                 const data = info[field].call();
                 if (data !== undefined && currentMusicInfo[field] !== data) {
-                    if (field === 'POSITION') {
-                        // Change the field/type to the one that supports milliseconds 
-                        ws.send(`POSITIONMS:${data}`);
-                    } else {
-                        ws.send(`${field}:${data}`);
-                    }
-
+                    ws.send(`${field}:${data}`);
                     currentMusicInfo[field] = data;
                 }
             } catch (e) {
