@@ -149,6 +149,12 @@
         const seconds = Math.floor(timeInMs / 1000);
         const minutes = Math.floor(seconds / 60);
 
-        return `${Math.floor(minutes / 60)}:${minutes % 60}:${seconds % 60}.${pad(timeInMs % 1000, 3)}`;
+        const padSec = pad(seconds % 60, 2);
+        const padMs = pad(timeInMs % 1000, 3);
+
+        if (minutes < 60) {
+            return `${minutes}:${padSec}.${padMs}`;
+        }
+        return `${Math.floor(minutes / 60)}:${pad(minutes % 60, 2)}:${padSec}.${padMs}`;
     }
 })();
