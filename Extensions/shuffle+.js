@@ -111,6 +111,7 @@
                     case Spicetify.URI.Type.FOLDER:
                     case Spicetify.URI.Type.ALBUM:
                     case Spicetify.URI.Type.COLLECTION:
+                    case Spicetify.URI.Type.ARTIST:
                         return true;
                 }
                 return false;
@@ -141,6 +142,8 @@
                 return await fetchAlbum(uri)
             case Spicetify.URI.Type.COLLECTION:
                 return await fetchCollection()
+            case Spicetify.URI.Type.ARTIST:
+                return await fetchArtist(uriObj.getBase62Id())
         }
         throw `Unsupported fetching URI type: ${uriObj.type}`;
     }
@@ -309,6 +312,31 @@
 
     /**
      *
+     * @param {string} uriBase62
+     * @returns {Promise<{uri: string}[]>}
+     */
+    const fetchArtist = (uriBase62) => new Promise((resolve, reject) => {
+        Spicetify.CosmosAPI.resolver.get(
+            {
+                url: `hm://artist/v1/${uriBase62}/desktop?format=json`,
+            },
+            (error, res) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+                const list = res.getJSONBody()
+                    .top_tracks.tracks.map((item) => ({
+                        uri: item.uri,
+                    }));
+
+                resolve(list);
+            }
+        );
+    });
+
+    /**
+     *
      * @param {Array<{ uri: string }>} array list of items to shuffle
      * @returns {Array<{ uri: string }>} shuffled array
      *
@@ -353,7 +381,7 @@
         return new Promise((resolve, reject) => {
             Spicetify.CosmosAPI.resolver.put({
                 url: "sp://player/v2/main/queue",
-                body: {...queueState}
+                body: { ...queueState }
             }, (error) => {
                 if (error) {
                     reject(error);
