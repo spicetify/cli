@@ -161,12 +161,12 @@ declare namespace Spicetify {
          * Seek to next  `amount` of milisecond
          * @param amount in milisecond. Default: 15000.
          */
-        function skipBack(amount?: number): void;
+        function skipForward(amount?: number): void;
         /**
          * Seek to previous `amount` of milisecond
          * @param amount in milisecond. Default: 15000.
          */
-        function skipForward(amount?: number): void;
+        function skipBack(amount?: number): void;
         /**
         * Toggle Heart (Favourite) track state.
         */
