@@ -158,12 +158,12 @@ declare namespace Spicetify {
          */
         function setVolume(level: number): void;
         /**
-         * Seek to next  `amount` of milisecond
+         * Seek to previous `amount` of milisecond
          * @param amount in milisecond. Default: 15000.
          */
         function skipBack(amount?: number): void;
         /**
-         * Seek to previous `amount` of milisecond
+         * Seek to next  `amount` of milisecond
          * @param amount in milisecond. Default: 15000.
          */
         function skipForward(amount?: number): void;
