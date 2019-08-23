@@ -69,7 +69,7 @@ func init() {
 			extensionFocus = true
 		case "-a", "--app":
 			appFocus = true
-		case "-q", "--quite":
+		case "-q", "--quiet":
 			quiet = true
 		}
 	}
