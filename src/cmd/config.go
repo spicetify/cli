@@ -103,6 +103,7 @@ func searchField(field string) *ini.Key {
 
 func changeSuccess(key, value string) {
 	utils.PrintSuccess(`Config changed: ` + key + ` = ` + value)
+	utils.PrintInfo(`Run "spicetify apply" to apply new config`)
 }
 
 func unchangeWarning(field, reason string) {
