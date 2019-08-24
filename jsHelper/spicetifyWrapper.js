@@ -1487,14 +1487,14 @@ Spicetify.ContextMenu = (function () {
         }
         set shouldAdd(func) {
             if (typeof func == "function") {
-                this._shouldAdd = func;
+                this.shouldAdd = func.bind(this);
             } else {
                 throw "Spicetify.ContextMenu.Item: shouldAdd is not a function";
             }
         }
         set onClick(func) {
             if (typeof func == "function") {
-                this._onClick = func;
+                this.onClick = func.bind(this);
             } else {
                 throw "Spicetify.ContextMenu.Item: onClick is not a function";
             }
@@ -1542,7 +1542,7 @@ Spicetify.ContextMenu = (function () {
         }
         set shouldAdd(func) {
             if (typeof func == "function") {
-                this._shouldAdd = func;
+                this._shouldAdd = func.bind(this);
             } else {
                 throw "Spicetify.ContextMenu.Item: shouldAdd is not a function";
             }
