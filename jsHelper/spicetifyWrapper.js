@@ -1487,14 +1487,14 @@ Spicetify.ContextMenu = (function () {
         }
         set shouldAdd(func) {
             if (typeof func == "function") {
-                this.shouldAdd = func.bind(this);
+                this._shouldAdd = func.bind(this);
             } else {
                 throw "Spicetify.ContextMenu.Item: shouldAdd is not a function";
             }
         }
         set onClick(func) {
             if (typeof func == "function") {
-                this.onClick = func.bind(this);
+                this._onClick = func.bind(this);
             } else {
                 throw "Spicetify.ContextMenu.Item: onClick is not a function";
             }
