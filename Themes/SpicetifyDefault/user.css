@@ -16,7 +16,7 @@
 .profile.content-top-bar__profile-link,
 .upgrade-button,
 .view-player .remote-playback-bar,
-.NewPlaylistButton {
+.LeftSidebarNewPlaylistButton__button {
 	display: none !important;
 }
 
@@ -589,6 +589,10 @@ span.glue-page-header__title-text {
 	border-radius: 0 2px 2px 0 !important;
 	background-color: var(--modspotify_main_fg) !important;
 	box-shadow: 0 2px 2px 0 var(--modspotify_main_fg);
+}
+
+.saber-hilt {
+	display: none;
 }
 
 .glue-page-header__p2s-details,
