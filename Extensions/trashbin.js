@@ -36,44 +36,9 @@
     let trashSongList = {};
     let trashArtistList = {};
     let userHitBack = false;
-    /** @type {HTMLElement} */
-    let trashIcon;
-
-    let banSong = () => {};
 
     const THROW_TEXT = "Throw To Trashbin";
     const UNTHROW_TEXT = "Take Out Of Trashbin";
-
-    function createTrashArtistButton() {
-        const div = document.createElement("div");
-        div.classList.add("glue-page-header__button", "throw-artist");
-
-        const button = document.createElement("button");
-        button.classList.add(
-            "button",
-            "button-icon-with-stroke",
-            "spoticon-browse-active-16"
-        );
-        button.setAttribute("data-tooltip", THROW_TEXT);
-
-        div.appendChild(button);
-        return div;
-    }
-
-    function createTrashTrackButton() {
-        const button = document.createElement("button");
-        button.classList.add(
-            "button",
-            "button-icon-only",
-            "spoticon-browse-active-16"
-        );
-        button.setAttribute("data-tooltip-text", THROW_TEXT);
-        button.style.position = "absolute";
-        button.style.right = "24px";
-        button.style.top = "-6px";
-        button.style.transform = "scaleX(0.75)";
-        return button;
-    }
 
     // Fetch stored trash tracks and artists list
     if (jsonBinURL) {
@@ -100,75 +65,19 @@
         putDataLocal();
     }
 
-    trashIcon = createTrashTrackButton();
-    trashIcon.onclick = () => {
-        banSong();
-        const uri = Spicetify.Player.data.track.uri;
-        const isBanned = !trashSongList[uri];
-        if (isBanned) {
-            trashSongList[uri] = true;
-            Spicetify.Player.next();
-        } else {
-            delete trashSongList[uri];
-        }
-
-        updateTrackIconState(isBanned);
-
-        storeList();
-    };
-
-    document.querySelector(".track-text-item").appendChild(trashIcon);
-
     // Tracking when users hit previous button.
-    // By doing that, user can return to threw song to take it out of trashbin.
+    // By doing that, user can return to thrown song to take it out of trashbin.
     document
         .getElementById("player-button-previous")
         .addEventListener("click", () => (userHitBack = true));
 
-    updateIconPosition();
-    updateTrackIconState(trashSongList[Spicetify.Player.data.track.uri]);
-
     Spicetify.Player.addEventListener("songchange", watchChange);
-
-    Spicetify.Player.addEventListener("appchange", ({ data: data }) => {
-        if (data.isEmbeddedApp === true) return;
-        if (data.id !== "artist") return;
-        if (data.container.contentDocument.querySelector(".throw-artist"))
-            return;
-
-        const headers = data.container.contentDocument.querySelectorAll(
-            ".glue-page-header__buttons"
-        );
-
-        if (headers.length < 1) return;
-
-        const uri = `spotify:artist:${data.uri.split(":")[3]}`;
-
-        headers.forEach((h) => {
-            const button = createTrashArtistButton();
-            button.onclick = () => {
-                const isBanned = !trashArtistList[uri];
-                if (isBanned) {
-                    trashArtistList[uri] = true;
-                } else {
-                    delete trashArtistList[uri];
-                }
-
-                storeList();
-                updateArtistIconState(button, isBanned);
-            };
-            h.appendChild(button);
-            updateArtistIconState(button, trashArtistList[uri] !== undefined);
-        });
-    });
 
     function watchChange() {
         const data = Spicetify.Player.data || Spicetify.Queue;
         if (!data) return;
 
         const isBanned = trashSongList[data.track.uri];
-        updateIconPosition();
-        updateTrackIconState(isBanned);
 
         if (userHitBack) {
             userHitBack = false;
@@ -194,76 +103,91 @@
         }
     }
 
-    // Change trash icon position based on playlist context
-    // In normal playlists, track-text-item has one icon and its padding-left
-    // is 32px, just enough for one icon. By appending two-icons class, its
-    // padding-left is expanded to 64px.
-    // In Discovery Weekly playlist, track-text-item has two icons: heart and ban.
-    // Ban functionality is the kind of the same as our so instead of crowding
-    // that tiny zone with 3 icons, I hide Spotify's Ban button and replace it with
-    // trash icon. Nevertheless, I still activate Ban button context menu whenever
-    // user clicks at trash icon.
-    function updateIconPosition() {
-        const trackContainer = document.querySelector(".track-text-item");
-
-        if (!trackContainer.classList.contains("two-icons")) {
-            trackContainer.classList.add("two-icons");
-            trashIcon.style.right = "24px";
-            return;
+    /**
+     * 
+     * @param {string} uri 
+     * @param {string} type
+     * @returns {boolean}
+     */
+    function shouldSkipCurrentTrack(uri, type) {
+        const curTrack = Spicetify.Player.data.track;
+        if (type === Spicetify.URI.Type.TRACK) {
+            if (uri === curTrack.uri) {
+                return true;
+            }
+        }
+        
+        if (type === Spicetify.URI.Type.ARTIST) {
+            let count = 1;
+            let artUri = curTrack.metadata["artist_uri"];
+            while (artUri) {
+                if (uri === artUri) {
+                    return true;
+                }
+                artUri = curTrack.metadata[`artist_uri:${count}`];
+                count++;
+            }
         }
 
-        /** @type {HTMLElement} */
-        const banButton = document.querySelector(
-            ".track-text-item .nowplaying-ban-button"
-        );
-
-        if (banButton.style.display !== "none") {
-            banButton.style.visibility = "hidden";
-            trashIcon.style.right = "0px";
-            banSong = banButton.click.bind(banButton);
-        } else {
-            banSong = () => {};
-        }
+        return false;
     }
 
     /**
-     *
-     * @param {boolean} isBanned
+     * 
+     * @param {string[]} uris 
      */
-    function updateTrackIconState(isBanned) {
-        if (
-            Spicetify.Player.data.track.metadata["is_advertisement"] === "true"
-        ) {
-            trashIcon.setAttribute("disabled", "true");
-            return;
-        }
+    function toggleThrow(uris) {
+        const uri = uris[0];
+        const uriObj = Spicetify.URI.fromString(uri);
+        const type = uriObj.type;
 
-        trashIcon.removeAttribute("disabled");
+        let list = type === Spicetify.URI.Type.TRACK ?
+            trashSongList :
+            trashArtistList;
 
-        if (isBanned) {
-            trashIcon.classList.add("active");
-            trashIcon.setAttribute("data-tooltip-text", UNTHROW_TEXT);
+        if (!list[uri]) {
+            list[uri] = true;
+            if (shouldSkipCurrentTrack(uri, type)) {
+                Spicetify.Player.next();
+            }
         } else {
-            trashIcon.classList.remove("active");
-            trashIcon.setAttribute("data-tooltip-text", THROW_TEXT);
+            delete list[uri];
         }
+
+        storeList();
     }
 
     /**
-     *
-     * @param {HTMLElement} button
-     * @param {boolean} isBanned
+     * Only accept one track or artist URI
+     * @param {string[]} uris 
+     * @returns {boolean}
      */
-    function updateArtistIconState(button, isBanned) {
-        const inner = button.querySelector("button");
-        if (isBanned) {
-            inner.classList.add("contextmenu-active");
-            inner.setAttribute("data-tooltip", UNTHROW_TEXT);
-        } else {
-            inner.classList.remove("contextmenu-active");
-            inner.setAttribute("data-tooltip", THROW_TEXT);
+    function shouldAddContextMenu(uris) {
+        if (uris.length > 1) {
+            return false;
         }
+
+        const uri = uris[0];
+        const uriObj = Spicetify.URI.fromString(uri);
+        if (uriObj.type === Spicetify.URI.Type.TRACK) {
+            this.name = trashSongList[uri] ? UNTHROW_TEXT : THROW_TEXT;
+            return true;
+        }
+
+        if (uriObj.type === Spicetify.URI.Type.ARTIST) {
+            this.name = trashArtistList[uri] ? UNTHROW_TEXT : THROW_TEXT;
+            return true;
+        }
+
+        return false;
     }
+
+    const cntxMenu = new Spicetify.ContextMenu.Item(
+        THROW_TEXT,
+        toggleThrow,
+        shouldAddContextMenu,
+    );
+    cntxMenu.register();
 
     function storeList() {
         if (jsonBinURL) {
