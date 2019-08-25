@@ -286,14 +286,16 @@ Change text color in playlist
 .card-type-episode .card-info-title {
   	font-size: 15px;
   	font-weight: 900 !important;
-	text-align: center !important;
-	width: 100% !important;
 }
 
-.card-type-album .card-info-subtitle-links,
-.card-type-track .card-info-subtitle-links,
-.card-type-collection-album .card-info-subtitle-links,
-.card-type-episode .card-info-subtitle-links {
+.card:not(.card-horizontal).card-type-album .card-info-title,
+.card:not(.card-horizontal).card-type-album .card-info-subtitle-links,
+.card:not(.card-horizontal).card-type-track .card-info-title,
+.card:not(.card-horizontal).card-type-track .card-info-subtitle-links,
+.card:not(.card-horizontal).card-type-collection-album .card-info-title,
+.card:not(.card-horizontal).card-type-collection-album .card-info-subtitle-links,
+.card:not(.card-horizontal).card-type-episode .card-info-title,
+.card:not(.card-horizontal).card-type-episode .card-info-subtitle-links {
 	text-align: center !important;
 	width: 100% !important;
 }
@@ -480,6 +482,7 @@ body:not(.body-container--windows) .content-top-bar__profile-menu-button .dropdo
 
 .Header__background-color{
 	background-color: var(--modspotify_main_bg) !important;
+	background-image: unset;
 }
 
 .Button--style-green,
@@ -657,8 +660,7 @@ body.remotebar .view-player .player-bar-wrapper {
 }
 
 .SidebarListItem--is-active:after,
-.RootlistItem--is-active:after,
-/* For Linux */ #view-navigation-bar .item.active:after {
+.RootlistItem--is-active:after {
 	background-color: transparent;
 	background-image: linear-gradient(90deg, var(--modspotify_sidebar_indicator_and_hover_button_bg) , transparent);
 	opacity: 0.2;
