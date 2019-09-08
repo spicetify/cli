@@ -157,7 +157,7 @@ func zlinkMod(jsPath string, flags Flag) {
 		}
 
 		if !flags.SearchInSidebar.IsDefault() {
-			utils.Replace(&content, `(isSearchInSidebarEnabled:)("Enabled")`, `${1}`+flags.SearchInSidebar.ToForceOperator()+`${2}`)
+			utils.Replace(&content, `(isFusionSearchEnabled:)("Enabled")`, `${1}`+flags.SearchInSidebar.ToForceOperator()+`${2}`)
 		}
 
 		if len(flags.CustomApp) > 0 {
