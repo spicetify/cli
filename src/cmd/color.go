@@ -34,35 +34,36 @@ func EditColor(args []string) {
 
 // DisplayColors prints out every color name, hex and rgb value.
 func DisplayColors() {
-	initCmdColor()
+	colorFileOk := initCmdColor()
 
 	nameMaxLen := 42
 
 	for _, k := range utils.BaseColorOrder {
-		colorString := colorSection.Key(k).String()
+		colorString := ""
+		if colorFileOk {
+			colorString = colorSection.Key(k).String()
+		}
 		keyLen := len(k)
-		k = utils.Bold(k)
 		if len(colorString) == 0 {
+			colorString = utils.BaseColorList[k]
 			k += " (*)"
 			keyLen += 4
-			colorString = utils.BaseColorList[k]
 		}
+		k = utils.Bold(k)
 		out := k + strings.Repeat(" ", nameMaxLen-keyLen) + formatColor(utils.ParseColor(colorString))
 		log.Println(out)
 	}
 	log.Println("\n(*): Default color is used")
 }
 
-func initCmdColor() {
-	themeKey, err := settingSection.GetKey("current_theme")
-	if err != nil {
-		utils.Fatal(err)
-	}
+func initCmdColor() bool {
+	var err error
 
-	themeName := themeKey.String()
+	themeName := settingSection.Key("current_theme").String()
+
 	if len(themeName) == 0 {
 		utils.PrintError(`Config "current_theme" is blank.`)
-		return
+		return false
 	}
 
 	themeFolder = getThemeFolder(themeName)
@@ -72,14 +73,14 @@ func initCmdColor() {
 	colorCfg, err = ini.InsensitiveLoad(colorPath)
 	if err != nil {
 		utils.PrintError("Cannot open file " + colorPath)
-		return
+		return false
 	}
 
 	sections := colorCfg.Sections()
 
 	if len(sections) < 2 {
 		utils.PrintError("No section found in " + colorPath)
-		return
+		return false
 	}
 
 	schemeName := settingSection.Key("color_scheme").String()
@@ -93,6 +94,8 @@ func initCmdColor() {
 			colorSection = schemeSection
 		}
 	}
+
+	return true
 }
 
 func colorChangeSuccess(field, value string) {
