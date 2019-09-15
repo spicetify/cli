@@ -205,7 +205,7 @@ func getColorCSS(scheme *ini.Section) string {
 
 func insertCustomApp(zlinkContent *string, appList []string) {
 	symbol1 := utils.FindSymbol("React and SidebarList", *zlinkContent, []string{
-		`([\w_]+)\.default\.createElement\(([\w_]+)\.default,\{title:[\w_]+\.default\.get\(".+?your_music\.app_name"\)`,
+		`([\w_]+)\.default\.createElement\(([\w_]+)\.default,\{title:[\w_]+\.default\.get\("(?:desktop\.zlink\.)?your_music\.app_name"\)`,
 	})
 	if symbol1 == nil || len(symbol1) < 2 {
 		utils.PrintError("Cannot find enough symbol for React and SidebarList.")
@@ -242,7 +242,7 @@ func insertCustomApp(zlinkContent *string, appList []string) {
 
 	utils.Replace(
 		zlinkContent,
-		`[\w_]+\.default\.createElement\([\w_]+\.default,\{title:[\w_]+\.default\.get\(".+?your_music\.app_name"`,
+		`[\w_]+\.default\.createElement\([\w_]+\.default,\{title:[\w_]+\.default\.get\("(?:desktop\.zlink\.)?your_music\.app_name"`,
 		react+`.default.createElement(`+list+
 			`.default,{title:"Your app"},`+menuItems+`)),`+
 			react+`.default.createElement("div",{className:"LeftSidebar__section"},${0}`,
