@@ -55,18 +55,12 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 					return content
 				})
 			case ".css":
-				if fileName == "glue.css" && appName != "zlink" && appName != "login" {
-					os.Remove(path)
-					return nil
-				}
-
 				if flags.RemoveRTL {
 					utils.ModifyFile(path, removeRTL)
 				}
 			case ".html":
 				utils.ModifyFile(path, func(content string) string {
 					if appName != "zlink" && appName != "login" {
-						utils.Replace(&content, `css/glue\.css`, "https://zlink.app.spotify.com/css/glue.css")
 						utils.Replace(&content, `</head>`, `<link rel="stylesheet" class="userCSS" href="https://zlink.app.spotify.com/css/user.css"></head>`)
 					} else {
 						utils.Replace(&content, `</head>`, `<link rel="stylesheet" class="userCSS" href="css/user.css"></head>`)
