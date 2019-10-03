@@ -180,6 +180,9 @@ func main() {
 		case "restart":
 			cmd.RestartSpotify()
 
+		case "auto":
+			cmd.Auto()
+
 		default:
 			utils.PrintError(`Command "` + v + `" not found.`)
 			utils.PrintInfo(`Run "spicetify -h" for list of valid commands.`)
