@@ -25,7 +25,7 @@ if (-not $version) {
   $latest_release_uri =
     "https://api.github.com/repos/khanhas/spicetify-cli/releases/latest"
   Write-Part "DOWNLOADING    "; Write-Emphasized $latest_release_uri
-  $latest_release_json = curl --tlsv1.2 $latest_release_uri
+  $latest_release_json = curl.exe --tlsv1.2 $latest_release_uri
   Write-Done
 
   $version = ($latest_release_json | ConvertFrom-Json).tag_name -replace "v", ""
@@ -44,7 +44,7 @@ $zip_file = "${sp_dir}\spicetify-${version}-windows-x64.zip"
 $download_uri = "https://github.com/khanhas/spicetify-cli/releases/download/" +
                 "v${version}/spicetify-${version}-windows-x64.zip"
 Write-Part "DOWNLOADING    "; Write-Emphasized $download_uri
-curl --tlsv1.2 $download_uri -o $zip_file
+curl.exe --tlsv1.2 $download_uri -o $zip_file
 Write-Done
 
 # Extract spicetify.exe and assets from .zip file.
