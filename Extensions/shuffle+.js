@@ -12,11 +12,11 @@
         return;
     }
 
-    // Text of notification when queue is shuffled sucessfully
+    // Text of notification when queue is shuffled successfully
     /** @param {number} count */
     const NOTIFICATION_TEXT = (count) => `Shuffled ${count} items!`;
 
-    // Whether Shuffer Queue should show.
+    // Whether Shuffler Queue should show.
     const showShuffleQueueButton = true;
 
     // Context shuffle buttons
@@ -182,6 +182,27 @@
     });
 
     /**
+    *
+    * @param {object} rows
+    * @param {string} uri
+    * @returns {object} folder
+    */
+    const searchFolder = (rows, uri) => {
+        for (const r of rows) {
+            if (r.type !== "folder") {
+                continue;
+            }
+
+            if (r.link === uri) {
+                return r;
+            }
+
+            const found = searchFolder(r.rows, uri);
+            if (found) return found;
+        }
+    };
+
+    /**
      *
      * @param {string} uri
      * @returns {Promise<{uri: string}[]>}
@@ -206,18 +227,22 @@
                     return;
                 }
 
-                const requestFolder = res.rows.filter(
-                    (item) => item.link === uri
-                );
-
-                if (requestFolder === 0) {
+                const requestFolder = searchFolder(res.rows, uri);
+                if (requestFolder == null) {
                     reject("Cannot find folder");
                     return;
                 }
 
-                const requestPlaylists = requestFolder[0].rows.map((item) =>
-                    fetchPlaylist(item.link)
-                );
+                let requestPlaylists = [];
+                const fetchNested = (folder) => {
+                    for (const i of folder.rows) {
+                        if (i.type === "playlist") requestPlaylists.push(fetchPlaylist(i.link));
+                        else if (i.type === "folder") fetchNested(i);
+                    }
+                };
+
+                fetchNested(requestFolder);
+
                 Promise.all(requestPlaylists)
                     .then((playlists) => {
                         const trackList = [];
