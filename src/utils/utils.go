@@ -26,6 +26,15 @@ func CheckExistAndCreate(dir string) {
 	}
 }
 
+// CheckExistAndDelete checks folder existence
+// and deletes that folder if it does exist
+func CheckExistAndDelete(dir string) {
+        _, err := os.Stat(dir)
+        if err == nil {
+                os.RemoveAll(dir)
+        }
+}
+
 // Unzip unzips zip
 func Unzip(src, dest string) error {
 	r, err := zip.OpenReader(src)
@@ -231,7 +240,8 @@ func FindSymbol(debugInfo, content string, clues []string) []string {
 
 // CreateJunction creates a junction in Windows or a symlink in Linux/Mac.
 func CreateJunction(location, destination string) error {
-	switch runtime.GOOS {
+        CheckExistAndDelete(destination)
+        switch runtime.GOOS {
 	case "windows":
 		exec.Command("cmd", "/C", "rmdir", destination).Run()
 		return exec.Command("cmd", "/C", "mklink", "/J", destination, location).Run()
