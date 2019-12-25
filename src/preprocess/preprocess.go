@@ -233,16 +233,23 @@ func disableLogging(input, appName string) string {
 }
 
 func removeRTL(input string) string {
-	utils.Replace(&input, `(?s)\[dir=ltr\]`, "")
-	utils.Replace(&input, `(?s)\[dir\]`, "")
+	utils.Replace(&input, `(?s)\[dir=ltr\]\s?`, "")
+	utils.Replace(&input, `(?s)\[dir\]\s?`, "")
 	utils.Replace(&input, `(?s),\s?\[dir=rtl\].+?(\{.+?\})`, "$1")
 	utils.Replace(&input, `(?s),\s?\[lang=ar\].+?(\{.+?\})`, "$1")
+	utils.Replace(&input, `(?s)html:not\(\[lang=ar\]\)\s?`, "html ")
+
+	utils.Replace(&input, `(?s)\}\[lang=ar\].+?\{.+?\}`, "}")
+	utils.Replace(&input, `(?s)\}html\[dir="?rtl"?\].+?\{.+?\}`, "}")
+	utils.Replace(&input, `(?s)\}html\[lang=ar\].+?\{.+?\}`, "}")
+	utils.Replace(&input, `(?s)\}html:lang\(ar\).+?\{.+?\}`, "}")
+	utils.Replace(&input, `(?s)\}\[dir="?rtl"?\].+?\{.+?\}`, "}")
+
+	utils.Replace(&input, `(?s)\[lang=ar\].+?\{.+?\}`, "")
 	utils.Replace(&input, `(?s)html\[dir="?rtl"?\].+?\{.+?\}`, "")
 	utils.Replace(&input, `(?s)html\[lang=ar\].+?\{.+?\}`, "")
 	utils.Replace(&input, `(?s)html:lang\(ar\).+?\{.+?\}`, "")
 	utils.Replace(&input, `(?s)\[dir="?rtl"?\].+?\{.+?\}`, "")
-	utils.Replace(&input, `(?s)html:not\(\[lang=ar\]\)(.+?\{.+?\})`, "html${1}")
-	utils.Replace(&input, `(?s)\[lang=ar\].+?\{.+?\}`, "")
 
 	return input
 }
