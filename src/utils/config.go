@@ -39,6 +39,7 @@ var (
 			"radio":                        "0",
 			"search_in_sidebar":            "0",
 			"song_page":                    "0",
+			"tastebuds":                    "0",
 			"visualization_high_framerate": "0",
 			"extensions":                   "",
 			"custom_apps":                  "",

@@ -25,6 +25,7 @@ type Flag struct {
 	NewFeedbackUI        utils.TernaryBool
 	SearchInSidebar      utils.TernaryBool
 	XPUI                 utils.TernaryBool
+	TasteBuds            utils.TernaryBool
 	Extension            []string
 	CustomApp            []string
 }
@@ -47,10 +48,13 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 
 			switch extension {
 			case ".js":
-				if fileName == "lyrics.bundle.js" {
+				switch fileName {
+				case "lyrics.bundle.js":
 					lyricsMod(path, flags)
-				} else if fileName == "zlink.bundle.js" {
+				case "zlink.bundle.js":
 					zlinkMod(path, flags)
+				case "xpui.js":
+					xpuiMod(path, flags)
 				}
 			case ".css":
 			case ".html":
@@ -167,6 +171,16 @@ func zlinkMod(jsPath string, flags Flag) {
 
 		if len(flags.CustomApp) > 0 {
 			insertCustomApp(&content, flags.CustomApp)
+		}
+
+		return content
+	})
+}
+
+func xpuiMod(jsPath string, flags Flag) {
+	utils.ModifyFile(jsPath, func(content string) string {
+		if !flags.TasteBuds.IsDefault() {
+			utils.Replace(&content, `[\w_]\.features\.isTastebudzEnabled`, flags.TasteBuds.ToString())
 		}
 
 		return content

@@ -384,5 +384,9 @@ visualization_high_framerate <-1 | 0 | 1>
 
 minimal_ui <-1 | 0 | 1>
 	Enable/Disable Minimal UI (Web Player UI) button.
-	It locates in right side of player bar.`)
+	It locates in right side of player bar.
+	
+tastebuds <-1 | 0 | 1>
+	Enable Tastebud feature.
+	It is only available in left sidebar of Minimal UI.`)
 }
