@@ -24,6 +24,7 @@ type Flag struct {
 	VisHighFramerate     utils.TernaryBool
 	NewFeedbackUI        utils.TernaryBool
 	SearchInSidebar      utils.TernaryBool
+	XPUI                 utils.TernaryBool
 	Extension            []string
 	CustomApp            []string
 }
@@ -158,6 +159,10 @@ func zlinkMod(jsPath string, flags Flag) {
 
 		if !flags.SearchInSidebar.IsDefault() {
 			utils.Replace(&content, `(isFusionSearchEnabled:)("Enabled")`, `${1}`+flags.SearchInSidebar.ToForceOperator()+`${2}`)
+		}
+
+		if !flags.XPUI.IsDefault() {
+			utils.Replace(&content, `(enableDarkMode:)("Enabled")`, `${1}`+flags.XPUI.ToForceOperator()+`${2}`)
 		}
 
 		if len(flags.CustomApp) > 0 {

@@ -34,6 +34,7 @@ var (
 			"lyric_always_show":            "0",
 			"lyric_force_no_sync":          "0",
 			"made_for_you_hub":             "0",
+			"minimal_ui":                   "0",
 			"new_feedback_ui":              "0",
 			"radio":                        "0",
 			"search_in_sidebar":            "0",

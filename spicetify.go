@@ -380,5 +380,9 @@ song_page <-1 | 0 | 1>
     song page (instead of its album page) to discover playlists it appearing on.
 
 visualization_high_framerate <-1 | 0 | 1>
-    Force Visualization in Lyrics app to render in 60fps.`)
+	Force Visualization in Lyrics app to render in 60fps.
+
+minimal_ui <-1 | 0 | 1>
+	Enable/Disable Minimal UI (Web Player UI) button.
+	It locates in right side of player bar.`)
 }
