@@ -43,7 +43,11 @@ const Spicetify = {
     },
     showNotification: (text) => {
         Spicetify.EventDispatcher.dispatchEvent(
-            new Spicetify.Event(Spicetify.Event.TYPES.SHOW_NOTIFICATION_BUBBLE, { i18n: text }))
+            new Spicetify.Event(Spicetify.Event.TYPES.SHOW_NOTIFICATION_BUBBLE, {
+                i18n: text,
+                messageHtml: text
+            })
+        );
     },
     test: () => {
         const SPICETIFY_METHOD = [
