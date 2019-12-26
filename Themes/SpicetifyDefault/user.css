@@ -673,3 +673,36 @@ body.remotebar .view-player .player-bar-wrapper {
 .Header__image-inner {
 	box-shadow: unset;
 }
+
+.Root__nav-bar {
+	background-color: var(--modspotify_main_bg);
+}
+
+.Root__main-view .btn,
+.Root__main-view button {
+	color: var(--modspotify_main_bg);
+}
+
+.Root__main-view .track-name-wrapper .tracklist-row__album-name-link,
+.Root__main-view .track-name-wrapper .tracklist-row__artist-name-link,
+.Root__main-view .track-row__episode-date {
+	color: var(--modspotify_secondary_fg);
+}
+
+.Root__main-view .TrackListHeader__entity-long-description {
+	color: var(--modspotify_secondary_fg);
+}
+
+.Root__main-view .mo-meta a:link, .Root__main-view .mo-meta a:visited {
+	color: var(--modspotify_secondary_fg);
+	opacity: 1;
+}
+
+.Root__main-view .TrackListRow__explicit-label {
+	background-color: rgba(var(--modspotify_rgb_secondary_fg), 0.6);
+	color: var(--modspotify_secondary_fg);
+}
+
+.Root__main-view .main-view-container {
+	background-color: var(--modspotify_main_bg);
+}
