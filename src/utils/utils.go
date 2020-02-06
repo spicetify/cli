@@ -204,9 +204,8 @@ func GetExecutableDir() string {
 
 	exeDir := filepath.Dir(exe)
 
-	if link, err := os.Readlink(exe); err == nil {
-		linkDir := filepath.Dir(link)
-		return filepath.Join(exeDir, linkDir)
+	if link, err := filepath.EvalSymlinks(exe); err == nil {
+		return filepath.Dir(link)
 	}
 
 	return exeDir
