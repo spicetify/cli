@@ -301,12 +301,25 @@ func exposeAPIs(input string) string {
 		)
 	}
 
-	// Leak localStorage and showNotification
-	utils.Replace(
-		&input,
-		`(const [\w_]+=([\w_]+)\.default\.get\([\w_]+\);)`,
-		`${1}Spicetify.LocalStorage=${2}.default;`+eventDispatcher,
-	)
+	// Leak LocalStorage and EventDispatcher
+	newVer := utils.FindSymbol("", input, []string{
+		`const [\w_]+=[\w_]+\.default\.get\(("saf:hpto:ad")\);`,
+	})
+
+	if newVer != nil {
+		utils.Replace(
+			&input,
+			`(const [\w_]+=([\w_]+)\.default\.get\("saf:hpto:ad"\);)`,
+			`${1}Spicetify.LocalStorage=${2}.default;`+eventDispatcher,
+		)
+	} else {
+		// Supports 1.1.10
+		utils.Replace(
+			&input,
+			`(const [\w_]+=([\w_]+)\.default\.get\([\w_]+\);)`,
+			`${1}Spicetify.LocalStorage=${2}.default;`+eventDispatcher,
+		)
+	}
 
 	// Find Player (playerCosmosSymbols[0]) and Cosmos API (playerCosmosSymbols[1]) symbols
 	playerCosmosSymbols := utils.FindSymbol("player and cosmos in PlayerHelper", input, []string{
