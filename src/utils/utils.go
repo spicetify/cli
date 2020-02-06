@@ -29,10 +29,10 @@ func CheckExistAndCreate(dir string) {
 // CheckExistAndDelete checks folder existence
 // and deletes that folder if it does exist
 func CheckExistAndDelete(dir string) {
-        _, err := os.Stat(dir)
-        if err == nil {
-                os.RemoveAll(dir)
-        }
+	_, err := os.Stat(dir)
+	if err == nil {
+		os.RemoveAll(dir)
+	}
 }
 
 // Unzip unzips zip
@@ -234,14 +234,17 @@ func FindSymbol(debugInfo, content string, clues []string) []string {
 		}
 	}
 
-	PrintError("Cannot find symbol for " + debugInfo)
+	if len(debugInfo) > 0 {
+		PrintError("Cannot find symbol for " + debugInfo)
+	}
+
 	return nil
 }
 
 // CreateJunction creates a junction in Windows or a symlink in Linux/Mac.
 func CreateJunction(location, destination string) error {
-        CheckExistAndDelete(destination)
-        switch runtime.GOOS {
+	CheckExistAndDelete(destination)
+	switch runtime.GOOS {
 	case "windows":
 		exec.Command("cmd", "/C", "rmdir", destination).Run()
 		return exec.Command("cmd", "/C", "mklink", "/J", destination, location).Run()
