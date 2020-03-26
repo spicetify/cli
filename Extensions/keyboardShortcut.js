@@ -74,6 +74,10 @@
     registerBind("J", false, false, false, appScrollDown);
     registerBind("K", false, false, false, appScrollUp);
 
+    // U and D to vertically scroll app faster
+    registerBind("D", false, false, false, appScrollDownFast)
+    registerBind("U", false, false, false, appScrollUpFast)
+
     // H and L to horizontally scroll carousel
     registerBind("H", false, false, false, carouselScrollLeft);
     registerBind("L", false, false, false, carouselScrollRight);
@@ -88,6 +92,10 @@
     // Forward Slash to open search page
     registerBind("/", false, false, false, openSearchPage);
 
+    // Shift + . and Shift + , to play next track and prev track
+    registerBind(190, false, true, false, nextTrack)
+    registerBind(188, false, true, false, prevTrack)
+
     // F to activate Link Follow function
     const vim = new VimBind();
     registerBind("F", false, false, false, vim.activate.bind(vim));
@@ -100,6 +108,16 @@
 
     function rotateSidebarUp() {
         rotateSidebar(-1)
+    }
+
+    function nextTrack() {
+      const next = document.querySelector(".next")
+      next.click()
+    }
+
+    function prevTrack() {
+      const prev = document.querySelector(".previous")
+      prev.click()
     }
 
     function clickQueueButton() {
@@ -126,6 +144,20 @@
         if (app) {
             app.scrollBy(0, -SCROLL_STEP);
         }
+    }
+
+    function appScrollDownFast() {
+      const app = focusOnApp()
+      if (app) {
+        app.scrollBy(0, SCROLL_STEP*3)
+      }
+    }
+
+    function appScrollUpFast() {
+      const app = focusOnApp()
+      if (app) {
+        app.scrollBy(0, -SCROLL_STEP*3)
+      }
     }
 
     function carouselScrollLeft() {
