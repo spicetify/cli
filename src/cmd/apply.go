@@ -121,6 +121,7 @@ func Apply() {
 		utils.PrintBold(`Transferring extensions:`)
 		pushExtensions(extentionList...)
 		utils.PrintGreen("OK")
+		nodeModuleSymlink()
 	}
 
 	if len(customAppsList) > 0 {
@@ -244,4 +245,21 @@ func pushApps(list ...string) {
 
 func toTernary(section *ini.Section, key string) utils.TernaryBool {
 	return utils.TernaryBool(section.Key(key).MustInt(0))
+}
+
+func nodeModuleSymlink() {
+	nodeModulePath, err := getExtensionPath("node_modules")
+	if err != nil {
+		return
+	}
+
+	utils.PrintBold(`Found node_modules folder. Creating node_modules symlink:`)
+
+	nodeModuleDest := filepath.Join(spotifyPath, "Apps", "zlink", "node_modules")
+	if err = utils.CreateJunction(nodeModulePath, nodeModuleDest); err != nil {
+		utils.PrintError("Cannot create node_modules symlink")
+		return
+	}
+
+	utils.PrintGreen("OK")
 }
