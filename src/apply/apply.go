@@ -62,7 +62,11 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 					utils.ModifyFile(path, func(content string) string {
 						extensionsHTML := ""
 						for _, v := range flags.Extension {
-							extensionsHTML += `<script src="` + v + `"></script>` + "\n"
+							if strings.HasSuffix(v, ".mjs") {
+								extensionsHTML += `<script type="module" src="` + v + `"></script>` + "\n"
+							} else {
+								extensionsHTML += `<script src="` + v + `"></script>` + "\n"
+							}
 						}
 						if len(extensionsHTML) > 0 {
 							utils.Replace(
