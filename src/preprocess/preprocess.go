@@ -195,6 +195,7 @@ func StartCSS(extractedAppsPath string, callback func(appName string)) {
 func disableSentry(input string) string {
 	utils.Replace(&input, `sentry\.install\(\)[,;]`, "")
 	utils.Replace(&input, `"https://\w+@sentry.io/\d+"`, `"https://NO@TELEMETRY.IS/BAD"`)
+	utils.Replace(&input, `loadQualarooScript=function\(\)\{`, "${0}return;")
 	return input
 }
 
