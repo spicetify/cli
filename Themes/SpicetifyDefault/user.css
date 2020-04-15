@@ -706,3 +706,7 @@ body.remotebar .view-player .player-bar-wrapper {
 .Root__main-view .main-view-container {
 	background-color: var(--modspotify_main_bg);
 }
+
+.concert-title span {
+	color: var(--modspotify_secondary_fg) !important;
+}
