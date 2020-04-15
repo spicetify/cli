@@ -299,6 +299,7 @@ function VimBind() {
         "button.button-with-stroke",
         "button.Button--style-green",
         "button.Button--style-stroke",
+        "tr.tl-row",
     ].join(",");
 
     const keyList = "qwertasdfgzxcvyuiophjklbnm".split("");
@@ -460,7 +461,6 @@ function VimBind() {
 
     function click(div) {
         const element = div.parentNode;
-
         if (element.hasAttribute("href") || element.tagName === "BUTTON") {
             element.click();
             return;
