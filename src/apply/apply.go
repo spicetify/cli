@@ -22,8 +22,6 @@ type Flag struct {
 	Radio                utils.TernaryBool
 	SongPage             utils.TernaryBool
 	VisHighFramerate     utils.TernaryBool
-	NewFeedbackUI        utils.TernaryBool
-	SearchInSidebar      utils.TernaryBool
 	XPUI                 utils.TernaryBool
 	TasteBuds            utils.TernaryBool
 	Extension            []string
@@ -159,14 +157,6 @@ func zlinkMod(jsPath string, flags Flag) {
 
 		if !flags.SongPage.IsDefault() {
 			utils.Replace(&content, `window\.initialState\.isSongPageEnabled`, flags.SongPage.ToString())
-		}
-
-		if !flags.NewFeedbackUI.IsDefault() {
-			utils.Replace(&content, `(useNftUi:)("Enabled")`, `${1}`+flags.NewFeedbackUI.ToForceOperator()+`${2}`)
-		}
-
-		if !flags.SearchInSidebar.IsDefault() {
-			utils.Replace(&content, `(isFusionSearchEnabled:)("Enabled")`, `${1}`+flags.SearchInSidebar.ToForceOperator()+`${2}`)
 		}
 
 		if !flags.XPUI.IsDefault() {

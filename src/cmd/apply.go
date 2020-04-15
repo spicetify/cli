@@ -108,8 +108,6 @@ func Apply() {
 		Radio:                toTernary(featureSection, "radio"),
 		SongPage:             toTernary(featureSection, "song_page"),
 		VisHighFramerate:     toTernary(featureSection, "visualization_high_framerate"),
-		NewFeedbackUI:        toTernary(featureSection, "new_feedback_ui"),
-		SearchInSidebar:      toTernary(featureSection, "search_in_sidebar"),
 		XPUI:                 toTernary(featureSection, "minimal_ui"),
 		TasteBuds:            toTernary(featureSection, "tastebuds"),
 		Extension:            extentionList,

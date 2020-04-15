@@ -366,14 +366,8 @@ lyric_always_show <-1 | 0 | 1>
 lyric_force_no_sync <-1 | 0 | 1>
     Force displaying all of lyrics.
 
-new_feedback_ui <-1 | 0 | 1>
-    Enable/Disable new update in "add to library", follow buttons, icons, text.
-
 radio
     Enable/Disable Radio page. Access it in left sidebar.
-
-search_in_sidebar <-1 | 0 | 1>
-    Enable/Disable new Search page. Access it in left sidebar.
 
 song_page <-1 | 0 | 1>
     Enable/Disable ability to click at song name in player bar will access that
