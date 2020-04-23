@@ -203,9 +203,20 @@ func getColorCSS(scheme *ini.Section) string {
 	}
 
 	var variableList string
+	mergedScheme := make(map[string]string)
+
+	for _, v := range scheme.Keys() {
+		mergedScheme[v.Name()] = v.String()
+	}
 
 	for k, v := range utils.BaseColorList {
-		parsed := utils.ParseColor(scheme.Key(k).MustString(v))
+		if len(mergedScheme[k]) == 0 {
+			mergedScheme[k] = v
+		}
+	}
+
+	for k, v := range mergedScheme {
+		parsed := utils.ParseColor(v)
 		variableList += fmt.Sprintf(`
     --modspotify_%s: #%s;
     --modspotify_rgb_%s: %s;`,

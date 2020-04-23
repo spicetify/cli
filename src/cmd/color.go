@@ -9,6 +9,10 @@ import (
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
+const (
+	nameMaxLen = 42
+)
+
 // EditColor changes one or multiple colors' values
 func EditColor(args []string) {
 	initCmdColor()
@@ -36,23 +40,32 @@ func EditColor(args []string) {
 func DisplayColors() {
 	colorFileOk := initCmdColor()
 
-	nameMaxLen := 42
-
 	for _, k := range utils.BaseColorOrder {
 		colorString := ""
 		if colorFileOk {
 			colorString = colorSection.Key(k).String()
 		}
-		keyLen := len(k)
+
 		if len(colorString) == 0 {
 			colorString = utils.BaseColorList[k]
 			k += " (*)"
-			keyLen += 4
 		}
-		k = utils.Bold(k)
-		out := k + strings.Repeat(" ", nameMaxLen-keyLen) + formatColor(utils.ParseColor(colorString))
+
+		out := formatName(k) + formatColor(colorString)
 		log.Println(out)
 	}
+
+	for _, v := range colorSection.Keys() {
+		key := v.Name()
+
+		if len(utils.BaseColorList[key]) != 0 {
+			continue
+		}
+
+		out := formatName(key) + formatColor(v.String())
+		log.Println(out)
+	}
+
 	log.Println("\n(*): Default color is used")
 }
 
@@ -100,8 +113,20 @@ func initCmdColor() bool {
 
 func colorChangeSuccess(field, value string) {
 	utils.PrintSuccess(`Color changed: ` + field + ` = ` + value)
+	utils.PrintInfo(`Run "spicetify update" to apply new color`)
 }
 
-func formatColor(color utils.Color) string {
+func formatColor(value string) string {
+	color := utils.ParseColor(value)
 	return "\x1B[48;2;" + color.TerminalRGB() + "m     \033[0m | " + color.Hex() + " | " + color.RGB()
+}
+
+func formatName(name string) string {
+	nameLen := len(name)
+	if nameLen > nameMaxLen {
+		name = name[:(nameMaxLen - 3)]
+		name += "..."
+		nameLen = nameMaxLen
+	}
+	return utils.Bold(name) + strings.Repeat(" ", nameMaxLen-nameLen)
 }
