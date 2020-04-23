@@ -226,7 +226,7 @@ path                Print path of color, css, extension file or
                     custom app directory and quit.
                     1. Print all theme's assests:
                     spicetify path
-                    2. Print theme's color.inc path:
+                    2. Print theme's color.ini path:
                     spicetify path color
                     3. Print theme's user.css path:
                     spicetify path css
@@ -315,7 +315,11 @@ prefs_path
     Path to Spotify's "prefs" file
 
 current_theme
-    Name of folder of your theme
+	Name of folder of your theme
+
+color_scheme
+	Color config section name in color.ini file.
+	If color_scheme is blank, first section in color.ini file would be used.
 
 inject_css <0 | 1>
     Whether custom css from user.css in theme folder is applied
@@ -325,7 +329,7 @@ replace_colors <0 | 1>
 
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>
-    Prevents Sentry to send console log/error/warning to Spotify developers.
+    Prevents Sentry and Amazon Qualaroo to send console log/error/warning to Spotify developers.
     Enable if you don't want to catch their attention when developing extension or app.
 
 disable_ui_logging <0 | 1>
