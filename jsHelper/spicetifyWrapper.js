@@ -1613,3 +1613,6 @@ Spicetify.ContextMenu = (function () {
 
     return { Item, SubMenu, _addItems };
 })();
+
+// Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
+window.Spicetify = Spicetify;
