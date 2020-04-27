@@ -22,6 +22,7 @@ var (
 	quiet          = false
 	extensionFocus = false
 	appFocus       = false
+	noRestart      = false
 )
 
 func init() {
@@ -71,6 +72,8 @@ func init() {
 			appFocus = true
 		case "-q", "--quiet":
 			quiet = true
+		case "-n", "--no-restart":
+			noRestart = true
 		}
 	}
 
@@ -153,6 +156,7 @@ func main() {
 
 		case "apply":
 			cmd.Apply()
+			restartSpotify()
 
 		case "update":
 			if extensionFocus {
@@ -163,12 +167,15 @@ func main() {
 
 		case "restore":
 			cmd.Restore()
+			restartSpotify()
 
 		case "enable-devtool":
 			cmd.SetDevTool(true)
+			restartSpotify()
 
 		case "disable-devtool":
 			cmd.SetDevTool(false)
+			restartSpotify()
 
 		case "watch":
 			if extensionFocus {
@@ -182,12 +189,19 @@ func main() {
 
 		case "auto":
 			cmd.Auto()
+			restartSpotify()
 
 		default:
 			utils.PrintError(`Command "` + v + `" not found.`)
 			utils.PrintInfo(`Run "spicetify -h" for list of valid commands.`)
 			os.Exit(1)
 		}
+	}
+}
+
+func restartSpotify() {
+	if !noRestart {
+		cmd.RestartSpotify()
 	}
 }
 
@@ -294,6 +308,9 @@ color               1. Print all color fields and values.
                     focus on extensions.
 
 -a, --app           Use with "path" to focus on custom apps.
+
+-n, --no-restart    Do not restart Spotify after running command(s), except
+                    "restart" command.
 
 -c, --config        Print config file path and quit
 

@@ -34,6 +34,5 @@ func SetDevTool(enable bool) {
 		} else {
 			utils.PrintSuccess("DevTool disabled!")
 		}
-		RestartSpotify()
 	}
 }

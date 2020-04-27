@@ -129,7 +129,6 @@ func Apply() {
 	}
 
 	utils.PrintSuccess("Spotify is spiced up!")
-	RestartSpotify()
 }
 
 // UpdateTheme updates user.css and overwrites custom assets
