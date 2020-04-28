@@ -1614,5 +1614,105 @@ Spicetify.ContextMenu = (function () {
     return { Item, SubMenu, _addItems };
 })();
 
+Spicetify.Abba = (function() {
+    const STORAGE_KEY = "Spicetify.OverrideAbbaFlags";    
+    const STORAGE = window.top.localStorage;
+
+    const storedOverrideFlags = STORAGE.getItem(STORAGE_KEY);
+    window.__spotify.product_state.abbaOverrides = storedOverrideFlags;
+
+    let _overrideFlags;
+    if (storedOverrideFlags) {
+        try {
+            _overrideFlags = JSON.parse(storedOverrideFlags);
+        } catch {
+            _overrideFlags = {};
+        }
+    } else {
+        _overrideFlags = {};
+    }
+
+    function getFlag(name, callback) {
+        if (typeof callback !== "function") {
+            console.error("callback is not a function");
+            return;
+        }
+        if (typeof name === "string") {
+            name = [name];
+        }
+        Spicetify.CosmosAPI.resolver.post({
+            url: "sp://abba/v1/flags",
+            body: { flags: name }
+        }, (error, res) => {
+            if (error) {
+                console.error(error);
+                return;
+            }
+            callback(res.getJSONBody().flags);
+        });
+    }
+
+    function getInUseFlags(callback) {
+        if (typeof callback !== "function") {
+            console.error("callback is not a function");
+            return;
+        }
+        Spicetify.CosmosAPI.resolver.get("sp://abba/v1/requested_flag_names", (error, res) => {
+            if (error) {
+                console.error(error);
+                return;
+            }
+            callback(res.getJSONBody());
+        });
+    }
+
+    function getAllFlags(callback) {
+        if (typeof callback !== "function") {
+            console.error("callback is not a function");
+            return;
+        }
+        Spicetify.CosmosAPI.resolver.get("sp://abba/v1/all_flags", (error, res) => {
+            if (error) {
+                console.error(error);
+                return;
+            }
+            callback(res.getJSONBody());
+        });
+    }
+
+    function getOverrideFlags() {
+        return _overrideFlags;
+    }
+
+    function _syncStorage() {
+        const stringified = JSON.stringify(_overrideFlags);
+        STORAGE.setItem(STORAGE_KEY, stringified);
+        window.__spotify.product_state.abbaOverrides = stringified;
+    }
+
+    function addOverrideFlag(name, value) {
+        _overrideFlags[name] = value;
+        _syncStorage();
+        console.info("Please reload Spotify for overried flags to be effective")
+    }
+
+    function removeOverrideFlag(name) {
+        if (_overrideFlags.hasOwnProperty(name)) {
+            delete _overrideFlags[name];
+            _syncStorage();
+            console.info(`Flag ${name} succesfully removed from Override Flags. Please reload Spotify.`);
+        }
+    }
+
+    return {
+        getFlag,
+        getInUseFlags,
+        getAllFlags,
+        getOverrideFlags,
+        addOverrideFlag,
+        removeOverrideFlag,
+    };
+})();
+
 // Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
 window.Spicetify = Spicetify;

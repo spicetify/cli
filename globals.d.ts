@@ -1180,4 +1180,39 @@ declare namespace Spicetify {
             deregister: () => void;
         }
     }
+
+    /**
+     * Fetch and Override A/B test flags
+     */
+    namespace Abba {
+        type Flag = {
+            featureName: string;
+            cell?: string;
+        };
+
+        /**
+         * Get flag(s) value.
+         */
+        function getFlag(name: string | string[], callback: (flags: Flag[]) => void): void;
+        /**
+         * Get list of flags that is currently used by Spotify.
+         */
+        function getInUseFlags(callback: (flagNames: string[]) => void): void;
+        /**
+         * Get list all available flags.
+         */
+        function getAllFlags(callback: (flags: Flag[]) => void): void;
+        /**
+         * Get list of flags to be overrided and its their values.
+         */
+        function getOverrideFlags(): {[string]: string};
+        /**
+         * Add a flag that is going to be overrided.
+         */
+        function addOverrideFlag(name: string, value: string): void;
+        /**
+         * Remove a overrided flag.
+         */
+        function removeOverrideFlag(name: string): void;
+    }
 }
