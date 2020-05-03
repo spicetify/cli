@@ -48,6 +48,7 @@ const Spicetify = {
         getMute: () => Spicetify.Player.origin.mute(),
         toggleMute: () => { Spicetify.Player.origin._doToggleMute() },
         setMute: (b) => { Spicetify.Player.origin.changeVolume(Spicetify.Player.origin._unmutedVolume, b) },
+        formatTime: (ms) => Spicetify.Player.origin._formatTime(ms),
         getHeart: () => Spicetify.LiveAPI(Spicetify.Player.data.track.uri).get("added"),
         pause: () => {Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
         play: () => {!Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
@@ -92,6 +93,10 @@ const Spicetify = {
             "Queue",
             "removeFromQueue",
             "showNotification",
+            "getAblumArtColors",
+            "Menu",
+            "ContextMenu",
+            "Abba",
         ];
 
         const PLAYER_METHOD = [
