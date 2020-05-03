@@ -264,10 +264,6 @@ declare namespace Spicetify {
              * Stop item to be prepended into Profile menu.
              */
             deregister(): void;
-            /**
-             * Return DOM object of item
-             */
-            getElement(): HTMLButtonElement;
         }
 
         /**
@@ -288,10 +284,6 @@ declare namespace Spicetify {
              * Stop SubMenu to be prepended into Profile menu.
              */
             deregister(): void;
-            /**
-             * Return DOM object of SubMenu
-             */
-            getElement(): HTMLDivElement;
         }
     }
     /**
