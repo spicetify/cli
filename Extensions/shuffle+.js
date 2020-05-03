@@ -108,6 +108,7 @@
                 switch (uriObj.type) {
                     case Spicetify.URI.Type.SHOW:
                     case Spicetify.URI.Type.PLAYLIST:
+                    case Spicetify.URI.Type.PLAYLIST_V2:
                     case Spicetify.URI.Type.FOLDER:
                     case Spicetify.URI.Type.ALBUM:
                     case Spicetify.URI.Type.COLLECTION:
@@ -135,6 +136,7 @@
             case Spicetify.URI.Type.SHOW:
                 return await fetchShow(uriObj.getBase62Id())
             case Spicetify.URI.Type.PLAYLIST:
+            case Spicetify.URI.Type.PLAYLIST_V2:
                 return await fetchPlaylist(uri)
             case Spicetify.URI.Type.FOLDER:
                 return await fetchFolder(uri)
