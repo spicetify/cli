@@ -265,27 +265,16 @@ func exposeAPIs(input string) string {
 		utils.Replace(
 			&input,
 			playerUI[0]+`\.prototype\.setup=function\(\)\{`,
-			"${0}"+spicetifyPlayerJS,
-		)
-
-		// Register progress change event
-		utils.Replace(
-			&input,
-			playerUI[0]+`\.prototype\._onProgressBarProgress=function\(([\w_]+)\)\{`,
 			`${0}
+Spicetify.Player.origin=this;
+this.progressbar.addListener("progress", () => {
 	const progressEvent = new Event("onprogress");
-	progressEvent.data = ${1}.value;
+	progressEvent.data = this.progressbar.value;
 	Spicetify.Player.dispatchEvent(progressEvent);
+});
 `,
 		)
 	}
-
-	// Leak track meta data, player state, current playlist to Spicetify.Player.data
-	utils.Replace(
-		&input,
-		`(const [\w_]+=([\w_]+)\.track\.metadata;)`,
-		`${1}Spicetify.Player.data=${2};`,
-	)
 
 	// Find Event Dispatcher (eventSymbol[0]) and Event Creator (eventSymbol[1]) symbol
 	eventSymbols := utils.FindSymbol("EventDispatcher and Event Creator", input, []string{
@@ -418,34 +407,29 @@ func exposeAPIs(input string) string {
 		"${1}Spicetify.ContextMenu._addItems(this._contextmenu, ${2}.uris);this._contextmenu.addItem({});",
 	)
 
+	menuReact := utils.FindSymbol("Profile Menu and Item React", input, []string{
+		`([\w_]+\.default).createElement\(([\w_]+\.default),\{name:"private-session"`,
+	})
+
+	submenuReact := utils.FindSymbol("Profile Sub Menu React", input, []string{
+		`([\w_]+\.default),\{name:"userlist",isSubmenu`,
+	})
+
+	// Inject custom menu time to Profile menu
+	utils.Replace(
+		&input,
+		`(name:"profile-menu".+?,)([\w_]+\.default\.createElement)`,
+		"${1}Spicetify.Menu._hook("+menuReact[0]+","+menuReact[1]+","+submenuReact[0]+"),${2}",
+	)
+
+	utils.Replace(
+		&input,
+		`case"private-session"`,
+		`case"spicetify-hook":this.hideMenu();break;${0}`,
+	)
+
 	return input
 }
-
-const spicetifyPlayerJS = `
-this.seek&&this.duration&&(Spicetify.Player.seek=(p)=>{if(p<=1)p=Math.round(p*this.duration());this.seek(p)});
-this.progressbar.getRealValue&&(Spicetify.Player.getProgress=()=>this.progressbar.getRealValue());
-this.progressbar.getPercentage&&(Spicetify.Player.getProgressPercent=()=>this.progressbar.getPercentage());
-this.duration&&(Spicetify.Player.getDuration=()=>this.duration());
-this.changeVolume&&(Spicetify.Player.setVolume=(v)=>{this.changeVolume(v, false)});
-this.increaseVolume&&(Spicetify.Player.increaseVolume=()=>{this.increaseVolume()});
-this.decreaseVolume&&(Spicetify.Player.decreaseVolume=()=>{this.decreaseVolume()});
-this.volume&&(Spicetify.Player.getVolume=()=>this.volume());
-this._doSkipToNext&&(Spicetify.Player.next=()=>{this._doSkipToNext()});
-this._doSkipToPrevious&&(Spicetify.Player.back=()=>{this._doSkipToPrevious()});
-this._doTogglePlay&&(Spicetify.Player.togglePlay=()=>{this._doTogglePlay()});
-this.playing&&(Spicetify.Player.isPlaying=()=>this.playing());
-this.toggleShuffle&&(Spicetify.Player.toggleShuffle=()=>{this.toggleShuffle()});
-this.shuffle&&(Spicetify.Player.getShuffle=()=>this.shuffle());
-this.shuffle&&(Spicetify.Player.setShuffle=(b)=>{this.shuffle(b)});
-this.toggleRepeat&&(Spicetify.Player.toggleRepeat=()=>{this.toggleRepeat()});
-this.repeat&&(Spicetify.Player.getRepeat=()=>this.repeat());
-this.repeat&&(Spicetify.Player.setRepeat=(r)=>{this.repeat(r)});
-this.mute&&(Spicetify.Player.getMute=()=>this.mute());
-this._doToggleMute&&(Spicetify.Player.toggleMute=()=>{this._doToggleMute()});
-this.changeVolume&&(Spicetify.Player.setMute=(b)=>{this.changeVolume(this._unmutedVolume,b)});
-this._formatTime&&(Spicetify.Player.formatTime=(ms)=>this._formatTime(ms));
-Spicetify.Player.origin=this;
-`
 
 const spicetifyQueueJS = `
 const getAlbumAsync = (inputUri) => new Promise((resolve, reject) => {

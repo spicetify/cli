@@ -22,6 +22,32 @@ const Spicetify = {
             return !event.defaultPrevented;
         },
         eventListeners: {},
+        seek: (p) => {
+            if (p <= 1) {
+                p = Math.round(p * Spicetify.Player.origin.duration());
+            }
+            Spicetify.Player.origin.seek(p);
+        },
+        getProgress: () => Spicetify.Player.origin.progressbar.getRealValue(),
+        getProgressPercent: () => Spicetify.Player.origin.progressbar.getPercentage(),
+        getDuration: () => Spicetify.Player.origin.duration(),
+        setVolume: (v) => { Spicetify.Player.origin.changeVolume(v, false) },
+        increaseVolume: () => { Spicetify.Player.origin.increaseVolume() },
+        decreaseVolume: () => { Spicetify.Player.origin.decreaseVolume() },
+        getVolume: () => Spicetify.Player.origin.volume(),
+        next: () => { Spicetify.Player.origin._doSkipToNext() },
+        back: () => { Spicetify.Player.origin._doSkipToPrevious() },
+        togglePlay: () => { Spicetify.Player.origin._doTogglePlay() },
+        isPlaying: () => Spicetify.Player.origin.playing(),
+        toggleShuffle: () => { Spicetify.Player.origin.toggleShuffle() },
+        getShuffle: () => Spicetify.Player.origin.shuffle(),
+        setShuffle: (b) => { Spicetify.Player.origin.shuffle(b) },
+        toggleRepeat: () => { Spicetify.Player.origin.toggleRepeat() },
+        getRepeat: () => Spicetify.Player.origin.repeat(),
+        setRepeat: (r) => { Spicetify.Player.origin.repeat(r) },
+        getMute: () => Spicetify.Player.origin.mute(),
+        toggleMute: () => { Spicetify.Player.origin._doToggleMute() },
+        setMute: (b) => { Spicetify.Player.origin.changeVolume(Spicetify.Player.origin._unmutedVolume, b) },
         getHeart: () => Spicetify.LiveAPI(Spicetify.Player.data.track.uri).get("added"),
         pause: () => {Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
         play: () => {!Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
@@ -1378,98 +1404,72 @@ Spicetify.getAblumArtColors = (uri) => {
 Spicetify.Menu = (function() {
     const collection = new Set();
 
-    const menuEl = document.getElementById("PopoverMenu-container");
-
-    // Observing profile menu
-    new MutationObserver(() => {
-        const menuRoot = menuEl.querySelector(".Menu__root-items");
-        if (menuRoot) {
-            for (const item of collection) {
-                menuRoot.prepend(item);
-            }
+    const _hook = function(menuReact, itemReact, subMenuReact ) {
+        function createSingleItem(item) {
+            return menuReact.createElement(itemReact, {
+                label: item.name,
+                isChecked: item.isEnabled,
+                name: "spicetify-hook",
+                onClick: item.onClick,
+            });
         }
-    }).observe(menuEl, { childList: true });
+
+        const result = [];
+
+        for (const item of collection) {
+            let reactComp;
+            if (item.subItems) {
+                reactComp = menuReact.createElement(itemReact, { label: item.name },
+                    menuReact.createElement(subMenuReact, { isSubmenu: true },
+                        item.subItems.map(createSingleItem)
+                    )
+                );
+            } else {
+                reactComp = createSingleItem(item);
+            }
+            result.push(reactComp);
+        }
+
+        return result;
+    }
 
     class Item {
         constructor(name, isEnabled, onClick) {
-            this.item = document.createElement("button");
-            this.item.innerText = name;
-            this.item.classList.add("MenuItem");
-            this.item.onclick = () => {onClick(this)};
-            this.item.onmouseenter = () => {
-                menuEl.querySelectorAll(".selected").forEach(e => e.classList.remove("selected"));
-                this.item.classList.add("selected");
-            }
-            this.item.onmouseleave = () => {
-                this.item.classList.remove("selected");
-            }
-            this.setState(isEnabled);
-        }
-        setName(name) {
-            this.item.innerText = name
+            this.name = name;
+            this.isEnabled = isEnabled;
+            this.onClick = () => {onClick(this)};
         }
         setState(isEnabled) {
-            if (isEnabled) {
-                this.item.classList.add(
-                    "MenuItemToggle--checked",
-                    "MenuItem--is-active"
-                );
-            } else {
-                this.item.classList.remove(
-                    "MenuItemToggle--checked",
-                    "MenuItem--is-active"
-                );
-            }
+            this.isEnabled = isEnabled;
+        }
+        setName(name) {
+            this.name = name
         }
         register() {
-            collection.add(this.item);
+            collection.add(this);
         }
         deregister() {
-            collection.delete(this.item);
-        }
-        getElement() {
-            return this.item;
+            collection.delete(this);
         }
     }
 
     class SubMenu {
         constructor(name, subItems) {
-            this.item = document.createElement("div");
-            this.item.innerText = name;
-            this.item.classList.add("MenuItem", "MenuItem--has-submenu");
-
-            const subMenu = document.createElement("div");
-            subMenu.classList.add("Menu", "Menu--is-submenu");
-
-            for (const item of subItems) {
-                subMenu.appendChild(item.getElement());
-            }
-
-            this.item.appendChild(subMenu);
-            this.item.onmouseenter = () => {
-                subMenu.classList.add("open");
-                this.item.classList.add("selected");
-            };
-            subMenu.onmouseleave = () => {
-                subMenu.classList.remove("open");
-                this.item.classList.remove("selected");
-            };
+            this.name = name;
+            this.subItems = subItems;
         }
         setName(name) {
-            this.item.innerText = name
+            this.name = name;
         }
         register() {
-            collection.add(this.item);
+            collection.add(this);
         }
         deregister() {
-            collection.delete(this.item);
-        }
-        getElement() {
-            return this.item;
+            collection.delete(this);
         }
     }
 
-    return { Item, SubMenu }
+    return { Item, SubMenu, _hook }
 })();
 
 Spicetify.ContextMenu = (function () {
