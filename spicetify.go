@@ -23,6 +23,7 @@ var (
 	extensionFocus = false
 	appFocus       = false
 	noRestart      = false
+	liveUpdate     = false
 )
 
 func init() {
@@ -74,6 +75,8 @@ func init() {
 			quiet = true
 		case "-n", "--no-restart":
 			noRestart = true
+		case "-l", "--live-update":
+			liveUpdate = true
 		}
 	}
 
@@ -179,9 +182,9 @@ func main() {
 
 		case "watch":
 			if extensionFocus {
-				cmd.WatchExtensions()
+				cmd.WatchExtensions(liveUpdate)
 			} else {
-				cmd.Watch()
+				cmd.Watch(liveUpdate)
 			}
 
 		case "restart":
@@ -311,6 +314,8 @@ color               1. Print all color fields and values.
 
 -n, --no-restart    Do not restart Spotify after running command(s), except
                     "restart" command.
+
+-l, --live-update   Use with "watch" command to auto-reload Spotify on change
 
 -c, --config        Print config file path and quit
 

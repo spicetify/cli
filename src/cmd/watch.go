@@ -8,13 +8,22 @@ import (
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
+var (
+	debuggerURL    string
+	autoReloadFunc func()
+)
+
 // Watch .
-func Watch() {
+func Watch(liveUpdate bool) {
 	if !isValidForWatching() {
 		os.Exit(1)
 	}
 
 	InitSetting()
+
+	if liveUpdate {
+		startDebugger()
+	}
 
 	if len(themeFolder) == 0 {
 		utils.PrintError(`Config "current_theme" is blank. No theme asset to watch.`)
@@ -42,7 +51,7 @@ func Watch() {
 			}
 
 			updateAssets()
-		})
+		}, autoReloadFunc)
 	}
 
 	utils.Watch(fileList, func(_ string, err error) {
@@ -52,13 +61,17 @@ func Watch() {
 
 		InitSetting()
 		updateCSS()
-	})
+	}, autoReloadFunc)
 }
 
 // WatchExtensions .
-func WatchExtensions() {
+func WatchExtensions(liveUpdate bool) {
 	if !isValidForWatching() {
 		os.Exit(1)
+	}
+
+	if liveUpdate {
+		startDebugger()
 	}
 
 	extNameList := featureSection.Key("extensions").Strings("|")
@@ -92,7 +105,7 @@ func WatchExtensions() {
 		}
 
 		utils.PrintSuccess(utils.PrependTime(`Extension "` + filePath + `" is updated.`))
-	})
+	}, autoReloadFunc)
 }
 
 func isValidForWatching() bool {
@@ -104,4 +117,18 @@ func isValidForWatching() bool {
 	}
 
 	return true
+}
+
+func startDebugger() {
+	if debuggerURL = utils.GetDebuggerPath(); len(debuggerURL) == 0 {
+		RestartSpotify("--remote-debugging-port=9222")
+	}
+	autoReloadFunc = func() {
+		if utils.SendReload(&debuggerURL) != nil {
+			utils.PrintError("Could not Reload Spotify")
+			utils.PrintInfo(`Close Spotify and run "spicetify watch -e -l" again.`)
+		} else {
+			utils.PrintSuccess("Spotify reloaded")
+		}
+	}
 }

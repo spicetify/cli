@@ -7,16 +7,17 @@ import (
 )
 
 // RestartSpotify .
-func RestartSpotify() {
+func RestartSpotify(flags ...string) {
 	switch runtime.GOOS {
 	case "windows":
 		exec.Command("taskkill", "/F", "/IM", "spotify.exe").Run()
-		exec.Command(filepath.Join(spotifyPath, "spotify.exe")).Start()
+		exec.Command(filepath.Join(spotifyPath, "spotify.exe"), flags...).Start()
 	case "linux":
 		exec.Command("pkill", "spotify").Run()
-		exec.Command(filepath.Join(spotifyPath, "spotify")).Start()
+		exec.Command(filepath.Join(spotifyPath, "spotify"), flags...).Start()
 	case "darwin":
 		exec.Command("pkill", "Spotify").Run()
-		exec.Command("open", "/Applications/Spotify.app").Start()
+		flags = append([]string{"-a", "/Applications/Spotify.app"}, flags...)
+		exec.Command("open", flags...).Start()
 	}
 }
