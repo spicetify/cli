@@ -161,5 +161,4 @@ func Restore() {
 	}
 
 	utils.PrintSuccess("Spotify is restored.")
-	RestartSpotify()
 }

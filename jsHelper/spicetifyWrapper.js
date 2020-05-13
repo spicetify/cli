@@ -22,6 +22,33 @@ const Spicetify = {
             return !event.defaultPrevented;
         },
         eventListeners: {},
+        seek: (p) => {
+            if (p <= 1) {
+                p = Math.round(p * Spicetify.Player.origin.duration());
+            }
+            Spicetify.Player.origin.seek(p);
+        },
+        getProgress: () => Spicetify.Player.origin.progressbar.getRealValue(),
+        getProgressPercent: () => Spicetify.Player.origin.progressbar.getPercentage(),
+        getDuration: () => Spicetify.Player.origin.duration(),
+        setVolume: (v) => { Spicetify.Player.origin.changeVolume(v, false) },
+        increaseVolume: () => { Spicetify.Player.origin.increaseVolume() },
+        decreaseVolume: () => { Spicetify.Player.origin.decreaseVolume() },
+        getVolume: () => Spicetify.Player.origin.volume(),
+        next: () => { Spicetify.Player.origin._doSkipToNext() },
+        back: () => { Spicetify.Player.origin._doSkipToPrevious() },
+        togglePlay: () => { Spicetify.Player.origin._doTogglePlay() },
+        isPlaying: () => Spicetify.Player.origin.playing(),
+        toggleShuffle: () => { Spicetify.Player.origin.toggleShuffle() },
+        getShuffle: () => Spicetify.Player.origin.shuffle(),
+        setShuffle: (b) => { Spicetify.Player.origin.shuffle(b) },
+        toggleRepeat: () => { Spicetify.Player.origin.toggleRepeat() },
+        getRepeat: () => Spicetify.Player.origin.repeat(),
+        setRepeat: (r) => { Spicetify.Player.origin.repeat(r) },
+        getMute: () => Spicetify.Player.origin.mute(),
+        toggleMute: () => { Spicetify.Player.origin._doToggleMute() },
+        setMute: (b) => { Spicetify.Player.origin.changeVolume(Spicetify.Player.origin._unmutedVolume, b) },
+        formatTime: (ms) => Spicetify.Player.origin._formatTime(ms),
         getHeart: () => Spicetify.LiveAPI(Spicetify.Player.data.track.uri).get("added"),
         pause: () => {Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
         play: () => {!Spicetify.Player.isPlaying() && Spicetify.Player.togglePlay()},
@@ -66,6 +93,10 @@ const Spicetify = {
             "Queue",
             "removeFromQueue",
             "showNotification",
+            "getAblumArtColors",
+            "Menu",
+            "ContextMenu",
+            "Abba",
         ];
 
         const PLAYER_METHOD = [
@@ -1378,98 +1409,72 @@ Spicetify.getAblumArtColors = (uri) => {
 Spicetify.Menu = (function() {
     const collection = new Set();
 
-    const menuEl = document.getElementById("PopoverMenu-container");
-
-    // Observing profile menu
-    new MutationObserver(() => {
-        const menuRoot = menuEl.querySelector(".Menu__root-items");
-        if (menuRoot) {
-            for (const item of collection) {
-                menuRoot.prepend(item);
-            }
+    const _hook = function(menuReact, itemReact, subMenuReact ) {
+        function createSingleItem(item) {
+            return menuReact.createElement(itemReact, {
+                label: item.name,
+                isChecked: item.isEnabled,
+                name: "spicetify-hook",
+                onClick: item.onClick,
+            });
         }
-    }).observe(menuEl, { childList: true });
+
+        const result = [];
+
+        for (const item of collection) {
+            let reactComp;
+            if (item.subItems) {
+                reactComp = menuReact.createElement(itemReact, { label: item.name },
+                    menuReact.createElement(subMenuReact, { isSubmenu: true },
+                        item.subItems.map(createSingleItem)
+                    )
+                );
+            } else {
+                reactComp = createSingleItem(item);
+            }
+            result.push(reactComp);
+        }
+
+        return result;
+    }
 
     class Item {
         constructor(name, isEnabled, onClick) {
-            this.item = document.createElement("button");
-            this.item.innerText = name;
-            this.item.classList.add("MenuItem");
-            this.item.onclick = () => {onClick(this)};
-            this.item.onmouseenter = () => {
-                menuEl.querySelectorAll(".selected").forEach(e => e.classList.remove("selected"));
-                this.item.classList.add("selected");
-            }
-            this.item.onmouseleave = () => {
-                this.item.classList.remove("selected");
-            }
-            this.setState(isEnabled);
-        }
-        setName(name) {
-            this.item.innerText = name
+            this.name = name;
+            this.isEnabled = isEnabled;
+            this.onClick = () => {onClick(this)};
         }
         setState(isEnabled) {
-            if (isEnabled) {
-                this.item.classList.add(
-                    "MenuItemToggle--checked",
-                    "MenuItem--is-active"
-                );
-            } else {
-                this.item.classList.remove(
-                    "MenuItemToggle--checked",
-                    "MenuItem--is-active"
-                );
-            }
+            this.isEnabled = isEnabled;
+        }
+        setName(name) {
+            this.name = name
         }
         register() {
-            collection.add(this.item);
+            collection.add(this);
         }
         deregister() {
-            collection.delete(this.item);
-        }
-        getElement() {
-            return this.item;
+            collection.delete(this);
         }
     }
 
     class SubMenu {
         constructor(name, subItems) {
-            this.item = document.createElement("div");
-            this.item.innerText = name;
-            this.item.classList.add("MenuItem", "MenuItem--has-submenu");
-
-            const subMenu = document.createElement("div");
-            subMenu.classList.add("Menu", "Menu--is-submenu");
-
-            for (const item of subItems) {
-                subMenu.appendChild(item.getElement());
-            }
-
-            this.item.appendChild(subMenu);
-            this.item.onmouseenter = () => {
-                subMenu.classList.add("open");
-                this.item.classList.add("selected");
-            };
-            subMenu.onmouseleave = () => {
-                subMenu.classList.remove("open");
-                this.item.classList.remove("selected");
-            };
+            this.name = name;
+            this.subItems = subItems;
         }
         setName(name) {
-            this.item.innerText = name
+            this.name = name;
         }
         register() {
-            collection.add(this.item);
+            collection.add(this);
         }
         deregister() {
-            collection.delete(this.item);
-        }
-        getElement() {
-            return this.item;
+            collection.delete(this);
         }
     }
 
-    return { Item, SubMenu }
+    return { Item, SubMenu, _hook }
 })();
 
 Spicetify.ContextMenu = (function () {
@@ -1504,8 +1509,12 @@ Spicetify.ContextMenu = (function () {
             }
         }
         set icon(name) {
+            if (!name) {
+                this._icon = null;
+                return;
+            }
             if (!Item.iconList.includes(name)) {
-                throw "Spicetify.ContextMenu.Item: icon is not a valid icon name.";
+                throw `Spicetify.ContextMenu.Item: "${name}" is not a valid icon name.`;
             }
             this._icon = {
                 type: "spoticon",
@@ -1531,7 +1540,7 @@ Spicetify.ContextMenu = (function () {
         }
         set name(text) {
             if (typeof text !== "string") {
-                throw "Spicetify.ContextMenu.Item.setName: name is not a string";
+                throw "Spicetify.ContextMenu.SubMenu: name is not a string";
             }
             this._name = text;
         }
@@ -1548,12 +1557,16 @@ Spicetify.ContextMenu = (function () {
             if (typeof func == "function") {
                 this._shouldAdd = func.bind(this);
             } else {
-                throw "Spicetify.ContextMenu.Item: shouldAdd is not a function";
+                throw "Spicetify.ContextMenu.SubMenu: shouldAdd is not a function";
             }
         }
         set icon(name) {
-            if (!SubMenu.iconList.includes(name)) {
-                throw "Spicetify.ContextMenu.Item: icon is not a valid icon name.";
+            if (!name) {
+                this._icon = null;
+                return;
+            }
+            if (!SubMenu.iconList.includes()) {
+                throw `Spicetify.ContextMenu.SubMenu: "${name}" is not a valid icon name.`;
             }
             this._icon = {
                 type: "spoticon",
@@ -1613,3 +1626,106 @@ Spicetify.ContextMenu = (function () {
 
     return { Item, SubMenu, _addItems };
 })();
+
+Spicetify.Abba = (function() {
+    const STORAGE_KEY = "Spicetify.OverrideAbbaFlags";    
+    const STORAGE = window.top.localStorage;
+
+    const storedOverrideFlags = STORAGE.getItem(STORAGE_KEY);
+    window.__spotify.product_state.abbaOverrides = storedOverrideFlags;
+
+    let _overrideFlags;
+    if (storedOverrideFlags) {
+        try {
+            _overrideFlags = JSON.parse(storedOverrideFlags);
+        } catch {
+            _overrideFlags = {};
+        }
+    } else {
+        _overrideFlags = {};
+    }
+
+    function getFlag(name, callback) {
+        if (typeof callback !== "function") {
+            console.error("callback is not a function");
+            return;
+        }
+        if (typeof name === "string") {
+            name = [name];
+        }
+        Spicetify.CosmosAPI.resolver.post({
+            url: "sp://abba/v1/flags",
+            body: { flags: name }
+        }, (error, res) => {
+            if (error) {
+                console.error(error);
+                return;
+            }
+            callback(res.getJSONBody().flags);
+        });
+    }
+
+    function getInUseFlags(callback) {
+        if (typeof callback !== "function") {
+            console.error("callback is not a function");
+            return;
+        }
+        Spicetify.CosmosAPI.resolver.get("sp://abba/v1/requested_flag_names", (error, res) => {
+            if (error) {
+                console.error(error);
+                return;
+            }
+            callback(res.getJSONBody());
+        });
+    }
+
+    function getAllFlags(callback) {
+        if (typeof callback !== "function") {
+            console.error("callback is not a function");
+            return;
+        }
+        Spicetify.CosmosAPI.resolver.get("sp://abba/v1/all_flags", (error, res) => {
+            if (error) {
+                console.error(error);
+                return;
+            }
+            callback(res.getJSONBody());
+        });
+    }
+
+    function getOverrideFlags() {
+        return _overrideFlags;
+    }
+
+    function _syncStorage() {
+        const stringified = JSON.stringify(_overrideFlags);
+        STORAGE.setItem(STORAGE_KEY, stringified);
+        window.__spotify.product_state.abbaOverrides = stringified;
+    }
+
+    function addOverrideFlag(name, value) {
+        _overrideFlags[name] = value;
+        _syncStorage();
+        console.info("Please reload Spotify for overried flags to be effective")
+    }
+
+    function removeOverrideFlag(name) {
+        if (_overrideFlags.hasOwnProperty(name)) {
+            delete _overrideFlags[name];
+            _syncStorage();
+            console.info(`Flag ${name} succesfully removed from Override Flags. Please reload Spotify.`);
+        }
+    }
+
+    return {
+        getFlag,
+        getInUseFlags,
+        getAllFlags,
+        getOverrideFlags,
+        addOverrideFlag,
+        removeOverrideFlag,
+    };
+})();
+
+// Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
+window.Spicetify = Spicetify;

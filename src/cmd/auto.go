@@ -27,6 +27,4 @@ func Auto() {
 	if !spotStat.IsApplied() && backStat.IsBackuped() {
 		Apply()
 	}
-
-	RestartSpotify()
 }

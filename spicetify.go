@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	version = "0.9.8"
+	version = "0.9.9"
 )
 
 var (
@@ -22,6 +22,8 @@ var (
 	quiet          = false
 	extensionFocus = false
 	appFocus       = false
+	noRestart      = false
+	liveUpdate     = false
 )
 
 func init() {
@@ -71,6 +73,10 @@ func init() {
 			appFocus = true
 		case "-q", "--quiet":
 			quiet = true
+		case "-n", "--no-restart":
+			noRestart = true
+		case "-l", "--live-update":
+			liveUpdate = true
 		}
 	}
 
@@ -153,6 +159,7 @@ func main() {
 
 		case "apply":
 			cmd.Apply()
+			restartSpotify()
 
 		case "update":
 			if extensionFocus {
@@ -163,18 +170,21 @@ func main() {
 
 		case "restore":
 			cmd.Restore()
+			restartSpotify()
 
 		case "enable-devtool":
 			cmd.SetDevTool(true)
+			restartSpotify()
 
 		case "disable-devtool":
 			cmd.SetDevTool(false)
+			restartSpotify()
 
 		case "watch":
 			if extensionFocus {
-				cmd.WatchExtensions()
+				cmd.WatchExtensions(liveUpdate)
 			} else {
-				cmd.Watch()
+				cmd.Watch(liveUpdate)
 			}
 
 		case "restart":
@@ -182,12 +192,19 @@ func main() {
 
 		case "auto":
 			cmd.Auto()
+			restartSpotify()
 
 		default:
 			utils.PrintError(`Command "` + v + `" not found.`)
 			utils.PrintInfo(`Run "spicetify -h" for list of valid commands.`)
 			os.Exit(1)
 		}
+	}
+}
+
+func restartSpotify() {
+	if !noRestart {
+		cmd.RestartSpotify()
 	}
 }
 
@@ -226,7 +243,7 @@ path                Print path of color, css, extension file or
                     custom app directory and quit.
                     1. Print all theme's assests:
                     spicetify path
-                    2. Print theme's color.inc path:
+                    2. Print theme's color.ini path:
                     spicetify path color
                     3. Print theme's user.css path:
                     spicetify path css
@@ -295,6 +312,11 @@ color               1. Print all color fields and values.
 
 -a, --app           Use with "path" to focus on custom apps.
 
+-n, --no-restart    Do not restart Spotify after running command(s), except
+                    "restart" command.
+
+-l, --live-update   Use with "watch" command to auto-reload Spotify on change
+
 -c, --config        Print config file path and quit
 
 -h, --help          Print this help text and quit
@@ -315,7 +337,11 @@ prefs_path
     Path to Spotify's "prefs" file
 
 current_theme
-    Name of folder of your theme
+	Name of folder of your theme
+
+color_scheme
+	Color config section name in color.ini file.
+	If color_scheme is blank, first section in color.ini file would be used.
 
 inject_css <0 | 1>
     Whether custom css from user.css in theme folder is applied
@@ -325,7 +351,7 @@ replace_colors <0 | 1>
 
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>
-    Prevents Sentry to send console log/error/warning to Spotify developers.
+    Prevents Sentry and Amazon Qualaroo to send console log/error/warning to Spotify developers.
     Enable if you don't want to catch their attention when developing extension or app.
 
 disable_ui_logging <0 | 1>
