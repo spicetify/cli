@@ -31,8 +31,14 @@
     class ReleaseCollection {
         constructor() {
             this.list = {}
-            this.container = createMenu()
-            this.items = this.container.firstElementChild
+            const menu = createMenu()
+            this.container = menu.container
+            this.items = menu.menu
+            this.lastScroll = 0
+            this.container.onclick = () => {
+                this.storeScroll()
+                this.container.remove()
+            }
         }
 
         apply(collection, unlistenedOnly) {
@@ -47,27 +53,31 @@
 
                 if (listened && unlistenedOnly) continue
 
-                const div = document.createElement("div")
-                div.track = item
+                const div = new CardContainer(item)
+                div.setState(listened)
                 this.items.append(div)
             }
             this.update()
         }
 
         update(unlistenedOnly) {
-            let array = Array.from(this.items.childNodes)
+            /** @type {CardContainer[]}*/
+            // @ts-ignore
+            const array = Array.from(this.items.childNodes)
+            array
                 .sort((a, b) => (
-                    (this.list[a.track.uri] - this.list[b.track.uri]) ||
-                    (b.track.time - a.track.time)
+                    (this.list[a.uri] - this.list[b.uri]) ||
+                    (b.time - a.time)
                 ))
-
-            array.forEach(child => {
-                if (this.list[child.track.uri] && unlistenedOnly) {
-                    this.items.removeChild(child)
-                    return
-                }
-                this.items.append(createCard(child))
-            })
+                .forEach(child => {
+                    const state = this.list[child.uri]
+                    if (state && unlistenedOnly) {
+                        this.items.removeChild(child)
+                        return
+                    }
+                    child.setState(state)
+                    this.items.append(child)
+                })
         }
 
         // Is URI in collection and ready to change status
@@ -79,16 +89,10 @@
             return !!this.list[uri]
         }
 
-        // Change URI status to listened (true)
-        listen(uri) {
+        // Change URI listened status
+        setListen(uri, state) {
             if (this.isValid(uri)) {
-                this.list[uri] = true
-            }
-        }
-
-        unListen(uri) {
-            if (this.isValid(uri)) {
-                this.list[uri] = false
+                this.list[uri] = state
             }
         }
 
@@ -100,7 +104,6 @@
             return Object.values(this.list).filter(value => !value).length
         }
 
-        /** @return {Set<string>} */
         getStorage() {
             let storage = new Set()
 
@@ -123,7 +126,7 @@
 
         setStorage(isFollowedOnly) {
             const simplified = Object.keys(this.list)
-                    .filter(key => this.list[key])
+                .filter(key => this.list[key])
             LocalStorage.set(
                 isFollowedOnly ?
                     LISTENED_URI_STORAGE_KEY :
@@ -133,7 +136,20 @@
         }
 
         setMessage(msg) {
-            this.items.innerHTML = `<div style="margin-top: 10px">${msg}</div>`
+            this.items.innerHTML = `<div id="new-release-message">${msg}</div>`
+        }
+
+        changePosition(x, y) {
+            this.items.style.left = x + "px"
+            this.items.style.top = y + 10 + "px"
+        }
+
+        storeScroll() {
+            this.lastScroll = this.items.scrollTop
+        }
+
+        setScroll() {
+            this.items.scrollTop = this.lastScroll
         }
     }
 
@@ -143,7 +159,7 @@
             this.span = createCounterSpan()
             this.container.append(this.span)
 
-             // In case keys do not exist
+            // In case keys do not exist
             if (!LocalStorage.get(FOLLOWEDONLY_SETTING_KEY)) {
                 this.setFollowedOnly(true)
             }
@@ -191,15 +207,14 @@
 
     const LIST = new ReleaseCollection()
     const BUTTON = new TopBarButton()
+    const limitInMs = DAYS_LIMIT * 24 * 3600 * 1000
     let today
-    let limitInMs
 
     document.querySelector("#view-browser-navigation-top-bar")
         .append(BUTTON.container)
 
     async function main() {
         today = new Date().getTime()
-        limitInMs = DAYS_LIMIT * 24 * 3600 * 1000
 
         BUTTON.update(0)
         BUTTON.loadingState()
@@ -210,6 +225,7 @@
             artistList = artistList.filter(artist => artist.isFollowed)
             if (artistList.length === 0) {
                 LIST.setMessage(NO_FOLLOWED_ARTIST_TEXT)
+                BUTTON.idleState()
                 return
             }
         }
@@ -254,9 +270,9 @@
         if (!LIST.isValid(uri)) {
             uri = Player.data.track.metadata.album_uri
         }
-        if (LIST.isListened(uri)) return;
+        if (LIST.isListened(uri)) return
 
-        LIST.listen(uri)
+        LIST.setListen(uri, true)
         update()
     })
 
@@ -264,7 +280,7 @@
     const checkURI = ([uri]) => uri === "spotify:special:new-release"
     new ContextMenu.Item(
         "Followed artists only",
-        function(){
+        function () {
             const state = !BUTTON.isFollowedOnly()
             BUTTON.setFollowedOnly(state)
             this.icon = state ? "check" : null
@@ -276,7 +292,7 @@
 
     new ContextMenu.Item(
         "Unlistened releases only",
-        function(){
+        function () {
             const state = !BUTTON.isUnlistenedOnly()
             BUTTON.setUnlistenedOnly(state)
             this.icon = state ? "check" : null
@@ -323,15 +339,11 @@
         button.setAttribute("data-tooltip", BUTTON_NAME_TEXT)
         button.setAttribute("data-contextmenu", "")
         button.setAttribute("data-uri", "spotify:special:new-release")
-        button.style.backgroundColor = "var(--modspotify_main_fg)"
-        button.style.color = "var(--modspotify_secondary_fg)"
-        button.style.padding = "5px 10px"
-        button.style.borderRadius = "10px"
         button.onclick = () => {
             const bound = button.getBoundingClientRect()
-            LIST.container.firstElementChild.style.left = bound.left + "px"
-            LIST.container.firstElementChild.style.top = bound.bottom + 10 + "px"
+            LIST.changePosition(bound.left, bound.top)
             document.body.append(LIST.container)
+            LIST.setScroll()
         }
         return button
     }
@@ -346,93 +358,105 @@
         const container = document.createElement("div")
         container.id = "new-release-spicetify"
         container.className = "context-menu-container"
-        container.style.zIndex = "2147483646"
+        container.style.zIndex = "1029"
 
-        container.onclick = () => container.remove()
+        const style = document.createElement("style")
+        style.textContent = `
+#new-release-menu {
+    display: inline-block;
+    width: 33%;
+    max-height: 70%;
+    overflow: hidden auto;
+    padding: 0 10px 10px
+}
+#new-release-message {
+    margin-top: 10px
+}
+.new-release-controls {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    padding: 0 5px 5px 0;
+    z-index: 3
+}`
 
-        const menu = document.createElement("div")
+        const menu = document.createElement("ul")
+        menu.id = "new-release-menu"
         menu.className = "context-menu"
-        menu.style.display = "inline-block"
-        menu.style.width = "33%"
-        menu.style.maxHeight = "70%"
-        menu.style.overflow = "hidden auto"
-        menu.style.padding = "0 10px 10px"
 
+        container.append(style)
         container.append(menu)
 
-        return container
+        return { container, menu }
     }
 
-    function onPlayButtonClick(event) {
-        PlaybackControl.playFromResolver(event.target.getAttribute("uri"), {}, () => { })
-        event.stopPropagation()
-        event.preventDefault()
-    }
+    class CardContainer extends HTMLElement {
+        constructor(info) {
+            super()
+            this.uri = info.uri
+            this.time = info.time.getTime()
+            this.state = false
 
-    function onControlClick(event) {
-        const {isListened, track} = event.target.parentElement.parent
-        isListened ? LIST.unListen(track.uri) : LIST.listen(track.uri)
-        update()
-        event.stopPropagation()
-        event.preventDefault()
-    }
-
-    function onMouseEnter({target}) {
-        target.controls.classList.remove("hidden")
-    }
-
-    function onMouseLeave({target}) {
-        target.controls.classList.add("hidden")
-    }
-
-    function createCard(item) {
-        item = item || document.createElement("div")
-        item.isListened = LIST.isListened(item.track.uri)
-
-        item.innerHTML = `
-<div class="card card-horizontal card-horizontal-size-medium card-type-album" data-uri="${item.track.uri}" data-contextmenu="">
+            this.innerHTML = `
+<div class="card card-horizontal card-type-album" data-uri="${info.uri}" data-contextmenu="">
 <div class="card-attention-highlight-box"></div>
 <div class="card-horizontal-interior-wrapper">
     <div class="card-image-wrapper">
         <div class="card-image-hit-area">
-            <a href="${item.track.uri}" class="card-image-link ">
+            <a href="${info.uri}" class="card-image-link">
                 <div class="card-hit-area-counter-scale-left"></div>
                 <div class="card-image-content-wrapper">
-                    <div class="card-image" style="
-                        background-image: url('${item.track.cover}');
-                        ${item.isListened ? "filter: grayscale(1)" : ""};
-                    "></div>
+                    <div class="card-image" style="background-image: url('${info.cover}')"></div>
                 </div>
             </a>
             <div class="card-overlay"></div>
-            <button type="button" class="button button-play button-icon-with-stroke card-button-play" uri="${item.track.uri}"></button>
+            <button class="button button-play button-icon-with-stroke card-button-play"></button>
         </div>
     </div>
     <div class="card-info-wrapper">
-        <div class="new-release-controls hidden" style="position: absolute; right: 0; bottom: 0; padding: 0 5px 5px 0; z-index: 3">
-            ${item.isListened ?
-                `<button class="button button-green spoticon-notifications-16" data-tooltip="${UNIGNORE_TEXT}"></button>` :
-                `<button class="button button-green">${IGNORE_TEXT}</button>`
-            }
-        </div>
-        <a href="${item.track.uri}">
+        <div class="new-release-controls hidden"></div>
+        <a href="${info.uri}">
             <div class="card-hit-area-counter-scale-right"></div>
             <div class="card-info-content-wrapper">
-                <div class="card-info-title"><span class="card-info-title-text">${item.track.name}</span></div>
-                <div class="card-info-subtitle-description"><span>${item.track.artist}</span></div>
-                <div class="card-info-subtitle-metadata">${item.track.time.toLocaleDateString()}</div>
+                <div class="card-info-title"><span class="card-info-title-text">${info.name}</span></div>
+                <div class="card-info-subtitle-description"><span>${info.artist}</span></div>
+                <div class="card-info-subtitle-metadata">${info.time.toLocaleDateString()}</div>
             </div>
         </a>
     </div>
 </div>
 </div>`
 
-        item.querySelector("button.button-play").onclick = onPlayButtonClick
-        item.controls = item.querySelector(".new-release-controls")
-        item.controls.parent = item
-        item.controls.onclick = onControlClick
-        item.onmouseenter = onMouseEnter
-        item.onmouseleave = onMouseLeave
-        return item
+            this.querySelector("button").onclick = (event) => {
+                PlaybackControl.playFromResolver(this.uri, {}, () => { })
+                event.stopPropagation()
+            }
+
+            /** @type {HTMLDivElement} */
+            this.cover = this.querySelector(".card-image")
+
+            /** @type {HTMLDivElement} */
+            this.controls = this.querySelector(".new-release-controls")
+            this.controls.onclick = (event) => {
+                LIST.setListen(this.uri, !this.state)
+                update()
+                event.stopPropagation()
+            }
+            this.onmouseenter = () => this.controls.classList.remove("hidden")
+            this.onmouseleave = () => this.controls.classList.add("hidden")
+        }
+
+        setState(state) {
+            this.state = state
+            if (state) {
+                this.cover.style.filter = "grayscale(1)"
+                this.controls.innerHTML = `<button class="button button-green spoticon-notifications-16" data-tooltip="${UNIGNORE_TEXT}"></button>`
+            } else {
+                this.cover.style.filter = ""
+                this.controls.innerHTML = `<button class="button button-green">${IGNORE_TEXT}</button>`
+            }
+        }
     }
+
+    customElements.define("card-container", CardContainer)
 })()
