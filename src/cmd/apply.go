@@ -14,38 +14,7 @@ import (
 
 // Apply .
 func Apply() {
-	backupVersion := backupSection.Key("version").MustString("")
-	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
-	spotStat := spotifystatus.Get(spotifyPath)
-
-	if backStat.IsEmpty() {
-		if spotStat.IsBackupable() {
-			utils.PrintError(`You haven't backed up. Run "spicetify backup apply".`)
-
-		} else {
-			utils.PrintError(`You haven't backed up and Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
-		}
-		os.Exit(1)
-
-	} else if backStat.IsOutdated() {
-		utils.PrintWarning("Spotify version and backup version are mismatched.")
-
-		if spotStat.IsMixed() {
-			utils.PrintInfo(`Spotify client possibly just had an new update.`)
-			utils.PrintInfo(`Please run "spicetify backup apply".`)
-
-		} else if spotStat.IsStock() {
-			utils.PrintInfo(`Please run "spicetify backup apply".`)
-
-		} else {
-			utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
-		}
-
-		if !ReadAnswer("Continue applying anyway? [y/N] ", false, true) {
-			os.Exit(1)
-		}
-	}
-
+	checkStates()
 	InitSetting()
 
 	// Copy raw assets to Spotify Apps folder if Spotify is never applied
@@ -53,7 +22,7 @@ func Apply() {
 	// extractedStock is for preventing copy raw assets 2 times when
 	// replaceColors is false.
 	extractedStock := false
-	if !spotStat.IsApplied() {
+	if !spotifystatus.Get(spotifyPath).IsApplied() {
 		utils.PrintBold(`Copying raw assets:`)
 		if err := os.RemoveAll(appPath); err != nil {
 			utils.Fatal(err)
@@ -133,6 +102,7 @@ func Apply() {
 
 // UpdateTheme updates user.css and overwrites custom assets
 func UpdateTheme() {
+	checkStates()
 	InitSetting()
 
 	if len(themeFolder) == 0 {
@@ -166,12 +136,49 @@ func updateAssets() {
 
 // UpdateAllExtension pushs all extensions to Spotify
 func UpdateAllExtension() {
+	checkStates()
 	list := featureSection.Key("extensions").Strings("|")
 	if len(list) > 0 {
 		pushExtensions(list...)
 		utils.PrintSuccess(utils.PrependTime("All extensions are updated."))
 	} else {
 		utils.PrintError("No extension to update.")
+	}
+}
+
+// checkStates examines both Backup and Spotify states to promt informative
+// instruction for users
+func checkStates() {
+	backupVersion := backupSection.Key("version").MustString("")
+	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
+	spotStat := spotifystatus.Get(spotifyPath)
+
+	if backStat.IsEmpty() {
+		if spotStat.IsBackupable() {
+			utils.PrintError(`You haven't backed up. Run "spicetify backup apply".`)
+
+		} else {
+			utils.PrintError(`You haven't backed up and Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
+		}
+		os.Exit(1)
+
+	} else if backStat.IsOutdated() {
+		utils.PrintWarning("Spotify version and backup version are mismatched.")
+
+		if spotStat.IsMixed() {
+			utils.PrintInfo(`Spotify client possibly just had an new update.`)
+			utils.PrintInfo(`Please run "spicetify backup apply".`)
+
+		} else if spotStat.IsStock() {
+			utils.PrintInfo(`Please run "spicetify backup apply".`)
+
+		} else {
+			utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
+		}
+
+		if !ReadAnswer("Continue anyway? [y/N] ", false, true) {
+			os.Exit(1)
+		}
 	}
 }
 
