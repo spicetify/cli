@@ -51,6 +51,7 @@ func Watch(liveUpdate bool) {
 			}
 
 			updateAssets()
+			utils.PrintSuccess(utils.PrependTime("Custom assets are updated"))
 		}, autoReloadFunc)
 	}
 
@@ -61,6 +62,7 @@ func Watch(liveUpdate bool) {
 
 		InitSetting()
 		updateCSS()
+		utils.PrintSuccess(utils.PrependTime("Custom CSS is updated"))
 	}, autoReloadFunc)
 }
 
@@ -120,8 +122,12 @@ func isValidForWatching() bool {
 }
 
 func startDebugger() {
-	if debuggerURL = utils.GetDebuggerPath(); len(debuggerURL) == 0 {
+	if len(utils.GetDebuggerPath()) == 0 {
 		RestartSpotify("--remote-debugging-port=9222")
+		utils.PrintInfo("Spotify is restarted with debugger on. Waiting...")
+		for len(utils.GetDebuggerPath()) == 0 {
+			// Wait until debugger is up
+		}
 	}
 	autoReloadFunc = func() {
 		if utils.SendReload(&debuggerURL) != nil {

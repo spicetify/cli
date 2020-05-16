@@ -86,9 +86,9 @@ func InitPaths() {
 
 // InitSetting parses theme settings and gets color section.
 func InitSetting() {
-	replaceColors = settingSection.Key("replace_colors").MustInt(0) == 1
-	injectCSS = settingSection.Key("inject_css").MustInt(0) == 1
-	overwriteAssets = settingSection.Key("overwrite_assets").MustInt(0) == 1
+	replaceColors = settingSection.Key("replace_colors").MustBool(false)
+	injectCSS = settingSection.Key("inject_css").MustBool(false)
+	overwriteAssets = settingSection.Key("overwrite_assets").MustBool(false)
 
 	themeName := settingSection.Key("current_theme").String()
 

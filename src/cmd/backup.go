@@ -65,10 +65,10 @@ func Backup() {
 	preprocess.Start(
 		rawFolder,
 		preprocess.Flag{
-			DisableSentry:  preprocSection.Key("disable_sentry").MustInt(0) == 1,
-			DisableLogging: preprocSection.Key("disable_ui_logging").MustInt(0) == 1,
-			RemoveRTL:      preprocSection.Key("remove_rtl_rule").MustInt(0) == 1,
-			ExposeAPIs:     preprocSection.Key("expose_apis").MustInt(0) == 1,
+			DisableSentry:  preprocSection.Key("disable_sentry").MustBool(false),
+			DisableLogging: preprocSection.Key("disable_ui_logging").MustBool(false),
+			RemoveRTL:      preprocSection.Key("remove_rtl_rule").MustBool(false),
+			ExposeAPIs:     preprocSection.Key("expose_apis").MustBool(false),
 		},
 		tracker.Update,
 	)

@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/go-ini/ini"
 	"github.com/khanhas/spicetify-cli/src/apply"
 	backupstatus "github.com/khanhas/spicetify-cli/src/status/backup"
 	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
@@ -49,18 +48,12 @@ func Apply() {
 	}
 
 	utils.PrintBold(`Transferring user.css:`)
-	apply.UserCSS(
-		appPath,
-		themeFolder,
-		injectCSS,
-		replaceColors,
-		colorSection,
-	)
+	updateCSS()
 	utils.PrintGreen("OK")
 
 	if overwriteAssets {
 		utils.PrintBold(`Overwriting custom assets:`)
-		apply.UserAsset(appPath, themeFolder)
+		updateAssets()
 		utils.PrintGreen("OK")
 	}
 
@@ -69,16 +62,16 @@ func Apply() {
 
 	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appPath, apply.Flag{
-		ExperimentalFeatures: toTernary(featureSection, "experimental_features"),
-		FastUserSwitching:    toTernary(featureSection, "fastUser_switching"),
-		Home:                 toTernary(featureSection, "home"),
-		LyricAlwaysShow:      toTernary(featureSection, "lyric_always_show"),
-		LyricForceNoSync:     toTernary(featureSection, "lyric_force_no_sync"),
-		Radio:                toTernary(featureSection, "radio"),
-		SongPage:             toTernary(featureSection, "song_page"),
-		VisHighFramerate:     toTernary(featureSection, "visualization_high_framerate"),
-		XPUI:                 toTernary(featureSection, "minimal_ui"),
-		TasteBuds:            toTernary(featureSection, "tastebuds"),
+		ExperimentalFeatures: toTernary("experimental_features"),
+		FastUserSwitching:    toTernary("fastUser_switching"),
+		Home:                 toTernary("home"),
+		LyricAlwaysShow:      toTernary("lyric_always_show"),
+		LyricForceNoSync:     toTernary("lyric_force_no_sync"),
+		Radio:                toTernary("radio"),
+		SongPage:             toTernary("song_page"),
+		VisHighFramerate:     toTernary("visualization_high_framerate"),
+		XPUI:                 toTernary("minimal_ui"),
+		TasteBuds:            toTernary("tastebuds"),
 		Extension:            extentionList,
 		CustomApp:            customAppsList,
 	})
@@ -111,27 +104,28 @@ func UpdateTheme() {
 	}
 
 	updateCSS()
+	utils.PrintSuccess("Custom CSS is updated")
 
 	if overwriteAssets {
 		updateAssets()
+		utils.PrintSuccess("Custom assets are updated")
 	}
 }
 
 func updateCSS() {
-	apply.UserCSS(
-		appPath,
-		themeFolder,
-		injectCSS,
-		replaceColors,
-		colorSection,
-	)
-
-	utils.PrintSuccess(utils.PrependTime("Custom CSS is updated"))
+	var scheme map[string]string = nil
+	if colorSection != nil {
+		scheme = colorSection.KeysHash()
+	}
+	theme := themeFolder
+	if !injectCSS {
+		theme = ""
+	}
+	apply.UserCSS(appPath, theme, scheme)
 }
 
 func updateAssets() {
 	apply.UserAsset(appPath, themeFolder)
-	utils.PrintSuccess(utils.PrependTime("Custom assets are updated"))
 }
 
 // UpdateAllExtension pushs all extensions to Spotify
@@ -247,8 +241,8 @@ func pushApps(list ...string) {
 	}
 }
 
-func toTernary(section *ini.Section, key string) utils.TernaryBool {
-	return utils.TernaryBool(section.Key(key).MustInt(0))
+func toTernary(key string) utils.TernaryBool {
+	return utils.TernaryBool(featureSection.Key(key).MustInt(0))
 }
 
 func nodeModuleSymlink() {

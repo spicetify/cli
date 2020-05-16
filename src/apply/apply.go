@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/go-ini/ini"
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
@@ -83,30 +82,22 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	}
 }
 
-// UserCSS .
-func UserCSS(appsFolderPath, themeFolder string, injectCSS, customColor bool, scheme *ini.Section) {
-	var userCSS string
-
-	if customColor {
-		userCSS += getColorCSS(scheme)
-	} else {
-		userCSS += getColorCSS(nil)
-	}
-
-	if injectCSS {
-		userCSS += getUserCSS(themeFolder)
-	}
-
-	userCSSDestPath := filepath.Join(appsFolderPath, "zlink", "css", "user.css")
-	if err := ioutil.WriteFile(userCSSDestPath, []byte(userCSS), 0700); err != nil {
-		utils.Fatal(err)
-	}
-
+// UserCSS creates user.css file in "zlink", "login" and "settings" apps.
+// To not use custom css, set `themeFolder` to blank string
+// To use default color scheme, set `scheme` to `nil`
+func UserCSS(appsFolderPath, themeFolder string, scheme map[string]string) {
+	css := []byte(getColorCSS(scheme) + getUserCSS(themeFolder))
 	// "login" app is initially loaded apps so it needs its own assets,
 	// unlike other apps that are able to depend on zlink assets.
-	userCSSDestPath = filepath.Join(appsFolderPath, "login", "css", "user.css")
-	if err := ioutil.WriteFile(userCSSDestPath, []byte(userCSS), 0700); err != nil {
-		utils.Fatal(err)
+	// "setting" app can be accessed from "login" app so it also needs its css file
+	// else it would not load.
+	apps := []string{"zlink", "login", "settings"}
+
+	for _, v := range apps {
+		dest := filepath.Join(appsFolderPath, v, "css", "user.css")
+		if err := ioutil.WriteFile(dest, css, 0700); err != nil {
+			utils.Fatal(err)
+		}
 	}
 }
 
@@ -182,6 +173,10 @@ func xpuiMod(jsPath string, flags Flag) {
 }
 
 func getUserCSS(themeFolder string) string {
+	if len(themeFolder) == 0 {
+		return ""
+	}
+
 	cssFilePath := filepath.Join(themeFolder, "user.css")
 	_, err := os.Stat(cssFilePath)
 
@@ -197,16 +192,14 @@ func getUserCSS(themeFolder string) string {
 	return string(content)
 }
 
-func getColorCSS(scheme *ini.Section) string {
-	if scheme == nil {
-		scheme = ini.Empty().Section("")
-	}
-
+func getColorCSS(scheme map[string]string) string {
 	var variableList string
 	mergedScheme := make(map[string]string)
 
-	for _, v := range scheme.Keys() {
-		mergedScheme[v.Name()] = v.String()
+	if scheme != nil {
+		for k, v := range scheme {
+			mergedScheme[k] = v
+		}
 	}
 
 	for k, v := range utils.BaseColorList {
