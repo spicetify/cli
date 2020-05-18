@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/khanhas/spicetify-cli/src/apply"
 	backupstatus "github.com/khanhas/spicetify-cli/src/status/backup"
@@ -193,18 +194,43 @@ func getExtensionPath(name string) (string, error) {
 }
 
 func pushExtensions(list ...string) {
-	zlinkFolder := filepath.Join(spotifyPath, "Apps", "zlink")
+	var err error
+	var zlinkFolder = filepath.Join(spotifyPath, "Apps", "zlink")
 
 	for _, v := range list {
-		extPath, err := getExtensionPath(v)
-		if err != nil {
-			utils.PrintError(`Extension "` + v + `" not found.`)
-			continue
+		var extName, extPath string
+
+		if filepath.IsAbs(v) {
+			extName = filepath.Base(v)
+			extPath = v
+		} else {
+			extName = v
+			extPath, err = getExtensionPath(v)
+			if err != nil {
+				utils.PrintError(`Extension "` + extName + `" not found.`)
+				continue
+			}
 		}
 
 		if err = utils.CopyFile(extPath, zlinkFolder); err != nil {
 			utils.PrintError(err.Error())
 			continue
+		}
+
+		if strings.HasSuffix(extName, ".mjs") {
+			utils.ModifyFile(filepath.Join(zlinkFolder, extName), func(content string) string {
+				lines := strings.Split(content, "\n")
+				for i := 0; i < len(lines); i++ {
+					mapping := utils.FindSymbol("", lines[i], []string{
+						`//\s*spicetify_map\{(.+?)\}\{(.+?)\}`,
+					})
+					if len(mapping) > 0 {
+						lines[i+1] = strings.Replace(lines[i+1], mapping[0], mapping[1], 1)
+					}
+				}
+
+				return strings.Join(lines, "\n")
+			})
 		}
 	}
 }

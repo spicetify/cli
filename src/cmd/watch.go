@@ -93,18 +93,13 @@ func WatchExtensions(liveUpdate bool) {
 		os.Exit(1)
 	}
 
-	zlinkFolder := filepath.Join(appPath, "zlink")
-
 	utils.Watch(extPathList, func(filePath string, err error) {
 		if err != nil {
 			utils.PrintError(err.Error())
 			os.Exit(1)
 		}
 
-		if err = utils.CopyFile(filePath, zlinkFolder); err != nil {
-			utils.PrintError(err.Error())
-			os.Exit(1)
-		}
+		pushExtensions(filePath)
 
 		utils.PrintSuccess(utils.PrependTime(`Extension "` + filePath + `" is updated.`))
 	}, autoReloadFunc)
