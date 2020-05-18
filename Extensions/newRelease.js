@@ -61,6 +61,9 @@
         }
 
         update(unlistenedOnly) {
+            if (this.getLen() === 0) {
+                return;
+            }
             /** @type {CardContainer[]}*/
             // @ts-ignore
             const array = Array.from(this.items.childNodes)
@@ -97,7 +100,7 @@
         }
 
         getLen() {
-            return this.items.childElementCount
+            return Object.values(this.list).length
         }
 
         getUnlistenedLen() {
@@ -170,22 +173,20 @@
 
         update(count) {
             if (count > 0) {
-                this.span.style.margin = "0 0 0 3px"
+                this.span.hidden = false
                 this.span.innerText = count + ""
             } else {
-                this.span.style.margin = ""
-                this.span.innerText = ""
+                this.span.hidden = true
             }
         }
 
         loadingState() {
-            this.container.classList.remove("spoticon-notifications-16")
-            this.container.classList.add("spoticon-refresh-16")
+            this.container.classList.replace("spoticon-notifications-16", "spoticon-refresh-16")
+            this.span.hidden = true
         }
 
         idleState() {
-            this.container.classList.remove("spoticon-refresh-16")
-            this.container.classList.add("spoticon-notifications-16")
+            this.container.classList.replace("spoticon-refresh-16", "spoticon-notifications-16")
         }
 
         isFollowedOnly() {
@@ -216,7 +217,6 @@
     async function main() {
         today = new Date().getTime()
 
-        BUTTON.update(0)
         BUTTON.loadingState()
 
         let artistList = await getArtistList()
@@ -230,21 +230,20 @@
             }
         }
 
-        const requests = artistList
-            .map(async (artist) => {
-                const track = await getArtistNewRelease(artist.link.replace("spotify:artist:", ""))
-                if (!track) return null
-                const time = new Date(track.year, track.month - 1, track.day)
-                if ((today - time.getTime()) < limitInMs) {
-                    return ({
-                        uri: track.uri,
-                        name: track.name,
-                        artist: artist.name,
-                        cover: track.cover.uri,
-                        time,
-                    })
-                }
-            })
+        const requests = artistList.map(async (artist) => {
+            const track = await getArtistNewRelease(artist.link.replace("spotify:artist:", ""))
+            if (!track) return null
+            const time = new Date(track.year, track.month - 1, track.day)
+            if ((today - time.getTime()) < limitInMs) {
+                return ({
+                    uri: track.uri,
+                    name: track.name,
+                    artist: artist.name,
+                    cover: track.cover.uri,
+                    time,
+                })
+            }
+        })
 
         const items = await Promise.all(requests)
         LIST.apply(items, BUTTON.isUnlistenedOnly())
@@ -265,7 +264,7 @@
 
     // Check whether currently playing track is in the new release. Set it "listened" if user is listening to it.
     Player.addEventListener("songchange", () => {
-        if (LIST.getLen() === 0) return
+        if (LIST.getUnlistenedLen() === 0) return
         let uri = Player.data.context_uri
         if (!LIST.isValid(uri)) {
             uri = Player.data.track.metadata.album_uri
@@ -305,32 +304,15 @@
     new ContextMenu.Item("Refresh", main, checkURI).register()
 
     function getArtistList() {
-        return new Promise((resolve, reject) => {
-            CosmosAPI.resolver.get("sp://core-collection/unstable/@/list/artists/all",
-                (err, raw) => {
-                    if (err) {
-                        reject(err)
-                        return
-                    }
-                    resolve(raw.getJSONBody().items)
-                }
-            )
-        })
+        return new Promise((resolve, reject) => { CosmosAPI.resolver.get("sp://core-collection/unstable/@/list/artists/all", (err, raw) => {
+            resolve(!err && raw.getJSONBody().items)
+        })})
     }
 
     function getArtistNewRelease(uri) {
-        return new Promise((resolve) => {
-            CosmosAPI.resolver.get(
-                `hm://artist/v3/${uri}/desktop/entity?format=json`,
-                (err, raw) => {
-                    if (err) {
-                        resolve()
-                        return
-                    }
-                    resolve(raw.getJSONBody().latest_release)
-                }
-            )
-        })
+        return new Promise((resolve) => { CosmosAPI.resolver.get(`hm://artist/v3/${uri}/desktop/entity?format=json`, (err, raw) => {
+            resolve(!err && raw.getJSONBody().latest_release)
+        })})
     }
 
     function createTopBarButton() {
@@ -351,6 +333,7 @@
     function createCounterSpan() {
         const span = document.createElement("span")
         span.id = "new-release-counter"
+        span.style.marginLeft = "3px"
         return span
     }
 
@@ -384,8 +367,7 @@
         menu.id = "new-release-menu"
         menu.className = "context-menu"
 
-        container.append(style)
-        container.append(menu)
+        container.append(style, menu)
 
         return { container, menu }
     }
@@ -414,7 +396,7 @@
         </div>
     </div>
     <div class="card-info-wrapper">
-        <div class="new-release-controls hidden"></div>
+        <div class="new-release-controls"></div>
         <a href="${info.uri}">
             <div class="card-hit-area-counter-scale-right"></div>
             <div class="card-info-content-wrapper">
@@ -442,18 +424,16 @@
                 update()
                 event.stopPropagation()
             }
-            this.onmouseenter = () => this.controls.classList.remove("hidden")
-            this.onmouseleave = () => this.controls.classList.add("hidden")
         }
 
         setState(state) {
             this.state = state
             if (state) {
                 this.cover.style.filter = "grayscale(1)"
-                this.controls.innerHTML = `<button class="button button-green spoticon-notifications-16" data-tooltip="${UNIGNORE_TEXT}"></button>`
+                this.controls.innerHTML = `<button class="button button-green button-icon-only spoticon-notifications-16" data-tooltip="${UNIGNORE_TEXT}"></button>`
             } else {
                 this.cover.style.filter = ""
-                this.controls.innerHTML = `<button class="button button-green">${IGNORE_TEXT}</button>`
+                this.controls.innerHTML = `<button class="button button-green button-icon-only spoticon-x-16" data-tooltip="${IGNORE_TEXT}"></button>`
             }
         }
     }
