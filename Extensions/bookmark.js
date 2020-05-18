@@ -1,72 +1,174 @@
 // @ts-check
 // NAME: Bookmark
 // AUTHOR: khanhas
-// VERSION: 0.1
+// VERSION: 1.0
 // DESCRIPTION: Store page, track, track with time to view/listen later.
 
 /// <reference path="../globals.d.ts" />
 
 (function Bookmark() {
-    if (!Spicetify.LocalStorage) {
-        setTimeout(Bookmark, 1000);
-        return;
+    const { Player, LocalStorage, PlaybackControl, ContextMenu, URI } = Spicetify
+    if (!( Player && LocalStorage && PlaybackControl && ContextMenu && URI)) {
+        setTimeout(Bookmark, 300)
+        return
     }
 
-    const STORAGE_KEY = "bookmark_spicetify";
+    // UI Text
+    const BUTTON_NAME_TEXT = "Bookmark"
+    const REMOVE_TEXT = "Remove"
 
-    const bookmarkButton = createButton();
+    // Local Storage keys
+    const STORAGE_KEY = "bookmark_spicetify"
+
+    class BookmarkCollection {
+        constructor() {
+            const menu = createMenu()
+            this.container = menu.container
+            this.items = menu.menu
+            this.lastScroll = 0
+            this.container.onclick = () => {
+                this.storeScroll()
+                this.container.remove()
+            }
+            this.apply()
+        }
+
+        apply() {
+            this.items.textContent = '' // Remove all childs
+            this.items.append(createMenuItem("Current page", storeThisPage));
+            this.items.append(createMenuItem("This track", storeTrack))
+            this.items.append(createMenuItem("This track with time", storeTrackWithTime))
+            const collection = this.getStorage()
+            for (const item of collection) {
+                this.items.append(new CardContainer(item))
+            }
+        }
+
+        getStorage() {
+            const storageRaw = LocalStorage.get(STORAGE_KEY);
+            let storage = [];
+
+            if (storageRaw) {
+                storage = JSON.parse(storageRaw);
+            } else {
+                LocalStorage.set(STORAGE_KEY, "[]")
+            }
+
+            return storage;
+        }
+
+        addToStorage(data) {
+            data.id = `${data.uri}-${new Date().getTime()}`
+
+            /** @type {Object[]} */
+            const storage = this.getStorage();
+            storage.unshift(data);
+
+            LocalStorage.set(STORAGE_KEY, JSON.stringify(storage));
+            this.apply()
+        }
+
+        removeFromStorage(id) {
+            const storage = this.getStorage()
+                .filter(item => item.id !== id)
+            
+            LocalStorage.set(STORAGE_KEY, JSON.stringify(storage));
+            this.apply()
+        }
+
+        changePosition(x, y) {
+            this.items.style.left = x + "px"
+            this.items.style.top = y + 10 + "px"
+        }
+
+        storeScroll() {
+            this.lastScroll = this.items.scrollTop
+        }
+
+        setScroll() {
+            this.items.scrollTop = this.lastScroll
+        }
+    }
+
+    class CardContainer extends HTMLElement {
+        constructor(info) {
+            super()
+            const isTrack = Spicetify.URI.isTrack(info.uri) || Spicetify.URI.isEpisode(info.uri);
+
+            this.innerHTML = `
+<div class="card card-horizontal card-type-album ${info.imageUrl ? "" : "card-hidden-image"}" data-uri="${info.uri}" data-contextmenu="">
+<div class="card-attention-highlight-box"></div>
+<div class="card-horizontal-interior-wrapper">
+    ${info.imageUrl ? `
+        <div class="card-image-wrapper">
+            <div class="card-image-hit-area">
+                <a href="${info.uri}" class="card-image-link">
+                    <div class="card-hit-area-counter-scale-left"></div>
+                    <div class="card-image-content-wrapper">
+                        <div class="card-image" style="background-image: url('${info.imageUrl}')"></div>
+                    </div>
+                </a>
+                <div class="card-overlay"></div>
+                ${isTrack ? `<button class="button button-play button-icon-with-stroke card-button-play"></button>` : ""}
+            </div>
+        </div>
+    ` : ""}
+    <div class="card-info-wrapper">
+        <div class="bookmark-controls">
+            <button class="button button-green button-icon-only spoticon-x-16" data-tooltip="${REMOVE_TEXT}"></button>
+        </div>
+        <a href="${info.uri}">
+            <div class="card-info-content-wrapper">
+                <div class="card-info-title"><span class="card-info-title-text">${info.title}</span></div>
+                <div class="card-info-subtitle-description"><span>${info.description}</span></div>
+                ${info.time ? `
+                    <div class="bookmark-fixed-height">
+                        <div class="bookmark-progress">
+                            <div class="bookmark-progress__bar" style="--progress:${info.progress}"></div>
+                        </div>
+                        <span class="bookmark-progress__time">${Player.formatTime(info.time)}</span>
+                    </div>
+                ` : ""}
+            </div>
+        </a>
+    </div>
+</div>
+</div>`
+
+            if (isTrack) {
+                /** @type {HTMLButtonElement} */
+                const playButton = this.querySelector("button.button-play");
+                const option = {};
+                if (info.time) {
+                    option.seekTo = info.time;
+                }
+                playButton.onclick = () => {
+                    PlaybackControl.playTrack(info.uri, option , () => {})
+                }
+            }
+            
+
+            /** @type {HTMLDivElement} */
+            const controls = this.querySelector(".bookmark-controls")
+            controls.onclick = (event) => {
+                LIST.removeFromStorage(info.id)
+                event.stopPropagation()
+            }
+        }
+    }
+
+    customElements.define("bookmark-card-container", CardContainer)
+
+    const LIST = new BookmarkCollection()
 
     document.querySelector("#view-browser-navigation-top-bar")
-        .append(bookmarkButton);
+        .append(createTopBarButton())
 
-    function createButton() {
-        const button = document.createElement("button");
-        button.classList.add("button", "button-icon-only", "spoticon-tag-16");
-        button.setAttribute("type", "button");
-        button.setAttribute("data-tooltip", "Bookmark");
-        button.setAttribute("aria-label", "Bookmark");
-        button.onclick = () => {
-            const bound = button.getBoundingClientRect();
-            document.body.append(createMenu(bound.left, bound.bottom));
-        };
-        return button
-    }
-
-    /**
-     * 
-     * @param {number} x Position of the bookmark button
-     * @param {number} y 
-     */
-    function createMenu(x, y) {
-        const container = document.createElement("div");
-        container.id = "bookmark-spicetify";
-        container.classList.add("context-menu-container");
-        Object.assign(container.style, {
-            zIndex: "2147483647",
-            height: "100%",
-            width: "100%",
-            position: "absolute",
-            top: "0",
-        });
-
-        container.onclick = () => container.remove();
-
-        const menu = document.createElement("div");
-        menu.classList.add("context-menu");
-        menu.style.left = `${x}px`;
-        menu.style.top = `${y}px`;
-        menu.style.display = "inline-block";
-        menu.style.opacity = "1";
-        menu.style.height = "auto";
-
-        menu.append(createMenuItem("Current page", storeThisPage));
-        menu.append(createMenuItem("This track", storeTrack))
-        menu.append(createMenuItem("This track with time", storeTrackWithTime))
-
-        container.append(menu);
-
-        return container;
-    }
+    // Add context menu items for Notification button
+    const checkURI = ([uri]) => uri === "spotify:special:bookmark"
+    new ContextMenu.Item("Current page", storeThisPage, checkURI).register()
+    new ContextMenu.Item("This track", storeTrack, checkURI).register()
+    new ContextMenu.Item("This track with time", storeTrackWithTime, checkURI).register()
 
     /**
      * 
@@ -152,7 +254,7 @@
                 Spicetify.showNotification("Cannot recognize page.");
             return;
         }
-        writeToLocalStorage({
+        LIST.addToStorage({
             uri: app.uri,
             title: app.title,
             description: appUriToName(app.uri),
@@ -161,65 +263,120 @@
     }
 
     function storeTrack() {
-        writeToLocalStorage({
-            uri: Spicetify.Player.data.track.uri,
-            title: Spicetify.Player.data.track.metadata.title,
-            description: Spicetify.Player.data.track.metadata.artist_name,
-            imageUrl: Spicetify.Player.data.track.metadata.image_url,
+        const uri = Player.data.track.uri;
+        let description;
+        if (Spicetify.URI.isEpisode(uri)) {
+            description = Player.data.track.metadata.album_title;
+        } else {
+            description = Player.data.track.metadata.artist_name;
+        }
+        LIST.addToStorage({
+            uri,
+            title: Player.data.track.metadata.title,
+            description,
+            imageUrl: Player.data.track.metadata.image_url,
         });
     }
 
     function storeTrackWithTime() {
-        const progress = Spicetify.Player.getProgress();
-        writeToLocalStorage({
-            uri: Spicetify.Player.data.track.uri,
-            time: progress,
-            progress: Spicetify.Player.getProgressPercent(),
-            title: Spicetify.Player.data.track.metadata.title,
-            description: Spicetify.Player.data.track.metadata.artist_name,
-            imageUrl: Spicetify.Player.data.track.metadata.image_url,
-        })
-    }
-
-    function getStorage() {
-        const storageRaw = Spicetify.LocalStorage.get(STORAGE_KEY);
-        let storage = [];
-
-        if (storageRaw) {
-            storage = JSON.parse(storageRaw);
+        const uri = Player.data.track.uri;
+        let description;
+        if (Spicetify.URI.isEpisode(uri)) {
+            description = Player.data.track.metadata.album_title;
         } else {
-            Spicetify.LocalStorage.set(STORAGE_KEY, "[]")
+            description = Player.data.track.metadata.artist_name;
         }
-
-        return storage;
-    }
-
-    /**
-     * 
-     * @param {Object} data 
-     */
-    function writeToLocalStorage(data) {
-        data.id = `${data.uri}-${new Date().getTime()}`
-
-        /** @type {Object[]} */
-        const storage = getStorage();
-        storage.unshift(data);
-
-        Spicetify.LocalStorage.set(STORAGE_KEY, JSON.stringify(storage));
-
-        // Emit to Bookmark app to update content
-        const app = document.getElementById("app-bookmark");
-        if (app) {
-            app.contentDocument.dispatchEvent(new Event("bookmark-update"));
-        }
+        LIST.addToStorage({
+            uri,
+            time: Player.getProgress(),
+            progress: Player.getProgressPercent(),
+            title: Player.data.track.metadata.title,
+            description,
+            imageUrl: Player.data.track.metadata.image_url,
+        })
     }
 
     // Utilities
     function appUriToName(uri) {
-        const id = Spicetify.URI.from(uri).id
+        const id = URI.from(uri).id
             .replace(/\-/g, " ")
             .replace(/^.|\s./g, (char) => char.toUpperCase());
             
         return `${id} page`;
     }
-})();
+
+    function createTopBarButton() {
+        const button = document.createElement("button")
+        button.classList.add("button", "spoticon-tag-16", "bookmark-button")
+        button.setAttribute("data-tooltip", BUTTON_NAME_TEXT)
+        button.setAttribute("data-contextmenu", "")
+        button.setAttribute("data-uri", "spotify:special:bookmark")
+        button.onclick = () => {
+            const bound = button.getBoundingClientRect()
+            LIST.changePosition(bound.left, bound.top)
+            document.body.append(LIST.container)
+            LIST.setScroll()
+        }
+        return button
+    }
+
+    function createMenu() {
+        const container = document.createElement("div")
+        container.id = "bookmark-spicetify"
+        container.className = "context-menu-container"
+        container.style.zIndex = "1029"
+
+        const style = document.createElement("style")
+        style.textContent = `
+#bookmark-menu {
+    display: inline-block;
+    width: 33%;
+    max-height: 70%;
+    overflow: hidden auto;
+    padding: 10px
+}
+.bookmark-controls {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    padding: 0 5px 5px 0;
+    z-index: 3
+}
+
+.bookmark-fixed-height {
+    height: 40px;
+    display: flex;
+    align-items: center;
+  }
+  
+.bookmark-progress {
+    overflow: hidden;
+    width: 100px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: var(--modspotify_slider_bg);
+}
+
+.bookmark-progress__bar {
+    --progress: 0;
+    width: calc(var(--progress) * 100%);
+    height: 4px;
+    background-color: var(--modspotify_main_fg);
+}
+
+.bookmark-progress__time {
+    padding-left: 5px;
+    color: var(--modspotify_secondary_fg);
+}
+`
+
+        const menu = document.createElement("ul")
+        menu.id = "bookmark-menu"
+        menu.className = "context-menu"
+
+        container.append(style, menu)
+
+        return { container, menu }
+    }
+})()
+
