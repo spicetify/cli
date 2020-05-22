@@ -30,6 +30,12 @@ func EditColor(args []string) {
 			continue
 		}
 
+		if len(utils.BaseColorList[field]) > 0 {
+			colorSection.NewKey(field, color)
+			colorChangeSuccess(field, color)
+			continue
+		}
+
 		utils.PrintWarning(`Color "` + field + `" unchanged: Not found.`)
 	}
 
