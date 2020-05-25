@@ -3,7 +3,6 @@ package spotifystatus
 import (
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"strings"
 )
 
@@ -33,8 +32,7 @@ const (
 )
 
 // Get returns status of Spotify's Apps folder
-func Get(spotifyPath string) Status {
-	appsFolder := filepath.Join(spotifyPath, "Apps")
+func Get(appsFolder string) Status {
 	fileList, err := ioutil.ReadDir(appsFolder)
 	if err != nil {
 		log.Fatal(err)

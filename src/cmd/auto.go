@@ -11,7 +11,7 @@ import (
 // Spotify client normally.
 func Auto() {
 	backupVersion := backupSection.Key("version").MustString("")
-	spotStat := spotifystatus.Get(spotifyPath)
+	spotStat := spotifystatus.Get(appPath)
 	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 
 	if spotStat.IsBackupable() && (backStat.IsEmpty() || backStat.IsOutdated()) {
@@ -22,6 +22,10 @@ func Auto() {
 
 	if !backStat.IsBackuped() {
 		os.Exit(1)
+	}
+
+	if isAppX {
+		spotStat = spotifystatus.Get(appDestPath)
 	}
 
 	if !spotStat.IsApplied() && backStat.IsBackuped() {

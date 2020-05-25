@@ -20,9 +20,11 @@ var (
 	userExtensionsFolder    = getUserFolder("Extensions")
 	userAppsFolder          = getUserFolder("CustomApps")
 	quiet                   bool
+	isAppX                  = false
 	spotifyPath             string
 	prefsPath               string
 	appPath                 string
+	appDestPath             string
 	cfg                     utils.Config
 	settingSection          *ini.Section
 	backupSection           *ini.Section
@@ -81,7 +83,17 @@ func InitPaths() {
 		os.Exit(1)
 	}
 
+	if runtime.GOOS == "windows" {
+		isAppX = strings.Contains(spotifyPath, "SpotifyAB.SpotifyMusic")
+	}
+
 	appPath = filepath.Join(spotifyPath, "Apps")
+
+	if isAppX {
+		appDestPath = filepath.Join(spicetifyFolder, "AppX")
+	} else {
+		appDestPath = appPath
+	}
 }
 
 // InitSetting parses theme settings and gets color section.

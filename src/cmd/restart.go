@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -11,7 +12,14 @@ func RestartSpotify(flags ...string) {
 	switch runtime.GOOS {
 	case "windows":
 		exec.Command("taskkill", "/F", "/IM", "spotify.exe").Run()
-		exec.Command(filepath.Join(spotifyPath, "spotify.exe"), flags...).Start()
+		if isAppX {
+			ps, _ := exec.LookPath("powershell.exe")
+			exe := filepath.Join(os.Getenv("LOCALAPPDATA"), "Microsoft", "WindowsApps", "Spotify.exe")
+			flags = append([]string{"-NoProfile", "-NonInteractive", `& "` + exe + `" --app-directory="` + appDestPath + `"`}, flags...)
+			exec.Command(ps, flags...).Start()
+		} else {
+			exec.Command(filepath.Join(spotifyPath, "spotify.exe"), flags...).Start()
+		}
 	case "linux":
 		exec.Command("pkill", "spotify").Run()
 		exec.Command(filepath.Join(spotifyPath, "spotify"), flags...).Start()

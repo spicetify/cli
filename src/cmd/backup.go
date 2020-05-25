@@ -22,7 +22,7 @@ func Backup() {
 		utils.PrintInfo("There is available backup.")
 		utils.PrintInfo("Clear current backup:")
 
-		spotStat := spotifystatus.Get(spotifyPath)
+		spotStat := spotifystatus.Get(appPath)
 		if spotStat.IsBackupable() {
 			clearBackup()
 
@@ -93,7 +93,7 @@ func Backup() {
 // Clear clears current backup. Before clearing, it checks whether Spotify is in
 // valid state to backup again.
 func Clear() {
-	spotStat := spotifystatus.Get(spotifyPath)
+	spotStat := spotifystatus.Get(appPath)
 
 	if !spotStat.IsBackupable() {
 		utils.PrintWarning("Before clearing backup, please restore or re-install Spotify to stock state.")
@@ -130,7 +130,7 @@ func clearBackup() {
 func Restore() {
 	backupVersion := backupSection.Key("version").MustString("")
 	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
-	spotStat := spotifystatus.Get(spotifyPath)
+	spotStat := spotifystatus.Get(appPath)
 
 	if backStat.IsEmpty() {
 		utils.PrintError(`You haven't backed up.`)
@@ -152,11 +152,11 @@ func Restore() {
 		}
 	}
 
-	if err := os.RemoveAll(appPath); err != nil {
+	if err := os.RemoveAll(appDestPath); err != nil {
 		utils.Fatal(err)
 	}
 
-	if err := utils.Copy(backupFolder, appPath, false, []string{".spa"}); err != nil {
+	if err := utils.Copy(backupFolder, appDestPath, false, []string{".spa"}); err != nil {
 		utils.Fatal(err)
 	}
 

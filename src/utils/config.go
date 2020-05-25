@@ -167,6 +167,9 @@ func FindAppPath() string {
 	switch runtime.GOOS {
 	case "windows":
 		path := winApp()
+		if len(path) == 0 {
+			path = winXApp()
+		}
 		return path
 
 	case "linux":
@@ -185,7 +188,11 @@ func FindAppPath() string {
 func FindPrefFilePath() string {
 	switch runtime.GOOS {
 	case "windows":
-		return winPrefs()
+		path := winPrefs()
+		if len(path) == 0 {
+			path = winXPrefs()
+		}
+		return path
 
 	case "linux":
 		return linuxPrefs()
@@ -203,10 +210,6 @@ func winApp() string {
 		return path
 	}
 
-	if len(path) == 0 {
-		PrintInfo("Please make sure you are using normal Spotify version, not Windows Store version.")
-	}
-
 	return ""
 }
 
@@ -214,6 +217,42 @@ func winPrefs() string {
 	path := filepath.Join(os.Getenv("APPDATA"), "Spotify", "prefs")
 	if _, err := os.Stat(path); err == nil {
 		return path
+	}
+
+	return ""
+}
+
+func winXApp() string {
+	ps, _ := exec.LookPath("powershell.exe")
+	cmd := exec.Command(ps,
+		"-NoProfile",
+		"-NonInteractive",
+		`(Get-AppxPackage | Where-Object -Property Name -Match "^SpotifyAB").InstallLocation`)
+
+	stdOut, err := cmd.CombinedOutput()
+	if err == nil {
+		return strings.TrimSpace(string(stdOut))
+	}
+
+	return ""
+}
+
+func winXPrefs() string {
+	ps, _ := exec.LookPath("powershell.exe")
+	cmd := exec.Command(ps,
+		"-NoProfile",
+		"-NonInteractive",
+		`(Get-AppxPackage | Where-Object -Property Name -Match "^SpotifyAB").PackageFamilyName`)
+
+	stdOut, err := cmd.CombinedOutput()
+	if err == nil {
+		return filepath.Join(
+			os.Getenv("LOCALAPPDATA"),
+			"Packages",
+			strings.TrimSpace(string(stdOut)),
+			"LocalState",
+			"Spotify",
+			"prefs")
 	}
 
 	return ""

@@ -22,12 +22,12 @@ func Apply() {
 	// extractedStock is for preventing copy raw assets 2 times when
 	// replaceColors is false.
 	extractedStock := false
-	if !spotifystatus.Get(spotifyPath).IsApplied() {
+	if !spotifystatus.Get(appDestPath).IsApplied() {
 		utils.PrintBold(`Copying raw assets:`)
-		if err := os.RemoveAll(appPath); err != nil {
+		if err := os.RemoveAll(appDestPath); err != nil {
 			utils.Fatal(err)
 		}
-		if err := utils.Copy(rawFolder, appPath, true, nil); err != nil {
+		if err := utils.Copy(rawFolder, appDestPath, true, nil); err != nil {
 			utils.Fatal(err)
 		}
 		utils.PrintGreen("OK")
@@ -36,13 +36,13 @@ func Apply() {
 
 	if replaceColors {
 		utils.PrintBold(`Overwriting themed assets:`)
-		if err := utils.Copy(themedFolder, appPath, true, nil); err != nil {
+		if err := utils.Copy(themedFolder, appDestPath, true, nil); err != nil {
 			utils.Fatal(err)
 		}
 		utils.PrintGreen("OK")
 	} else if !extractedStock {
 		utils.PrintBold(`Overwriting raw assets:`)
-		if err := utils.Copy(rawFolder, appPath, true, nil); err != nil {
+		if err := utils.Copy(rawFolder, appDestPath, true, nil); err != nil {
 			utils.Fatal(err)
 		}
 		utils.PrintGreen("OK")
@@ -62,7 +62,7 @@ func Apply() {
 	customAppsList := featureSection.Key("custom_apps").Strings("|")
 
 	utils.PrintBold(`Applying additional modifications:`)
-	apply.AdditionalOptions(appPath, apply.Flag{
+	apply.AdditionalOptions(appDestPath, apply.Flag{
 		ExperimentalFeatures: toTernary("experimental_features"),
 		FastUserSwitching:    toTernary("fastUser_switching"),
 		Home:                 toTernary("home"),
@@ -122,11 +122,11 @@ func updateCSS() {
 	if !injectCSS {
 		theme = ""
 	}
-	apply.UserCSS(appPath, theme, scheme)
+	apply.UserCSS(appDestPath, theme, scheme)
 }
 
 func updateAssets() {
-	apply.UserAsset(appPath, themeFolder)
+	apply.UserAsset(appDestPath, themeFolder)
 }
 
 // UpdateAllExtension pushs all extensions to Spotify
@@ -146,7 +146,7 @@ func UpdateAllExtension() {
 func checkStates() {
 	backupVersion := backupSection.Key("version").MustString("")
 	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
-	spotStat := spotifystatus.Get(spotifyPath)
+	spotStat := spotifystatus.Get(appPath)
 
 	if backStat.IsEmpty() {
 		if spotStat.IsBackupable() {
@@ -195,7 +195,7 @@ func getExtensionPath(name string) (string, error) {
 
 func pushExtensions(list ...string) {
 	var err error
-	var zlinkFolder = filepath.Join(spotifyPath, "Apps", "zlink")
+	var zlinkFolder = filepath.Join(appDestPath, "zlink")
 
 	for _, v := range list {
 		var extName, extPath string
@@ -259,7 +259,7 @@ func pushApps(list ...string) {
 			continue
 		}
 
-		customAppDestPath := filepath.Join(appPath, name)
+		customAppDestPath := filepath.Join(appDestPath, name)
 
 		if err = utils.CreateJunction(customAppPath, customAppDestPath); err != nil {
 			utils.Fatal(err)
@@ -279,7 +279,7 @@ func nodeModuleSymlink() {
 
 	utils.PrintBold(`Found node_modules folder. Creating node_modules symlink:`)
 
-	nodeModuleDest := filepath.Join(spotifyPath, "Apps", "zlink", "node_modules")
+	nodeModuleDest := filepath.Join(appDestPath, "zlink", "node_modules")
 	if err = utils.CreateJunction(nodeModulePath, nodeModuleDest); err != nil {
 		utils.PrintError("Cannot create node_modules symlink")
 		return

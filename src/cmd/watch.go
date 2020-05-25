@@ -106,7 +106,7 @@ func WatchExtensions(liveUpdate bool) {
 }
 
 func isValidForWatching() bool {
-	status := spotifystatus.Get(spotifyPath)
+	status := spotifystatus.Get(appDestPath)
 
 	if !status.IsModdable() {
 		utils.PrintError(`You haven't applied. Run "spicetify apply" once before entering watch mode.`)
