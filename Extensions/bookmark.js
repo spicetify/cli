@@ -8,7 +8,7 @@
 
 (function Bookmark() {
     const { Player, LocalStorage, PlaybackControl, ContextMenu, URI } = Spicetify
-    if (!( Player && LocalStorage && PlaybackControl && ContextMenu && URI)) {
+    if (!(Player && LocalStorage && PlaybackControl && ContextMenu && URI)) {
         setTimeout(Bookmark, 300)
         return
     }
@@ -30,6 +30,7 @@
                 this.storeScroll()
                 this.container.remove()
             }
+            this.filter = 0;
             this.apply()
         }
 
@@ -38,10 +39,28 @@
             this.items.append(createMenuItem("Current page", storeThisPage));
             this.items.append(createMenuItem("This track", storeTrack))
             this.items.append(createMenuItem("This track with time", storeTrackWithTime))
-            const collection = this.getStorage()
+
+            const select = createSortSelect(this.filter);
+            select.onchange = (event) => {
+                this.filter = event.srcElement.selectedIndex;
+                this.apply();
+            }
+            this.items.append(select);
+
+            const collection = this.getStorage();
             for (const item of collection) {
+                if (this.filter !== 0) {
+                    const isTrack = this.isTrack(item.uri)
+                    if (this.filter === 1 && isTrack) continue;
+                    if (this.filter === 2 && !isTrack) continue;
+                }
+
                 this.items.append(new CardContainer(item))
             }
+        }
+
+        isTrack(uri) {
+            return uri.startsWith("spotify:track:") || uri.startsWith("spotify:episode:");
         }
 
         getStorage() {
@@ -71,7 +90,7 @@
         removeFromStorage(id) {
             const storage = this.getStorage()
                 .filter(item => item.id !== id)
-            
+
             LocalStorage.set(STORAGE_KEY, JSON.stringify(storage));
             this.apply()
         }
@@ -143,10 +162,9 @@
                     option.seekTo = info.time;
                 }
                 playButton.onclick = () => {
-                    PlaybackControl.playTrack(info.uri, option , () => {})
+                    PlaybackControl.playTrack(info.uri, option, () => { })
                 }
             }
-            
 
             /** @type {HTMLDivElement} */
             const controls = this.querySelector(".bookmark-controls")
@@ -189,6 +207,23 @@
         item.append(text);
 
         return item;
+    }
+
+    function createSortSelect(defaultOpt = 0) {
+        const select = document.createElement("select");
+        select.className = "GlueDropdown bookmark-filter";
+        const allOpt = document.createElement("option");
+        allOpt.text = "All";
+        const pageOpt = document.createElement("option");
+        pageOpt.text = "Page";
+        const trackOpt = document.createElement("option");
+        trackOpt.text = "Track";
+
+        select.onclick = (ev) => ev.stopPropagation();
+        select.append(allOpt, pageOpt, trackOpt);
+        select.options[defaultOpt].selected = true;
+
+        return select;
     }
 
     function getActiveApp() {
@@ -250,7 +285,7 @@
     function storeThisPage() {
         const app = getActiveApp();
         if (!app) {
-            Spicetify.showNotification && 
+            Spicetify.showNotification &&
                 Spicetify.showNotification("Cannot recognize page.");
             return;
         }
@@ -301,7 +336,7 @@
         const id = URI.from(uri).id
             .replace(/\-/g, " ")
             .replace(/^.|\s./g, (char) => char.toUpperCase());
-            
+
         return `${id} page`;
     }
 
@@ -334,6 +369,9 @@
     max-height: 70%;
     overflow: hidden auto;
     padding: 10px
+}
+.bookmark-filter {
+    margin-top: 7px;
 }
 .bookmark-controls {
     position: absolute;
