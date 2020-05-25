@@ -40,10 +40,6 @@
     align-items: center;
     justify-content: center;
 }
-#fad-art {
-    width: calc(100vh - 440px);
-    max-width: 340px;
-}
 #fad-art-image {
     position: relative;
     width: 100%;
@@ -112,6 +108,11 @@ body.fad-activated #full-app-display {
     flex-direction: row;
     text-align: left;
 }
+#fad-art {
+    width: calc(100vw - 840px);
+    min-width: 200px;
+    max-width: 340px;
+}
 #fad-details {
     padding-left: 50px;
     line-height: initial;
@@ -139,7 +140,11 @@ body.fad-activated #full-app-display {
     display: flex;
     margin-right: 10px;
 }`,
-        `
+`
+#fad-art {
+    width: calc(100vh - 400px);
+    max-width: 340px;
+}
 #fad-foreground {
     flex-direction: column;
     text-align: center;
