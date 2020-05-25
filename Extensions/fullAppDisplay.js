@@ -257,7 +257,9 @@ body.fad-activated #full-app-display {
         }
         title.innerText = rawTitle
         artist.innerText = Spicetify.Player.data.track.metadata.artist_name
-        durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.getDuration())
+        if (CONFIG.enableProgress) {
+            durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.getDuration())
+        }
     }
 
     function updateProgress() {
