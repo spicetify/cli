@@ -230,6 +230,8 @@ func disableLogging(input, appName string) string {
 		utils.Replace(&input, `(exports\.logListQuickJump =) \w+`, "${1}void")
 		utils.Replace(&input, `(exports\.logListItemSelected =) \w+`, "${1}void")
 		utils.Replace(&input, `(exports\.logFeedbackInteraction =) \w+`, "${1}void")
+	case "artist":
+		utils.Replace(&input, `logImpressions=function\(.+?\)\s?\{`, "${0}return;")
 	}
 
 	return input
