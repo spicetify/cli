@@ -27,6 +27,7 @@
     const LISTENED_ALL_URI_STORAGE_KEY = "spicetify_new_release:listened_ALL"
     const FOLLOWEDONLY_SETTING_KEY = "spicetify_new_release:followed_only"
     const UNLISTENEDONLY_SETTING_KEY = "spicetify_new_release:unlistened_only"
+    const PODCAST_SETTING_KEY = "spicetify_new_release:podcast"
 
     class ReleaseCollection {
         constructor() {
@@ -204,6 +205,14 @@
         setUnlistenedOnly(state) {
             LocalStorage.set(UNLISTENEDONLY_SETTING_KEY, state ? "1" : "0")
         }
+
+        isFetchingPodcast() {
+            return LocalStorage.get(PODCAST_SETTING_KEY) === "1"
+        }
+
+        setFetchingPodcast(state) {
+            LocalStorage.set(PODCAST_SETTING_KEY, state ? "1" : "0")
+        }
     }
 
     const LIST = new ReleaseCollection()
@@ -246,6 +255,28 @@
         })
 
         const items = await Promise.all(requests)
+
+        if (BUTTON.isFetchingPodcast()) {
+            for (const podcast of await getPodcastList()) {
+                const tracks = await getPodcastRelease(podcast.link.replace("spotify:show:", ""))
+                if (!tracks) continue
+                for (const track of tracks) {
+                    const time = new Date(track.publishDate * 1000)
+                    if ((today - time.getTime()) < limitInMs) {
+                        items.push(({
+                            uri: track.link,
+                            name: track.name,
+                            artist: podcast.name,
+                            cover: track.covers.default,
+                            time,
+                        }))
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
         LIST.apply(items, BUTTON.isUnlistenedOnly())
         BUTTON.idleState()
         update()
@@ -265,10 +296,7 @@
     // Check whether currently playing track is in the new release. Set it "listened" if user is listening to it.
     Player.addEventListener("songchange", () => {
         if (LIST.getUnlistenedLen() === 0) return
-        let uri = Player.data.context_uri
-        if (!LIST.isValid(uri)) {
-            uri = Player.data.track.metadata.album_uri
-        }
+        let uri = Player.data.track.metadata.album_uri
         if (LIST.isListened(uri)) return
 
         LIST.setListen(uri, true)
@@ -277,6 +305,18 @@
 
     // Add context menu items for Notification button
     const checkURI = ([uri]) => uri === "spotify:special:new-release"
+    new ContextMenu.Item(
+        "Podcast",
+        function () {
+            const state = !BUTTON.isFetchingPodcast()
+            BUTTON.setFetchingPodcast(state)
+            this.icon = state ? "check" : null
+            main()
+        },
+        checkURI,
+        BUTTON.isFetchingPodcast() ? "check" : null,
+    ).register()
+
     new ContextMenu.Item(
         "Followed artists only",
         function () {
@@ -312,6 +352,18 @@
     function getArtistNewRelease(uri) {
         return new Promise((resolve) => { CosmosAPI.resolver.get(`hm://artist/v3/${uri}/desktop/entity?format=json`, (err, raw) => {
             resolve(!err && raw.getJSONBody().latest_release)
+        })})
+    }
+
+    function getPodcastList() {
+        return new Promise((resolve, reject) => { CosmosAPI.resolver.get("sp://core-collection/unstable/@/list/shows/all", (err, raw) => {
+            resolve(!err && raw.getJSONBody().items)
+        })})
+    }
+
+    function getPodcastRelease(uri) {
+        return new Promise((resolve) => { CosmosAPI.resolver.get(`sp://core-show/unstable/show/${uri}`, (err, raw) => {
+            resolve(!err && raw.getJSONBody().items)
         })})
     }
 
