@@ -37,8 +37,8 @@
     let trashArtistList = {};
     let userHitBack = false;
 
-    const THROW_TEXT = "Throw To Trashbin";
-    const UNTHROW_TEXT = "Take Out Of Trashbin";
+    const THROW_TEXT = "Throw to Trashbin";
+    const UNTHROW_TEXT = "Take out of Trashbin";
 
     // Fetch stored trash tracks and artists list
     if (jsonBinURL) {
