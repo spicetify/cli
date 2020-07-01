@@ -21,8 +21,6 @@ type Flag struct {
 	Radio                utils.TernaryBool
 	SongPage             utils.TernaryBool
 	VisHighFramerate     utils.TernaryBool
-	XPUI                 utils.TernaryBool
-	TasteBuds            utils.TernaryBool
 	Extension            []string
 	CustomApp            []string
 }
@@ -50,8 +48,6 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 					lyricsMod(path, flags)
 				case "zlink.bundle.js":
 					zlinkMod(path, flags)
-				case "xpui.js":
-					xpuiMod(path, flags)
 				}
 			case ".css":
 			case ".html":
@@ -126,6 +122,9 @@ func lyricsMod(jsPath string, flags Flag) {
 
 func zlinkMod(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
+		// Disable WebUI button permanently to prevent confusion for user.
+		utils.Replace(&content, `(enableDarkMode:)("Enabled")`, `${1}false&&${2}`)
+
 		if !flags.ExperimentalFeatures.IsDefault() {
 			utils.Replace(&content, `[\w_]+(&&[\w_]+\.default.createElement\([\w_]+\.default,\{name:"experiments)`, flags.ExperimentalFeatures.ToString()+`${1}`)
 		}
@@ -150,22 +149,8 @@ func zlinkMod(jsPath string, flags Flag) {
 			utils.Replace(&content, `window\.initialState\.isSongPageEnabled`, flags.SongPage.ToString())
 		}
 
-		if !flags.XPUI.IsDefault() {
-			utils.Replace(&content, `(enableDarkMode:)("Enabled")`, `${1}`+flags.XPUI.ToForceOperator()+`${2}`)
-		}
-
 		if len(flags.CustomApp) > 0 {
 			insertCustomApp(&content, flags.CustomApp)
-		}
-
-		return content
-	})
-}
-
-func xpuiMod(jsPath string, flags Flag) {
-	utils.ModifyFile(jsPath, func(content string) string {
-		if !flags.TasteBuds.IsDefault() {
-			utils.Replace(&content, `[\w_]\.features\.isTastebudzEnabled`, flags.TasteBuds.ToString())
 		}
 
 		return content

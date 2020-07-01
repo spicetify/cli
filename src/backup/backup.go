@@ -21,6 +21,12 @@ func Extract(backupPath, extractPath string, callback func(finishedApp string)) 
 			appName := strings.Replace(info.Name(), ".spa", "", 1)
 			appExtractToFolder := filepath.Join(extractPath, appName)
 
+			// Disable WebUI
+			if appName == "xpui" {
+				callback(appName)
+				return nil
+			}
+
 			err := utils.Unzip(appPath, appExtractToFolder)
 			if err != nil {
 				utils.Fatal(err)

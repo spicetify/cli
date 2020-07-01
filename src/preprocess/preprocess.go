@@ -91,6 +91,8 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 
 		callback(appName)
 	}
+
+	fakeXPUI(filepath.Join(extractedAppsPath, "xpui"))
 }
 
 // StartCSS modifies all CSS files in extractedAppsPath to change
@@ -507,3 +509,24 @@ this.getAlbumTracks && this.removeTracksFromQueue && (Spicetify.removeFromQueue 
 	}
 });
 `
+
+// Disable WebUI by redirect to zlink app
+// so when Spotify forces user to use xpui, it loads zlink instead.
+func fakeXPUI(dest string) {
+	os.MkdirAll(dest, 0700)
+	entryFile := filepath.Join(dest, "index.html")
+	html := `
+<html><script>
+	window.location.assign("spotify:app:zlink")
+</script></html>
+`
+	manifestFile := filepath.Join(dest, "manifest.json")
+	manifest := `
+{
+  "BundleIdentifier": "xpui",
+  "BundleType": "Application"
+}
+`
+	ioutil.WriteFile(entryFile, []byte(html), 0700)
+	ioutil.WriteFile(manifestFile, []byte(manifest), 0700)
+}

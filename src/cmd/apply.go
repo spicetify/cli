@@ -71,8 +71,6 @@ func Apply() {
 		Radio:                toTernary("radio"),
 		SongPage:             toTernary("song_page"),
 		VisHighFramerate:     toTernary("visualization_high_framerate"),
-		XPUI:                 toTernary("minimal_ui"),
-		TasteBuds:            toTernary("tastebuds"),
 		Extension:            extentionList,
 		CustomApp:            customAppsList,
 	})
