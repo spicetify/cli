@@ -280,6 +280,12 @@ Change text color in playlist
   color: var(--modspotify_secondary_fg);
 }
 
+.tl-row.unavailable .tl-cell,
+.tl-row.unavailable .tl-cell a:link,
+.tl-row.unavailable .tl-highlight {
+  color: var(--modspotify_preserve_1) !important;
+}
+
 .card-type-album .card-info-title,
 .card-type-track .card-info-title,
 .card-type-collection-album .card-info-title,
