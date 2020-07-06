@@ -20,6 +20,8 @@ type Flag struct {
 	RemoveRTL bool
 	// ExposeAPIs leaks some Spotify's API, functions, objects to Spicetify global object.
 	ExposeAPIs bool
+	// DisableUpgrade stops Spotify to display new version upgrade notification
+	DisableUpgrade bool
 }
 
 // Start preprocessing apps assets in extractedAppPath
@@ -47,6 +49,10 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 
 					if flags.DisableLogging {
 						content = disableLogging(content, appName)
+					}
+
+					if flags.DisableUpgrade {
+						content = disableUpgradeCheck(content, appName)
 					}
 
 					if appName == "zlink" && flags.ExposeAPIs {
@@ -531,4 +537,12 @@ func fakeXPUI(dest string) {
 `
 	ioutil.WriteFile(entryFile, []byte(html), 0700)
 	ioutil.WriteFile(manifestFile, []byte(manifest), 0700)
+}
+
+func disableUpgradeCheck(input, appName string) string {
+	if appName == "zlink" || appName == "about" {
+		utils.Replace(&input, `sp:\/\/desktop\/v1\/upgrade\/status`, "")
+	}
+
+	return input
 }

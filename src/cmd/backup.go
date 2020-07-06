@@ -69,6 +69,7 @@ func Backup() {
 			DisableLogging: preprocSection.Key("disable_ui_logging").MustBool(false),
 			RemoveRTL:      preprocSection.Key("remove_rtl_rule").MustBool(false),
 			ExposeAPIs:     preprocSection.Key("expose_apis").MustBool(false),
+			DisableUpgrade: preprocSection.Key("disable_upgrade_check").MustBool(false),
 		},
 		tracker.Update,
 	)
