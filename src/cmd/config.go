@@ -18,7 +18,8 @@ func EditConfig(args []string) {
 		switch field {
 		case "extensions", "custom_apps":
 			arrayType(featureSection, field, value)
-
+		case "spotify_launch_flags":
+			continue
 		case "prefs_path", "spotify_path", "current_theme", "color_scheme":
 			stringType(settingSection, field, value)
 
@@ -52,7 +53,7 @@ func DisplayAllConfig() {
 	utils.PrintBold("AdditionFeatures")
 	for _, key := range featureSection.Keys() {
 		name := key.Name()
-		if name == "extensions" || name == "custom_apps" {
+		if name == "extensions" || name == "custom_apps" || name == "spotify_launch_flags" {
 			list := key.Strings("|")
 			listLen := len(list)
 			if listLen == 0 {
