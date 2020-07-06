@@ -13,13 +13,14 @@ import (
 var (
 	configLayout = map[string]map[string]string{
 		"Setting": {
-			"spotify_path":     "",
-			"prefs_path":       "",
-			"current_theme":    "SpicetifyDefault",
-			"color_scheme":     "",
-			"inject_css":       "1",
-			"replace_colors":   "1",
-			"overwrite_assets": "0",
+			"spotify_path":         "",
+			"prefs_path":           "",
+			"current_theme":        "SpicetifyDefault",
+			"color_scheme":         "",
+			"inject_css":           "1",
+			"replace_colors":       "1",
+			"overwrite_assets":     "0",
+			"spotify_launch_flags": "",
 		},
 		"Preprocesses": {
 			"disable_sentry":        "1",

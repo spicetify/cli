@@ -9,6 +9,11 @@ import (
 
 // RestartSpotify .
 func RestartSpotify(flags ...string) {
+	launchFlag := settingSection.Key("spotify_launch_flags").Strings("|")
+	if len(launchFlag) > 0 {
+		flags = append(flags, launchFlag...)
+	}
+
 	switch runtime.GOOS {
 	case "windows":
 		exec.Command("taskkill", "/F", "/IM", "spotify.exe").Run()
