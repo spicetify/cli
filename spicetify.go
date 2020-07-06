@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	version = "0.9.9"
+	version = "1.0.0"
 )
 
 var (
@@ -337,17 +337,22 @@ prefs_path
     Path to Spotify's "prefs" file
 
 current_theme
-	Name of folder of your theme
+    Name of folder of your theme
 
 color_scheme
-	Color config section name in color.ini file.
-	If color_scheme is blank, first section in color.ini file would be used.
+    Color config section name in color.ini file.
+    If color_scheme is blank, first section in color.ini file would be used.
 
 inject_css <0 | 1>
     Whether custom css from user.css in theme folder is applied
 
 replace_colors <0 | 1>
     Whether custom colors is applied
+
+spotify_launch_flags
+    Command-line flags used when launching/restarting Spotify.
+    Separate each flag with "|".
+    List of valid flags: https://github.com/khanhas/spicetify-cli/wiki/Spotify-Commandline-Flags
 
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>
@@ -366,6 +371,10 @@ remove_rtl_rule <0 | 1>
 expose_apis <0 | 1>
     Leaks some Spotify's API, functions, objects to Spicetify global object that
     are useful for making extensions to extend Spotify functionality.
+
+disable_upgrade_check <0 | 1>
+    Prevent Spotify checking new version and visually notifying user.
+    [Windows] Note: Automatic update still works if you don't manually delete "SpotifyMigrator.exe" and "SpotifyUpdate.exe".
 
 ` + utils.Bold("[AdditionalOptions]") + `
 custom_apps <string>
@@ -400,13 +409,5 @@ song_page <-1 | 0 | 1>
     song page (instead of its album page) to discover playlists it appearing on.
 
 visualization_high_framerate <-1 | 0 | 1>
-	Force Visualization in Lyrics app to render in 60fps.
-
-minimal_ui <-1 | 0 | 1>
-	Enable/Disable Minimal UI (Web Player UI) button.
-	It locates in right side of player bar.
-	
-tastebuds <-1 | 0 | 1>
-	Enable Tastebud feature.
-	It is only available in left sidebar of Minimal UI.`)
+    Force Visualization in Lyrics app to render in 60fps.`)
 }
