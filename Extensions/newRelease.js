@@ -17,7 +17,7 @@
     const DAYS_LIMIT = 30
     // UI Text
     const BUTTON_NAME_TEXT = "New Releases"
-    const NO_FOLLOWED_ARTIST_TEXT = "You have not followed any artist."
+    const NO_FOLLOWED_ARTIST_TEXT = "You have not followed any artist\n.Or there is an error, please restart Spotify."
     const NO_NEW_RELEASE_TEXT = `There is no new release in past ${DAYS_LIMIT} days`
     const IGNORE_TEXT = "Ignore"
     const UNIGNORE_TEXT = "Unignore"
@@ -232,11 +232,13 @@
 
         if (BUTTON.isFollowedOnly()) {
             artistList = artistList.filter(artist => artist.isFollowed)
-            if (artistList.length === 0) {
-                LIST.setMessage(NO_FOLLOWED_ARTIST_TEXT)
-                BUTTON.idleState()
-                return
-            }
+        }
+
+        if (artistList.length === 0) {
+            Player.removeEventListener("songchange", onTrackChange)
+            LIST.setMessage(NO_FOLLOWED_ARTIST_TEXT)
+            BUTTON.idleState()
+            return
         }
 
         const requests = artistList.map(async (artist) => {
@@ -291,17 +293,21 @@
         }
     }
 
-    main()
-
     // Check whether currently playing track is in the new release. Set it "listened" if user is listening to it.
-    Player.addEventListener("songchange", () => {
+    function onTrackChange() {
         if (LIST.getUnlistenedLen() === 0) return
-        let uri = Player.data.track.metadata.album_uri
+        let uri = Player.data.track.metadata.context_uri
+        if (!uri) uri = Player.data.track.metadata.album_uri
+        if (!uri) uri = Player.data.track.uri
+
         if (LIST.isListened(uri)) return
 
         LIST.setListen(uri, true)
         update()
-    })
+    }
+
+    Player.addEventListener("songchange", onTrackChange)
+    main()
 
     // Add context menu items for Notification button
     const checkURI = ([uri]) => uri === "spotify:special:new-release"
