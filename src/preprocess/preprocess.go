@@ -202,7 +202,7 @@ func StartCSS(extractedAppsPath string, callback func(appName string)) {
 
 func disableSentry(input string) string {
 	utils.Replace(&input, `sentry\.install\(\)[,;]`, "")
-	utils.Replace(&input, `"https://\w+@sentry.io/\d+"`, `"https://NO@TELEMETRY.IS/BAD"`)
+	utils.Replace(&input, `"https://\w+@sentry.io/\d+"`, `"https://null@127.0.0.1/0"`)
 	utils.Replace(&input, `loadQualarooScript=function\(\)\{`, "${0}return;")
 	return input
 }
@@ -237,7 +237,7 @@ func disableLogging(input, appName string) string {
 		utils.Replace(&input, `(exports\.logListItemSelected =) \w+`, "${1}void")
 		utils.Replace(&input, `(exports\.logFeedbackInteraction =) \w+`, "${1}void")
 	case "artist":
-		utils.Replace(&input, `logImpressions=function\(.+?\)\s?\{`, "${0}return;")
+		utils.Replace(&input, `([\w_]+)\.logImpressions=function\(.+?\)\s?\{`, "${1}.logImpressions=${1}.attach=${1}.detach=()=>{};return;${0}")
 	}
 
 	return input
@@ -541,7 +541,7 @@ func fakeXPUI(dest string) {
 
 func disableUpgradeCheck(input, appName string) string {
 	if appName == "zlink" || appName == "about" {
-		utils.Replace(&input, `sp:\/\/desktop\/v1\/upgrade\/status`, "")
+		utils.Replace(&input, `"sp://desktop/v1/upgrade/status"\},\(.+?\)=>\{`, "${0}return;")
 	}
 
 	return input
