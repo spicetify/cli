@@ -195,6 +195,17 @@ declare namespace Spicetify {
     const BridgeAPI: any;
     const CosmosAPI: any;
     /**
+     * Fetch interesting colors from URI.
+     * @param uri Any type of URI that has artwork (playlist, track, album, artist, show, ...)
+     */
+    function colorExtractor(uri: string): Promise<{
+        DESATURATED: string;
+        LIGHT_VIBRANT: string;
+        PROMINENT: string;
+        VIBRANT: string;
+        VIBRANT_NON_ALARMING: string;
+    }>;
+    /**
      * Fetch interesting colors from track album art.
      * @param uri is optional. Leave it blank to get currrent track
      * or specify another track uri.

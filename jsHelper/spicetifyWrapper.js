@@ -1375,14 +1375,8 @@ Spicetify.getAudioData = (uri) => {
     });
 }
 
-Spicetify.getAblumArtColors = (uri) => {
+Spicetify.colorExtractor = (uri) => {
     return new Promise((resolve, reject) => {
-        uri = uri || Spicetify.Player.data.track.uri;
-        if (Spicetify.URI.isTrack(uri)) {
-            reject("URI is invalid.");
-            return;
-        }
-
         Spicetify.CosmosAPI.resolver.get(
             `hm://colorextractor/v1/extract-presets?uri=${uri}&format=json`,
             (error, payload) => {
@@ -1404,6 +1398,11 @@ Spicetify.getAblumArtColors = (uri) => {
             }
         );
     });
+}
+
+Spicetify.getAblumArtColors = async (uri) => {
+    uri = uri || Spicetify.Player.data.track.metadata.album_uri;
+    return await Spicetify.colorExtractor(uri);
 }
 
 Spicetify.Menu = (function() {
