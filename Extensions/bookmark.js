@@ -7,8 +7,8 @@
 /// <reference path="../globals.d.ts" />
 
 (function Bookmark() {
-    const { Player, LocalStorage, PlaybackControl, ContextMenu, URI } = Spicetify
-    if (!(Player && LocalStorage && PlaybackControl && ContextMenu && URI)) {
+    const { CosmosAPI, Player, LocalStorage, PlaybackControl, ContextMenu, URI } = Spicetify
+    if (!(CosmosAPI && Player && LocalStorage && PlaybackControl && ContextMenu && URI)) {
         setTimeout(Bookmark, 300)
         return
     }
@@ -112,7 +112,14 @@
     class CardContainer extends HTMLElement {
         constructor(info) {
             super()
-            const isTrack = Spicetify.URI.isTrack(info.uri) || Spicetify.URI.isEpisode(info.uri);
+            const isTrack = URI.isTrack(info.uri) || URI.isEpisode(info.uri);
+
+            let href = "";
+            if (info.context) {
+                href = `href="${info.context}" data-uri="${info.uri}"`;
+            } else {
+                href = `href="${info.uri}"`;
+            }
 
             this.innerHTML = `
 <div class="card card-horizontal card-type-album ${info.imageUrl ? "" : "card-hidden-image"}" data-uri="${info.uri}" data-contextmenu="">
@@ -121,7 +128,7 @@
     ${info.imageUrl ? `
         <div class="card-image-wrapper">
             <div class="card-image-hit-area">
-                <a href="${info.uri}" class="card-image-link">
+                <a class="card-image-link" ${href}>
                     <div class="card-hit-area-counter-scale-left"></div>
                     <div class="card-image-content-wrapper">
                         <div class="card-image" style="background-image: url('${info.imageUrl}')"></div>
@@ -136,7 +143,7 @@
         <div class="bookmark-controls">
             <button class="button button-green button-icon-only spoticon-x-16" data-tooltip="${REMOVE_TEXT}"></button>
         </div>
-        <a href="${info.uri}">
+        <a class="card-info-link" ${href}>
             <div class="card-info-content-wrapper">
                 <div class="card-info-title"><span class="card-info-title-text">${info.title}</span></div>
                 <div class="card-info-subtitle-description"><span>${info.description}</span></div>
@@ -172,6 +179,10 @@
                 LIST.removeFromStorage(info.id)
                 event.stopPropagation()
             }
+
+            const imageLink = this.querySelector(".card-image-link");
+            const infoLink = this.querySelector(".card-info-link");
+            infoLink.onclick = imageLink.onclick = onLinkClicked;
         }
     }
 
@@ -300,7 +311,7 @@
     function storeTrack() {
         const uri = Player.data.track.uri;
         let description;
-        if (Spicetify.URI.isEpisode(uri)) {
+        if (URI.isEpisode(uri)) {
             description = Player.data.track.metadata.album_title;
         } else {
             description = Player.data.track.metadata.artist_name;
@@ -310,13 +321,14 @@
             title: Player.data.track.metadata.title,
             description,
             imageUrl: Player.data.track.metadata.image_url,
+            context: Player.data.track.metadata.context_uri,
         });
     }
 
     function storeTrackWithTime() {
         const uri = Player.data.track.uri;
         let description;
-        if (Spicetify.URI.isEpisode(uri)) {
+        if (URI.isEpisode(uri)) {
             description = Player.data.track.metadata.album_title;
         } else {
             description = Player.data.track.metadata.artist_name;
@@ -328,6 +340,7 @@
             title: Player.data.track.metadata.title,
             description,
             imageUrl: Player.data.track.metadata.image_url,
+            context: Player.data.track.metadata.context_uri,
         })
     }
 
@@ -415,6 +428,89 @@
         container.append(style, menu)
 
         return { container, menu }
+    }
+
+    /**
+     * Handle Link click event when item context is a playlist
+     */
+    async function onLinkClicked(event) {
+        let playlistURI;
+        let trackURI;
+        let target = event.target;
+        // Trace backward to element having embeded URIs
+        while (!playlistURI && target !== document.body) {
+            playlistURI = target.href;
+            trackURI = target.dataset.uri;
+            target = target.parentNode;
+        }
+
+        if (!playlistURI || !trackURI) return;
+
+        const uriObj = URI.from(playlistURI);
+        if (!uriObj) return;
+
+        const isChart = "application" === uriObj.type && "chart" === uriObj.id;
+        if (
+            uriObj.type === URI.Type.COLLECTION ||
+            URI.isPlaylistV1OrV2(uriObj) ||
+            isChart
+        ) {
+            let requestURI = `sp://core-playlist/v1/playlist/${playlistURI}/rows`
+            
+            if (!(await getPrefsValue("ui.show_unplayable_tracks"))) {
+                requestURI += "?filter=playable%20eq%20true"
+            }
+
+            // Search clicked track index in playlist then send message to Playlist app
+            // to navigate to track's position.
+            CosmosAPI.resolver.get(
+                { url: requestURI, body: { policy: { link: true } } },
+                (err, raw) => {
+                    if (err) return;
+                    var list = raw.getJSONBody();
+                    const index = list.rows.findIndex(item => item.link === trackURI);
+                    if (index === -1) return;
+                    ensureMessage("highlight-context-index", { uri: playlistURI, index });
+                }
+            );
+            return;
+        }
+        return;
+    }
+
+    /**
+     * Send message with payload via "ensured" protocol
+     * @param {string} target 
+     * @param {any} payload 
+     */
+    function ensureMessage(target, payload) {
+        const base = "sp://messages/v1/ensured-";
+        const payloadURI = `${base + target}-payload`;
+        const readyMsg = CosmosAPI.resolver.subscribe(`${base + target}-ready`, () => {
+            CosmosAPI.resolver.post({ url: payloadURI, body: payload })
+        });
+        const ackMsg = CosmosAPI.resolver.subscribe(`${base + target}-ack`, () => { 
+            readyMsg.cancel();
+            ackMsg.cancel();
+        });
+        CosmosAPI.resolver.post({ url: payloadURI, body: payload });
+    }
+
+    /**
+     * Get config value in prefs file
+     * @param {string} key 
+     */
+    function getPrefsValue(key) {
+        return new Promise((resolve) => {
+            Spicetify.CosmosAPI.resolver.get(`sp://prefs/v1/${key}`, (err, raw) => {
+                if (err) {
+                    resolve(false);
+                    return;
+                }
+
+                resolve(raw.getJSONBody()[key])
+            })
+        })
     }
 })()
 
