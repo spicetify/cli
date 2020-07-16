@@ -142,6 +142,10 @@ func main() {
 
 		log.Println(path)
 		return
+
+	case "upgrade":
+		cmd.Upgrade(version)
+		return
 	}
 
 	utils.PrintBold("spicetify v" + version)
