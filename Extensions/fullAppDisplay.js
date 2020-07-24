@@ -62,7 +62,7 @@
     width: 100%;
     display: flex;
     align-items: center;
-    
+
 }
 #fad-progress {
     width: 100%;
@@ -257,7 +257,7 @@ body.fad-activated #full-app-display {
             rawTitle = rawTitle
                 .replace(/\(.+?\)/g, "")
                 .replace(/\[.+?\]/g, "")
-                .replace(/\-.+?$/, "")
+                .replace(/\s\-\s.+?$/, "")
                 .trim()
         }
         title.innerText = rawTitle
