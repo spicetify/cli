@@ -252,6 +252,7 @@
                     artist: artist.name,
                     cover: track.cover.uri,
                     time,
+                    type: track.track_count > 1 ? "Album" : "Single",
                 })
             }
         })
@@ -271,6 +272,7 @@
                             artist: podcast.name,
                             cover: track.covers.default,
                             time,
+                            type: "Episode",
                         }))
                     } else {
                         break;
@@ -460,6 +462,7 @@
             <div class="card-info-content-wrapper">
                 <div class="card-info-title"><span class="card-info-title-text">${info.name}</span></div>
                 <div class="card-info-subtitle-description"><span>${info.artist}</span></div>
+                <div class="card-info-subtitle-metadata">${info.type}</div>
                 <div class="card-info-subtitle-metadata">${info.time.toLocaleDateString()}</div>
             </div>
         </a>
