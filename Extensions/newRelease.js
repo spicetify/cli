@@ -244,15 +244,25 @@
         const requests = artistList.map(async (artist) => {
             const track = await getArtistNewRelease(artist.link.replace("spotify:artist:", ""))
             if (!track) return null
+
             const time = new Date(track.year, track.month - 1, track.day)
             if ((today - time.getTime()) < limitInMs) {
+                let type;
+                if (track.track_count <= 3) {
+                    type = "Single"
+                } else if (track.track_count <= 6) {
+                    type = "EP"
+                } else {
+                    type = "Album"
+                }
+
                 return ({
                     uri: track.uri,
                     name: track.name,
                     artist: artist.name,
                     cover: track.cover.uri,
                     time,
-                    type: track.track_count > 1 ? "Album" : "Single",
+                    type,
                 })
             }
         })
