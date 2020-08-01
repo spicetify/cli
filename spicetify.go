@@ -92,6 +92,7 @@ func init() {
 	}
 
 	cmd.InitConfig(quiet)
+	cmd.CheckUpgrade(version)
 
 	if len(commands) < 1 {
 		utils.PrintInfo(`Run "spicetify -h" for commands list.`)

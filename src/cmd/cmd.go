@@ -269,3 +269,18 @@ func ReadAnswer(info string, defaultAnswer bool, quietModeAnswer bool) bool {
 	}
 	return ReadAnswer(info, defaultAnswer, quietModeAnswer)
 }
+
+// CheckUpgrade fetchs latest package version from Github API and inform user if there is new release
+func CheckUpgrade(version string) {
+	if !settingSection.Key("check_spicetify_upgrade").MustBool() {
+		return
+	}
+
+	latestTag := FetchLatestTag()
+	if latestTag == version {
+		utils.PrintInfo("spicetify up-to-date")
+	} else {
+		utils.PrintWarning("New version available!")
+		utils.PrintWarning(`Run "spicetify upgrade" or using package manager to upgrade spicetify`)
+	}
+}

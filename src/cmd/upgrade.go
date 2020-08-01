@@ -89,27 +89,13 @@ type githubRelease struct {
 
 func Upgrade(currentVersion string) {
 	utils.PrintBold("Fetch latest release info:")
-	res, err := http.Get("https://api.github.com/repos/khanhas/spicetify-cli/releases/latest")
-	if err != nil {
-		utils.Fatal(err)
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		utils.Fatal(err)
-	}
-
-	var release githubRelease
-	if err = json.Unmarshal(body, &release); err != nil {
-		utils.Fatal(err)
-	}
+    tagName := FetchLatestTag()
 	utils.PrintGreen("OK")
-	tagName := release.TagName[1:]
 	utils.PrintInfo("Current version: " + currentVersion)
 	utils.PrintInfo("Latest release: " + tagName)
 	if currentVersion == tagName {
 		utils.PrintSuccess("Already up-to-date.")
-		// return
+		return
 	}
 
 	var assetURL string = "https://github.com/khanhas/spicetify-cli/releases/download/v" + tagName + "/spicetify-" + tagName
@@ -181,4 +167,22 @@ func permissionError(err error) {
 	utils.PrintInfo("If fatal error is \"Permission denied\", please check read/write permission of spicetify executable directory.")
 	utils.PrintInfo("However, if you used a package manager to install spicetify, please upgrade by using the same package manager.")
 	utils.Fatal(err)
+}
+
+func FetchLatestTag() string {
+	res, err := http.Get("https://api.github.com/repos/khanhas/spicetify-cli/releases/latest")
+	if err != nil {
+		utils.Fatal(err)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		utils.Fatal(err)
+	}
+
+	var release githubRelease
+	if err = json.Unmarshal(body, &release); err != nil {
+		utils.Fatal(err)
+	}
+    return release.TagName[1:]
 }
