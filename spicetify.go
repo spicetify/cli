@@ -41,7 +41,13 @@ func init() {
 	// Separates flags and commands
 	for _, v := range os.Args[1:] {
 		if v[0] == '-' && v != "-1" {
-			flags = append(flags, v)
+			if v[1] != '-' && len(v) > 2 {
+				for _, char := range v[1:] {
+					flags = append(flags, "-"+string(char))
+				}
+			} else {
+				flags = append(flags, v)
+			}
 		} else {
 			commands = append(commands, v)
 		}
