@@ -94,6 +94,8 @@ func InitPaths() {
 	} else {
 		appDestPath = appPath
 	}
+
+	utils.CheckExistAndCreate(appPath)
 }
 
 // InitSetting parses theme settings and gets color section.

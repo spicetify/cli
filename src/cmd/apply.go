@@ -176,7 +176,7 @@ func checkStates() {
 }
 
 func getExtensionPath(name string) (string, error) {
-	extFilePath := filepath.Join(spicetifyFolder, "Extensions", name)
+	extFilePath := filepath.Join(userExtensionsFolder, name)
 
 	if _, err := os.Stat(extFilePath); err == nil {
 		return extFilePath, nil
@@ -234,7 +234,7 @@ func pushExtensions(list ...string) {
 }
 
 func getCustomAppPath(name string) (string, error) {
-	customAppFolderPath := filepath.Join(spicetifyFolder, "CustomApps", name)
+	customAppFolderPath := filepath.Join(userAppsFolder, name)
 
 	if _, err := os.Stat(customAppFolderPath); err == nil {
 		return customAppFolderPath, nil
