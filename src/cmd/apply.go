@@ -90,6 +90,12 @@ func Apply() {
 	}
 
 	utils.PrintSuccess("Spotify is spiced up!")
+
+	if isAppX {
+		utils.PrintInfo(`You are using Spotify Windows Store version, which is only partly supported.
+Stop using Spicetify with Windows Store version unless you absolutely CANNOT install normal Spotify from installer.
+Modded Spotify cannot be launched using original Shortcut/Start menu tile. To correctly launch Spotify with modification, please make a desktop shortcut that execute "spicetify auto". After that, you can change its icon, pin to start menu or put in startup folder.`)
+	}
 }
 
 // UpdateTheme updates user.css and overwrites custom assets
