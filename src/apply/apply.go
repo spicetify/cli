@@ -3,7 +3,6 @@ package apply
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,54 +26,18 @@ type Flag struct {
 
 // AdditionalOptions .
 func AdditionalOptions(appsFolderPath string, flags Flag) {
-	appList, err := ioutil.ReadDir(appsFolderPath)
-
-	if err != nil {
-		log.Fatal(err)
+	filesToModified := map[string]func(path string, flags Flag){
+		filepath.Join(appsFolderPath, "zlink", "zlink.bundle.js"):   zlinkMod,
+		filepath.Join(appsFolderPath, "zlink", "index.html"):        htmlMod,
+		filepath.Join(appsFolderPath, "lyrics", "lyrics.bundle.js"): lyricsMod,
 	}
 
-	for _, app := range appList {
-		appName := app.Name()
-		appPath := filepath.Join(appsFolderPath, appName)
+	for file, call := range filesToModified {
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			continue
+		}
 
-		filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
-			fileName := info.Name()
-			extension := filepath.Ext(fileName)
-
-			switch extension {
-			case ".js":
-				switch fileName {
-				case "lyrics.bundle.js":
-					lyricsMod(path, flags)
-				case "zlink.bundle.js":
-					zlinkMod(path, flags)
-				}
-			case ".css":
-			case ".html":
-				if appName == "zlink" && len(flags.Extension) > 0 {
-					utils.ModifyFile(path, func(content string) string {
-						extensionsHTML := ""
-						for _, v := range flags.Extension {
-							if strings.HasSuffix(v, ".mjs") {
-								extensionsHTML += `<script type="module" src="` + v + `"></script>` + "\n"
-							} else {
-								extensionsHTML += `<script src="` + v + `"></script>` + "\n"
-							}
-						}
-						if len(extensionsHTML) > 0 {
-							utils.Replace(
-								&content,
-								`<!\-\-Extension\-\->`,
-								"${0}\n"+extensionsHTML,
-							)
-						}
-
-						return content
-					})
-				}
-			}
-			return nil
-		})
+		call(file, flags)
 	}
 }
 
@@ -106,7 +69,36 @@ func UserAsset(appsFolderPath, themeFolder string) {
 	}
 }
 
+func htmlMod(htmlPath string, flags Flag) {
+	if len(flags.Extension) == 0 {
+		return
+	}
+
+	extensionsHTML := ""
+
+	for _, v := range flags.Extension {
+		if strings.HasSuffix(v, ".mjs") {
+			extensionsHTML += `<script type="module" src="` + v + `"></script>` + "\n"
+		} else {
+			extensionsHTML += `<script src="` + v + `"></script>` + "\n"
+		}
+	}
+
+	utils.ModifyFile(htmlPath, func(content string) string {
+		utils.Replace(
+			&content,
+			`<!\-\-Extension\-\->`,
+			"${0}\n"+extensionsHTML,
+		)
+		return content
+	})
+}
+
 func lyricsMod(jsPath string, flags Flag) {
+	if flags.VisHighFramerate.IsDefault() && flags.LyricForceNoSync.IsDefault() {
+		return
+	}
+
 	utils.ModifyFile(jsPath, func(content string) string {
 		if !flags.VisHighFramerate.IsDefault() {
 			utils.Replace(&content, `[\w_]+\.highVisualizationFrameRate\s?=`, `${0}`+flags.VisHighFramerate.ToForceOperator())
@@ -181,10 +173,8 @@ func getColorCSS(scheme map[string]string) string {
 	var variableList string
 	mergedScheme := make(map[string]string)
 
-	if scheme != nil {
-		for k, v := range scheme {
-			mergedScheme[k] = v
-		}
+	for k, v := range scheme {
+		mergedScheme[k] = v
 	}
 
 	for k, v := range utils.BaseColorList {

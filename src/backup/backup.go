@@ -1,9 +1,10 @@
 package backup
 
 import (
-	"os"
+	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
@@ -16,15 +17,31 @@ func Start(appPath, backupPath string) error {
 // Extract all SPA files from backupPath to extractPath
 // and call `callback` at every successfully extracted app
 func Extract(backupPath, extractPath string, callback func(finishedApp string)) {
-	filepath.Walk(backupPath, func(appPath string, info os.FileInfo, err error) error {
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".spa") {
-			appName := strings.Replace(info.Name(), ".spa", "", 1)
+	appList, err := ioutil.ReadDir(backupPath)
+	if err != nil {
+		utils.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+
+	for _, app := range appList {
+		if !strings.HasSuffix(app.Name(), ".spa") {
+			continue
+		}
+
+		wg.Add(1)
+		appPath := filepath.Join(backupPath, app.Name())
+		appName := strings.Replace(app.Name(), ".spa", "", 1)
+
+		go func() {
+			defer wg.Done()
+
 			appExtractToFolder := filepath.Join(extractPath, appName)
 
 			// Disable WebUI
 			if appName == "xpui" {
 				callback(appName)
-				return nil
+				return
 			}
 
 			err := utils.Unzip(appPath, appExtractToFolder)
@@ -33,8 +50,8 @@ func Extract(backupPath, extractPath string, callback func(finishedApp string)) 
 			}
 
 			callback(appName)
-		}
+		}()
+	}
 
-		return nil
-	})
+	wg.Wait()
 }

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
@@ -32,73 +33,82 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 		log.Fatal(err)
 	}
 
+	var wg sync.WaitGroup
+
 	for _, app := range appList {
-		appName := app.Name()
-		appPath := filepath.Join(extractedAppsPath, appName)
+		wg.Add(1)
 
-		filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
-			fileName := info.Name()
-			extension := filepath.Ext(fileName)
+		go func(appName string) {
+			defer wg.Done()
 
-			switch extension {
-			case ".js":
-				utils.ModifyFile(path, func(content string) string {
-					if flags.DisableSentry {
-						content = disableSentry(content)
-					}
+			appPath := filepath.Join(extractedAppsPath, appName)
+			filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
+				fileName := info.Name()
+				extension := filepath.Ext(fileName)
 
-					if flags.DisableLogging {
-						content = disableLogging(content, appName)
-					}
-
-					if flags.DisableUpgrade {
-						content = disableUpgradeCheck(content, appName)
-					}
-
-					if appName == "zlink" && flags.ExposeAPIs {
-						content = exposeAPIs(content)
-					}
-					return content
-				})
-			case ".css":
-				if flags.RemoveRTL {
-					utils.ModifyFile(path, removeRTL)
-				}
-			case ".html":
-				utils.ModifyFile(path, func(content string) string {
-					if appName != "zlink" && appName != "login" {
-						utils.Replace(&content, `</head>`, `<link rel="stylesheet" class="userCSS" href="https://zlink.app.spotify.com/css/user.css"></head>`)
-					} else {
-						utils.Replace(&content, `</head>`, `<link rel="stylesheet" class="userCSS" href="css/user.css"></head>`)
-					}
-
-					if appName == "zlink" {
-						var tags string
-						if flags.ExposeAPIs {
-							tags += `<script src="spicetifyWrapper.js"></script>`
+				switch extension {
+				case ".js":
+					utils.ModifyFile(path, func(content string) string {
+						if flags.DisableSentry {
+							content = disableSentry(content)
 						}
-						tags += "\n<!--Extension-->"
 
-						utils.Replace(&content, `<script src="init\.js"></script>`, "${0}\n"+tags)
+						if flags.DisableLogging {
+							content = disableLogging(content, appName)
+						}
+
+						if flags.DisableUpgrade {
+							content = disableUpgradeCheck(content, appName)
+						}
+
+						if appName == "zlink" && flags.ExposeAPIs {
+							content = exposeAPIs(content)
+						}
+						return content
+					})
+				case ".css":
+					if flags.RemoveRTL {
+						utils.ModifyFile(path, removeRTL)
 					}
+				case ".html":
+					utils.ModifyFile(path, func(content string) string {
+						if appName != "zlink" && appName != "login" {
+							utils.Replace(&content, `</head>`, `<link rel="stylesheet" class="userCSS" href="https://zlink.app.spotify.com/css/user.css"></head>`)
+						} else {
+							utils.Replace(&content, `</head>`, `<link rel="stylesheet" class="userCSS" href="css/user.css"></head>`)
+						}
 
-					return content
-				})
-			}
-			return nil
-		})
+						if appName == "zlink" {
+							var tags string
+							if flags.ExposeAPIs {
+								tags += `<script src="spicetifyWrapper.js"></script>`
+							}
+							tags += "\n<!--Extension-->"
 
-		if appName == "zlink" && flags.ExposeAPIs {
-			err := utils.Copy(utils.GetJsHelperDir(), appPath, false, []string{"spicetifyWrapper.js"})
-			if err != nil {
-				utils.Fatal(err)
-			}
-		}
+							utils.Replace(&content, `<script src="init\.js"></script>`, "${0}\n"+tags)
+						}
 
-		callback(appName)
+						return content
+					})
+				}
+				return nil
+			})
+
+			callback(appName)
+		}(app.Name())
 	}
 
 	fakeXPUI(filepath.Join(extractedAppsPath, "xpui"))
+
+	wg.Wait()
+
+	if flags.ExposeAPIs {
+		zlinkPath := filepath.Join(extractedAppsPath, "zlink")
+		err := utils.Copy(utils.GetJsHelperDir(), zlinkPath, false, []string{"spicetifyWrapper.js"})
+		if err != nil {
+			utils.Fatal(err)
+		}
+	}
 }
 
 // StartCSS modifies all CSS files in extractedAppsPath to change
@@ -110,94 +120,119 @@ func StartCSS(extractedAppsPath string, callback func(appName string)) {
 		log.Fatal(err)
 	}
 
+	var wg sync.WaitGroup
+
 	for _, app := range appList {
+		wg.Add(1)
 		appName := app.Name()
 		appPath := filepath.Join(extractedAppsPath, appName)
 
-		filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
-			if filepath.Ext(info.Name()) == ".css" {
-				utils.ModifyFile(path, func(content string) string {
-					utils.Replace(&content, "#1ed660", "var(--modspotify_sidebar_indicator_and_hover_button_bg)")
-					utils.Replace(&content, "#1ed760", "var(--modspotify_sidebar_indicator_and_hover_button_bg)")
-					utils.Replace(&content, "#1db954", "var(--modspotify_indicator_fg_and_button_bg)")
-					utils.Replace(&content, "#1df369", "var(--modspotify_indicator_fg_and_button_bg)")
-					utils.Replace(&content, "#1df269", "var(--modspotify_indicator_fg_and_button_bg)")
-					utils.Replace(&content, "#1cd85e", "var(--modspotify_indicator_fg_and_button_bg)")
-					utils.Replace(&content, "#1bd85e", "var(--modspotify_indicator_fg_and_button_bg)")
-					utils.Replace(&content, "#18ac4d", "var(--modspotify_selected_button)")
-					utils.Replace(&content, "#18ab4d", "var(--modspotify_selected_button)")
-					utils.Replace(&content, "#179443", "var(--modspotify_pressing_button_bg)")
-					utils.Replace(&content, "#14833b", "var(--modspotify_pressing_button_bg)")
-					utils.Replace(&content, "#282828", "var(--modspotify_sidebar_and_player_bg)")
-					utils.Replace(&content, "#121212", "var(--modspotify_sidebar_and_player_bg)")
-					utils.Replace(&content, "#999999", "var(--modspotify_main_bg)")
-					utils.Replace(&content, "#606060", "var(--modspotify_main_bg)")
-					utils.Replace(&content, `rgba\(18,\s?18,\s?18,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-					utils.Replace(&content, "#181818", "var(--modspotify_main_bg)")
-					utils.Replace(&content, `rgba\(18,\s?19,\s?20,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-					utils.Replace(&content, "#000000", "var(--modspotify_sidebar_and_player_bg)")
-					utils.Replace(&content, "#333333", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
-					utils.Replace(&content, "#3f3f3f", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
-					utils.Replace(&content, "#535353", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
-					utils.Replace(&content, "#404040", "var(--modspotify_slider_bg)")
-					utils.Replace(&content, `rgba\(80,\s?55,\s?80,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-					utils.Replace(&content, `rgba\(40,\s?40,\s?40,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-					utils.Replace(&content, `rgba\(40,\s?40,\s?40,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-					utils.Replace(&content, `rgba\(24,\s?24,\s?24,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-					utils.Replace(&content, `rgba\(18,\s?19,\s?20,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-					utils.Replace(&content, "#000011", "var(--modspotify_sidebar_and_player_bg)")
-					utils.Replace(&content, "#0a1a2d", "var(--modspotify_sidebar_and_player_bg)")
-					utils.Replace(&content, "#ffffff", "var(--modspotify_main_fg)")
-					utils.Replace(&content, "#f8f8f7", "var(--modspotify_pressing_fg)")
-					utils.Replace(&content, "#fcfcfc", "var(--modspotify_pressing_fg)")
-					utils.Replace(&content, "#d9d9d9", "var(--modspotify_pressing_fg)")
-					utils.Replace(&content, "#cdcdcd", "var(--modspotify_pressing_fg)")
-					utils.Replace(&content, "#e6e6e6", "var(--modspotify_pressing_fg)")
-					utils.Replace(&content, "#e5e5e5", "var(--modspotify_pressing_fg)")
-					utils.Replace(&content, "#adafb2", "var(--modspotify_secondary_fg)")
-					utils.Replace(&content, "#c8c8c8", "var(--modspotify_secondary_fg)")
-					utils.Replace(&content, "#a0a0a0", "var(--modspotify_secondary_fg)")
-					utils.Replace(&content, "#bec0bb", "var(--modspotify_secondary_fg)")
-					utils.Replace(&content, "#bababa", "var(--modspotify_secondary_fg)")
-					utils.Replace(&content, "#b3b3b3", "var(--modspotify_secondary_fg)")
-					utils.Replace(&content, "#c0c0c0", "var(--modspotify_secondary_fg)")
-					utils.Replace(&content, `rgba\(179,\s?179,\s?179,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_secondary_fg),${1})")
-					utils.Replace(&content, "#cccccc", "var(--modspotify_pressing_button_fg)")
-					utils.Replace(&content, "#ccc", "var(--modspotify_pressing_button_fg)")
-					utils.Replace(&content, "#ededed", "var(--modspotify_pressing_button_fg)")
-					utils.Replace(&content, "#4687d6", "var(--modspotify_miscellaneous_bg)")
-					utils.Replace(&content, "#cd1a2b", "var(--modspotify_miscellaneous_bg)")
-					utils.Replace(&content, `rgba\(70,\s?135,\s?214,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_miscellaneous_bg),${1})")
-					utils.Replace(&content, "#2e77d0", "var(--modspotify_miscellaneous_hover_bg)")
-					utils.Replace(&content, "#4591ee", "var(--modspotify_miscellaneous_hover_bg)")
-					utils.Replace(&content, "#386cab", "var(--modspotify_miscellaneous_hover_bg)")
-					utils.Replace(&content, "#e22134", "var(--modspotify_miscellaneous_hover_bg)")
-					utils.Replace(&content, `rgba\(51,\s?153,\s?255,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_miscellaneous_hover_bg),${1})")
-					utils.Replace(&content, `rgba\(30,\s?50,\s?100,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_miscellaneous_hover_bg),${1})")
-					utils.Replace(&content, `rgba\(24,\s?24,\s?24,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-					utils.Replace(&content, `rgba\(25,\s?20,\s?20,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-					utils.Replace(&content, `rgba\(160,\s?160,\s?160,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_pressing_button_fg),${1})")
-					utils.Replace(&content, `rgba\(255,\s?255,\s?255,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_pressing_button_fg),${1})")
-					utils.Replace(&content, "#ddd", "var(--modspotify_pressing_button_fg)")
-					utils.Replace(&content, "#000", "var(--modspotify_sidebar_and_player_bg)")
-					utils.Replace(&content, "#333", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
-					utils.Replace(&content, "#444", "var(--modspotify_slider_bg)")
-					utils.Replace(&content, "#fff", "var(--modspotify_main_fg)")
-					utils.Replace(&content, "black;", " var(--modspotify_sidebar_and_player_bg);")
-					utils.Replace(&content, "gray;", " var(--modspotify_main_bg);")
-					utils.Replace(&content, "lightgray;", " var(--modspotify_pressing_button_fg);")
-					utils.Replace(&content, "#8f8f8f;", " var(--modspotify_pressing_button_fg);")
-					utils.Replace(&content, "white;", " var(--modspotify_main_fg);")
-					utils.Replace(&content, `rgba\(0,\s?0,\s?0,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_cover_overlay_and_shadow),${1})")
-					utils.Replace(&content, "#000", "var(--modspotify_sidebar_and_player_bg)")
-					return content
-				})
-			}
-			return nil
-		})
+		go func() {
+			defer wg.Done()
 
-		callback(appName)
+			filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
+				if filepath.Ext(info.Name()) == ".css" {
+					utils.ModifyFile(path, colorVariableReplace)
+				}
+				return nil
+			})
+
+			callback(appName)
+		}()
 	}
+
+	wg.Wait()
+}
+
+func colorVariableReplace(content string) string {
+	utils.Replace(&content, "#999999", "var(--modspotify_main_bg)")
+	utils.Replace(&content, "#606060", "var(--modspotify_main_bg)")
+	utils.Replace(&content, "#181818", "var(--modspotify_main_bg)")
+
+	utils.Replace(&content, "#282828", "var(--modspotify_sidebar_and_player_bg)")
+	utils.Replace(&content, "#121212", "var(--modspotify_sidebar_and_player_bg)")
+	utils.Replace(&content, "#000000", "var(--modspotify_sidebar_and_player_bg)")
+	utils.Replace(&content, "#000011", "var(--modspotify_sidebar_and_player_bg)")
+	utils.Replace(&content, "#0a1a2d", "var(--modspotify_sidebar_and_player_bg)")
+	utils.Replace(&content, "#000", "var(--modspotify_sidebar_and_player_bg)")
+	utils.Replace(&content, "black;", " var(--modspotify_sidebar_and_player_bg);")
+
+	utils.Replace(&content, "gray;", " var(--modspotify_main_bg);")
+	utils.Replace(&content, "#ffffff", "var(--modspotify_main_fg)")
+	utils.Replace(&content, "#fff", "var(--modspotify_main_fg)")
+	utils.Replace(&content, "white;", " var(--modspotify_main_fg);")
+
+	utils.Replace(&content, "#adafb2", "var(--modspotify_secondary_fg)")
+	utils.Replace(&content, "#c8c8c8", "var(--modspotify_secondary_fg)")
+	utils.Replace(&content, "#a0a0a0", "var(--modspotify_secondary_fg)")
+	utils.Replace(&content, "#bec0bb", "var(--modspotify_secondary_fg)")
+	utils.Replace(&content, "#bababa", "var(--modspotify_secondary_fg)")
+	utils.Replace(&content, "#b3b3b3", "var(--modspotify_secondary_fg)")
+	utils.Replace(&content, "#c0c0c0", "var(--modspotify_secondary_fg)")
+
+	utils.Replace(&content, "#1ed660", "var(--modspotify_sidebar_indicator_and_hover_button_bg)")
+	utils.Replace(&content, "#1ed760", "var(--modspotify_sidebar_indicator_and_hover_button_bg)")
+
+	utils.Replace(&content, "#1db954", "var(--modspotify_indicator_fg_and_button_bg)")
+	utils.Replace(&content, "#1df369", "var(--modspotify_indicator_fg_and_button_bg)")
+	utils.Replace(&content, "#1df269", "var(--modspotify_indicator_fg_and_button_bg)")
+	utils.Replace(&content, "#1cd85e", "var(--modspotify_indicator_fg_and_button_bg)")
+	utils.Replace(&content, "#1bd85e", "var(--modspotify_indicator_fg_and_button_bg)")
+
+	utils.Replace(&content, "#18ac4d", "var(--modspotify_selected_button)")
+	utils.Replace(&content, "#18ab4d", "var(--modspotify_selected_button)")
+
+	utils.Replace(&content, "#179443", "var(--modspotify_pressing_button_bg)")
+	utils.Replace(&content, "#14833b", "var(--modspotify_pressing_button_bg)")
+
+	utils.Replace(&content, "#ededed", "var(--modspotify_pressing_button_fg)")
+	utils.Replace(&content, "#cccccc", "var(--modspotify_pressing_button_fg)")
+	utils.Replace(&content, "#8f8f8f;", " var(--modspotify_pressing_button_fg);")
+	utils.Replace(&content, "#ccc", "var(--modspotify_pressing_button_fg)")
+	utils.Replace(&content, "#ddd", "var(--modspotify_pressing_button_fg)")
+	utils.Replace(&content, "lightgray;", " var(--modspotify_pressing_button_fg);")
+
+	utils.Replace(&content, "#333333", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
+	utils.Replace(&content, "#3f3f3f", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
+	utils.Replace(&content, "#535353", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
+	utils.Replace(&content, "#333", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
+
+	utils.Replace(&content, "#404040", "var(--modspotify_slider_bg)")
+	utils.Replace(&content, "#444", "var(--modspotify_slider_bg)")
+
+	utils.Replace(&content, "#f8f8f7", "var(--modspotify_pressing_fg)")
+	utils.Replace(&content, "#fcfcfc", "var(--modspotify_pressing_fg)")
+	utils.Replace(&content, "#d9d9d9", "var(--modspotify_pressing_fg)")
+	utils.Replace(&content, "#cdcdcd", "var(--modspotify_pressing_fg)")
+	utils.Replace(&content, "#e6e6e6", "var(--modspotify_pressing_fg)")
+	utils.Replace(&content, "#e5e5e5", "var(--modspotify_pressing_fg)")
+
+	utils.Replace(&content, "#4687d6", "var(--modspotify_miscellaneous_bg)")
+	utils.Replace(&content, "#cd1a2b", "var(--modspotify_miscellaneous_bg)")
+
+	utils.Replace(&content, "#2e77d0", "var(--modspotify_miscellaneous_hover_bg)")
+	utils.Replace(&content, "#4591ee", "var(--modspotify_miscellaneous_hover_bg)")
+	utils.Replace(&content, "#386cab", "var(--modspotify_miscellaneous_hover_bg)")
+	utils.Replace(&content, "#e22134", "var(--modspotify_miscellaneous_hover_bg)")
+
+	utils.Replace(&content, `rgba\(18,\s?18,\s?18,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
+	utils.Replace(&content, `rgba\(18,\s?19,\s?20,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
+	utils.Replace(&content, `rgba\(80,\s?55,\s?80,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
+	utils.Replace(&content, `rgba\(40,\s?40,\s?40,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
+	utils.Replace(&content, `rgba\(40,\s?40,\s?40,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
+	utils.Replace(&content, `rgba\(24,\s?24,\s?24,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
+	utils.Replace(&content, `rgba\(18,\s?19,\s?20,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
+	utils.Replace(&content, `rgba\(70,\s?135,\s?214,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_miscellaneous_bg),${1})")
+	utils.Replace(&content, `rgba\(51,\s?153,\s?255,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_miscellaneous_hover_bg),${1})")
+	utils.Replace(&content, `rgba\(30,\s?50,\s?100,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_miscellaneous_hover_bg),${1})")
+	utils.Replace(&content, `rgba\(24,\s?24,\s?24,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
+	utils.Replace(&content, `rgba\(25,\s?20,\s?20,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
+	utils.Replace(&content, `rgba\(160,\s?160,\s?160,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_pressing_button_fg),${1})")
+	utils.Replace(&content, `rgba\(255,\s?255,\s?255,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_pressing_button_fg),${1})")
+	utils.Replace(&content, `rgba\(0,\s?0,\s?0,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_cover_overlay_and_shadow),${1})")
+	utils.Replace(&content, `rgba\(179,\s?179,\s?179,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_secondary_fg),${1})")
+
+	return content
 }
 
 func disableSentry(input string) string {
@@ -426,11 +461,13 @@ this.progressbar.addListener("progress", () => {
 	})
 
 	// Inject custom menu time to Profile menu
-	utils.Replace(
-		&input,
-		`(name:"profile-menu".+?,)([\w_]+\.default\.createElement)`,
-		"${1}Spicetify.Menu._hook("+menuReact[0]+","+menuReact[1]+","+submenuReact[0]+"),${2}",
-	)
+	if menuReact != nil && submenuReact != nil {
+		utils.Replace(
+			&input,
+			`(name:"profile-menu".+?,)([\w_]+\.default\.createElement)`,
+			"${1}Spicetify.Menu._hook("+menuReact[0]+","+menuReact[1]+","+submenuReact[0]+"),${2}",
+		)
+	}
 
 	utils.Replace(
 		&input,
