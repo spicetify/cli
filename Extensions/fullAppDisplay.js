@@ -99,6 +99,12 @@
     filter: blur(30px) brightness(0.6);
     background-position: center;
 }
+#fad-artist::before {
+    content: "\\f168";
+}
+#fad-album::before {
+    content: "\\f167";
+}
 body.fad-activated #full-app-display {
     display: block
 }`
@@ -123,9 +129,18 @@ body.fad-activated #full-app-display {
     font-size: 87px;
     font-weight: var(--glue-font-weight-black);
 }
-#fad-artist {
+#fad-artist, #fad-album {
     font-size: 54px;
     font-weight: var(--glue-font-weight-medium);
+}
+#fad-artist::before, #fad-album::before {
+    font-size: 54px;
+    opacity: 30%;
+    font-family: "glue-spoticon";
+    display: inline-block;
+    line-height: 70px;
+    vertical-align: bottom;
+    padding-right: 12px;
 }
 #fad-status {
     display: flex;
@@ -159,9 +174,18 @@ body.fad-activated #full-app-display {
     font-size: 54px;
     font-weight: var(--glue-font-weight-black);
 }
-#fad-artist {
+#fad-artist, #fad-album {
     font-size: 33px;
     font-weight: var(--glue-font-weight-medium);
+}
+#fad-artist::before, #fad-album::before {
+    font-size: 33px;
+    opacity: 30%;
+    font-family: "glue-spoticon";
+    display: inline-block;
+    line-height: 42px;
+    vertical-align: bottom;
+    padding-right: 8px;
 }
 #fad-status {
     display: flex;
@@ -178,7 +202,17 @@ body.fad-activated #full-app-display {
     order: 2
 }`
     ]
-
+    
+    const iconStyleChoices = [`
+#fad-artist::before, #fad-album::before {
+    display: none;
+}`,
+`
+#fad-artist::before, #fad-album::before {
+    display: inline-block;
+}`
+    ]
+    
     const container = document.createElement("div")
     container.id = "full-app-display"
 
@@ -189,7 +223,7 @@ body.fad-activated #full-app-display {
         Spicetify.Player.removeEventListener("onprogress", updateProgress)
         Spicetify.Player.removeEventListener("onplaypause", updateControl)
 
-        style.innerHTML = styleBase + styleChoices[CONFIG.vertical ? 1 : 0];
+        style.innerHTML = styleBase + styleChoices[CONFIG.vertical ? 1 : 0] + iconStyleChoices[CONFIG.icons ? 1 : 0];
 
         container.innerHTML = `
 <div id="fad-background"><div id="fad-background-image"></div></div>
@@ -203,6 +237,7 @@ body.fad-activated #full-app-display {
     <div id="fad-details">
         <div id="fad-title"></div>
         <div id="fad-artist"></div>
+        ${CONFIG.showAlbum ? `<div id="fad-album"></div>` : ""}
         <div id="fad-status" class="${CONFIG.enableControl || CONFIG.enableProgress ? "active" : ""}">
             ${CONFIG.enableControl ? `
             <div id="fad-controls">
@@ -224,6 +259,7 @@ body.fad-activated #full-app-display {
         back = container.querySelector("#fad-background-image")
         title = container.querySelector("#fad-title")
         artist = container.querySelector("#fad-artist")
+        album = container.querySelector("#fad-album")
 
         if (CONFIG.enableProgress) {
             prog = container.querySelector("#fad-progress-inner")
@@ -248,8 +284,14 @@ body.fad-activated #full-app-display {
         "video-full-screen--hide-ui",
         "fad-activated"
     ]
-
-    function updateInfo() {
+    
+    function getAlbumInfo(uri) {
+        return new Promise((resolve) => { Spicetify.CosmosAPI.resolver.get(`hm://album/v1/album-app/album/${uri}/desktop`, (err, raw) => {
+            resolve(!err && raw.getJSONBody())
+        })})
+    }
+    
+    async function updateInfo() {
         cover.style.backgroundImage = back.style.backgroundImage = `url("${Spicetify.Player.data.track.metadata.image_xlarge_url}")`
 
         let rawTitle = Spicetify.Player.data.track.metadata.title
@@ -263,7 +305,13 @@ body.fad-activated #full-app-display {
         title.innerText = rawTitle
         artist.innerText = Spicetify.Player.data.track.metadata.artist_name
         if (CONFIG.showAlbum) {
-            artist.innerText += " / " + Spicetify.Player.data.track.metadata.album_title
+            album_uri = Spicetify.Player.data.track.metadata.album_uri
+            const albumInfo = await getAlbumInfo(album_uri.replace("spotify:album:", ""))
+
+            album_date = new Date(albumInfo.year, albumInfo.month, albumInfo.day)
+            album_date = album_date.toLocaleString('default', { year: 'numeric', month: 'long' })
+        
+            album.innerText = Spicetify.Player.data.track.metadata.album_title + " • " + album_date
         }
         if (CONFIG.enableProgress) {
             durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.getDuration())
@@ -357,6 +405,7 @@ body.fad-activated #full-app-display {
     newMenuItem("Enable controls", "enableControl")
     newMenuItem("Trim title", "trimTitle")
     newMenuItem("Show album", "showAlbum")
+    newMenuItem("Show icons", "icons")
     newMenuItem("Vertical mode", "vertical")
     new Spicetify.ContextMenu.Item("Exit", deactivate, checkURI).register()
 
