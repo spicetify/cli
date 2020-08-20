@@ -262,6 +262,9 @@ body.fad-activated #full-app-display {
         }
         title.innerText = rawTitle
         artist.innerText = Spicetify.Player.data.track.metadata.artist_name
+        if (CONFIG.showAlbum) {
+            artist.innerText += " / " + Spicetify.Player.data.track.metadata.album_title
+        }
         if (CONFIG.enableProgress) {
             durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.getDuration())
         }
@@ -353,6 +356,7 @@ body.fad-activated #full-app-display {
     newMenuItem("Enable progress bar", "enableProgress")
     newMenuItem("Enable controls", "enableControl")
     newMenuItem("Trim title", "trimTitle")
+    newMenuItem("Show album", "showAlbum")
     newMenuItem("Vertical mode", "vertical")
     new Spicetify.ContextMenu.Item("Exit", deactivate, checkURI).register()
 
