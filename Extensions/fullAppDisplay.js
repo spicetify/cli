@@ -137,7 +137,6 @@ body.fad-activated #full-app-display {
     font-size: 54px;
     opacity: 30%;
     font-family: "glue-spoticon";
-    display: inline-block;
     line-height: 70px;
     vertical-align: bottom;
     padding-right: 12px;
@@ -182,7 +181,6 @@ body.fad-activated #full-app-display {
     font-size: 33px;
     opacity: 30%;
     font-family: "glue-spoticon";
-    display: inline-block;
     line-height: 42px;
     vertical-align: bottom;
     padding-right: 8px;
