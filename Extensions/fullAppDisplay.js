@@ -306,7 +306,7 @@ body.fad-activated #full-app-display {
             album_uri = Spicetify.Player.data.track.metadata.album_uri
             const albumInfo = await getAlbumInfo(album_uri.replace("spotify:album:", ""))
 
-            album_date = new Date(albumInfo.year, albumInfo.month, albumInfo.day)
+            album_date = new Date(albumInfo.year, albumInfo.month-1, albumInfo.day)
             album_date = album_date.toLocaleString('default', { year: 'numeric', month: 'long' })
         
             album.innerText = Spicetify.Player.data.track.metadata.album_title + " • " + album_date
