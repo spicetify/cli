@@ -307,7 +307,9 @@ body.fad-activated #full-app-display {
             const albumInfo = await getAlbumInfo(album_uri.replace("spotify:album:", ""))
 
             album_date = new Date(albumInfo.year, albumInfo.month-1, albumInfo.day)
-            album_date = album_date.toLocaleString('default', { year: 'numeric', month: 'long' })
+            recent_date = new Date()
+            recent_date.setMonth(recent_date.getMonth() - 6)
+            album_date = album_date.toLocaleString('default', album_date>recent_date ? { year: 'numeric', month: 'short' } : { year: 'numeric' })
         
             album.innerText = Spicetify.Player.data.track.metadata.album_title + " • " + album_date
         }
@@ -373,7 +375,7 @@ body.fad-activated #full-app-display {
 
     // Add activator on top bar
     const button = document.createElement("button")
-    button.classList.add("button", "spoticon-fullscreen-16", "fad-button")
+    button.classList.add("button", "spoticon-minimise-16", "fad-button")
     button.setAttribute("data-tooltip", "Full App Display")
 
     document.querySelector("#view-browser-navigation-top-bar").append(button)
