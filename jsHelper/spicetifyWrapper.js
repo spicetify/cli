@@ -1389,7 +1389,7 @@ Spicetify.colorExtractor = (uri) => {
                 if (body.entries && body.entries.length) {
                     const list = {};
                     for (const color of body.entries[0].color_swatches) {
-                        list[color.preset] = `#${color.color.toString(16).padStart(3, "0")}`;
+                        list[color.preset] = `#${color.color.toString(16).padStart(6, "0")}`;
                     }
                     resolve(list);
                 } else {
