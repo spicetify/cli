@@ -340,7 +340,7 @@
 
     // Add context menu items for Notification button
     const checkURI = ([uri]) => uri === "spotify:special:new-release"
-    new ContextMenu.Item(
+    const podcastContextMenuItem = new ContextMenu.Item(
         "Podcast",
         function () {
             const state = !BUTTON.isFetchingPodcast()
@@ -350,7 +350,8 @@
         },
         checkURI,
         BUTTON.isFetchingPodcast() ? "check" : null,
-    ).register()
+    )
+    podcastContextMenuItem.register()
 
     new ContextMenu.Item(
         "Followed artists only",
@@ -382,6 +383,10 @@
             const state = !BUTTON.isPodcastOnly()
             BUTTON.setPodcastOnly(state)
             this.icon = state ? "check" : null
+            if (state && !BUTTON.isFetchingPodcast()) {
+                BUTTON.setFetchingPodcast(true)
+                podcastContextMenuItem.icon = "check"
+            }
             main()
         },
         checkURI,
@@ -389,6 +394,15 @@
     ).register()
 
     new ContextMenu.Item("Refresh", main, checkURI).register()
+    new ContextMenu.Item(
+        "Ignore all",
+        function () {
+            BUTTON.loadingState()
+            LIST.apply([], BUTTON.isUnlistenedOnly())
+            BUTTON.idleState()
+        },
+        checkURI
+    ).register()
 
     function getArtistList() {
         return new Promise((resolve, reject) => { CosmosAPI.resolver.get("sp://core-collection/unstable/@/list/artists/all", (err, raw) => {
