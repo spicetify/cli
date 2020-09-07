@@ -92,7 +92,7 @@
     const vim = new VimBind();
     registerBind("F", false, false, false, vim.activate.bind(vim));
     // Esc to cancle Link Follow
-    registerBind("ESCAPE", false, false, false, vim.deactivate.bind(vim));
+    Spicetify.Keyboard.registerImportantShortcut(Spicetify.Keyboard.KEYS["ESCAPE"], vim.deactivate.bind(vim));
 
     function rotateSidebarDown() {
         rotateSidebar(1)
@@ -195,7 +195,11 @@
                 shift,
                 alt,
             },
-            callback,
+            (event) => {
+                if (!event.cancelBubble && !vim.isActive) {
+                    callback(event);
+                }
+            },
         );
     }
 
@@ -291,7 +295,6 @@
     }
 })();
 
-
 function VimBind() {
     const elementQuery = [
         "[href]",
@@ -299,7 +302,9 @@ function VimBind() {
         "button.button-with-stroke",
         "button.Button--style-green",
         "button.Button--style-stroke",
-        "tr.tl-row",
+        "td.tl-play",
+        "td.tl-number",
+        "tr.TableRow",
     ].join(",");
 
     const keyList = "qwertasdfgzxcvyuiophjklbnm".split("");
@@ -308,15 +313,43 @@ function VimBind() {
 
     /** @type {Document | undefined} */
     let currentIframe;
+    /** @type {HTMLDivElement} */
+    let currentEmbedded;
+    const sidebar = document.getElementById("view-navigation-bar");
+    const player = document.getElementById("view-player-footer");
+    const buddyList = document.getElementById("iframe-buddy-list");
 
-    let isActive = false;
+    this.isActive = false;
 
     keyList.forEach((key) => {
         Spicetify.Keyboard.registerImportantShortcut(
             Spicetify.Keyboard.KEYS[key.toUpperCase()],
-            listenFirstKey.bind(this),
+            listenToKeys.bind(this),
         );
     });
+
+    const vimOverlay = document.createElement("div");
+    vimOverlay.id = "vim-overlay";
+    vimOverlay.style.zIndex = "9999";
+    vimOverlay.style.position = "absolute";
+    vimOverlay.style.width = "100%";
+    vimOverlay.style.height = "100%";
+    vimOverlay.style.display = "none";
+    vimOverlay.innerHTML = `<style>
+.vim-key {
+    position: fixed;
+    padding: 3px 6px;
+    background-color: black;
+    border-radius: 3px;
+    border: solid 2px white;
+    color: white;
+    text-transform: lowercase;
+    line-height: normal;
+    font-size: 14px;
+    font-weight: 500;
+}
+</style>`;
+    document.body.append(vimOverlay);
 
     /**
      * 
@@ -325,11 +358,23 @@ function VimBind() {
     this.activate = function (event) {
         /** @type {HTMLIFrameElement} */
         const iframe = document.querySelector("iframe.active");
+        let iframeBound = null;
+        let buddyBound = null;
+
         if (iframe) {
             currentIframe = iframe.contentDocument;
+            iframeBound = iframe.getBoundingClientRect();
+            currentEmbedded = undefined;
         } else {
             currentIframe = undefined;
+            currentEmbedded = document.querySelector(".embedded-app.active");
         }
+
+        if (buddyList.src !== "about:blank") {
+            buddyBound = buddyList.getBoundingClientRect();
+        }
+
+        vimOverlay.style.display = "block";
 
         const vimkey = getVims();
         if (vimkey.length > 0) {
@@ -337,44 +382,51 @@ function VimBind() {
             return;
         }
 
-        const elements = getLinks().filter((e) => {
-            if (
-                e.style.display === "none" ||
+        let firstKey = 0;
+        let secondKey = 0;
+
+        getLinks().forEach((e) => {
+            if (e.style.display === "none" ||
                 e.style.visibility === "hidden" ||
-                e.style.opacity === "0"
-            ) {
-                return false;
+                e.style.opacity === "0") {
+                return;
             }
 
             const bound = e.getBoundingClientRect();
+            let owner;
+
+            let top = bound.top;
+            let left = bound.left;
+
+            if (e.ownerDocument === currentIframe && iframeBound) {
+                top += iframeBound.top;
+                left += iframeBound.left;
+                owner = iframe;
+
+            } else if (e.ownerDocument === buddyList.contentDocument && buddyBound) {
+                top += buddyBound.top;
+                left += buddyBound.left;
+                owner = buddyList;
+            } else {
+                owner = document.body;
+            }
 
             if (
-                bound.bottom > document.body.clientHeight ||
-                bound.left > document.body.clientWidth ||
+                bound.bottom > owner.clientHeight ||
+                bound.left > owner.clientWidth ||
                 bound.right < 0 ||
                 bound.top < 0 ||
                 bound.width === 0 ||
                 bound.height === 0
             ) {
-                return false;
+                return;
             }
 
-            return true;
-        });
-
-        if (elements.length === 0) {
-            return;
-        }
-
-        isActive = true
-
-        let firstKey = 0;
-        let secondKey = 0;
-
-        elements.forEach((e) => {
-            e.append(createKey(
+            vimOverlay.append(createKey(
+                e,
                 keyList[firstKey] + keyList[secondKey],
-                e.tagName === "A"
+                top,
+                left
             ));
 
             secondKey++;
@@ -384,119 +436,117 @@ function VimBind() {
             }
         });
 
+        this.isActive = true;
     }
 
-    this.deactivate = function () {
-        isActive = false;
-        Spicetify.Keyboard._isPopoverOpen = false;
+    /**
+     * 
+     * @param {KeyboardEvent} event 
+     */
+    this.deactivate = function (event) {
+        event.cancelBubble = true;
+        this.isActive = false;
+        vimOverlay.style.display = "none";
         getVims().forEach((e) => e.remove());
     }
 
     function getLinks() {
-        const elements = [];
-        elements.push(...document.body.querySelectorAll(elementQuery));
+        const elements = Array.from(sidebar.querySelectorAll(elementQuery));
+        elements.push(...player.querySelectorAll(elementQuery));
+        elements.push(...buddyList.contentDocument.querySelectorAll(elementQuery));
 
-        if (currentIframe) {
-            const el = currentIframe.querySelectorAll(elementQuery);
+        if (currentIframe || currentEmbedded) {
+            const el = (currentIframe || currentEmbedded).querySelectorAll(elementQuery);
             elements.push(...el);
         }
 
         return elements;
     }
 
-    /**
-     * @returns {HTMLDivElement[]}
-     */
     function getVims() {
-        /** @type {HTMLDivElement[]} */
-        const elements = [];
-
-        /** @type {NodeListOf<HTMLDivElement>} */
-        let vimKeys = document.querySelectorAll(".vim-key");
-
-        elements.push(...vimKeys);
-
-        if (currentIframe) {
-            vimKeys = currentIframe.querySelectorAll(".vim-key");
-            elements.push(...vimKeys);
-        }
-
-        return elements;
+        return Array.from(vimOverlay.getElementsByClassName("vim-key"));
     }
 
     /**
      * @param {KeyboardEvent} event
      */
-    function listenFirstKey(event) {
-        if (!isActive) {
+    function listenToKeys(event) {
+        if (!this.isActive) {
             return;
         }
 
         const vimkey = getVims();
 
         if (vimkey.length === 0) {
-            Spicetify.Keyboard._isPopoverOpen = false;
+            this.deactivate(event);
             return;
         }
 
-        Spicetify.Keyboard._isPopoverOpen = true;
-
         for (const div of vimkey) {
-            if (div.innerText[0] !== event.key) {
+            const text = div.innerText.toLowerCase()
+            if (text[0] !== event.key) {
                 div.remove();
                 continue;
             }
 
-            const newText = div.innerText.slice(1);
+            const newText = text.slice(1);
             if (newText.length === 0) {
-                click(div);
-                div.remove();
-
-                Spicetify.Keyboard._isPopoverOpen = false;
-                continue;
+                click(div.target);
+                this.deactivate(event);
+                return;
             }
+
             div.innerText = newText;
         }
     }
 
-    function click(div) {
-        const element = div.parentNode;
+    function click(element) {
         if (element.hasAttribute("href") || element.tagName === "BUTTON") {
             element.click();
             return;
         }
 
-        const findButton = element.querySelector("button");
+        const findButton = element.querySelector(`button[data-ta-id="play-button"]`) ||
+            element.querySelector(`button[data-button="play"]`);
         if (findButton) {
             findButton.click();
             return;
         }
+
+        // TableCell case where play button is hidden
+        // Index number is in first column
+        const index = parseInt(element.firstChild.innerText) - 1;
+        const context = getContextUri();
+        if (index >= 0 && context) {
+            console.log(index, context)
+            Spicetify.PlaybackControl.playFromResolver(context, { index }, () => {});
+            return;
+        }
     }
 
-    /**
-     * @param {string} key
-     * @param {boolean} isATag
-     * @returns {HTMLSpanElement}
-     */
-    function createKey(key, isATag) {
+    function createKey(target, key, top, left) {
         const div = document.createElement("span");
         div.classList.add("vim-key");
         div.innerText = key;
-        div.style.backgroundColor = "black";
-        div.style.border = "solid 1px white";
-        div.style.color = "white";
-        div.style.textTransform = "lowercase";
-        div.style.position = "absolute";
-        div.style.zIndex = "10";
-        div.style.padding = "3px 6px";
-        div.style.lineHeight = "normal";
-        div.style.left = "0";
-        div.style.fontSize = "14px";
-        div.style.fontWeight = "500";
-        if (!isATag) {
-            div.style.top = "0";
-        }
+        div.style.top = top + "px";
+        div.style.left = left + "px";
+        div.target = target;
         return div;
+    }
+
+    function getContextUri() {
+        const username = __spotify.username;
+        const activeApp = localStorage.getItem(username + ":activeApp");
+        if (activeApp) {
+            try {
+                return JSON.parse(activeApp).uri.replace("app:", "");
+            }
+            catch {
+                return null;
+            }
+        }
+
+        return null;
     }
 
     return this;
