@@ -343,6 +343,7 @@ body.fad-activated #full-app-display {
             Spicetify.Player.addEventListener("onplaypause", updateControl)
         }
         document.body.classList.add(...classes)
+        document.documentElement.requestFullscreen();
     }
 
     function deactivate() {
@@ -354,6 +355,7 @@ body.fad-activated #full-app-display {
             Spicetify.Player.removeEventListener("onplaypause", updateControl)
         }
         document.body.classList.remove(...classes)
+        document.exitFullscreen()
     }
 
     function getConfig() {
