@@ -342,8 +342,12 @@ body.fad-activated #full-app-display {
             updateControl()
             Spicetify.Player.addEventListener("onplaypause", updateControl)
         }
+        if (CONFIG.enableFullscreen) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen()
+        }
         document.body.classList.add(...classes)
-        document.documentElement.requestFullscreen();
     }
 
     function deactivate() {
@@ -354,8 +358,10 @@ body.fad-activated #full-app-display {
         if (CONFIG.enableControl) {
             Spicetify.Player.removeEventListener("onplaypause", updateControl)
         }
+        if (CONFIG.enableFullscreen) {
+            document.exitFullscreen()
+        }
         document.body.classList.remove(...classes)
-        document.exitFullscreen()
     }
 
     function getConfig() {
@@ -409,6 +415,7 @@ body.fad-activated #full-app-display {
     newMenuItem("Show album", "showAlbum")
     newMenuItem("Show icons", "icons")
     newMenuItem("Vertical mode", "vertical")
+    newMenuItem("Enable fullscreen", "enableFullscreen")
     new Spicetify.ContextMenu.Item("Exit", deactivate, checkURI).register()
 
     button.onclick = activate
