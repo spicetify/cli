@@ -18,11 +18,11 @@ import (
 )
 
 // CheckExistAndCreate checks folder existence
-// and make that folder if it does not exist
+// and makes that folder and any parent folders if it does not exist
 func CheckExistAndCreate(dir string) {
 	_, err := os.Stat(dir)
 	if err != nil {
-		os.Mkdir(dir, 0700)
+		os.MkdirAll(dir, 0700)
 	}
 }
 

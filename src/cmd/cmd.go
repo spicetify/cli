@@ -195,7 +195,6 @@ func getSpicetifyFolder() string {
 
 		if !isAvailable || len(parent) == 0 {
 			parent = filepath.Join(os.Getenv("HOME"), ".config")
-			utils.CheckExistAndCreate(parent)
 		}
 
 		result = filepath.Join(parent, "spicetify")
