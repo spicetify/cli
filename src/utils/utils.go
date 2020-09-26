@@ -90,9 +90,10 @@ func Copy(src, dest string, recursive bool, filters []string) error {
 	os.MkdirAll(dest, 0700)
 
 	for _, file := range dir {
-		fSrcPath := filepath.Join(src, file.Name())
+		filename := file.Name()
+		fSrcPath := filepath.Join(src, filename)
 
-		fDestPath := filepath.Join(dest, file.Name())
+		fDestPath := filepath.Join(dest, filename)
 		if file.IsDir() && recursive {
 			os.MkdirAll(fDestPath, 0700)
 			Copy(fSrcPath, fDestPath, true, filters)
@@ -101,7 +102,7 @@ func Copy(src, dest string, recursive bool, filters []string) error {
 				isMatch := false
 
 				for _, filter := range filters {
-					if strings.Contains(file.Name(), filter) {
+					if strings.Contains(filename, filter) {
 						isMatch = true
 						break
 					}
@@ -247,9 +248,7 @@ func CreateJunction(location, destination string) error {
 	case "windows":
 		exec.Command("cmd", "/C", "rmdir", destination).Run()
 		return exec.Command("cmd", "/C", "mklink", "/J", destination, location).Run()
-	case "linux":
-		return exec.Command("ln", "-Fsf", location, destination).Run()
-	case "darwin":
+	case "linux", "darwin":
 		return exec.Command("ln", "-Fsf", location, destination).Run()
 	}
 
