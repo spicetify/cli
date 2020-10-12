@@ -421,5 +421,23 @@ body.fad-activated #full-app-display {
     button.onclick = activate
     container.ondblclick = deactivate
 
+    function toggleFad() {
+        if (document.body.classList.contains('fad-activated')) {
+            deactivate();
+        } else {
+            activate();
+        }
+    }
+
+    Spicetify.Keyboard.registerShortcut(
+        {
+            key: Spicetify.Keyboard.KEYS["F11"], 
+            ctrl: false, 
+            shift: false, 
+            alt: false,
+        }, 
+        toggleFad
+    );
+
     render()
 })()
