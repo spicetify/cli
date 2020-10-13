@@ -301,7 +301,12 @@ body.fad-activated #full-app-display {
                 .trim()
         }
         title.innerText = rawTitle
-        artist.innerText = Spicetify.Player.data.track.metadata.artist_name
+        let artistName = Spicetify.Player.data.track.metadata.artist_name
+        if (artistName) {
+            artist.innerText = artistName
+        } else {
+            artist.innerText = ""
+        }
         if (CONFIG.showAlbum) {
             album_uri = Spicetify.Player.data.track.metadata.album_uri
             const albumInfo = await getAlbumInfo(album_uri.replace("spotify:album:", ""))
