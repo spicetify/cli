@@ -93,7 +93,7 @@ const Spicetify = {
             "Queue",
             "removeFromQueue",
             "showNotification",
-            "getAblumArtColors",
+            "getAlbumArtColors",
             "Menu",
             "ContextMenu",
             "Abba",
@@ -1400,7 +1400,7 @@ Spicetify.colorExtractor = (uri) => {
     });
 }
 
-Spicetify.getAblumArtColors = async (uri) => {
+Spicetify.getAlbumArtColors = async (uri) => {
     uri = uri || Spicetify.Player.data.track.metadata.album_uri;
     return await Spicetify.colorExtractor(uri);
 }

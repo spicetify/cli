@@ -210,7 +210,7 @@ declare namespace Spicetify {
      * @param uri is optional. Leave it blank to get currrent track
      * or specify another track uri.
      */
-    function getAblumArtColors(uri?: string): Promise<{
+    function getAlbumArtColors(uri?: string): Promise<{
         DESATURATED: string;
         LIGHT_VIBRANT: string;
         PROMINENT: string;
