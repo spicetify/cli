@@ -26,7 +26,7 @@
         const data = Spicetify.Player.data || Spicetify.Queue;
         if (!data) return;
 
-        const regexList = [/christmas/i, /xmas/i, /santa/i, /claus/i, /mistletoe/i, /winter wonderland/i, /rudolph/i, /feliz navidad/i];
+        const regexList = [/christmas/i, /xmas/i, /santa/i, /claus/i, /mistletoe/i, /winter wonderland/i, /rudolph/i, /feliz navidad/i, /no[ëe]l/i];
         const text = data.track.metadata.title + ' ' + data.track.metadata.album_title;
         if (regexList.some(rx => rx.test(text))) {
             Spicetify.Player.next();
