@@ -319,7 +319,10 @@ body.fad-activated #full-app-display {
             album.innerText = Spicetify.Player.data.track.metadata.album_title + " • " + album_date
         }
         if (CONFIG.enableProgress) {
-            durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.getDuration())
+            // Delayed as getDuration doesn't immediately update
+            setTimeout(function (){
+                durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.getDuration())
+            }, 20);
         }
     }
 
