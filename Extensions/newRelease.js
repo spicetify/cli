@@ -310,7 +310,7 @@
         if (LIST.getUnlistenedLen() === 0) return
         let uri = Player.data.track.metadata.context_uri
         if (!uri) uri = Player.data.track.metadata.album_uri
-        if (!uri) uri = Player.data.track.uri
+        if (!uri || uri.startsWith('spotify:show')) uri = Player.data.track.uri
 
         if (LIST.isListened(uri)) return
 
