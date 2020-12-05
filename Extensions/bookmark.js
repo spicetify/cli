@@ -180,9 +180,13 @@
                 event.stopPropagation()
             }
 
-            const imageLink = this.querySelector(".card-image-link");
             const infoLink = this.querySelector(".card-info-link");
-            infoLink.onclick = imageLink.onclick = onLinkClicked;
+            infoLink.onclick = onLinkClicked;
+            
+            const imageLink = this.querySelector(".card-image-link");
+            if (imageLink) {
+                imageLink.onclick = onLinkClicked;
+            }
         }
     }
 
