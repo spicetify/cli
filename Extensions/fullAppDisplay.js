@@ -319,10 +319,8 @@ body.fad-activated #full-app-display {
             album.innerText = Spicetify.Player.data.track.metadata.album_title + " • " + album_date
         }
         if (CONFIG.enableProgress) {
-            // Delayed as getDuration doesn't immediately update
-            setTimeout(function (){
-                durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.getDuration())
-            }, 20);
+            // Not using Spicetify.Player.getDuration() due to bug
+            durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.data.track.metadata.duration)
         }
     }
 
