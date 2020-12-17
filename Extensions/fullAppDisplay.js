@@ -301,12 +301,19 @@ body.fad-activated #full-app-display {
                 .trim()
         }
         title.innerText = rawTitle
-        let artistName = Spicetify.Player.data.track.metadata.artist_name
+        let artistName
+        if (CONFIG.showAllArtists) {
+            let metadata = Spicetify.Player.data.track.metadata
+            artistName = Object.keys(metadata).filter(key => key.startsWith('artist_name')).sort().map(key => metadata[key]).join(', ')
+        } else {
+            artistName = Spicetify.Player.data.track.metadata.artist_name
+        }
         if (artistName) {
             artist.innerText = artistName
         } else {
             artist.innerText = ""
         }
+
         if (CONFIG.showAlbum) {
             album_uri = Spicetify.Player.data.track.metadata.album_uri
             const albumInfo = await getAlbumInfo(album_uri.replace("spotify:album:", ""))
@@ -419,6 +426,7 @@ body.fad-activated #full-app-display {
     newMenuItem("Enable controls", "enableControl")
     newMenuItem("Trim title", "trimTitle")
     newMenuItem("Show album", "showAlbum")
+    newMenuItem("Show all artists", "showAllArtists")
     newMenuItem("Show icons", "icons")
     newMenuItem("Vertical mode", "vertical")
     newMenuItem("Enable fullscreen", "enableFullscreen")
