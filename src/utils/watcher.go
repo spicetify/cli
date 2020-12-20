@@ -16,7 +16,6 @@ import (
 var (
 	// INTERVAL .
 	INTERVAL = 200 * time.Millisecond
-	socket   *websocket.Conn
 )
 
 // Watch .

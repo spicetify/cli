@@ -13,14 +13,14 @@ import (
 var (
 	configLayout = map[string]map[string]string{
 		"Setting": {
-			"spotify_path":         "",
-			"prefs_path":           "",
-			"current_theme":        "SpicetifyDefault",
-			"color_scheme":         "",
-			"inject_css":           "1",
-			"replace_colors":       "1",
-			"overwrite_assets":     "0",
-			"spotify_launch_flags": "",
+			"spotify_path":            "",
+			"prefs_path":              "",
+			"current_theme":           "SpicetifyDefault",
+			"color_scheme":            "",
+			"inject_css":              "1",
+			"replace_colors":          "1",
+			"overwrite_assets":        "0",
+			"spotify_launch_flags":    "",
 			"check_spicetify_upgrade": "0",
 		},
 		"Preprocesses": {
@@ -225,7 +225,7 @@ func winXApp() string {
 	cmd := exec.Command(ps,
 		"-NoProfile",
 		"-NonInteractive",
-		`(Get-AppxPackage | Where-Object -Property Name -Match "^SpotifyAB").InstallLocation`)
+		`(Get-AppxPackage | Where-Object -Property Name -Eq "SpotifyAB.SpotifyMusic").InstallLocation`)
 
 	stdOut, err := cmd.CombinedOutput()
 	if err == nil {
