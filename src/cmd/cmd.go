@@ -55,16 +55,30 @@ func InitConfig(isQuiet bool) {
 func InitPaths() {
 	spotifyPath = settingSection.Key("spotify_path").String()
 
-	if len(spotifyPath) != 0 {
-		if _, err := os.Stat(spotifyPath); err != nil {
-			utils.PrintError(spotifyPath + ` does not exist or is not a valid path. Please manually set "spotify_path" in config.ini to correct directory of Spotify.`)
+	if len(spotifyPath) == 0 {
+		spotifyPath = utils.FindAppPath()
+
+		if len(spotifyPath) == 0 {
+			utils.PrintError(`Cannot detect Spotify location. Please manually set "spotify_path" in config.ini`)
 			os.Exit(1)
 		}
-	} else if spotifyPath = utils.FindAppPath(); len(spotifyPath) != 0 {
+
 		settingSection.Key("spotify_path").SetValue(spotifyPath)
 		cfg.Write()
-	} else {
-		utils.PrintError(`Cannot detect Spotify location. Please manually set "spotify_path" in config.ini`)
+	}
+
+	if runtime.GOOS == "windows" {
+		isAppX = strings.Contains(spotifyPath, "SpotifyAB.SpotifyMusic")
+	}
+
+	if _, err := os.Stat(spotifyPath); err != nil {
+		if isAppX {
+			settingSection.Key("spotify_path").SetValue("")
+			isAppX = false
+			InitPaths()
+			return
+		}
+		utils.PrintError(spotifyPath + ` does not exist or is not a valid path. Please manually set "spotify_path" in config.ini to correct directory of Spotify.`)
 		os.Exit(1)
 	}
 
@@ -81,10 +95,6 @@ func InitPaths() {
 	} else {
 		utils.PrintError(`Cannot detect Spotify "prefs" file location. Please manually set "prefs_path" in config.ini`)
 		os.Exit(1)
-	}
-
-	if runtime.GOOS == "windows" {
-		isAppX = strings.Contains(spotifyPath, "SpotifyAB.SpotifyMusic")
 	}
 
 	appPath = filepath.Join(spotifyPath, "Apps")
