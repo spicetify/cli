@@ -101,6 +101,12 @@
             }
         }
 
+        setAllListened() {
+            for (const uri in this.list) {
+                this.list[uri] = true
+            }
+        }
+
         getLen() {
             return Object.values(this.list).length
         }
@@ -246,7 +252,7 @@
             Player.removeEventListener("songchange", onTrackChange)
             LIST.setMessage(NO_FOLLOWED_ARTIST_TEXT)
             BUTTON.idleState()
-            return
+            return null
         }
 
         const requests = artistList.map(async (artist) => {
@@ -283,7 +289,19 @@
 
         BUTTON.loadingState()
 
-        const items = BUTTON.isPodcastOnly() ? [] : await fetchTracks()
+        const items = []
+
+        if (!BUTTON.isPodcastOnly()) {
+            const tracks = await fetchTracks()
+            if (tracks !== null) {
+                items.push(...tracks)
+            } else {
+                // Artists list is not avaiable at this time,
+                // wait 2s and refetch
+                setTimeout(main, 2000)
+                return
+            }
+        }
 
         if (BUTTON.isFetchingPodcast()) {
             for (const podcast of await getPodcastList()) {
@@ -339,7 +357,9 @@
     main()
 
     // Add context menu items for Notification button
+    /** @type {(uris: string[]) => boolean} */
     const checkURI = ([uri]) => uri === "spotify:special:new-release"
+
     const podcastContextMenuItem = new ContextMenu.Item(
         "Podcast",
         function () {
@@ -397,9 +417,8 @@
     new ContextMenu.Item(
         "Ignore all",
         function () {
-            BUTTON.loadingState()
-            LIST.apply([], BUTTON.isUnlistenedOnly())
-            BUTTON.idleState()
+            LIST.setAllListened()
+            update()
         },
         checkURI
     ).register()
