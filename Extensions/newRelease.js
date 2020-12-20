@@ -35,7 +35,8 @@
             this.list = {}
             const menu = createMenu()
             this.container = menu.container
-            this.items = menu.menu
+            this.menu = menu.menu
+            this.items = menu.items
             this.lastScroll = 0
             this.container.onclick = () => {
                 this.storeScroll()
@@ -145,8 +146,8 @@
         }
 
         changePosition(x, y) {
-            this.items.style.left = x + "px"
-            this.items.style.top = y + 10 + "px"
+            this.menu.style.left = x + "px"
+            this.menu.style.top = y + 10 + "px"
         }
 
         storeScroll() {
@@ -468,6 +469,18 @@
 #new-release-message {
     margin-top: 10px
 }
+#new-release-heading {
+    position: sticky;
+    top: 0;
+    margin: 0;
+    padding: 1rem 0;
+    z-index: 4;
+    font-weight: var(--glue-font-weight-black);
+    text-align: center;
+    letter-spacing: -.005em;
+    color: var(--modspotify_main_fg);
+    background-color: var(--modspotify_sidebar_and_player_bg);
+}
 .new-release-controls {
     position: absolute;
     right: 0;
@@ -476,13 +489,21 @@
     z-index: 3
 }`
 
-        const menu = document.createElement("ul")
+        const menu = document.createElement("div")
         menu.id = "new-release-menu"
         menu.className = "context-menu"
 
+        const heading = document.createElement("h3")
+        heading.id = "new-release-heading"
+        heading.innerText = "New Releases"
+
+        const items = document.createElement("ul")
+
+        menu.append(heading, items)
+
         container.append(style, menu)
 
-        return { container, menu }
+        return { container, menu, items }
     }
 
     class CardContainer extends HTMLElement {
