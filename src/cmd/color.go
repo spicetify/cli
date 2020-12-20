@@ -15,7 +15,9 @@ const (
 
 // EditColor changes one or multiple colors' values
 func EditColor(args []string) {
-	initCmdColor()
+	if !initCmdColor() {
+		return
+	}
 
 	for len(args) >= 2 {
 		field := args[0]
@@ -45,6 +47,10 @@ func EditColor(args []string) {
 // DisplayColors prints out every color name, hex and rgb value.
 func DisplayColors() {
 	colorFileOk := initCmdColor()
+
+	if !colorFileOk {
+		return
+	}
 
 	for _, k := range utils.BaseColorOrder {
 		colorString := ""
