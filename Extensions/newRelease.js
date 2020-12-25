@@ -474,7 +474,7 @@
     top: 0;
     margin: 0;
     padding: 1rem 0;
-    z-index: 4;
+    z-index: 5;
     font-weight: var(--glue-font-weight-black);
     text-align: center;
     letter-spacing: -.005em;
