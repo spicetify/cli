@@ -495,7 +495,7 @@
 
         const heading = document.createElement("h3")
         heading.id = "new-release-heading"
-        heading.innerText = "New Releases"
+        heading.innerText = BUTTON_NAME_TEXT
 
         const items = document.createElement("ul")
 
