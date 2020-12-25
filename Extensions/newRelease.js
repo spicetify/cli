@@ -142,7 +142,7 @@
         }
 
         setMessage(msg) {
-            this.items.innerHTML = `<div id="new-release-message">${msg}</div>`
+            this.items.innerHTML = `<p id="new-release-message">${msg}</p>`
         }
 
         changePosition(x, y) {
@@ -318,7 +318,7 @@
         LIST.update(BUTTON.isUnlistenedOnly())
         LIST.update(BUTTON.isPodcastOnly())
         BUTTON.update(LIST.getUnlistenedLen())
-        if (LIST.getLen() === 0) {
+        if (LIST.getLen() === 0 || (BUTTON.isUnlistenedOnly() && LIST.getUnlistenedLen() === 0)) {
             LIST.setMessage(NO_NEW_RELEASE_TEXT)
         }
     }
@@ -466,8 +466,11 @@
     overflow: hidden auto;
     padding: 0 10px 10px
 }
+#new-release-menu ul {
+    margin: 0;
+}
 #new-release-message {
-    margin-top: 10px
+    text-align: center;
 }
 #new-release-heading {
     position: sticky;
@@ -486,7 +489,7 @@
     right: 0;
     bottom: 0;
     padding: 0 5px 5px 0;
-    z-index: 3
+    z-index: 3;
 }`
 
         const menu = document.createElement("div")
