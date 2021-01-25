@@ -19,7 +19,12 @@ type githubRelease struct {
 
 func Upgrade(currentVersion string) {
 	utils.PrintBold("Fetch latest release info:")
-	tagName := FetchLatestTag()
+	tagName, err := FetchLatestTag()
+	if err != nil {
+		utils.PrintError("Cannot fetch latest release info")
+		utils.PrintError(err.Error())
+		return
+	}
 	utils.PrintGreen("OK")
 
 	utils.PrintInfo("Current version: " + currentVersion)
@@ -100,21 +105,21 @@ func permissionError(err error) {
 	utils.Fatal(err)
 }
 
-func FetchLatestTag() string {
+func FetchLatestTag() (string, error) {
 	res, err := http.Get("https://api.github.com/repos/khanhas/spicetify-cli/releases/latest")
 	if err != nil {
-		utils.Fatal(err)
+		return "", err
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		utils.Fatal(err)
+		return "", err
 	}
 
 	var release githubRelease
 	if err = json.Unmarshal(body, &release); err != nil {
-		utils.Fatal(err)
+		return "", err
 	}
 
-	return release.TagName[1:]
+	return release.TagName[1:], nil
 }

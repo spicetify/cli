@@ -294,7 +294,14 @@ func CheckUpgrade(version string) {
 		return
 	}
 
-	latestTag := FetchLatestTag()
+	latestTag, err := FetchLatestTag()
+
+	if err != nil {
+		utils.PrintError("Cannot fetch latest release info")
+		utils.PrintError(err.Error())
+		return
+	}
+
 	if latestTag == version {
 		utils.PrintInfo("spicetify up-to-date")
 	} else {
