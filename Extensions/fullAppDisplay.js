@@ -301,7 +301,19 @@ body.fad-activated #full-app-display {
                 .trim()
         }
         title.innerText = rawTitle
-        artist.innerText = Spicetify.Player.data.track.metadata.artist_name
+        let artistName
+        if (CONFIG.showAllArtists) {
+            let metadata = Spicetify.Player.data.track.metadata
+            artistName = Object.keys(metadata).filter(key => key.startsWith('artist_name')).sort().map(key => metadata[key]).join(', ')
+        } else {
+            artistName = Spicetify.Player.data.track.metadata.artist_name
+        }
+        if (artistName) {
+            artist.innerText = artistName
+        } else {
+            artist.innerText = ""
+        }
+
         if (CONFIG.showAlbum) {
             album_uri = Spicetify.Player.data.track.metadata.album_uri
             const albumInfo = await getAlbumInfo(album_uri.replace("spotify:album:", ""))
@@ -314,7 +326,8 @@ body.fad-activated #full-app-display {
             album.innerText = Spicetify.Player.data.track.metadata.album_title + " • " + album_date
         }
         if (CONFIG.enableProgress) {
-            durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.getDuration())
+            // Not using Spicetify.Player.getDuration() due to bug
+            durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.data.track.metadata.duration)
         }
     }
 
@@ -413,6 +426,7 @@ body.fad-activated #full-app-display {
     newMenuItem("Enable controls", "enableControl")
     newMenuItem("Trim title", "trimTitle")
     newMenuItem("Show album", "showAlbum")
+    newMenuItem("Show all artists", "showAllArtists")
     newMenuItem("Show icons", "icons")
     newMenuItem("Vertical mode", "vertical")
     newMenuItem("Enable fullscreen", "enableFullscreen")
@@ -420,6 +434,24 @@ body.fad-activated #full-app-display {
 
     button.onclick = activate
     container.ondblclick = deactivate
+
+    function toggleFad() {
+        if (document.body.classList.contains('fad-activated')) {
+            deactivate();
+        } else {
+            activate();
+        }
+    }
+
+    Spicetify.Keyboard.registerShortcut(
+        {
+            key: Spicetify.Keyboard.KEYS["F11"], 
+            ctrl: false, 
+            shift: false, 
+            alt: false,
+        }, 
+        toggleFad
+    );
 
     render()
 })()

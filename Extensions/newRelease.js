@@ -1,7 +1,7 @@
 // @ts-check
 // NAME: New Release
 // AUTHOR: khanhas
-// VERSION: 1.0
+// VERSION: 1.1
 // DESCRIPTION: Gather new releases in nice UI and easy to access
 
 /// <reference path="../globals.d.ts" />
@@ -28,6 +28,7 @@
     const FOLLOWEDONLY_SETTING_KEY = "spicetify_new_release:followed_only"
     const UNLISTENEDONLY_SETTING_KEY = "spicetify_new_release:unlistened_only"
     const PODCAST_SETTING_KEY = "spicetify_new_release:podcast"
+    const PODCASTONLY_SETTING_KEY = "spicetify_new_release:podcast_only"
 
     class ReleaseCollection {
         constructor() {
@@ -97,6 +98,12 @@
         setListen(uri, state) {
             if (this.isValid(uri)) {
                 this.list[uri] = state
+            }
+        }
+
+        setAllListened() {
+            for (const uri in this.list) {
+                this.list[uri] = true
             }
         }
 
@@ -170,6 +177,9 @@
             if (!LocalStorage.get(UNLISTENEDONLY_SETTING_KEY)) {
                 this.setUnlistenedOnly(false)
             }
+            if (!LocalStorage.get(PODCASTONLY_SETTING_KEY)) {
+                this.setPodcastOnly(false)
+            }
         }
 
         update(count) {
@@ -213,6 +223,14 @@
         setFetchingPodcast(state) {
             LocalStorage.set(PODCAST_SETTING_KEY, state ? "1" : "0")
         }
+
+        isPodcastOnly() {
+            return LocalStorage.get(PODCASTONLY_SETTING_KEY) === "1"
+        }
+
+        setPodcastOnly(state) {
+            LocalStorage.set(PODCASTONLY_SETTING_KEY, state ? "1" : "0")
+        }
     }
 
     const LIST = new ReleaseCollection()
@@ -223,11 +241,7 @@
     document.querySelector("#view-browser-navigation-top-bar")
         .append(BUTTON.container)
 
-    async function main() {
-        today = new Date().getTime()
-
-        BUTTON.loadingState()
-
+    async function fetchTracks() {
         let artistList = await getArtistList()
 
         if (BUTTON.isFollowedOnly()) {
@@ -238,7 +252,7 @@
             Player.removeEventListener("songchange", onTrackChange)
             LIST.setMessage(NO_FOLLOWED_ARTIST_TEXT)
             BUTTON.idleState()
-            return
+            return null
         }
 
         const requests = artistList.map(async (artist) => {
@@ -267,7 +281,27 @@
             }
         })
 
-        const items = await Promise.all(requests)
+        return await Promise.all(requests)
+    }
+
+    async function main() {
+        today = new Date().getTime()
+
+        BUTTON.loadingState()
+
+        const items = []
+
+        if (!BUTTON.isPodcastOnly()) {
+            const tracks = await fetchTracks()
+            if (tracks !== null) {
+                items.push(...tracks)
+            } else {
+                // Artists list is not avaiable at this time,
+                // wait 2s and refetch
+                setTimeout(main, 2000)
+                return
+            }
+        }
 
         if (BUTTON.isFetchingPodcast()) {
             for (const podcast of await getPodcastList()) {
@@ -299,6 +333,7 @@
     function update() {
         LIST.setStorage(BUTTON.isFollowedOnly())
         LIST.update(BUTTON.isUnlistenedOnly())
+        LIST.update(BUTTON.isPodcastOnly())
         BUTTON.update(LIST.getUnlistenedLen())
         if (LIST.getLen() === 0) {
             LIST.setMessage(NO_NEW_RELEASE_TEXT)
@@ -310,7 +345,7 @@
         if (LIST.getUnlistenedLen() === 0) return
         let uri = Player.data.track.metadata.context_uri
         if (!uri) uri = Player.data.track.metadata.album_uri
-        if (!uri) uri = Player.data.track.uri
+        if (!uri || uri.startsWith('spotify:show')) uri = Player.data.track.uri
 
         if (LIST.isListened(uri)) return
 
@@ -322,8 +357,10 @@
     main()
 
     // Add context menu items for Notification button
+    /** @type {(uris: string[]) => boolean} */
     const checkURI = ([uri]) => uri === "spotify:special:new-release"
-    new ContextMenu.Item(
+
+    const podcastContextMenuItem = new ContextMenu.Item(
         "Podcast",
         function () {
             const state = !BUTTON.isFetchingPodcast()
@@ -333,7 +370,8 @@
         },
         checkURI,
         BUTTON.isFetchingPodcast() ? "check" : null,
-    ).register()
+    )
+    podcastContextMenuItem.register()
 
     new ContextMenu.Item(
         "Followed artists only",
@@ -359,7 +397,31 @@
         BUTTON.isUnlistenedOnly() ? "check" : null,
     ).register()
 
+    new ContextMenu.Item(
+        "Podcasts only",
+        function () {
+            const state = !BUTTON.isPodcastOnly()
+            BUTTON.setPodcastOnly(state)
+            this.icon = state ? "check" : null
+            if (state && !BUTTON.isFetchingPodcast()) {
+                BUTTON.setFetchingPodcast(true)
+                podcastContextMenuItem.icon = "check"
+            }
+            main()
+        },
+        checkURI,
+        BUTTON.isPodcastOnly() ? "check" : null,
+    ).register()
+
     new ContextMenu.Item("Refresh", main, checkURI).register()
+    new ContextMenu.Item(
+        "Ignore all",
+        function () {
+            LIST.setAllListened()
+            update()
+        },
+        checkURI
+    ).register()
 
     function getArtistList() {
         return new Promise((resolve, reject) => { CosmosAPI.resolver.get("sp://core-collection/unstable/@/list/artists/all", (err, raw) => {
