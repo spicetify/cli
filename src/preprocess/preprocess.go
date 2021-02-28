@@ -259,6 +259,7 @@ func disableLogging(input, appName string) string {
 		utils.Replace(&input, `prototype\._logUIInteraction5=function\(.+?\)\{`, "${0}return;")
 	case "lyrics":
 		utils.Replace(&input, `\.prototype\.log.+?\{`, "${0}return;")
+		utils.Replace(&input, `(\.prototype\.logApplied.+?\{)return;`, "${1}")
 	case "playlist":
 		utils.Replace(&input, `logPlaylistImpression=function\(.+?\)\s?\{`, "${0}return;")
 		utils.Replace(&input, `logEndOfListImpression=function\(.+?\)\s?\{`, "${0}return;")
