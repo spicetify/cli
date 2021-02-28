@@ -4,28 +4,26 @@
 
 set -e
 
-case $(uname -s) in
-Darwin) target="darwin" ;;
-*) target="linux" ;;
+case $(uname -sm) in
+    "Darwin x86_64") target="darwin-amd64" ;;
+    "Darwin arm64") target="darwin-arm64" ;;
+    "Linux x86_64") target="linux-amd64" ;;
+    *) echo "Unsupported platform $(uname -sm). Only Darwin x86_64, Darwin arm64 and Linux x86_64 binaries are available."
+    exit ;;
 esac
-
-if [ $(uname -m) != "x86_64" ]; then
-	echo "Unsupported architecture $(uname -m). Only x64 binaries are available."
-	exit
-fi
 
 if [ $# -eq 0 ]; then
     latest_release_uri="https://api.github.com/repos/khanhas/spicetify-cli/releases/latest"
     echo "DOWNLOADING    $latest_release_uri"
 	spicetify_asset_path=$(
 		command curl -sSf "$latest_release_uri" |
-			command grep -o "/khanhas/spicetify-cli/releases/download/.*/spicetify-.*-${target}-amd64\\.tar\\.gz" |
+			command grep -o "/khanhas/spicetify-cli/releases/download/.*/spicetify-.*-${target}\\.tar\\.gz" |
 			command head -n 1
 	)
 	if [ ! "$spicetify_asset_path" ]; then exit 1; fi
 	download_uri="https://github.com${spicetify_asset_path}"
 else
-	download_uri="https://github.com/khanhas/spicetify-cli/releases/download/v${1}/spicetify-${1}-${target}-amd64\\.tar\\.gz"
+	download_uri="https://github.com/khanhas/spicetify-cli/releases/download/v${1}/spicetify-${1}-${target}\\.tar\\.gz"
 fi
 
 spicetify_install="${SPICETIFY_INSTALL:-$HOME/spicetify-cli}"
