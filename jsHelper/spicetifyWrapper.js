@@ -1524,7 +1524,7 @@ Spicetify.ContextMenu = (function () {
             itemList.add(this);
         }
         deregister() {
-            itemList.remove(this);
+            itemList.delete(this);
         }
     }
 
@@ -1627,7 +1627,7 @@ Spicetify.ContextMenu = (function () {
 })();
 
 Spicetify.Abba = (function() {
-    const STORAGE_KEY = "Spicetify.OverrideAbbaFlags";    
+    const STORAGE_KEY = "Spicetify.OverrideAbbaFlags";
     const STORAGE = window.top.localStorage;
 
     const storedOverrideFlags = STORAGE.getItem(STORAGE_KEY);
