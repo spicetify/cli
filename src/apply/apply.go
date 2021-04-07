@@ -236,7 +236,7 @@ func insertCustomApp(zlinkContent *string, appList []string) {
 		zlinkContent,
 		`[\w_]+\.default\.createElement\([\w_]+\.default,\{title:[\w_]+\.default\.get\("(?:desktop\.zlink\.)?your_music\.app_name"`,
 		react+`.default.createElement(`+list+
-			`.default,{title:"Your app"},`+menuItems+`)),`+
+			`.default,{title:"Your apps"},`+menuItems+`)),`+
 			react+`.default.createElement("div",{className:"LeftSidebar__section"},${0}`,
 	)
 
