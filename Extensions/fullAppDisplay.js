@@ -47,7 +47,6 @@
     padding-bottom: 100%;
     border-radius: 15px;
     background-size: cover;
-    transition: background-image 1s ease-in-out;
 }
 #fad-art-inner {
     position: absolute;
@@ -98,7 +97,6 @@
     background-size: cover;
     filter: blur(30px) brightness(0.6);
     background-position: center;
-    transition: background-image 1s linear;
 }
 #fad-artist::before {
     content: "\\f168";
@@ -108,7 +106,11 @@
 }
 body.fad-activated #full-app-display {
     display: block
-}`
+}
+.fad-background-fade {
+    transition: background-image 1s linear;
+}
+`
 
     const styleChoices = [`
 #fad-foreground {
@@ -386,6 +388,13 @@ body.fad-activated #full-app-display {
         } else {
             document.exitFullscreen()
         }
+        if (CONFIG.enableFade) {
+            back.classList.add("fad-background-fade")
+            cover.classList.add("fad-background-fade")
+        } else {
+            back.classList.remove("fad-background-fade")
+            cover.classList.remove("fad-background-fade")
+        }
         document.body.classList.add(...classes)
     }
 
@@ -456,6 +465,7 @@ body.fad-activated #full-app-display {
     newMenuItem("Show icons", "icons")
     newMenuItem("Vertical mode", "vertical")
     newMenuItem("Enable fullscreen", "enableFullscreen")
+    newMenuItem("Enable song change animation", "enableFade")
     new Spicetify.ContextMenu.Item("Exit", deactivate, checkURI).register()
 
     button.onclick = activate
