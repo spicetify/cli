@@ -396,7 +396,7 @@ body.fad-activated #full-app-display {
 
     // Add activator on top bar
     const button = document.createElement("button")
-    button.classList.add("button", "spoticon-minimise-16", "fad-button")
+    button.classList.add("button", "spoticon-fullscreen-16", "fad-button")
     button.setAttribute("data-tooltip", "Full App Display")
 
     document.querySelector("#view-browser-navigation-top-bar").append(button)
