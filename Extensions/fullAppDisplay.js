@@ -62,7 +62,6 @@
     width: 100%;
     display: flex;
     align-items: center;
-
 }
 #fad-progress {
     width: 100%;
@@ -76,7 +75,7 @@
     border-radius: 6px;
     background-color: #ffffff;
     box-shadow: 4px 0 12px rgba(0, 0, 0, 0.8);
-    transition: width 0.1s ease-out;
+    transition: width 1s linear;
 }
 #fad-elapsed {
     margin-right: 10px;
@@ -107,7 +106,11 @@
 }
 body.fad-activated #full-app-display {
     display: block
-}`
+}
+.fad-background-fade {
+    transition: background-image 1s linear;
+}
+`
 
     const styleChoices = [`
 #fad-foreground {
@@ -214,7 +217,7 @@ body.fad-activated #full-app-display {
     const container = document.createElement("div")
     container.id = "full-app-display"
 
-    let cover, back, title, artist, prog, elaps, durr, play
+    let cover, back, backDummy, title, artist, prog, elaps, durr, play
 
     function render() {
         Spicetify.Player.removeEventListener("songchange", updateInfo)
@@ -224,7 +227,10 @@ body.fad-activated #full-app-display {
         style.innerHTML = styleBase + styleChoices[CONFIG.vertical ? 1 : 0] + iconStyleChoices[CONFIG.icons ? 1 : 0];
 
         container.innerHTML = `
-<div id="fad-background"><div id="fad-background-image"></div></div>
+<div id="fad-background">
+    <div id="fad-background-image"></div>
+    <div id="fad-background-image-dummy"></div>
+</div>
 <div id="fad-header"></div>
 <div id="fad-foreground">
     <div id="fad-art">
@@ -255,6 +261,7 @@ body.fad-activated #full-app-display {
 
         cover = container.querySelector("#fad-art-image")
         back = container.querySelector("#fad-background-image")
+        backDummy = container.querySelector("#fad-background-image-dummy")
         title = container.querySelector("#fad-title")
         artist = container.querySelector("#fad-artist")
         album = container.querySelector("#fad-album")
@@ -288,10 +295,29 @@ body.fad-activated #full-app-display {
             resolve(!err && raw.getJSONBody())
         })})
     }
+
+    function updateInfoDelayed(newBgImage, newTitleText, newArtistText, newAlbumText, newDurationText) {
+        back.style.backgroundImage = newBgImage
+        cover.style.backgroundImage = newBgImage
+        title.innerText = newTitleText
+        if (newArtistText) {
+            artist.innerText = newArtistText
+        } else {
+            artist.innerText = ""
+        }
+        if (newAlbumText) {
+            album.innerText = newAlbumText
+        }
+        if (newDurationText) {
+            durr.innerText = newDurationText
+        }
+    }
     
     async function updateInfo() {
-        cover.style.backgroundImage = back.style.backgroundImage = `url("${Spicetify.Player.data.track.metadata.image_xlarge_url}")`
-
+        bgImage = `url("${Spicetify.Player.data.track.metadata.image_xlarge_url}")`
+        backDummy.style.backgroundImage = bgImage
+        
+        // prepare title
         let rawTitle = Spicetify.Player.data.track.metadata.title
         if (CONFIG.trimTitle) {
             rawTitle = rawTitle
@@ -300,7 +326,8 @@ body.fad-activated #full-app-display {
                 .replace(/\s\-\s.+?$/, "")
                 .trim()
         }
-        title.innerText = rawTitle
+        
+        // prepare artist
         let artistName
         if (CONFIG.showAllArtists) {
             let metadata = Spicetify.Player.data.track.metadata
@@ -308,12 +335,9 @@ body.fad-activated #full-app-display {
         } else {
             artistName = Spicetify.Player.data.track.metadata.artist_name
         }
-        if (artistName) {
-            artist.innerText = artistName
-        } else {
-            artist.innerText = ""
-        }
-
+        
+        // prepare album
+        let albumText
         if (CONFIG.showAlbum) {
             album_uri = Spicetify.Player.data.track.metadata.album_uri
             const albumInfo = await getAlbumInfo(album_uri.replace("spotify:album:", ""))
@@ -322,13 +346,17 @@ body.fad-activated #full-app-display {
             recent_date = new Date()
             recent_date.setMonth(recent_date.getMonth() - 6)
             album_date = album_date.toLocaleString('default', album_date>recent_date ? { year: 'numeric', month: 'short' } : { year: 'numeric' })
-        
-            album.innerText = Spicetify.Player.data.track.metadata.album_title + " • " + album_date
+
+            albumText = Spicetify.Player.data.track.metadata.album_title + " • " + album_date
         }
+
+        // prepare duration
+        let durationText
         if (CONFIG.enableProgress) {
             // Not using Spicetify.Player.getDuration() due to bug
-            durr.innerText = Spicetify.Player.formatTime(Spicetify.Player.data.track.metadata.duration)
+            durationText = Spicetify.Player.formatTime(Spicetify.Player.data.track.metadata.duration)
         }
+        setTimeout(updateInfoDelayed, 500, bgImage, rawTitle, artistName, albumText, durationText);
     }
 
     function updateProgress() {
@@ -359,6 +387,13 @@ body.fad-activated #full-app-display {
             document.documentElement.requestFullscreen();
         } else {
             document.exitFullscreen()
+        }
+        if (CONFIG.enableFade) {
+            back.classList.add("fad-background-fade")
+            cover.classList.add("fad-background-fade")
+        } else {
+            back.classList.remove("fad-background-fade")
+            cover.classList.remove("fad-background-fade")
         }
         document.body.classList.add(...classes)
     }
@@ -430,6 +465,7 @@ body.fad-activated #full-app-display {
     newMenuItem("Show icons", "icons")
     newMenuItem("Vertical mode", "vertical")
     newMenuItem("Enable fullscreen", "enableFullscreen")
+    newMenuItem("Enable song change animation", "enableFade")
     new Spicetify.ContextMenu.Item("Exit", deactivate, checkURI).register()
 
     button.onclick = activate
