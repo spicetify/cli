@@ -55,7 +55,10 @@
     width: 94%;
     height: 94%;
     z-index: -1;
+    backface-visibility: hidden;
+    transform: translateZ(0);
     filter: blur(6px);
+    backdrop-filter: blur(6px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 #fad-progress-container {
@@ -95,7 +98,10 @@
 #fad-background-image {
     height: 100%;
     background-size: cover;
+    backface-visibility: hidden;
+    transform: translateZ(0);
     filter: blur(30px) brightness(0.6);
+    backdrop-filter: blur(30px) brightness(0.6);
     background-position: center;
 }
 #fad-artist::before {
