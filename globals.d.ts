@@ -1218,4 +1218,36 @@ declare namespace Spicetify {
          */
         function removeOverrideFlag(name: string): void;
     }
+
+    /**
+     * Popup Modal
+     */
+    namespace PopupModal {
+        interface Content {
+            MODAL_TITLE?: string;
+
+            URI?: string;
+            MESSAGE?: string;
+            CONTENT?: Element;
+
+            BACKDROP_DONT_COVER_PLAYER?: boolean;
+            HEIGHT?: number;
+
+            BUTTONS?: {
+                OK?: boolean;
+                CANCEL?: boolean;
+            }
+
+            OK_BUTTON_LABEL?: string;
+            CANCEL_BUTTON_LABEL?: string;
+
+            onOk?: () => void;
+            onCancel?: () => void;
+            onShow?: () => void;
+            onHide?: () => void;
+        }
+
+        function display(e: Content): void;
+        function hide(): void;
+    }
 }

@@ -476,6 +476,13 @@ this.progressbar.addListener("progress", () => {
 		`case"spicetify-hook":this.hideMenu();break;${0}`,
 	)
 
+	// Leak Popup Modal
+	utils.Replace(
+		&input,
+		`[\w_]+\.prototype\._popoverId="modal",[\w_]+\.prototype\.setup=function\(\)\{`,
+		`${0}Spicetify.PopupModal=this;`,
+	)
+
 	return input
 }
 

@@ -42,6 +42,7 @@ var (
 			"extensions":                   "",
 			"custom_apps":                  "",
 		},
+		"Patch": {},
 	}
 )
 
@@ -111,7 +112,10 @@ func (c config) GetSection(name string) *ini.Section {
 	sec, err := c.content.GetSection(name)
 
 	if err != nil {
-		Fatal(err)
+		sec, _ = c.content.NewSection(name)
+		for keyName, defaultValue := range configLayout[name] {
+			sec.NewKey(keyName, defaultValue)
+		}
 	}
 
 	return sec
