@@ -89,6 +89,12 @@ func Apply() {
 		utils.PrintGreen("OK")
 	}
 
+	if len(patchSection.Keys()) > 0 {
+		utils.PrintBold(`Patching:`)
+		Patch()
+		utils.PrintGreen("OK")
+	}
+
 	utils.PrintSuccess("Spotify is spiced up!")
 
 	if isAppX {

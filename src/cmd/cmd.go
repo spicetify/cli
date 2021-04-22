@@ -30,6 +30,7 @@ var (
 	backupSection           *ini.Section
 	preprocSection          *ini.Section
 	featureSection          *ini.Section
+	patchSection            *ini.Section
 	themeFolder             string
 	colorCfg                *ini.File
 	colorSection            *ini.Section
@@ -47,6 +48,7 @@ func InitConfig(isQuiet bool) {
 	backupSection = cfg.GetSection("Backup")
 	preprocSection = cfg.GetSection("Preprocesses")
 	featureSection = cfg.GetSection("AdditionalOptions")
+	patchSection = cfg.GetSection("Patch")
 }
 
 // InitPaths checks various essential paths' availablities,
