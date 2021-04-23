@@ -195,6 +195,35 @@ declare namespace Spicetify {
     const BridgeAPI: any;
     const CosmosAPI: any;
     /**
+     * Async wrappers of CosmosAPI
+     */
+    namespace CosmosAsync {
+        type Action = "DELETE" | "GET" | "HEAD" | "PATCH" | "POST" | "PUT" | "SUB";
+        interface Error {
+            code: number;
+            error: string;
+            message: string;
+        }
+
+        interface Response {
+            body: any;
+            headers: object;
+            status: number;
+            uri: string;
+        }
+
+        function head(url: string, headers?: object): Promise<Response.headers>;
+        function get(url: string, body?: any, headers?: object): Promise<Response.body>;
+        function post(url: string, body?: any, headers?: object): Promise<Response.body>;
+        function put(url: string, body?: any, headers?: object): Promise<Response.body>;
+        function del(url: string, body?: any, headers?: object): Promise<Response.body>;
+        function patch(url: string, body?: any, headers?: object): Promise<Response.body>;
+        function sub(url: string, callback: ((b: Response.body) => void), onError?: ((e: Error) => void), body?: any, headers?: object): Promise<Response.body>;
+        function postSub(url: string, body?: any, callback: ((b: Response.body) => void), onError?: ((e: Error) => void)): Promise<Response.body>;
+        function request(method: Action, url: string, body?: any, headers?: object): Promise<Response>;
+        function resolve(method: Action, url: string, body?: any, headers?: object): Promise<Response>;
+    }
+    /**
      * Fetch interesting colors from URI.
      * @param uri Any type of URI that has artwork (playlist, track, album, artist, show, ...)
      */

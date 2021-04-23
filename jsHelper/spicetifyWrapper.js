@@ -1726,5 +1726,53 @@ Spicetify.Abba = (function() {
     };
 })();
 
+Spicetify.CosmosAsync = {
+    head: (url, headers = {}) => {
+        return Spicetify.CosmosAsync.resolve(Spicetify.CosmosAPI.Action.HEAD, url, null, headers).then((e => e.headers))
+    },
+    get: (url, body = null, headers = {}) => {
+        return Spicetify.CosmosAsync.resolve(Spicetify.CosmosAPI.Action.GET, url, body, headers).then((e => e.body));
+    },
+    post: (url, body = null, headers = {}) => {
+        return Spicetify.CosmosAsync.resolve(Spicetify.CosmosAPI.Action.POST, url, body, headers).then((e => e.body));
+    },
+    put: (url, body = null, headers = {}) => {
+        return Spicetify.CosmosAsync.resolve(Spicetify.CosmosAPI.Action.PUT, url, body, headers).then((e => e.body));
+    },
+    del: (url, body = null, headers = {}) => {
+        return Spicetify.CosmosAsync.resolve(Spicetify.CosmosAPI.Action.DELETE, url, body, headers).then((e => e.body));
+    },
+    patch: (url, body = null, headers = {}) => {
+        return Spicetify.CosmosAsync.resolve(Spicetify.CosmosAPI.Action.PATCH, url, body, headers).then((e => e.body));
+    },
+    sub: (url, callback, onError = (e => { console.error(e) }), body = null, headers = {}) => {
+        return Spicetify.CosmosAPI.sub(url, callback, onError, body, headers);
+    },
+    postSub: (url, body = null, callback, onError = (e => { console.error(e) })) => {
+        return Spicetify.CosmosAPI.sub(url, callback, onError, body, {});
+    },
+    request: (method, url, body = null, headers = {}) => {
+        return Spicetify.CosmosAsync.resolve(method, url, body, headers);
+    },
+    resolve: (method, url, body = null, headers = {}) => {
+        return new Promise(((res, reject) => {
+            Spicetify.CosmosAPI.resolver._resolve(
+                new Spicetify.CosmosAPI.Request(method, url, headers, body),
+                (error, response) => {
+                    if (error) {
+                        reject(error);
+                        return;
+                    }
+                    response = response.toJSON();
+                    if (response.body) {
+                        response.body = JSON.parse(response.body);
+                    }
+                    res(response);
+                }
+            );
+        }));
+    }
+};
+
 // Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
 window.Spicetify = Spicetify;
