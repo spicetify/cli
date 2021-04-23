@@ -9,7 +9,12 @@ import (
 
 // SetDevTool enables/disables developer mode of Spotify client
 func SetDevTool(enable bool) {
-	pref, err := ini.Load(prefsPath)
+	pref, err := ini.LoadSources(
+		ini.LoadOptions{
+			PreserveSurroundedQuote: true,
+		},
+		prefsPath)
+
 	if err != nil {
 		log.Fatal(err)
 	}
