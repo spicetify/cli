@@ -367,9 +367,13 @@ body.video-full-screen.video-full-screen--hide-ui {
             cover.style.backgroundImage = bgImage
 
             title.innerText = rawTitle || ""
-            album.innerText = albumText || ""
             artist.innerText = artistName || ""
-            durr.innerText = durationText || ""
+            if (album) {
+                album.innerText = albumText || ""
+            }
+            if (durr) {
+                durr.innerText = durationText || ""
+            }
         }
     }
 
