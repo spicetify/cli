@@ -1481,17 +1481,21 @@ Spicetify.ContextMenu = (function () {
     const iconList = ["add-to-playlist", "add-to-queue", "addfollow", "addfollowers", "addsuggestedsong", "airplay", "album", "album-contained", "arrow-down", "arrow-left", "arrow-right", "arrow-up", "artist", "artist-active", "attach", "available-offline", "ban", "ban-active", "block", "bluetooth", "browse", "browse-active", "camera", "carplay", "chart-down", "chart-new", "chart-up", "check", "check-alt", "chevron-down", "chevron-left", "chevron-right", "chevron-up", "chromecast-connected", "chromecast-connecting-one", "chromecast-connecting-three", "chromecast-connecting-two", "chromecast-disconnected", "collaborative-playlist", "collection", "collection-active", "connect-to-devices", "copy", "destination-pin", "device-arm", "device-car", "device-computer", "device-mobile", "device-multispeaker", "device-other", "device-speaker", "device-tablet", "device-tv", "devices", "devices-alt", "discover", "download", "downloaded", "drag-and-drop", "edit", "email", "events", "facebook", "facebook-messenger", "filter", "flag", "follow", "fullscreen", "games-console", "gears", "googleplus", "grid-view", "headphones", "heart", "heart-active", "helpcircle", "highlight", "home", "home-active", "inbox", "info", "instagram", "library", "lightning", "line", "list-view", "localfile", "locked", "locked-active", "lyrics", "make—available-offline", "menu", "messages", "mic", "minimise", "mix", "more", "more-android", "new-spotify-connect", "new-volume", "newradio", "nikeplus", "notifications", "now-playing", "now-playing-active", "offline", "offline-sync", "pause", "payment", "paymenthistory", "play", "playback-speed-0point5x", "playback-speed-0point8x", "playback-speed-1point2x", "playback-speed-1point5x", "playback-speed-1x", "playback-speed-2x", "playback-speed-3x", "playlist", "playlist-folder", "plus", "plus-2px", "plus-alt", "podcasts", "podcasts-active", "public", "queue", "radio", "radio-active", "radioqueue", "redeem", "refresh", "released", "repeat", "repeatonce", "report-abuse", "running", "search", "search-active", "sendto", "share", "share-android", "sharetofollowers", "shows", "shuffle", "skip-back", "skip-forward", "skipback15", "skipforward15", "sleeptimer", "sms", "sort", "sortdown", "sortup", "spotify-connect", "spotify-connect-alt", "spotifylogo", "spotifypremium", "star", "star-alt", "subtitles", "tag", "thumbs-down", "thumbs-up", "time", "topcountry", "track", "trending", "trending-active", "tumblr", "twitter", "user", "user-active", "user-alt", "user-circle", "video", "volume", "volume-off", "volume-onewave", "volume-twowave", "warning", "watch", "whatsapp", "x", "settings"];
 
     class Item {
-        constructor(name, onClick, shouldAdd = (uris) => true, icon = undefined) {
+        constructor(name, onClick, shouldAdd = (uris) => true, icon = undefined, disabled = false) {
             this.name = name;
             this.onClick = onClick;
             this.shouldAdd = shouldAdd;
             if (icon) this.icon = icon;
+            this.disabled = disabled;
         }
         set name(text) {
             if (typeof text !== "string") {
                 throw "Spicetify.ContextMenu.Item: name is not a string";
             }
             this._name = text;
+            if (this._parent && this._id !== undefined) {
+                this._parent.updateItem(this._id, { text: this._name });
+            }
         }
         set shouldAdd(func) {
             if (typeof func == "function") {
@@ -1510,38 +1514,56 @@ Spicetify.ContextMenu = (function () {
         set icon(name) {
             if (!name) {
                 this._icon = null;
-                return;
+            } else {
+                if (!Item.iconList.includes(name)) {
+                    throw `Spicetify.ContextMenu.Item: "${name}" is not a valid icon name.`;
+                }
+                this._icon = {
+                    type: "spoticon",
+                    value: name,
+                };
             }
-            if (!Item.iconList.includes(name)) {
-                throw `Spicetify.ContextMenu.Item: "${name}" is not a valid icon name.`;
+
+            if (this._parent && this._id !== undefined) {
+                this._parent.updateItem(this._id, { icon: this._icon });
             }
-            this._icon = {
-                type: "spoticon",
-                value: name,
-            };
+        }
+        set disabled(bool) {
+            if (typeof bool != "boolean") {
+                throw "Spicetify.ContextMenu.Item: disabled is not a boolean";
+            }
+            this._disabled = bool;
+            if (this._parent && this._id !== undefined) {
+                this._parent.updateItem(this._id, { disabled: this._disabled });
+            }
         }
         register() {
             itemList.add(this);
         }
         deregister() {
             itemList.delete(this);
+            this._parent = this._id = undefined;
         }
     }
 
     Item.iconList = iconList;
 
     class SubMenu {
-        constructor(name, items, shouldAdd = (uris) => true, icon = undefined) {
+        constructor(name, items, shouldAdd = (uris) => true, icon = undefined, disabled = false) {
             this.name = name;
             this.items = items;
             this.shouldAdd = shouldAdd;
             if (icon) this.icon = icon;
+            this.disabled = disabled;
         }
         set name(text) {
             if (typeof text !== "string") {
                 throw "Spicetify.ContextMenu.SubMenu: name is not a string";
             }
             this._name = text;
+            if (this._parent && this._id !== undefined) {
+                this._parent.updateItem(this._id, { text: this._name });
+            }
         }
         set items(items) {
             this._items = new Set(items);
@@ -1562,21 +1584,35 @@ Spicetify.ContextMenu = (function () {
         set icon(name) {
             if (!name) {
                 this._icon = null;
-                return;
+            } else {
+                if (!Item.iconList.includes(name)) {
+                    throw `Spicetify.ContextMenu.SubMenu: "${name}" is not a valid icon name.`;
+                }
+                this._icon = {
+                    type: "spoticon",
+                    value: name,
+                };
             }
-            if (!SubMenu.iconList.includes()) {
-                throw `Spicetify.ContextMenu.SubMenu: "${name}" is not a valid icon name.`;
+
+            if (this._parent && this._id !== undefined) {
+                this._parent.updateItem(this._id, { icon: this._icon });
             }
-            this._icon = {
-                type: "spoticon",
-                value: name,
-            };
+        }
+        set disabled(bool) {
+            if (typeof bool !== "boolean") {
+                throw "Spicetify.ContextMenu.SubMenu: disabled is not a boolean";
+            }
+            this._disabled = bool;
+            if (this._parent && this._id !== undefined) {
+                this._parent.updateItem(this._id, { disabled: this._disabled });
+            }
         }
         register() {
             itemList.add(this);
         }
         deregister() {
             itemList.remove(this);
+            this._parent = this._id = undefined;
         }
     }
 
@@ -1589,9 +1625,14 @@ Spicetify.ContextMenu = (function () {
             }
 
             if (item._items) {
-                const subItemsList = []
+                const subItemsList = [];
+                const subItemsToAdd = [];
                 for (const subItem of item._items) {
-                    subItemsList.push({
+                    if (!subItem._shouldAdd(uris)) {
+                        continue;
+                    }
+                    subItemsList.push(subItem);
+                    subItemsToAdd.push({
                         fn: () => {
                             subItem._onClick(uris);
                             contextMenuInstance.hide();
@@ -1599,15 +1640,24 @@ Spicetify.ContextMenu = (function () {
                         icon: subItem._icon,
                         id: "",
                         text: subItem._name,
+                        disabled: subItem._disabled,
                     });
                 }
 
                 contextMenuInstance.addItem({
                     icon: item._icon,
-                    id: "",
-                    items: subItemsList,
+                    items: subItemsToAdd,
                     text: item._name,
+                    disabled: item._disabled,
                 });
+                item._parent = contextMenuInstance;
+                item._id = item._parent._rawItems[item._parent._rawItems.length - 1].id;
+
+                const subMenuInstance = item._parent._items[item._id].submenu;
+                for (let i = 0; i < subItemsList.length; i++) {
+                    subItemsList[i]._parent = subMenuInstance;
+                    subItemsList[i]._id = subMenuInstance._items[i].id;
+                }
                 continue;
             }
 
@@ -1617,9 +1667,11 @@ Spicetify.ContextMenu = (function () {
                     contextMenuInstance.hide();
                 },
                 icon: item._icon,
-                id: "",
                 text: item._name,
+                disabled: item._disabled,
             })
+            item._parent = contextMenuInstance;
+            item._id = item._parent._rawItems[item._parent._rawItems.length - 1].id;
         }
     }
 

@@ -1159,9 +1159,10 @@ declare namespace Spicetify {
              * List of valid icons to use.
              */
             static readonly iconList: Icon[];
-            constructor(name: string, onClick: (uris: string[]) => void, shouldAdd: (uris: string[]) => boolean = (uris: string[]) => true, icon?: Icon);
+            constructor(name: string, onClick: (uris: string[]) => void, shouldAdd: (uris: string[]) => boolean = (uris: string[]) => true, icon?: Icon, disabled?: boolean);
             set name(text: string);
             set icon(name: Icon);
+            set disabled(bool: boolean);
             /**
              * A function returning boolean determines whether item should be prepended.
              */
@@ -1189,9 +1190,10 @@ declare namespace Spicetify {
              * List of valid icons to use.
              */
             static readonly iconList: Icon[];
-            constructor(name: string, subItems: Iterable<Item>, shouldAdd = (uris) => true, icon?: Icon);
+            constructor(name: string, subItems: Iterable<Item>, shouldAdd = (uris) => true, icon?: Icon, disabled?: boolean);
             set name(text: string);
             set icon(name: Icon);
+            set disabled(bool: boolean);
             /**
              * Replace current `Item`s list
              */
