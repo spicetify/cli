@@ -89,6 +89,26 @@
         if (headers.length > 0) clearInterval(iframeInterval);
     }, 500)
 
+    const checkUris = (uris) => {
+        if (uris.length === 1) {
+            const uriObj = Spicetify.URI.fromString(uris[0]);
+            switch (uriObj.type) {
+                case Spicetify.URI.Type.SHOW:
+                case Spicetify.URI.Type.PLAYLIST:
+                case Spicetify.URI.Type.PLAYLIST_V2:
+                case Spicetify.URI.Type.FOLDER:
+                case Spicetify.URI.Type.ALBUM:
+                case Spicetify.URI.Type.COLLECTION:
+                case Spicetify.URI.Type.ARTIST:
+                    return true;
+            }
+            return false;
+        }
+        // User selects multiple tracks in a list.
+        return true;
+    }
+
+
     const cntxMenu = new Spicetify.ContextMenu.Item(
         "Play with Shuffle+",
         (uris) => {
@@ -102,24 +122,7 @@
             const list = uris.map((uri) => ({ uri }));
             playList(shuffle(list));
         },
-        (uris) => {
-            if (uris.length === 1) {
-                const uriObj = Spicetify.URI.fromString(uris[0]);
-                switch (uriObj.type) {
-                    case Spicetify.URI.Type.SHOW:
-                    case Spicetify.URI.Type.PLAYLIST:
-                    case Spicetify.URI.Type.PLAYLIST_V2:
-                    case Spicetify.URI.Type.FOLDER:
-                    case Spicetify.URI.Type.ALBUM:
-                    case Spicetify.URI.Type.COLLECTION:
-                    case Spicetify.URI.Type.ARTIST:
-                        return true;
-                }
-                return false;
-            }
-            // User selects multiple tracks in a list.
-            return true;
-        },
+        checkUris,
         "shuffle"
     )
     cntxMenu.register();
@@ -144,28 +147,10 @@
             const list = uris.map((uri) => ({ uri }));
             setQueue(shuffle(next_tracks.concat(list)));
         },
-        (uris) => {
-            if (uris.length === 1) {
-                const uriObj = Spicetify.URI.fromString(uris[0]);
-                switch (uriObj.type) {
-                    case Spicetify.URI.Type.SHOW:
-                    case Spicetify.URI.Type.PLAYLIST:
-                    case Spicetify.URI.Type.PLAYLIST_V2:
-                    case Spicetify.URI.Type.FOLDER:
-                    case Spicetify.URI.Type.ALBUM:
-                    case Spicetify.URI.Type.COLLECTION:
-                    case Spicetify.URI.Type.ARTIST:
-                        return true;
-                }
-                return false;
-            }
-            // User selects multiple tracks in a list.
-            return true;
-        },
+        checkUris,
         "shuffle"
     )
     cntxMenu2.register();
-
 
     /**
      * 
