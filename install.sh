@@ -23,7 +23,7 @@ if [ $# -eq 0 ]; then
 	if [ ! "$spicetify_asset_path" ]; then exit 1; fi
 	download_uri="https://github.com${spicetify_asset_path}"
 else
-	download_uri="https://github.com/khanhas/spicetify-cli/releases/download/v${1}/spicetify-${1}-${target}\\.tar\\.gz"
+	download_uri="https://github.com/khanhas/spicetify-cli/releases/download/v${1}/spicetify-${1}-${target}.tar.gz"
 fi
 
 spicetify_install="${SPICETIFY_INSTALL:-$HOME/spicetify-cli}"
