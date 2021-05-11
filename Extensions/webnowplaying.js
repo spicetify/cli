@@ -5,42 +5,52 @@
 /// <reference path="../globals.d.ts" />
 
 (function WebNowPlaying() {
+    if (!Spicetify.CosmosAsync || !Spicetify.Platfrom) {
+        setTimeout(WebNowPlaying, 500);
+        return;
+    }
+
     let currentMusicInfo;
     let ws;
     let currState = 0;
+    const storage = {};
+    function updateStorage(data) {
+        if (!data?.track?.metadata) {
+            return;
+        }
+        const meta = data.track.metadata;
+        storage.TITLE = meta.title;
+        storage.ALBUM = meta.album_title;
+        storage.DURATION = convertTimeToString(parseInt(meta.duration));
+        storage.STATE = !data.is_paused ? 1 : 2;
+        storage.REPEAT = data.options.repeating_track ? 2 : (data.options.repeating_context ? 1 : 0);
+        storage.SHUFFLE = data.options.shuffling_context ? 1 : 0;
+        storage.ARTIST = Spicetify.Platform.PlayerAPI.getState().item.subtitles.join(", ");
+        storage.RATING = Spicetify.Platform.LibraryAPI.containsSync(data.track.uri) ? 5 : 0;
+        
+        const images = Spicetify.Platform.PlayerAPI.getState().item.images;
+        const cover = images[images.length - 1].url;
+        if (cover && cover.indexOf("localfile") === -1) {
+            storage.COVER = "https://i.scdn.co/image/" + cover.substring(cover.lastIndexOf(":") + 1);
+        } else {
+            storage.COVER = "";
+        }
+    }
+
+    Spicetify.CosmosAsync.sub("sp://player/v2/main", updateStorage);
 
     const info = {
-        STATE: () => (Spicetify.Player.isPlaying() ? 1 : 2),
-        TITLE: () => Spicetify.Player.data.track.metadata.title || "N/A",
-        ARTIST: () => {
-            if (Spicetify.URI.isShow(Spicetify.Player.data.track.uri)) {
-                return info.ALBUM();
-            }
-
-            return document.querySelector("#view-player-footer .artist").innerText
-        },
-        ALBUM: () => Spicetify.Player.data.track.metadata.album_title || "N/A",
-        DURATION: () => convertTimeToString(Spicetify.Player.getDuration()),
+        STATE: () => storage.STATE,
+        TITLE: () => storage.TITLE,
+        ARTIST: () => storage.ARTIST,
+        ALBUM: () => storage.ALBUM,
+        DURATION: () => storage.DURATION,
+        REPEAT: () => storage.REPEAT,
+        SHUFFLE: () => storage.SHUFFLE,
+        COVER: () => storage.COVER,
+        RATING: () => storage.RATING,
         POSITION: () => convertTimeToString(Spicetify.Player.getProgress()),
         VOLUME: () => Math.round(Spicetify.Player.getVolume() * 100),
-        RATING: () =>
-            Spicetify.LiveAPI(Spicetify.Player.data.track.uri).get("added")
-                ? 5
-                : 0,
-        REPEAT: () => Spicetify.Player.getRepeat(),
-        SHUFFLE: () => (Spicetify.Player.getShuffle() ? 1 : 0),
-        COVER: () => {
-            const cover =
-                Spicetify.Player.data.track.metadata.image_xlarge_url || "";
-            if (cover !== "" && cover.indexOf("localfile") === -1) {
-                return (
-                    "https://i.scdn.co/image/" +
-                    cover.substring(cover.lastIndexOf(":") + 1)
-                );
-            }
-
-            return "";
-        },
     };
 
     function updateInfo() {

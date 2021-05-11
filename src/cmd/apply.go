@@ -63,14 +63,6 @@ func Apply() {
 
 	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appDestPath, apply.Flag{
-		ExperimentalFeatures: toTernary("experimental_features"),
-		FastUserSwitching:    toTernary("fastUser_switching"),
-		Home:                 toTernary("home"),
-		LyricAlwaysShow:      toTernary("lyric_always_show"),
-		LyricForceNoSync:     toTernary("lyric_force_no_sync"),
-		Radio:                toTernary("radio"),
-		SongPage:             toTernary("song_page"),
-		VisHighFramerate:     toTernary("visualization_high_framerate"),
 		Extension:            extentionList,
 		CustomApp:            customAppsList,
 	})
@@ -205,7 +197,7 @@ func getExtensionPath(name string) (string, error) {
 
 func pushExtensions(list ...string) {
 	var err error
-	var zlinkFolder = filepath.Join(appDestPath, "zlink")
+	var dest = filepath.Join(appDestPath, "xpui")
 
 	for _, v := range list {
 		var extName, extPath string
@@ -222,13 +214,13 @@ func pushExtensions(list ...string) {
 			}
 		}
 
-		if err = utils.CopyFile(extPath, zlinkFolder); err != nil {
+		if err = utils.CopyFile(extPath, dest); err != nil {
 			utils.PrintError(err.Error())
 			continue
 		}
 
 		if strings.HasSuffix(extName, ".mjs") {
-			utils.ModifyFile(filepath.Join(zlinkFolder, extName), func(content string) string {
+			utils.ModifyFile(filepath.Join(dest, extName), func(content string) string {
 				lines := strings.Split(content, "\n")
 				for i := 0; i < len(lines); i++ {
 					mapping := utils.FindSymbol("", lines[i], []string{
@@ -289,7 +281,7 @@ func nodeModuleSymlink() {
 
 	utils.PrintBold(`Found node_modules folder. Creating node_modules symlink:`)
 
-	nodeModuleDest := filepath.Join(appDestPath, "zlink", "node_modules")
+	nodeModuleDest := filepath.Join(appDestPath, "xpui", "node_modules")
 	if err = utils.CreateJunction(nodeModulePath, nodeModuleDest); err != nil {
 		utils.PrintError("Cannot create node_modules symlink")
 		return

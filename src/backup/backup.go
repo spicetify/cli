@@ -1,10 +1,7 @@
 package backup
 
 import (
-	"io/ioutil"
 	"path/filepath"
-	"strings"
-	"sync"
 
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
@@ -17,41 +14,19 @@ func Start(appPath, backupPath string) error {
 // Extract all SPA files from backupPath to extractPath
 // and call `callback` at every successfully extracted app
 func Extract(backupPath, extractPath string, callback func(finishedApp string)) {
-	appList, err := ioutil.ReadDir(backupPath)
-	if err != nil {
-		utils.Fatal(err)
-	}
+	apps := []string{"xpui", "login", "settings", "glue-resources"}
 
-	var wg sync.WaitGroup
+	for _, v := range apps {
+		appPath := filepath.Join(backupPath, v + ".spa")
+		appName := v
 
-	for _, app := range appList {
-		if !strings.HasSuffix(app.Name(), ".spa") {
-			continue
+		appExtractToFolder := filepath.Join(extractPath, appName)
+
+		err := utils.Unzip(appPath, appExtractToFolder)
+		if err != nil {
+			utils.Fatal(err)
 		}
 
-		wg.Add(1)
-		appPath := filepath.Join(backupPath, app.Name())
-		appName := strings.Replace(app.Name(), ".spa", "", 1)
-
-		go func() {
-			defer wg.Done()
-
-			appExtractToFolder := filepath.Join(extractPath, appName)
-
-			// Disable WebUI
-			if appName == "xpui" {
-				callback(appName)
-				return
-			}
-
-			err := utils.Unzip(appPath, appExtractToFolder)
-			if err != nil {
-				utils.Fatal(err)
-			}
-
-			callback(appName)
-		}()
+		callback(appName)
 	}
-
-	wg.Wait()
 }

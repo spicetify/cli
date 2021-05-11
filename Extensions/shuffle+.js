@@ -7,7 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function ShufflePlus() {
-    if (!Spicetify.CosmosAPI || !Spicetify.BridgeAPI) {
+    if (!Spicetify.CosmosAsync) {
         setTimeout(ShufflePlus, 1000);
         return;
     }
@@ -155,31 +155,13 @@
      * @param {string} uri
      * @returns {Promise<{uri: string}[]>}
      */
-    const fetchPlaylist = (uri) => new Promise((resolve, reject) => {
-        Spicetify.BridgeAPI.cosmosJSON(
-            {
-                method: "GET",
-                uri: `sp://core-playlist/v1/playlist/${uri}/rows`,
-                body: {
-                    policy: {
-                        link: true,
-                    },
-                },
-            },
-            (error, res) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-
-                let replace = res.rows.map((item) => ({
-                    uri: item.link,
-                }));
-
-                resolve(replace);
-            }
+    const fetchPlaylist = async (uri) => {
+        const res = await Spicetify.CosmosAsync.get(
+            `sp://core-playlist/v1/playlist/${uri}/rows`,
+            { policy: { link: true } }
         );
-    });
+        return res.rows.map((item) => item.link);
+    }
 
     /**
     *
@@ -207,160 +189,82 @@
      * @param {string} uri
      * @returns {Promise<{uri: string}[]>}
      */
-    const fetchFolder = (uri) => new Promise((resolve, reject) => {
-        Spicetify.BridgeAPI.cosmosJSON(
-            {
-                method: "GET",
-                uri: `sp://core-playlist/v1/rootlist`,
-                body: {
-                    policy: {
-                        folder: {
-                            rows: true,
-                            link: true,
-                        },
-                    },
-                },
-            },
-            (error, res) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-
-                const requestFolder = searchFolder(res.rows, uri);
-                if (requestFolder == null) {
-                    reject("Cannot find folder");
-                    return;
-                }
-
-                let requestPlaylists = [];
-                const fetchNested = (folder) => {
-                    for (const i of folder.rows) {
-                        if (i.type === "playlist") requestPlaylists.push(fetchPlaylist(i.link));
-                        else if (i.type === "folder") fetchNested(i);
-                    }
-                };
-
-                fetchNested(requestFolder);
-
-                Promise.all(requestPlaylists)
-                    .then((playlists) => {
-                        const trackList = [];
-
-                        playlists.forEach((p) => {
-                            trackList.push(...p);
-                        });
-
-                        resolve(trackList);
-                    })
-                    .catch(reject);
-            }
+    const fetchFolder = async (uri) => {
+        const res = await Spicetify.CosmosAsync.get(
+            `sp://core-playlist/v1/rootlist`,
+            { policy: { folder: { rows: true, link: true } } }
         );
-    });
+
+        const requestFolder = searchFolder(res.rows, uri);
+        if (requestFolder == null) {
+            throw "Cannot find folder";
+        }
+
+        let requestPlaylists = [];
+        const fetchNested = (folder) => {
+            for (const i of folder.rows) {
+                if (i.type === "playlist") requestPlaylists.push(fetchPlaylist(i.link));
+                else if (i.type === "folder") fetchNested(i);
+            }
+        };
+
+        fetchNested(requestFolder);
+
+        return await Promise.all(requestPlaylists)
+            .then((playlists) => {
+                const trackList = [];
+
+                playlists.forEach((p) => {
+                    trackList.push(...p);
+                });
+
+                return trackList;
+            });
+    };
 
     /**
      *
      * @returns {Promise<{uri: string}[]>}
      */
-    const fetchCollection = () => new Promise((resolve, reject) => {
-        Spicetify.BridgeAPI.cosmosJSON(
-            {
-                method: "GET",
-                uri: "sp://core-collection/unstable/@/list/tracks/all",
-                body: {
-                    policy: {
-                        list: {
-                            link: true,
-                        },
-                    },
-                },
-            },
-            (error, res) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                const list = res.items.map((item) => ({
-                    uri: item.link,
-                }));
-
-                resolve(list);
-            }
+    const fetchCollection = async () => {
+        const res = await Spicetify.CosmosAsync.get(
+            "sp://core-collection/unstable/@/list/tracks/all",
+            { policy: { list: { link: true } } }
         );
-    });
+        return res.items.map((item) => item.link);
+    };
+
 
     /**
      *
      * @param {string} uri
      * @returns {Promise<{uri: string}[]>}
      */
-    const fetchAlbum = (uri) => new Promise((resolve, reject) => {
-        const arg = [uri, 0, -1];
-        Spicetify.BridgeAPI.request(
-            "album_tracks_snapshot",
-            arg,
-            (error, res) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                const list = res.array.map((item) => ({
-                    uri: item,
-                }));
-
-                resolve(list);
-            }
-        );
-    });
+    const fetchAlbum = async (uri) => {
+        const arg = uri.split(":")[2];
+        const res = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/albums/${arg}`)
+        return res.tracks.items.map((item) => item.uri);
+    };
 
     /**
      *
      * @param {string} uriBase62
      * @returns {Promise<{uri: string}[]>}
      */
-    const fetchShow = (uriBase62) => new Promise((resolve, reject) => {
-        Spicetify.CosmosAPI.resolver.get(
-            {
-                url: `sp://core-show/unstable/show/${uriBase62}`,
-            },
-            (error, res) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                const list = res.getJSONBody().items.map((item) => ({
-                    uri: item.link,
-                }));
-
-                resolve(list);
-            }
-        );
-    });
+    const fetchShow = async (uriBase62) => {
+        const res = await Spicetify.CosmosAsync.get(`sp://core-show/unstable/show/${uriBase62}`);
+        return res.items.map((item) => item.link);
+    };
 
     /**
      *
      * @param {string} uriBase62
      * @returns {Promise<{uri: string}[]>}
      */
-    const fetchArtist = (uriBase62) => new Promise((resolve, reject) => {
-        Spicetify.CosmosAPI.resolver.get(
-            {
-                url: `hm://artist/v1/${uriBase62}/desktop?format=json`,
-            },
-            (error, res) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                const list = res.getJSONBody()
-                    .top_tracks.tracks.map((item) => ({
-                        uri: item.uri,
-                    }));
-
-                resolve(list);
-            }
-        );
-    });
+    const fetchArtist = async (uriBase62) => {
+        const res = await Spicetify.CosmosAsync.get(`hm://artist/v1/${uriBase62}/desktop?format=json`);
+        return res.top_tracks.tracks.map((item) => item.uri);
+    };
 
     /**
      *
@@ -400,23 +304,12 @@
      * 
      * @param {{uri: string}[]} queue 
      */
-    function putQueueRequest(queue) {
-        queue.push({ uri: "spotify:delimiter" });
-        const queueState = Spicetify.Queue;
-        queueState.next_tracks = queue;
-
-        return new Promise((resolve, reject) => {
-            Spicetify.CosmosAPI.resolver.put({
-                url: "sp://player/v2/main/queue",
-                body: { ...queueState }
-            }, (error) => {
-                if (error) {
-                    reject(error);
-                    return;
-                }
-                resolve();
-            });
-        })
+    async function putQueueRequest(queue) {
+        return await Spicetify.Player.origin2.insertIntoQueue({
+            uris: queue,
+            dropIndex: 0,
+            meta: { section: 2 } // enum QueueSection { NowPlaying, NextInQueue, NextUp }
+        });
     }
 
     /**
@@ -435,13 +328,11 @@
      * Replace queue and play first track immediately.
      * @param {{uri: string}[]} list 
      */
-    function playList(list) {
+    async function playList(list) {
         const count = list.length;
-        const firstTrack = list.shift().uri;
-        Spicetify.PlaybackControl.playTrack(firstTrack, {}, () => {
-            putQueueRequest(list)
-                .then(() => success(count))
-                .catch((err) => Spicetify.showNotification(`${err}`));
-        });
+        await putQueueRequest(list)
+            .then(() => success(count))
+            .catch((err) => Spicetify.showNotification(`${err}`));
+        Spicetify.Player.next();
     }
 })();

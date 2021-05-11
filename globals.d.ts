@@ -10,40 +10,9 @@ declare namespace Spicetify {
          *  - `appchange` type when user changes page.
          */
         function addEventListener(type: string, callback: (event?: Event) => void): void;
-        function addEventListener(type: "songchange", callback: (event?: Event) => void): void;
-        function addEventListener(type: "onplaypause", callback: (event?: Event) => void): void;
+        function addEventListener(type: "songchange", callback: (event?: Event | { data: any }) => void): void;
+        function addEventListener(type: "onplaypause", callback: (event?: Event | { data: any }) => void): void;
         function addEventListener(type: "onprogress", callback: (event?: Event | { data: number }) => void): void;
-        function addEventListener(type: "appchange", callback: (event?: Event & {
-            data: {
-                /**
-                 * App ID
-                 */
-                id: string;
-                /**
-                 * App URI
-                 */
-                uri: string;
-            } & ({
-                /**
-                 * Whether app is embedded element or an Iframe
-                 */
-                isEmbeddedApp: true;
-
-                /**
-                 * App container HTML element or Iframe element
-                 */
-                container: HTMLElement;
-            } | {
-                /**
-                 * Whether app is embedded element or an Iframe
-                 */
-                isEmbeddedApp: false;
-                /**
-                 * App container
-                 */
-                container: HTMLIFrameElement;
-            })
-        }) => void): void;
         /**
          * Skip to previous track.
          */
@@ -192,36 +161,47 @@ declare namespace Spicetify {
      * Adds a track/album or array of tracks/albums to prioritized queue.
      */
     function addToQueue(uri: string | string[]): Promise<void>;
+    /**
+     * @deprecated
+     */
     const BridgeAPI: any;
+    /**
+     * @deprecated
+     */
     const CosmosAPI: any;
     /**
      * Async wrappers of CosmosAPI
      */
     namespace CosmosAsync {
-        type Action = "DELETE" | "GET" | "HEAD" | "PATCH" | "POST" | "PUT" | "SUB";
+        type Method = "DELETE" | "GET" | "HEAD" | "PATCH" | "POST" | "PUT" | "SUB";
         interface Error {
             code: number;
             error: string;
             message: string;
+            stack?: string;
         }
+
+        type Headers = Record<string, string>;
+        type Body = Record<string, any>;
 
         interface Response {
             body: any;
-            headers: object;
+            headers: Headers;
             status: number;
             uri: string;
+            static isSuccessStatus(status: number): boolean;
         }
 
-        function head(url: string, headers?: object): Promise<Response.headers>;
-        function get(url: string, body?: any, headers?: object): Promise<Response.body>;
-        function post(url: string, body?: any, headers?: object): Promise<Response.body>;
-        function put(url: string, body?: any, headers?: object): Promise<Response.body>;
-        function del(url: string, body?: any, headers?: object): Promise<Response.body>;
-        function patch(url: string, body?: any, headers?: object): Promise<Response.body>;
-        function sub(url: string, callback: ((b: Response.body) => void), onError?: ((e: Error) => void), body?: any, headers?: object): Promise<Response.body>;
-        function postSub(url: string, body?: any, callback: ((b: Response.body) => void), onError?: ((e: Error) => void)): Promise<Response.body>;
-        function request(method: Action, url: string, body?: any, headers?: object): Promise<Response>;
-        function resolve(method: Action, url: string, body?: any, headers?: object): Promise<Response>;
+        function head(url: string, headers?: Headers): Promise<Headers>;
+        function get(url: string, body?: Body, headers?: Headers): Promise<Response.body>;
+        function post(url: string, body?: Body, headers?: Headers): Promise<Response.body>;
+        function put(url: string, body?: Body, headers?: Headers): Promise<Response.body>;
+        function del(url: string, body?: Body, headers?: Headers): Promise<Response.body>;
+        function patch(url: string, body?: Body, headers?: Headers): Promise<Response.body>;
+        function sub(url: string, callback: ((b: Response.body) => void), onError?: ((e: Error) => void), body?: Body, headers?: Headers): Promise<Response.body>;
+        function postSub(url: string, body?: Body, callback: ((b: Response.body) => void), onError?: ((e: Error) => void)): Promise<Response.body>;
+        function request(method: Method, url: string, body?: Body, headers?: Headers): Promise<Response>;
+        function resolve(method: Method, url: string, body?: Body, headers?: Headers): Promise<Response>;
     }
     /**
      * Fetch interesting colors from URI.
@@ -235,17 +215,9 @@ declare namespace Spicetify {
         VIBRANT_NON_ALARMING: string;
     }>;
     /**
-     * Fetch interesting colors from track album art.
-     * @param uri is optional. Leave it blank to get currrent track
-     * or specify another track uri.
+     * @deprecated
      */
-    function getAblumArtColors(uri?: string): Promise<{
-        DESATURATED: string;
-        LIGHT_VIBRANT: string;
-        PROMINENT: string;
-        VIBRANT: string;
-        VIBRANT_NON_ALARMING: string;
-    }>;
+    function getAblumArtColors(): any;
     /**
      * Fetch track analyzed audio data.
      * Beware, not all tracks have audio data.
@@ -256,8 +228,26 @@ declare namespace Spicetify {
     /**
      * Set of APIs method to register, deregister hotkeys/shortcuts
      */
-    const Keyboard: any;
+    namespace Keyboard {
+        type ValidKey = "BACKSPACE" | "TAB" | "ENTER" | "SHIFT" | "CTRL" | "ALT" | "CAPS" | "ESCAPE" | "SPACE" | "PAGE_UP" | "PAGE_DOWN" | "END" | "HOME" | "ARROW_LEFT" | "ARROW_UP" | "ARROW_RIGHT" | "ARROW_DOWN" | "INSERT" | "DELETE" | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" | "WINDOW_LEFT" | "WINDOW_RIGHT" | "SELECT" | "NUMPAD_0" | "NUMPAD_1" | "NUMPAD_2" | "NUMPAD_3" | "NUMPAD_4" | "NUMPAD_5" | "NUMPAD_6" | "NUMPAD_7" | "NUMPAD_8" | "NUMPAD_9" | "MULTIPLY" | "ADD" | "SUBTRACT" | "DECIMAL_POINT" | "DIVIDE" | "F1" | "F2" | "F3" | "F4" | "F5" | "F6" | "F7" | "F8" | "F9" | "F10" | "F11" | "F12" | ";" | "=" | " | " | "-" | "." | "/" | "`" | "[" | "\\" | "]" | "\"" | "~" | "!" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")" | "_" | "+" | ":" | "<" | ">" | "?" | "|";
+        type KeysDefine = string | {
+            key: string;
+            ctrl?: boolean;
+            shift?: boolean;
+            alt?: boolean;
+            meta?: boolean;
+        };
+        const KEYS: Record<ValidKey, string>;
+        function registerShortcut(keys: KeysDefine, callback: (event: KeyboardEvent) => void);
+        function registerIsolatedShortcut(keys: KeysDefine, callback: (event: KeyboardEvent) => void);
+        function registerImportantShortcut(keys: KeysDefine, callback: (event: KeyboardEvent) => void);
+        function _deregisterShortcut(keys: KeysDefine);
+        function deregisterImportantShortcut(keys: KeysDefine);
+    };
 
+    /**
+     * @deprecated
+     */
     const LiveAPI: any;
 
     namespace LocalStorage {
@@ -280,6 +270,8 @@ declare namespace Spicetify {
     }
     /**
      * To create and prepend custom menu item in profile menu.
+     * 
+     * **WORK IN PROGRESS, DO NOT USE**
      */
     namespace Menu {
         /**
@@ -326,152 +318,64 @@ declare namespace Spicetify {
             deregister(): void;
         }
     }
+    
+    /**
+     * Keyboard shortcut library
+     * 
+     * Documentation: https://craig.is/killing/mice v1.6.5
+     * 
+     * Spicetify.Keyboard is wrapper of this library to be compatible with legacy Spotify,
+     * so new extension should use this library instead.
+     */
+     function Mousetrap(element?: any): void;
+
     /**
      * Use to force playing a track/episode/album/show/playlist/artist URI.
      */
     namespace PlaybackControl {
-        /**
-         * Set either `index` or `trackUri`
-         */
-        interface ResolverOption {
+        type Metadata = Partial<Record<string, string>>;
+        type ContextTrack = {
+            uri: string;
+            uid?: string;
+            metadata?: Metadata;
+        };
+        interface ContextOption {
+            contextURI?: string;
             index?: number;
             trackUri?: string;
-            seekTo?: number;
-        }
-        /**
-         * Request to play a context through the cosmos track resolver.
-         * @param contextUri Context URI.
-         * @param playOptions An object with play options.
-         * @param callback Optional callback function.
-         */
-        function playFromResolver(contextUri: string, playOptions: ResolverOption, callback?: Function): void;
-
-        interface ContextObject {
-            pages?: any;
-            metadata?: {
-                'zelda.context_uri': string;
-            };
-            entity_uri?: string;
-            uri?: string;
-            url?: string;
-        }
-
-        interface ContextOption {
-            index?: number | null;
-            range?: any;
-            uid?: string;
-            uri?: string;
             page?: number;
-        }
-        /**
-         * Play a context directly, only supported on context player
-         *
-         * @param context Context object that CP can deal with.
-         * @param playOptions An object with play options.
-         * @param callback Optional callback function.
-         */
-        function playContext(context: ContextObject, playOptions: ContextOption, callback?: Function): void;
-        /**
-         * Update the player with a new context without changing what is currently
-         * playing.
-         *
-         * @param context Context object that CP can deal with.
-         * @param callback Optional callback function.
-         */
-        function updateContext(context: ContextObject, callback?: Function): void;
-
-        interface PlaylistResolverOptions {
-            context: string;
-            uids?: string[];
-            uid?: string;
-            uris?: string[];
-            trackUri?: string;
-            // fills in source_start & source_end
-            // example values: browse, playlist-owned-by-self-non-collaborative
-            source?: string;
-            // fills in referer
-            // example values: spotify:app:browse
-            referrerId?: string;
-            // fills in referrer version
-            referrerVersion?: string;
-        }
-        /**
-         * Request to play a context through the playlist resolver.
-         *
-         * @param contextUri Context URI.
-         * @param playOptions An object with play options.
-         * @param callback Optional callback function.
-         */
-        function playFromPlaylistResolver(contextUri: string, playOptions: PlaylistResolverOptions, callback?: Function): void;
-
-        interface CollectionResolverOption {
-            context: string;
-            index: number | null;
-            // fills in source_start & source_end
-            // example values: browse, playlist-owned-by-self-non-collaborative
-            source?: string;
-            // fills in referer
-            // example values: spotify:app:browse
-            referrerId?: string;
-            // fills in referrer version
-            referrerVersion?: string;
-        }
-        /**
-         * Request to play a context through the collection resolver.
-         *
-         * @param contextUri Context URI.
-         * @param playOptions An object with play options.
-         * @param callback Optional callback function.
-         */
-        function playFromCollectionResolver(contextUri: string, playOptions: CollectionResolverOption, callback?: Function): void;
-
-        /**
-         * Request to play a single track.
-         *
-         * @param uri The track URI.
-         * @param playOptions An object with play options.
-         * @param callback Optional callback function.
-         */
-        function playTrack(uri: string, playOptions: Object, callback?: Function): void;
-
-        interface RowsOption {
-            index: number | null;
-            range?: any;
-            uid?: string;
-            uri?: string;
-            page?: number;
-        }
-        /**
-         * Request to play tracks found in the list of rows.
-         *
-         * @param rows A live list of rows with tracks.
-         * @param playOptions An object with play options.
-         * @param callback Optional callback function.
-         */
-        function playRows(rows: any, playOptions: RowsOption, callback?: Function): void;
-        /**
-         * Request to play artist context.
-         *
-         * @param uri Context URI.
-         * @param playOptions An object with play options.
-         * @param callback Optional callback function.
-         */
-        function playFromArtist(uri: string, playOptions: ResolverOption, callback?: Function): void;
-        /**
-         * Request to update the player with tracks from the provided rows list.
-         * This will update the player silently without interrupting playback.
-         *
-         * @param rows A live list of rows with tracks.
-         * @param playOptions An object with play options.
-         * @param callback Optional callback function.
-         */
-        function updateWithRows(rows: any, playOptions: Object, callback?: Function): void;
-
-        function pause(callback?: Function): void;
-        function resume(callback?: Function): void;
-        function skipPrev(callback?: Function): void;
-        function skipNext(callback?: Function): void;
+            trackUid?: string;
+            sortedBy?: string;
+            filteredBy?: string;
+            shuffleContext?: boolean;
+            repeatContext?: boolean;
+            repeatTrack?: boolean;
+            offset?: number;
+            next_page_url?: string;
+            restrictions?: Record<string, string[]>;
+            referrer?: string;
+        };
+        async function resume();
+        async function pause();
+        async function nextTrack();
+        async function previousTrack();
+        async function addToQueue(uri: string);
+        async function playTracks(trackList: ContextTrack[], options: ContextOption = {});
+        async function playUri(uri: string, options: Options = {});
+        async function playCollection(trackUri: string, sort: string, filter: string);
+        async function seek(positionInMs: number);
+        async function setShuffle(enabled: boolean);
+        async function setRepeatMode(repeat: 0 | 1 | 2);
+        async function setPrivateSession(enabled: boolean);
+        async function setPreferredSubtitle(language: string): Promise<void>;
+        async function getPreferredSubtitle(): Promise<string>;
     }
+
+    /**
+     * Contains vast array of internal APIs.
+     * Please explore in Devtool Console.
+     */
+    const Platform: any;
     /**
      * Queue object contains list of queuing tracks,
      * history of played tracks and current track metadata.
@@ -629,6 +533,7 @@ declare namespace Spicetify {
             GLOBAL: string;
             IMAGE: string;
             INBOX: string;
+            INTERRUPTION: string;
             LOCAL_ARTIST: string;
             LOCAL_ALBUM: string;
             LOCAL: string;
@@ -644,6 +549,7 @@ declare namespace Spicetify {
             COLLECTION_TRACK_LIST: string;
             SEARCH: string;
             SHOW: string;
+            SOCIAL_SESSION: string,
             CONCERT: string;
             SPECIAL: string;
             STARRED: string;
@@ -1119,6 +1025,22 @@ declare namespace Spicetify {
          */
         static concertURI(id: string): URI;
 
+        /**
+         * Creates a new 'socialsession' type URI.
+         *
+         * @param id The token needed to join a social session.
+         * @return The socialsession URI.
+         */
+         static socialSessionURI(id: string): URI;
+
+         /**
+         * Creates a new 'interruption' type URI.
+         *
+         * @param id The id of the interruption.
+         * @return The ad URI.
+         */
+        static interruptionURI(id: string): URI;
+
         static isAlbum(uri: any): boolean;
         static isAd(uri: any): boolean;
         static isApplication(uri: any): boolean;
@@ -1145,10 +1067,14 @@ declare namespace Spicetify {
         static isTrack(uri: any): boolean;
         static isProfile(uri: any): boolean;
         static isPlaylistV1OrV2(uri: any): boolean;
+        static isSocialSession(uri: any): boolean;
+        static isInterruption(uri: any): boolean;
     }
 
     /**
      * Create custom menu item and prepend to right click context menu
+     * 
+     * **WORK IN PROGRESS, DO NOT USE**
      */
     namespace ContextMenu {
         type Icon = "add-to-playlist" | "add-to-queue" | "addfollow" | "addfollowers" | "addsuggestedsong" | "airplay" | "album" | "album-contained" | "arrow-down" | "arrow-left" | "arrow-right" | "arrow-up" | "artist" | "artist-active" | "attach" | "available-offline" | "ban" | "ban-active" | "block" | "bluetooth" | "browse" | "browse-active" | "camera" | "carplay" | "chart-down" | "chart-new" | "chart-up" | "check" | "check-alt" | "chevron-down" | "chevron-left" | "chevron-right" | "chevron-up" | "chromecast-connected" | "chromecast-connecting-one" | "chromecast-connecting-three" | "chromecast-connecting-two" | "chromecast-disconnected" | "collaborative-playlist" | "collection" | "collection-active" | "connect-to-devices" | "copy" | "destination-pin" | "device-arm" | "device-car" | "device-computer" | "device-mobile" | "device-multispeaker" | "device-other" | "device-speaker" | "device-tablet" | "device-tv" | "devices" | "devices-alt" | "discover" | "download" | "downloaded" | "drag-and-drop" | "edit" | "email" | "events" | "facebook" | "facebook-messenger" | "filter" | "flag" | "follow" | "fullscreen" | "games-console" | "gears" | "googleplus" | "grid-view" | "headphones" | "heart" | "heart-active" | "helpcircle" | "highlight" | "home" | "home-active" | "inbox" | "info" | "instagram" | "library" | "lightning" | "line" | "list-view" | "localfile" | "locked" | "locked-active" | "lyrics" | "make—available-offline" | "menu" | "messages" | "mic" | "minimise" | "mix" | "more" | "more-android" | "new-spotify-connect" | "new-volume" | "newradio" | "nikeplus" | "notifications" | "now-playing" | "now-playing-active" | "offline" | "offline-sync" | "pause" | "payment" | "paymenthistory" | "play" | "playback-speed-0point5x" | "playback-speed-0point8x" | "playback-speed-1point2x" | "playback-speed-1point5x" | "playback-speed-1x" | "playback-speed-2x" | "playback-speed-3x" | "playlist" | "playlist-folder" | "plus" | "plus-2px" | "plus-alt" | "podcasts" | "podcasts-active" | "public" | "queue" | "radio" | "radio-active" | "radioqueue" | "redeem" | "refresh" | "released" | "repeat" | "repeatonce" | "report-abuse" | "running" | "search" | "search-active" | "sendto" | "share" | "share-android" | "sharetofollowers" | "shows" | "shuffle" | "skip-back" | "skip-forward" | "skipback15" | "skipforward15" | "sleeptimer" | "sms" | "sort" | "sortdown" | "sortup" | "spotify-connect" | "spotify-connect-alt" | "spotifylogo" | "spotifypremium" | "star" | "star-alt" | "subtitles" | "tag" | "thumbs-down" | "thumbs-up" | "time" | "topcountry" | "track" | "trending" | "trending-active" | "tumblr" | "twitter" | "user" | "user-active" | "user-alt" | "user-circle" | "video" | "volume" | "volume-off" | "volume-onewave" | "volume-twowave" | "warning" | "watch" | "whatsapp" | "x" | "settings";
@@ -1217,6 +1143,8 @@ declare namespace Spicetify {
 
     /**
      * Popup Modal
+     * 
+     * **WORK IN PROGRESS, DO NOT USE**
      */
     namespace PopupModal {
         interface Content {

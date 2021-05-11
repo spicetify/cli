@@ -7,7 +7,9 @@
 /// <reference path="../globals.d.ts" />
 
 (function FullAppDisplay() {
-    if (!Spicetify.Player || !Spicetify.Player.data) {
+    const topBar = document.querySelector(".main-topBar-historyButtons");
+
+    if (!Spicetify.Player || !Spicetify.Player.data || !topBar) {
         setTimeout(FullAppDisplay, 200)
         return
     }
@@ -23,6 +25,8 @@
     height: 100%;
     z-index: 500;
     cursor: default;
+    left: 0;
+    top: 0;
 }
 #fad-header {
     position: fixed;
@@ -225,6 +229,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 
     const container = document.createElement("div")
     container.id = "full-app-display"
+    container.classList.add("Video", "VideoPlayer--fullscreen", "VideoPlayer--landscape")
 
     let cover, back, title, artist, album, prog, elaps, durr, play, bgImage
     const nextTrackImg = new Image()
@@ -449,11 +454,13 @@ body.video-full-screen.video-full-screen--hide-ui {
 
     // Add activator on top bar
     const button = document.createElement("button")
-    button.classList.add("button", "spoticon-minimise-16", "fad-button")
-    button.setAttribute("data-tooltip", "Full App Display")
+    button.classList.add("main-topBar-button", "fad-button")
+    button.setAttribute("title", "Full App Display")
+    button.innerHTML = `<svg role="img" height="16" width="16" viewBox="0 0 32 32" fill="currentColor"><path d="M8.645 22.648l-5.804 5.804.707.707 5.804-5.804 2.647 2.646v-6h-6l2.646 2.647zM29.157 3.55l-.707-.707-5.804 5.805L20 6.001v6h6l-2.646-2.647 5.803-5.804z"></path></svg>`
+    topBar.append(button)
 
-    document.querySelector("#view-browser-navigation-top-bar").append(button)
-    document.getElementById("video-player").append(style, container)
+    const videoContainer = document.querySelector(".Root__video-player")
+    videoContainer.append(style, container)
 
     // Add setting toggles in right click menu
     container.setAttribute("data-uri", "spotify:special:fullappdisplay")
@@ -462,18 +469,18 @@ body.video-full-screen.video-full-screen--hide-ui {
     const checkURI = ([uri]) => uri === "spotify:special:fullappdisplay"
 
     function newMenuItem(name, key) {
-        new Spicetify.ContextMenu.Item(
-            name,
-            function () {
-                CONFIG[key] = !CONFIG[key]
-                this.icon = CONFIG[key] && "check"
-                saveConfig()
-                render()
-                activate()
-            },
-            checkURI,
-            CONFIG[key] ? "check" : undefined,
-        ).register()
+        // new Spicetify.ContextMenu.Item(
+        //     name,
+        //     function () {
+        //         CONFIG[key] = !CONFIG[key]
+        //         this.icon = CONFIG[key] && "check"
+        //         saveConfig()
+        //         render()
+        //         activate()
+        //     },
+        //     checkURI,
+        //     CONFIG[key] ? "check" : undefined,
+        // ).register()
     }
 
     newMenuItem("Enable progress bar", "enableProgress")
