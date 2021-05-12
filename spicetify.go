@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	version = "1.2.1"
+	version = "2.0.1"
 )
 
 var (
@@ -393,32 +393,5 @@ custom_apps <string>
 
 extensions <string>
     List of Javascript files to be executed along with Spotify main script.
-    Separate each extension with "|".
-
-experimental_features <-1 | 0 | 1>
-    Enable/Disable ability access to Experimental Features of Spotify.
-    Open it in profile menu (top right corner).
-
-fastUser_switching <-1 | 0 | 1>
-    Enable/Disable ability to quickly change account. Open it in profile menu.
-
-home <-1 | 0 | 1>
-    Enable/Disable Home page. Access it in left sidebar.
-
-lyric_always_show <-1 | 0 | 1>
-    Force Lyrics button to show all the time in player bar.
-    Useful for who want to watch visualization page.
-
-lyric_force_no_sync <-1 | 0 | 1>
-    Force displaying all of lyrics.
-
-radio
-    Enable/Disable Radio page. Access it in left sidebar.
-
-song_page <-1 | 0 | 1>
-    Enable/Disable ability to click at song name in player bar will access that
-    song page (instead of its album page) to discover playlists it appearing on.
-
-visualization_high_framerate <-1 | 0 | 1>
-    Force Visualization in Lyrics app to render in 60fps.`)
+    Separate each extension with "|".`)
 }
