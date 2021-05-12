@@ -1,7 +1,8 @@
 // @ts-check
 
 // NAME: Popup Lyrics
-// AUTHOR: khanhas (stole from https://github.com/mantou132/Spotify-Lyrics)
+// AUTHOR: khanhas
+//         Netease API parser and UI from https://github.com/mantou132/Spotify-Lyrics
 // DESCRIPTION: Pop lyrics up
 
 /// <reference path="../globals.d.ts" />
