@@ -367,36 +367,62 @@ Spicetify.LocalStorage = {
     Spicetify.Keyboard.deregisterImportantShortcut = Spicetify.Keyboard._deregisterShortcut;
 })();
 
+class _HTMLContextMenuItem extends HTMLElement {
+    constructor({
+        name, 
+        disabled = false,
+        icon = undefined,
+    }) {
+        super();
+        this.name = name;
+        this.disabled = disabled;
+        this.icon = icon;
+    }
+    render() {
+        //main-contextMenu-disabled
+        this.innerHTML = `
+<li role="presentation" class="main-contextMenu-menuItem">
+    <a class="main-contextMenu-menuItemButton ${this.disabled ? "main-contextMenu-disabled" : ""}" aria-disabled="false" role="menuitem" as="a" tabindex="-1">
+        <span class="ellipsis-one-line main-type-mesto" as="span" dir="auto">${this.name}</span>
+        ${this.icon || ""}
+    </a>
+</li>`;
+    }
+
+    connectedCallback() {
+        if (!this.rendered) {
+            this.render();
+            this.rendered = true;
+        }
+    }
+
+    static get observedAttributes() {
+        return [];
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        this.render();
+    }
+}
+customElements.define("context-menu-item", _HTMLContextMenuItem);
+
 Spicetify.Menu = (function() {
     const collection = new Set();
 
-    const _hook = function(menuReact, itemReact, subMenuReact ) {
-        function createSingleItem(item) {
-            return menuReact.createElement(itemReact, {
-                label: item.name,
-                isChecked: item.isEnabled,
-                name: "spicetify-hook",
-                onClick: item.onClick,
-            });
-        }
-
-        const result = [];
+    const _addItems = function(instance) {
+        const list = instance.querySelector("ul");
 
         for (const item of collection) {
-            let reactComp;
-            if (item.subItems) {
-                reactComp = menuReact.createElement(itemReact, { label: item.name },
-                    menuReact.createElement(subMenuReact, { isSubmenu: true },
-                        item.subItems.map(createSingleItem)
-                    )
-                );
-            } else {
-                reactComp = createSingleItem(item);
+            if (!item.isEnabled) {
+                continue;
             }
-            result.push(reactComp);
+            const htmlItem = new _HTMLContextMenuItem(item.name);
+            htmlItem.onclick = () => {
+                item.onClick();
+                instance._tippy.props.onClickOutside();
+            };
+            list.prepend(htmlItem);
         }
-
-        return result;
     }
 
     class Item {
@@ -435,7 +461,7 @@ Spicetify.Menu = (function() {
         }
     }
 
-    return { Item, SubMenu, _hook }
+    return { Item, SubMenu, _addItems }
 })();
 
 Spicetify.ContextMenu = (function () {
@@ -580,45 +606,21 @@ Spicetify.ContextMenu = (function () {
 
     SubMenu.iconList = iconList;
 
-    class _HTMLContextMenuItem extends HTMLElement {
-        constructor(name) {
-            super();
-            this.name = name;
-        }
-        render() {
-            //main-contextMenu-disabled
-            this.innerHTML = `
-<li role="presentation" class="main-contextMenu-menuItem">
-    <a class="main-contextMenu-menuItemButton " aria-disabled="false" role="menuitem" as="a" tabindex="-1">
-        <span class="ellipsis-one-line main-type-mesto" as="span" dir="auto">${this.name}</span>
-    </a>
-</li>`;
-        }
-
-        connectedCallback() { // (2)
-            if (!this.rendered) {
-                this.render();
-                this.rendered = true;
-            }
-        }
-
-        static get observedAttributes() { // (3)
-            return ['datetime', 'year', 'month', 'day', 'hour', 'minute', 'second', 'time-zone-name'];
-        }
-
-        attributeChangedCallback(name, oldValue, newValue) { // (4)
-            this.render();
-        }
-    }
-    customElements.define("context-menu-item", _HTMLContextMenuItem);
-
     function _addItems(instance) {
         const list = instance.querySelector("ul");
+        const container = instance.firstChild;
+        const reactEH = Object.values(container)[1]; // __reactEventHandlers
+        const props = reactEH.children.props;
 
-        const link = instance._tippy.reference.querySelector("a") || 
-            instance._tippy.reference;
-        const url = link.pathname;
-        const uris = [Spicetify.URI.fromString(url).toURI()];
+        let uris = [];
+        if (props.uris) {
+            uris = props.uris;
+        } else if (props.uri) {
+            uris = [props.uri];
+        } else {
+            return;
+        }
+
         for (const item of itemList) {
             if (!item._shouldAdd(uris)) {
                 continue;

@@ -147,7 +147,6 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 				if flags.ExposeAPIs {
 					tags += `<script src="spicetifyWrapper.js"></script>`
 				}
-				tags += "\n<!--Extension-->"
 
 				utils.Replace(&content, `<body>`, "${0}\n"+tags)
 
@@ -378,7 +377,7 @@ func exposeAPIs_main(input string) string {
 
 			for _, apiFunc := range(splitted) {
 				name := re.ReplaceAllString(apiFunc, `${1}`)
-				println(apiFunc, name);
+
 				if strings.HasPrefix(name, "get") {
 					name = strings.Replace(name, "get", "", 1);
 				}
@@ -416,15 +415,18 @@ func exposeAPIs_vendor(input string) string {
 		&input,
 		`\w+\("onMount",\[(\w+)\]\)`,
 		`${0};
-if (${1}.popper?.firstChild?.id === "context-menu") {
-	if (!${1}.popper.firstChild.children.length) {
+if (G.popper?.firstChild?.id === "context-menu") {
+    const container = G.popper.firstChild;
+	if (!container.children.length) {
 		const observer = new MutationObserver(() => {
-			Spicetify.ContextMenu._addItems(${1}.popper);
+			Spicetify.ContextMenu._addItems(G.popper);
 			observer.disconnect();
 		});
-		observer.observe(${1}.popper.firstChild, { childList: true });
-	} else {
-		Spicetify.ContextMenu._addItems(${1}.popper);
+		observer.observe(container, { childList: true });
+    } else if (container.firstChild.classList.contains("main-userWidget-dropDownMenu")) {
+        Spicetify.Menu._addItems(G.popper);
+    } else {
+		Spicetify.ContextMenu._addItems(G.popper);
 	}
 };0`)
 
