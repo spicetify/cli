@@ -1,4 +1,31 @@
 declare namespace Spicetify {
+    type Metadata = Partial<Record<string, string>>;
+    type ContextTrack = {
+        uri: string;
+        uid?: string;
+        metadata?: Metadata;
+    };
+    type ProvidedTrack = ContextTrack & {
+        removed?: string[];
+        blocked?: string[];
+        provider?: string;
+    };
+    interface ContextOption {
+        contextURI?: string;
+        index?: number;
+        trackUri?: string;
+        page?: number;
+        trackUid?: string;
+        sortedBy?: string;
+        filteredBy?: string;
+        shuffleContext?: boolean;
+        repeatContext?: boolean;
+        repeatTrack?: boolean;
+        offset?: number;
+        next_page_url?: string;
+        restrictions?: Record<string, string[]>;
+        referrer?: string;
+    };
     namespace Player {
         /**
          * Register a listener `type` on Spicetify.Player.
@@ -20,7 +47,51 @@ declare namespace Spicetify {
         /**
          * An object contains all information about current track and player.
          */
-        const data: any;
+        const data: {
+            timestamp: number;
+            context_uri: string;
+            context_url: string;
+            context_restrictions: Record<string, string>;
+            index?: {
+                page: number;
+                track: number;
+            };
+            track?: ProvidedTrack;
+            playback_id?: string;
+            playback_quality?: string;
+            playback_speed?: number;
+            position_as_of_timestamp: number;
+            duration: number;
+            is_playing: boolean;
+            is_paused: boolean;
+            is_buffering: boolean;
+            play_origin: {
+                feature_identifier: string;
+                feature_version: string;
+                view_uri?: string;
+                external_referrer?: string;
+                referrer_identifier?: string;
+                device_identifier?: string;
+            };
+            options: {
+                shuffling_context?: boolean;
+                repeating_context?: boolean;
+                repeating_track?: boolean;
+            };
+            restrictions: Record<string, string[]>;
+            suppressions: {
+                providers: string[];
+            };
+            debug: {
+              log: string[];
+            };
+            prev_tracks: ProvidedTrack[];
+            next_tracks: ProvidedTrack[];
+            context_metadata: Metadata;
+            page_metadata: Metadata;
+            session_id: string;
+            queue_revision: string;
+        };
         /**
          * Decrease a small amount of volume.
          */
@@ -333,28 +404,6 @@ declare namespace Spicetify {
      * Use to force playing a track/episode/album/show/playlist/artist URI.
      */
     namespace PlaybackControl {
-        type Metadata = Partial<Record<string, string>>;
-        type ContextTrack = {
-            uri: string;
-            uid?: string;
-            metadata?: Metadata;
-        };
-        interface ContextOption {
-            contextURI?: string;
-            index?: number;
-            trackUri?: string;
-            page?: number;
-            trackUid?: string;
-            sortedBy?: string;
-            filteredBy?: string;
-            shuffleContext?: boolean;
-            repeatContext?: boolean;
-            repeatTrack?: boolean;
-            offset?: number;
-            next_page_url?: string;
-            restrictions?: Record<string, string[]>;
-            referrer?: string;
-        };
         async function resume();
         async function pause();
         async function nextTrack();
@@ -1077,7 +1126,7 @@ declare namespace Spicetify {
      * **WORK IN PROGRESS, DO NOT USE**
      */
     namespace ContextMenu {
-        type Icon = "add-to-playlist" | "add-to-queue" | "addfollow" | "addfollowers" | "addsuggestedsong" | "airplay" | "album" | "album-contained" | "arrow-down" | "arrow-left" | "arrow-right" | "arrow-up" | "artist" | "artist-active" | "attach" | "available-offline" | "ban" | "ban-active" | "block" | "bluetooth" | "browse" | "browse-active" | "camera" | "carplay" | "chart-down" | "chart-new" | "chart-up" | "check" | "check-alt" | "chevron-down" | "chevron-left" | "chevron-right" | "chevron-up" | "chromecast-connected" | "chromecast-connecting-one" | "chromecast-connecting-three" | "chromecast-connecting-two" | "chromecast-disconnected" | "collaborative-playlist" | "collection" | "collection-active" | "connect-to-devices" | "copy" | "destination-pin" | "device-arm" | "device-car" | "device-computer" | "device-mobile" | "device-multispeaker" | "device-other" | "device-speaker" | "device-tablet" | "device-tv" | "devices" | "devices-alt" | "discover" | "download" | "downloaded" | "drag-and-drop" | "edit" | "email" | "events" | "facebook" | "facebook-messenger" | "filter" | "flag" | "follow" | "fullscreen" | "games-console" | "gears" | "googleplus" | "grid-view" | "headphones" | "heart" | "heart-active" | "helpcircle" | "highlight" | "home" | "home-active" | "inbox" | "info" | "instagram" | "library" | "lightning" | "line" | "list-view" | "localfile" | "locked" | "locked-active" | "lyrics" | "make—available-offline" | "menu" | "messages" | "mic" | "minimise" | "mix" | "more" | "more-android" | "new-spotify-connect" | "new-volume" | "newradio" | "nikeplus" | "notifications" | "now-playing" | "now-playing-active" | "offline" | "offline-sync" | "pause" | "payment" | "paymenthistory" | "play" | "playback-speed-0point5x" | "playback-speed-0point8x" | "playback-speed-1point2x" | "playback-speed-1point5x" | "playback-speed-1x" | "playback-speed-2x" | "playback-speed-3x" | "playlist" | "playlist-folder" | "plus" | "plus-2px" | "plus-alt" | "podcasts" | "podcasts-active" | "public" | "queue" | "radio" | "radio-active" | "radioqueue" | "redeem" | "refresh" | "released" | "repeat" | "repeatonce" | "report-abuse" | "running" | "search" | "search-active" | "sendto" | "share" | "share-android" | "sharetofollowers" | "shows" | "shuffle" | "skip-back" | "skip-forward" | "skipback15" | "skipforward15" | "sleeptimer" | "sms" | "sort" | "sortdown" | "sortup" | "spotify-connect" | "spotify-connect-alt" | "spotifylogo" | "spotifypremium" | "star" | "star-alt" | "subtitles" | "tag" | "thumbs-down" | "thumbs-up" | "time" | "topcountry" | "track" | "trending" | "trending-active" | "tumblr" | "twitter" | "user" | "user-active" | "user-alt" | "user-circle" | "video" | "volume" | "volume-off" | "volume-onewave" | "volume-twowave" | "warning" | "watch" | "whatsapp" | "x" | "settings";
+        type Icon = "album" | "artist" | "block" | "chart-down" | "chart-up" | "check" | "check-alt-fill" | "chevron-left" | "chevron-right" | "chromecast-disconnected" | "copy" | "download" | "downloaded" | "edit" | "exclamation-circle" | "external-link" | "facebook" | "follow" | "fullscreen" | "grid-view" | "heart" | "heart-active" | "instagram" | "list-view" | "locked" | "locked-active" | "lyrics" | "minimize" | "more" | "new-spotify-connect" | "offline" | "pause" | "play" | "playlist" | "playlist-folder" | "plus2px" | "plus-alt" | "podcasts" | "repeat" | "repeat-once" | "search" | "search-active" | "shuffle" | "skip-back" | "skip-back15" | "skip-forward" | "skip-forward15" | "soundbetter" | "subtitles" | "twitter" | "volume" | "volume-off" | "volume-one-wave" | "volume-two-wave" | "x";
 
         // Single context menu item
         class Item {
@@ -1087,7 +1136,7 @@ declare namespace Spicetify {
             static readonly iconList: Icon[];
             constructor(name: string, onClick: (uris: string[]) => void, shouldAdd: (uris: string[]) => boolean = (uris: string[]) => true, icon?: Icon, disabled?: boolean);
             set name(text: string);
-            set icon(name: Icon);
+            set icon(name: Icon | string);
             set disabled(bool: boolean);
             /**
              * A function returning boolean determines whether item should be prepended.
@@ -1118,7 +1167,7 @@ declare namespace Spicetify {
             static readonly iconList: Icon[];
             constructor(name: string, subItems: Iterable<Item>, shouldAdd = (uris) => true, icon?: Icon, disabled?: boolean);
             set name(text: string);
-            set icon(name: Icon);
+            set icon(name: Icon | string);
             set disabled(bool: boolean);
             /**
              * Replace current `Item`s list
