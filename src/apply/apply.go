@@ -70,8 +70,8 @@ func htmlMod(htmlPath string, flags Flag) {
 	utils.ModifyFile(htmlPath, func(content string) string {
 		utils.Replace(
 			&content,
-			`<!\-\-Extension\-\->`,
-			"${0}\n"+extensionsHTML,
+			`</body>`,
+			extensionsHTML+"${0}",
 		)
 		return content
 	})
