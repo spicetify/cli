@@ -16,7 +16,7 @@
     }
     let playDiscography = localStorage.getItem("shuffleplus:artist_discography") === "true";
     const playDiscographyMenu = new Spicetify.Menu.Item(
-        "Shuffle+ discography",
+        "Shuffle artist discography",
         playDiscography,
         (menuItem) => {
             playDiscography = !playDiscography;
