@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/khanhas/spicetify-cli/src/apply"
@@ -254,19 +256,129 @@ func getCustomAppPath(name string) (string, error) {
 }
 
 func pushApps(list ...string) {
-	for _, name := range list {
-		customAppPath, err := getCustomAppPath(name)
-		if err != nil {
-			utils.PrintError(`Custom app "` + name + `" not found.`)
-			continue
+	jsPath := filepath.Join(appDestPath, "xpui", "xpui.js")
+	utils.ModifyFile(jsPath, func(content string) string {
+		reRoutesObj := regexp.MustCompile(`\{(\d+:"xpui.+?)\}`)
+		routesObj := reRoutesObj.FindAllStringSubmatch(content, -1)
+
+		if len(routesObj) > 0 {
+			routesMap := strings.Split(routesObj[0][1], ",")
+			maxIndex := 0
+			for _, route := range(routesMap) {
+				splitted := strings.Split(route, ":")
+				index, err := strconv.Atoi(splitted[0])
+				if err != nil {
+					continue
+				}
+				if maxIndex < index {
+					maxIndex = index
+				}
+			}
+
+			reactSymbs := utils.FindSymbol(
+				"Custom app React symbols",
+				content,
+				[]string{
+					`\w+=(\w+)\(\)\.lazy\(\(\(\)=>(\w+)\.(\w+)\(\d+\).then\(\w+\.bind\(\w+,\d+\)\)\)\)`})
+			eleSymbs := utils.FindSymbol(
+				"Custom app React Element",
+				content,
+				[]string{
+					`(\w+)\(\)\.createElement\(([\w\.]+),\{path:"\/collection"\},\w+\(\)\.createElement\(\w+,null\)\)`})
+			appMap := ""
+			appReactMap := ""
+			appEleMap := ""
+			appNameArray := ""
+			packageIndex := 1000000
+			for _, app := range(list) {
+				maxIndex += 1
+				packageIndex += 1
+				appName := `spicetify-routes-` + app
+				appMap += strconv.Itoa(maxIndex) + `:"` + appName + `",`
+				appNameArray += `"` + app + `",`
+
+				appReactMap += "spicetifyApp" + strconv.Itoa(maxIndex) + "=" +
+					reactSymbs[0] + "().lazy((()=>" + reactSymbs[1] + "." +
+					reactSymbs[2] + "(" + strconv.Itoa(maxIndex) + ")" +
+					".then(" + reactSymbs[1] + ".bind(" + reactSymbs[1] + "," +
+					strconv.Itoa(packageIndex) + ")))),"
+
+				appEleMap += eleSymbs[0] + "().createElement(" + eleSymbs[1] +
+					",{path:\"/" + app + "\"}," + eleSymbs[0] +
+					"().createElement(spicetifyApp" + strconv.Itoa(maxIndex) + ",null)),"
+
+				customAppPath, err := getCustomAppPath(app)
+				if err != nil {
+					utils.PrintError(`Custom app "` + app + `" not found.`)
+					continue
+				}
+				jsFile := filepath.Join(customAppPath, "index.js")
+				jsFileContent, err := os.ReadFile(jsFile)
+				if err != nil {
+					utils.PrintError(`Custom app "` + app + `" does not have index.js`)
+					continue
+				}
+				jsTemplate := `(("undefined"!=typeof self?self:global).webpackChunkopen=("undefined"!=typeof self?self:global).webpackChunkopen||[])
+.push([[`+strconv.Itoa(maxIndex)+`],{`+strconv.Itoa(packageIndex)+`:(e,t,n)=>{
+"use strict";
+n.r(t),n.d(t,{default:()=>render});
+console.log("Im in");
+` + string(jsFileContent) + `
+const render= () => { 
+	return Spicetify.React().createElement("div");
+}
+}}]);`
+				os.WriteFile(
+					filepath.Join(appDestPath, "xpui", appName + ".js"), 
+					[]byte(jsTemplate),
+					0700)
+
+				cssFile := filepath.Join(customAppPath, "style.css")
+				cssFileContent, err := os.ReadFile(cssFile)
+				if err != nil {
+					cssFileContent = []byte{}
+				}
+				os.WriteFile(
+					filepath.Join(appDestPath, "xpui", appName + ".css"), 
+					[]byte(cssFileContent),
+					0700)
+			}
+
+			utils.Replace(
+				&content,
+				`\{(\d+:"xpui)`,
+				`{` + appMap + `${1}`)
+
+			utils.ReplaceOnce(
+				&content,
+				`\w+=\w+\(\)\.lazy\(\(\(\)=>\w+\.\w+\(\d+\).then\(\w+\.bind\(\w+,\d+\)\)\)\)`,
+				appReactMap + `${0}`)
+			
+			utils.ReplaceOnce(
+				&content,
+				`\w+\(\)\.createElement\([\w\.]+,\{path:"\/collection"\},\w+\(\)\.createElement\(\w+,null\)\)`,
+				appEleMap + `${0}`)
+
+			utils.Replace(
+				&content,
+				`\w+\(\)\.createElement\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
+				`Spicetify._sidebarItemToClone=${0}`)
+
+			sidebarItemMatch := utils.SeekToCloseParen(
+				content,
+				`\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
+				'(', ')')
+			
+
+			content = strings.Replace(
+				content,
+				sidebarItemMatch,
+				sidebarItemMatch + ",...(()=>Spicetify._cloneSidebarItem([" + appNameArray + "]))()",
+				1)
 		}
 
-		customAppDestPath := filepath.Join(appDestPath, name)
-
-		if err = utils.CreateJunction(customAppPath, customAppDestPath); err != nil {
-			utils.Fatal(err)
-		}
-	}
+		return content
+	})
 }
 
 func toTernary(key string) utils.TernaryBool {

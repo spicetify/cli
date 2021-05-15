@@ -825,5 +825,52 @@ Spicetify.ContextMenu = (function () {
     return { Item, SubMenu, _addItems };
 })();
 
+Spicetify._cloneSidebarItem = function(list) {
+    function findChild(parent, key, value) {
+        if (!parent.props) return null;
+
+        if (parent.props[key] === value) {
+            return parent;
+        } else if (!parent.props.children) {
+            return null;
+        }else if (Array.isArray(parent.props.children)) {
+            for (const child of parent.props.children) {
+                let ele = findChild(child, key, value);
+                if (ele) {
+                    return ele;
+                }
+            }
+        } else if (parent.props.children) {
+            return findChild(parent.props.children, key, value);
+        }
+        return null;
+    }
+    const reactObjs = [];
+    for (const app of list) {
+        const appProper = app[0].toUpperCase() + app.slice(1);
+        const appLink = "/" + app;
+        const link = findChild(Spicetify._sidebarItemToClone, "className", "link-subtle main-navBar-navBarLink");
+        const span = findChild(link, "as", "span");
+        const obj = Spicetify.React().cloneElement(
+            Spicetify._sidebarItemToClone,
+            {},
+            Spicetify.React().cloneElement(
+                link,
+                {
+                    to: appLink,
+                    isActive: (e, {pathname: t})=> t.startsWith(appLink),
+                    onClick: (event) => {
+                        Spicetify.Platform.History.push(appLink);
+                        event.preventDefault();
+                    },
+                },
+                Spicetify.React().cloneElement(span, {children: appProper})
+            )
+        )
+        reactObjs.push(obj);
+    }
+    return reactObjs;
+}
+
 // Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
 window.Spicetify = Spicetify;
