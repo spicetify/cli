@@ -26,6 +26,51 @@ declare namespace Spicetify {
         restrictions?: Record<string, string[]>;
         referrer?: string;
     };
+    type PlayerState = {
+        timestamp: number;
+        context_uri: string;
+        context_url: string;
+        context_restrictions: Record<string, string>;
+        index?: {
+            page: number;
+            track: number;
+        };
+        track?: ProvidedTrack;
+        playback_id?: string;
+        playback_quality?: string;
+        playback_speed?: number;
+        position_as_of_timestamp: number;
+        duration: number;
+        is_playing: boolean;
+        is_paused: boolean;
+        is_buffering: boolean;
+        play_origin: {
+            feature_identifier: string;
+            feature_version: string;
+            view_uri?: string;
+            external_referrer?: string;
+            referrer_identifier?: string;
+            device_identifier?: string;
+        };
+        options: {
+            shuffling_context?: boolean;
+            repeating_context?: boolean;
+            repeating_track?: boolean;
+        };
+        restrictions: Record<string, string[]>;
+        suppressions: {
+            providers: string[];
+        };
+        debug: {
+            log: string[];
+        };
+        prev_tracks: ProvidedTrack[];
+        next_tracks: ProvidedTrack[];
+        context_metadata: Metadata;
+        page_metadata: Metadata;
+        session_id: string;
+        queue_revision: string;
+    };
     namespace Player {
         /**
          * Register a listener `type` on Spicetify.Player.
@@ -37,8 +82,8 @@ declare namespace Spicetify {
          *  - `appchange` type when user changes page.
          */
         function addEventListener(type: string, callback: (event?: Event) => void): void;
-        function addEventListener(type: "songchange", callback: (event?: Event | { data: any }) => void): void;
-        function addEventListener(type: "onplaypause", callback: (event?: Event | { data: any }) => void): void;
+        function addEventListener(type: "songchange", callback: (event?: Event | { data: PlayerState }) => void): void;
+        function addEventListener(type: "onplaypause", callback: (event?: Event | { data: PlayerState }) => void): void;
         function addEventListener(type: "onprogress", callback: (event?: Event | { data: number }) => void): void;
         /**
          * Skip to previous track.
@@ -47,51 +92,7 @@ declare namespace Spicetify {
         /**
          * An object contains all information about current track and player.
          */
-        const data: {
-            timestamp: number;
-            context_uri: string;
-            context_url: string;
-            context_restrictions: Record<string, string>;
-            index?: {
-                page: number;
-                track: number;
-            };
-            track?: ProvidedTrack;
-            playback_id?: string;
-            playback_quality?: string;
-            playback_speed?: number;
-            position_as_of_timestamp: number;
-            duration: number;
-            is_playing: boolean;
-            is_paused: boolean;
-            is_buffering: boolean;
-            play_origin: {
-                feature_identifier: string;
-                feature_version: string;
-                view_uri?: string;
-                external_referrer?: string;
-                referrer_identifier?: string;
-                device_identifier?: string;
-            };
-            options: {
-                shuffling_context?: boolean;
-                repeating_context?: boolean;
-                repeating_track?: boolean;
-            };
-            restrictions: Record<string, string[]>;
-            suppressions: {
-                providers: string[];
-            };
-            debug: {
-              log: string[];
-            };
-            prev_tracks: ProvidedTrack[];
-            next_tracks: ProvidedTrack[];
-            context_metadata: Metadata;
-            page_metadata: Metadata;
-            session_id: string;
-            queue_revision: string;
-        };
+        const data: PlayerState;
         /**
          * Decrease a small amount of volume.
          */
@@ -341,8 +342,6 @@ declare namespace Spicetify {
     }
     /**
      * To create and prepend custom menu item in profile menu.
-     * 
-     * **WORK IN PROGRESS, DO NOT USE**
      */
     namespace Menu {
         /**
@@ -1122,8 +1121,6 @@ declare namespace Spicetify {
 
     /**
      * Create custom menu item and prepend to right click context menu
-     * 
-     * **WORK IN PROGRESS, DO NOT USE**
      */
     namespace ContextMenu {
         type Icon = "album" | "artist" | "block" | "chart-down" | "chart-up" | "check" | "check-alt-fill" | "chevron-left" | "chevron-right" | "chromecast-disconnected" | "copy" | "download" | "downloaded" | "edit" | "exclamation-circle" | "external-link" | "facebook" | "follow" | "fullscreen" | "grid-view" | "heart" | "heart-active" | "instagram" | "list-view" | "locked" | "locked-active" | "lyrics" | "minimize" | "more" | "new-spotify-connect" | "offline" | "pause" | "play" | "playlist" | "playlist-folder" | "plus2px" | "plus-alt" | "podcasts" | "repeat" | "repeat-once" | "search" | "search-active" | "shuffle" | "skip-back" | "skip-back15" | "skip-forward" | "skip-forward15" | "soundbetter" | "subtitles" | "twitter" | "volume" | "volume-off" | "volume-one-wave" | "volume-two-wave" | "x";
@@ -1192,32 +1189,15 @@ declare namespace Spicetify {
 
     /**
      * Popup Modal
-     * 
-     * **WORK IN PROGRESS, DO NOT USE**
      */
     namespace PopupModal {
         interface Content {
-            MODAL_TITLE?: string;
-
-            URI?: string;
-            MESSAGE?: string;
-            CONTENT?: Element;
-
-            BACKDROP_DONT_COVER_PLAYER?: boolean;
-            HEIGHT?: number;
-
-            BUTTONS?: {
-                OK?: boolean;
-                CANCEL?: boolean;
-            }
-
-            OK_BUTTON_LABEL?: string;
-            CANCEL_BUTTON_LABEL?: string;
-
-            onOk?: () => void;
-            onCancel?: () => void;
-            onShow?: () => void;
-            onHide?: () => void;
+            title: string;
+            /**
+             * You can specify a string for simple text display
+             * or a HTML element for interactive config/setting menu
+             */
+            content: string | Element;
         }
 
         function display(e: Content): void;
