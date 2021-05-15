@@ -989,7 +989,7 @@ input {
 </div>`;
 
         const slider = container.querySelector("button");
-        slider.classList.toggle("disabled", defaultVal);
+        slider.classList.toggle("disabled", !defaultVal);
 
         slider.onclick = () => {
             const state = slider.classList.contains("disabled");
@@ -1060,7 +1060,7 @@ input {
 
         const [ up, down, slider ] = container.querySelectorAll("button");
 
-        slider.classList.toggle("disabled", defaultVal.on);
+        slider.classList.toggle("disabled", !defaultVal.on);
         slider.onclick = () => {
             const state = slider.classList.contains("disabled");
             slider.classList.toggle("disabled");
