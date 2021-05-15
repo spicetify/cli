@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	version = "2.0.1"
+	version = "2.1.0"
 )
 
 var (
@@ -312,6 +312,8 @@ color               1. Print all color fields and values.
                     spicetify color main_bg ff0000
                     - Change slider_bg to 00ff00 and pressing_fg to 0000ff
                     spicetify color slider_bg 00ff00 pressing_fg 0000ff
+
+upgrade             Upgrade spicetify latest version
 
 ` + utils.Bold("FLAGS") + `
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations
