@@ -6,6 +6,10 @@ param (
 
 $PSMinVersion = 3
 
+if ($v) {
+    $version = $v
+}
+
 # Helper functions for pretty terminal output.
 function Write-Part ([string] $Text) {
   Write-Host $Text -NoNewline
