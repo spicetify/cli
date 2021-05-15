@@ -108,12 +108,6 @@
     backdrop-filter: blur(30px) brightness(0.6);
     background-position: center;
 }
-#fad-artist::before {
-    content: "\\f168";
-}
-#fad-album::before {
-    content: "\\f167";
-}
 body.fad-activated #full-app-display {
     display: block
 }
@@ -122,6 +116,12 @@ body.fad-activated #full-app-display {
 }
 body.video-full-screen.video-full-screen--hide-ui {
     cursor: auto;
+}
+button {
+    background-color: transparent;
+    border: 0;
+    color: currentColor;
+    padding: 0 5px;
 }
 `
 
@@ -149,13 +149,8 @@ body.video-full-screen.video-full-screen--hide-ui {
     font-size: 54px;
     font-weight: var(--glue-font-weight-medium);
 }
-#fad-artist::before, #fad-album::before {
-    font-size: 54px;
-    opacity: 30%;
-    font-family: "glue-spoticon";
-    line-height: 70px;
-    vertical-align: bottom;
-    padding-right: 12px;
+#fad-artist svg, #fad-album svg {
+    margin-right: 5px;
 }
 #fad-status {
     display: flex;
@@ -193,13 +188,10 @@ body.video-full-screen.video-full-screen--hide-ui {
     font-size: 33px;
     font-weight: var(--glue-font-weight-medium);
 }
-#fad-artist::before, #fad-album::before {
-    font-size: 33px;
-    opacity: 30%;
-    font-family: "glue-spoticon";
-    line-height: 42px;
-    vertical-align: bottom;
-    padding-right: 8px;
+#fad-artist svg, #fad-album svg {
+    width: 25px;
+    height: 25px;
+    margin-right: 5px;
 }
 #fad-status {
     display: flex;
@@ -218,11 +210,11 @@ body.video-full-screen.video-full-screen--hide-ui {
     ]
 
     const iconStyleChoices = [`
-#fad-artist::before, #fad-album::before {
+#fad-artist svg, #fad-album svg {
     display: none;
 }`,
 `
-#fad-artist::before, #fad-album::before {
+#fad-artist svg, #fad-album svg {
     display: inline-block;
 }`
     ]
@@ -254,14 +246,36 @@ body.video-full-screen.video-full-screen--hide-ui {
     </div>
     <div id="fad-details">
         <div id="fad-title"></div>
-        <div id="fad-artist"></div>
-        ${CONFIG.showAlbum ? `<div id="fad-album"></div>` : ""}
+        <div id="fad-artist">
+            <svg height="35" width="35" viewBox="0 0 16 16" fill="currentColor">
+                ${Spicetify.SVGIcons.artist}
+            </svg>
+            <span></span>
+        </div>
+        ${CONFIG.showAlbum ? `<div id="fad-album">
+            <svg height="35" width="35" viewBox="0 0 16 16" fill="currentColor">
+                ${Spicetify.SVGIcons.album}
+            </svg>
+            <span></span>
+        </div>` : ""}
         <div id="fad-status" class="${CONFIG.enableControl || CONFIG.enableProgress ? "active" : ""}">
             ${CONFIG.enableControl ? `
             <div id="fad-controls">
-                ${CONFIG.vertical ? `<button id="fad-back" class="button spoticon-skip-back-16"></button>` : ""}
-                <button id="fad-play" class="button spoticon-play-16"></button>
-                <button id="fad-next" class="button spoticon-skip-forward-16"></button>` : ""}
+                ${CONFIG.vertical ? `<button id="fad-back">
+                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+                        ${Spicetify.SVGIcons["skip-back"]}
+                    </svg>
+                </button>` : ""}
+                <button id="fad-play">
+                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+                        ${Spicetify.SVGIcons.play}
+                    </svg>
+                </button>
+                <button id="fad-next">
+                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+                        ${Spicetify.SVGIcons["skip-forward"]}
+                    </svg>
+                </button>` : ""}
             </div>
             ${CONFIG.enableProgress ? `
             <div id="fad-progress-container">
@@ -276,8 +290,8 @@ body.video-full-screen.video-full-screen--hide-ui {
         cover = container.querySelector("#fad-art-image")
         back = container.querySelector("#fad-background-image")
         title = container.querySelector("#fad-title")
-        artist = container.querySelector("#fad-artist")
-        album = container.querySelector("#fad-album")
+        artist = container.querySelector("#fad-artist span")
+        album = container.querySelector("#fad-album span")
 
         if (CONFIG.enableProgress) {
             prog = container.querySelector("#fad-progress-inner")
@@ -304,11 +318,7 @@ body.video-full-screen.video-full-screen--hide-ui {
     ]
 
     function getAlbumInfo(uri) {
-        return new Promise((resolve) => {
-            Spicetify.CosmosAPI.resolver.get(`hm://album/v1/album-app/album/${uri}/desktop`, (err, raw) => {
-                resolve(!err && raw.getJSONBody())
-            })
-        })
+        return Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${uri}/desktop`)
     }
 
     async function updateInfo() {
@@ -387,11 +397,11 @@ body.video-full-screen.video-full-screen--hide-ui {
         elaps.innerText = Spicetify.Player.formatTime(Spicetify.Player.getProgress())
     }
 
-    function updateControl() {
-        if (Spicetify.Player.isPlaying()) {
-            play.classList.replace("spoticon-play-16", "spoticon-pause-16")
+    function updateControl({ data }) {
+        if (data.is_paused) {
+            play.innerHTML = `<svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.play}</svg>`
         } else {
-            play.classList.replace("spoticon-pause-16", "spoticon-play-16")
+            play.innerHTML = `<svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.pause}</svg>`
         }
     }
 
@@ -403,7 +413,7 @@ body.video-full-screen.video-full-screen--hide-ui {
             Spicetify.Player.addEventListener("onprogress", updateProgress)
         }
         if (CONFIG.enableControl) {
-            updateControl()
+            updateControl({ data: { is_paused: !Spicetify.Player.isPlaying() }})
             Spicetify.Player.addEventListener("onplaypause", updateControl)
         }
         if (CONFIG.enableFullscreen) {
@@ -462,40 +472,96 @@ body.video-full-screen.video-full-screen--hide-ui {
     const videoContainer = document.querySelector(".Root__video-player")
     videoContainer.append(style, container)
 
-    // Add setting toggles in right click menu
-    container.setAttribute("data-uri", "spotify:special:fullappdisplay")
-    container.setAttribute("data-contextmenu", "")
-
-    const checkURI = ([uri]) => uri === "spotify:special:fullappdisplay"
-
     function newMenuItem(name, key) {
-        // new Spicetify.ContextMenu.Item(
-        //     name,
-        //     function () {
-        //         CONFIG[key] = !CONFIG[key]
-        //         this.icon = CONFIG[key] && "check"
-        //         saveConfig()
-        //         render()
-        //         activate()
-        //     },
-        //     checkURI,
-        //     CONFIG[key] ? "check" : undefined,
-        // ).register()
+        const container = document.createElement("div");
+        container.innerHTML = `
+<div class="setting-row">
+    <label class="col description">${name}</label>
+    <div class="col action"><button class="switch">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+            ${Spicetify.SVGIcons.check}
+        </svg>
+    </button></div>
+</div>`;
+
+        const slider = container.querySelector("button");
+        slider.classList.toggle("disabled", !CONFIG[key]);
+
+        slider.onclick = () => {
+            const state = slider.classList.contains("disabled");
+            slider.classList.toggle("disabled");
+            CONFIG[key] = state;
+            saveConfig()
+            render()
+            activate()
+        };
+
+        return container;
     }
 
-    newMenuItem("Enable progress bar", "enableProgress")
-    newMenuItem("Enable controls", "enableControl")
-    newMenuItem("Trim title", "trimTitle")
-    newMenuItem("Show album", "showAlbum")
-    newMenuItem("Show all artists", "showAllArtists")
-    newMenuItem("Show icons", "icons")
-    newMenuItem("Vertical mode", "vertical")
-    newMenuItem("Enable fullscreen", "enableFullscreen")
-    newMenuItem("Enable song change animation", "enableFade")
-    new Spicetify.ContextMenu.Item("Exit", deactivate, checkURI).register()
+    let configContainer;
+    function openConfig(event) {
+        event.preventDefault();
+        if (!configContainer) {
+            configContainer = document.createElement("div");
+            configContainer.id = "popup-config-container"
+            const style = document.createElement("style");
+            style.innerHTML = `
+.setting-row::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+.setting-row .col {
+    display: flex;
+    padding: 10px 0;
+    align-items: center;
+}
+.setting-row .col.description {
+    float: left;
+    padding-right: 15px;
+}
+.setting-row .col.action {
+    float: right;
+    text-align: right;
+}
+button.switch {
+    align-items: center;
+    border: 0px;
+    border-radius: 50%;
+    background-color: rgba(var(--modspotify_rgb_main_fg),0.1);
+    color: var(--modspotify_main_fg);
+    cursor: pointer;
+    display: flex;
+    margin-inline-start: 12px;
+    padding: 8px;
+}
+button.switch.disabled {
+    color: rgba(var(--modspotify_rgb_main_fg), 0.3);
+}`;
+
+            configContainer.append(
+                style,
+                newMenuItem("Enable progress bar", "enableProgress"),
+                newMenuItem("Enable controls", "enableControl"),
+                newMenuItem("Trim title", "trimTitle"),
+                newMenuItem("Show album", "showAlbum"),
+                newMenuItem("Show all artists", "showAllArtists"),
+                newMenuItem("Show icons", "icons"),
+                newMenuItem("Vertical mode", "vertical"),
+                newMenuItem("Enable fullscreen", "enableFullscreen"),
+                newMenuItem("Enable song change animation", "enableFade"),
+            )
+        }
+        Spicetify.PopupModal.display({
+            title: "Full App Display",
+            content: configContainer,
+        })
+    }
 
     button.onclick = activate
     container.ondblclick = deactivate
+    container.oncontextmenu = openConfig
 
     function toggleFad() {
         if (document.body.classList.contains('fad-activated')) {
