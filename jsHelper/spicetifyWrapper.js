@@ -872,5 +872,49 @@ Spicetify._cloneSidebarItem = function(list) {
     return reactObjs;
 }
 
+class _HTMLGenericModal extends HTMLElement {
+    constructor() {
+        super();
+    }
+
+    hide() {
+        this.remove();
+    }
+
+    display({
+        title,
+        content,
+    }) {
+        this.innerHTML = `
+<div class="GenericModal__overlay">
+    <div class="GenericModal" tabindex="-1" role="dialog" aria-label="${title}" aria-modal="true">
+        <div class="main-trackCreditsModal-container">
+            <div class="main-trackCreditsModal-header">
+                <h1 class="main-type-alto" as="h1">${title}</h1>
+                <button aria-label="Close" class="main-trackCreditsModal-closeBtn"><svg width="18" height="18" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><title>Close</title><path d="M31.098 29.794L16.955 15.65 31.097 1.51 29.683.093 15.54 14.237 1.4.094-.016 1.508 14.126 15.65-.016 29.795l1.414 1.414L15.54 17.065l14.144 14.143" fill="white" fill-rule="evenodd"></path></svg></button>
+            </div>
+            <div class="main-trackCreditsModal-mainSection">
+                <main class="main-trackCreditsModal-originalCredits"></main>
+            </div>
+        </div>
+    </div>
+</div>`;
+
+        this.firstElementChild.onclick = this.hide.bind(this);
+        this.firstElementChild.firstElementChild.onclick = e => e.stopPropagation();
+        this.querySelector("button").onclick = this.hide.bind(this);
+        const main = this.querySelector("main");
+
+        if (typeof content === "string") {
+            main.innerHTML = content;
+        } else {
+            main.append(content);
+        }
+        document.body.append(this);
+    }
+}
+customElements.define("generic-modal", _HTMLGenericModal);
+Spicetify.PopupModal = new _HTMLGenericModal();
+
 // Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
 window.Spicetify = Spicetify;

@@ -790,23 +790,22 @@ function PopupLyrics() {
 
     let configContainer;
 
-    function openConfig() {
+    function openConfig(event) {
+        event.preventDefault();
         if (!configContainer) {
             configContainer = document.createElement("div");
             configContainer.id = "popup-config-container"
             const style = document.createElement("style");
             style.innerHTML = `
-#popup-config-container {
-    padding: 20px;
-}
 .setting-row::after {
     content: "";
     display: table;
     clear: both;
 }
 .setting-row .col {
+    display: flex;
     padding: 10px 0;
-    vertical-align: middle;
+    align-items: center;
 }
 .setting-row .col.description {
     float: left;
@@ -817,23 +816,41 @@ function PopupLyrics() {
     float: right;
     text-align: right;
 }
+button.switch {
+    align-items: center;
+    border: 0px;
+    border-radius: 50%;
+    background-color: rgba(var(--modspotify_rgb_main_fg),0.1);
+    color: var(--modspotify_main_fg);
+    cursor: pointer;
+    display: flex;
+    margin-inline-start: 12px;
+    padding: 8px;
+}
+button.switch.disabled,
+button.switch[disabled] {
+    color: rgba(var(--modspotify_rgb_main_fg), 0.3);
+}
+button.switch.small {
+    width: 22px;
+    height: 22px;
+    padding: 6px;
+}
 select {
+    color: rgba(var(--modspotify_rgb_main_fg),.7);
     background: var(--modspotify_scrollbar_fg_and_selected_row_bg);
     border: 0;
-}
-#view-modal .iframe-modal .popover-content {
-    overflow-y: scroll;
-}
-h3 {
-    margin-top: 10px;
-    margin-bottom: 5px;
+    height: 32px;
 }
 input {
     width: 100%;
     margin-top: 10px;
     padding: 0 5px;
+    height: 32px;
+    border: 0;
 }`;
-
+            const optionHeader = document.createElement("h2");
+            optionHeader.innerText = "Options";
             const smooth = createSlider("Smooth scrolling", userConfigs.smooth, (state) => {
                 userConfigs.smooth = state;
                 LocalStorage.set("popup-lyrics:smooth", String(state));
@@ -885,8 +902,7 @@ input {
                 userConfigs.servicesOrder.forEach((name, index) => {
                     const el = userConfigs.services[name].element;
 
-                    const up = el.querySelector(".spoticon-arrow-up-16");
-                    const down = el.querySelector(".spoticon-arrow-down-16");
+                    const [ up, down ] = el.querySelectorAll("button");
                     if (index === 0) {
                         up.disabled = true;
                         down.disabled = false;
@@ -947,20 +963,16 @@ input {
             stackServiceElements();
 
             configContainer.append(
-                style, smooth, center, cover, fontSize, ratio,
+                style, 
+                optionHeader,
+                smooth, center, cover, fontSize, ratio,
                 serviceHeader,
                 serviceContainer
             );
         }
         Spicetify.PopupModal.display({
-            MODAL_TITLE: "Popup Lyrics Settings",
-            CONTENT: configContainer,
-            BACKDROP_DONT_COVER_PLAYER: true,
-            BUTTONS: {
-                OK: true
-            },
-            OK_BUTTON_LABEL: "Close",
-            onOk: () => Spicetify.PopupModal.hide(),
+            title: "Popup Lyrics",
+            content: configContainer,
         });
     }
 
@@ -969,25 +981,21 @@ input {
         container.innerHTML = `
 <div class="setting-row">
     <label class="col description">${name}</label>
-    <div class="col action"><div class="slider"><div></div></div></div>
-    <div class
-</div>`
-        const slider = container.querySelector(".slider");
-        if (defaultVal) {
-            slider.classList.add("enabled");
-        } else {
-            slider.classList.remove("enabled");
-        }
+    <div class="col action"><button class="switch">
+        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+            ${Spicetify.SVGIcons.check}
+        </svg>
+    </button></div>
+</div>`;
 
-        container.querySelector(".action").onclick = () => {
-            const state = !slider.classList.contains("enabled");
-            if (state) {
-                slider.classList.add("enabled");
-            } else {
-                slider.classList.remove("enabled");
-            }
+        const slider = container.querySelector("button");
+        slider.classList.toggle("disabled", defaultVal);
+
+        slider.onclick = () => {
+            const state = slider.classList.contains("disabled");
+            slider.classList.toggle("disabled");
             callback(state);
-        }
+        };
 
         return container;
     }
@@ -1022,11 +1030,23 @@ input {
         container.innerHTML = `
 <div class="setting-row">
     <h3 class="col description">${name}</h3>
-    <h3 class="col action">
-        <button class="button spoticon-arrow-up-16"></button>
-        <button class="button spoticon-arrow-down-16"></button>
-        <button class="button"><div class="slider"><div></div></div></button>
-    </h3>
+    <div class="col action">
+        <button class="switch small">
+            <svg height="10" width="10" viewBox="0 0 16 16" fill="currentColor">
+                ${Spicetify.SVGIcons["chart-up"]}
+            </svg>
+        </button>
+        <button class="switch small">
+            <svg height="10" width="10" viewBox="0 0 16 16" fill="currentColor">
+                ${Spicetify.SVGIcons["chart-down"]}
+            </svg>
+        </button>
+        <button class="switch">
+            <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+                ${Spicetify.SVGIcons["check"]}
+            </svg>
+        </button>
+    </div>
 </div>
 <span>${defaultVal.desc}</span>`;
 
@@ -1038,33 +1058,20 @@ input {
             container.append(input);
         }
 
-        const slider = container.querySelector(".slider");
-        if (defaultVal.on) {
-            slider.classList.add("enabled");
-        } else {
-            slider.classList.remove("enabled");
-        }
+        const [ up, down, slider ] = container.querySelectorAll("button");
 
+        slider.classList.toggle("disabled", defaultVal.on);
         slider.onclick = () => {
-            const state = !slider.classList.contains("enabled");
-            if (state) {
-                slider.classList.add("enabled");
-            } else {
-                slider.classList.remove("enabled");
-            }
+            const state = slider.classList.contains("disabled");
+            slider.classList.toggle("disabled");
             switchCallback(container, state);
         }
 
-        container.querySelector(".spoticon-arrow-up-16").onclick = () => posCallback(container, -1);
-        container.querySelector(".spoticon-arrow-down-16").onclick = () => posCallback(container, 1);
+        up.onclick = () => posCallback(container, -1);
+        down.onclick = () => posCallback(container, 1);
 
         return container;
     }
 
-    new ContextMenu.Item(
-        "Settings",
-        openConfig,
-        ([uri]) => uri === "spotify:special:popup-lyrics",
-    ).register();
-
+    button.oncontextmenu = openConfig;
 };
