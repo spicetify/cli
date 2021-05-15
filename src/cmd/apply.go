@@ -322,11 +322,7 @@ func pushApps(list ...string) {
 .push([[`+strconv.Itoa(maxIndex)+`],{`+strconv.Itoa(packageIndex)+`:(e,t,n)=>{
 "use strict";
 n.r(t),n.d(t,{default:()=>render});
-console.log("Im in");
 ` + string(jsFileContent) + `
-const render= () => { 
-	return Spicetify.React().createElement("div");
-}
 }}]);`
 				os.WriteFile(
 					filepath.Join(appDestPath, "xpui", appName + ".js"), 
