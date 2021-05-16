@@ -847,7 +847,20 @@ Spicetify._cloneSidebarItem = function(list) {
     }
     const reactObjs = [];
     for (const app of list) {
-        const appProper = app[0].toUpperCase() + app.slice(1);
+        let manifest;
+        try {
+            var request = new XMLHttpRequest();
+            request.open('GET', `spicetify-routes-${app}.json`, false);
+            request.send(null);
+            manifest = JSON.parse(request.responseText);
+        } catch {
+            manifest = {};
+        }
+
+        const appProper = manifest.name || (app[0].toUpperCase() + app.slice(1));
+        const icon = manifest.icon || "";
+        const activeIcon = manifest["active-icon"] || icon;
+
         const appLink = "/" + app;
         const link = findChild(Spicetify._sidebarItemToClone, "className", "link-subtle main-navBar-navBarLink");
         const span = findChild(link, "as", "span");
@@ -859,11 +872,25 @@ Spicetify._cloneSidebarItem = function(list) {
                 {
                     to: appLink,
                     isActive: (e, {pathname: t})=> t.startsWith(appLink),
-                    onClick: (event) => {
-                        Spicetify.Platform.History.push(appLink);
-                        event.preventDefault();
-                    },
                 },
+                Spicetify.React().createElement(
+                    "div",
+                    {
+                        className: "icon collection-icon",
+                        dangerouslySetInnerHTML: {
+                            __html: icon,
+                        }
+                    },
+                ),
+                Spicetify.React().createElement(
+                    "div",
+                    {
+                        className: "icon collection-active-icon",
+                        dangerouslySetInnerHTML: {
+                            __html: activeIcon,
+                        }
+                    },
+                ),
                 Spicetify.React().cloneElement(span, {children: appProper})
             )
         )

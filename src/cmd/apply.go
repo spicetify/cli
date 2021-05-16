@@ -288,6 +288,8 @@ func pushApps(list ...string) {
 			appMap := ""
 			appReactMap := ""
 			appEleMap := ""
+			cssEnableMap := ""
+			cssEnableStart := "," + strconv.Itoa(maxIndex) + ":1"
 			appNameArray := ""
 			packageIndex := 1000000
 			for _, app := range(list) {
@@ -306,6 +308,8 @@ func pushApps(list ...string) {
 				appEleMap += eleSymbs[0] + "().createElement(" + eleSymbs[1] +
 					",{path:\"/" + app + "\"}," + eleSymbs[0] +
 					"().createElement(spicetifyApp" + strconv.Itoa(maxIndex) + ",null)),"
+
+				cssEnableMap += "," + strconv.Itoa(maxIndex) + ":1"
 
 				customAppPath, err := getCustomAppPath(app)
 				if err != nil {
@@ -338,6 +342,16 @@ n.r(t),n.d(t,{default:()=>render});
 					filepath.Join(appDestPath, "xpui", appName + ".css"), 
 					[]byte(cssFileContent),
 					0700)
+
+				manifestFile := filepath.Join(customAppPath, "manifest.json")
+				manifestFileContent, err := os.ReadFile(manifestFile)
+				if err != nil {
+					manifestFileContent = []byte{'{', '}'}
+				}
+				os.WriteFile(
+					filepath.Join(appDestPath, "xpui", appName + ".json"), 
+					[]byte(manifestFileContent),
+					0700)
 			}
 
 			utils.Replace(
@@ -359,6 +373,11 @@ n.r(t),n.d(t,{default:()=>render});
 				&content,
 				`\w+\(\)\.createElement\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
 				`Spicetify._sidebarItemToClone=${0}`)
+			
+			utils.ReplaceOnce(
+				&content,
+				cssEnableStart,
+				"${0}" + cssEnableMap)
 
 			sidebarItemMatch := utils.SeekToCloseParen(
 				content,
