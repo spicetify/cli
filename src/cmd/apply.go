@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -255,6 +256,10 @@ func getCustomAppPath(name string) (string, error) {
 	return "", errors.New("Custom app not found")
 }
 
+type appManifest struct {
+	Files []string `json:"subfiles"`
+}
+
 func pushApps(list ...string) {
 	jsPath := filepath.Join(appDestPath, "xpui", "xpui.js")
 	utils.ModifyFile(jsPath, func(content string) string {
@@ -322,6 +327,30 @@ func pushApps(list ...string) {
 					utils.PrintError(`Custom app "` + app + `" does not have index.js`)
 					continue
 				}
+				
+				manifestFile := filepath.Join(customAppPath, "manifest.json")
+				manifestFileContent, err := os.ReadFile(manifestFile)
+				if err != nil {
+					manifestFileContent = []byte{'{', '}'}
+				}
+				os.WriteFile(
+					filepath.Join(appDestPath, "xpui", appName + ".json"), 
+					[]byte(manifestFileContent),
+					0700)
+
+				var manifestJson appManifest
+				if err = json.Unmarshal(manifestFileContent, &manifestJson); err == nil {
+					for _, subfile := range(manifestJson.Files) {
+						subfilePath := filepath.Join(customAppPath, subfile)
+						subfileContent, err := os.ReadFile(subfilePath)
+						if err != nil {
+							continue
+						}
+						jsFileContent = append(jsFileContent, '\n')
+						jsFileContent = append(jsFileContent, subfileContent...)
+					}
+				}
+
 				jsTemplate := `(("undefined"!=typeof self?self:global).webpackChunkopen=("undefined"!=typeof self?self:global).webpackChunkopen||[])
 .push([[`+strconv.Itoa(maxIndex)+`],{`+strconv.Itoa(packageIndex)+`:(e,t,n)=>{
 "use strict";
@@ -341,16 +370,6 @@ n.r(t),n.d(t,{default:()=>render});
 				os.WriteFile(
 					filepath.Join(appDestPath, "xpui", appName + ".css"), 
 					[]byte(cssFileContent),
-					0700)
-
-				manifestFile := filepath.Join(customAppPath, "manifest.json")
-				manifestFileContent, err := os.ReadFile(manifestFile)
-				if err != nil {
-					manifestFileContent = []byte{'{', '}'}
-				}
-				os.WriteFile(
-					filepath.Join(appDestPath, "xpui", appName + ".json"), 
-					[]byte(manifestFileContent),
 					0700)
 			}
 
