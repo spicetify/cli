@@ -136,6 +136,16 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 				if flags.RemoveRTL {
 					content = removeRTL(content)
 				}
+				// Temporary fix for top bar opacity bug
+				if fileName == "xpui.css" {
+					content = content + `
+.main-topBar-topbarContent:not(.main-topBar-topbarContentFadeIn)>* {
+	opacity: unset !important;
+}
+.main-entityHeader-topbarContent:not(.main-entityHeader-topbarContentFadeIn)>* {
+	opacity: 0 !important;
+}`
+				}
 				return content
 			})
 			
