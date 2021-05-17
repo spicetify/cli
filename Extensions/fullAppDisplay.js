@@ -82,7 +82,6 @@
     border-radius: 6px;
     background-color: #ffffff;
     box-shadow: 4px 0 12px rgba(0, 0, 0, 0.8);
-    transition: width 1s linear;
 }
 #fad-elapsed {
     margin-right: 10px;
@@ -97,16 +96,6 @@
     width: 100%;
     height: 100%;
     z-index: -2;
-    transform: scale(1.5);
-}
-#fad-background-image {
-    height: 100%;
-    background-size: cover;
-    backface-visibility: hidden;
-    transform: translateZ(0);
-    filter: blur(30px) brightness(0.6);
-    backdrop-filter: blur(30px) brightness(0.6);
-    background-position: center;
 }
 body.fad-activated #full-app-display {
     display: block
@@ -223,7 +212,7 @@ button {
     container.id = "full-app-display"
     container.classList.add("Video", "VideoPlayer--fullscreen", "VideoPlayer--landscape")
 
-    let cover, back, title, artist, album, prog, elaps, durr, play, bgImage
+    let cover, back, title, artist, album, prog, elaps, durr, play;
     const nextTrackImg = new Image()
 
     function render() {
@@ -234,9 +223,7 @@ button {
         style.innerHTML = styleBase + styleChoices[CONFIG.vertical ? 1 : 0] + iconStyleChoices[CONFIG.icons ? 1 : 0];
 
         container.innerHTML = `
-<div id="fad-background">
-    <div id="fad-background-image"></div>
-</div>
+<canvas id="fad-background"></canvas>
 <div id="fad-header"></div>
 <div id="fad-foreground">
     <div id="fad-art">
@@ -287,8 +274,10 @@ button {
     </div>
 </div>`
 
+        back = container.querySelector('canvas')
+        back.width = window.innerWidth
+        back.height = window.innerHeight
         cover = container.querySelector("#fad-art-image")
-        back = container.querySelector("#fad-background-image")
         title = container.querySelector("#fad-title")
         artist = container.querySelector("#fad-artist span")
         album = container.querySelector("#fad-album span")
@@ -375,10 +364,13 @@ button {
         }
 
         // Wait until next track image is downloaded then update UI text and images
+        const previouseImg = nextTrackImg.cloneNode()
         nextTrackImg.src = meta.image_xlarge_url
         nextTrackImg.onload = () => {
             const bgImage = `url("${meta.image_xlarge_url}")`
-            back.style.backgroundImage = bgImage
+
+            animateCanvas(previouseImg, nextTrackImg)
+
             cover.style.backgroundImage = bgImage
 
             title.innerText = rawTitle || ""
@@ -390,6 +382,57 @@ button {
                 durr.innerText = durationText || ""
             }
         }
+    }
+
+    function animateCanvas(prevImg, nextImg) {
+        const { innerWidth: width, innerHeight: height } = window
+        back.width = width
+        back.height = height
+        const dim = width > height ? width : height
+
+        const ctx = back.getContext('2d')
+        ctx.imageSmoothingEnabled = false
+        ctx.filter = `blur(30px) brightness(0.6)`
+        const blur = 30
+        
+        if (!CONFIG.enableFade) {
+            ctx.globalAlpha = 1
+            ctx.drawImage(
+                nextImg, 
+                -blur * 2,
+                -blur * 2 - (width - height) / 2,
+                dim + 4 * blur,
+                dim + 4 * blur
+            );
+            return;
+        }
+
+        let factor = 0.0
+        const animate = () => {
+            ctx.globalAlpha = 1
+            ctx.drawImage(
+                prevImg, 
+                -blur * 2,
+                -blur * 2 - (width - height) / 2,
+                dim + 4 * blur,
+                dim + 4 * blur
+            );
+            ctx.globalAlpha = Math.sin(Math.PI/2*factor)
+            ctx.drawImage(
+                nextImg, 
+                -blur * 2,
+                -blur * 2 - (width - height) / 2,
+                dim + 4 * blur,
+                dim + 4 * blur
+            );
+
+            if (factor < 1.0) {
+                factor += 0.016;
+                requestAnimationFrame(animate);
+            }
+        };
+
+        requestAnimationFrame(animate);
     }
 
     function updateProgress() {
@@ -422,10 +465,8 @@ button {
             document.exitFullscreen()
         }
         if (CONFIG.enableFade) {
-            back.classList.add("fad-background-fade")
             cover.classList.add("fad-background-fade")
         } else {
-            back.classList.remove("fad-background-fade")
             cover.classList.remove("fad-background-fade")
         }
         document.body.classList.add(...classes)
