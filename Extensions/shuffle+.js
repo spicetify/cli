@@ -143,7 +143,6 @@
             `sp://core-playlist/v1/playlist/${uri}/rows`,
             { policy: { link: true } }
         );
-        console.log(res.rows);
         return res.rows.map((item) => item.link);
     }
 
@@ -288,7 +287,7 @@
      */
     function shuffle(array) {
         let counter = array.length;
-        if (counter === 0) return array;
+        if (counter <= 1) return array;
 
         const first = array[0];
 
@@ -329,6 +328,9 @@
         const count = list.length;
         if (count === 0) {
             throw "There is no available track to play"
+        } else if (count === 1) {
+            playUriOGFunc(list[0]);
+            return;
         }
         list.push("spotify:delimiter");
 
