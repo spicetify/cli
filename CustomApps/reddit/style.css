@@ -1,0 +1,121 @@
+.setting-row::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+.setting-row .col {
+    display: flex;
+    padding: 10px 0;
+    align-items: center;
+}
+.setting-row .col.description {
+    float: left;
+    padding-right: 15px;
+    cursor: default;
+}
+.setting-row .col.action {
+    float: right;
+    text-align: right;
+}
+button.switch {
+    align-items: center;
+    border: 0px;
+    border-radius: 50%;
+    background-color: rgba(var(--modspotify_rgb_main_fg),0.1);
+    color: var(--modspotify_main_fg);
+    cursor: pointer;
+    display: flex;
+    margin-inline-start: 12px;
+    padding: 8px;
+}
+button.switch.disabled,
+button.switch[disabled] {
+    color: rgba(var(--modspotify_rgb_main_fg), 0.3);
+}
+button.switch.small {
+    width: 22px;
+    height: 22px;
+    padding: 6px;
+}
+select {
+    color: rgba(var(--modspotify_rgb_main_fg),.7);
+    background: var(--modspotify_scrollbar_fg_and_selected_row_bg);
+    border: 0;
+    height: 32px;
+}
+input {
+    width: 100%;
+    margin-top: 10px;
+    padding: 0 5px;
+    height: 32px;
+    border: 0;
+}
+
+option {
+    background-color: var(--modspotify_main_bg);
+}
+
+.reddit-header {
+    -webkit-box-pack: justify;
+    -webkit-box-align: center;
+    align-content: space-between;
+    align-items: center;
+    color: var(--modspotify_main_fg);
+    display: flex;
+    justify-content: space-between;
+    margin: 16px 0;
+}
+
+.reddit-sort-bar {
+    align-items: center;
+    display: flex;
+}
+
+.reddit-sort-container {
+    position: relative;
+    display: flex;
+}
+
+#reddit-sort-by, #reddit-sort-time {
+    height: 32px;
+    margin-left: 8px;
+    padding: 0 8px 0 12px;
+    border-radius: 4px;
+    background-color: initial;
+    text-align: right;
+}
+
+.reddit-tabBar-headerItem {
+    display: inline-block;
+}
+
+.reddit-tabBar-headerItemLink {
+    margin: 0 8px 0 0;
+}
+
+.reddit-tabBar-active {
+    background-color: var(--modspotify_scrollbar_fg_and_selected_row_bg);
+}
+
+.reddit-tabBar-headerItemLink {
+    border-radius: 4px;
+    color: var(--modspotify_main_fg);
+    display: inline-block;
+    margin: 0 8px;
+    padding: 8px 16px;
+    position: relative;
+    text-decoration: none !important;
+    cursor: pointer;
+}
+
+.reddit-tabBar-nav {
+    width: 100%;
+}
+
+.reddit-cardSubHeader {
+    color: var(--modspotify_secondary_fg);
+}
+
+.reddit-longDescription {
+    display: flex;
+}
