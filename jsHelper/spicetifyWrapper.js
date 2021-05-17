@@ -845,6 +845,8 @@ Spicetify._cloneSidebarItem = function(list) {
         }
         return null;
     }
+
+    const React = Spicetify.React;
     const reactObjs = [];
     for (const app of list) {
         let manifest;
@@ -864,16 +866,16 @@ Spicetify._cloneSidebarItem = function(list) {
         const appLink = "/" + app;
         const link = findChild(Spicetify._sidebarItemToClone, "className", "link-subtle main-navBar-navBarLink");
         const span = findChild(link, "as", "span");
-        const obj = Spicetify.React().cloneElement(
+        const obj = React.cloneElement(
             Spicetify._sidebarItemToClone,
-            {},
-            Spicetify.React().cloneElement(
+            null,
+            React.cloneElement(
                 link,
                 {
                     to: appLink,
                     isActive: (e, {pathname: t})=> t.startsWith(appLink),
                 },
-                Spicetify.React().createElement(
+                React.createElement(
                     "div",
                     {
                         className: "icon collection-icon",
@@ -882,7 +884,7 @@ Spicetify._cloneSidebarItem = function(list) {
                         }
                     },
                 ),
-                Spicetify.React().createElement(
+                React.createElement(
                     "div",
                     {
                         className: "icon collection-active-icon",
@@ -891,7 +893,7 @@ Spicetify._cloneSidebarItem = function(list) {
                         }
                     },
                 ),
-                Spicetify.React().cloneElement(span, {children: appProper})
+                React.cloneElement(span, null, appProper)
             )
         )
         reactObjs.push(obj);

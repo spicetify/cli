@@ -360,7 +360,7 @@ func exposeAPIs_main(input string) string {
 	utils.Replace(
 		&input,
 		`;class \w+ extends (\w+)\(\).Component`,
-		`;Spicetify.React=${1}${0}`)
+		`;Spicetify.React=${1}()${0}`)
 
 	utils.Replace(
 		&input,
@@ -429,6 +429,11 @@ if (G.popper?.firstChild?.id === "context-menu") {
 		Spicetify.ContextMenu._addItems(G.popper);
 	}
 };0`)
+
+	utils.ReplaceOnce(
+		&input,
+		`(\w+=)(\{createPortal:\w+)`,
+		`${1}Spicetify.ReactDOM=${2}`)
 
 	return input
 }
