@@ -86,7 +86,9 @@ option {
 }
 
 .reddit-tabBar-headerItem {
+    -webkit-app-region: no-drag;
     display: inline-block;
+    pointer-events: auto;
 }
 
 .reddit-tabBar-headerItemLink {
@@ -109,6 +111,8 @@ option {
 }
 
 .reddit-tabBar-nav {
+    -webkit-app-region: drag;
+    pointer-events: none;
     width: 100%;
 }
 
