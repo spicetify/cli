@@ -1,21 +1,27 @@
+:root {
+    --player-bar-height: 105px;
+}
+
 .main-rootlist-rootlistDividerGradient {
-    background: linear-gradient(180deg, var(--modspotify_main_bg), transparent);
+    background: unset;
 }
 
 input {
     background-color: unset !important;
-    border-bottom: solid 1px var(--modspotify_main_fg) !important;
+    border-bottom: solid 1px var(--spice-text) !important;
     border-radius: 0 !important;
     padding: 6px 10px 6px 48px;
-    color: var(--modspotify_main_fg) !important;
+    color: var(--spice-text) !important;
 }
 
-.x-833-searchInput-searchInputSearchIcon {
-    color: var(--modspotify_main_fg) !important;
+.x-searchInput-searchInputSearchIcon,
+.x-searchInput-searchInputClearButton {
+    color: var(--spice-text) !important;
 }
 
 .main-home-homeHeader,
-.x-441-entityHeader-overlay,
+.x-entityHeader-overlay,
+.x-actionBarBackground-background,
 .main-actionBarBackground-background,
 .main-entityHeader-overlay,
 .main-entityHeader-backgroundColor
@@ -32,12 +38,8 @@ input {
     display: none;
 }
 
-/* Topbar visibility bug */
-.main-topBar-topbarContent:not(.main-topBar-topbarContentFadeIn)>* {
-    opacity: unset !important;
-}
-.main-entityHeader-topbarContent:not(.main-entityHeader-topbarContentFadeIn)>* {
-    opacity: 0 !important;
+.connect-device-list {
+    margin: 0px -5px;
 }
 
 /* Remove Topbar background colour */
@@ -45,11 +47,13 @@ input {
     background-color: unset !important;
 }
 .main-topBar-overlay {
-    background-color: var(--modspotify_main_bg);
+    background-color: var(--spice-main);
 }
 
-.main-entityHeader-shadow {
-    box-shadow: 0 04px 20px #21212130;
+.main-entityHeader-shadow,
+.main-contextMenu-menu,
+.connect-device-list-container {
+    box-shadow: 0 4px 20px #21212130;
 }
 
 .main-trackList-playingIcon {
@@ -60,13 +64,10 @@ span.artist-artistVerifiedBadge-badge svg:nth-child(1) {
     fill: black;
 }
 
-.main-playPauseButton-button {
-    background-color: var(--modspotify_indicator_fg_and_button_bg);
-}
-
+/* 
 .main-navBar-navBarLinkActive {
     background-color: rgba(var(--modspotify_rgb_indicator_fg_and_button_bg),1);
-}
+} */
 
 /* Full window artist background */
 .main-entityHeader-background.main-entityHeader-gradient {
@@ -88,10 +89,57 @@ span.artist-artistVerifiedBadge-badge svg:nth-child(1) {
 }
 
 .main-entityHeader-background.main-entityHeader-overlay:after {
-    background-image: linear-gradient(transparent,transparent),linear-gradient(var(--modspotify_main_bg), var(--modspotify_main_bg));
+    background-image: linear-gradient(transparent,transparent),linear-gradient(var(--spice-main), var(--spice-main));
 }
 
 .artist-artistOverview-overview .main-entityHeader-withBackgroundImage h1 {
     font-size: 175px !important;
     line-height: 175px !important;
+}
+
+/** Hightlight selected playlist */
+.main-rootlist-rootlistItemLink.main-rootlist-rootlistItemLinkActive {
+    background: var(--spice-button);
+    border-radius: 4px;
+    padding: 0 10px;
+    margin: 0 5px 0 -10px;
+}
+
+.main-navBar-navBarLinkActive {
+    background: var(--spice-button);
+}
+
+.main-contextMenu-menu {
+    background-color: var(--spice-button);
+}
+
+.main-contextMenu-menuHeading,
+.main-contextMenu-menuItemButton,
+.main-contextMenu-menuItemButton:not(.main-contextMenu-disabled):focus,
+.main-contextMenu-menuItemButton:not(.main-contextMenu-disabled):hover {
+    color: var(--spice-text);
+}
+
+.main-playPauseButton-button {
+    background-color: var(--spice-button);
+    color: white;
+}
+
+/** Queue page header */
+.queue-queue-title,
+.queue-playHistory-title {
+    color: var(--spice-text) !important;
+}
+
+/** Cards */
+.main-cardImage-imageWrapper {
+    background-color: transparent;
+}
+
+.main-rootlist-rootlistDivider {
+    background-color: unset;
+}
+
+.main-nowPlayingBar-nowPlayingBar {
+    height: var(--player-bar-height);
 }

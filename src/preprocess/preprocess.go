@@ -29,7 +29,7 @@ type Flag struct {
 }
 
 type jsMap struct {
-	Sources []string `json:"sources"`
+	Sources        []string `json:"sources"`
 	SourcesContent []string `json:"sourcesContent"`
 }
 
@@ -48,7 +48,7 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 			isNumber, _ := regexp.MatchString(`\d+`, fileName)
 
 			if isNumber {
-				fileName = "x-" + fileName
+				fileName = "x"
 			} else if fileName == "vendor~xpui" {
 				fileName = "vendor"
 			} else if fileName == "xpui" {
@@ -58,7 +58,7 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 				fileName = strings.Replace(fileName, "xpui-desktop-", "desktop", 1)
 				fileName = strings.Replace(fileName, "xpui-desktop-routes-", "desktop", 1)
 			}
-			
+
 			raw, err := ioutil.ReadFile(path)
 			if err != nil {
 				return err
@@ -148,7 +148,7 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 				}
 				return content
 			})
-			
+
 		case ".html":
 			utils.ModifyFile(path, func(content string) string {
 				utils.Replace(&content, `</head>`, `<link rel="stylesheet" class="userCSS" href="user.css"></head>`)
@@ -203,105 +203,51 @@ func StartCSS(extractedAppsPath string, callback func(appName string)) {
 }
 
 func colorVariableReplace(content string) string {
-	utils.Replace(&content, "#999999", "var(--modspotify_main_bg)")
-	utils.Replace(&content, "#606060", "var(--modspotify_main_bg)")
-	utils.Replace(&content, "#181818", "var(--modspotify_main_bg)")
-	utils.Replace(&content, "#212121", "var(--modspotify_main_bg)")
-	utils.Replace(&content, "gray;", " var(--modspotify_main_bg);")
+	utils.Replace(&content, "#181818", "var(--spice-player)")
+	utils.Replace(&content, "#212121", "var(--spice-player)")
 
-	utils.Replace(&content, "#282828", "var(--modspotify_sidebar_and_player_bg)")
-	utils.Replace(&content, "#121212", "var(--modspotify_sidebar_and_player_bg)")
-	utils.Replace(&content, "#000000", "var(--modspotify_sidebar_and_player_bg)")
-	utils.Replace(&content, "#000011", "var(--modspotify_sidebar_and_player_bg)")
-	utils.Replace(&content, "#0a1a2d", "var(--modspotify_sidebar_and_player_bg)")
-	utils.Replace(&content, "#000", "var(--modspotify_sidebar_and_player_bg)")
-	utils.Replace(&content, "black;", " var(--modspotify_sidebar_and_player_bg);")
+	utils.Replace(&content, "#282828", "var(--spice-card)")
 
-	utils.Replace(&content, "#ffffff", "var(--modspotify_main_fg)")
-	utils.Replace(&content, "#fff", "var(--modspotify_main_fg)")
-	utils.Replace(&content, "white;", " var(--modspotify_main_fg);")
-	utils.Replace(&content, "#f8f8f8", " var(--modspotify_main_fg)")
+	utils.Replace(&content, "#121212", "var(--spice-main)")
 
-	utils.Replace(&content, "#adafb2", "var(--modspotify_secondary_fg)")
-	utils.Replace(&content, "#c8c8c8", "var(--modspotify_secondary_fg)")
-	utils.Replace(&content, "#a0a0a0", "var(--modspotify_secondary_fg)")
-	utils.Replace(&content, "#bec0bb", "var(--modspotify_secondary_fg)")
-	utils.Replace(&content, "#bababa", "var(--modspotify_secondary_fg)")
-	utils.Replace(&content, "#b3b3b3", "var(--modspotify_secondary_fg)")
-	utils.Replace(&content, "#c0c0c0", "var(--modspotify_secondary_fg)")
+	utils.Replace(&content, "#000", "var(--spice-sidebar)")
+	utils.Replace(&content, "#000000", "var(--spice-sidebar)")
 
-	utils.Replace(&content, "#1ed660", "var(--modspotify_sidebar_indicator_and_hover_button_bg)")
-	utils.Replace(&content, "#1ed760", "var(--modspotify_sidebar_indicator_and_hover_button_bg)")
+	utils.Replace(&content, "white;", " var(--spice-text);")
+	utils.Replace(&content, "#fff", "var(--spice-text)")
+	utils.Replace(&content, "#ffffff", "var(--spice-text)")
+	utils.Replace(&content, "#f8f8f8", " var(--spice-text)")
 
-	utils.Replace(&content, "#1db954", "var(--modspotify_indicator_fg_and_button_bg)")
-	utils.Replace(&content, "#1df369", "var(--modspotify_indicator_fg_and_button_bg)")
-	utils.Replace(&content, "#1df269", "var(--modspotify_indicator_fg_and_button_bg)")
-	utils.Replace(&content, "#1cd85e", "var(--modspotify_indicator_fg_and_button_bg)")
-	utils.Replace(&content, "#1bd85e", "var(--modspotify_indicator_fg_and_button_bg)")
-	utils.Replace(&content, "#1da64d", "var(--modspotify_indicator_fg_and_button_bg)")
-	utils.Replace(&content, "#1877f2", "var(--modspotify_indicator_fg_and_button_bg)")
+	utils.Replace(&content, "#b3b3b3", "var(--spice-subtext)")
 
-	utils.Replace(&content, "#18ac4d", "var(--modspotify_selected_button)")
-	utils.Replace(&content, "#18ab4d", "var(--modspotify_selected_button)")
+	utils.Replace(&content, "#1db954", "var(--spice-button)")
+	utils.Replace(&content, "#1877f2", "var(--spice-button)")
+	utils.Replace(&content, "#1ed760", "var(--spice-button-active)")
+	utils.Replace(&content, "#535353", "var(--spice-button-disabled)")
 
-	utils.Replace(&content, "#179443", "var(--modspotify_pressing_button_bg)")
-	utils.Replace(&content, "#14833b", "var(--modspotify_pressing_button_bg)")
+	utils.Replace(&content, "#333", "var(--spice-tab-active)")
+	utils.Replace(&content, "#333333", "var(--spice-tab-active)")
 
-	utils.Replace(&content, "#ededed", "var(--modspotify_pressing_button_fg)")
-	utils.Replace(&content, "#cccccc", "var(--modspotify_pressing_button_fg)")
-	utils.Replace(&content, "#8f8f8f;", " var(--modspotify_pressing_button_fg);")
-	utils.Replace(&content, "#ccc", "var(--modspotify_pressing_button_fg)")
-	utils.Replace(&content, "#ddd", "var(--modspotify_pressing_button_fg)")
-	utils.Replace(&content, "lightgray;", " var(--modspotify_pressing_button_fg);")
-	utils.Replace(&content, "#7f7f7f", "var(--modspotify_pressing_button_fg)")
+	utils.Replace(&content, "#7f7f7f", "var(--spice-misc)")
 
-	utils.Replace(&content, "#333333", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
-	utils.Replace(&content, "#3f3f3f", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
-	utils.Replace(&content, "#535353", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
-	utils.Replace(&content, "#333", "var(--modspotify_scrollbar_fg_and_selected_row_bg)")
+	utils.Replace(&content, "#4687d6", "var(--spice-notification)")
+	utils.Replace(&content, "#2e77d0", "var(--spice-notification)")
 
-	utils.Replace(&content, "#404040", "var(--modspotify_slider_bg)")
-	utils.Replace(&content, "#444", "var(--modspotify_slider_bg)")
+	utils.Replace(&content, "#e22134", "var(--spice-notification-error)")
+	utils.Replace(&content, "#cd1a2b", "var(--spice-notification-error)")
 
-	utils.Replace(&content, "#f8f8f7", "var(--modspotify_pressing_fg)")
-	utils.Replace(&content, "#fcfcfc", "var(--modspotify_pressing_fg)")
-	utils.Replace(&content, "#d9d9d9", "var(--modspotify_pressing_fg)")
-	utils.Replace(&content, "#cdcdcd", "var(--modspotify_pressing_fg)")
-	utils.Replace(&content, "#e6e6e6", "var(--modspotify_pressing_fg)")
-	utils.Replace(&content, "#e5e5e5", "var(--modspotify_pressing_fg)")
-
-	utils.Replace(&content, "#4687d6", "var(--modspotify_miscellaneous_bg)")
-	utils.Replace(&content, "#cd1a2b", "var(--modspotify_miscellaneous_bg)")
-
-	utils.Replace(&content, "#2e77d0", "var(--modspotify_miscellaneous_hover_bg)")
-	utils.Replace(&content, "#4591ee", "var(--modspotify_miscellaneous_hover_bg)")
-	utils.Replace(&content, "#386cab", "var(--modspotify_miscellaneous_hover_bg)")
-	utils.Replace(&content, "#e22134", "var(--modspotify_miscellaneous_hover_bg)")
-
-	utils.Replace(&content, `rgba\(18,\s?18,\s?18,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-	utils.Replace(&content, `rgba\(18,\s?19,\s?20,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-	utils.Replace(&content, `rgba\(80,\s?55,\s?80,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-	utils.Replace(&content, `rgba\(40,\s?40,\s?40,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-	utils.Replace(&content, `rgba\(40,\s?40,\s?40,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-	utils.Replace(&content, `rgba\(24,\s?24,\s?24,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-	utils.Replace(&content, `rgba\(18,\s?19,\s?20,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-	utils.Replace(&content, `rgba\(70,\s?135,\s?214,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_miscellaneous_bg),${1})")
-	utils.Replace(&content, `rgba\(51,\s?153,\s?255,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_miscellaneous_hover_bg),${1})")
-	utils.Replace(&content, `rgba\(30,\s?50,\s?100,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_miscellaneous_hover_bg),${1})")
-	utils.Replace(&content, `rgba\(24,\s?24,\s?24,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-	utils.Replace(&content, `rgba\(25,\s?20,\s?20,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_sidebar_and_player_bg),${1})")
-	utils.Replace(&content, `rgba\(160,\s?160,\s?160,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_pressing_button_fg),${1})")
-	utils.Replace(&content, `rgba\(255,\s?255,\s?255,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_pressing_button_fg),${1})")
-	utils.Replace(&content, `rgba\(0,\s?0,\s?0,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_cover_overlay_and_shadow),${1})")
-	utils.Replace(&content, `rgba\(179,\s?179,\s?179,\s?([\d\.]+)\)`, "rgba(var(--modspotify_rgb_secondary_fg),${1})")
-	utils.Replace(&content, `hsla\(0,0%,100%,([\d\.]+)\)`, "rgba(var(--modspotify_rgb_main_fg),${1})")
+	utils.Replace(&content, `rgba\(18,18,18,([\d\.]+)\)`, "rgba(var(--spice-rgb-main),${1})")
+	utils.Replace(&content, `rgba\(40,40,40,([\d\.]+)\)`, "rgba(var(--spice-rgb-card),${1})")
+	utils.Replace(&content, `rgba\(0,0,0,([\d\.]+)\)`, "rgba(var(--spice-rgb-shadow),${1})")
+	utils.Replace(&content, `hsla\(0,0%,100%,\.9\)`, "rgba(var(--spice-rgb-text),.9)")
+	utils.Replace(&content, `hsla\(0,0%,100%,([\d\.]+)\)`, "rgba(var(--spice-rgb-selected-row),${1})")
 
 	return content
 }
 
 func colorVariableReplaceForJS(content string) string {
-	utils.Replace(&content, "#1db954", "var(--modspotify_indicator_fg_and_button_bg)")
-	utils.Replace(&content, "#b3b3b3", "var(--modspotify_secondary_fg)")
+	utils.Replace(&content, "#1db954", "var(--spice-button)")
+	utils.Replace(&content, "#b3b3b3", "var(--spice-subtext)")
 	return content
 }
 
@@ -379,19 +325,19 @@ func exposeAPIs_main(input string) string {
 
 	reAllAPIPromises := regexp.MustCompile(`await Promise.all\(\[([\w\(\)\.,]+?)\]\)([;,])`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
-	for _, found := range(allAPIPromises) {
-		splitted := strings.Split(found[1], ",");
+	for _, found := range allAPIPromises {
+		splitted := strings.Split(found[1], ",")
 		if len(splitted) > 15 { // Actual number is about 24
 			re := regexp.MustCompile(`\w+\.(\w+)\(\)`)
 			code := "Spicetify.Platform = {"
 
-			for _, apiFunc := range(splitted) {
+			for _, apiFunc := range splitted {
 				name := re.ReplaceAllString(apiFunc, `${1}`)
 
 				if strings.HasPrefix(name, "get") {
-					name = strings.Replace(name, "get", "", 1);
+					name = strings.Replace(name, "get", "", 1)
 				}
-					
+
 				code += name + ": await " + apiFunc + ","
 			}
 
@@ -400,7 +346,7 @@ func exposeAPIs_main(input string) string {
 				code = "undefined;" + code + "var "
 			}
 
-			input = strings.Replace(input, found[0], found[0] + code, 1)
+			input = strings.Replace(input, found[0], found[0]+code, 1)
 		}
 	}
 
@@ -413,7 +359,7 @@ func exposeAPIs_vendor(input string) string {
 		&input,
 		`,(\w+)\.prototype\.toAppType`,
 		`,(globalThis.Spicetify.URI=${1})${0}`)
-	
+
 	// Mousetrap
 	utils.Replace(
 		&input,

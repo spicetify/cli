@@ -172,7 +172,6 @@ func InitSetting() {
 		return
 	}
 
-	println(schemeName)
 	schemeSection, err := colorCfg.GetSection(schemeName)
 	if err != nil {
 		println("Err")

@@ -12,15 +12,15 @@ import (
 
 // Flag enables/disables additional feature
 type Flag struct {
-	Extension            []string
-	CustomApp            []string
+	Extension []string
+	CustomApp []string
 }
 
 // AdditionalOptions .
 func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
-		filepath.Join(appsFolderPath, "xpui", "index.html"):        htmlMod,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):        insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "index.html"): htmlMod,
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"):    insertCustomApp,
 	}
 
 	for file, call := range filesToModified {
@@ -100,6 +100,7 @@ func getUserCSS(themeFolder string) string {
 
 func getColorCSS(scheme map[string]string) string {
 	var variableList string
+	var variableRGBList string
 	mergedScheme := make(map[string]string)
 
 	for k, v := range scheme {
@@ -114,14 +115,11 @@ func getColorCSS(scheme map[string]string) string {
 
 	for k, v := range mergedScheme {
 		parsed := utils.ParseColor(v)
-		variableList += fmt.Sprintf(`
-    --modspotify_%s: #%s;
-    --modspotify_rgb_%s: %s;`,
-			k, parsed.Hex(),
-			k, parsed.RGB())
+		variableList += fmt.Sprintf("    --spice-%s: #%s;\n", k, parsed.Hex())
+		variableRGBList += fmt.Sprintf("    --spice-rgb-%s: %s;\n", k, parsed.RGB())
 	}
 
-	return fmt.Sprintf(":root {%s\n}\n", variableList)
+	return fmt.Sprintf(":root {\n%s\n%s\n}\n", variableList, variableRGBList)
 }
 
 func insertCustomApp(jsPath string, flags Flag) {
@@ -152,49 +150,48 @@ func insertCustomApp(jsPath string, flags Flag) {
 				`,spicetifyApp%d=Spicetify.React.lazy((()=>%s.%s("%s").then(%s.bind(%s,"%s"))))`,
 				index, reactSymbs[0], reactSymbs[1],
 				appName, reactSymbs[0], reactSymbs[0], appName)
-			
+
 			appEleMap += fmt.Sprintf(
 				`Spicetify.React.createElement(%s,{path:"/%s"},Spicetify.React.createElement(spicetifyApp%d,null)),`,
 				eleSymbs[0], app, index)
-			
+
 			cssEnableMap += fmt.Sprintf(`,"%s":1`, appName)
 		}
 
 		utils.Replace(
 			&content,
 			`\{(\d+:"xpui)`,
-			`{` + appMap + `${1}`)
+			`{`+appMap+`${1}`)
 
 		utils.ReplaceOnce(
 			&content,
 			`lazy\(\(\(\)=>[\w\.]+\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\)\)`,
 			`${0}`+appReactMap)
-		
+
 		utils.ReplaceOnce(
 			&content,
 			`\w+\(\)\.createElement\([\w\.]+,\{path:"\/collection"\}`,
-			appEleMap + `${0}`)
+			appEleMap+`${0}`)
 
 		utils.Replace(
 			&content,
 			`\w+\(\)\.createElement\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
 			`Spicetify._sidebarItemToClone=${0}`)
-		
+
 		utils.ReplaceOnce(
 			&content,
 			`\d+:1,\d+:1,\d+:1`,
-			"${0}" + cssEnableMap)
+			"${0}"+cssEnableMap)
 
 		sidebarItemMatch := utils.SeekToCloseParen(
 			content,
 			`\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
 			'(', ')')
-		
 
 		content = strings.Replace(
 			content,
 			sidebarItemMatch,
-			sidebarItemMatch + ",Spicetify._cloneSidebarItem([" + appNameArray + "])",
+			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
 			1)
 
 		return content
