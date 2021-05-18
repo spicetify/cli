@@ -103,7 +103,7 @@ body.fad-activated #full-app-display {
 body.video-full-screen.video-full-screen--hide-ui {
     cursor: auto;
 }
-button {
+#full-app-display button {
     background-color: transparent;
     border: 0;
     color: currentColor;
