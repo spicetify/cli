@@ -83,9 +83,6 @@
     background-color: #ffffff;
     box-shadow: 4px 0 12px rgba(0, 0, 0, 0.8);
 }
-#fad-elapsed {
-    margin-right: 10px;
-}
 #fad-duration {
     margin-left: 10px;
 }
@@ -153,6 +150,9 @@ button {
 #fad-controls {
     display: flex;
     margin-right: 10px;
+}
+#fad-elapsed {
+    min-width: 52px;
 }`,
 `
 #fad-art {
@@ -195,6 +195,11 @@ button {
 #fad-controls {
     margin-top: 20px;
     order: 2
+}
+#fad-elapsed {
+    min-width: 56px;
+    margin-right: 10px;
+    text-align: right;
 }`
     ]
 
