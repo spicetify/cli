@@ -167,14 +167,6 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 	})
 
 	fakeZLink(filepath.Join(extractedAppsPath, "zlink"))
-
-	if flags.ExposeAPIs {
-		xpuiPath := filepath.Join(extractedAppsPath, "xpui")
-		err := utils.Copy(utils.GetJsHelperDir(), xpuiPath, false, []string{"spicetifyWrapper.js"})
-		if err != nil {
-			utils.Fatal(err)
-		}
-	}
 }
 
 // StartCSS modifies all CSS files in extractedAppsPath to change
@@ -362,11 +354,18 @@ func exposeAPIs_main(input string) string {
 		`,(\w+)=(\(\w+=\w+\.dispatch)`,
 		`;globalThis.Spicetify.showNotification=(message)=>${1}({message});const ${1}=${2}`)
 
-	// Remove list of recommended shows
+	// Remove list of exclusive shows
 	utils.Replace(
 		&input,
 		`\["spotify:show.+?\]`,
 		`[]`)
+
+	// Remove Star Wars easter eggs since it aggressively
+	// listens to keystroke, checking URIs at all time
+	utils.Replace(
+		&input,
+		`\w+\(\)\.createElement\(\w+,\{onChange:this\.handleSaberStateChange\}\),`,
+		"")
 
 	utils.Replace(
 		&input,
