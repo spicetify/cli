@@ -18,7 +18,7 @@ class TabBarMore extends react.Component {
     render() {
         const hasActiveItem = this.props.items.includes(this.props.activeItem);
         return react.createElement("div", {
-            className: `reddit-tabBar-headerItemLink ${hasActiveItem ? "reddit-tabBar-active" : ""}`,
+            className: `reddit-tabBar-headerItemLink reddit-tabBar-headerItem ${hasActiveItem ? "reddit-tabBar-active" : ""}`,
         }, react.createElement("select", {
             className: "main-type-mestoBold",
             onChange: this.props.switchTo,
