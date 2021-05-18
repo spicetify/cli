@@ -1203,4 +1203,9 @@ declare namespace Spicetify {
         function display(e: Content): void;
         function hide(): void;
     }
+
+    /** React instance to create components */
+    const React: any;
+    /** React DOM instance to render and mount components */
+    const ReactDOM: any;
 }
