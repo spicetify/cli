@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"time"
 
 	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
 	"github.com/khanhas/spicetify-cli/src/utils"
@@ -45,14 +47,16 @@ func Watch(liveUpdate bool) {
 	if overwriteAssets {
 		assetPath := filepath.Join(themeFolder, "assets")
 
-		go utils.WatchRecursive(assetPath, func(_ string, err error) {
-			if err != nil {
-				utils.Fatal(err)
-			}
-
-			updateAssets()
-			utils.PrintSuccess(utils.PrependTime("Custom assets are updated"))
-		}, autoReloadFunc)
+		if _, err := os.Stat(assetPath); err == nil {
+			go utils.WatchRecursive(assetPath, func(_ string, err error) {
+				if err != nil {
+					utils.Fatal(err)
+				}
+				
+				updateAssets()
+				utils.PrintSuccess(utils.PrependTime("Custom assets are updated"))
+			}, autoReloadFunc)
+		}
 	}
 
 	utils.Watch(fileList, func(_ string, err error) {
@@ -67,7 +71,7 @@ func Watch(liveUpdate bool) {
 }
 
 // WatchExtensions .
-func WatchExtensions(liveUpdate bool) {
+func WatchExtensions(extName []string, liveUpdate bool) {
 	if !isValidForWatching() {
 		os.Exit(1)
 	}
@@ -76,7 +80,13 @@ func WatchExtensions(liveUpdate bool) {
 		startDebugger()
 	}
 
-	extNameList := featureSection.Key("extensions").Strings("|")
+	var extNameList []string
+	if len(extName) > 0 {
+		extNameList = extName
+	} else {
+		extNameList = featureSection.Key("extensions").Strings("|")
+	}
+
 	var extPathList []string
 
 	for _, v := range extNameList {
@@ -105,6 +115,76 @@ func WatchExtensions(liveUpdate bool) {
 	}, autoReloadFunc)
 }
 
+// WatchCustomApp .
+func WatchCustomApp(appName []string, liveUpdate bool) {
+	if !isValidForWatching() {
+		os.Exit(1)
+	}
+
+	if liveUpdate {
+		startDebugger()
+	}
+
+	var appNameList []string 
+	if len(appName) > 0 {
+		appNameList = appName
+	} else {
+		appNameList = featureSection.Key("custom_apps").Strings("|")
+	}
+
+	threadCount := 0
+	for _, v := range appNameList {
+		appPath, err := getCustomAppPath(v)
+		if err != nil {
+			utils.PrintError(`Custom app "` + v + `" not found.`)
+			continue
+		}
+	
+		var appFileList []string
+		jsFilePath := filepath.Join(appPath, "index.js")
+		if _, err := os.Stat(jsFilePath); err != nil {
+			utils.PrintError(`Custom app "` + v + `" does not contain index.js`)
+			continue
+		}
+		appFileList = append(appFileList, jsFilePath)
+		cssFilePath := filepath.Join(appPath, "style.css")
+		if _, err := os.Stat(cssFilePath); err == nil {
+			appFileList = append(appFileList, cssFilePath)
+		}
+
+		manifestPath := filepath.Join(appPath, "manifest.json")
+		manifestFileContent, err := os.ReadFile(manifestPath)
+		if err == nil {
+			var manifestJson appManifest
+			if err = json.Unmarshal(manifestFileContent, &manifestJson); err == nil {
+				for _, subfile := range(manifestJson.Files) {
+					subfilePath := filepath.Join(appPath, subfile)
+					appFileList = append(appFileList, subfilePath)
+				}
+			}
+		}
+
+		threadCount += 1
+		var appName = v
+		go utils.Watch(appFileList, func(filePath string, err error) {
+			if err != nil {
+				utils.PrintError(err.Error())
+				os.Exit(1)
+			}
+	
+			pushApps(appName)
+	
+			utils.PrintSuccess(utils.PrependTime(`Custom app "` + appName + `" is updated.`))
+		}, autoReloadFunc)
+	}
+
+	if threadCount > 0 {
+		for {
+			time.Sleep(utils.INTERVAL)
+		}
+	}
+}
+
 func isValidForWatching() bool {
 	status := spotifystatus.Get(appDestPath)
 
@@ -127,7 +207,7 @@ func startDebugger() {
 	autoReloadFunc = func() {
 		if utils.SendReload(&debuggerURL) != nil {
 			utils.PrintError("Could not Reload Spotify")
-			utils.PrintInfo(`Close Spotify and run "spicetify watch -e -l" again.`)
+			utils.PrintInfo(`Close Spotify and run watch command again.`)
 		} else {
 			utils.PrintSuccess("Spotify reloaded")
 		}

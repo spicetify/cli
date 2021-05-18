@@ -3,10 +3,9 @@ package cmd
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/khanhas/spicetify-cli/src/apply"
@@ -61,6 +60,12 @@ func Apply() {
 		utils.PrintGreen("OK")
 	}
 
+	if (preprocSection.Key("expose_apis").MustBool(false)) {
+		utils.CopyFile(
+			filepath.Join(utils.GetJsHelperDir(), "spicetifyWrapper.js"),
+			filepath.Join(appDestPath, "xpui"))
+	}
+
 	extentionList := featureSection.Key("extensions").Strings("|")
 	customAppsList := featureSection.Key("custom_apps").Strings("|")
 
@@ -79,7 +84,7 @@ func Apply() {
 	}
 
 	if len(customAppsList) > 0 {
-		utils.PrintBold(`Creating custom apps symlinks:`)
+		utils.PrintBold(`Transferring custom apps:`)
 		pushApps(customAppsList...)
 		utils.PrintGreen("OK")
 	}
@@ -261,158 +266,68 @@ type appManifest struct {
 }
 
 func pushApps(list ...string) {
-	jsPath := filepath.Join(appDestPath, "xpui", "xpui.js")
-	utils.ModifyFile(jsPath, func(content string) string {
-		reRoutesObj := regexp.MustCompile(`\{(\d+:"xpui.+?)\}`)
-		routesObj := reRoutesObj.FindAllStringSubmatch(content, -1)
+	for _, app := range list {
+		appName := `spicetify-routes-` + app
 
-		if len(routesObj) > 0 {
-			routesMap := strings.Split(routesObj[0][1], ",")
-			maxIndex := 0
-			for _, route := range(routesMap) {
-				splitted := strings.Split(route, ":")
-				index, err := strconv.Atoi(splitted[0])
-				if err != nil {
-					continue
-				}
-				if maxIndex < index {
-					maxIndex = index
-				}
-			}
-
-			reactSymbs := utils.FindSymbol(
-				"Custom app React symbols",
-				content,
-				[]string{
-					`\w+=(\w+)\(\)\.lazy\(\(\(\)=>(\w+)\.(\w+)\(\d+\).then\(\w+\.bind\(\w+,\d+\)\)\)\)`})
-			eleSymbs := utils.FindSymbol(
-				"Custom app React Element",
-				content,
-				[]string{
-					`(\w+)\(\)\.createElement\(([\w\.]+),\{path:"\/collection"\},\w+\(\)\.createElement\(\w+,null\)\)`})
-			appMap := ""
-			appReactMap := ""
-			appEleMap := ""
-			cssEnableMap := ""
-			cssEnableStart := "," + strconv.Itoa(maxIndex) + ":1"
-			appNameArray := ""
-			packageIndex := 1000000
-			for _, app := range(list) {
-				maxIndex += 1
-				packageIndex += 1
-				appName := `spicetify-routes-` + app
-				appMap += strconv.Itoa(maxIndex) + `:"` + appName + `",`
-				appNameArray += `"` + app + `",`
-
-				appReactMap += "spicetifyApp" + strconv.Itoa(maxIndex) + "=" +
-					reactSymbs[0] + "().lazy((()=>" + reactSymbs[1] + "." +
-					reactSymbs[2] + "(" + strconv.Itoa(maxIndex) + ")" +
-					".then(" + reactSymbs[1] + ".bind(" + reactSymbs[1] + "," +
-					strconv.Itoa(packageIndex) + ")))),"
-
-				appEleMap += eleSymbs[0] + "().createElement(" + eleSymbs[1] +
-					",{path:\"/" + app + "\"}," + eleSymbs[0] +
-					"().createElement(spicetifyApp" + strconv.Itoa(maxIndex) + ",null)),"
-
-				cssEnableMap += "," + strconv.Itoa(maxIndex) + ":1"
-
-				customAppPath, err := getCustomAppPath(app)
-				if err != nil {
-					utils.PrintError(`Custom app "` + app + `" not found.`)
-					continue
-				}
-				jsFile := filepath.Join(customAppPath, "index.js")
-				jsFileContent, err := os.ReadFile(jsFile)
-				if err != nil {
-					utils.PrintError(`Custom app "` + app + `" does not have index.js`)
-					continue
-				}
-				
-				manifestFile := filepath.Join(customAppPath, "manifest.json")
-				manifestFileContent, err := os.ReadFile(manifestFile)
-				if err != nil {
-					manifestFileContent = []byte{'{', '}'}
-				}
-				os.WriteFile(
-					filepath.Join(appDestPath, "xpui", appName + ".json"), 
-					[]byte(manifestFileContent),
-					0700)
-
-				var manifestJson appManifest
-				if err = json.Unmarshal(manifestFileContent, &manifestJson); err == nil {
-					for _, subfile := range(manifestJson.Files) {
-						subfilePath := filepath.Join(customAppPath, subfile)
-						subfileContent, err := os.ReadFile(subfilePath)
-						if err != nil {
-							continue
-						}
-						jsFileContent = append(jsFileContent, '\n')
-						jsFileContent = append(jsFileContent, subfileContent...)
-					}
-				}
-
-				jsTemplate := `(("undefined"!=typeof self?self:global).webpackChunkopen=("undefined"!=typeof self?self:global).webpackChunkopen||[])
-.push([[`+strconv.Itoa(maxIndex)+`],{`+strconv.Itoa(packageIndex)+`:(e,t,n)=>{
-"use strict";
-n.r(t),n.d(t,{default:()=>render});
-` + string(jsFileContent) + `
-}}]);`
-				os.WriteFile(
-					filepath.Join(appDestPath, "xpui", appName + ".js"), 
-					[]byte(jsTemplate),
-					0700)
-
-				cssFile := filepath.Join(customAppPath, "style.css")
-				cssFileContent, err := os.ReadFile(cssFile)
-				if err != nil {
-					cssFileContent = []byte{}
-				}
-				os.WriteFile(
-					filepath.Join(appDestPath, "xpui", appName + ".css"), 
-					[]byte(cssFileContent),
-					0700)
-			}
-
-			utils.Replace(
-				&content,
-				`\{(\d+:"xpui)`,
-				`{` + appMap + `${1}`)
-
-			utils.ReplaceOnce(
-				&content,
-				`\w+=\w+\(\)\.lazy\(\(\(\)=>\w+\.\w+\(\d+\).then\(\w+\.bind\(\w+,\d+\)\)\)\)`,
-				appReactMap + `${0}`)
-			
-			utils.ReplaceOnce(
-				&content,
-				`\w+\(\)\.createElement\([\w\.]+,\{path:"\/collection"\},\w+\(\)\.createElement\(\w+,null\)\)`,
-				appEleMap + `${0}`)
-
-			utils.Replace(
-				&content,
-				`\w+\(\)\.createElement\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
-				`Spicetify._sidebarItemToClone=${0}`)
-			
-			utils.ReplaceOnce(
-				&content,
-				cssEnableStart,
-				"${0}" + cssEnableMap)
-
-			sidebarItemMatch := utils.SeekToCloseParen(
-				content,
-				`\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
-				'(', ')')
-			
-
-			content = strings.Replace(
-				content,
-				sidebarItemMatch,
-				sidebarItemMatch + ",...(()=>Spicetify._cloneSidebarItem([" + appNameArray + "]))()",
-				1)
+		customAppPath, err := getCustomAppPath(app)
+		if err != nil {
+			utils.PrintError(`Custom app "` + app + `" not found.`)
+			continue
 		}
 
-		return content
-	})
+		jsFile := filepath.Join(customAppPath, "index.js")
+		jsFileContent, err := os.ReadFile(jsFile)
+		if err != nil {
+			utils.PrintError(`Custom app "` + app + `" does not have index.js`)
+			continue
+		}
+		
+		manifestFile := filepath.Join(customAppPath, "manifest.json")
+		manifestFileContent, err := os.ReadFile(manifestFile)
+		if err != nil {
+			manifestFileContent = []byte{'{', '}'}
+		}
+		os.WriteFile(
+			filepath.Join(appDestPath, "xpui", appName + ".json"), 
+			manifestFileContent,
+			0700)
+
+		var manifestJson appManifest
+		if err = json.Unmarshal(manifestFileContent, &manifestJson); err == nil {
+			for _, subfile := range(manifestJson.Files) {
+				subfilePath := filepath.Join(customAppPath, subfile)
+				subfileContent, err := os.ReadFile(subfilePath)
+				if err != nil {
+					continue
+				}
+				jsFileContent = append(jsFileContent, '\n')
+				jsFileContent = append(jsFileContent, subfileContent...)
+			}
+		}
+
+		jsTemplate := fmt.Sprintf(
+			`(("undefined"!=typeof self?self:global).webpackChunkopen=("undefined"!=typeof self?self:global).webpackChunkopen||[])
+.push([["%s"],{"%s":(e,t,n)=>{
+"use strict";n.r(t),n.d(t,{default:()=>render});
+%s
+}}]);`,
+			appName, appName, jsFileContent)
+
+		os.WriteFile(
+			filepath.Join(appDestPath, "xpui", appName + ".js"), 
+			[]byte(jsTemplate),
+			0700)
+
+		cssFile := filepath.Join(customAppPath, "style.css")
+		cssFileContent, err := os.ReadFile(cssFile)
+		if err != nil {
+			cssFileContent = []byte{}
+		}
+		os.WriteFile(
+			filepath.Join(appDestPath, "xpui", appName + ".css"), 
+			[]byte(cssFileContent),
+			0700)
+	}
 }
 
 func toTernary(key string) utils.TernaryBool {

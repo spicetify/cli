@@ -20,6 +20,7 @@ type Flag struct {
 func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
 		filepath.Join(appsFolderPath, "xpui", "index.html"):        htmlMod,
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"):        insertCustomApp,
 	}
 
 	for file, call := range filesToModified {
@@ -123,8 +124,81 @@ func getColorCSS(scheme map[string]string) string {
 	return fmt.Sprintf(":root {%s\n}\n", variableList)
 }
 
-func insertCustomApp(zlinkContent *string, appList []string) {
+func insertCustomApp(jsPath string, flags Flag) {
+	utils.ModifyFile(jsPath, func(content string) string {
+		reactSymbs := utils.FindSymbol(
+			"Custom app React symbols",
+			content,
+			[]string{
+				`lazy\(\(\(\)=>(\w+)\.(\w+)\(\d+\).then\(\w+\.bind\(\w+,\d+\)\)\)\)`})
+		eleSymbs := utils.FindSymbol(
+			"Custom app React Element",
+			content,
+			[]string{
+				`createElement\(([\w\.]+),\{path:"\/collection"\}`})
 
+		appMap := ""
+		appReactMap := ""
+		appEleMap := ""
+		cssEnableMap := ""
+		appNameArray := ""
+
+		for index, app := range flags.CustomApp {
+			appName := `spicetify-routes-` + app
+			appMap += fmt.Sprintf(`"%s":"%s",`, appName, appName)
+			appNameArray += fmt.Sprintf(`"%s",`, app)
+
+			appReactMap += fmt.Sprintf(
+				`,spicetifyApp%d=Spicetify.React.lazy((()=>%s.%s("%s").then(%s.bind(%s,"%s"))))`,
+				index, reactSymbs[0], reactSymbs[1],
+				appName, reactSymbs[0], reactSymbs[0], appName)
+			
+			appEleMap += fmt.Sprintf(
+				`Spicetify.React.createElement(%s,{path:"/%s"},Spicetify.React.createElement(spicetifyApp%d,null)),`,
+				eleSymbs[0], app, index)
+			
+			cssEnableMap += fmt.Sprintf(`,"%s":1`, appName)
+		}
+
+		utils.Replace(
+			&content,
+			`\{(\d+:"xpui)`,
+			`{` + appMap + `${1}`)
+
+		utils.ReplaceOnce(
+			&content,
+			`lazy\(\(\(\)=>[\w\.]+\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\)\)`,
+			`${0}`+appReactMap)
+		
+		utils.ReplaceOnce(
+			&content,
+			`\w+\(\)\.createElement\([\w\.]+,\{path:"\/collection"\}`,
+			appEleMap + `${0}`)
+
+		utils.Replace(
+			&content,
+			`\w+\(\)\.createElement\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
+			`Spicetify._sidebarItemToClone=${0}`)
+		
+		utils.ReplaceOnce(
+			&content,
+			`\d+:1,\d+:1,\d+:1`,
+			"${0}" + cssEnableMap)
+
+		sidebarItemMatch := utils.SeekToCloseParen(
+			content,
+			`\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
+			'(', ')')
+		
+
+		content = strings.Replace(
+			content,
+			sidebarItemMatch,
+			sidebarItemMatch + ",Spicetify._cloneSidebarItem([" + appNameArray + "])",
+			1)
+
+		return content
+	})
 }
 
 func getAssetsPath(themeFolder string) string {

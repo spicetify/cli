@@ -159,6 +159,23 @@ func main() {
 
 	cmd.InitPaths()
 
+	// Unchainable commands
+	switch commands[0] {
+	case "watch":
+		var name []string
+		if len(commands) >  1 {
+			name = commands[1:]
+		}
+		if extensionFocus {
+			cmd.WatchExtensions(name, liveUpdate)
+		} else if appFocus {
+			cmd.WatchCustomApp(name, liveUpdate)
+		} else {
+			cmd.Watch(liveUpdate)
+		}
+		return
+	}
+
 	// Chainable commands
 	for _, v := range commands {
 		switch v {
@@ -190,13 +207,6 @@ func main() {
 		case "disable-devtool":
 			cmd.SetDevTool(false)
 			restartSpotify()
-
-		case "watch":
-			if extensionFocus {
-				cmd.WatchExtensions(liveUpdate)
-			} else {
-				cmd.Watch(liveUpdate)
-			}
 
 		case "restart":
 			cmd.RestartSpotify()
