@@ -2,10 +2,13 @@
 /// <reference types="react" />
 
 /** @type {React} */
-const react = Spicetify.React;
-const reactDOM = Spicetify.ReactDOM;
-const { URI, PlaybackControl } = Spicetify;
-const { History } = Spicetify.Platform;
+const {
+    URI,
+    React: react,
+    React: { useState, useEffect, useCallback },
+    ReactDOM: reactDOM,
+    Platform: { History },
+} = Spicetify;
 
 // Define a function called "render" to specify app entry point
 // This function will be used to mount app to main view.
@@ -20,7 +23,7 @@ const CONFIG = {
         followers: localStorage.getItem("reddit:followers") === "true",
         longDescription: localStorage.getItem("reddit:longDescription") === "true",
     },
-    services: localStorage.getItem("reddit:services") || `["spotify", "edm", "popheads"]`,
+    services: localStorage.getItem("reddit:services") || `["spotify","makemeaplaylist","SpotifyPlaylists","music","edm","popheads"]`,
     lastService: localStorage.getItem("reddit:last-service"),
 };
 
@@ -30,13 +33,12 @@ try {
         throw "";
     }
 } catch {
-    CONFIG.services = ["spotify", "edm", "popheads"];
+    CONFIG.services = ["spotify", "makemeaplaylist", "SpotifyPlaylists", "music", "edm", "popheads"];
     localStorage.setItem("reddit:services", JSON.stringify(CONFIG.services));
 }
 
-let section = CONFIG.lastService;
-if (!section || !CONFIG.services.includes(section)) {
-    section = CONFIG.services[0];
+if (!CONFIG.lastService || !CONFIG.services.includes(CONFIG.lastService)) {
+    CONFIG.lastService = CONFIG.services[0];
 }
 let sortConfig = {
     by: localStorage.getItem("reddit:sort-by") || "top",
@@ -114,8 +116,8 @@ class Grid extends react.Component {
 
     switchTo(event) {
         event.preventDefault();
-        section = event.target.innerText;
-        localStorage.setItem("reddit:last-service", section);
+        CONFIG.lastService = event.target.value || event.target.innerText;
+        localStorage.setItem("reddit:last-service", CONFIG.lastService);
         cardList = [];
         requestAfter = null;
         this.setState({
@@ -220,11 +222,8 @@ class Grid extends react.Component {
             className: "contentSpacing"
         }, react.createElement("div", {
             className: "reddit-header"
-        }, react.createElement(TabBar, {
-            list: this.state.tabs,
-            switchTo: this.switchTo.bind(this),
-            itemActive: section,
-        }), react.createElement(SortBox, {
+        }, react.createElement("h1", null, this.props.title), 
+        react.createElement(SortBox, {
             onChange: this.updateSort.bind(this),
             onServicesChange: this.updateTabs.bind(this),
         })), react.createElement("div", {
@@ -239,13 +238,17 @@ class Grid extends react.Component {
                 textAlign: "center",
             }
         }, !this.state.endOfList && (this.state.rest ? react.createElement(LoadMoreIcon, { onClick: this.loadMore.bind(this) }) : react.createElement(LoadingIcon))
-        ));
+        ), react.createElement(TopBarContent, {
+            switchCallback: this.switchTo.bind(this),
+            links: CONFIG.services,
+            activeLink: CONFIG.lastService,
+        }));
     }
 }
 
 async function getSubreddit(after = '') {
     // www is needed or it will block with "cross-origin" error.
-    var url = `https://www.reddit.com/r/${section}/${sortConfig.by}.json?limit=100&count=10&raw_json=1`
+    var url = `https://www.reddit.com/r/${CONFIG.lastService}/${sortConfig.by}.json?limit=100&count=10&raw_json=1`
     if (after) {
         url += `&after=${after}`
     }

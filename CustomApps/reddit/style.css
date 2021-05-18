@@ -37,18 +37,27 @@ button.switch.small {
     height: 22px;
     padding: 6px;
 }
-select {
-    color: rgba(var(--modspotify_rgb_main_fg),.7);
-    background: var(--modspotify_scrollbar_fg_and_selected_row_bg);
+.reddit-sort-container select {
+    color: rgba(var(--modspotify_rgb_main_fg), 0.7);
     border: 0;
     height: 32px;
+    margin-left: 8px;
+    padding: 0 8px 0 12px;
+    border-radius: 4px;
+    background-color: initial;
 }
-input {
+.reddit-sort-container select:hover {
+    color: rgba(var(--modspotify_rgb_main_fg), 1);
+}
+#reddit-config-container input {
     width: 100%;
     margin-top: 10px;
     padding: 0 5px;
     height: 32px;
     border: 0;
+    color: var(--modspotify_main_fg);
+    background-color: initial;
+    border-bottom: 1px solid var(--modspotify_main_fg);
 }
 
 option {
@@ -76,15 +85,6 @@ option {
     display: flex;
 }
 
-#reddit-sort-by, #reddit-sort-time {
-    height: 32px;
-    margin-left: 8px;
-    padding: 0 8px 0 12px;
-    border-radius: 4px;
-    background-color: initial;
-    text-align: right;
-}
-
 .reddit-tabBar-headerItem {
     display: inline-block;
 }
@@ -110,6 +110,30 @@ option {
 
 .reddit-tabBar-nav {
     width: 100%;
+}
+
+.reddit-tabBar-headerItemLink select {
+    color: var(--modspotify_main_fg);
+    border: 0;
+    border-radius: 4px;
+    max-width: 150px;
+    height: 42px;
+    margin-left: 8px;
+    padding: 0 30px 0 12px;
+    background-color: initial;
+    cursor: pointer;
+    appearance: none;
+}
+
+.reddit-tabBar-headerItemLink svg {
+    position: absolute;
+    height: 42px;
+    right: 10px;
+    pointer-events: none;
+}
+
+div.reddit-tabBar-headerItemLink {
+    padding: 0;
 }
 
 .reddit-cardSubHeader {

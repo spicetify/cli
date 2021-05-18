@@ -15,7 +15,7 @@ class SortBox extends react.Component {
                 __html: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.edit}</svg>`,
             },
         }), react.createElement("select", {
-            className: "main-type-mesto",
+            className: "main-type-mestoBold",
             id: "reddit-sort-by",
             onChange: () => {
                 this.props.onChange();
@@ -34,7 +34,7 @@ class SortBox extends react.Component {
             value: "controversial"
         }, "Controversial")), !!sortConfig.by.match(/top|controversial/) &&
         react.createElement("select", {
-            className: "main-type-mesto",
+            className: "main-type-mestoBold",
             id: "reddit-sort-time",
             onChange: this.props.onChange,
             value: sortConfig.time,

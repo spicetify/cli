@@ -59,7 +59,7 @@ function openConfig(event) {
         }
         
         localStorage.setItem(
-            "reddit:services-order",
+            "reddit:services",
             JSON.stringify(CONFIG.services)
         );
 
@@ -114,7 +114,7 @@ function openConfig(event) {
         optionHeader,
         createSlider("Upvotes count", "upvotes"),
         createSlider("Followers count", "followers"),
-        createSlider("Post type (PLAYLIST, TRACK,...)", "type"),
+        createSlider("Post type", "type"),
         createSlider("Long description", "longDescription"),
         serviceHeader,
         serviceContainer,
