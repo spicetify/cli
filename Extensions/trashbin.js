@@ -7,7 +7,9 @@
 /// <reference path="../globals.d.ts" />
 
 (function TrashBin() {
-    if (!Spicetify.Player.data || !Spicetify.LocalStorage) {
+    const skipBackBtn = document.querySelector(".main-skipBackButton-button");
+
+    if (!Spicetify.Player.data || !Spicetify.LocalStorage || !skipBackBtn) {
         setTimeout(TrashBin, 1000);
         return;
     }
@@ -28,9 +30,7 @@
 
     // Tracking when users hit previous button.
     // By doing that, user can return to thrown song to take it out of trashbin.
-    document
-        .querySelector(".main-skipBackButton-button")
-        .addEventListener("click", () => (userHitBack = true));
+    skipBackBtn.addEventListener("click", () => (userHitBack = true));
 
     Spicetify.Player.addEventListener("songchange", watchChange);
 
