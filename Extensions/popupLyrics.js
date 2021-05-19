@@ -820,8 +820,8 @@ button.switch {
     align-items: center;
     border: 0px;
     border-radius: 50%;
-    background-color: rgba(var(--modspotify_rgb_main_fg),0.1);
-    color: var(--modspotify_main_fg);
+    background-color: rgba(var(--spice-rgb-shadow), .7);
+    color: var(--spice-text);
     cursor: pointer;
     display: flex;
     margin-inline-start: 12px;
@@ -829,20 +829,20 @@ button.switch {
 }
 button.switch.disabled,
 button.switch[disabled] {
-    color: rgba(var(--modspotify_rgb_main_fg), 0.3);
+    color: rgba(var(--spice-rgb-text), .3);
 }
 button.switch.small {
     width: 22px;
     height: 22px;
     padding: 6px;
 }
-select {
-    color: rgba(var(--modspotify_rgb_main_fg),.7);
-    background: var(--modspotify_scrollbar_fg_and_selected_row_bg);
+#popup-config-container select {
+    color: var(--spice-text);
+    background: rgba(var(--spice-rgb-shadow), .7);
     border: 0;
     height: 32px;
 }
-input {
+#popup-config-container input {
     width: 100%;
     margin-top: 10px;
     padding: 0 5px;

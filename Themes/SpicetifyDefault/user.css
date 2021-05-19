@@ -64,11 +64,6 @@ span.artist-artistVerifiedBadge-badge svg:nth-child(1) {
     fill: black;
 }
 
-/* 
-.main-navBar-navBarLinkActive {
-    background-color: rgba(var(--modspotify_rgb_indicator_fg_and_button_bg),1);
-} */
-
 /* Full window artist background */
 .main-entityHeader-background.main-entityHeader-gradient {
     opacity: 0.3;

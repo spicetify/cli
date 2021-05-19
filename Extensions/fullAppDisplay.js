@@ -575,15 +575,15 @@ button.switch {
     align-items: center;
     border: 0px;
     border-radius: 50%;
-    background-color: rgba(var(--modspotify_rgb_main_fg),0.1);
-    color: var(--modspotify_main_fg);
+    background-color: rgba(var(--spice-rgb-shadow), .7);
+    color: var(--spice-text);
     cursor: pointer;
     display: flex;
     margin-inline-start: 12px;
     padding: 8px;
 }
 button.switch.disabled {
-    color: rgba(var(--modspotify_rgb_main_fg), 0.3);
+    color: rgba(var(--spice-rgb-text), .3);
 }`;
 
             configContainer.append(
