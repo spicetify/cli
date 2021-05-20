@@ -25,7 +25,10 @@ Supports Windows, MacOS and Linux.
 #### [Custom Apps](https://github.com/khanhas/spicetify-cli/wiki/Custom-Apps)
 #### [Wiki](https://github.com/khanhas/spicetify-cli/wiki)
 
-# Legacy Spotify
+
+<details>
+  <summary><strong>Legacy Spotify Instructions</strong></summary>
+
 If you wish to use old Spotify client v1.1.56 or older, you have to install spicetify v1.2.1. To install older release, please use install script to download pre-built package and specify version:
 
 **Windows**: In powershell
@@ -40,3 +43,5 @@ sh /tmp/install.sh 1.2.1
 ```
 
 spicetify v1 code is available in branch [`legacy`](https://github.com/khanhas/spicetify-cli/tree/legacy) if you want to build from source.
+  
+</details>
