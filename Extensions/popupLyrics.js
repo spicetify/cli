@@ -274,18 +274,18 @@ function PopupLyrics() {
             netease: {
                 on: boolLocalStorage("popup-lyrics:services:netease:on"),
                 call: LyricProviders.fetchNetease,
-                desc: `Crowd sourced lyrics provider running by Chinese developers and users.`,
+                desc: `Crowdsourced lyrics provider ran by Chinese developers and users.`,
             },
             musixmatch: {
                 on: boolLocalStorage("popup-lyrics:services:musixmatch:on"),
                 call: LyricProviders.fetchMusixmatch,
-                desc: `Fully compatible with Spotify. Require a token that can be retrieved from Musixmatch offical app. Follow instructions on <a href="https://github.com/khanhas/spicetify-cli/wiki/Musixmatch-Token">spicetify Wiki</a>.`,
+                desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://github.com/khanhas/spicetify-cli/wiki/Musixmatch-Token">spicetify Wiki</a>.`,
                 token: LocalStorage.get("popup-lyrics:services:musixmatch:token") || "2005218b74f939209bda92cb633c7380612e14cb7fe92dcd6a780f",
             },
             spotify: {
                 on: boolLocalStorage("popup-lyrics:services:spotify:on"),
                 call: LyricProviders.fetchSpotify,
-                desc: `Lyrics are offically provided by Spotify. Only available for some regions/countries' users (e.g Japan, Vietnam, Thailand).`,
+                desc: `Lyrics officially provided by Spotify. Only available for some regions/countries' users (e.g., Japan, Vietnam, Thailand).`,
             },
         },
         servicesOrder: [],
