@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -37,64 +39,28 @@ type jsMap struct {
 func Start(extractedAppsPath string, flags Flag, callback func(appName string)) {
 	appPath := filepath.Join(extractedAppsPath, "xpui")
 	var cssTranslationMap = make(map[string]string)
-	re := regexp.MustCompile(`"(\w+?)":"(_?\w+?-scss)"`)
+	// readSourceMapAndGenerateCSSMap(appPath)
 
-	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
-		extension := filepath.Ext(info.Name())
-
-		switch extension {
-		case ".map":
-			fileName := strings.Replace(info.Name(), ".js.map", "", 1)
-			isNumber, _ := regexp.MatchString(`\d+`, fileName)
-
-			if isNumber {
-				fileName = "x"
-			} else if fileName == "vendor~xpui" {
-				fileName = "vendor"
-			} else if fileName == "xpui" {
-				fileName = "main"
-			} else {
-				fileName = strings.Replace(fileName, "xpui-routes-", "", 1)
-				fileName = strings.Replace(fileName, "xpui-desktop-", "desktop", 1)
-				fileName = strings.Replace(fileName, "xpui-desktop-routes-", "desktop", 1)
-			}
-
-			raw, err := ioutil.ReadFile(path)
+	var cssMapURL string = "https://gist.githubusercontent.com/khanhas/a8de7825cc3bbcfd26c499734788e0fe/raw/fd6f14771960f157c3cd04bac1acf4171fdd81c7/css-map.json"
+	cssMapResp, err := http.Get(cssMapURL)
+	if err != nil {
+		utils.PrintInfo("Cannot fetch remote CSS map. Using local CSS map instead...")
+		cssMapLocalPath := path.Join(utils.GetExecutableDir(), "css-map.json")
+		cssMapContent, err := os.ReadFile(cssMapLocalPath)
+		if err != nil {
+			utils.PrintWarning("Cannot read local CSS map either.")
+		} else {
+			err = json.Unmarshal(cssMapContent, &cssTranslationMap)
 			if err != nil {
-				return err
-			}
-			var symbolMap jsMap
-			if err = json.Unmarshal(raw, &symbolMap); err != nil {
-				return err
-			}
-			for index, content := range symbolMap.SourcesContent {
-				if strings.HasPrefix(content, `// extracted by mini-css`) {
-					matches := re.FindAllStringSubmatch(string(content), -1)
-					if len(matches) == 0 {
-						continue
-					}
-
-					source := filepath.Base(symbolMap.Sources[index])
-					source = strings.Replace(source, ".scss", "", 1)
-					// Lower first letter
-					temp := []rune(source)
-					temp[0] = unicode.ToLower(temp[0])
-					source = fileName + "-" + string(temp)
-
-					for _, m := range matches {
-						className := source + "-" + m[1]
-						savedClassLen := len(cssTranslationMap[m[2]])
-						if savedClassLen > 0 && savedClassLen < len(className) {
-							continue
-						}
-						cssTranslationMap[m[2]] = className
-					}
-				}
+				utils.PrintWarning("Local CSS map JSON malformed.")
 			}
 		}
-
-		return nil
-	})
+	} else {
+		err := json.NewDecoder(cssMapResp.Body).Decode(&cssTranslationMap)
+		if err != nil {
+			utils.PrintWarning("Remote CSS map JSON malformed.")
+		}
+	}
 
 	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
 		fileName := info.Name()
@@ -350,6 +316,21 @@ func exposeAPIs_main(input string) string {
 		}
 	}
 
+	// Profile Menu hook v1.1.56
+	utils.Replace(
+		&input,
+		`\{listItems:\w+,icons:\w+,onOutsideClick:(\w+)\}=\w+;`,
+		`${0};
+Spicetify.React.useEffect(() => {
+	const container = document.querySelector(".main-userWidget-dropDownMenu")?.parentElement;
+	if (!container) {
+		console.error("Profile Menu Hook v1.1.56 failed");
+		return;
+	}
+	container._tippy = { props: { onClickOutside: ${1} }};
+	Spicetify.Menu._addItems(container);
+}, []);`)
+
 	return input
 }
 
@@ -417,4 +398,73 @@ func fakeZLink(dest string) {
 
 func disableUpgradeCheck(input, appName string) string {
 	return input
+}
+
+func readSourceMapAndGenerateCSSMap(appPath string) {
+	var cssTranslationMap = make(map[string]string)
+	re := regexp.MustCompile(`"(\w+?)":"(_?\w+?-scss)"`)
+
+	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
+		extension := filepath.Ext(info.Name())
+
+		switch extension {
+		case ".map":
+			fileName := strings.Replace(info.Name(), ".js.map", "", 1)
+			isNumber, _ := regexp.MatchString(`\d+`, fileName)
+
+			if isNumber {
+				fileName = "x"
+			} else if fileName == "vendor~xpui" {
+				fileName = "vendor"
+			} else if fileName == "xpui" {
+				fileName = "main"
+			} else {
+				fileName = strings.Replace(fileName, "xpui-routes-", "", 1)
+				fileName = strings.Replace(fileName, "xpui-desktop-", "desktop", 1)
+				fileName = strings.Replace(fileName, "xpui-desktop-routes-", "desktop", 1)
+			}
+
+			raw, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			var symbolMap jsMap
+			if err = json.Unmarshal(raw, &symbolMap); err != nil {
+				return err
+			}
+			for index, content := range symbolMap.SourcesContent {
+				if strings.HasPrefix(content, `// extracted by mini-css`) {
+					matches := re.FindAllStringSubmatch(string(content), -1)
+					if len(matches) == 0 {
+						continue
+					}
+
+					source := filepath.Base(symbolMap.Sources[index])
+					source = strings.Replace(source, ".scss", "", 1)
+					// Lower first letter
+					temp := []rune(source)
+					temp[0] = unicode.ToLower(temp[0])
+					source = fileName + "-" + string(temp)
+
+					for _, m := range matches {
+						className := source + "-" + m[1]
+						savedClassLen := len(cssTranslationMap[m[2]])
+						if savedClassLen > 0 && savedClassLen < len(className) {
+							continue
+						}
+						cssTranslationMap[m[2]] = className
+					}
+				}
+			}
+		}
+
+		return nil
+	})
+
+	cssMapJson, err := json.MarshalIndent(cssTranslationMap, "", "    ")
+	if err == nil {
+		os.WriteFile("css-map.json", cssMapJson, 777)
+	} else {
+		println("CSS Map generator failed")
+	}
 }

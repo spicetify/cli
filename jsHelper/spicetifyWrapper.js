@@ -563,7 +563,7 @@ Spicetify.Menu = (function() {
             htmlItem.onclick = () => {
                 item.element = undefined;
                 item.onClick();
-                instance._tippy.props.onClickOutside();
+                instance._tippy?.props?.onClickOutside();
             };
             item.element = htmlItem;
             list.prepend(htmlItem);
@@ -755,8 +755,12 @@ Spicetify.ContextMenu = (function () {
     function _addItems(instance) {
         const list = instance.querySelector("ul");
         const container = instance.firstChild;
-        const reactEH = Object.values(container)[1]; // __reactEventHandlers
-        const props = reactEH.children.props;
+        const reactEH = Object.values(container)[1];
+        let props = reactEH?.children?.props;
+        if (!props) { // v1.1.56
+            reactII = Object.values(container)[0];
+            props = reactII.pendingProps.children.props;
+        }
 
         let uris = [];
         if (props.uris) {
