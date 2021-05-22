@@ -1,0 +1,91 @@
+.setting-row::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+.setting-row .col {
+    display: flex;
+    padding: 10px 0;
+    align-items: center;
+}
+.setting-row .col.description {
+    float: left;
+    padding-right: 15px;
+    cursor: default;
+}
+.setting-row .col.action {
+    float: right;
+    text-align: right;
+}
+button.switch {
+    align-items: center;
+    border: 0px;
+    border-radius: 50%;
+    background-color: rgba(var(--spice-rgb-shadow), .7);
+    color: var(--spice-text);
+    cursor: pointer;
+    display: flex;
+    margin-inline-start: 12px;
+    padding: 8px;
+}
+button.switch.disabled,
+button.switch[disabled] {
+    color: rgba(var(--spice-rgb-text), .3);
+}
+button.switch.small {
+    width: 22px;
+    height: 22px;
+    padding: 6px;
+}
+.new-releases-sort-container select {
+    color: rgba(var(--spice-rgb-text), .7);
+    border: 0;
+    height: 32px;
+    margin-left: 8px;
+    padding: 0 8px 0 12px;
+    border-radius: 4px;
+    background-color: initial;
+}
+.new-releases-sort-container select:hover {
+    color: var(--spice-text);
+}
+#new-releases-config-container input {
+    width: 100%;
+    margin-top: 10px;
+    padding: 0 5px;
+    height: 32px;
+    border: 0;
+    color: var(--spice-text);
+    background-color: initial;
+    border-bottom: 1px solid var(--spice-text);
+}
+
+option {
+    background-color: var(--spice-button);
+}
+
+.new-releases-header {
+    -webkit-box-pack: justify;
+    -webkit-box-align: center;
+    align-content: space-between;
+    align-items: center;
+    color: var(--spice-text);
+    display: flex;
+    justify-content: space-between;
+    margin: 16px 0;
+}
+
+.new-releases-sort-bar {
+    align-items: center;
+    display: flex;
+}
+
+.new-releases-sort-container {
+    position: relative;
+    display: flex;
+}
+
+.new-releases-cardSubHeader {
+    color: var(--spice-subtext);
+}
+
