@@ -31,7 +31,8 @@ const ProviderGenius = (function () {
 
         // Authors annotations
         if (response.referent && response.referent.classification == "verified") {
-            const referents = await CosmosAsync.get(`https://genius.com/api/referents/${id}`);
+            const referentsBody = await CosmosAsync.get(`https://genius.com/api/referents/${id}`);
+            const referents = referentsBody.response;
             for (const ref of referents.referent.annotations) {
                 note += getChildDeep(ref.body.dom);
             }
