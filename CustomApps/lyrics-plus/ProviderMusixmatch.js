@@ -1,0 +1,76 @@
+const ProviderMusixmatch = (function () {
+    const headers = {
+        authority: "apic-desktop.musixmatch.com",
+        cookie: "x-mxm-token-guid=",
+    };
+
+    async function findLyrics(info) {
+        const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
+
+        const durr = info.duration / 1000;
+        const tokens = CONFIG.services.musixmatch.token.split("|");
+        const usertoken = tokens[Math.floor(Math.random() * tokens.length)]
+
+        const params = {
+            q_album: info.album,
+            q_artist: info.artist,
+            q_artists: info.artist,
+            q_track: info.title,
+            track_spotify_id: info.uri,
+            q_duration: durr,
+            f_subtitle_length: Math.floor(durr),
+            usertoken,
+        };
+
+        const finalURL = baseURL + Object.keys(params)
+            .map(key => key + "=" + encodeURIComponent(params[key]))
+            .join("&");
+
+        let body = await CosmosAsync.get(finalURL, null, headers);
+        console.log("body", body)
+
+        body = body.message.body.macro_calls;
+
+        if (body["matcher.track.get"].message.header.status_code !== 200) {
+            return {
+                error: `Requested error: ${body["matcher.track.get"].message.header.mode}`,
+                uri: info.uri,
+            };
+        }
+
+        return body;
+    }
+
+    function getSynced(body) {
+        const meta = body["matcher.track.get"].message.body;
+        const hasSynced = meta.track.has_subtitles;
+
+        if (hasSynced) {
+            const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
+
+            return JSON.parse(subtitle.subtitle_body)
+                .map(line => ({
+                    text: line.text || "⋯",
+                    startTime: line.time.total * 1000,
+                }));
+        }
+
+        return null;
+    }
+
+    function getUnsynced(body) {
+        const meta = body["matcher.track.get"].message.body;
+        const hasUnSynced = meta.track.has_lyrics || meta.track.has_lyrics_crowd;
+
+        if (hasUnSynced) {
+            return body["track.lyrics.get"]
+                .message.body.lyrics.lyrics_bod
+                .split("\n")
+                .map(text => { text });
+        }
+
+        return null;
+    }
+
+    return { findLyrics, getKaraoke: getSynced, getSynced, getUnsynced };
+})();
