@@ -311,37 +311,35 @@ body.video-full-screen.video-full-screen--hide-ui {
         "fad-activated"
     ]
 
+    
+    function prepareTitle(rawTitle) {
+        if (CONFIG.trimTitle) {
+            rawTitle = rawTitle
+            .replace(/\(.+?\)/g, "")
+            .replace(/\[.+?\]/g, "")
+            .replace(/\s\-\s.+?$/, "")
+            .trim()
+        }
+        return rawTitle
+    }
+    
+    function prepareArtist(meta) {
+        if (CONFIG.showAllArtists) {
+            return Object.keys(meta)
+            .filter(key => key.startsWith('artist_name'))
+            .sort()
+            .map(key => meta[key])
+            .join(', ')
+        } else {
+            return meta.artist_name
+        }
+    }
+
     function getAlbumInfo(uri) {
         return Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${uri}/desktop`)
     }
 
-    async function updateInfo() {
-        const meta = Spicetify.Player.data.track.metadata
-
-        // prepare title
-        let rawTitle = meta.title
-        if (CONFIG.trimTitle) {
-            rawTitle = rawTitle
-                .replace(/\(.+?\)/g, "")
-                .replace(/\[.+?\]/g, "")
-                .replace(/\s\-\s.+?$/, "")
-                .trim()
-        }
-
-        // prepare artist
-        let artistName
-        if (CONFIG.showAllArtists) {
-            artistName = Object.keys(meta)
-                .filter(key => key.startsWith('artist_name'))
-                .sort()
-                .map(key => meta[key])
-                .join(', ')
-        } else {
-            artistName = meta.artist_name
-        }
-
-        // prepare album
-        let albumText
+    async function prepareAlbum(meta) {
         if (CONFIG.showAlbum) {
             const albumURI = meta.album_uri
             const albumInfo = await getAlbumInfo(albumURI.replace("spotify:album:", ""))
@@ -359,37 +357,17 @@ body.video-full-screen.video-full-screen--hide-ui {
                 }
             )
 
-            albumText = meta.album_title + " • " + dateStr
-        }
-
-        // prepare duration
-        let durationText
-        if (CONFIG.enableProgress) {
-            durationText = Spicetify.Player.formatTime(meta.duration)
-        }
-
-        // Wait until next track image is downloaded then update UI text and images
-        const previouseImg = nextTrackImg.cloneNode()
-        nextTrackImg.src = meta.image_xlarge_url
-        nextTrackImg.onload = () => {
-            const bgImage = `url("${meta.image_xlarge_url}")`
-
-            animateCanvas(previouseImg, nextTrackImg)
-
-            cover.style.backgroundImage = bgImage
-
-            title.innerText = rawTitle || ""
-            artist.innerText = artistName || ""
-            if (album) {
-                album.innerText = albumText || ""
-            }
-            if (durr) {
-                durr.innerText = durationText || ""
-            }
+            return meta.album_title + " • " + dateStr
         }
     }
 
-    function animateCanvas(prevImg, nextImg) {
+    function prepareDuration(meta) {
+        if (CONFIG.enableProgress) {
+            return Spicetify.Player.formatTime(meta.duration)
+        }
+    }
+
+    function updateCanvas(prevImg, nextImg, animCover) {
         const { innerWidth: width, innerHeight: height } = window
         back.width = width
         back.height = height
@@ -400,7 +378,7 @@ body.video-full-screen.video-full-screen--hide-ui {
         ctx.filter = `blur(30px) brightness(0.6)`
         const blur = 30
         
-        if (!CONFIG.enableFade) {
+        if (!animCover) {
             ctx.globalAlpha = 1
             ctx.drawImage(
                 nextImg, 
@@ -440,6 +418,84 @@ body.video-full-screen.video-full-screen--hide-ui {
         requestAnimationFrame(animate);
     }
 
+    async function initInfo() {
+        const meta = Spicetify.Player.data.track.metadata
+        
+        // Set the cover url before updating the background to prevent its animation
+        const bgImage = `url("${meta.image_xlarge_url}")`
+        cover.style.backgroundImage = bgImage
+
+        // prepare title
+        let rawTitle = prepareTitle(meta.title)
+
+        // prepare artist
+        let artistName = prepareArtist(meta)
+
+        // prepare album
+        let albumText = await prepareAlbum(meta)
+
+        // prepare duration
+        let durationText = prepareDuration(meta)
+        
+
+        
+        // Wait until next track image is downloaded then update UI text and images
+        const previouseImg = nextTrackImg.cloneNode()
+        nextTrackImg.src = meta.image_xlarge_url
+        nextTrackImg.onload = () => {
+
+            // Force no fade for (re)opening of the extension
+            updateCanvas(previouseImg, nextTrackImg, false)
+            
+            title.innerText = rawTitle || ""
+            artist.innerText = artistName || ""
+            if (album) {
+                album.innerText = albumText || ""
+            }
+            if (durr) {
+                durr.innerText = durationText || ""
+            }
+        }
+    }
+
+    async function updateInfo() {
+        const meta = Spicetify.Player.data.track.metadata
+
+        // prepare title
+        let rawTitle = prepareTitle(meta.title)
+
+        // prepare artist
+        let artistName = prepareArtist(meta)
+
+        // prepare album
+        let albumText = await prepareAlbum(meta)
+
+        // prepare duration
+        let durationText = prepareDuration(meta)
+        
+
+        
+        // Wait until next track image is downloaded then update UI text and images
+        const previouseImg = nextTrackImg.cloneNode()
+        nextTrackImg.src = meta.image_xlarge_url
+        nextTrackImg.onload = () => {
+
+            const bgImage = `url("${meta.image_xlarge_url}")`
+            cover.style.backgroundImage = bgImage
+
+            updateCanvas(previouseImg, nextTrackImg, CONFIG.enableFade)
+
+            title.innerText = rawTitle || ""
+            artist.innerText = artistName || ""
+            if (album) {
+                album.innerText = albumText || ""
+            }
+            if (durr) {
+                durr.innerText = durationText || ""
+            }
+        }
+    }
+
     function updateProgress() {
         prog.style.width = Spicetify.Player.getProgressPercent() * 100 + "%"
         elaps.innerText = Spicetify.Player.formatTime(Spicetify.Player.getProgress())
@@ -454,7 +510,7 @@ body.video-full-screen.video-full-screen--hide-ui {
     }
 
     function activate() {
-        updateInfo()
+        initInfo()
         Spicetify.Player.addEventListener("songchange", updateInfo)
         if (CONFIG.enableProgress) {
             updateProgress()
