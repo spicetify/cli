@@ -188,10 +188,14 @@ class SearchBar extends react.Component {
             if (!this.state.foundNodes.length) {
                 return;
             }
-    
+            console.log(event);
             if (event.key === "Enter") {
                 const dir = event.shiftKey ? -1 : 1;
-                const atNode = (this.state.atNode + dir) % (this.state.foundNodes.length);
+                let atNode = (this.state.atNode + dir);
+                if (atNode < 0) {
+                    atNode =  this.state.foundNodes.length - 1;
+                }
+                atNode %= this.state.foundNodes.length
                 const rects = this.state.foundNodes[atNode].getBoundingClientRect();
                 this.viewPort.scrollBy(0, rects.y - 100);
                 this.setState({ atNode })
@@ -201,6 +205,7 @@ class SearchBar extends react.Component {
         Spicetify.Mousetrap().bind("mod+shift+f", this.toggleCallback);
         Spicetify.Mousetrap(this.container).bind("mod+shift+f", this.toggleCallback);
         Spicetify.Mousetrap(this.container).bind("enter", this.loopThroughCallback);
+        Spicetify.Mousetrap(this.container).bind("shift+enter", this.loopThroughCallback);
         Spicetify.Mousetrap(this.container).bind("esc", this.unFocusCallback);
     }
 
@@ -208,6 +213,7 @@ class SearchBar extends react.Component {
         Spicetify.Mousetrap().unbind("mod+shift+f", this.toggleCallback);
         Spicetify.Mousetrap(this.container).unbind("mod+shift+f", this.toggleCallback);
         Spicetify.Mousetrap(this.container).unbind("enter", this.loopThroughCallback);
+        Spicetify.Mousetrap(this.container).unbind("shift+enter", this.loopThroughCallback);
         Spicetify.Mousetrap(this.container).unbind("esc", this.unFocusCallback);
     }
 

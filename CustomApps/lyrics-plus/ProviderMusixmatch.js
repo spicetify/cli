@@ -27,7 +27,6 @@ const ProviderMusixmatch = (function () {
             .join("&");
 
         let body = await CosmosAsync.get(finalURL, null, headers);
-        console.log("body", body)
 
         body = body.message.body.macro_calls;
 
