@@ -6,18 +6,17 @@
   <a href="https://spectrum.chat/spicetify"><img src="https://withspectrum.github.io/badge/badge.svg"></a>
 </p>
 
-<img src="https://i.imgur.com/7eiKd1k.png" alt="img" align="right" width="400px">  
-Command-line tool to customize Spotify client.
+Command-line tool to customize new Spotify client (v1.1.58 or later).
 Supports Windows, MacOS and Linux.
+
+<img src="https://user-images.githubusercontent.com/26436809/118751529-d0abcf00-b8a4-11eb-9876-8b15f930a691.png" alt="img" align="right" width="500px">  
 
 ### Features
 - Change colors whole UI
 - Inject CSS for advanced customization
 - Inject Extensions (Javascript script) to extend functionalities, manipulate UI and control player.
 - Inject Custom apps
-- Enable additional, hidden features
 - Remove bloated components to improve performance
-<img src="https://i.imgur.com/eLfNSqp.png" alt="img" align="right" width="400px">
 
 #### [Installation](https://github.com/khanhas/spicetify-cli/wiki/Installation)
 #### [Basic Usage](https://github.com/khanhas/spicetify-cli/wiki/Basic-Usage)
@@ -25,3 +24,19 @@ Supports Windows, MacOS and Linux.
 #### [Extensions](https://github.com/khanhas/spicetify-cli/wiki/Extensions)
 #### [Custom Apps](https://github.com/khanhas/spicetify-cli/wiki/Custom-Apps)
 #### [Wiki](https://github.com/khanhas/spicetify-cli/wiki)
+
+# Legacy Spotify
+If you wish to use old Spotify client v1.1.56 or older, you have to install spicetify v1.2.1. To install older release, please use install script to download pre-built package and specify version:
+
+**Windows**: In powershell
+```powershell
+$v="1.2.1"; Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/khanhas/spicetify-cli/master/install.ps1" | Invoke-Expression
+```
+
+**Linux/MacOS:** In bash
+```bash
+curl -fsSL https://raw.githubusercontent.com/khanhas/spicetify-cli/master/install.sh -o /tmp/install.sh
+sh /tmp/install.sh 1.2.1
+```
+
+spicetify v1 code is available in branch [`legacy`](https://github.com/khanhas/spicetify-cli/tree/legacy) if you want to build from source.
