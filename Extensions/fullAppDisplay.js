@@ -267,8 +267,8 @@ body.video-full-screen.video-full-screen--hide-ui {
                     <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
                         ${Spicetify.SVGIcons["skip-forward"]}
                     </svg>
-                </button>` : ""}
-            </div>
+                </button>
+            </div>` : ""}
             ${CONFIG.enableProgress ? `
             <div id="fad-progress-container">
                 <span id="fad-elapsed"></span>
