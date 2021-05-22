@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	version = "2.2.2"
+	version = "2.2.3"
 )
 
 var (
@@ -163,7 +163,7 @@ func main() {
 	switch commands[0] {
 	case "watch":
 		var name []string
-		if len(commands) >  1 {
+		if len(commands) > 1 {
 			name = commands[1:]
 		}
 		if extensionFocus {

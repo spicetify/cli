@@ -41,7 +41,7 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 	var cssTranslationMap = make(map[string]string)
 	// readSourceMapAndGenerateCSSMap(appPath)
 
-	var cssMapURL string = "https://gist.githubusercontent.com/khanhas/a8de7825cc3bbcfd26c499734788e0fe/raw/fd6f14771960f157c3cd04bac1acf4171fdd81c7/css-map.json"
+	var cssMapURL string = "https://raw.githubusercontent.com/khanhas/spicetify-cli/master/css-map.json"
 	cssMapResp, err := http.Get(cssMapURL)
 	if err != nil {
 		utils.PrintInfo("Cannot fetch remote CSS map. Using local CSS map instead...")
