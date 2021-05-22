@@ -28,6 +28,7 @@ const CONFIG = {
     },
     podcast: getConfig("new-release:podcast", false),
     tracks: getConfig("new-release:tracks", true),
+    everything: getConfig("new-release:everything", true),
 };
 
 let gridList = [];
@@ -47,12 +48,11 @@ let seperatedByDate = {};
 let dateList = [];
 
 class Grid extends react.Component {
-    constructor(props) {
-        super(props);
-        Object.assign(this, props);
+    constructor() {
+        super();
         this.state = {
             cards: [],
-            rest: false,
+            rest: true,
         }
     }
 
@@ -73,7 +73,7 @@ class Grid extends react.Component {
         let items = [];
         if (CONFIG.tracks) {
             let tracks = await fetchTracks();
-            items.push(...tracks);
+            items.push(...(tracks.flat()));
         }
         if (CONFIG.podcast) {
             let episodes = await fetchPodcasts();
@@ -137,8 +137,8 @@ class Grid extends react.Component {
 }
 
 async function getArtistList() {
-    const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/artists/all");
-    return body.items;
+    const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/artists/all?responseFormat=protobufJson");
+    return body.item;
 }
 
 async function getArtistNewRelease(uri) {
@@ -146,9 +146,20 @@ async function getArtistNewRelease(uri) {
     return body.latest_release;
 }
 
+async function getArtistEverything(uri) {
+    const body = await CosmosAsync.get(`hm://artist/v3/${uri}/desktop/entity?format=json`);
+    const releases = body?.releases;
+    const items = [];
+    if (releases?.albums?.releases) items.push(...releases.albums.releases);
+    if (releases?.appears_on?.releases) items.push(...releases.appears_on.releases);
+    if (releases?.compilations?.releases) items.push(...releases.compilations.releases);
+    if (releases?.singles?.releases) items.push(...releases.singles.releases);
+    return items;
+}
+
 async function getPodcastList() {
-    const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/shows/all");
-    return body.items;
+    const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/shows/all?responseFormat=protobufJson");
+    return body.item;
 }
 
 async function getPodcastRelease(uri) {
@@ -156,37 +167,49 @@ async function getPodcastRelease(uri) {
     return body.items;
 }
 
+function metaFromTrack(artist, track) {
+    const time = new Date(track.year, track.month - 1, track.day)
+    if ((today - time.getTime()) < limitInMs) {
+        let type;
+        if (track.track_count <= 3) {
+            type = "Single"
+        } else if (track.track_count <= 6) {
+            type = "EP"
+        } else {
+            type = "Album"
+        }
+
+        return ({
+            uri: track.uri,
+            title: track.name,
+            artist,
+            imageURL: track.cover.uri,
+            time,
+            type,
+        })
+    }
+    return null;
+}
+
 async function fetchTracks() {
     let artistList = await getArtistList()
 
+    // TODO: obj.artistCollectionState.isFollowed
     // if (BUTTON.isFollowedOnly()) {
     //     artistList = artistList.filter(artist => artist.isFollowed)
     // }
 
-    const requests = artistList.map(async (artist) => {
+    const requests = artistList.map(async (obj) => {
+        const artist = obj.artistMetadata;
+
+        if (CONFIG.everything) {
+            const releases = await getArtistEverything(artist.link.replace("spotify:artist:", ""))
+            return releases.map(r => metaFromTrack(artist.name, r));
+        }
+
         const track = await getArtistNewRelease(artist.link.replace("spotify:artist:", ""))
         if (!track) return null
-
-        const time = new Date(track.year, track.month - 1, track.day)
-        if ((today - time.getTime()) < limitInMs) {
-            let type;
-            if (track.track_count <= 3) {
-                type = "Single"
-            } else if (track.track_count <= 6) {
-                type = "EP"
-            } else {
-                type = "Album"
-            }
-
-            return ({
-                uri: track.uri,
-                title: track.name,
-                artist: artist.name,
-                imageURL: track.cover.uri,
-                time,
-                type,
-            })
-        }
+        return metaFromTrack(artist.name, track);
     })
 
     return await Promise.all(requests)
@@ -194,7 +217,8 @@ async function fetchTracks() {
 
 async function fetchPodcasts() {
     const items = [];
-    for (const podcast of await getPodcastList()) {
+    for (const obj of await getPodcastList()) {
+        const podcast = obj.showMetadata;
         const id = podcast.link.replace("spotify:show:", "");
 
         const tracks = await getPodcastRelease(id);
