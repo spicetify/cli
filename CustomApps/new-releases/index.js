@@ -194,22 +194,22 @@ function metaFromTrack(artist, track) {
 async function fetchTracks() {
     let artistList = await getArtistList()
 
-    // TODO: obj.artistCollectionState.isFollowed
-    // if (BUTTON.isFollowedOnly()) {
-    //     artistList = artistList.filter(artist => artist.isFollowed)
-    // }
-
     const requests = artistList.map(async (obj) => {
         const artist = obj.artistMetadata;
+        var isfollowed = obj.artistCollectionState.followed;
 
-        if (CONFIG.everything) {
+	/*if (CONFIG.everything) {
             const releases = await getArtistEverything(artist.link.replace("spotify:artist:", ""))
             return releases.map(r => metaFromTrack(artist.name, r));
-        }
+        }*/
 
+        if (isfollowed) {
         const track = await getArtistNewRelease(artist.link.replace("spotify:artist:", ""))
-        if (!track) return null
+        if (!track) return null;
         return metaFromTrack(artist.name, track);
+        } else {
+	return null;
+	}
     })
 
     return await Promise.all(requests)
