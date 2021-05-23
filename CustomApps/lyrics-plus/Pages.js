@@ -356,7 +356,7 @@ const GeniusPage = react.memo(
             notes = {};
             const links = container.querySelectorAll("a");
             for (const link of links) {
-                ProviderGenius.getNote(link.pathname).then(note => {
+                ProviderGenius.getNote(link).then(note => {
                     notes[link.pathname] = note;
                     link.classList.add("fetched");
                 });

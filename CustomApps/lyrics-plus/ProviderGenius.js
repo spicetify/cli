@@ -19,12 +19,14 @@ const ProviderGenius = (function () {
         return acc.trim();
     }
 
-    async function getNote(link) {
-        let id = link.match(/\/(\d+)\//);
+    async function getNote(el) {
+        let id = el.pathname.match(/\/(\d+)\//);
         if (!id) {
-            id = link.match(/#note-(\d+)/);
+            id = el.dataset.id;
+        } else {
+            id = id[1];
         }
-        id = id[1];
+        
         const body = await CosmosAsync.get(`https://genius.com/api/annotations/${id}`);
         const response = body.response;
         let note = "";
