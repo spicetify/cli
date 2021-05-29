@@ -3,6 +3,25 @@ class Card extends react.Component {
         super(props);
         Object.assign(this, props);
         this.href = "/" + URI.from(this.uri).toURLPath();
+
+        const uriType = Spicetify.URI.fromString(this.uri)?.type;
+        switch (uriType) {
+            case Spicetify.URI.Type.ALBUM:
+            case Spicetify.URI.Type.TRACK:
+                this.menuType = Spicetify.ReactComponent.AlbumMenu;
+                break;
+            case Spicetify.URI.Type.ARTIST:
+                this.menuType = Spicetify.ReactComponent.ArtistMenu;
+                break;
+            case Spicetify.URI.Type.PLAYLIST:
+            case Spicetify.URI.Type.PLAYLIST_V2:
+                this.menuType = Spicetify.ReactComponent.PlaylistMenu;
+                break;
+            case Spicetify.URI.Type.SHOW:
+                this.menuType = Spicetify.ReactComponent.PodcastShowMenu;
+                break;
+        }
+        this.menuType = this.menuType || "div";
     }
 
     play(event) {
@@ -11,12 +30,40 @@ class Card extends react.Component {
         event.stopPropagation();
     }
 
+    getSubtitle() {
+        let subtitle;
+        if (this.type === "Album" || this.type === "Track") {
+            subtitle = this.subtitle.map((artist) => {
+                const artistHref = "/" + URI.from(artist.uri).toURLPath();
+                return react.createElement("a", {
+                    className: `main-type-mesto reddit-cardSubHeader`,
+                    href: artistHref,
+                    onClick: (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        History.push(artistHref);
+                    },
+                }, react.createElement("span", null, artist.name));
+            });
+            // Insert commas between elements
+            subtitle = subtitle.flatMap((el, i, arr) => (arr.length - 1) !== i ? [el, ", "] : el);
+        } else {
+            subtitle = react.createElement("div", {
+                className: `${this.visual.longDescription ? "reddit-longDescription " : ""}main-cardSubHeader-root main-type-mesto reddit-cardSubHeader`,
+                as: "div",
+            }, react.createElement("span", null, this.subtitle))
+        }
+        return subtitle;
+    }
+
     render() {
         let detail = [];
         this.visual.type && detail.push(this.type);
         this.visual.upvotes && detail.push(`▲ ${this.upvotes}`);
 
-        return react.createElement("div", {
+        return react.createElement(Spicetify.ReactComponent.RightClickMenu || "div", {
+            menu: react.createElement(this.menuType, { uri: this.uri, }),
+        }, react.createElement("div", {
             className: "main-card-card",
             onClick: (event) => {
                 History.push(this.href);
@@ -72,13 +119,7 @@ class Card extends react.Component {
             className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
             as: "div",
         }, react.createElement("span", null, `${this.followersCount} followers`)
-        ), react.createElement("div", {
-            // long: this.visual.longDescription,
-            className: `${this.visual.longDescription ? "reddit-longDescription " : ""}main-cardSubHeader-root main-type-mesto reddit-cardSubHeader`,
-            as: "div",
-        }, react.createElement("span", null, this.subtitle)),
-        ), react.createElement("div", {
-            className: "main-card-cardLink"
-        })));
+        ), this.getSubtitle(),
+        ))));
     }
 }

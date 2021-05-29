@@ -1,12 +1,14 @@
 // Run "npm i @type/react" to have this type package available in workspace
 /// <reference types="react" />
+/// <reference types="react-dom" />
 
 /** @type {React} */
+const react = Spicetify.React;
+/** @type {ReactDOM} */
+const reactDOM = Spicetify.ReactDOM;
 const {
     URI,
-    React: react,
     React: { useState, useEffect, useCallback },
-    ReactDOM: reactDOM,
     Platform: { History },
 } = Spicetify;
 
@@ -299,7 +301,7 @@ async function fetchAlbum(post) {
         type: "Album",
         uri: post.uri,
         title: metadata.name,
-        subtitle: metadata.artists.map(a => a.name).join(", "),
+        subtitle: metadata.artists,
         imageURL: metadata.cover.uri,
         upvotes: post.upvotes,
     });
@@ -312,7 +314,7 @@ async function fetchTrack(post) {
         type: "Track",
         uri: post.uri,
         title: metadata.name,
-        subtitle: metadata.artists.map(a => a.name).join(", "),
+        subtitle: metadata.artists,
         imageURL: metadata.album.images[0].url,
         upvotes: post.upvotes,
     });
