@@ -60,7 +60,7 @@ func Apply() {
 		utils.PrintGreen("OK")
 	}
 
-	if (preprocSection.Key("expose_apis").MustBool(false)) {
+	if preprocSection.Key("expose_apis").MustBool(false) {
 		utils.CopyFile(
 			filepath.Join(utils.GetJsHelperDir(), "spicetifyWrapper.js"),
 			filepath.Join(appDestPath, "xpui"))
@@ -71,8 +71,8 @@ func Apply() {
 
 	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appDestPath, apply.Flag{
-		Extension:            extentionList,
-		CustomApp:            customAppsList,
+		Extension: extentionList,
+		CustomApp: customAppsList,
 	})
 	utils.PrintGreen("OK")
 
@@ -123,6 +123,12 @@ func UpdateTheme() {
 	}
 }
 
+type spicetifyConfigJson struct {
+	ThemeName  string                       `json:"theme_name"`
+	SchemeName string                       `json:"scheme_name"`
+	Schemes    map[string]map[string]string `json:"schemes"`
+}
+
 func updateCSS() {
 	var scheme map[string]string = nil
 	if colorSection != nil {
@@ -133,6 +139,31 @@ func updateCSS() {
 		theme = ""
 	}
 	apply.UserCSS(appDestPath, theme, scheme)
+
+	var configJson spicetifyConfigJson
+	configJson.ThemeName = settingSection.Key("current_theme").MustString("")
+	configJson.SchemeName = settingSection.Key("color_scheme").MustString("")
+
+	colorsJson := make(map[string]map[string]string)
+	for _, section := range colorCfg.Sections() {
+		name := section.Name()
+		colorsJson[name] = make(map[string]string)
+
+		for _, key := range section.Keys() {
+			colorsJson[name][key.Name()] = key.MustString("")
+		}
+	}
+	configJson.Schemes = colorsJson
+
+	configJsonBytes, err := json.MarshalIndent(configJson, "", "    ")
+	if err != nil {
+		utils.PrintWarning("Cannot convert colors.ini to JSON")
+	} else {
+		os.WriteFile(
+			filepath.Join(appDestPath, "xpui", "spicetify-config.json"),
+			configJsonBytes,
+			0700)
+	}
 }
 
 func updateAssets() {
@@ -281,20 +312,20 @@ func pushApps(list ...string) {
 			utils.PrintError(`Custom app "` + app + `" does not have index.js`)
 			continue
 		}
-		
+
 		manifestFile := filepath.Join(customAppPath, "manifest.json")
 		manifestFileContent, err := os.ReadFile(manifestFile)
 		if err != nil {
 			manifestFileContent = []byte{'{', '}'}
 		}
 		os.WriteFile(
-			filepath.Join(appDestPath, "xpui", appName + ".json"), 
+			filepath.Join(appDestPath, "xpui", appName+".json"),
 			manifestFileContent,
 			0700)
 
 		var manifestJson appManifest
 		if err = json.Unmarshal(manifestFileContent, &manifestJson); err == nil {
-			for _, subfile := range(manifestJson.Files) {
+			for _, subfile := range manifestJson.Files {
 				subfilePath := filepath.Join(customAppPath, subfile)
 				subfileContent, err := os.ReadFile(subfilePath)
 				if err != nil {
@@ -314,7 +345,7 @@ func pushApps(list ...string) {
 			appName, appName, jsFileContent)
 
 		os.WriteFile(
-			filepath.Join(appDestPath, "xpui", appName + ".js"), 
+			filepath.Join(appDestPath, "xpui", appName+".js"),
 			[]byte(jsTemplate),
 			0700)
 
@@ -324,7 +355,7 @@ func pushApps(list ...string) {
 			cssFileContent = []byte{}
 		}
 		os.WriteFile(
-			filepath.Join(appDestPath, "xpui", appName + ".css"), 
+			filepath.Join(appDestPath, "xpui", appName+".css"),
 			[]byte(cssFileContent),
 			0700)
 	}
