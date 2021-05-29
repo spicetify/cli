@@ -25,12 +25,19 @@
         storage.STATE = !data.is_paused ? 1 : 2;
         storage.REPEAT = data.options.repeating_track ? 2 : (data.options.repeating_context ? 1 : 0);
         storage.SHUFFLE = data.options.shuffling_context ? 1 : 0;
-        storage.ARTIST = Spicetify.Platform.PlayerAPI.getState().item.subtitles.join(", ");
+        storage.ARTIST = meta.artist_name;
+        let artistCount = 1;
+        while (meta["artist_name:" + artistCount]) {
+            storage.ARTIST += ", " + meta["artist_name:" + artistCount];
+            artistCount++;
+        }
+        if (!storage.ARTIST) {
+            storage.ARTIST = meta.album_title; // Podcast
+        }
         Spicetify.Platform.LibraryAPI.contains(data.track.uri)
             .then(([added]) => storage.RATING = (added ? 5 : 0));
         
-        const images = Spicetify.Platform.PlayerAPI.getState().item.images;
-        const cover = images[images.length - 1].url;
+        const cover = meta.image_xlarge_url;
         if (cover?.indexOf("localfile") === -1) {
             storage.COVER = "https://i.scdn.co/image/" + cover.substring(cover.lastIndexOf(":") + 1);
         } else {
