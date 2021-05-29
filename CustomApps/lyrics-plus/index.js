@@ -4,7 +4,7 @@
 
 /** @type {React} */
 const react = Spicetify.React;
-const { useState, useEffect, useMemo, useRef } = react;
+const { useState, useEffect, useCallback, useMemo, useRef } = react;
 /** @type {import("react").ReactDOM} */
 const reactDOM = Spicetify.ReactDOM;
 
@@ -26,37 +26,43 @@ function getConfig(name, defaultVal = true) {
     return value ? value === "true" : defaultVal;
 }
 
+const APP_NAME = "lyrics-plus";
+
 // Modes enum
 const KARAOKE = 0, SYNCED = 1, UNSYNCED = 2, GENIUS = 3;
 
 const CONFIG = {
     visual: {
-        colorful: getConfig("lyrics-plus:colorful"),
+        colorful: getConfig("lyrics-plus:visual:colorful"),
+        ["background-color"]: localStorage.getItem("lyrics-plus:visual:background-color") || "var(--spice-main)",
+        ["active-color"]: localStorage.getItem("lyrics-plus:visual:active-color") || "var(--spice-text)",
+        ["inactive-color"]: localStorage.getItem("lyrics-plus:visual:inactive-color") || "var(--spice-subtext)",
+        ["highlight-color"]: localStorage.getItem("lyrics-plus:visual:highlight-color") || "var(--spice-button)",
     },
     providers: {
         netease: {
             on: getConfig("lyrics-plus:provider:netease:on"),
-            desc: `Crowd sourced lyrics provider running by Chinese developers and users.`,
+            desc: `Crowdsourced lyrics provider ran by Chinese developers and users.`,
             modes: [KARAOKE, SYNCED, UNSYNCED],
         },
         musixmatch: {
             on: getConfig("lyrics-plus:provider:musixmatch:on"),
-            desc: `Fully compatible with Spotify. Require a token that can be retrieved from Musixmatch offical app. Follow instructions on <a href="https://github.com/khanhas/spicetify-cli/wiki/Musixmatch-Token">spicetify Wiki</a>.`,
-            token: localStorage.getItem("popup-lyrics:services:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
+            desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://github.com/khanhas/spicetify-cli/wiki/Musixmatch-Token">spicetify Wiki</a>.`,
+            token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
             modes: [SYNCED, UNSYNCED],
         },
         spotify: {
             on: getConfig("lyrics-plus:provider:spotify:on"),
-            desc: `Lyrics are offically provided by Spotify. Only available for some regions/countries' users (e.g Japan, Vietnam, Thailand).`,
+            desc: `Lyrics officially provided by Spotify. Only available for some regions/countries' users (e.g., Japan, Vietnam, Thailand).`,
             modes: [SYNCED, UNSYNCED],
         },
         genius: {
             on: getConfig("lyrics-plus:provider:genius:on"),
-            desc: `Brilliant`,
+            desc: `Provide unsynced lyrics with insights from artists themselves.`,
             modes: [GENIUS],
         }
     },
-    providersOrder: [],
+    providersOrder: localStorage.getItem("lyrics-plus:services-order"),
     modes: ["karaoke", "synced", "unsynced", "genius"],
     locked: localStorage.getItem("lyrics-plus:lock-mode") || "-1",
 };
@@ -64,7 +70,7 @@ const CONFIG = {
 try {
     CONFIG.providersOrder = JSON.parse(CONFIG.providersOrder);
     if (
-        !Array.isArray(CONFIG.providers) ||
+        !Array.isArray(CONFIG.providersOrder) ||
         Object.keys(CONFIG.providers).length !== CONFIG.providersOrder.length
     ) {
         throw "";
@@ -85,6 +91,8 @@ const emptyState = {
     genius: null,
 };
 
+let lyricContainerUpdate;
+
 class LyricsContainer extends react.Component {
     constructor() {
         super();
@@ -103,6 +111,7 @@ class LyricsContainer extends react.Component {
             lockMode: CONFIG.locked,
             mode: -1,
             isLoading: false,
+            versionIndex: 0,
         };
         this.currentTrackUri = "";
         this.nextTrackUri = "";
@@ -140,11 +149,6 @@ class LyricsContainer extends react.Component {
         });
     }
 
-    async fetchAudio(uri) {
-        const audio = await Spicetify.getAudioData(uri);
-        console.log(audio)
-    }
-
     async tryServices(trackInfo, mode = -1) {
         for (const id of CONFIG.providersOrder) {
             const service = CONFIG.providers[id];
@@ -152,7 +156,7 @@ class LyricsContainer extends react.Component {
             if (mode !== -1 && !service.modes.includes(mode)) continue;
 
             const data = await Providers[id](trackInfo);
-            if (!data.error) {
+            if (!data.error && (data.karaoke || data.synced || data.unsynced || data.genius)) {
                 CACHE[data.uri] = data;
                 // In case user skips tracks too fast and multiple callbacks
                 // set wrong lyrics to current track.
@@ -162,7 +166,6 @@ class LyricsContainer extends react.Component {
             } else {
                 CACHE[data.uri] = { ...emptyState };
             }
-            return { ...emptyState };
         }
     }
 
@@ -173,7 +176,9 @@ class LyricsContainer extends react.Component {
             return;
         }
 
-        this.fetchColors(info.uri);
+        if (CONFIG.visual.colorful) {
+            this.fetchColors(info.uri);
+        }
 
         if (mode !== -1) {
             if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
@@ -190,6 +195,18 @@ class LyricsContainer extends react.Component {
         this.setState({ ...emptyState, isLoading: true });
         const resp = await this.tryServices(info, mode);
         this.setState({ ...resp, isLoading: false });
+    }
+
+    async onVersionChange(items, index) {
+        if (this.state.mode === GENIUS) {
+            this.setState({ ...emptyState, isLoading: true });
+            const lyrics = await ProviderGenius.fetchLyricsVersion(items, index);
+            this.setState({
+                genius: lyrics,
+                versionIndex: index,
+                isLoading: false
+            });
+        }
     }
 
     componentDidMount() {
@@ -213,6 +230,7 @@ class LyricsContainer extends react.Component {
         };
 
         Utils.addQueueListener(this.onQueueChange);
+        lyricContainerUpdate = this.forceUpdate.bind(this);
     }
 
     componentWillUnmount() {
@@ -220,11 +238,22 @@ class LyricsContainer extends react.Component {
     }
 
     render() {
-        const colorVariables = {
-            '--lyrics-color-active': "white",
-            '--lyrics-color-inactive': this.state.colors.inactive,
-            '--lyrics-color-background': this.state.colors.background || "black",
-        };
+        let colorVariables
+        if (!CONFIG.visual.colorful) {
+            colorVariables = {
+                '--lyrics-color-active': CONFIG.visual["active-color"],
+                '--lyrics-color-inactive': CONFIG.visual["inactive-color"],
+                '--lyrics-color-background': CONFIG.visual["background-color"],
+                '--lyrics-highlight-background': CONFIG.visual["highlight-color"],
+            };
+        } else {
+            colorVariables = {
+                '--lyrics-color-active': "white",
+                '--lyrics-color-inactive': this.state.colors.inactive,
+                '--lyrics-color-background': this.state.colors.background || "transparent",
+                '--lyrics-highlight-background': "black",
+            };
+        }
 
         let mode = -1;
         if (this.state.explicitMode !== -1) {
@@ -275,6 +304,9 @@ class LyricsContainer extends react.Component {
                     lyrics: this.state.genius,
                     provider: this.state.provider,
                     copyright: this.state.copyright,
+                    versions: this.state.versions,
+                    versionIndex: this.state.versionIndex,
+                    onVersionChange: this.onVersionChange.bind(this),
                 });
             }
         }
@@ -289,6 +321,12 @@ class LyricsContainer extends react.Component {
 
         this.state.mode = mode;
 
+        const availableModes = CONFIG.modes
+            .filter((_, id) => {
+                return Object.values(CONFIG.providers)
+                    .some(p => p.on && p.modes.includes(id));
+            });
+
         return react.createElement("div", {
             className: "lyrics-lyricsContainer-LyricsContainer",
             style: colorVariables,
@@ -296,7 +334,7 @@ class LyricsContainer extends react.Component {
             className: "lyrics-lyricsContainer-LyricsBackground",
         }), activeItem,
             react.createElement(TopBarContent, {
-                links: CONFIG.modes,
+                links: availableModes,
                 activeLink: CONFIG.modes[mode],
                 lockLink: CONFIG.modes[this.state.lockMode],
                 switchCallback: (event) => {

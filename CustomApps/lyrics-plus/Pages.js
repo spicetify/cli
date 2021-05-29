@@ -188,7 +188,7 @@ class SearchBar extends react.Component {
             if (!this.state.foundNodes.length) {
                 return;
             }
-            console.log(event);
+
             if (event.key === "Enter") {
                 const dir = event.shiftKey ? -1 : 1;
                 let atNode = (this.state.atNode + dir);
@@ -346,7 +346,7 @@ function showNote(parent, note) {
 }
 
 const GeniusPage = react.memo(
-    ({ lyrics, provider, copyright }) => {
+    ({ lyrics, provider, copyright, versions, versionIndex, onVersionChange }) => {
         let notes = {};
         let container = null;
         
@@ -373,7 +373,11 @@ const GeniusPage = react.memo(
         }, react.createElement("p", {
             variant: "main-type-ballad",
             className: "lyrics-lyricsContainer-LyricsUnsyncedMessage",
-        }), react.createElement("div", {
+        },  versions?.length > 1 && react.createElement(VersionSelector, {
+            items: versions,
+            index: versionIndex,
+            callback: onVersionChange,
+        })), react.createElement("div", {
             className: "lyrics-lyricsContainer-LyricsLine",
             ref: c => (container = c),
             dangerouslySetInnerHTML: {
@@ -402,3 +406,23 @@ const LoadingIcon = react.createElement("svg", {
 }), react.createElement("animate", {
     attributeName: "opacity", repeatCount: "indefinite", dur: "1s", values: "1;0", keyTimes: "0;1", keySplines: "0.2 0 0.8 1", calcMode: "spline", begin: "-0.5s"
 })));
+
+const VersionSelector = react.memo(({ items, index, callback }) => {
+    return react.createElement("div", {
+        className: "lyrics-versionSelector",
+    }, react.createElement("select", {
+        onChange: (event) => {
+            callback(items, event.target.value);
+        },
+        value: index,
+    }, items.map((a, i) => {
+        return react.createElement("option", { value: i, }, a.title);
+    })), react.createElement("svg", {
+        height: "16",
+        width: "16",
+        fill: "currentColor",
+        viewBox: "0 0 16 16",
+    }, react.createElement("path", {
+        d: "M3 6l5 5.794L13 6z",
+    })))
+});

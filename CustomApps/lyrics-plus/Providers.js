@@ -1,6 +1,5 @@
 const Providers = {
     spotify: async(info) => {
-        
         const result = {
             uri: info.uri,
             karaoke: null,
@@ -9,8 +8,6 @@ const Providers = {
             provider: "Spotify",
             copyright: null,
         };
-
-
 
         const baseURL = "hm://lyrics/v1/track/";
         const id = info.uri.split(":")[2];
@@ -64,6 +61,9 @@ const Providers = {
         let list;
         try {
             list = await ProviderMusixmatch.findLyrics(info);
+            if (list.error) {
+                throw "";
+            }
         } catch {
             result.error = "No lyric";
             return result;
@@ -117,17 +117,19 @@ const Providers = {
         return result;
     },
     genius: async (info) => {
-        const result = await ProviderGenius.fetchLyrics(info);
+        const { lyrics, versions } = await ProviderGenius.fetchLyrics(info);
 
         return {
             uri: info.uri,
-            genius: result,
+            genius: lyrics,
             provider: "Genius",
             karaoke: null,
             synced: null,
             unsynced: null,
             copyright: null,
             error: null,
+            versions,
+            versionIndex: 0,
         }
     },
 };

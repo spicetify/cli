@@ -137,7 +137,12 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
     }, react.createElement("ul", {
         className: "lyrics-tabBar-header",
         ref: tabBarRef,
-    }, links
+    }, react.createElement("li", {
+        className: "lyrics-tabBar-headerItem",
+    }, react.createElement(ButtonSVG, {
+        onClick: openConfigMenu,
+        icon: Spicetify.SVGIcons.edit,
+    })), links
         .filter(item => !droplistItem.includes(item))
         .map(item => react.createElement(TabBarItem, {
             name: item,

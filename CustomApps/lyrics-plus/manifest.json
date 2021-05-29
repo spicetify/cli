@@ -9,6 +9,7 @@
         "Providers.js",
         "Pages.js",
         "TabBar.js",
-        "Utils.js"
+        "Utils.js",
+        "Settings.js"
     ]
 }

@@ -111,10 +111,12 @@
 
 .lyrics-lyricsContainer-Provider {
     align-self: end;
-    color: var(--spice-main);
+    color: var(--lyrics-color-inactive);
     grid-area: 4/1/-1/-1;
     justify-self: stretch;
-    padding: 20px;
+    margin: 20px;
+    height: 25px;
+    overflow: hidden;
 }
 
 .lyrics-lyricsContainer-SyncedLyrics {
@@ -211,11 +213,11 @@
 @media(min-width:1280px) {
 
     .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
-        --lyrics-line-height: 72px;
-        font-size: 72px;
+        --lyrics-line-height: 64px;
+        font-size: 64px;
         font-weight: 900;
         letter-spacing: -.04em;
-        line-height: 72px
+        line-height: 64px
     }
 }
 
@@ -259,6 +261,14 @@
     width: 100%;
 }
 
+.lyrics-tabBar-header {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+}
+
 .lyrics-tabBar-headerItemLink select {
     color: var(--spice-text);
     border: 0;
@@ -287,6 +297,11 @@ div.lyrics-tabBar-headerItemLink {
     pointer-events: none;
 }
 
+.lyrics-tabBar-header button.switch {
+    width: 32px;
+    height: 32px;
+}
+
 .lyrics-lyricsContainer-Karaoke-WordActive {
     color: var(--lyrics-color-active) !important;
 }
@@ -302,7 +317,7 @@ div.lyrics-tabBar-headerItemLink {
 }
 
 .lyrics-lyricsContainer-LyricsLine a.fetched {
-    background-color: var(--lyrics-color-inactive);
+    background-color: var(--lyrics-highlight-background);
 }
 
 .lyrics-lyricsContainer-LyricsLine a,
@@ -320,7 +335,7 @@ div.lyrics-tabBar-headerItemLink {
     padding: 25px;
     background-color: var(--lyrics-color-active);
     border-radius: 3px;
-    color: var(--lyrics-color-inactive);
+    color: var(--lyrics-highlight-background);
     box-shadow: 0 10px 15px 5px rgb(0, 0, 0, .2);
     cursor: default;
 }
@@ -338,7 +353,7 @@ div.lyrics-tabBar-headerItemLink {
     bottom: 10px;
     display: flex;
     background-color: var(--lyrics-color-active)  !important;
-    color: var(--lyrics-color-inactive);
+    color: var(--lyrics-highlight-background);
     margin-left: 10px;
     border-radius: 3px;
     box-shadow: 0 10px 15px 5px rgb(0, 0, 0, .2);
@@ -349,7 +364,7 @@ div.lyrics-tabBar-headerItemLink {
     height: 40px;
     bottom: 10px;
     border: 0;
-    color: var(--lyrics-color-inactive) !important;
+    color: var(--lyrics-highlight-background) !important;
     padding: 0 36px;
 }
 
@@ -376,5 +391,87 @@ div.lyrics-tabBar-headerItemLink {
     height: var(--search-highlight-height);
     left: 0;
     top: var(--search-highlight-top);
-    background-color: rgba(0, 0, 0, .5);
+    background-color: var(--lyrics-highlight-background);
+    opacity: 0.5;
+}
+
+.lyrics-versionSelector {
+    border-radius: 4px;
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 10px 15px 5px rgb(0, 0, 0, .2);
+    background-color: var(--lyrics-color-active);
+}
+
+.lyrics-versionSelector select {
+    color: var(--spice-text);
+    border: 0;
+    border-radius: 4px;
+    max-width: 500px;
+    height: 42px;
+    padding: 0 30px 0 12px;
+    background-color: initial;
+    cursor: pointer;
+    appearance: none;
+    font-size: 18px;
+    color: var(--lyrics-highlight-background);
+}
+
+.lyrics-versionSelector svg {
+    position: absolute;
+    height: 42px;
+    right: 10px;
+    pointer-events: none;
+    fill: var(--lyrics-highlight-background);
+}
+
+/** Setting menu */
+.setting-row::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+.setting-row .col {
+    padding: 10px 0;
+    align-items: center;
+}
+.setting-row .col.description {
+    float: left;
+    padding-right: 15px;
+    cursor: default;
+}
+.setting-row .col.action {
+    float: right;
+    text-align: right;
+}
+button.switch {
+    align-items: center;
+    border: 0px;
+    border-radius: 50%;
+    background-color: rgba(var(--spice-rgb-shadow), .7);
+    color: var(--spice-text);
+    cursor: pointer;
+    margin-inline-start: 12px;
+    padding: 8px;
+}
+button.switch.disabled,
+button.switch[disabled] {
+    color: rgba(var(--spice-rgb-text), .3);
+}
+button.switch.small {
+    width: 22px;
+    height: 22px;
+    padding: 6px;
+}
+
+#lyrics-plus-config-container input {
+    width: 100%;
+    margin-top: 10px;
+    padding: 0 5px;
+    height: 32px;
+    border: 0;
+    color: var(--spice-text);
+    background-color: initial;
+    border-bottom: 1px solid var(--spice-text);
 }

@@ -70,9 +70,10 @@ const ProviderGenius = (function () {
         });
     }
 
-    async function downloadLyricFromLink(result) {
+    async function fetchLyricsVersion(results, index) {
+        const result = results[index];
         if (!result) {
-            console.warn(info)
+            console.warn(result)
             return;
         }
 
@@ -119,14 +120,13 @@ const ProviderGenius = (function () {
             }));
 
         if (!hits.length) {
-            return null;
+            return { lyrics: null, versions: [] };
         }
 
-        const lyrics = await downloadLyricFromLink(hits[0]);
+        const lyrics = await fetchLyricsVersion(hits, 0);
 
-        // TODO: Other versions selections
-        return lyrics;
+        return {lyrics, versions: hits};
     }
 
-    return { fetchLyrics, getNote }
+    return { fetchLyrics, getNote, fetchLyricsVersion }
 })();

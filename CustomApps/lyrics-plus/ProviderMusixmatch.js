@@ -41,11 +41,18 @@ const ProviderMusixmatch = (function () {
     }
 
     function getSynced(body) {
-        const meta = body["matcher.track.get"].message.body;
-        const hasSynced = meta.track.has_subtitles;
+        const meta = body?.["matcher.track.get"]?.message?.body;
+        if (!meta) {
+            return null;
+        }
+
+        const hasSynced = meta?.track?.has_subtitles;
 
         if (hasSynced) {
-            const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
+            const subtitle = body["track.subtitles.get"]?.message?.body.subtitle_list?.[0]?.subtitle;
+            if (!subtitle) {
+                return null;
+            }
 
             return JSON.parse(subtitle.subtitle_body)
                 .map(line => ({
@@ -58,18 +65,23 @@ const ProviderMusixmatch = (function () {
     }
 
     function getUnsynced(body) {
-        const meta = body["matcher.track.get"].message.body;
+        const meta = body?.["matcher.track.get"]?.message?.body;
+        if (!meta) {
+            return null;
+        }
+
         const hasUnSynced = meta.track.has_lyrics || meta.track.has_lyrics_crowd;
 
         if (hasUnSynced) {
-            return body["track.lyrics.get"]
-                .message.body.lyrics.lyrics_bod
-                .split("\n")
-                .map(text => { text });
+            const lyrics = body["track.lyrics.get"]?.message?.body?.lyrics?.lyrics_body;
+            if (!lyrics) {
+                return null;
+            }
+            return lyrics.split("\n").map(text => ({ text }));
         }
 
         return null;
     }
 
-    return { findLyrics, getKaraoke: getSynced, getSynced, getUnsynced };
+    return { findLyrics, getSynced, getUnsynced };
 })();

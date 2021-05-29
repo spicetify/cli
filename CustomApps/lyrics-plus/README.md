@@ -20,7 +20,7 @@ Lyrics in Unsynced and Genius modes can be search and jump to. Hit Ctrl + Shift 
 
 ![search](./search.png)
 
-I will make setting menu later. Musixmatch token can be inputted via Popup Lyrics extension setting menu.
+Customise colors, change providers' priorities in config menu.
 
 To install, run:
 ```bash
@@ -30,4 +30,4 @@ spicetify apply
 
 ### Credits
 - A few parts of app code are taken from Spotify official app, including SyncedLyricsPage, CSS animation and TabBar. Please do not distribute these code else where out of Spotify/Spicetify context.
-- Netease synced lyrics parser is adapted from (mantou132/Spotify-Lyrics)[https://github.com/mantou132/Spotify-Lyrics]. Give it a Star if you like this app.
+- Netease synced lyrics parser is adapted from [mantou132/Spotify-Lyrics](https://github.com/mantou132/Spotify-Lyrics). Give it a Star if you like this app.
