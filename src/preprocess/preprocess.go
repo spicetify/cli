@@ -331,6 +331,35 @@ Spicetify.React.useEffect(() => {
 	Spicetify.Menu._addItems(container);
 }, []);`)
 
+	// React Component: Right Click Menu wrapper
+	utils.Replace(
+		&input,
+		`(const \w+)(=\w+=>\w+\(\)\.createElement\([\w\.]+,\w+\(\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\)\})`,
+		`${1}=Spicetify.ReactComponent.RightClickMenu${2}`)
+
+	// React Component: Album Context Menu items
+	utils.Replace(
+		&input,
+		`(const \w+)(=\w+\(\)\.memo\(\(\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)=>\w+\(\)\.createElement\([\w\.]+,\{value:"album"\})`,
+		`${1}=Spicetify.ReactComponent.AlbumMenu${2}`)
+
+	// React Component: Show Context Menu items
+	utils.Replace(
+		&input,
+		`(const \w+)(=\w+\(\)\.memo\(\(\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)=>\w+\(\)\.createElement\([\w\.]+,\{value:"show"\})`,
+		`${1}=Spicetify.ReactComponent.PodcastShowMenu${2}`)
+
+	// React Component: Artist Context Menu items
+	utils.Replace(
+		&input,
+		`(const \w+)(=\w+\(\)\.memo\(\(\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)=>\w+\(\)\.createElement\([\w\.]+,\{value:"artist"\})`,
+		`${1}=Spicetify.ReactComponent.ArtistMenu${2}`)
+
+	// React Component: Playlist Context Menu items
+	utils.Replace(
+		&input,
+		`(const \w+)(=\w+\(\)\.memo\(\(\(\{uri:\w+,onRemoveCallback:\w+\}\))`,
+		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
 	return input
 }
 
