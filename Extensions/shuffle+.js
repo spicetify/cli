@@ -213,11 +213,10 @@
      */
     const fetchCollection = async () => {
         const res = await Spicetify.CosmosAsync.get(
-            "sp://core-collection/unstable/@/list/tracks/all",
-            { policy: { list: { link: true, playable: true } } }
+            "sp://core-collection/unstable/@/list/tracks/all?responseFormat=protobufJson",
+            { policy: { list: { link: true } } }
         );
-        console.log("colleciton", res.items);
-        return res.items.map((item) => item.link);
+        return res.item.map((item) => item.trackMetadata.link);
     };
 
 
@@ -243,9 +242,9 @@
      * @returns {Promise<string[]>}
      */
     const fetchShow = async (uriBase62) => {
-        const res = await Spicetify.CosmosAsync.get(`sp://core-show/unstable/show/${uriBase62}`);
-        const availables = res.items.filter(track => track.playable);
-        return availables.map((item) => item.link);
+        const res = await Spicetify.CosmosAsync.get(`sp://core-show/unstable/show/${uriBase62}?responseFormat=protobufJson`);
+        const availables = res.items.filter(track => track.episodePlayState.isPlayable);
+        return availables.map((item) => item.episodeMetadata.link);
     };
 
     /**
@@ -265,12 +264,8 @@
      */
      const fetchDiscography = async (uriBase62) => {
         Spicetify.showNotification(`Fetching albums list...`)
-        let res = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/artists/${uriBase62}/albums?include_groups=album&limit=50`);
-        let albums = res.items;
-        while (res.next) {
-            res = await Spicetify.CosmosAsync.get(res.next);
-            albums.push(...res.items);
-        }
+        let res = await Spicetify.CosmosAsync.get(`hm://artist/v1/${uriBase62}/desktop?format=json`);
+        let albums = res.releases.albums.releases;
         const tracks = [];
         for (const album of albums) {
             tracks.push(...(await fetchAlbum(album.uri)));
