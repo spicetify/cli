@@ -933,12 +933,12 @@ class _HTMLGenericModal extends HTMLElement {
     </div>
 </div>`;
 
-        this.firstElementChild.onclick = this.hide.bind(this);
-        this.firstElementChild.firstElementChild.onclick = e => e.stopPropagation();
         this.querySelector("button").onclick = this.hide.bind(this);
         const main = this.querySelector("main");
 
-        if (typeof content === "string") {
+        if (Spicetify.React.isValidElement(content)) {
+            Spicetify.ReactDOM.render(content, main);
+        } else if (typeof content === "string") {
             main.innerHTML = content;
         } else {
             main.append(content);
@@ -948,6 +948,8 @@ class _HTMLGenericModal extends HTMLElement {
 }
 customElements.define("generic-modal", _HTMLGenericModal);
 Spicetify.PopupModal = new _HTMLGenericModal();
+
+Spicetify.ReactComponent = {};
 
 // Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
 window.Spicetify = Spicetify;
