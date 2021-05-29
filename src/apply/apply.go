@@ -32,7 +32,7 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	}
 }
 
-// UserCSS creates user.css file in "zlink", "login" and "settings" apps.
+// UserCSS creates user.css file in "xpui".
 // To not use custom css, set `themeFolder` to blank string
 // To use default color scheme, set `scheme` to `nil`
 func UserCSS(appsFolderPath, themeFolder string, scheme map[string]string) {
