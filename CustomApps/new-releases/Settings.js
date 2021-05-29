@@ -132,13 +132,6 @@ function openConfigMenu(event) {
                     when: () => true,
                 },
                 {
-                    desc: "Followed artist only",
-                    key: "followed-only",
-                    defaultValue: CONFIG["followed-only"],
-                    type: ConfigSlider,
-                    when: () => CONFIG["music"],
-                },
-                {
                     desc: "Albums",
                     key: "album",
                     defaultValue: CONFIG["album"],
