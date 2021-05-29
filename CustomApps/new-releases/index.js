@@ -22,23 +22,31 @@ function getConfig(name, defaultVal = true) {
     return value ? value === "true" : defaultVal;
 }
 
+const APP_NAME = "new-releases";
+
 const CONFIG = {
     visual: {
-        type: getConfig("new-release:type"),
+        type: getConfig("new-releases:visual:type", true),
+        count: getConfig("new-releases:visual:count", true),
     },
-    podcast: getConfig("new-release:podcast", false),
-    tracks: getConfig("new-release:tracks", true),
-    everything: getConfig("new-release:everything", true),
+    podcast: getConfig("new-releases:podcast", false),
+    music: getConfig("new-releases:music", true),
+    album: getConfig("new-releases:album", true),
+    ["single-ep"]: getConfig("new-releases:single-ep", true),
+    ["appears-on"]: getConfig("new-releases:appears-on", false),
+    compilations: getConfig("new-releases:compilations", false),
+    range: localStorage.getItem("new-releases:range") || "30",
 };
 
 let gridList = [];
 let lastScroll = 0;
 
 let gridUpdatePostsVisual;
-const today = new Date();
-const DAYS_LIMIT = 30;
-const limitInMs = DAYS_LIMIT * 24 * 3600 * 1000;
-var options = {
+
+let today = new Date();
+CONFIG.range = parseInt(CONFIG.range) || 30;
+let limitInMs = CONFIG.range * 24 * 3600 * 1000;
+const dateFormat = {
     weekday: "short",
     year: "numeric",
     month: "2-digit",
@@ -57,21 +65,33 @@ class Grid extends react.Component {
     }
 
     updatePostsVisual() {
-        gridList = gridList.map(card => {
-            return react.createElement(Card, card.props);
-        });
+        gridList = [];
+        for (const date of dateList) {
+            gridList.push(react.createElement("div", {
+                className: "new-releases-header"
+            }, react.createElement("h2", null, date)),
+            react.createElement("div", {
+                className: "main-gridContainer-gridContainer",
+                style: {
+                    "--minimumColumnWidth": "180px"
+                },
+            }, seperatedByDate[date].map(card => react.createElement(Card, card.props))));
+        }
         this.setState({ cards: [...gridList] });
     }
 
-    async loadAmount() {
-        if (dateList.length) {
-            this.setState({ cards: [...gridList] });
-            return;
-        }
+    async reload() {
+        gridList = [];
+        seperatedByDate = {};
+        dateList = [];
+
+        today = new Date();
+        CONFIG.range = parseInt(CONFIG.range) || 30;
+        limitInMs = CONFIG.range * 24 * 3600 * 1000;
 
         this.setState({ rest: false });
         let items = [];
-        if (CONFIG.tracks) {
+        if (CONFIG.music) {
             let tracks = await fetchTracks();
             items.push(...(tracks.flat()));
         }
@@ -85,7 +105,7 @@ class Grid extends react.Component {
 
         for (const track of items) {
             track.visual = CONFIG.visual;
-            track.time = track.time.toLocaleDateString(navigator.language, options);
+            track.time = track.time.toLocaleDateString(navigator.language, dateFormat);
             if (!seperatedByDate[track.time]) {
                 dateList.push(track.time);
                 seperatedByDate[track.time] = [];
@@ -105,7 +125,6 @@ class Grid extends react.Component {
             }, seperatedByDate[date]));
         }
 
-        this.setState({ cards: [...gridList] });
         this.setState({ rest: true });
     }
 
@@ -121,7 +140,7 @@ class Grid extends react.Component {
             return;
         }
 
-        this.loadAmount();
+        this.reload();
     }
 
     componentWillUnmount() {
@@ -132,28 +151,51 @@ class Grid extends react.Component {
     render() {
         return react.createElement("section", {
             className: "contentSpacing"
-        },  this.state.rest ? gridList : LoadingIcon);
+        },  react.createElement("div", {
+            className: "new-releases-header",
+        }, react.createElement("h1", null, "New Releases"),
+        react.createElement("div", {
+            className: "new-releases-controls-container"
+        }, react.createElement(ButtonText, {
+            text: "Refresh",
+            onClick: this.reload.bind(this),
+        }), react.createElement(ButtonSVG, {
+            icon: Spicetify.SVGIcons.edit,
+            onClick: openConfigMenu,
+        }))),
+        this.state.rest ? gridList : LoadingIcon);
     }
 }
 
 async function getArtistList() {
-    const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/artists/all?responseFormat=protobufJson");
+    const body = await CosmosAsync.get(
+        "sp://core-collection/unstable/@/list/artists/all?responseFormat=protobufJson",
+        { policy: { list: { link: true, name: true } } }
+    );
     return body.item;
 }
 
-async function getArtistNewRelease(uri) {
-    const body = await CosmosAsync.get(`hm://artist/v3/${uri}/desktop/entity?format=json`);
-    return body.latest_release;
-}
-
-async function getArtistEverything(uri) {
-    const body = await CosmosAsync.get(`hm://artist/v3/${uri}/desktop/entity?format=json`);
+async function getArtistEverything(artist) {
+    const uid = artist.link.replace("spotify:artist:", "");
+    const body = await CosmosAsync.get(`hm://artist/v3/${uid}/desktop/entity?format=json`);
     const releases = body?.releases;
     const items = [];
-    if (releases?.albums?.releases) items.push(...releases.albums.releases);
-    if (releases?.appears_on?.releases) items.push(...releases.appears_on.releases);
-    if (releases?.compilations?.releases) items.push(...releases.compilations.releases);
-    if (releases?.singles?.releases) items.push(...releases.singles.releases);
+    const types = [
+        [CONFIG.album, releases?.albums?.releases, "Album"],
+        [CONFIG["appears-on"], releases?.appears_on?.releases, "Appears On"],
+        [CONFIG.compilations, releases?.compilations?.releases, "Compilation"],
+        [CONFIG["single-ep"], releases?.singles?.releases, "Single/EP"],
+    ]
+    for (const type of types) {
+        if (type[0] && type[1]) {
+            for (const item of type[1]) {
+                const meta = metaFromTrack(artist, item);
+                if (!meta) continue;
+                meta.type = type[2];
+                items.push(meta);
+            }
+        }
+    }
     return items;
 }
 
@@ -170,22 +212,16 @@ async function getPodcastRelease(uri) {
 function metaFromTrack(artist, track) {
     const time = new Date(track.year, track.month - 1, track.day)
     if ((today - time.getTime()) < limitInMs) {
-        let type;
-        if (track.track_count <= 3) {
-            type = "Single"
-        } else if (track.track_count <= 6) {
-            type = "EP"
-        } else {
-            type = "Album"
-        }
-
         return ({
             uri: track.uri,
             title: track.name,
-            artist,
+            artist: {
+                name: artist.name,
+                uri: artist.link,
+            },
             imageURL: track.cover.uri,
             time,
-            type,
+            trackCount: track.track_count,
         })
     }
     return null;
@@ -194,22 +230,10 @@ function metaFromTrack(artist, track) {
 async function fetchTracks() {
     let artistList = await getArtistList()
 
-    // TODO: obj.artistCollectionState.isFollowed
-    // if (BUTTON.isFollowedOnly()) {
-    //     artistList = artistList.filter(artist => artist.isFollowed)
-    // }
-
     const requests = artistList.map(async (obj) => {
         const artist = obj.artistMetadata;
 
-        if (CONFIG.everything) {
-            const releases = await getArtistEverything(artist.link.replace("spotify:artist:", ""))
-            return releases.map(r => metaFromTrack(artist.name, r));
-        }
-
-        const track = await getArtistNewRelease(artist.link.replace("spotify:artist:", ""))
-        if (!track) return null
-        return metaFromTrack(artist.name, track);
+        return await getArtistEverything(artist);
     })
 
     return await Promise.all(requests)

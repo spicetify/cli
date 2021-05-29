@@ -3,6 +3,15 @@ class Card extends react.Component {
         super(props);
         Object.assign(this, props);
         this.href = "/" + URI.from(this.uri).toURLPath();
+        this.artistHref = "/" + URI.from(this.artist.uri).toURLPath();
+        const uriType = Spicetify.URI.fromString(this.uri)?.type;
+        switch (uriType) {
+            case Spicetify.URI.Type.ALBUM:
+            case Spicetify.URI.Type.TRACK:
+                this.menuType = Spicetify.ReactComponent.AlbumMenu;
+                break;
+        }
+        this.menuType = this.menuType || "div";
     }
 
     play(event) {
@@ -14,8 +23,11 @@ class Card extends react.Component {
     render() {
         let detail = [];
         this.visual.type && detail.push(this.type);
+        this.visual.count && detail.push(`${this.trackCount} track${this.trackCount >  1 ? "s" : ""}`);
 
-        return react.createElement("div", {
+        return react.createElement(Spicetify.ReactComponent.RightClickMenu || "div", {
+            menu: react.createElement(this.menuType, { uri: this.uri, }),
+        }, react.createElement("div", {
             className: "main-card-card",
             onClick: (event) => {
                 History.push(this.href);
@@ -66,18 +78,18 @@ class Card extends react.Component {
         }, this.title)), detail.length > 0 && react.createElement("div", {
             className: "main-cardSubHeader-root main-type-mestoBold new-releases-cardSubHeader",
             as: "div",
-        }, react.createElement("span", null, detail.join(" ‒ ")),
-        ), this.visual.followers && (this.type === "Playlist") && react.createElement("div", {
-            className: "main-cardSubHeader-root main-type-mestoBold new-releases-cardSubHeader",
-            as: "div",
-        }, react.createElement("span", null, `${this.followersCount} followers`)
-        ), react.createElement("div", {
-            // long: this.visual.longDescription,
+        }, react.createElement("span", null, detail.join(" • ")),
+        ), react.createElement("a", {
             className: `main-cardSubHeader-root main-type-mesto new-releases-cardSubHeader`,
-            as: "div",
-        }, react.createElement("span", null, this.artist)),
+            href: this.artistHref,
+            onClick: (event) => {
+                History.push(this.artistHref);
+                event.stopPropagation();
+                event.preventDefault();
+            },
+        }, react.createElement("span", null, this.artist.name)),
         ), react.createElement("div", {
             className: "main-card-cardLink"
-        })));
+        }))));
     }
 }
