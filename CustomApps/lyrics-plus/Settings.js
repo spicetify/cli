@@ -184,6 +184,13 @@ function openConfigMenu(event) {
         react.createElement(OptionList, {
             items: [
                 {
+                    desc: "Noise overlay",
+                    key: "noise",
+                    defaultValue: CONFIG.visual["noise"],
+                    type: ConfigSlider,
+                    when: () => true,
+                },
+                {
                     desc: "Colorful background",
                     key: "colorful",
                     defaultValue: CONFIG.visual["colorful"],

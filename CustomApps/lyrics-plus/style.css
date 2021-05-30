@@ -105,8 +105,9 @@
 
 .lyrics-lyricsContainer-LyricsBackground {
     background-color: var(--lyrics-color-background);
+    background-image: var(--lyrics-background-noise);
     grid-area: 1/1/-1/-1;
-    transition: all .25s ease-out
+    transition: background-color .25s ease-out
 }
 
 .lyrics-lyricsContainer-Provider {
@@ -298,8 +299,8 @@ div.lyrics-tabBar-headerItemLink {
 }
 
 .lyrics-tabBar-header button.switch {
-    width: 32px;
-    height: 32px;
+    margin-inline-end: 12px;
+    margin-inline-start: 0;
 }
 
 .lyrics-lyricsContainer-Karaoke-WordActive {
@@ -443,7 +444,9 @@ div.lyrics-tabBar-headerItemLink {
 }
 .setting-row .col.action {
     float: right;
-    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
 }
 button.switch {
     align-items: center;
@@ -454,6 +457,8 @@ button.switch {
     cursor: pointer;
     margin-inline-start: 12px;
     padding: 8px;
+    width: 32px;
+    height: 32px;
 }
 button.switch.disabled,
 button.switch[disabled] {

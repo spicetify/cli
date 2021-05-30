@@ -34,6 +34,7 @@ const KARAOKE = 0, SYNCED = 1, UNSYNCED = 2, GENIUS = 3;
 const CONFIG = {
     visual: {
         colorful: getConfig("lyrics-plus:visual:colorful"),
+        noise: getConfig("lyrics-plus:visual:noise"),
         ["background-color"]: localStorage.getItem("lyrics-plus:visual:background-color") || "var(--spice-main)",
         ["active-color"]: localStorage.getItem("lyrics-plus:visual:active-color") || "var(--spice-text)",
         ["inactive-color"]: localStorage.getItem("lyrics-plus:visual:inactive-color") || "var(--spice-subtext)",
@@ -253,6 +254,11 @@ class LyricsContainer extends react.Component {
                 '--lyrics-color-background': this.state.colors.background || "transparent",
                 '--lyrics-highlight-background': "black",
             };
+        }
+        if (CONFIG.visual.noise) {
+            colorVariables["--lyrics-background-noise"] = "var(--background-noise)";
+        } else {
+            colorVariables["--lyrics-background-noise"] = "unset";
         }
 
         let mode = -1;
