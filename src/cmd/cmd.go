@@ -146,15 +146,14 @@ func InitSetting() {
 		overwriteAssets = err == nil
 	}
 
-	if !replaceColors {
-		return
-	}
-
 	var err error
 	colorCfg, err = ini.InsensitiveLoad(colorPath)
 	if err != nil {
 		utils.PrintError("Cannot open file " + colorPath)
 		replaceColors = false
+	}
+
+	if !replaceColors {
 		return
 	}
 

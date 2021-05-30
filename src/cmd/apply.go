@@ -144,16 +144,18 @@ func updateCSS() {
 	configJson.ThemeName = settingSection.Key("current_theme").MustString("")
 	configJson.SchemeName = settingSection.Key("color_scheme").MustString("")
 
-	colorsJson := make(map[string]map[string]string)
-	for _, section := range colorCfg.Sections() {
-		name := section.Name()
-		colorsJson[name] = make(map[string]string)
+	if colorCfg != nil {
+		colorsJson := make(map[string]map[string]string)
+		for _, section := range colorCfg.Sections() {
+			name := section.Name()
+			colorsJson[name] = make(map[string]string)
 
-		for _, key := range section.Keys() {
-			colorsJson[name][key.Name()] = key.MustString("")
+			for _, key := range section.Keys() {
+				colorsJson[name][key.Name()] = key.MustString("")
+			}
 		}
+		configJson.Schemes = colorsJson
 	}
-	configJson.Schemes = colorsJson
 
 	configJsonBytes, err := json.MarshalIndent(configJson, "", "    ")
 	if err != nil {
