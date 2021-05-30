@@ -113,7 +113,12 @@
     class CardContainer extends HTMLElement {
         constructor(info) {
             super()
-            const isTrack = URI.isTrack(info.uri) || URI.isEpisode(info.uri);
+            const uri = URI.fromString(info.uri);
+            const isPlayable = uri.type === URI.Type.TRACK ||
+                uri.type === URI.Type.PLAYLIST_V2 ||
+                uri.type === URI.Type.ALBUM ||
+                uri.type === URI.Type.EPISODE ||
+                uri.type === URI.Type.PLAYLIST;
 
             this.innerHTML = `
 <div class="bookmark-card">
@@ -130,12 +135,12 @@
             </div>
         ` : ""}
     </div>
-    ${isTrack ? `<button class="main-playButton-PlayButton main-playButton-primary" aria-label="Play" title="Play" style="--size:48px;"><svg role="img" height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg></button>` : ""}
+    ${isPlayable ? `<button class="main-playButton-PlayButton main-playButton-primary" aria-label="Play" title="Play" style="--size:48px;"><svg role="img" height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg></button>` : ""}
     <button class="bookmark-controls" title="${REMOVE_TEXT}"><svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.x}</svg></button>
 </div>
 `
 
-            if (isTrack) {
+            if (isPlayable) {
                 /** @type {HTMLButtonElement} */
                 const playButton = this.querySelector("button.main-playButton-PlayButton");
                 playButton.onclick = (event) => {
