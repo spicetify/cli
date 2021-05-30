@@ -58,8 +58,6 @@ func Backup() {
 	backup.Extract(backupFolder, rawFolder, tracker.Update)
 	tracker.Finish()
 
-	tracker.Reset()
-
 	utils.PrintBold("Preprocessing:")
 
 	preprocess.Start(
@@ -71,20 +69,16 @@ func Backup() {
 			ExposeAPIs:     preprocSection.Key("expose_apis").MustBool(false),
 			DisableUpgrade: preprocSection.Key("disable_upgrade_check").MustBool(false),
 		},
-		tracker.Update,
 	)
-
-	tracker.Finish()
+	utils.PrintGreen("OK")
 
 	err = utils.Copy(rawFolder, themedFolder, true, []string{".html", ".js", ".css"})
 	if err != nil {
 		utils.Fatal(err)
 	}
 
-	tracker.Reset()
-
-	preprocess.StartCSS(themedFolder, tracker.Update)
-	tracker.Finish()
+	preprocess.StartCSS(themedFolder)
+	utils.PrintGreen("OK")
 
 	backupSection.Key("version").SetValue(utils.GetSpotifyVersion(prefsPath))
 	cfg.Write()

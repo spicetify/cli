@@ -3,14 +3,12 @@ package preprocess
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"unicode"
 
 	"github.com/khanhas/spicetify-cli/src/utils"
@@ -36,7 +34,7 @@ type jsMap struct {
 }
 
 // Start preprocessing apps assets in extractedAppPath
-func Start(extractedAppsPath string, flags Flag, callback func(appName string)) {
+func Start(extractedAppsPath string, flags Flag) {
 	appPath := filepath.Join(extractedAppsPath, "xpui")
 	var cssTranslationMap = make(map[string]string)
 	// readSourceMapAndGenerateCSSMap(appPath)
@@ -137,35 +135,14 @@ func Start(extractedAppsPath string, flags Flag, callback func(appName string)) 
 
 // StartCSS modifies all CSS files in extractedAppsPath to change
 // all colors value with CSS variables.
-func StartCSS(extractedAppsPath string, callback func(appName string)) {
-	appList, err := ioutil.ReadDir(extractedAppsPath)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var wg sync.WaitGroup
-
-	for _, app := range appList {
-		wg.Add(1)
-		appName := app.Name()
-		appPath := filepath.Join(extractedAppsPath, appName)
-
-		go func() {
-			defer wg.Done()
-
-			filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
-				if filepath.Ext(info.Name()) == ".css" {
-					utils.ModifyFile(path, colorVariableReplace)
-				}
-				return nil
-			})
-
-			callback(appName)
-		}()
-	}
-
-	wg.Wait()
+func StartCSS(extractedAppsPath string) {
+	appPath := filepath.Join(extractedAppsPath, "xpui")
+	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
+		if filepath.Ext(info.Name()) == ".css" {
+			utils.ModifyFile(path, colorVariableReplace)
+		}
+		return nil
+	})
 }
 
 func colorVariableReplace(content string) string {
