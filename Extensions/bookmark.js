@@ -7,9 +7,8 @@
 /// <reference path="../globals.d.ts" />
 
 (function Bookmark() {
-    const topBar = document.querySelector(".main-topBar-historyButtons");
     const { CosmosAsync, Player, LocalStorage, PlaybackControl, ContextMenu, URI } = Spicetify;
-    if (!(CosmosAsync && URI && topBar)) {
+    if (!(CosmosAsync && URI)) {
         setTimeout(Bookmark, 300)
         return
     }
@@ -164,7 +163,16 @@
 
     const LIST = new BookmarkCollection()
 
-    topBar.append(createTopBarButton())
+    new Spicetify.Topbar.Button(
+        BUTTON_NAME_TEXT,
+        `<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M 13.350175,0.37457282 C 9.7802043,0.37457282 6.2102339,0.37457282 2.6402636,0.37457282 2.1901173,0.43000784 2.3537108,0.94911284 2.3229329,1.2621688 2.3229329,5.9446788 2.3229329,10.62721 2.3229329,15.309742 2.4084662,15.861041 2.9630936,15.536253 3.1614158,15.248148 4.7726941,13.696623 6.3839408,12.145098 7.9952191,10.593573 9.7069009,12.241789 11.418583,13.890005 13.130265,15.53822 13.626697,15.863325 13.724086,15.200771 13.667506,14.853516 13.667506,10.132999 13.667506,5.4124518 13.667506,0.69190384 13.671726,0.52196684 13.520105,0.37034182 13.350175,0.37457282 Z M 13.032844,14.563698 C 11.426929,13.017345 9.8210448,11.470993 8.2151293,9.9246401 7.8614008,9.6568761 7.6107412,10.12789 7.3645243,10.320193 5.8955371,11.734694 4.4265815,13.149196 2.9575943,14.563698 2.9575943,10.045543 2.9575943,5.5273888 2.9575943,1.0092338 6.3160002,1.0092338 9.674438,1.0092338 13.032844,1.0092338 13.032844,5.5273888 13.032844,10.045543 13.032844,14.563698 Z"></path></svg>`,
+        () => {
+            const bound = button.getBoundingClientRect();
+            LIST.changePosition(bound.left, bound.top);
+            document.body.append(LIST.container);
+            LIST.setScroll();
+        },
+    );
 
     /**
      * 
@@ -219,7 +227,7 @@
             title = titleElem.innerText;
         }
 
-        if (contextUri.type === URI.Type.APPLICATION) {
+        if (!title && contextUri.type === URI.Type.APPLICATION) {
             title = idToProperName(contextUri.id);
             description = "Application";
         } else {
@@ -294,20 +302,6 @@
             .replace(/^.|\s./g, (char) => char.toUpperCase());
 
         return id;
-    }
-
-    function createTopBarButton() {
-        const button = document.createElement("button");
-        button.classList.add("main-topBar-button", "bookmark-button");
-        button.setAttribute("title", BUTTON_NAME_TEXT);
-        button.innerHTML = `<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M 13.350175,0.37457282 C 9.7802043,0.37457282 6.2102339,0.37457282 2.6402636,0.37457282 2.1901173,0.43000784 2.3537108,0.94911284 2.3229329,1.2621688 2.3229329,5.9446788 2.3229329,10.62721 2.3229329,15.309742 2.4084662,15.861041 2.9630936,15.536253 3.1614158,15.248148 4.7726941,13.696623 6.3839408,12.145098 7.9952191,10.593573 9.7069009,12.241789 11.418583,13.890005 13.130265,15.53822 13.626697,15.863325 13.724086,15.200771 13.667506,14.853516 13.667506,10.132999 13.667506,5.4124518 13.667506,0.69190384 13.671726,0.52196684 13.520105,0.37034182 13.350175,0.37457282 Z M 13.032844,14.563698 C 11.426929,13.017345 9.8210448,11.470993 8.2151293,9.9246401 7.8614008,9.6568761 7.6107412,10.12789 7.3645243,10.320193 5.8955371,11.734694 4.4265815,13.149196 2.9575943,14.563698 2.9575943,10.045543 2.9575943,5.5273888 2.9575943,1.0092338 6.3160002,1.0092338 9.674438,1.0092338 13.032844,1.0092338 13.032844,5.5273888 13.032844,10.045543 13.032844,14.563698 Z"></path></svg>`;
-        button.onclick = () => {
-            const bound = button.getBoundingClientRect();
-            LIST.changePosition(bound.left, bound.top);
-            document.body.append(LIST.container);
-            LIST.setScroll();
-        }
-        return button;
     }
 
     function createMenu() {

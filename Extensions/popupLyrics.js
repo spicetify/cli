@@ -28,7 +28,6 @@ if (!navigator.serviceWorker) {
 }
 
 function PopupLyrics() {
-    const topBar = document.querySelector(".main-topBar-historyButtons");
     const {
         Player,
         CosmosAsync,
@@ -36,7 +35,7 @@ function PopupLyrics() {
         ContextMenu
     } = Spicetify;
 
-    if (!topBar || !Player || !Player.data ||
+    if (!Player || !Player.data ||
         !CosmosAsync || !LocalStorage || !ContextMenu) {
         setTimeout(PopupLyrics, 500);
         return;
@@ -348,20 +347,18 @@ function PopupLyrics() {
     lyricCtx.fillRect(0, 0, 1, 1);
     lyricVideo.play();
 
-    const button = document.createElement("button");
-    button.classList.add("main-topBar-button")
-    button.innerHTML = `<svg role="img" height="16" width="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 7c0-3.309-2.691-6-6-6S8 3.691 8 7c0 .697.126 1.363.345 1.985L3.697 19.421a1.498 1.498 0 00.62 1.91l1.293.747a1.5 1.5 0 001.89-.325l7.561-8.852C17.865 12.396 20 9.945 20 7zM6.741 21.103a.498.498 0 01-.63.108l-1.293-.747a.5.5 0 01-.207-.636l4.301-9.662a5.995 5.995 0 004.763 2.817l-6.934 8.12zM14 12c-2.757 0-5-2.243-5-5s2.243-5 5-5 5 2.243 5 5-2.244 5-5 5z"/></svg>`;
-    button.setAttribute("title", "Popup Lyrics");
-    button.setAttribute("data-contextmenu", "");
-    button.setAttribute("data-uri", "spotify:special:popup-lyrics");
-    button.onclick = () => {
-        if (!lyricVideoIsOpen) {
-            lyricVideo.requestPictureInPicture();
-        } else {
-            document.exitPictureInPicture();
+    const button = new Spicetify.Topbar.Button(
+        "Popup Lyrics",
+        "lyrics",
+        () => {
+            if (!lyricVideoIsOpen) {
+                lyricVideo.requestPictureInPicture();
+            } else {
+                document.exitPictureInPicture();
+            }
         }
-    };
-    topBar.append(button);
+    );
+    button.element.oncontextmenu = openConfig;
 
     const coverCanvas = document.createElement('canvas');
     coverCanvas.width = lyricVideo.width;
@@ -1072,6 +1069,4 @@ button.switch.small {
 
         return container;
     }
-
-    button.oncontextmenu = openConfig;
 };

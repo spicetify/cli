@@ -7,9 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function FullAppDisplay() {
-    const topBar = document.querySelector(".main-topBar-historyButtons");
-
-    if (!Spicetify.Player || !Spicetify.Player.data || !topBar) {
+    if (!Spicetify.Player || !Spicetify.Player.data) {
         setTimeout(FullAppDisplay, 200)
         return
     }
@@ -508,13 +506,6 @@ body.video-full-screen.video-full-screen--hide-ui {
         Spicetify.LocalStorage.set("full-app-display-config", JSON.stringify(CONFIG))
     }
 
-    // Add activator on top bar
-    const button = document.createElement("button")
-    button.classList.add("main-topBar-button", "fad-button")
-    button.setAttribute("title", "Full App Display")
-    button.innerHTML = `<svg role="img" height="16" width="16" viewBox="0 0 32 32" fill="currentColor"><path d="M8.645 22.648l-5.804 5.804.707.707 5.804-5.804 2.647 2.646v-6h-6l2.646 2.647zM29.157 3.55l-.707-.707-5.804 5.805L20 6.001v6h6l-2.646-2.647 5.803-5.804z"></path></svg>`
-    topBar.append(button)
-
     const videoContainer = document.querySelector(".Root__video-player")
     videoContainer.append(style, container)
 
@@ -605,7 +596,6 @@ button.switch.disabled {
         })
     }
 
-    button.onclick = activate
     container.ondblclick = deactivate
     container.oncontextmenu = openConfig
 
@@ -616,6 +606,13 @@ button.switch.disabled {
             activate();
         }
     }
+
+    // Add activator on top bar
+    new Spicetify.Topbar.Button(
+        "Full App Display",
+        `<svg role="img" height="16" width="16" viewBox="0 0 32 32" fill="currentColor"><path d="M8.645 22.648l-5.804 5.804.707.707 5.804-5.804 2.647 2.646v-6h-6l2.646 2.647zM29.157 3.55l-.707-.707-5.804 5.805L20 6.001v6h6l-2.646-2.647 5.803-5.804z"></path></svg>`,
+        activate,
+    );
 
     Spicetify.Keyboard.registerShortcut(
         {
