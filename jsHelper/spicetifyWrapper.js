@@ -478,6 +478,12 @@ class _HTMLContextSubmenu extends HTMLElement {
 <div data-tippy-root style="z-index: 9999; position: absolute; inset: 0px auto auto 0px; margin: 0px;">
     <ul tabindex="-1" role="menu" data-depth="1" class="main-contextMenu-menu"></ul>
 </div>`;
+        this.firstElementChild._tippy = {
+            unmount: () => {},
+            popperInstance: {
+                forceUpdate: () => {},
+            },
+        }
         this.firstElementChild.firstElementChild.append(...this.items);
         const placement = this.parentElement.parentElement
             .parentElement.dataset.placement;
