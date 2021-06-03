@@ -164,10 +164,10 @@ class LyricsContainer extends react.Component {
                 if (data.uri === this.currentTrackUri) {
                     return CACHE[data.uri];
                 }
-            } else {
-                CACHE[data.uri] = { ...emptyState };
+                return { ...emptyState };
             }
         }
+        CACHE[trackInfo.uri] = { ...emptyState };
     }
 
     async fetchLyrics(track, mode = -1) {
