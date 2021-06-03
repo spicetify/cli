@@ -36,6 +36,8 @@ const CONFIG = {
     ["appears-on"]: getConfig("new-releases:appears-on", false),
     compilations: getConfig("new-releases:compilations", false),
     range: localStorage.getItem("new-releases:range") || "30",
+    locale: localStorage.getItem("new-releases:locale") || navigator.language,
+    relative: getConfig("new-releases:compilations", false),
 };
 
 let gridList = [];
@@ -45,12 +47,15 @@ let gridUpdatePostsVisual;
 
 let today = new Date();
 CONFIG.range = parseInt(CONFIG.range) || 30;
-let limitInMs = CONFIG.range * 24 * 3600 * 1000;
+const DAY_DIVIDER = 24 * 3600 * 1000;
+let limitInMs = CONFIG.range * DAY_DIVIDER;
 const dateFormat = {
-    weekday: "short",
     year: "numeric",
-    month: "2-digit",
-    day: "numeric"
+    month: "short",
+    day: "2-digit"
+};
+const relativeDateFormat = {
+    numeric: "auto",
 };
 let seperatedByDate = {};
 let dateList = [];
@@ -87,7 +92,7 @@ class Grid extends react.Component {
 
         today = new Date();
         CONFIG.range = parseInt(CONFIG.range) || 30;
-        limitInMs = CONFIG.range * 24 * 3600 * 1000;
+        limitInMs = CONFIG.range * DAY_DIVIDER;
 
         this.setState({ rest: false });
         let items = [];
@@ -100,12 +105,10 @@ class Grid extends react.Component {
             items.push(...episodes);
         }
 
-        // TODO: Config sort Asc, desc
         items = items.filter(a => a).sort((a, b) => b.time - a.time);
 
         for (const track of items) {
             track.visual = CONFIG.visual;
-            track.time = track.time.toLocaleDateString(navigator.language, dateFormat);
             if (!seperatedByDate[track.time]) {
                 dateList.push(track.time);
                 seperatedByDate[track.time] = [];
@@ -113,10 +116,24 @@ class Grid extends react.Component {
             seperatedByDate[track.time].push(react.createElement(Card, track));
         }
 
+        let timeFormat;
+        if (CONFIG.relative) {
+            timeFormat = new Intl.RelativeTimeFormat(CONFIG.locale, relativeDateFormat);
+        } else {
+            timeFormat = new Intl.DateTimeFormat(CONFIG.locale, dateFormat)
+        }
+
         for (const date of dateList) {
+            let dateStr;
+            if (CONFIG.relative) {
+                const days = Math.ceil((date - today) / DAY_DIVIDER);
+                dateStr = timeFormat.format(days, "day");
+            } else {
+                dateStr = timeFormat.format(date);
+            }
             gridList.push(react.createElement("div", {
                 className: "new-releases-header"
-            }, react.createElement("h2", null, date)),
+            }, react.createElement("h2", null, dateStr)),
             react.createElement("div", {
                 className: "main-gridContainer-gridContainer",
                 style: {

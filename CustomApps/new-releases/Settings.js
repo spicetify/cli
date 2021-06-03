@@ -65,6 +65,27 @@ const ConfigSelection = ({ name, defaultValue, options, onChange = () => { } }) 
     }, options[item])))));
 };
 
+const ConfigInput = ({ name, defaultValue, onChange = () => { } }) => {
+    const [value, setValue] = useState(defaultValue);
+
+    const setValueCallback = useCallback((event) => {
+        const value = event.target.value;
+        setValue(value);
+        onChange(value);
+    }, [value]);
+
+    return react.createElement("div", {
+        className: "setting-row",
+    }, react.createElement("label", {
+        className: "col description",
+    }, name), react.createElement("div", {
+        className: "col action",
+    }, react.createElement("input", {
+        value,
+        onChange: setValueCallback,
+    })));
+};
+
 const OptionList = ({ items, onChange }) => {
     const [ _, setItems ] = useState(items);
     return items.map(item => {
@@ -101,6 +122,20 @@ function openConfigMenu(event) {
                         "90": "90 days",
                         "120": "120 days",
                     },
+                    when: () => true,
+                },
+                {
+                    desc: "Date locale",
+                    key: "locale",
+                    defaultValue: CONFIG.locale,
+                    type: ConfigInput,
+                    when: () => true,
+                },
+                {
+                    desc: "Relative date",
+                    key: "relative",
+                    defaultValue: CONFIG.relative,
+                    type: ConfigSlider,
                     when: () => true,
                 },
                 {
