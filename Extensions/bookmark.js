@@ -166,8 +166,8 @@
     new Spicetify.Topbar.Button(
         BUTTON_NAME_TEXT,
         `<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M 13.350175,0.37457282 C 9.7802043,0.37457282 6.2102339,0.37457282 2.6402636,0.37457282 2.1901173,0.43000784 2.3537108,0.94911284 2.3229329,1.2621688 2.3229329,5.9446788 2.3229329,10.62721 2.3229329,15.309742 2.4084662,15.861041 2.9630936,15.536253 3.1614158,15.248148 4.7726941,13.696623 6.3839408,12.145098 7.9952191,10.593573 9.7069009,12.241789 11.418583,13.890005 13.130265,15.53822 13.626697,15.863325 13.724086,15.200771 13.667506,14.853516 13.667506,10.132999 13.667506,5.4124518 13.667506,0.69190384 13.671726,0.52196684 13.520105,0.37034182 13.350175,0.37457282 Z M 13.032844,14.563698 C 11.426929,13.017345 9.8210448,11.470993 8.2151293,9.9246401 7.8614008,9.6568761 7.6107412,10.12789 7.3645243,10.320193 5.8955371,11.734694 4.4265815,13.149196 2.9575943,14.563698 2.9575943,10.045543 2.9575943,5.5273888 2.9575943,1.0092338 6.3160002,1.0092338 9.674438,1.0092338 13.032844,1.0092338 13.032844,5.5273888 13.032844,10.045543 13.032844,14.563698 Z"></path></svg>`,
-        () => {
-            const bound = button.getBoundingClientRect();
+        (self) => {
+            const bound = self.element.getBoundingClientRect();
             LIST.changePosition(bound.left, bound.top);
             document.body.append(LIST.container);
             LIST.setScroll();
@@ -472,5 +472,97 @@
 
         Spicetify.PlaybackControl.playUri(info.uri, options);
     }
+
+     const fetchAlbum = async (uri) => {
+        const base62 = uri.split(":")[2];
+        const res = await CosmosAsync.get(`hm://album/v1/album-app/album/${base62}/desktop`);
+        return ({
+            uri,
+            title: res.name,
+            description: "Album",
+            imageUrl: res.cover.uri,
+        });
+    };
+
+    const fetchShow = async (uri) => {
+        const base62 = uri.split(":")[2];
+        const res = await CosmosAsync.get(
+            `sp://core-show/unstable/show/${base62}?responseFormat=protobufJson`,
+            { policy: { list: { index: true } } }
+        );
+        return ({
+            uri,
+            title: res.header.showMetadata.name,
+            description: "Podcast",
+            imageUrl: res.header.showMetadata.covers.standardLink,
+        });
+    };
+
+    const fetchArtist = async (uri) => {
+        const base62 = uri.split(":")[2];
+        const res = await CosmosAsync.get(`hm://artist/v1/${base62}/desktop?format=json`);
+        return ({
+            uri,
+            title: res.info.name,
+            description: "Artist",
+            imageUrl: res.header_image.image,
+        });
+    };
+
+    const fetchTrack = async (uri, uid) => {
+        const base62 = uri.split(":")[2];
+        const res = await CosmosAsync.get(`https://api.spotify.com/v1/tracks/${base62}`);
+        const currentPage = Spicetify.Platform.History.location.pathname;
+        let context = currentPage.startsWith("/playlist") && currentPage;
+        context += "?uid=" + uid;
+        return ({
+            uri,
+            title: res.name,
+            description: res.artists[0].name,
+            imageUrl: res.album.images[0].url,
+            context,
+        });
+    };
+
+    const fetchEpisode = async (uri) => {
+        const base62 = uri.split(":")[2];
+        const res = await CosmosAsync.get(`https://api.spotify.com/v1/episodes/${base62}`);
+        console.log(res);
+        return ({
+            uri,
+            title: res.name,
+            description: res.show.name + " episode",
+            imageUrl: res.show.images[0].url,
+        });
+    };
+
+    new Spicetify.ContextMenu.Item(
+        "Bookmark",
+        async ([uri], [uid]) => {
+            const type = uri.split(":")[1];
+            let meta;
+            switch(type) {
+                case Spicetify.URI.Type.TRACK:   meta = await fetchTrack(uri, uid); break;
+                case Spicetify.URI.Type.ALBUM:   meta = await fetchAlbum(uri); break;
+                case Spicetify.URI.Type.ARTIST:  meta = await fetchArtist(uri); break;
+                case Spicetify.URI.Type.SHOW:    meta = await fetchShow(uri); break;
+                case Spicetify.URI.Type.EPISODE: meta = await fetchEpisode(uri); break;
+            }
+            LIST.addToStorage(meta);
+        },
+        ([uri]) => {
+            const type = uri.split(":")[1];
+            switch(type) {
+                case Spicetify.URI.Type.TRACK:
+                case Spicetify.URI.Type.ALBUM:
+                case Spicetify.URI.Type.ARTIST:
+                case Spicetify.URI.Type.SHOW:
+                case Spicetify.URI.Type.EPISODE:
+                    return true;
+            }
+            return false;
+        },
+        `<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M 13.350175,0.37457282 C 9.7802043,0.37457282 6.2102339,0.37457282 2.6402636,0.37457282 2.1901173,0.43000784 2.3537108,0.94911284 2.3229329,1.2621688 2.3229329,5.9446788 2.3229329,10.62721 2.3229329,15.309742 2.4084662,15.861041 2.9630936,15.536253 3.1614158,15.248148 4.7726941,13.696623 6.3839408,12.145098 7.9952191,10.593573 9.7069009,12.241789 11.418583,13.890005 13.130265,15.53822 13.626697,15.863325 13.724086,15.200771 13.667506,14.853516 13.667506,10.132999 13.667506,5.4124518 13.667506,0.69190384 13.671726,0.52196684 13.520105,0.37034182 13.350175,0.37457282 Z M 13.032844,14.563698 C 11.426929,13.017345 9.8210448,11.470993 8.2151293,9.9246401 7.8614008,9.6568761 7.6107412,10.12789 7.3645243,10.320193 5.8955371,11.734694 4.4265815,13.149196 2.9575943,14.563698 2.9575943,10.045543 2.9575943,5.5273888 2.9575943,1.0092338 6.3160002,1.0092338 9.674438,1.0092338 13.032844,1.0092338 13.032844,5.5273888 13.032844,10.045543 13.032844,14.563698 Z"></path></svg>`,
+    ).register();
 })()
 
