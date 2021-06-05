@@ -107,15 +107,6 @@ class Grid extends react.Component {
 
         items = items.filter(a => a).sort((a, b) => b.time - a.time);
 
-        for (const track of items) {
-            track.visual = CONFIG.visual;
-            if (!seperatedByDate[track.time]) {
-                dateList.push(track.time);
-                seperatedByDate[track.time] = [];
-            }
-            seperatedByDate[track.time].push(react.createElement(Card, track));
-        }
-
         let timeFormat;
         if (CONFIG.relative) {
             timeFormat = new Intl.RelativeTimeFormat(CONFIG.locale, relativeDateFormat);
@@ -123,17 +114,26 @@ class Grid extends react.Component {
             timeFormat = new Intl.DateTimeFormat(CONFIG.locale, dateFormat)
         }
 
-        for (const date of dateList) {
+        for (const track of items) {
+            track.visual = CONFIG.visual;
             let dateStr;
             if (CONFIG.relative) {
-                const days = Math.ceil((date - today) / DAY_DIVIDER);
+                const days = Math.ceil((track.time - today) / DAY_DIVIDER);
                 dateStr = timeFormat.format(days, "day");
             } else {
-                dateStr = timeFormat.format(date);
+                dateStr = timeFormat.format(track.time);
             }
+            if (!seperatedByDate[dateStr]) {
+                dateList.push(dateStr);
+                seperatedByDate[dateStr] = [];
+            }
+            seperatedByDate[dateStr].push(react.createElement(Card, track));
+        }
+
+        for (const date of dateList) {
             gridList.push(react.createElement("div", {
                 className: "new-releases-header"
-            }, react.createElement("h2", null, dateStr)),
+            }, react.createElement("h2", null, date)),
             react.createElement("div", {
                 className: "main-gridContainer-gridContainer",
                 style: {
@@ -222,7 +222,10 @@ async function getPodcastList() {
 }
 
 async function getPodcastRelease(uri) {
-    const body = await CosmosAsync.get(`sp://core-show/unstable/show/${uri}`);
+    const body = await CosmosAsync.get(
+        `sp://core-show/unstable/show/${uri}?responseFormat=protobufJson`,
+        { policy: { list: { link: true, name: true, publishDate: true } } }
+    );
     return body.items;
 }
 
@@ -266,17 +269,20 @@ async function fetchPodcasts() {
         if (!tracks) continue;
 
         for (const track of tracks) {
-            const time = new Date(track.publishDate * 1000);
+            const time = new Date(track.episodeMetadata.publishDate * 1000);
 
             if ((today - time.getTime()) > limitInMs) {
                 break;
             }
 
             items.push(({
-                uri: track.link,
-                title: track.name,
-                artist: podcast.name,
-                imageURL: track.covers.default,
+                uri: track.episodeMetadata.link,
+                title: track.episodeMetadata.name,
+                artist: {
+                    name: podcast.name,
+                    uri: podcast.link,
+                },
+                imageURL: podcast.covers.standardLink,
                 time,
                 type: "Episode",
             }));

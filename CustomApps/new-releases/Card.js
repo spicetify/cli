@@ -23,7 +23,9 @@ class Card extends react.Component {
     render() {
         let detail = [];
         this.visual.type && detail.push(this.type);
-        this.visual.count && detail.push(`${this.trackCount} track${this.trackCount >  1 ? "s" : ""}`);
+        if (this.visual.count && this.trackCount) {
+            detail.push(`${this.trackCount} track${this.trackCount >  1 ? "s" : ""}`);
+        }
 
         return react.createElement(Spicetify.ReactComponent.RightClickMenu || "div", {
             menu: react.createElement(this.menuType, { uri: this.uri, }),
