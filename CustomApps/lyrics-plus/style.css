@@ -314,7 +314,7 @@ div.lyrics-tabBar-headerItemLink {
 
 .lyrics-lyricsContainer-LyricsLine a {
     background-color: transparent;
-    transition: all .25s cubic-bezier(0, 0, 0, 1);
+    transition: background-color .25s cubic-bezier(0, 0, 0, 1);
 }
 
 .lyrics-lyricsContainer-LyricsLine a.fetched {
@@ -324,6 +324,10 @@ div.lyrics-tabBar-headerItemLink {
 .lyrics-lyricsContainer-LyricsLine a,
 .lyrics-lyricsContainer-LyricsLine a:hover {
     text-decoration: none !important;
+}
+
+.lyrics-lyricsContainer-LyricsLine a:hover {
+    border-bottom: 2px solid var(--lyrics-color-active);
 }
 
 .lyrics-Genius-noteTextContainer {
@@ -402,11 +406,10 @@ div.lyrics-tabBar-headerItemLink {
     position: relative;
     cursor: pointer;
     box-shadow: 0 10px 15px 5px rgb(0, 0, 0, .2);
-    background-color: var(--lyrics-color-active);
+    background-color: var(--lyrics-highlight-background);
 }
 
 .lyrics-versionSelector select {
-    color: var(--spice-text);
     border: 0;
     border-radius: 4px;
     max-width: 500px;
@@ -416,7 +419,11 @@ div.lyrics-tabBar-headerItemLink {
     cursor: pointer;
     appearance: none;
     font-size: 18px;
+    background-color: var(--lyrics-color-active);
     color: var(--lyrics-highlight-background);
+}
+.lyrics-versionSelector option {
+    background-color: var(--lyrics-color-active);
 }
 
 .lyrics-versionSelector svg {
