@@ -769,6 +769,8 @@ Spicetify.ContextMenu = (function () {
         }
 
         let uris = [];
+        let uids;
+        let contextUri;
         if (props.uris) {
             uris = props.uris;
         } else if (props.uri) {
@@ -776,9 +778,15 @@ Spicetify.ContextMenu = (function () {
         } else {
             return;
         }
+        if (props.uids) {
+            uids = props.uids;
+        } else if (props.uid) {
+            uids = [props.uid];
+        }
+        contextUri = props?.contextUri;
 
         for (const item of itemList) {
-            if (!item._shouldAdd(uris)) {
+            if (!item._shouldAdd(uris, uids, contextUri)) {
                 continue;
             }
 
@@ -800,7 +808,7 @@ Spicetify.ContextMenu = (function () {
                     htmlChild.onclick = () => {
                         if (!child._disabled) {
                             child._element = undefined;
-                            child._onClick(uris);
+                            child._onClick(uris, uids, contextUri);
                             htmlSubmenu.remove();
                         }
                     };
@@ -823,7 +831,7 @@ Spicetify.ContextMenu = (function () {
             htmlItem.onclick = () => {
                 if (!item._disabled) {
                     item._element = null;
-                    item._onClick(uris);
+                    item._onClick(uris, uids, contextUri);
                     instance._tippy.props.onClickOutside();
                 }
             };
@@ -988,7 +996,7 @@ Spicetify.Topbar = (function() {
         get onClick() { return this._onClick; }
         set onClick(func) {
             this._onClick = func;
-            this.element.onclick = func;
+            this.element.onclick = () => this._onClick(this);
         }
         get disabled() { return this._disabled; }
         set disabled(bool) {

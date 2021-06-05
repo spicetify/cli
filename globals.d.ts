@@ -1124,6 +1124,8 @@ declare namespace Spicetify {
      */
     namespace ContextMenu {
         type Icon = "album" | "artist" | "block" | "chart-down" | "chart-up" | "check" | "check-alt-fill" | "chevron-left" | "chevron-right" | "chromecast-disconnected" | "copy" | "download" | "downloaded" | "edit" | "exclamation-circle" | "external-link" | "facebook" | "follow" | "fullscreen" | "grid-view" | "heart" | "heart-active" | "instagram" | "list-view" | "locked" | "locked-active" | "lyrics" | "minimize" | "more" | "new-spotify-connect" | "offline" | "pause" | "play" | "playlist" | "playlist-folder" | "plus2px" | "plus-alt" | "podcasts" | "repeat" | "repeat-once" | "search" | "search-active" | "shuffle" | "skip-back" | "skip-back15" | "skip-forward" | "skip-forward15" | "soundbetter" | "subtitles" | "twitter" | "volume" | "volume-off" | "volume-one-wave" | "volume-two-wave" | "x";
+        type OnClickCallback = (uris: string[], uids?: string[], contextUri?: string) => void;
+        type ShouldAddCallback = (uris: string[], uids?: string[], contextUri?: string) => boolean;
 
         // Single context menu item
         class Item {
@@ -1131,18 +1133,18 @@ declare namespace Spicetify {
              * List of valid icons to use.
              */
             static readonly iconList: Icon[];
-            constructor(name: string, onClick: (uris: string[]) => void, shouldAdd: (uris: string[]) => boolean = (uris: string[]) => true, icon?: Icon, disabled?: boolean);
+            constructor(name: string, onClick: OnClickCallback, shouldAdd?: ShouldAddCallback, icon?: Icon, disabled?: boolean);
             set name(text: string);
             set icon(name: Icon | string);
             set disabled(bool: boolean);
             /**
              * A function returning boolean determines whether item should be prepended.
              */
-            set shouldAdd(func: (uris: string[]) => boolean);
+            set shouldAdd(func: ShouldAddCallback);
             /**
              * A function to call when item is clicked
              */
-            set onClick(func: (uris: string[]) => void);
+            set onClick(func: OnClickCallback);
             /**
              * Item is only available in Context Menu when method "register" is called.
              */
@@ -1162,7 +1164,7 @@ declare namespace Spicetify {
              * List of valid icons to use.
              */
             static readonly iconList: Icon[];
-            constructor(name: string, subItems: Iterable<Item>, shouldAdd = (uris) => true, icon?: Icon, disabled?: boolean);
+            constructor(name: string, subItems: Iterable<Item>, shouldAdd?: ShouldAddCallback, icon?: Icon, disabled?: boolean);
             set name(text: string);
             set icon(name: Icon | string);
             set disabled(bool: boolean);
@@ -1175,7 +1177,7 @@ declare namespace Spicetify {
             /**
              * A function returning boolean determines whether item should be prepended.
              */
-            set shouldAdd(func: (uris: string[]) => boolean);
+            set shouldAdd(func: ShouldAddCallback);
             /**
              * SubMenu is only available in Context Menu when method "register" is called.
              */
