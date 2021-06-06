@@ -398,6 +398,7 @@ div.lyrics-tabBar-headerItemLink {
     top: var(--search-highlight-top);
     background-color: var(--lyrics-highlight-background);
     opacity: 0.5;
+    pointer-events: none;
 }
 
 .lyrics-versionSelector {

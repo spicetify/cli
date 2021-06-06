@@ -171,6 +171,7 @@ class SearchBar extends react.Component {
 
     componentDidMount() {
         this.viewPort = document.querySelector(".main-view-container .os-viewport");
+        this.mainViewOffsetTop = document.querySelector(".Root__main-view").offsetTop;
         this.toggleCallback = () => {
             if (this.state.hidden) {
                 this.setState({ hidden: false });
@@ -252,7 +253,7 @@ class SearchBar extends react.Component {
         if (this.state.foundNodes.length) {
             const node = this.state.foundNodes[this.state.atNode];
             const rects = node.getBoundingClientRect();
-            y = rects.y + this.viewPort.scrollTop;
+            y = rects.y + this.viewPort.scrollTop - this.mainViewOffsetTop;
             height = rects.height;
         }
         return react.createElement("div", {
