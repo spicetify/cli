@@ -41,13 +41,15 @@ class TabBarMore extends react.Component {
 }
 
 const TopBarContent = ({ links, activeLink, switchCallback }) => {
-    const [windowSize, setWindowSize] = useState(window.innerWidth);
-    const resizeHandler = () => setWindowSize(window.innerWidth);
+    const resizeHost = document.querySelector(".Root__main-view .os-resize-observer-host");
+    const [windowSize, setWindowSize] = useState(resizeHost.clientWidth);
+    const resizeHandler = () => setWindowSize(resizeHost.clientWidth);
 
     useEffect(() => {
-        window.addEventListener("resize", resizeHandler);
+        const observer = new ResizeObserver(resizeHandler);
+        observer.observe(resizeHost);
         return () => {
-          window.removeEventListener("resize", resizeHandler);
+            observer.disconnect();
         };
     }, [resizeHandler]);
 
@@ -92,7 +94,7 @@ const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Inf
     useEffect(() => {
         if (!tabBarRef.current) return;
 
-        const totalSize = childrenSizes.slice(0, -1).reduce((a, b) => a + b, 0);
+        const totalSize = childrenSizes.reduce((a, b) => a + b, 0);
 
         // Can we render everything?
         if (totalSize <= availableSpace) {
@@ -103,11 +105,7 @@ const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Inf
         // The `More` button can be set to _any_ of the children. So we
         // reserve space for the largest item instead of always taking
         // the last item.
-        const viewMoreButtonSize = childrenSizes.reduce(
-            (buttonASize, buttonBSize) =>
-                buttonASize > buttonBSize ? buttonASize : buttonBSize,
-            0,
-        );
+        const viewMoreButtonSize = Math.max(...childrenSizes);
 
         // Figure out how many children we can render while also showing
         // the More button

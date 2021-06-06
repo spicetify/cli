@@ -37,7 +37,7 @@ const CONFIG = {
         noise: getConfig("lyrics-plus:visual:noise"),
         ["background-color"]: localStorage.getItem("lyrics-plus:visual:background-color") || "var(--spice-main)",
         ["active-color"]: localStorage.getItem("lyrics-plus:visual:active-color") || "var(--spice-text)",
-        ["inactive-color"]: localStorage.getItem("lyrics-plus:visual:inactive-color") || "var(--spice-subtext)",
+        ["inactive-color"]: localStorage.getItem("lyrics-plus:visual:inactive-color") || "rgba(var(--spice-rgb-subtext),0.5)",
         ["highlight-color"]: localStorage.getItem("lyrics-plus:visual:highlight-color") || "var(--spice-button)",
     },
     providers: {
@@ -116,6 +116,8 @@ class LyricsContainer extends react.Component {
         };
         this.currentTrackUri = "";
         this.nextTrackUri = "";
+        this.availableModes = [];
+        this.colorVariables = {};
     }
 
     infoFromTrack(track) {
@@ -230,25 +232,35 @@ class LyricsContainer extends react.Component {
             this.tryServices(nextInfo);
         };
 
+        this.updateVisualOnConfigChange();
         Utils.addQueueListener(this.onQueueChange);
-        lyricContainerUpdate = this.forceUpdate.bind(this);
+
+        lyricContainerUpdate = () => {
+            this.updateVisualOnConfigChange();
+            this.forceUpdate();
+        };
     }
 
     componentWillUnmount() {
         Utils.removeQueueListener(this.onQueueChange);
     }
 
-    render() {
-        let colorVariables
+    updateVisualOnConfigChange() {
+        this.availableModes = CONFIG.modes
+            .filter((_, id) => {
+                return Object.values(CONFIG.providers)
+                    .some(p => p.on && p.modes.includes(id));
+            });
+
         if (!CONFIG.visual.colorful) {
-            colorVariables = {
+            this.colorVariables = {
                 '--lyrics-color-active': CONFIG.visual["active-color"],
                 '--lyrics-color-inactive': CONFIG.visual["inactive-color"],
                 '--lyrics-color-background': CONFIG.visual["background-color"],
                 '--lyrics-highlight-background': CONFIG.visual["highlight-color"],
             };
         } else {
-            colorVariables = {
+            this.colorVariables = {
                 '--lyrics-color-active': "white",
                 '--lyrics-color-inactive': this.state.colors.inactive,
                 '--lyrics-color-background': this.state.colors.background || "transparent",
@@ -256,11 +268,13 @@ class LyricsContainer extends react.Component {
             };
         }
         if (CONFIG.visual.noise) {
-            colorVariables["--lyrics-background-noise"] = "var(--background-noise)";
+            this.colorVariables["--lyrics-background-noise"] = "var(--background-noise)";
         } else {
-            colorVariables["--lyrics-background-noise"] = "unset";
+            this.colorVariables["--lyrics-background-noise"] = "unset";
         }
+    }
 
+    render() {
         let mode = -1;
         if (this.state.explicitMode !== -1) {
             mode = this.state.explicitMode;
@@ -327,20 +341,14 @@ class LyricsContainer extends react.Component {
 
         this.state.mode = mode;
 
-        const availableModes = CONFIG.modes
-            .filter((_, id) => {
-                return Object.values(CONFIG.providers)
-                    .some(p => p.on && p.modes.includes(id));
-            });
-
         return react.createElement("div", {
             className: "lyrics-lyricsContainer-LyricsContainer",
-            style: colorVariables,
+            style: this.colorVariables,
         }, react.createElement("div", {
             className: "lyrics-lyricsContainer-LyricsBackground",
         }), activeItem,
             react.createElement(TopBarContent, {
-                links: availableModes,
+                links: this.availableModes,
                 activeLink: CONFIG.modes[mode],
                 lockLink: CONFIG.modes[this.state.lockMode],
                 switchCallback: (event) => {
