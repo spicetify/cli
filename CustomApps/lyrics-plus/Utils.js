@@ -47,6 +47,13 @@ class Utils {
         );
     }
 
+    static removeExtraInfo(s) {
+        return (
+            s
+            .replace(/\s-\s.*/, "")
+        )
+    }
+
     static capitalize(s) {
         return s.replace(/^(\w)/, ($1) => $1.toUpperCase());
     }

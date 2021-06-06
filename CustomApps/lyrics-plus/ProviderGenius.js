@@ -109,22 +109,38 @@ const ProviderGenius = (function () {
     }
 
     async function fetchLyrics(info) {
-        const url = `https://genius.com/api/search/song?per_page=10&q=${encodeURIComponent(info.artist)}%20${encodeURIComponent(info.title)}`;
+        const titles = new Set([info.title]);
 
-        const geniusSearch = await CosmosAsync.get(url);
+        const titleNoExtra = Utils.removeExtraInfo(info.title);
+        titles.add(titleNoExtra);
+        titles.add(Utils.removeSongFeat(info.title));
+        titles.add(Utils.removeSongFeat(titleNoExtra));
+        console.log(titles);
 
-        const hits = geniusSearch.response.sections[0].hits
-            .map(item => ({
-                title: item.result.full_title,
-                url: item.result.url,
-            }));
+        let lyrics, hits;
+        for (const title of titles) {
+            const url = `https://genius.com/api/search/song?per_page=10&q=${encodeURIComponent(info.artist)}%20${encodeURIComponent(title)}`;
 
-        if (!hits.length) {
-            return { lyrics: null, versions: [] };
+            const geniusSearch = await CosmosAsync.get(url);
+
+            hits = geniusSearch.response.sections[0].hits
+                .map(item => ({
+                    title: item.result.full_title,
+                    url: item.result.url,
+                }));
+
+            if (!hits.length) {
+                continue;
+            }
+
+            lyrics = await fetchLyricsVersion(hits, 0);
+            break;
         }
 
-        const lyrics = await fetchLyricsVersion(hits, 0);
-
+        if (!lyrics) {
+            return { lyrics: null, versions: [] };
+        }
+        
         return {lyrics, versions: hits};
     }
 
