@@ -161,15 +161,12 @@ class LyricsContainer extends react.Component {
             const data = await Providers[id](trackInfo);
             if (!data.error && (data.karaoke || data.synced || data.unsynced || data.genius)) {
                 CACHE[data.uri] = data;
-                // In case user skips tracks too fast and multiple callbacks
-                // set wrong lyrics to current track.
-                if (data.uri === this.currentTrackUri) {
-                    return CACHE[data.uri];
-                }
-                return { ...emptyState };
+                return data;
             }
         }
-        CACHE[trackInfo.uri] = { ...emptyState };
+        const empty = { ...emptyState, uri: trackInfo.uri };
+        CACHE[trackInfo.uri] = empty;
+        return empty;
     }
 
     async fetchLyrics(track, mode = -1) {
@@ -197,7 +194,11 @@ class LyricsContainer extends react.Component {
 
         this.setState({ ...emptyState, isLoading: true });
         const resp = await this.tryServices(info, mode);
-        this.setState({ ...resp, isLoading: false });
+        // In case user skips tracks too fast and multiple callbacks
+        // set wrong lyrics to current track.
+        if (resp.uri === this.currentTrackUri) {
+            this.setState({ ...resp, isLoading: false });
+        }
     }
 
     async onVersionChange(items, index) {
@@ -214,6 +215,7 @@ class LyricsContainer extends react.Component {
 
     componentDidMount() {
         this.onQueueChange = async (queue) => {
+            this.viewPort.scrollTo(0, 0)
             this.state.explicitMode = this.state.lockMode;
             this.currentTrackUri = queue.track.uri;
             const [nextTrack] = queue.future;
@@ -229,7 +231,7 @@ class LyricsContainer extends react.Component {
             this.nextTrackUri = nextInfo.uri;
             await this.fetchLyrics(queue.track, this.state.explicitMode);
             // Fetch next track
-            this.tryServices(nextInfo);
+            this.tryServices(nextInfo, this.state.explicitMode);
         };
 
         this.updateVisualOnConfigChange();
@@ -239,6 +241,8 @@ class LyricsContainer extends react.Component {
             this.updateVisualOnConfigChange();
             this.forceUpdate();
         };
+
+        this.viewPort = document.querySelector(".Root__main-view .os-viewport");
     }
 
     componentWillUnmount() {
@@ -258,23 +262,22 @@ class LyricsContainer extends react.Component {
                 '--lyrics-color-inactive': CONFIG.visual["inactive-color"],
                 '--lyrics-color-background': CONFIG.visual["background-color"],
                 '--lyrics-highlight-background': CONFIG.visual["highlight-color"],
+                '--lyrics-background-noise': CONFIG.visual.noise ? "var(--background-noise)" : "unset",
             };
-        } else {
-            this.colorVariables = {
-                '--lyrics-color-active': "white",
-                '--lyrics-color-inactive': this.state.colors.inactive,
-                '--lyrics-color-background': this.state.colors.background || "transparent",
-                '--lyrics-highlight-background': "black",
-            };
-        }
-        if (CONFIG.visual.noise) {
-            this.colorVariables["--lyrics-background-noise"] = "var(--background-noise)";
-        } else {
-            this.colorVariables["--lyrics-background-noise"] = "unset";
         }
     }
 
     render() {
+        if (CONFIG.visual.colorful) {
+            this.colorVariables = {
+                '--lyrics-color-active': "white",
+                '--lyrics-color-inactive': this.state.colors.inactive,
+                '--lyrics-color-background': this.state.colors.background || "transparent",
+                '--lyrics-highlight-background': this.state.colors.inactive,
+                '--lyrics-background-noise': CONFIG.visual.noise ? "var(--background-noise)" : "unset",
+            };
+        }
+
         let mode = -1;
         if (this.state.explicitMode !== -1) {
             mode = this.state.explicitMode;
@@ -366,7 +369,8 @@ class LyricsContainer extends react.Component {
                     if (mode === this.state.lockMode) {
                         mode = -1;
                     }
-                    this.setState({ lockMode: mode });
+                    this.setState({ explicitMode: mode, lockMode: mode });
+                    this.fetchLyrics(Player.data.track, mode);
                     CONFIG.locked = mode;
                     localStorage.setItem("lyrics-plus:lock-mode", mode);
                     event.preventDefault();

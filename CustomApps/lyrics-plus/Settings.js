@@ -242,6 +242,7 @@ function openConfigMenu(event) {
             onToggle: (name, value) => {
                 CONFIG.providers[name].on = value;
                 localStorage.setItem(`${APP_NAME}:provider:${name}:on`, value);
+                lyricContainerUpdate && lyricContainerUpdate();
             },
             onTokenChange: (name, value) => {
                 CONFIG.providers[name].token = value;
