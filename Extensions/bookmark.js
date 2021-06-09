@@ -441,12 +441,11 @@
      * Handle Link click event when item context is a playlist
      */
     async function onLinkClick(info) {
-        console.log(info);
         if (info?.context?.startsWith("/")) {
             Spicetify.Platform.History.push(info.context);
             return;
         }
-        const url = "/" + Spicetify.URI.fromString(info.uri).toURLPath();
+        const url = Spicetify.URI.fromString(info.uri).toURLPath(true);
         Spicetify.Platform.History.push(url);
     }
 
@@ -509,12 +508,12 @@
         });
     };
 
-    const fetchTrack = async (uri, uid) => {
+    const fetchTrack = async (uri, uid = "", context = undefined) => {
         const base62 = uri.split(":")[2];
         const res = await CosmosAsync.get(`https://api.spotify.com/v1/tracks/${base62}`);
-        const currentPage = Spicetify.Platform.History.location.pathname;
-        let context = currentPage.startsWith("/playlist") && currentPage;
-        context += "?uid=" + uid;
+        if (context && Spicetify.URI.isPlaylistV1OrV2(context)) {
+            context = Spicetify.URI.from(context).toURLPath(true) + "?uid=" + uid;
+        }
         return ({
             uri,
             title: res.name,
@@ -536,17 +535,33 @@
         });
     };
 
+    const fetchPlaylist = async (uri) => {
+        const res = await Spicetify.CosmosAsync.get(
+            `sp://core-playlist/v1/playlist/${uri}/metadata`,
+            { policy: { picture: true, name: true } }
+        );
+        return ({
+            uri,
+            title: res.metadata.name,
+            description: "Playlist",
+            imageUrl: res.metadata.picture,
+        });
+    };
+
     new Spicetify.ContextMenu.Item(
         "Bookmark",
-        async ([uri], [uid]) => {
+        async ([uri], [uid] = [], context = undefined) => {
             const type = uri.split(":")[1];
             let meta;
             switch(type) {
-                case Spicetify.URI.Type.TRACK:   meta = await fetchTrack(uri, uid); break;
+                case Spicetify.URI.Type.TRACK:   meta = await fetchTrack(uri, uid, context); break;
                 case Spicetify.URI.Type.ALBUM:   meta = await fetchAlbum(uri); break;
                 case Spicetify.URI.Type.ARTIST:  meta = await fetchArtist(uri); break;
                 case Spicetify.URI.Type.SHOW:    meta = await fetchShow(uri); break;
                 case Spicetify.URI.Type.EPISODE: meta = await fetchEpisode(uri); break;
+                case Spicetify.URI.Type.PLAYLIST:
+                case Spicetify.URI.Type.PLAYLIST_V2:
+                    meta = await fetchPlaylist(uri); break;
             }
             LIST.addToStorage(meta);
         },
@@ -558,6 +573,8 @@
                 case Spicetify.URI.Type.ARTIST:
                 case Spicetify.URI.Type.SHOW:
                 case Spicetify.URI.Type.EPISODE:
+                case Spicetify.URI.Type.PLAYLIST:
+                case Spicetify.URI.Type.PLAYLIST_V2:
                     return true;
             }
             return false;
