@@ -191,6 +191,8 @@ func colorVariableReplace(content string) string {
 func colorVariableReplaceForJS(content string) string {
 	utils.Replace(&content, "#1db954", "var(--spice-button)")
 	utils.Replace(&content, "#b3b3b3", "var(--spice-subtext)")
+	utils.Replace(&content, `#ffffff`, `var(--spice-text)`)
+	utils.Replace(&content, `color:"white"`, `color:"var(--spice-text)"`)
 	return content
 }
 
