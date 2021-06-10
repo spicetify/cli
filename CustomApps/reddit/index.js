@@ -73,13 +73,10 @@ class Grid extends react.Component {
         this.loadAmount(queue, amount);
     }
 
-    appendCards(items) {
-        for (const item of items) {
-            item.visual = CONFIG.visual;
-            cardList.push(react.createElement(Card, item));
-        }
-
-        this.setState({ cards: [...cardList] });
+    appendCard(item) {
+        item.visual = CONFIG.visual;
+        cardList.push(react.createElement(Card, item));
+        this.setState({ cards: cardList });
     }
 
     updateSort() {
@@ -134,14 +131,28 @@ class Grid extends react.Component {
 
     async loadPage(queue) {
         let subMeta = await getSubreddit(requestAfter);
-        let items = await getItemsMeta(postMapper(subMeta.data.children));
+        let posts = postMapper(subMeta.data.children);
+        for (const post of posts) {
+            let item;
+            switch (post.type) {
+                case "playlist":
+                case "playlist-v2":
+                    item = await fetchPlaylist(post);
+                    break;
+                case "track":
+                    item = await fetchTrack(post);
+                    break;
+                case "album":
+                    item = await fetchAlbum(post);
+                    break;
+            }
+            if (requestQueue.length > 1 && queue !== requestQueue[0]) {
+                // Stop this queue from continuing to fetch and append to cards list
+                return -1;
+            }
 
-        if (requestQueue.length > 1 && queue !== requestQueue[0]) {
-            // Stop this queue from continuing to fetch and append to cards list
-            return -1;
+            item && this.appendCard(item);
         }
-
-        this.appendCards(items);
 
         if (subMeta.data.after) {
             return subMeta.data.after;
@@ -193,10 +204,6 @@ class Grid extends react.Component {
         if (cardList.length) { // Already loaded
             if (lastScroll > 0) {
                 viewPort.scrollTo(0, lastScroll);
-            }
-            if (requestAfter && requestAfter !== -1 && requestQueue.length > 0) {
-                // Resume the request that is canceled when app is unmounted
-                this.loadMore();
             }
             return;
         }
@@ -269,11 +276,7 @@ async function fetchPlaylist(post) {
                 policy: {
                     name: true,
                     picture: true,
-                    followed: true,
                     followers: true,
-                    owner: {
-                        name: true
-                    }
                 }
             }
         )
@@ -287,7 +290,6 @@ async function fetchPlaylist(post) {
             imageURL: "https://i.scdn.co/image/" + metadata.picture.split(":")[2],
             upvotes: post.upvotes,
             followersCount: metadata.followers,
-            isFollowing: metadata.followed,
         });
     } catch {
         return null;
@@ -296,28 +298,36 @@ async function fetchPlaylist(post) {
 
 async function fetchAlbum(post) {
     const arg = post.uri.split(":")[2];
-    const metadata = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${arg}/desktop`)
-    return ({
-        type: "Album",
-        uri: post.uri,
-        title: metadata.name,
-        subtitle: metadata.artists,
-        imageURL: metadata.cover.uri,
-        upvotes: post.upvotes,
-    });
+    try {
+        const metadata = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${arg}/desktop`)
+        return ({
+            type: "Album",
+            uri: post.uri,
+            title: metadata.name,
+            subtitle: metadata.artists,
+            imageURL: metadata.cover.uri,
+            upvotes: post.upvotes,
+        });
+    } catch {
+        return null;
+    }
 }
 
 async function fetchTrack(post) {
     const arg = post.uri.split(":")[2];
-    const metadata = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${arg}`)
-    return ({
-        type: "Track",
-        uri: post.uri,
-        title: metadata.name,
-        subtitle: metadata.artists,
-        imageURL: metadata.album.images[0].url,
-        upvotes: post.upvotes,
-    });
+    try {
+        const metadata = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${arg}`)
+        return ({
+            type: "Track",
+            uri: post.uri,
+            title: metadata.name,
+            subtitle: metadata.artists,
+            imageURL: metadata.album.images[0].url,
+            upvotes: post.upvotes,
+        });
+    } catch {
+        return null;
+    }
 }
 
 function postMapper(posts) {
@@ -339,25 +349,4 @@ function postMapper(posts) {
         }
     });
     return mappedPosts;
-}
-
-async function getItemsMeta(posts) {
-    var promises = [];
-    for (const post of posts) {
-        switch (post.type) {
-            case "playlist":
-            case "playlist-v2":
-                promises.push(fetchPlaylist(post));
-                break;
-            case "track":
-                promises.push(fetchTrack(post));
-                break;
-            case "album":
-                promises.push(fetchAlbum(post));
-                break;
-        }
-    }
-
-    const results = await Promise.all(promises);
-    return results.filter(a => a);
 }
