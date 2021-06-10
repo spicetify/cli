@@ -141,6 +141,8 @@ div.reddit-tabBar-headerItemLink {
 }
 
 .reddit-cardSubHeader {
+    margin-top: 4px;
+    white-space: normal;
     color: var(--spice-subtext);
 }
 

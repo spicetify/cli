@@ -36,7 +36,6 @@ class Card extends react.Component {
             subtitle = this.subtitle.map((artist) => {
                 const artistHref = "/" + URI.from(artist.uri).toURLPath();
                 return react.createElement("a", {
-                    className: `main-type-mesto reddit-cardSubHeader`,
                     href: artistHref,
                     onClick: (event) => {
                         event.preventDefault();
@@ -53,7 +52,9 @@ class Card extends react.Component {
                 as: "div",
             }, react.createElement("span", null, this.subtitle))
         }
-        return subtitle;
+        return react.createElement("div", {
+            className: "reddit-cardSubHeader main-type-mesto",
+        }, subtitle);
     }
 
     render() {
