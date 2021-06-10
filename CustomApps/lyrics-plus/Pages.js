@@ -357,14 +357,20 @@ const GeniusPage = react.memo(
             notes = {};
             const links = container.querySelectorAll("a");
             for (const link of links) {
-                ProviderGenius.getNote(link).then(note => {
-                    notes[link.pathname] = note;
+                let id = link.pathname.match(/\/(\d+)\//);
+                if (!id) {
+                    id = link.dataset.id;
+                } else {
+                    id = id[1];
+                }
+                ProviderGenius.getNote(id).then(note => {
+                    notes[id] = note;
                     link.classList.add("fetched");
                 });
                 link.onclick = (event) => {
                     event.preventDefault();
-                    if (!notes[link.pathname]) return;
-                    showNote(link, notes[link.pathname]);
+                    if (!notes[id]) return;
+                    showNote(link, notes[id]);
                 }
             }
         }, [lyrics])
