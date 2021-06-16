@@ -29,4 +29,4 @@ _What is the actual result of the above steps?_
 
 ## 📷 Screenshots
 
-_Are there any useful screenshots? WinKey+Shift+S and then just paste them directly into the form_
+_Are there any useful screenshots?_
