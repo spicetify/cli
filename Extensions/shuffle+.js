@@ -45,7 +45,13 @@
 
     function injectFunctions(bool) {
         if (bool) {
-            Spicetify.Player.origin2.playUri = fetchAndPlay;
+            Spicetify.Player.origin2.playUri = (uri, options) => {
+                if (options?.trackUid) {
+                    playUriOGFunc(uri, options);
+                    return;
+                }
+                fetchAndPlay(uri);
+            };
             Spicetify.Platform.PlayerAPI.play = (uri, origins, options) => {
                 if (options?.skipTo) {
                     if (options.skipTo.index !== undefined) {
@@ -329,7 +335,8 @@
         }
         list.push("spotify:delimiter");
 
-        if (!Spicetify.URI.isCollection(context)) {
+        const isQueue = !context || Spicetify.URI.isCollection(context);
+        if (!isQueue) {
             await Spicetify.CosmosAsync.post("sp://player/v2/main/update", {
                 context: {
                     uri: context,
@@ -343,7 +350,7 @@
                 uri,
                 provider: context ? "context" : "queue",
                 metadata: {
-                    is_queued: (!context || Spicetify.URI.isCollection(context)),
+                    is_queued: isQueue,
                 }
             })),
             prev_tracks: Spicetify.Queue?.prev_tracks,
