@@ -550,6 +550,7 @@ Spicetify.Menu = (function() {
                         child.element = undefined;
                         child.onClick();
                         htmlSubmenu.remove();
+                        instance._tippy.props.onClickOutside();
                     };
                     child.element = htmlChild;
                     htmlSubmenu.addItem(htmlChild);
@@ -810,6 +811,7 @@ Spicetify.ContextMenu = (function () {
                             child._element = undefined;
                             child._onClick(uris, uids, contextUri);
                             htmlSubmenu.remove();
+                            instance._tippy.props.onClickOutside();
                         }
                     };
                     child._element = htmlChild;
