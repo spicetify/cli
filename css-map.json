@@ -1,5 +1,9 @@
 {
     "_93b1e8ecc767cdd8e3e3ce8145b62762-scss": "main-userWidget-dropDownMenu",
+    "_8e566af0d3a8e6834c933615bbb634ba-scss": "main-userWidget-dropDownMenuItemButton",
+    "_2fb76b29bb29b8c2beed2c21266b23cc-scss": "main-collectionLinkButton-collectionLinkText",
+    "_93e6e823efbe6794aef39c172c017556-scss": "main-buddyFeed-buddyFeed-expanded",
+
     "_0037dcb126d48f113158d59d1b2b7cf5-scss": "artist-artistAbout-about",
     "_005590a52c350da7a35bced9677a3af0-scss": "main-playlistEditDetailsModal-imageLoadingContainer",
     "_0087e03ded957cfbba5f781c4b923384-scss": "lyrics-lyricsContainer-Provider",
