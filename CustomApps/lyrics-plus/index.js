@@ -354,17 +354,14 @@ class LyricsContainer extends react.Component {
                 links: this.availableModes,
                 activeLink: CONFIG.modes[mode],
                 lockLink: CONFIG.modes[this.state.lockMode],
-                switchCallback: (event) => {
-                    const label = event.target.value || event.target.textContent;
+                switchCallback: (label) => {
                     const mode  = CONFIG.modes.findIndex(a => a === label);
                     if (mode !== this.state.mode) {
                         this.setState({ explicitMode: mode });
                         this.fetchLyrics(Player.data.track, mode);
                     }
-                    event.preventDefault();
                 },
-                lockCallback: (event) => {
-                    const label = event.target.value || event.target.textContent;
+                lockCallback: (label) => {
                     let mode  = CONFIG.modes.findIndex(a => a === label);
                     if (mode === this.state.lockMode) {
                         mode = -1;
@@ -373,7 +370,6 @@ class LyricsContainer extends react.Component {
                     this.fetchLyrics(Player.data.track, mode);
                     CONFIG.locked = mode;
                     localStorage.setItem("lyrics-plus:lock-mode", mode);
-                    event.preventDefault();
                 },
             }));
     }

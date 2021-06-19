@@ -1,49 +1,50 @@
 class TabBarItem extends react.Component {
+    onSelect(event) {
+        event.preventDefault();
+        this.props.switchTo(this.props.item.key);
+    }
+    onLock(event) {
+        event.preventDefault();
+        this.props.lockIn(this.props.item.key);
+    }
     render() {
         return react.createElement("li", {
             className: "lyrics-tabBar-headerItem",
-            onClick: this.props.switchTo,
-            onDoubleClick: this.props.lockIn,
-            onContextMenu: this.props.lockIn,
+            onClick: this.onSelect.bind(this),
+            onDoubleClick: this.onLock.bind(this),
+            onContextMenu: this.onLock.bind(this),
         }, react.createElement("a", {
             "aria-current": "page",
-            className: `lyrics-tabBar-headerItemLink ${this.props.isActive ? "lyrics-tabBar-active" : ""}`,
+            className: `lyrics-tabBar-headerItemLink ${this.props.item.active ? "lyrics-tabBar-active" : ""}`,
             draggable: "false",
             href: "",
         }, react.createElement("span", {
-            className: `main-type-mestoBold ${this.props.isLocked ? " lyrics-tabBar-headerItemLink-locked" : ""}`,
-        }, this.props.name)));
+            className: `main-type-mestoBold`,
+        }, this.props.item.value)));
     }
 }
 
-class TabBarMore extends react.Component {
-    render() {
-        const hasActiveItem = this.props.items.includes(this.props.activeItem);
-        return react.createElement("div", {
-            className: `lyrics-tabBar-headerItemLink lyrics-tabBar-headerItem ${hasActiveItem ? "lyrics-tabBar-active" : ""}`,
-        }, react.createElement("select", {
-            className: "main-type-mestoBold",
-            ref: c => this.selector = c,
-            onChange: this.props.switchTo,
-            onDoubleClick: this.props.lockIn,
-            onContextMenu: this.props.lockIn,
-            value: hasActiveItem ? this.props.activeItem : "",
-        }, react.createElement("option", {
-            value: "",
-            selected: true,
-            disabled: true,
-        }, "More"), this.props.items.map((name) => react.createElement("option", {
-            value: name
-        }, name))), react.createElement("svg", {
-            height: "16",
-            width: "16",
-            fill: "currentColor",
-            viewBox: "0 0 16 16",
-        }, react.createElement("path", {
-            d: "M3 6l5 5.794L13 6z",
-        })));
+const TabBarMore = react.memo(({ items, switchTo, lockIn }) => {
+    const activeItem = items.find((item) => item.active);
+
+    function onLock(event) {
+        event.preventDefault();
+        if (activeItem) {
+            lockIn(activeItem.key);
+        }
     }
-}
+    return react.createElement("li", {
+        className: `lyrics-tabBar-headerItem ${activeItem ? "lyrics-tabBar-active" : ""}`,
+        onDoubleClick: onLock,
+        onContextMenu: onLock,
+    }, react.createElement(OptionsMenu, {
+        options: items,
+        onSelect: switchTo,
+        selected: activeItem,
+        defaultValue: "More",
+        bold: true,
+    }));
+});
 
 const TopBarContent = ({ links, activeLink, lockLink, switchCallback, lockCallback }) => {
     const resizeHost = document.querySelector(".Root__main-view .os-resize-observer-host");
@@ -83,6 +84,15 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
     const [childrenSizes, setChildrenSizes] = useState([]);
     const [availableSpace, setAvailableSpace] = useState(0);
     const [droplistItem, setDroplistItems] = useState([]);
+
+    const options = links.map((key) => {
+        let value = key.replace(/./, (c) => c.toUpperCase());
+        if (key === lockLink) {
+            value = "• " + value;
+        }
+        const active = key === activeLink;
+        return ({ key, value, active });
+    });
 
     useEffect(() => {
         if (!tabBarRef.current) return;
@@ -128,7 +138,7 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
             }
         });
 
-        setDroplistItems(itemsToHide.map(i => links[i]).filter(i => i));
+        setDroplistItems(itemsToHide);
     }, [availableSpace, childrenSizes]);
 
     return react.createElement("nav", {
@@ -141,21 +151,17 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
     }, react.createElement(ButtonSVG, {
         onClick: openConfigMenu,
         icon: Spicetify.SVGIcons.edit,
-    })), links
-        .filter(item => !droplistItem.includes(item))
+    })), options
+        .filter((_, id) => !droplistItem.includes(id))
         .map(item => react.createElement(TabBarItem, {
-            name: item,
+            item,
             switchTo: switchCallback,
             lockIn: lockCallback,
-            isActive: activeLink === item,
-            isLocked: lockLink === item,
         })),
         (droplistItem.length || childrenSizes.length === 0) ?
             react.createElement(TabBarMore, {
-                items: droplistItem,
+                items: droplistItem.map(i => options[i]).filter(i => i),
                 switchTo: switchCallback,
                 lockIn: lockCallback,
-                activeItem: activeLink,
-                lockedItem: lockLink,
             }) : null));
 });

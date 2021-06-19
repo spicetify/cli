@@ -8,6 +8,7 @@
         "ProviderGenius.js",
         "Providers.js",
         "Pages.js",
+        "OptionsMenu.js",
         "TabBar.js",
         "Utils.js",
         "Settings.js"

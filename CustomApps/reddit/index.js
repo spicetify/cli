@@ -79,13 +79,14 @@ class Grid extends react.Component {
         this.setState({ cards: cardList });
     }
 
-    updateSort() {
-        sortConfig.by = document.querySelector("#reddit-sort-by").value;
-        localStorage.setItem("reddit:sort-by", sortConfig.by);
-        const sortTime = document.querySelector("#reddit-sort-time");
-        if (sortTime) {
-            sortConfig.time = sortTime.value;
-            localStorage.setItem("reddit:sort-time", sortConfig.time);
+    updateSort(sortByValue, sortTimeValue) {
+        if (sortByValue) {
+            sortConfig.by = sortByValue;
+            localStorage.setItem("reddit:sort-by", sortByValue);
+        }
+        if (sortTimeValue) {
+            sortConfig.time = sortTimeValue;
+            localStorage.setItem("reddit:sort-time", sortTimeValue);
         }
 
         requestAfter = null;
@@ -113,10 +114,9 @@ class Grid extends react.Component {
         this.setState({ cards: [...cardList] });
     }
 
-    switchTo(event) {
-        event.preventDefault();
-        CONFIG.lastService = event.target.value || event.target.innerText;
-        localStorage.setItem("reddit:last-service", CONFIG.lastService);
+    switchTo(value) {
+        CONFIG.lastService = value;
+        localStorage.setItem("reddit:last-service", value);
         cardList = [];
         requestAfter = null;
         this.setState({

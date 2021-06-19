@@ -37,16 +37,20 @@ button.switch.small {
     height: 22px;
     padding: 6px;
 }
-.reddit-sort-container select {
+.reddit-sort-container .optionsMenu-dropBox {
+    grid-gap: 8px;
+    align-items: center;
+    background-color: transparent;
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 1fr 16px;
     color: rgba(var(--spice-rgb-text), .7);
     border: 0;
     height: 32px;
     margin-left: 8px;
     padding: 0 8px 0 12px;
-    border-radius: 4px;
-    background-color: initial;
 }
-.reddit-sort-container select:hover {
+.reddit-sort-container .optionsMenu-dropBox:hover {
     color: var(--spice-text);
 }
 #reddit-config-container input {
@@ -97,6 +101,7 @@ option {
 
 .reddit-tabBar-active {
     background-color: var(--spice-tab-active);
+    border-radius: 4px;
 }
 
 .reddit-tabBar-headerItemLink {
@@ -116,24 +121,20 @@ option {
     width: 100%;
 }
 
-.reddit-tabBar-headerItemLink select {
+.reddit-tabBar-headerItem .optionsMenu-dropBox {
     color: var(--spice-text);
     border: 0;
-    border-radius: 4px;
     max-width: 150px;
     height: 42px;
-    margin-left: 8px;
     padding: 0 30px 0 12px;
     background-color: initial;
     cursor: pointer;
     appearance: none;
 }
 
-.reddit-tabBar-headerItemLink svg {
+.reddit-tabBar-headerItem .optionsMenu-dropBox svg {
     position: absolute;
-    height: 42px;
-    right: 10px;
-    pointer-events: none;
+    margin-left: 8px;
 }
 
 div.reddit-tabBar-headerItemLink {

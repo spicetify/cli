@@ -234,6 +234,7 @@
 
 .lyrics-tabBar-active {
     background-color: var(--spice-tab-active);
+    border-radius: 4px;
 }
 
 .lyrics-tabBar-headerItemLink {
@@ -270,17 +271,20 @@
     justify-content: flex-start;
 }
 
-.lyrics-tabBar-headerItemLink select {
+.lyrics-tabBar-headerItem .optionsMenu-dropBox {
     color: var(--spice-text);
     border: 0;
-    border-radius: 4px;
     max-width: 150px;
     height: 42px;
-    margin-left: 8px;
     padding: 0 30px 0 12px;
     background-color: initial;
     cursor: pointer;
     appearance: none;
+}
+
+.lyrics-tabBar-headerItem .optionsMenu-dropBox svg {
+    position: absolute;
+    margin-left: 8px;
 }
 
 option {
@@ -289,13 +293,6 @@ option {
 
 div.lyrics-tabBar-headerItemLink {
     padding: 0;
-}
-
-.lyrics-tabBar-headerItemLink svg {
-    position: absolute;
-    height: 42px;
-    right: 10px;
-    pointer-events: none;
 }
 
 .lyrics-tabBar-header button.switch {

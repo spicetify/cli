@@ -313,8 +313,14 @@ Spicetify.React.useEffect(() => {
 	// React Component: Right Click Menu wrapper
 	utils.Replace(
 		&input,
-		`(const \w+)(=\w+=>\w+\(\)\.createElement\([\w\.]+,\w+\(\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\)\})`,
-		`${1}=Spicetify.ReactComponent.RightClickMenu${2}`)
+		`(const \w+)(=\w+=>\w+\(\)\.createElement\(([\w\.]+),\w+\(\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\)\})`,
+		`Spicetify.ReactComponent.ContextMenu=${3};${1}=Spicetify.ReactComponent.RightClickMenu${2}`)
+
+	// React Component: Context Menu - Menu
+	utils.Replace(
+		&input,
+		`=\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+\}\)`,
+		`=Spicetify.ReactComponent.Menu${0}`)
 
 	// React Component: Album Context Menu items
 	utils.Replace(

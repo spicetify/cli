@@ -2,43 +2,34 @@ class TabBarItem extends react.Component {
     render() {
         return react.createElement("li", {
             className: "reddit-tabBar-headerItem",
-            onClick: this.props.switchTo,
+            onClick: (event) => {
+                event.preventDefault();
+                this.props.switchTo(this.props.item.key);
+            },
         }, react.createElement("a", {
             "aria-current": "page",
-            className: `reddit-tabBar-headerItemLink ${this.props.isActive ? "reddit-tabBar-active" : ""}`,
+            className: `reddit-tabBar-headerItemLink ${this.props.item.active ? "reddit-tabBar-active" : ""}`,
             draggable: "false",
             href: "",
         }, react.createElement("span", {
             className: "main-type-mestoBold"
-        }, this.props.name)));
+        }, this.props.item.value)));
     }
 }
 
-class TabBarMore extends react.Component {
-    render() {
-        const hasActiveItem = this.props.items.includes(this.props.activeItem);
-        return react.createElement("div", {
-            className: `reddit-tabBar-headerItemLink reddit-tabBar-headerItem ${hasActiveItem ? "reddit-tabBar-active" : ""}`,
-        }, react.createElement("select", {
-            className: "main-type-mestoBold",
-            onChange: this.props.switchTo,
-            value: hasActiveItem ? this.props.activeItem : "",
-        }, react.createElement("option", {
-            value: "",
-            selected: true,
-            disabled: true,
-        }, "More"), this.props.items.map((name) => react.createElement("option", {
-            value: name
-        }, name))), react.createElement("svg", {
-            height: "16" ,
-            width: "16" ,
-            fill: "currentColor" ,
-            viewBox: "0 0 16 16",
-        }, react.createElement("path", {
-            d: "M3 6l5 5.794L13 6z",
-        })));
-    }
-}
+const TabBarMore = react.memo(({ items, switchTo }) => {
+    const activeItem = items.find((item) => item.active);
+
+    return react.createElement("li", {
+        className: `reddit-tabBar-headerItem ${activeItem ? "reddit-tabBar-active" : ""}`,
+    }, react.createElement(OptionsMenu, {
+        options: items,
+        onSelect: switchTo,
+        selected: activeItem,
+        defaultValue: "More",
+        bold: true,
+    }));
+});
 
 const TopBarContent = ({ links, activeLink, switchCallback }) => {
     const resizeHost = document.querySelector(".Root__main-view .os-resize-observer-host");
@@ -76,6 +67,11 @@ const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Inf
     const [childrenSizes, setChildrenSizes] = useState([]);
     const [availableSpace, setAvailableSpace] = useState(0);
     const [droplistItem, setDroplistItems] = useState([]);
+
+    const options = links.map((key) => {
+        const active = key === activeLink;
+        return ({ key, value: key, active });
+    });
 
     useEffect(() => {
         if (!tabBarRef.current) return;
@@ -120,7 +116,7 @@ const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Inf
             }
         });
 
-        setDroplistItems(itemsToHide.map(i => CONFIG.services[i]).filter(i => i));
+        setDroplistItems(itemsToHide);
     }, [availableSpace, childrenSizes]);
 
     return react.createElement("nav", {
@@ -128,18 +124,16 @@ const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Inf
         }, react.createElement("ul", {
             className: "reddit-tabBar-header",
             ref: tabBarRef,
-        }, links
-            .filter(item=> !droplistItem.includes(item))
+        }, options
+            .filter((_, id) => !droplistItem.includes(id))
             .map(item => react.createElement(TabBarItem, {
-                name: item,
+                item,
                 switchTo: switchCallback,
-                isActive: activeLink === item,
             })),
             (droplistItem.length || childrenSizes.length === 0) ?
                 react.createElement(TabBarMore, {
-                    items: droplistItem,
+                    items: droplistItem.map(i => options[i]).filter(i => i),
                     switchTo: switchCallback,
-                    activeItem: activeLink,
                 }) : null)
         );
 });
