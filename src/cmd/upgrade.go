@@ -97,6 +97,7 @@ func Upgrade(currentVersion string) {
 	utils.CheckExistAndDelete(exeOld)
 	utils.PrintGreen("OK")
 	utils.PrintSuccess("spicetify is up-to-date.")
+	utils.PrintInfo(`Please run "spicetify restore backup apply" to receive new features and bug fixes`)
 }
 
 func permissionError(err error) {

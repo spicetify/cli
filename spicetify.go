@@ -180,13 +180,13 @@ func main() {
 	for _, v := range commands {
 		switch v {
 		case "backup":
-			cmd.Backup()
+			cmd.Backup(version)
 
 		case "clear":
 			cmd.Clear()
 
 		case "apply":
-			cmd.Apply()
+			cmd.Apply(version)
 			restartSpotify()
 
 		case "update":
@@ -212,7 +212,7 @@ func main() {
 			cmd.RestartSpotify()
 
 		case "auto":
-			cmd.Auto()
+			cmd.Auto(version)
 			restartSpotify()
 
 		default:

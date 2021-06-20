@@ -15,7 +15,7 @@ import (
 
 // Backup stores original apps packages, extracts them and preprocesses
 // extracted apps' assets
-func Backup() {
+func Backup(spicetifyVersion string) {
 	backupVersion := backupSection.Key("version").MustString("")
 	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 	if !backStat.IsEmpty() {
@@ -81,6 +81,7 @@ func Backup() {
 	utils.PrintGreen("OK")
 
 	backupSection.Key("version").SetValue(utils.GetSpotifyVersion(prefsPath))
+	backupSection.Key("with").SetValue(spicetifyVersion)
 	cfg.Write()
 	utils.PrintSuccess("Everything is ready, you can start applying now!")
 }
@@ -117,6 +118,7 @@ func clearBackup() {
 	os.Mkdir(themedFolder, 0700)
 
 	backupSection.Key("version").SetValue("")
+	backupSection.Key("with").SetValue("")
 	cfg.Write()
 	utils.PrintSuccess("Backup is cleared.")
 }
