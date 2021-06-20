@@ -82,9 +82,19 @@ declare namespace Spicetify {
          *  - `appchange` type when user changes page.
          */
         function addEventListener(type: string, callback: (event?: Event) => void): void;
-        function addEventListener(type: "songchange", callback: (event?: Event | { data: PlayerState }) => void): void;
-        function addEventListener(type: "onplaypause", callback: (event?: Event | { data: PlayerState }) => void): void;
-        function addEventListener(type: "onprogress", callback: (event?: Event | { data: number }) => void): void;
+        function addEventListener(type: "songchange", callback: (event?: Event & { data: PlayerState }) => void): void;
+        function addEventListener(type: "onplaypause", callback: (event?: Event & { data: PlayerState }) => void): void;
+        function addEventListener(type: "onprogress", callback: (event?: Event & { data: number }) => void): void;
+        function addEventListener(type: "appchange", callback: (event?: Event & { data: {
+            /**
+             * App href path
+             */
+            path: string;
+            /**
+             * App container
+             */
+             container: HTMLElement;
+        } }) => void): void;
         /**
          * Skip to previous track.
          */
