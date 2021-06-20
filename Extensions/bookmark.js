@@ -508,10 +508,10 @@
         });
     };
 
-    const fetchTrack = async (uri, uid = "", context = undefined) => {
+    const fetchTrack = async (uri, uid, context) => {
         const base62 = uri.split(":")[2];
         const res = await CosmosAsync.get(`https://api.spotify.com/v1/tracks/${base62}`);
-        if (context && Spicetify.URI.isPlaylistV1OrV2(context)) {
+        if (context && uid && Spicetify.URI.isPlaylistV1OrV2(context)) {
             context = Spicetify.URI.from(context).toURLPath(true) + "?uid=" + uid;
         }
         return ({
