@@ -1340,4 +1340,18 @@ declare namespace Spicetify {
         const ArtistMenu: any;
         const PlaylistMenu: any;
     };
+
+    /**
+     * Add button in top bar next to navigation buttons
+     */
+    namespace Topbar {
+        class Button {
+            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled = false);
+            label: string;
+            icon: string;
+            onClick: (self: Button) => void;
+            disabled: boolean;
+            element: HTMLButtonElement;
+        }
+    }
 }
