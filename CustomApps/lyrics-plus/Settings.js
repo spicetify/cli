@@ -175,9 +175,7 @@ const OptionList = ({ items, onChange }) => {
     })
 };
 
-function openConfigMenu(event) {
-    event.preventDefault();
-
+function openConfig() {
     const configContainer = react.createElement("div", {
         id: `${APP_NAME}-config-container`,
     }, react.createElement("h2", null, "Options"),

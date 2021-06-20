@@ -20,7 +20,7 @@ Lyrics in Unsynced and Genius modes can be search and jump to. Hit Ctrl + Shift 
 
 ![search](./search.png)
 
-Customise colors, change providers' priorities in config menu.
+Customise colors, change providers' priorities in config menu. Config menu locates in Profile Menu (top right button with your user name).
 
 To install, run:
 ```bash

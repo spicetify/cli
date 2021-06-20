@@ -197,6 +197,9 @@ class Grid extends react.Component {
         gridUpdateTabs = this.updateTabs.bind(this);
         gridUpdatePostsVisual = this.updatePostsVisual.bind(this);
 
+        this.configButton = new Spicetify.Menu.Item("Reddit config", false, openConfig);
+        this.configButton.register();
+
         const viewPort = document.querySelector("main .os-viewport");
         this.checkScroll = this.isScrolledBottom.bind(this);
         viewPort.addEventListener("scroll", this.checkScroll);
@@ -216,6 +219,7 @@ class Grid extends react.Component {
         const viewPort = document.querySelector("main .os-viewport");
         lastScroll = viewPort.scrollTop;
         viewPort.removeEventListener("scroll", this.checkScroll);
+        this.configButton.deregister();
     }
 
     isScrolledBottom(event) {

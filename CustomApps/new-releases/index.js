@@ -148,6 +148,9 @@ class Grid extends react.Component {
     async componentDidMount() {
         gridUpdatePostsVisual = this.updatePostsVisual.bind(this);
 
+        this.configButton = new Spicetify.Menu.Item("New Releases config", false, openConfig);
+        this.configButton.register();
+
         const viewPort = document.querySelector("main .os-viewport");
 
         if (gridList.length) { // Already loaded
@@ -163,6 +166,7 @@ class Grid extends react.Component {
     componentWillUnmount() {
         const viewPort = document.querySelector("main .os-viewport");
         lastScroll = viewPort.scrollTop;
+        this.configButton.deregister();
     }
 
     render() {
@@ -176,9 +180,6 @@ class Grid extends react.Component {
         }, react.createElement(ButtonText, {
             text: "Refresh",
             onClick: this.reload.bind(this),
-        }), react.createElement(ButtonSVG, {
-            icon: Spicetify.SVGIcons.edit,
-            onClick: openConfigMenu,
         }))),
         this.state.rest ? gridList : LoadingIcon);
     }

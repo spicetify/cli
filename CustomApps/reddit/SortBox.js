@@ -26,13 +26,7 @@ class SortBox extends react.Component {
             className: "reddit-sort-bar",
         }, react.createElement("div", {
             className: "reddit-sort-container",
-        }, react.createElement("button", {
-            className: "switch",
-            onClick: openConfig,
-            dangerouslySetInnerHTML: {
-                __html: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.edit}</svg>`,
-            },
-        }), react.createElement(OptionsMenu, {
+        }, react.createElement(OptionsMenu, {
             options: this.sortByOptions,
             onSelect: (by) => this.props.onChange(by, null),
             selected: sortBySelected,

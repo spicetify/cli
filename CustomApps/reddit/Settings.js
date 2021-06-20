@@ -1,7 +1,6 @@
 let configContainer;
 
-function openConfig(event) {
-    event.preventDefault();
+function openConfig() {
     if (configContainer) {
         Spicetify.PopupModal.display({
             title: "Reddit",

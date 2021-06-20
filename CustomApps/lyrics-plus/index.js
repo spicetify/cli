@@ -243,10 +243,14 @@ class LyricsContainer extends react.Component {
         };
 
         this.viewPort = document.querySelector(".Root__main-view .os-viewport");
+
+        this.configButton = new Spicetify.Menu.Item("Lyrics Plus config", false, openConfig);
+        this.configButton.register();
     }
 
     componentWillUnmount() {
         Utils.removeQueueListener(this.onQueueChange);
+        this.configButton.deregister();
     }
 
     updateVisualOnConfigChange() {

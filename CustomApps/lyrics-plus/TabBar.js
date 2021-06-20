@@ -134,7 +134,7 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
                 stopWidth += childWidth;
             } else {
                 // First elem is edit button
-                itemsToHide.push(i - 1);
+                itemsToHide.push(i);
             }
         });
 
@@ -148,10 +148,7 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
         ref: tabBarRef,
     }, react.createElement("li", {
         className: "lyrics-tabBar-headerItem",
-    }, react.createElement(ButtonSVG, {
-        onClick: openConfigMenu,
-        icon: Spicetify.SVGIcons.edit,
-    })), options
+    }), options
         .filter((_, id) => !droplistItem.includes(id))
         .map(item => react.createElement(TabBarItem, {
             item,
