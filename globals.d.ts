@@ -1220,4 +1220,124 @@ declare namespace Spicetify {
     const React: any;
     /** React DOM instance to render and mount components */
     const ReactDOM: any;
+
+    /** Stock React components exposed from Spotify library */
+    namespace ReactComponent {
+        type ContextMenuProps = {
+            /**
+             * Decide whether to use the global singleton context menu (rendered in <body>)
+             * or a new inline context menu (rendered in a sibling
+             * element to `children`)
+             */
+            renderInline?: boolean;
+            /**
+             * Determins what will trigger the context menu. For example, a click, or a right-click
+             */
+            trigger?: 'click' | 'right-click';
+            /**
+             * Determins is the context menu should open or toggle when triggered
+             */
+            action?: 'toggle' | 'open';
+            /**
+             * The preferred placement of the context menu when it opens.
+             * Relative to trigger element.
+             */
+            placement?: 'top' | 'top-start' | 'top-end' | 'right' | 'right-start' | 'right-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end';
+            /**
+             * The x and y offset distances at which the context menu should open.
+             * Relative to trigger element and `position`.
+             */
+            offset?: [number, number];
+            /**
+             * Will stop the client from scrolling while the context menu is open
+             */
+            preventScrollingWhileOpen?: boolean;
+            /**
+             * The menu UI to render inside of the context menu.
+             */
+            menu: Spicetify.ReactComponent.Menu |
+                Spicetify.ReactComponent.AlbumMenu |
+                Spicetify.ReactComponent.PodcastShowMenu |
+                Spicetify.ReactComponent.ArtistMenu |
+                Spicetify.ReactComponent.PlaylistMenu;
+            /**
+             * A child of the context menu. Should be `<button>`, `<a>`,
+             * a custom react component that forwards a ref to a `<button>` or `<a>`,
+             * or a function. If a function is passed it will be called with
+             * (`isOpen`, `handleContextMenu`, `ref`) as arguments.
+             */
+            children: ContextMenuChildren;
+        };
+        type MenuProps = {
+            /**
+             * Function that is called when the menu is closed
+             */
+            onClose?: () => void;
+            /**
+             * Function that provides the element that focus should jump to when the menu
+             * is opened
+             */
+            getInitialFocusElement?: (el: HTMLElement | null) => HTMLElement | undefined | null;
+        }
+        type MenuItemProps = {
+            /**
+             * Function that runs when `MenuItem` is clicked
+             */
+            onClick?: React.MouseEventHandler<HTMLButtonElement>;
+            /**
+             * Indicates if `MenuItem` is disabled. Disabled items will not cause
+             * the `Menu` to close when clicked.
+             */
+            disabled?: boolean;
+            /**
+             * Indicate that a divider line should be added `before` or `after` this `MenuItem`
+             */
+            divider?: 'before' | 'after' | 'both';
+            /**
+             * React component icon that will be rendered at the end of the `MenuItem`
+             */
+            icon?: React.ReactNode;
+        };
+        /**
+         * Generic context menu provider
+         * 
+         * Props:
+         * @see Spicetify.ReactComponent.ContextMenuProps
+         */
+        const ContextMenu: any;
+        /**
+         * Wrapper of ReactComponent.ContextMenu with props: action = 'toggle' and trigger = 'right-click'
+         * 
+         * Props:
+         * @see Spicetify.ReactComponent.ContextMenuProps
+         */
+        const RightClickMenu: any;
+        /**
+         * Outer layer contain ReactComponent.MenuItem(s)
+         * 
+         * Props:
+         * @see Spicetify.ReactComponent.MenuProps
+         */
+        const Menu: any;
+        /**
+         * Component to construct menu item
+         * Used as ReactComponent.Menu children
+         * 
+         * Props:
+         * @see Spicetify.ReactComponent.MenuItemProps
+         */
+        const MenuItem: any;
+        /**
+         * Tailored ReactComponent.Menu for specific type of object
+         * 
+         * Props: {
+         *      uri: string;
+         *      onRemoveCallback?: (uri: string) => void;
+         * }
+         */
+        const AlbumMenu: any;
+        const PodcastShowMenu: any;
+        const ArtistMenu: any;
+        const PlaylistMenu: any;
+    };
 }

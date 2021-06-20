@@ -1,32 +1,17 @@
+const OptionsMenuItemIcon = react.createElement("svg", {
+    width: 16,
+    height: 16,
+    viewBox: "0 0 16 16",
+    fill: "currentColor",
+}, react.createElement("path", {
+    d: "M13.985 2.383L5.127 12.754 1.388 8.375l-.658.77 4.397 5.149 9.618-11.262z"
+}));
+
 const OptionsMenuItem = react.memo(({ onSelect, value, isSelected }) => {
-    /**
-     * <li>
-     *      <button>
-     *          <span>{ value }</span>
-     *          {isSelected && <svg> check icon </svg>}
-     *      </button>
-     * </li>
-     */
-    return react.createElement("li", {
-        className: "main-contextMenu-menuItem",
-        role: "presentation",
-    }, react.createElement("button", {
-        className: "main-contextMenu-menuItemButton",
-        role: "menuitemradio",
-        "aria-checked": isSelected,
+    return react.createElement(Spicetify.ReactComponent.MenuItem, {
         onClick: onSelect,
-    }, react.createElement("span", {
-        className: `ellipsis-one-line main-type-mesto`,
-        dir: "auto",
-    }, value),
-    isSelected && react.createElement("svg", {
-        width: 16,
-        height: 16,
-        viewBox: "0 0 16 16",
-        fill: "currentColor",
-    }, react.createElement("path", {
-        d: "M13.985 2.383L5.127 12.754 1.388 8.375l-.658.77 4.397 5.149 9.618-11.262z"
-    }))));
+        icon: isSelected ? OptionsMenuItemIcon : null,
+    }, value);
 });
 
 const OptionsMenu = react.memo(({
