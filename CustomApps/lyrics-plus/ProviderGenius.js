@@ -81,18 +81,30 @@ const ProviderGenius = (function () {
             return lyrics[1];
         }
 
-        const lyricsSections = body.match(/<div class="Lyrics__Container.+?>.+?<\/div>/sg);
-        if (!lyricsSections) {
-            return null;
+        let lyricsSections = body.match(/<div class="Lyrics__Container.+?>.+?<\/div>/sg);
+        if (lyricsSections) {
+            lyrics = "";
+            for (const section of lyricsSections) {
+                const fragment = section.match(/<div class="Lyrics__Container.+?>(.+?)<\/div>/s);
+                if (fragment) {
+                    lyrics += fragment[1];
+                }
+            }
+            return lyrics;
         }
 
-        lyrics = "";
-        for (const section of lyricsSections) {
-            const fragment = section.match(/<div class="Lyrics__Container.+?>(.+?)<\/div>/s);
-            if (fragment) {
-                lyrics += fragment[1];
+        lyricsSections = body.match(/<div data-scrolltrigger-pin="true" class="Lyrics__Container.+?>.+?<\/div>/sg);
+        if (lyricsSections) {
+            lyrics = "";
+            for (const section of lyricsSections) {
+                const fragment = section.match(/<div data-scrolltrigger-pin="true" class="Lyrics__Container.+?>(.+?)<\/div>/s);
+                if (fragment) {
+                    lyrics += fragment[1];
+                }
             }
+            return lyrics;
         }
+
         if (!lyrics.length) {
             console.warn("forceError");
             return null;
