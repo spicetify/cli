@@ -53,10 +53,8 @@ func Backup(spicetifyVersion string) {
 	}
 
 	utils.PrintBold("Extracting:")
-	tracker := utils.NewTracker(totalApp)
-
-	backup.Extract(backupFolder, rawFolder, tracker.Update)
-	tracker.Finish()
+	backup.Extract(backupFolder, rawFolder)
+	utils.PrintGreen("OK")
 
 	utils.PrintBold("Preprocessing:")
 
