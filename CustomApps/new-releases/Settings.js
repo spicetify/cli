@@ -165,28 +165,28 @@ function openConfig() {
                     when: () => true,
                 },
                 {
-                    desc: "Albums",
+                    desc: Spicetify.Locale.get("artist.albums"),
                     key: "album",
                     defaultValue: CONFIG["album"],
                     type: ConfigSlider,
                     when: () => CONFIG["music"],
                 },
                 {
-                    desc: "Singles/EPs",
+                    desc: Spicetify.Locale.get("artist.singles"),
                     key: "single-ep",
                     defaultValue: CONFIG["single-ep"],
                     type: ConfigSlider,
                     when: () => CONFIG["music"],
                 },
                 {
-                    desc: "Appears On",
+                    desc: Spicetify.Locale.get("artist.appears-on"),
                     key: "appears-on",
                     defaultValue: CONFIG["appears-on"],
                     type: ConfigSlider,
                     when: () => CONFIG["music"],
                 },
                 {
-                    desc: "Compilations",
+                    desc: Spicetify.Locale.get("artist.compilations"),
                     key: "compilations",
                     defaultValue: CONFIG["compilations"],
                     type: ConfigSlider,
@@ -207,7 +207,7 @@ function openConfig() {
     );
 
     Spicetify.PopupModal.display({
-        title: "New Releases",
+        title: Spicetify.Locale.get("new_releases"),
         content: configContainer,
     });
 }

@@ -1,5 +1,5 @@
 const CreditFooter = react.memo(({ provider, copyright }) => {
-    const credit = ["Provided by " + provider];
+    const credit = [Spicetify.Locale.get("lyrics.providedBy", provider)];
     if (copyright) {
         credit.push(...copyright.split("\n"));
     }
@@ -285,11 +285,6 @@ class SearchBar extends react.Component {
 
 const UnsyncedLyricsPage = react.memo(
     ({ lyrics, provider, copyright }) => {
-        const credit = ["Provided by " + provider];
-        if (copyright) {
-            credit.push(...copyright.split("\n"));
-        }
-
         return react.createElement("div", {
             className: "lyrics-lyricsContainer-UnsyncedLyricsPage",
         }, react.createElement("p", {

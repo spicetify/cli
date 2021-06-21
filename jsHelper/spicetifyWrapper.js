@@ -849,7 +849,7 @@ Spicetify._cloneSidebarItem = function(list) {
     function findChild(parent, key, value) {
         if (!parent.props) return null;
 
-        if (parent.props[key] === value) {
+        if (value && parent.props[key]?.includes(value)) {
             return parent;
         } else if (!parent.props.children) {
             return null;
@@ -879,13 +879,18 @@ Spicetify._cloneSidebarItem = function(list) {
             manifest = {};
         }
 
-        const appProper = manifest.name || (app[0].toUpperCase() + app.slice(1));
+        let appProper = manifest.name;
+        if (typeof appProper === "object") {
+            appProper = appProper[Spicetify.Locale.getLocale()] || appProper["en"];
+        }
+        if (!appProper) {
+            appProper = (app[0].toUpperCase() + app.slice(1));
+        }
         const icon = manifest.icon || "";
         const activeIcon = manifest["active-icon"] || icon;
 
         const appLink = "/" + app;
-        const link = findChild(Spicetify._sidebarItemToClone, "className", "link-subtle main-navBar-navBarLink");
-        const span = findChild(link, "as", "span");
+        const link = findChild(Spicetify._sidebarItemToClone, "className", "main-navBar-navBarLink");
         const obj = React.cloneElement(
             Spicetify._sidebarItemToClone,
             null,
@@ -913,7 +918,13 @@ Spicetify._cloneSidebarItem = function(list) {
                         }
                     },
                 ),
-                React.cloneElement(span, null, appProper)
+                React.createElement(
+                    "span",
+                    {
+                        className: "ellipsis-one-line main-type-mestoBold"
+                    },
+                    appProper,
+                ),
             )
         )
         reactObjs.push(obj);

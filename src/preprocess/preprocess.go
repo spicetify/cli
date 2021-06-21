@@ -351,6 +351,13 @@ Spicetify.React.useEffect(() => {
 		&input,
 		`(const \w+)(=\w+\(\)\.memo\(\(\(\{uri:\w+,onRemoveCallback:\w+\}\))`,
 		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
+
+	// Locale
+	utils.Replace(
+		&input,
+		`this\._dictionary=\{\},`,
+		`${0}Spicetify.Locale=this,`)
+
 	return input
 }
 

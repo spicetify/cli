@@ -174,11 +174,11 @@ class Grid extends react.Component {
             className: "contentSpacing"
         },  react.createElement("div", {
             className: "new-releases-header",
-        }, react.createElement("h1", null, "New Releases"),
+        }, react.createElement("h1", null, Spicetify.Locale.get("new_releases")),
         react.createElement("div", {
             className: "new-releases-controls-container"
         }, react.createElement(ButtonText, {
-            text: "Refresh",
+            text: Spicetify.Locale.get("playlist.extender.refresh"),
             onClick: this.reload.bind(this),
         }))),
         this.state.rest ? gridList : LoadingIcon);
@@ -199,10 +199,10 @@ async function getArtistEverything(artist) {
     const releases = body?.releases;
     const items = [];
     const types = [
-        [CONFIG.album, releases?.albums?.releases, "Album"],
-        [CONFIG["appears-on"], releases?.appears_on?.releases, "Appears On"],
-        [CONFIG.compilations, releases?.compilations?.releases, "Compilation"],
-        [CONFIG["single-ep"], releases?.singles?.releases, "Single/EP"],
+        [CONFIG.album, releases?.albums?.releases, Spicetify.Locale.get("album")],
+        [CONFIG["appears-on"], releases?.appears_on?.releases, Spicetify.Locale.get("artist.appears-on")],
+        [CONFIG.compilations, releases?.compilations?.releases, Spicetify.Locale.get("compilation")],
+        [CONFIG["single-ep"], releases?.singles?.releases, Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")],
     ]
     for (const type of types) {
         if (type[0] && type[1]) {
@@ -262,6 +262,7 @@ async function fetchTracks() {
 
 async function fetchPodcasts() {
     const items = [];
+    const itemTypeStr = Spicetify.Locale.get("card.tag.episode");
     for (const obj of await getPodcastList()) {
         const podcast = obj.showMetadata;
         const id = podcast.link.replace("spotify:show:", "");
@@ -285,7 +286,7 @@ async function fetchPodcasts() {
                 },
                 imageURL: podcast.covers.standardLink,
                 time,
-                type: "Episode",
+                type: itemTypeStr,
             }));
         }
     }

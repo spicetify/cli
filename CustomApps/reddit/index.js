@@ -54,6 +54,12 @@ let requestAfter = null;
 
 let gridUpdateTabs, gridUpdatePostsVisual;
 
+const typesLocale = {
+    album: Spicetify.Locale.get("album"),
+    song: Spicetify.Locale.get("song"),
+    playlist: Spicetify.Locale.get("playlist"),
+};
+
 class Grid extends react.Component {
     constructor(props) {
         super(props);
@@ -287,7 +293,7 @@ async function fetchPlaylist(post) {
 
         const { metadata } = res;
         return ({
-            type: "Playlist",
+            type: typesLocale.playlist,
             uri: post.uri,
             title: metadata.name,
             subtitle: post.title,
@@ -305,7 +311,7 @@ async function fetchAlbum(post) {
     try {
         const metadata = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${arg}/desktop`)
         return ({
-            type: "Album",
+            type: typesLocale.album,
             uri: post.uri,
             title: metadata.name,
             subtitle: metadata.artists,
@@ -322,7 +328,7 @@ async function fetchTrack(post) {
     try {
         const metadata = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${arg}`)
         return ({
-            type: "Track",
+            type: typesLocale.song,
             uri: post.uri,
             title: metadata.name,
             subtitle: metadata.artists,

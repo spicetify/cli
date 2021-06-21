@@ -2,8 +2,8 @@ class Card extends react.Component {
     constructor(props) {
         super(props);
         Object.assign(this, props);
-        this.href = "/" + URI.from(this.uri).toURLPath();
-        this.artistHref = "/" + URI.from(this.artist.uri).toURLPath();
+        this.href = URI.from(this.uri).toURLPath(true);
+        this.artistHref = URI.from(this.artist.uri).toURLPath(true);
         const uriType = Spicetify.URI.fromString(this.uri)?.type;
         switch (uriType) {
             case Spicetify.URI.Type.ALBUM:
@@ -24,7 +24,7 @@ class Card extends react.Component {
         let detail = [];
         this.visual.type && detail.push(this.type);
         if (this.visual.count && this.trackCount) {
-            detail.push(`${this.trackCount} track${this.trackCount >  1 ? "s" : ""}`);
+            detail.push(Spicetify.Locale.get("tracklist-header.songs-counter", this.trackCount));
         }
 
         return react.createElement(Spicetify.ReactComponent.RightClickMenu || "div", {
@@ -48,13 +48,12 @@ class Card extends react.Component {
             draggable: "false",
             loading: "lazy",
             src: this.imageURL,
-            alt: "",
             className: "main-image-image main-cardImage-image"
         }))), react.createElement("div", {
             className: "main-card-PlayButtonContainer"
         }, react.createElement("button", {
             className: "main-playButton-PlayButton main-playButton-primary",
-            "aria-label": "Play",
+            "aria-label": Spicetify.Locale.get("play"),
             style: { "--size": "40px" },
             onClick: this.play.bind(this),
         }, react.createElement("svg", {

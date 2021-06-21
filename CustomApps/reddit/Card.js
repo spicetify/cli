@@ -2,22 +2,23 @@ class Card extends react.Component {
     constructor(props) {
         super(props);
         Object.assign(this, props);
-        this.href = "/" + URI.from(this.uri).toURLPath();
+        const uriObj = URI.fromString(this.uri);
+        this.href = uriObj.toURLPath(true);
 
-        const uriType = Spicetify.URI.fromString(this.uri)?.type;
-        switch (uriType) {
-            case Spicetify.URI.Type.ALBUM:
-            case Spicetify.URI.Type.TRACK:
+        this.uriType = uriObj.type;
+        switch (this.uriType) {
+            case URI.Type.ALBUM:
+            case URI.Type.TRACK:
                 this.menuType = Spicetify.ReactComponent.AlbumMenu;
                 break;
-            case Spicetify.URI.Type.ARTIST:
+            case URI.Type.ARTIST:
                 this.menuType = Spicetify.ReactComponent.ArtistMenu;
                 break;
-            case Spicetify.URI.Type.PLAYLIST:
-            case Spicetify.URI.Type.PLAYLIST_V2:
+            case URI.Type.PLAYLIST:
+            case URI.Type.PLAYLIST_V2:
                 this.menuType = Spicetify.ReactComponent.PlaylistMenu;
                 break;
-            case Spicetify.URI.Type.SHOW:
+            case URI.Type.SHOW:
                 this.menuType = Spicetify.ReactComponent.PodcastShowMenu;
                 break;
         }
@@ -32,9 +33,9 @@ class Card extends react.Component {
 
     getSubtitle() {
         let subtitle;
-        if (this.type === "Album" || this.type === "Track") {
+        if (this.uriType === URI.Type.ALBUM || this.uriType === URI.Type.TRACK) {
             subtitle = this.subtitle.map((artist) => {
-                const artistHref = "/" + URI.from(artist.uri).toURLPath();
+                const artistHref = URI.from(artist.uri).toURLPath(true);
                 return react.createElement("a", {
                     href: artistHref,
                     onClick: (event) => {
@@ -55,6 +56,18 @@ class Card extends react.Component {
         return react.createElement("div", {
             className: "reddit-cardSubHeader main-type-mesto",
         }, subtitle);
+    }
+
+    getFollowers() {
+        if (
+            this.visual.followers &&
+            (this.uriType === URI.Type.PLAYLIST || this.uriType === URI.Type.PLAYLIST_V2)
+        ) {
+            return react.createElement("div", {
+                className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
+                as: "div",
+            }, react.createElement("span", null, Spicetify.Locale.get("user.followers", this.followersCount)))
+        }
     }
 
     render() {
@@ -83,13 +96,12 @@ class Card extends react.Component {
             draggable: "false",
             loading: "lazy",
             src: this.imageURL,
-            alt: "",
             className: "main-image-image main-cardImage-image"
         }))), react.createElement("div", {
             className: "main-card-PlayButtonContainer"
         }, react.createElement("button", {
             className: "main-playButton-PlayButton main-playButton-primary",
-            "aria-label": "Play",
+            "aria-label": Spicetify.Locale.get("play"),
             style: { "--size": "40px" },
             onClick: this.play.bind(this),
         }, react.createElement("svg", {
@@ -116,11 +128,7 @@ class Card extends react.Component {
             className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
             as: "div",
         }, react.createElement("span", null, detail.join(" ‒ ")),
-        ), this.visual.followers && (this.type === "Playlist") && react.createElement("div", {
-            className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
-            as: "div",
-        }, react.createElement("span", null, `${this.followersCount} followers`)
-        ), this.getSubtitle(),
+        ), this.getFollowers(), this.getSubtitle(),
         ))));
     }
 }
