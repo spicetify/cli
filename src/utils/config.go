@@ -31,8 +31,10 @@ var (
 			"disable_upgrade_check": "1",
 		},
 		"AdditionalOptions": {
-			"extensions":                   "",
-			"custom_apps":                  "",
+			"extensions":     "",
+			"custom_apps":    "",
+			"sidebar_config": "1",
+			"home_config":    "1",
 		},
 		"Patch": {},
 	}

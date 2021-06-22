@@ -63,7 +63,7 @@ func Apply(spicetifyVersion string) {
 	if preprocSection.Key("expose_apis").MustBool(false) {
 		utils.CopyFile(
 			filepath.Join(utils.GetJsHelperDir(), "spicetifyWrapper.js"),
-			filepath.Join(appDestPath, "xpui"))
+			filepath.Join(appDestPath, "xpui", "helper"))
 	}
 
 	extentionList := featureSection.Key("extensions").Strings("|")
@@ -71,8 +71,10 @@ func Apply(spicetifyVersion string) {
 
 	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appDestPath, apply.Flag{
-		Extension: extentionList,
-		CustomApp: customAppsList,
+		Extension:     extentionList,
+		CustomApp:     customAppsList,
+		SidebarConfig: featureSection.Key("sidebar_config").MustBool(false),
+		HomeConfig:    featureSection.Key("home_config").MustBool(false),
 	})
 	utils.PrintGreen("OK")
 
@@ -243,7 +245,7 @@ func getExtensionPath(name string) (string, error) {
 
 func pushExtensions(list ...string) {
 	var err error
-	var dest = filepath.Join(appDestPath, "xpui")
+	var dest = filepath.Join(appDestPath, "xpui", "extensions")
 
 	for _, v := range list {
 		var extName, extPath string

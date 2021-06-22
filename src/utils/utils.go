@@ -145,6 +145,7 @@ func CopyFile(srcPath, dest string) error {
 	}
 	defer fSrc.Close()
 
+	CheckExistAndCreate(dest)
 	destPath := filepath.Join(dest, filepath.Base(srcPath))
 	fDest, err := os.OpenFile(
 		destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
@@ -280,10 +281,10 @@ func SeekToCloseParen(content string, regexpTerm string, leftChar, rightChar byt
 			}
 			end += 1
 			if count == 0 {
-				break;
+				break
 			}
 		}
 		return content[start:end]
 	}
-	return "";
+	return ""
 }

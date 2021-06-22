@@ -12,15 +12,18 @@ import (
 
 // Flag enables/disables additional feature
 type Flag struct {
-	Extension []string
-	CustomApp []string
+	Extension     []string
+	CustomApp     []string
+	SidebarConfig bool
+	HomeConfig    bool
 }
 
 // AdditionalOptions .
 func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
-		filepath.Join(appsFolderPath, "xpui", "index.html"): htmlMod,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):    insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "index.html"):          htmlMod,
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"):             insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"): insertHomeConfig,
 	}
 
 	for file, call := range filesToModified {
@@ -29,6 +32,18 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		}
 
 		call(file, flags)
+	}
+
+	if flags.SidebarConfig {
+		utils.CopyFile(
+			filepath.Join(utils.GetJsHelperDir(), "sidebarConfig.js"),
+			filepath.Join(appsFolderPath, "xpui", "helper"))
+	}
+
+	if flags.HomeConfig {
+		utils.CopyFile(
+			filepath.Join(utils.GetJsHelperDir(), "homeConfig.js"),
+			filepath.Join(appsFolderPath, "xpui", "helper"))
 	}
 }
 
@@ -60,11 +75,19 @@ func htmlMod(htmlPath string, flags Flag) {
 
 	extensionsHTML := ""
 
+	if flags.SidebarConfig {
+		extensionsHTML += `<script src="helper/sidebarConfig.js"></script>` + "\n"
+	}
+
+	if flags.HomeConfig {
+		extensionsHTML += `<script src="helper/homeConfig.js"></script>` + "\n"
+	}
+
 	for _, v := range flags.Extension {
 		if strings.HasSuffix(v, ".mjs") {
-			extensionsHTML += `<script type="module" src="` + v + `"></script>` + "\n"
+			extensionsHTML += `<script type="module" src="extensions/` + v + `"></script>` + "\n"
 		} else {
-			extensionsHTML += `<script src="` + v + `"></script>` + "\n"
+			extensionsHTML += `<script src="extensions/` + v + `"></script>` + "\n"
 		}
 	}
 
@@ -194,6 +217,31 @@ func insertCustomApp(jsPath string, flags Flag) {
 			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
 			1)
 
+		if flags.SidebarConfig {
+			utils.ReplaceOnce(
+				&content,
+				`return null!=\w+&&\w+\.totalLength(\?\w+\(\)\.createElement\(\w+,\{contextUri:)(\w+)\.uri`,
+				`return true${1}${2}?.uri||""`)
+		}
+
+		return content
+	})
+}
+
+func insertHomeConfig(jsPath string, flags Flag) {
+	if !flags.HomeConfig {
+		return
+	}
+
+	utils.ModifyFile(jsPath, func(content string) string {
+		utils.ReplaceOnce(
+			&content,
+			`(\w+\.filter\(\w+\))\.map`,
+			`SpicetifyHomeConfig.arrange(${1}).map`)
+		utils.ReplaceOnce(
+			&content,
+			`;(\(0,\w+\.useEffect\))`,
+			`;${1}(()=>{SpicetifyHomeConfig.addToMenu();return SpicetifyHomeConfig.removeMenu;},[])${0}`)
 		return content
 	})
 }

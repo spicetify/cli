@@ -119,7 +119,7 @@ func Start(extractedAppsPath string, flags Flag) {
 
 				var tags string
 				if flags.ExposeAPIs {
-					tags += `<script src="spicetifyWrapper.js"></script>`
+					tags += `<script src="helper/spicetifyWrapper.js"></script>`
 				}
 
 				utils.Replace(&content, `<body>`, "${0}\n"+tags)
