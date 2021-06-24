@@ -7,7 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function FullAppDisplay() {
-    if (!Spicetify.Player || !Spicetify.Player.data) {
+    if (!Spicetify.Player.data || !Spicetify.Keyboard) {
         setTimeout(FullAppDisplay, 200)
         return
     }
@@ -21,7 +21,6 @@
     position: fixed;
     width: 100%;
     height: 100%;
-    z-index: 500;
     cursor: default;
     left: 0;
     top: 0;
@@ -513,8 +512,7 @@ body.video-full-screen.video-full-screen--hide-ui {
         Spicetify.LocalStorage.set("full-app-display-config", JSON.stringify(CONFIG))
     }
 
-    const videoContainer = document.querySelector(".Root__video-player")
-    videoContainer.append(style, container)
+    document.body.append(style, container)
 
     function newMenuItem(name, key) {
         const container = document.createElement("div");
