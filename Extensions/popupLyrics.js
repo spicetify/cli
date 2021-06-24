@@ -41,7 +41,7 @@ function PopupLyrics() {
         return;
     }
 
-    const worker = new Worker ("./popupLyrics.js");
+    const worker = new Worker ("./extensions/popupLyrics.js");
     worker.onmessage = function (event) {
         if (event.data === "popup-lyric-update-ui") {
             tick(userConfigs);
