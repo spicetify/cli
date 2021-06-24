@@ -37,7 +37,7 @@ const CONFIG = {
     compilations: getConfig("new-releases:compilations", false),
     range: localStorage.getItem("new-releases:range") || "30",
     locale: localStorage.getItem("new-releases:locale") || navigator.language,
-    relative: getConfig("new-releases:compilations", false),
+    relative: getConfig("new-releases:relative", false),
 };
 
 let gridList = [];
