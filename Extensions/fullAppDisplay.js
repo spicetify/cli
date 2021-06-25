@@ -7,7 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function FullAppDisplay() {
-    if (!Spicetify.Player.data || !Spicetify.Keyboard) {
+    if (!Spicetify.Keyboard) {
         setTimeout(FullAppDisplay, 200)
         return
     }

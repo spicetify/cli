@@ -35,8 +35,7 @@ function PopupLyrics() {
         ContextMenu
     } = Spicetify;
 
-    if (!Player || !Player.data ||
-        !CosmosAsync || !LocalStorage || !ContextMenu) {
+    if (!CosmosAsync || !LocalStorage || !ContextMenu) {
         setTimeout(PopupLyrics, 500);
         return;
     }
