@@ -104,6 +104,10 @@ span.artist-artistVerifiedBadge-badge svg:nth-child(1) {
     background: var(--spice-button);
 }
 
+div.GlueDropTarget.personal-library >*.active {
+    background: var(--spice-button) !important;
+}
+
 .main-contextMenu-menu {
     background-color: var(--spice-button);
 }
@@ -131,10 +135,20 @@ span.artist-artistVerifiedBadge-badge svg:nth-child(1) {
     background-color: transparent;
 }
 
+/** Sidebar */
 .main-rootlist-rootlistDivider {
-    background-color: unset;
+    margin-bottom: 8px;
 }
 
+.main-rootlist-rootlistPlaylistsScrollNode {
+    padding: 0;
+}
+
+#spicetify-playlist-list {
+    padding-top: 8px;
+}
+
+/** Player bar */
 .main-nowPlayingBar-nowPlayingBar {
     height: var(--player-bar-height);
 }

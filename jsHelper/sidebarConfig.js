@@ -14,8 +14,11 @@
     // Store sidebar buttons elements
     let buttons = [];
     let ordered;
+
+    appItems.id = "spicetify-sticky-list";
     // SHOW container
     const list = document.createElement("ul");
+    list.id = "spicetify-show-list";
     // HIDDEN container
     const hiddenList = document.createElement("ul");
     hiddenList.id = "spicetify-hidden-list";
@@ -45,7 +48,7 @@
         storage = JSON.parse(localStorage.getItem("spicetify-sidebar-config"))
         if (!Array.isArray(storage)) throw "";
     } catch {
-        storage = buttons.map(el => [el.dataset.id, SHOW]);
+        storage = buttons.map(el => [el.dataset.id, STICKY]);
     }
 
     function arrangeItems() {
@@ -208,6 +211,9 @@ div.GlueDropTarget.personal-library >*.active {
 }
 .main-rootlist-rootlist {
     margin-top: 0;
+}
+#spicetify-show-list >* {
+    padding: 0 24px 0 8px;
 }
 `;
     document.head.append(customButtonStyle);
