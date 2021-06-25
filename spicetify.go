@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	version = "2.3.0"
+	version = "2.4.0"
 )
 
 var (
@@ -405,5 +405,13 @@ custom_apps <string>
 
 extensions <string>
     List of Javascript files to be executed along with Spotify main script.
-    Separate each extension with "|".`)
+    Separate each extension with "|".
+
+home_config <0 | 1>
+    Enable ability to re-arrange sections in Home page.
+    Navigate to Home page, turn "Home config" mode on in Profile menu and hover on sections to show customization buttons.
+
+sidebar_config <0 | 1>
+    Enable ability to stick, hide, re-arrange sidebar items.
+    Turn "Sidebar config" mode on in Profile menu and hover on sidebar items to show customization buttons.`)
 }
