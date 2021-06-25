@@ -98,7 +98,7 @@ SpicetifyHomeConfig = {};
             const curPos = elem.findIndex(e => e === item);
             const newPos = curPos + dir;
             if (newPos < 0 || newPos > (elem.length - 1)) return;
-            if (elem[curPos][1] !== elem[newPos][1]) return;
+
             [elem[curPos], elem[newPos]] = [elem[newPos], elem[curPos]];
             [list[curPos], list[newPos]] = [list[newPos], list[curPos]];
             appendItems();

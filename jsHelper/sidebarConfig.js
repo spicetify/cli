@@ -131,7 +131,7 @@
             const curPos = ordered.findIndex(e => e[0] === item);
             const newPos = curPos + dir;
             if (newPos < 0 || newPos > (ordered.length - 1)) return;
-            if (ordered[curPos][1] !== ordered[newPos][1]) return;
+
             [ordered[curPos], ordered[newPos]] = [ordered[newPos], ordered[curPos]];
             appendItems();
         }
