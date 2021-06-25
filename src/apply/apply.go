@@ -73,30 +73,34 @@ func htmlMod(htmlPath string, flags Flag) {
 		return
 	}
 
-	extensionsHTML := ""
+	extensionsHTML := "\n"
+	helperHTML := "\n"
 
 	if flags.SidebarConfig {
-		extensionsHTML += `<script src="helper/sidebarConfig.js"></script>` + "\n"
+		helperHTML += `<script defer src="helper/sidebarConfig.js"></script>` + "\n"
 	}
 
 	if flags.HomeConfig {
-		extensionsHTML += `<script src="helper/homeConfig.js"></script>` + "\n"
+		helperHTML += `<script defer src="helper/homeConfig.js"></script>` + "\n"
 	}
 
 	for _, v := range flags.Extension {
 		if strings.HasSuffix(v, ".mjs") {
-			extensionsHTML += `<script type="module" src="extensions/` + v + `"></script>` + "\n"
+			extensionsHTML += `<script defer type="module" src="extensions/` + v + `"></script>` + "\n"
 		} else {
-			extensionsHTML += `<script src="extensions/` + v + `"></script>` + "\n"
+			extensionsHTML += `<script defer src="extensions/` + v + `"></script>` + "\n"
 		}
 	}
 
 	utils.ModifyFile(htmlPath, func(content string) string {
 		utils.Replace(
 			&content,
+			`<\!-- spicetify helpers -->`,
+			"${0}"+helperHTML)
+		utils.Replace(
+			&content,
 			`</body>`,
-			extensionsHTML+"${0}",
-		)
+			extensionsHTML+"${0}")
 		return content
 	})
 }

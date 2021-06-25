@@ -119,7 +119,8 @@ func Start(extractedAppsPath string, flags Flag) {
 
 				var tags string
 				if flags.ExposeAPIs {
-					tags += `<script src="helper/spicetifyWrapper.js"></script>`
+					tags += `<script src="helper/spicetifyWrapper.js"></script>` + "\n"
+					tags += `<!-- spicetify helpers -->` + "\n"
 				}
 
 				utils.Replace(&content, `<body>`, "${0}\n"+tags)
@@ -379,18 +380,18 @@ func exposeAPIs_vendor(input string) string {
 		&input,
 		`\w+\("onMount",\[(\w+)\]\)`,
 		`${0};
-if (G.popper?.firstChild?.id === "context-menu") {
-    const container = G.popper.firstChild;
+if (${1}.popper?.firstChild?.id === "context-menu") {
+    const container = ${1}.popper.firstChild;
 	if (!container.children.length) {
 		const observer = new MutationObserver(() => {
-			Spicetify.ContextMenu._addItems(G.popper);
+			Spicetify.ContextMenu._addItems(${1}.popper);
 			observer.disconnect();
 		});
 		observer.observe(container, { childList: true });
     } else if (container.firstChild.classList.contains("main-userWidget-dropDownMenu")) {
-        Spicetify.Menu._addItems(G.popper);
+        Spicetify.Menu._addItems(${1}.popper);
     } else {
-		Spicetify.ContextMenu._addItems(G.popper);
+		Spicetify.ContextMenu._addItems(${1}.popper);
 	}
 };0`)
 
