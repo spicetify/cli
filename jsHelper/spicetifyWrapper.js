@@ -990,7 +990,7 @@ Spicetify.Topbar = (function() {
 
     let currentPath;
     const observer = new MutationObserver(() => {
-        const child = main.firstElementChild;
+        const child = main.lastElementChild;
         const isPlaceholder = child?.tagName === "DIV" && !child?.children.length;
         if (!isPlaceholder) {
             const event = new Event("appchange");
