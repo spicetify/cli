@@ -359,6 +359,8 @@ declare namespace Spicetify {
          */
         class Item {
             constructor(name: string, isEnabled: boolean, onClick: (self: Item) => void);
+            name: string;
+            isEnabled: boolean;
             /**
              * Change item name
              */
@@ -384,10 +386,19 @@ declare namespace Spicetify {
          */
         class SubMenu {
             constructor(name: string, subItems: Item[]);
+            name: string;
             /**
              * Change SubMenu name
              */
             setName(name: string): void;
+            /**
+             * Add an item to sub items list
+             */
+            addItem(item: Item);
+            /**
+             * Remove an item from sub items list
+             */
+            removeItem(item: Item);
             /**
              * SubMenu is only available in Profile menu when method "register" is called.
              */
@@ -1144,17 +1155,17 @@ declare namespace Spicetify {
              */
             static readonly iconList: Icon[];
             constructor(name: string, onClick: OnClickCallback, shouldAdd?: ShouldAddCallback, icon?: Icon, disabled?: boolean);
-            set name(text: string);
-            set icon(name: Icon | string);
-            set disabled(bool: boolean);
+            name: string;
+            icon: Icon | string;
+            disabled: boolean;
             /**
              * A function returning boolean determines whether item should be prepended.
              */
-            set shouldAdd(func: ShouldAddCallback);
+            shouldAdd: ShouldAddCallback;
             /**
              * A function to call when item is clicked
              */
-            set onClick(func: OnClickCallback);
+            onClick: OnClickCallback;
             /**
              * Item is only available in Context Menu when method "register" is called.
              */
@@ -1170,24 +1181,15 @@ declare namespace Spicetify {
          * `Item`s in `subItems` array shouldn't be registered.
          */
         class SubMenu {
-            /**
-             * List of valid icons to use.
-             */
-            static readonly iconList: Icon[];
-            constructor(name: string, subItems: Iterable<Item>, shouldAdd?: ShouldAddCallback, icon?: Icon, disabled?: boolean);
-            set name(text: string);
-            set icon(name: Icon | string);
-            set disabled(bool: boolean);
-            /**
-             * Replace current `Item`s list
-             */
-            set items(items: Iterable<Item>);
-            addItem: (item: Item) => void;
-            removeItem: (item: Item) => void;
+            constructor(name: string, subItems: Iterable<Item>, shouldAdd?: ShouldAddCallback, disabled?: boolean);
+            name: string;
+            disabled: boolean;
             /**
              * A function returning boolean determines whether item should be prepended.
              */
-            set shouldAdd(func: ShouldAddCallback);
+            shouldAdd: ShouldAddCallback;
+            addItem: (item: Item) => void;
+            removeItem: (item: Item) => void;
             /**
              * SubMenu is only available in Context Menu when method "register" is called.
              */

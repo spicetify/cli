@@ -425,31 +425,30 @@ Spicetify.SVGIcons = {
     "x": "<path d=\"M14.354 2.353l-.708-.707L8 7.293 2.353 1.646l-.707.707L7.293 8l-5.647 5.646.707.708L8 8.707l5.646 5.647.708-.708L8.707 8z\"/>"
 };
 
-class _HTMLContextMenuItem extends HTMLElement {
+class _HTMLContextMenuItem extends HTMLLIElement {
     constructor({
         name, 
         disabled = false,
         icon = undefined,
+        divider = false,
     }) {
         super();
-        this.setAttribute("name", name);
-        this.setAttribute("icon", icon || "");
-        this.setAttribute("disabled", disabled);
+        this.name = name;
+        this.icon = icon || "";
+        this.disabled = disabled;
+        this.divider = divider;
+        this.classList.add("main-contextMenu-menuItem");
     }
     render() {
-        const disabled = this.getAttribute("disabled") === "true";
-        const name = this.getAttribute("name");
-        let icon = this.getAttribute("icon");
+        let icon = this.icon;
         if (icon && Spicetify.SVGIcons[icon]) {
             icon = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
         }
         this.innerHTML = `
-<li role="presentation" class="main-contextMenu-menuItem">
-    <a class="main-contextMenu-menuItemButton ${disabled ? "main-contextMenu-disabled" : ""}" aria-disabled="false" role="menuitem" as="a" tabindex="-1">
-        <span class="ellipsis-one-line main-type-mesto" as="span" dir="auto">${name}</span>
-        ${icon || ""}
-    </a>
-</li>`;
+<button class="main-contextMenu-menuItemButton ${this.disabled ? "main-contextMenu-disabled" : ""} ${this.divider ? "main-contextMenu-dividerAfter" : ""}">
+    <span class="ellipsis-one-line main-type-mesto" dir="auto">${this.name}</span>
+    ${icon || ""}
+</button>`;
     }
 
     connectedCallback() {
@@ -459,39 +458,39 @@ class _HTMLContextMenuItem extends HTMLElement {
         }
     }
 
-    static get observedAttributes() {
-        return ["name", "icon", "disabled"];
-    }
-
-    attributeChangedCallback(name, oldValue, newValue) {
+    update(name, value) {
+        this[name] = value;
         this.render();
     }
 }
 
-class _HTMLContextSubmenu extends HTMLElement {
-    constructor() {
+class _HTMLContextSubmenu extends HTMLDivElement {
+    constructor({ items = [], placement = "bottom-start" } = {}) {
         super();
-        this.items = [];
+        this.items = items;
+        this.placement = placement;
+        this.style.zIndex = "9999";
+        this.style.position = "absolute";
+        this.style.inset = "0px auto auto 0px";
     }
     render() {
-        this.innerHTML = `
-<div data-tippy-root style="z-index: 9999; position: absolute; inset: 0px auto auto 0px; margin: 0px;">
-    <ul tabindex="-1" role="menu" data-depth="1" class="main-contextMenu-menu"></ul>
-</div>`;
-        this.firstElementChild._tippy = {
+        this._tippy = {
             unmount: () => {},
             popperInstance: {
                 forceUpdate: () => {},
             },
-        }
-        this.firstElementChild.firstElementChild.append(...this.items);
-        const placement = this.parentElement.parentElement
-            .parentElement.dataset.placement;
+        };
+
+        const list = document.createElement("ul");
+        list.classList.add("main-contextMenu-menu");
+        list.append(...this.items);
+        this.append(list);
+
         const { y: parentY, width: parentWidth } = this.parentElement.getBoundingClientRect();
-        const { width: thisWidth, height: thisHeight } = this.firstElementChild.getBoundingClientRect();
+        const { width: thisWidth, height: thisHeight } = this.getBoundingClientRect();
         let x = 0, y = this.parentElement.offsetTop;
 
-        switch(placement) {
+        switch(this.placement) {
             case "top-start":
             case "bottom-start":
                 x += parentWidth - 5;
@@ -506,10 +505,7 @@ class _HTMLContextSubmenu extends HTMLElement {
         if ((realY + thisHeight) > window.innerHeight) {
             y -= ((realY + thisHeight) - window.innerHeight);
         }
-        this.firstElementChild.style.transform = `translate(${x}px, ${y}px)`;
-    }
-
-    setPosition(x, y) {
+        this.style.transform = `translate(${x}px, ${y}px)`;
     }
 
     addItem(item) {
@@ -523,78 +519,71 @@ class _HTMLContextSubmenu extends HTMLElement {
         }
     }
 }
-customElements.define("context-menu-item", _HTMLContextMenuItem);
-customElements.define("context-submenu", _HTMLContextSubmenu);
+customElements.define("context-menu-item", _HTMLContextMenuItem, { extends: "li" });
+customElements.define("context-submenu", _HTMLContextSubmenu, { extends: "div" });
 
 Spicetify.Menu = (function() {
     const collection = new Set();
 
     const _addItems = function(instance) {
         const list = instance.querySelector("ul");
+        const elemList = [];
 
         for (const item of collection) {
-            if (item.subItems?.length) {
-                const htmlSubmenu = new _HTMLContextSubmenu();
-
-                const htmlItem = new _HTMLContextMenuItem({
-                    name: item.name,
-                    icon: `<svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M13 10L8 4.206 3 10z"></path></svg>`
+            if (item._items?.size) {
+                const htmlSubmenu = new _HTMLContextSubmenu({
+                    placement: instance.firstChild.dataset.placement,
                 });
 
-                for (const child of item.subItems) {
-                    const htmlChild = new _HTMLContextMenuItem({
-                        name: child.name,
-                        icon: child.isEnabled && "check",
-                    });
-                    htmlChild.onclick = () => {
-                        child.element = undefined;
+                for (const child of item._items) {
+                    child._element.onclick = () => {
                         child.onClick();
                         htmlSubmenu.remove();
-                        instance._tippy.props.onClickOutside();
+                        instance._tippy?.props?.onClickOutside();
                     };
-                    child.element = htmlChild;
-                    htmlSubmenu.addItem(htmlChild);
+                    htmlSubmenu.addItem(child._element);
                 }
 
-                htmlItem.onmouseenter = () => htmlItem.append(htmlSubmenu);
-                htmlItem.onmouseleave = () => htmlSubmenu.remove();
-                item.element = htmlItem;
-                list.prepend(htmlItem);
+                item._element.onmouseenter = () => item._element.append(htmlSubmenu);
+                item._element.onmouseleave = () => htmlSubmenu.remove();
+                elemList.push(item._element);
                 continue;
             }
 
-            const htmlItem = new _HTMLContextMenuItem({
-                name: item.name,
-                icon: item.isEnabled ? "check" : "",
-            });
-            htmlItem.onclick = () => {
-                item.element = undefined;
+            item._element.onclick = () => {
                 item.onClick();
                 instance._tippy?.props?.onClickOutside();
             };
-            item.element = htmlItem;
-            list.prepend(htmlItem);
+            elemList.push(item._element);
         }
+        list.prepend(...elemList);
     }
 
     class Item {
         constructor(name, isEnabled, onClick) {
-            this.name = name;
-            this.isEnabled = isEnabled;
+            this._name = name;
+            this._isEnabled = isEnabled;
             this.onClick = () => {onClick(this)};
+            this._element = new _HTMLContextMenuItem({
+                name: name,
+                icon: isEnabled ? "check" : "",
+            });
         }
+
         setState(isEnabled) {
-            this.isEnabled = isEnabled;
-            if (this._element) {
-                this._element.setAttribute("icon", isEnabled ? "check" : "");
-            }
+            this._isEnabled = isEnabled;
+            this._element.update("icon", isEnabled ? "check" : "");
         }
+        set isEnabled(bool) { this.setState(bool); }
+        get isEnabled() { return this._isEnabled; }
+
         setName(name) {
-            this.name = name;
-            if (this._element) {
-                this._element.setAttribute("name", name);
-            }
+            this._name = name;
+            this._element.update("name", name);
         }
+        set name(text) { this.setName(text); }
+        get name() { return this._name; }
+
         register() {
             collection.add(this);
         }
@@ -604,16 +593,29 @@ Spicetify.Menu = (function() {
     }
 
     class SubMenu {
-        constructor(name, subItems) {
-            this.name = name;
-            this.subItems = subItems;
+        constructor(name, items) {
+            this._name = name;
+            this._items = new Set(items);
+            this._element = new _HTMLContextMenuItem({
+                name: name,
+                icon: `<svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M13 10L8 4.206 3 10z"></path></svg>`
+            });
         }
+
         setName(name) {
-            this.name = name;
-            if (this._element) {
-                this._element.setAttribute("name", this.name);
-            }
+            this._name = name;
+            this._element.update("name", name);
         }
+        set name(text) { this.setName(text); }
+        get name() { return this._name; }
+
+        addItem(item) {
+            this._items.add(item);
+        }
+        removeItem(item) {
+            this._items.remove(item);
+        }
+
         register() {
             collection.add(this);
         }
@@ -631,129 +633,89 @@ Spicetify.ContextMenu = (function () {
     
     class Item {
         constructor(name, onClick, shouldAdd = (uris) => true, icon = undefined, disabled = false) {
-            this.name = name;
             this.onClick = onClick;
             this.shouldAdd = shouldAdd;
-            if (icon) this.icon = icon;
-            this.disabled = disabled;
+            this._name = name;
+            this._icon = icon;
+            this._disabled = disabled;
+            this._element = new _HTMLContextMenuItem({
+                name: name,
+                icon: icon,
+                disabled: disabled,
+            });
         }
         set name(text) {
-            if (typeof text !== "string") {
-                throw "Spicetify.ContextMenu.Item: name is not a string";
-            }
             this._name = text;
-            if (this._element) {
-                this._element.setAttribute("name", this._name);
-            }
+            this._element.update("name", text);
         }
-        set shouldAdd(func) {
-            if (typeof func == "function") {
-                this._shouldAdd = func.bind(this);
-            } else {
-                throw "Spicetify.ContextMenu.Item: shouldAdd is not a function";
-            }
-        }
-        set onClick(func) {
-            if (typeof func == "function") {
-                this._onClick = func.bind(this);
-            } else {
-                throw "Spicetify.ContextMenu.Item: onClick is not a function";
-            }
-        }
-        set icon(name) {
-            if (!name) {
-                this._icon = null;
-            } else {
-                this._icon = name;
-            }
+        get name() { return this._name; }
 
-            if (this._element) {
-                this._element.setAttribute("icon", this._icon || "");
-            }
+        set icon(name) {
+            this._icon = name;
+            this._element.update("icon", name);
         }
+        get icon() { return this._icon; }
+
         set disabled(bool) {
-            if (typeof bool != "boolean") {
-                throw "Spicetify.ContextMenu.Item: disabled is not a boolean";
-            }
             this._disabled = bool;
-            if (this._element) {
-                this._element.setAttribute("disabled", this._disabled);
-            }
+            this._element.update("disabled", bool);
         }
+        get disabled() { return this._disabled; }
+
         register() {
             itemList.add(this);
         }
         deregister() {
             itemList.delete(this);
-            this._parent = this._id = undefined;
         }
     }
 
     Item.iconList = iconList;
 
     class SubMenu {
-        constructor(name, items, shouldAdd = (uris) => true, icon = undefined, disabled = false) {
-            this.name = name;
-            this.items = items;
+        constructor(name, items, shouldAdd = (uris) => true, disabled = false) {
+            this._items = new Set(items);
             this.shouldAdd = shouldAdd;
-            if (icon) this.icon = icon;
-            this.disabled = disabled;
+            this._name = name;
+            this._disabled = disabled;
+            this._element = new _HTMLContextMenuItem({
+                name: name,
+                icon: `<svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M13 10L8 4.206 3 10z"></path></svg>`,
+                disabled: disabled,
+            });
         }
         set name(text) {
-            if (typeof text !== "string") {
-                throw "Spicetify.ContextMenu.SubMenu: name is not a string";
-            }
             this._name = text;
-            if (this._element) {
-                this._element.setAttribute("name", this._name);
-            }
+            this._element.update("name", text);
         }
-        set items(items) {
-            this._items = new Set(items);
-        }
+        get name() { return this._name; }
+
         addItem(item) {
             this._items.add(item);
         }
         removeItem(item) {
             this._items.remove(item);
         }
-        set shouldAdd(func) {
-            if (typeof func == "function") {
-                this._shouldAdd = func.bind(this);
-            } else {
-                throw "Spicetify.ContextMenu.SubMenu: shouldAdd is not a function";
-            }
-        }
-        set icon(name) {
-            if (!name) {
-                this._icon = null;
-            } else {
-                this._icon = name;
-            }
 
-            if (this._element) {
-                this._element.setAttribute("icon", this._icon || "");
-            }
-        }
         set disabled(bool) {
-            if (typeof bool !== "boolean") {
-                throw "Spicetify.ContextMenu.SubMenu: disabled is not a boolean";
-            }
             this._disabled = bool;
-            if (this._element && this._submenuElement) {
-                this._element.setAttribute("disabled", this._disabled);
-                if (!this._disabled) {
+            this._element.update("disabled", bool);
+            if (this._submenuElement) {
+                if (!bool) {
                     this._element.onmouseenter = () => this._element.append(this._submenuElement);
                     this._element.onmouseleave = () => this._submenuElement.remove();
+                } else {
+                    this._element.onmouseenter = this._element.onmouseleave = undefined;
                 }
             }
         }
+        get disabled() { return this._disabled; }
+
         register() {
             itemList.add(this);
         }
         deregister() {
             itemList.remove(this);
-            this._parent = this._id = undefined;
         }
     }
 
@@ -786,60 +748,44 @@ Spicetify.ContextMenu = (function () {
         }
         contextUri = props?.contextUri;
 
+        const elemList = [];
         for (const item of itemList) {
-            if (!item._shouldAdd(uris, uids, contextUri)) {
+            if (!item.shouldAdd(uris, uids, contextUri)) {
                 continue;
             }
 
             if (item._items?.size) {
-                const htmlSubmenu = new _HTMLContextSubmenu();
-
-                const htmlItem = new _HTMLContextMenuItem({
-                    name: item._name,
-                    icon: `<svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M13 10L8 4.206 3 10z"></path></svg>`,
-                    disabled: item._disabled,
+                const htmlSubmenu = new _HTMLContextSubmenu({
+                    placement: instance.firstChild.dataset.placement,
                 });
 
                 for (const child of item._items) {
-                    const htmlChild = new _HTMLContextMenuItem({
-                        name: child._name,
-                        icon: child._icon,
-                        disabled: child._disabled,
-                    });
-                    htmlChild.onclick = () => {
+                    child._element.onclick = () => {
                         if (!child._disabled) {
-                            child._element = undefined;
-                            child._onClick(uris, uids, contextUri);
+                            child.onClick(uris, uids, contextUri);
                             htmlSubmenu.remove();
-                            instance._tippy.props.onClickOutside();
+                            instance._tippy?.props?.onClickOutside();
                         }
                     };
-                    child._element = htmlChild;
-                    htmlSubmenu.addItem(htmlChild);
+                    htmlSubmenu.addItem(child._element);
                 }
 
-                item._element = htmlItem;
                 item._submenuElement = htmlSubmenu;
                 item.disabled = item._disabled;
-                list.prepend(htmlItem);
+                elemList.push(item._element);
                 continue;
             }
 
-            const htmlItem = new _HTMLContextMenuItem({
-                name: item._name,
-                icon: item._icon,
-                disabled: item._disabled,
-            });
-            htmlItem.onclick = () => {
+            item._element.onclick = () => {
                 if (!item._disabled) {
-                    item._element = null;
-                    item._onClick(uris, uids, contextUri);
-                    instance._tippy.props.onClickOutside();
+                    item.onClick(uris, uids, contextUri);
+                    instance._tippy?.props?.onClickOutside();
                 }
             };
-            item._element = htmlItem;
-            list.prepend(htmlItem);
+            
+            elemList.push(item._element);
         }
+        list.prepend(...elemList);
     }
 
     return { Item, SubMenu, _addItems };
