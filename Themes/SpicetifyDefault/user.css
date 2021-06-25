@@ -51,13 +51,24 @@ input {
 }
 
 .main-entityHeader-shadow,
-.main-contextMenu-menu,
 .connect-device-list-container {
-    box-shadow: 0 4px 20px #21212130;
+    box-shadow: 0 4px 20px rgba(var(--spice-rgb-shadow), 0.2);
 }
 
 .main-trackList-playingIcon {
     filter: grayscale(1);
+}
+
+.main-trackList-trackListRow.main-trackList-active:hover .main-trackList-rowMarker,
+.main-trackList-trackListRow.main-trackList-active:hover .main-trackList-rowTitle,
+.main-trackList-trackListRow.main-trackList-active:focus-within .main-trackList-rowMarker,
+.main-trackList-trackListRow.main-trackList-active:focus-within .main-trackList-rowTitle {
+    color: var(--spice-button);
+}
+
+.main-entityHeader-metaDataText,
+.main-duration-container {
+    color: var(--spice-subtext);
 }
 
 span.artist-artistVerifiedBadge-badge svg:nth-child(1) {
@@ -109,7 +120,7 @@ div.GlueDropTarget.personal-library >*.active {
 }
 
 .main-contextMenu-menu {
-    background-color: var(--spice-button);
+    background-color: var(--spice-button-active);
 }
 
 .main-contextMenu-menuHeading,
@@ -147,8 +158,23 @@ div.GlueDropTarget.personal-library >*.active {
 #spicetify-playlist-list {
     padding-top: 8px;
 }
+.main-collectionLinkButton-collectionLinkButton .main-collectionLinkButton-icon,
+.main-collectionLinkButton-collectionLinkButton .main-collectionLinkButton-collectionLinkText {
+    opacity: 1;
+}
+
+.link-subtle {
+    color: var(--spice-text);
+}
 
 /** Player bar */
 .main-nowPlayingBar-nowPlayingBar {
     height: var(--player-bar-height);
+}
+
+/** Buddy bar */
+.main-buddyFeed-activityMetadata .main-buddyFeed-artistAndTrackName a,
+.main-buddyFeed-activityMetadata .main-buddyFeed-username a,
+.main-buddyFeed-activityMetadata .main-buddyFeed-playbackContextLink {
+    color: var(--spice-text);
 }

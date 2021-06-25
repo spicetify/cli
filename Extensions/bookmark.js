@@ -180,16 +180,8 @@
      * @param {() => void} callback 
      */
     function createMenuItem(name, callback) {
-        const item = document.createElement("div");
-        item.classList.add("bookmark-menuitem");
+        const item = new _HTMLContextMenuItem({ name });
         item.onclick = callback;
-
-        const text = document.createElement("span");
-        text.classList.add("text");
-        text.innerText = name;
-
-        item.append(text);
-
         return item;
     }
 
@@ -318,7 +310,6 @@
     right: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #40404040;
     z-index: 5000;
 }
 #bookmark-menu {
@@ -327,12 +318,9 @@
     min-width: 380px;
     max-height: 70%;
     overflow: hidden auto;
-    padding: 10px;
+    padding-bottom: 10px;
     position: absolute;
     z-index: 5001;
-    background: var(--spice-card);
-    border-radius: 5px;
-    box-shadow: 0 4px 12px 4px rgba(var(--spice-rgb-shadow),.5);
 }
 .bookmark-card {
     display: flex;
@@ -341,6 +329,7 @@
     align-items: center;
     margin-top: 20px;
     cursor: pointer;
+    padding: 0 10px;
 }
 .bookmark-card-image {
     width: 70px;
@@ -373,7 +362,7 @@
     padding: 0 8px 0 12px;
     height: 32px;
     align-items: center;
-    background-color: var(--spice-button);
+    background-color: transparent;
     border: 0;
     color: var(--spice-text);
 }
@@ -408,28 +397,18 @@
     --progress: 0;
     width: calc(var(--progress) * 100%);
     height: 4px;
-    background-color: var(--spice-button-active);
+    background-color: var(--spice-button);
 }
 
 .bookmark-progress__time {
     padding-left: 5px;
     color: var(--spice-subtext);
 }
-.bookmark-menuitem {
-    padding: 10px 20px;
-    transition: background-color,color 0.1s ease;
-    background-color: transparent;
-    border-radius: 3px;
-    color: var(--spice-text);
-}
-.bookmark-menuitem:hover {
-    background-color: var(--spice-button);
-}
 `;
 
         const menu = document.createElement("ul");
         menu.id = "bookmark-menu";
-        menu.className = "context-menu";
+        menu.className = "main-contextMenu-menu";
         menu.onclick = (e) => e.stopPropagation();
 
         container.append(style, menu);
