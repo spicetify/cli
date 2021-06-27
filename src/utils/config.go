@@ -153,6 +153,7 @@ func getDefaultConfig() *ini.File {
 	}
 	version.Comment = "DO NOT CHANGE!"
 	version.NewKey("version", "")
+	version.NewKey("with", "")
 	return cfg
 }
 
