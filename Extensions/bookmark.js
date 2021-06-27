@@ -390,14 +390,14 @@
     width: 100px;
     height: 4px;
     border-radius: 2px;
-    background-color: var(--spice-subtext);
+    background-color: rgba(var(--spice-rgb-text), .2);
 }
 
 .bookmark-progress__bar {
     --progress: 0;
     width: calc(var(--progress) * 100%);
     height: 4px;
-    background-color: var(--spice-button);
+    background-color: var(--spice-text);
 }
 
 .bookmark-progress__time {
