@@ -1344,5 +1344,22 @@
     "ff56e0e3e7cbfbea1d84277a1be0761a-scss": "main-trackList-sortable",
     "ff6a86a966a265b5a51cf8e30c6c52f4-scss": "show-followButton-button",
     "ffbed99e56684cab219dddee59f5df38-scss": "x-searchInput-searchInputClearButton",
-    "ffc5d21bf18ac2a8888d329dd200eb7a-scss": "x-carousel-buttonContainer"
+    "ffc5d21bf18ac2a8888d329dd200eb7a-scss": "x-carousel-buttonContainer",
+    "_6cf8dc49c4e10b132c5b631d36d26548-scss": "main-embedWidgetGenerator-timestampInput",
+    "_303125a3239c620028d212f2bcc1de55-scss": "main-embedWidgetGenerator-tooltipInitiator",
+    "e016dc77f9347d808b64555d7be31f45-scss": "main-embedWidgetGenerator-tooltip",
+    "_00962cefa82f11944ce878208ca2a101-scss": "main-embedWidgetGenerator-terms",
+    "a8d31505d10e13d3ea828909d03d8e53-scss": "main-trackList-eventDate",
+    "_80e53ac6e337b31c797dc4d50f295087-scss": "main-trackList-eventTicketIcon",
+    "bc1fe098cc33981dc67049628a2cac6b-scss": "main-rootlist-wrapper",
+    "fd40b9aa93456379056c9fd5641bc4e3-scss": "main-rootlist-topSentinel",
+    "f3a772027d3a247c667121eedb2d7348-scss": "main-rootlist-bottomSentinel",
+    "_9eb5acf729a98d62135ca21777fef244-scss": "main-button-primary",
+    "_1f2f8feb807c94d2a0a7737b433e19a8-scss": "main-button-secondary",
+    "_110dbc41d89af63f97cdd8b7cd7fea47-scss": "main-button-outlined",
+    "e6ed3359ee250e2ecc13253d4db86076-scss": "main-button-tertiary",
+    "c3c4fb6792baf990685ab6af8c9e74f9-scss": "main-btn-block",
+    "_9b6839a745ddbd386c60092f564d0f72-scss": "x-actionBar-ActionButtonsRowWithoutPlay",
+    "dfe38cd1cd030cf851f075b5cb02a3b3-scss": "x-proxySettings-fullWidth"
+
 }
