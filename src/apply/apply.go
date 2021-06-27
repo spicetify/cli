@@ -62,8 +62,8 @@ func UserCSS(appsFolderPath, themeFolder string, scheme map[string]string) {
 // UserAsset .
 func UserAsset(appsFolderPath, themeFolder string) {
 	var assetsPath = getAssetsPath(themeFolder)
-
-	if err := utils.Copy(assetsPath, appsFolderPath, true, nil); err != nil {
+	var xpuiPath = filepath.Join(appsFolderPath, "xpui")
+	if err := utils.Copy(assetsPath, xpuiPath, true, nil); err != nil {
 		utils.Fatal(err)
 	}
 }
