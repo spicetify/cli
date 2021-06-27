@@ -12,8 +12,8 @@ import (
 	colorable "github.com/mattn/go-colorable"
 )
 
-const (
-	version = "2.4.0"
+var (
+	version string
 )
 
 var (
