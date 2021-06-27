@@ -479,6 +479,7 @@ body.video-full-screen.video-full-screen--hide-ui {
             cover.classList.remove("fad-background-fade")
         }
         document.body.classList.add(...classes)
+        document.body.append(style, container)
     }
 
     function deactivate() {
@@ -493,6 +494,8 @@ body.video-full-screen.video-full-screen--hide-ui {
             document.exitFullscreen()
         }
         document.body.classList.remove(...classes)
+        style.remove()
+        container.remove()
     }
 
     function getConfig() {
@@ -511,8 +514,6 @@ body.video-full-screen.video-full-screen--hide-ui {
     function saveConfig() {
         Spicetify.LocalStorage.set("full-app-display-config", JSON.stringify(CONFIG))
     }
-
-    document.body.append(style, container)
 
     function newMenuItem(name, key) {
         const container = document.createElement("div");
