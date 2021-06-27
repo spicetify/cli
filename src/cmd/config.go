@@ -159,7 +159,9 @@ func stringType(section *ini.Section, field, value string) {
 	if err != nil {
 		utils.Fatal(err)
 	}
-
+	if len(strings.TrimSpace(value)) == 0 {
+		value = ""
+	}
 	key.SetValue(value)
 
 	changeSuccess(field, value)
