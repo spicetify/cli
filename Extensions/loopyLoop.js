@@ -54,18 +54,18 @@
         drawOnBar();
     }
 
-    let deboucing = 0;
+    let debouncing = 0;
     Spicetify.Player.addEventListener("onprogress", (event) => {
         if (start != null && end != null) {
-            if (deboucing) {
-                if ((event.timeStamp - deboucing) > 1000) {
-                    deboucing = 0;
+            if (debouncing) {
+                if ((event.timeStamp - debouncing) > 1000) {
+                    debouncing = 0;
                 }
                 return;
             }
             const percent = Spicetify.Player.getProgressPercent();
             if (percent > end || percent < start) {
-                deboucing = event.timeStamp;
+                debouncing = event.timeStamp;
                 Spicetify.Player.seek(start);
                 return;
             }

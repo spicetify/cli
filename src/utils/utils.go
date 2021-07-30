@@ -18,7 +18,7 @@ import (
 )
 
 // CheckExistAndCreate checks folder existence
-// and makes that folder, rescursively, if it does not exist
+// and makes that folder, recursively, if it does not exist
 func CheckExistAndCreate(dir string) {
 	_, err := os.Stat(dir)
 	if err != nil {
@@ -236,7 +236,7 @@ func PrependTime(text string) string {
 }
 
 // FindSymbol uses regexp from one or multiple clues to find variable or
-// function symbol in obfursted code.
+// function symbol in obfuscated code.
 func FindSymbol(debugInfo, content string, clues []string) []string {
 	for _, v := range clues {
 		re := regexp.MustCompile(v)

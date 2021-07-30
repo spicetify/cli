@@ -57,7 +57,7 @@ const dateFormat = {
 const relativeDateFormat = {
     numeric: "auto",
 };
-let seperatedByDate = {};
+let separatedByDate = {};
 let dateList = [];
 
 class Grid extends react.Component {
@@ -80,14 +80,14 @@ class Grid extends react.Component {
                 style: {
                     "--minimumColumnWidth": "180px"
                 },
-            }, seperatedByDate[date].map(card => react.createElement(Card, card.props))));
+            }, separatedByDate[date].map(card => react.createElement(Card, card.props))));
         }
         this.setState({ cards: [...gridList] });
     }
 
     async reload() {
         gridList = [];
-        seperatedByDate = {};
+        separatedByDate = {};
         dateList = [];
 
         today = new Date();
@@ -123,11 +123,11 @@ class Grid extends react.Component {
             } else {
                 dateStr = timeFormat.format(track.time);
             }
-            if (!seperatedByDate[dateStr]) {
+            if (!separatedByDate[dateStr]) {
                 dateList.push(dateStr);
-                seperatedByDate[dateStr] = [];
+                separatedByDate[dateStr] = [];
             }
-            seperatedByDate[dateStr].push(react.createElement(Card, track));
+            separatedByDate[dateStr].push(react.createElement(Card, track));
         }
 
         for (const date of dateList) {
@@ -139,7 +139,7 @@ class Grid extends react.Component {
                 style: {
                     "--minimumColumnWidth": "180px"
                 },
-            }, seperatedByDate[date]));
+            }, separatedByDate[date]));
         }
 
         this.setState({ rest: true });

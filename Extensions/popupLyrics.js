@@ -11,7 +11,7 @@ if (!navigator.serviceWorker) {
     // Worker code
     // When Spotify client is minimised, requestAnimationFrame does not call our tick function
     // setTimeout and setInterval are also throttled at 1 second.
-    // Offload setInterval to a Worker to consistenly call tick function.
+    // Offload setInterval to a Worker to consistently call tick function.
     let num = null;
     onmessage = function (event) {
         if (event.data === "popup-lyric-request-update") {
@@ -223,8 +223,8 @@ function PopupLyrics() {
                     }
                     return matchResult.map((slice) => {
                         const result = {};
-                        const matchResut = slice.match(/[^\[\]]+/g);
-                        const [key, value] = matchResut[0].split(':') || [];
+                        const matchResult = slice.match(/[^\[\]]+/g);
+                        const [key, value] = matchResult[0].split(':') || [];
                         const [min, sec] = [parseFloat(key), parseFloat(value)];
                         if (!isNaN(min) && !otherInfoRegexp.test(text)) {
                             result.startTime = min * 60 + sec;
