@@ -223,7 +223,7 @@ class LyricsContainer extends react.Component {
                 this.fetchLyrics(queue.track, this.state.explicitMode);
                 return;
             }
-            // Debounce queue change emmitter
+            // Debounce queue change emitter
             if (nextInfo?.uri === this.nextTrackUri) {
                 return;
             }

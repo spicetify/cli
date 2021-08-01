@@ -87,8 +87,8 @@
     // F to activate Link Follow function
     const vim = new VimBind();
     registerBind("F", false, false, false, vim.activate.bind(vim));
-    // Esc to cancle Link Follow
-    vim.setCancleKey("ESCAPE")
+    // Esc to cancel Link Follow
+    vim.setCancelKey("ESCAPE")
 
     function rotateSidebarDown() {
         rotateSidebar(1)
@@ -438,7 +438,7 @@ function VimBind() {
      * 
      * @param {Spicetify.Keyboard.ValidKey} key 
      */
-    this.setCancleKey = function(key) {
+    this.setCancelKey = function(key) {
         mousetrap.bind(Spicetify.Keyboard.KEYS[key], this.deactivate.bind(this));
     }
 

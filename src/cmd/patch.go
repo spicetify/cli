@@ -49,7 +49,7 @@ func Patch() {
 		}
 
 		utils.ModifyFile(assetPath, func(content string) string {
-			if errAll == nil { // Priotize replace all
+			if errAll == nil { // Prioritize replace all
 				return patchRegexp.ReplaceAllString(content, replKey.MustString(""))
 			} else {
 				match := patchRegexp.FindString(content)

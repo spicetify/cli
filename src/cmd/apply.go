@@ -66,21 +66,21 @@ func Apply(spicetifyVersion string) {
 			filepath.Join(appDestPath, "xpui", "helper"))
 	}
 
-	extentionList := featureSection.Key("extensions").Strings("|")
+	extensionList := featureSection.Key("extensions").Strings("|")
 	customAppsList := featureSection.Key("custom_apps").Strings("|")
 
 	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appDestPath, apply.Flag{
-		Extension:     extentionList,
+		Extension:     extensionList,
 		CustomApp:     customAppsList,
 		SidebarConfig: featureSection.Key("sidebar_config").MustBool(false),
 		HomeConfig:    featureSection.Key("home_config").MustBool(false),
 	})
 	utils.PrintGreen("OK")
 
-	if len(extentionList) > 0 {
+	if len(extensionList) > 0 {
 		utils.PrintBold(`Transferring extensions:`)
-		pushExtensions(extentionList...)
+		pushExtensions(extensionList...)
 		utils.PrintGreen("OK")
 		nodeModuleSymlink()
 	}
@@ -179,7 +179,7 @@ func updateAssets() {
 	apply.UserAsset(appDestPath, themeFolder)
 }
 
-// UpdateAllExtension pushs all extensions to Spotify
+// UpdateAllExtension pushes all extensions to Spotify
 func UpdateAllExtension() {
 	checkStates()
 	list := featureSection.Key("extensions").Strings("|")
@@ -191,7 +191,7 @@ func UpdateAllExtension() {
 	}
 }
 
-// checkStates examines both Backup and Spotify states to promt informative
+// checkStates examines both Backup and Spotify states to prompt informative
 // instruction for users
 func checkStates() {
 	backupVersion := backupSection.Key("version").MustString("")

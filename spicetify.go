@@ -262,7 +262,7 @@ restart             Restart Spotify client.
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
 path                Print path of color, css, extension file or
                     custom app directory and quit.
-                    1. Print all theme's assests:
+                    1. Print all theme's assets:
                     spicetify path
                     2. Print theme's color.ini path:
                     spicetify path color

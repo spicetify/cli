@@ -369,12 +369,12 @@ body.video-full-screen.video-full-screen--hide-ui {
         }
 
         // Wait until next track image is downloaded then update UI text and images
-        const previouseImg = nextTrackImg.cloneNode()
+        const previousImg = nextTrackImg.cloneNode()
         nextTrackImg.src = meta.image_xlarge_url
         nextTrackImg.onload = () => {
             const bgImage = `url("${nextTrackImg.src}")`
 
-            animateCanvas(previouseImg, nextTrackImg)
+            animateCanvas(previousImg, nextTrackImg)
 
             cover.style.backgroundImage = bgImage
 
