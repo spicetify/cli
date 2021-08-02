@@ -258,10 +258,11 @@ func exposeAPIs_main(input string) string {
 		`\w+\(\)\.createElement\(\w+,\{onChange:this\.handleSaberStateChange\}\),`,
 		"")
 
-	utils.Replace(
+	// React Hook
+	utils.ReplaceOnce(
 		&input,
-		`;class \w+ extends (\w+)\(\).Component`,
-		`;Spicetify.React=${1}()${0}`)
+		`\w+=\(\w+,(\w+)\.lazy\)\(\(function\(\)\{return Promise\.resolve\(\)\.then\(\w+\.bind\(\w+,\w+\)\)\}\)\);`,
+		`${0}Spicetify.React=${1};`)
 
 	utils.Replace(
 		&input,
