@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -269,30 +270,28 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`await Promise.all\(\[([\w\(\)\.,]+?)\]\)([;,])`)
+	reAllAPIPromises := regexp.MustCompile(`return (\w+=\w+\.sent),\w+\.next=\d,(Promise.all\(\[(\w\.getSession\(\),)([\w\(\)\.,]+?)\]\))([;,])`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
-		splitted := strings.Split(found[1], ",")
+		splitted := strings.Split(found[3] + found[4], ",")
 		if len(splitted) > 15 { // Actual number is about 24
 			re := regexp.MustCompile(`\w+\.(\w+)\(\)`)
-			code := "Spicetify.Platform = {"
+			// set t = e.sent, call Promise.all for APIs, then add Spicetify APIs to object
+			code := found[1] + ";" + found[2] + ".then(v => {Spicetify.Platform = {};"
 
+			i := 0
 			for _, apiFunc := range splitted {
 				name := re.ReplaceAllString(apiFunc, `${1}`)
 
 				if strings.HasPrefix(name, "get") {
 					name = strings.Replace(name, "get", "", 1)
 				}
-
-				code += name + ": await " + apiFunc + ","
+				code += "Spicetify.Platform[\"" + name + "\"] = v[" + fmt.Sprint(i) + "];"
+				i = i + 1
 			}
-
-			code += "};"
-			if found[2] == "," { // Future proof
-				code = "undefined;" + code + "var "
-			}
-
-			input = strings.Replace(input, found[0], found[0]+code, 1)
+			code += "});"
+			// Promise.all(...).then(...); return t = e.sent, e.next = 6, Promise.all(...);
+			input = strings.Replace(input, found[0], code + found[0], 1)
 		}
 	}
 
