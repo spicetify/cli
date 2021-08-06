@@ -11,7 +11,7 @@ if (!navigator.serviceWorker) {
     // Worker code
     // When Spotify client is minimised, requestAnimationFrame does not call our tick function
     // setTimeout and setInterval are also throttled at 1 second.
-    // Offload setInterval to a Worker to consistently call tick function.
+    // Offload setInterval to a Worker to consistenly call tick function.
     let num = null;
     onmessage = function (event) {
         if (event.data === "popup-lyric-request-update") {
@@ -40,11 +40,11 @@ function PopupLyrics() {
         return;
     }
 
-    const worker = new Worker ("./extensions/popupLyrics.js");
+    const worker = new Worker("./extensions/popupLyrics.js");
     worker.onmessage = function (event) {
         if (event.data === "popup-lyric-update-ui") {
             tick(userConfigs);
-        } 
+        }
     }
 
     class LyricUtils {
@@ -73,9 +73,9 @@ function PopupLyrics() {
         static removeSongFeat(s) {
             return (
                 s
-                .replace(/-\s+(feat|with).*/i, '')
-                .replace(/(\(|\[)(feat|with)\.?\s+.*(\)|\])$/i, '')
-                .trim() || s
+                    .replace(/-\s+(feat|with).*/i, '')
+                    .replace(/(\(|\[)(feat|with)\.?\s+.*(\)|\])$/i, '')
+                    .trim() || s
             );
         }
 
@@ -96,7 +96,7 @@ function PopupLyrics() {
                 !lines.length ||
                 typeof lines[0].time !== "number"
             ) {
-                return { error: "No lyric"};
+                return { error: "No lyric" };
             }
 
             const lyrics = lines
@@ -139,7 +139,7 @@ function PopupLyrics() {
                         cookie: "x-mxm-token-guid=",
                     }
                 );
-            
+
                 body = body.message.body.macro_calls;
 
                 if (body["matcher.track.get"].message.header.status_code !== 200) {
@@ -223,8 +223,8 @@ function PopupLyrics() {
                     }
                     return matchResult.map((slice) => {
                         const result = {};
-                        const matchResult = slice.match(/[^\[\]]+/g);
-                        const [key, value] = matchResult[0].split(':') || [];
+                        const matchResut = slice.match(/[^\[\]]+/g);
+                        const [key, value] = matchResut[0].split(':') || [];
                         const [min, sec] = [parseFloat(key), parseFloat(value)];
                         if (!isNaN(min) && !otherInfoRegexp.test(text)) {
                             result.startTime = min * 60 + sec;
@@ -266,6 +266,7 @@ function PopupLyrics() {
         centerAlign: boolLocalStorage("popup-lyrics:center-align"),
         showCover: boolLocalStorage("popup-lyrics:show-cover"),
         fontSize: LocalStorage.get("popup-lyrics:font-size"),
+        blurSize: LocalStorage.get("popup-lyrics:blur-size"),
         fontFamily: LocalStorage.get("popup-lyrics:font-family") || "spotify-circular",
         ratio: LocalStorage.get("popup-lyrics:ratio") || "11",
         services: {
@@ -323,7 +324,7 @@ function PopupLyrics() {
     const lyricVideo = document.createElement('video');
     lyricVideo.muted = true;
     lyricVideo.width = 600;
-    switch(userConfigs.ratio) {
+    switch (userConfigs.ratio) {
         case "43": lyricVideo.height = Math.round(lyricVideo.width * 3 / 4);; break;
         case "169": lyricVideo.height = Math.round(lyricVideo.width * 9 / 16);; break;
         default: lyricVideo.height = lyricVideo.width; break;
@@ -409,7 +410,7 @@ function PopupLyrics() {
                     sharedData = data;
                     return;
                 }
-            } catch(err) {
+            } catch (err) {
                 error = err;
             }
         }
@@ -529,11 +530,10 @@ function PopupLyrics() {
         if (userConfigs.showCover) {
             const { width, height } = ctx.canvas;
             ctx.imageSmoothingEnabled = false;
-            const blur = 10;
             ctx.save();
-            ctx.filter = `blur(${blur}px)`;
+            ctx.filter = `blur(${userConfigs.blurSize}px)`;
             ctx.drawImage(
-                image, 
+                image,
                 -blur * 2,
                 -blur * 2 - (width - height) / 2,
                 width + 4 * blur,
@@ -867,7 +867,7 @@ button.switch.small {
                     userConfigs.ratio = state;
                     LocalStorage.set("popup-lyrics:ratio", state);
                     let value = lyricVideo.width;
-                    switch(userConfigs.ratio) {
+                    switch (userConfigs.ratio) {
                         case "11": value = lyricVideo.width; break;
                         case "43": value = Math.round(lyricVideo.width * 3 / 4); break;
                         case "169": value = Math.round(lyricVideo.width * 9 / 16); break;
@@ -878,14 +878,25 @@ button.switch.small {
             );
             const fontSize = createOptions(
                 "Font size",
-                { 
-                    "30": "30px", "34": "34px", "38": "38px", "42": "42px", 
-                    "46": "46px", "50": "50px", "54": "54px", "58": "58px", 
+                {
+                    "30": "30px", "34": "34px", "38": "38px", "42": "42px",
+                    "46": "46px", "50": "50px", "54": "54px", "58": "58px",
                 },
                 String(userConfigs.fontSize),
                 (state) => {
                     userConfigs.fontSize = Number(state);
                     LocalStorage.set("popup-lyrics:font-size", state);
+                }
+            );
+            const blurSize = createOptions(
+                "Blur size",
+                {
+                    "2": "2px", "5": "5px", "10": "10px", "15": "15px"
+                },
+                String(userConfigs.blurSize),
+                (state) => {
+                    userConfigs.blurSize = Number(state);
+                    LocalStorage.set("popup-lyrics:blur-size", state);
                 }
             );
 
@@ -898,7 +909,7 @@ button.switch.small {
                 userConfigs.servicesOrder.forEach((name, index) => {
                     const el = userConfigs.services[name].element;
 
-                    const [ up, down ] = el.querySelectorAll("button");
+                    const [up, down] = el.querySelectorAll("button");
                     if (index === 0) {
                         up.disabled = true;
                         down.disabled = false;
@@ -929,7 +940,7 @@ button.switch.small {
                 const temp = userConfigs.servicesOrder[newPos];
                 userConfigs.servicesOrder[newPos] = userConfigs.servicesOrder[curPos];
                 userConfigs.servicesOrder[curPos] = temp;
-                
+
                 LocalStorage.set(
                     "popup-lyrics:services-order",
                     JSON.stringify(userConfigs.servicesOrder)
@@ -959,9 +970,9 @@ button.switch.small {
             stackServiceElements();
 
             configContainer.append(
-                style, 
+                style,
                 optionHeader,
-                smooth, center, cover, fontSize, ratio,
+                smooth, center, cover, blurSize, fontSize, ratio,
                 serviceHeader,
                 serviceContainer
             );
@@ -1054,7 +1065,7 @@ button.switch.small {
             container.append(input);
         }
 
-        const [ up, down, slider ] = container.querySelectorAll("button");
+        const [up, down, slider] = container.querySelectorAll("button");
 
         slider.classList.toggle("disabled", !defaultVal.on);
         slider.onclick = () => {
