@@ -11,7 +11,7 @@ if (!navigator.serviceWorker) {
     // Worker code
     // When Spotify client is minimised, requestAnimationFrame does not call our tick function
     // setTimeout and setInterval are also throttled at 1 second.
-    // Offload setInterval to a Worker to consistenly call tick function.
+    // Offload setInterval to a Worker to consistently call tick function.
     let num = null;
     onmessage = function (event) {
         if (event.data === "popup-lyric-request-update") {
