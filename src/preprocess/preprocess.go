@@ -199,8 +199,9 @@ func colorVariableReplaceForJS(content string) string {
 
 func disableSentry(input string) string {
 	// utils.Replace(&input, `sentry\.install\(\)[,;]`, "")
-	utils.Replace(&input, `;if\(\w+\.type===\w+\.\w+\.LOG_INTERACTION`, ";return${0}")
-	utils.Replace(&input, `\("https://\w+@sentry.io/\d+"`, `;("https://null@127.0.0.1/0"`)
+	// TODO Broken hooks
+	//utils.Replace(&input, `;if\(\w+\.type===\w+\.\w+\.LOG_INTERACTION`, ";return${0}")
+	//utils.Replace(&input, `\("https://\w+@sentry.io/\d+"`, `;("https://null@127.0.0.1/0"`)
 	return input
 }
 
