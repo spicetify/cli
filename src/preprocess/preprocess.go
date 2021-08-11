@@ -279,15 +279,13 @@ func exposeAPIs_main(input string) string {
 			// set t = e.sent, call Promise.all for APIs, then add Spicetify APIs to object
 			code := found[1] + ";" + found[2] + ".then(v => {Spicetify.Platform = {};"
 
-			i := 0
-			for _, apiFunc := range splitted {
+			for apiFuncIndex, apiFunc := range splitted {
 				name := re.ReplaceAllString(apiFunc, `${1}`)
 
 				if strings.HasPrefix(name, "get") {
 					name = strings.Replace(name, "get", "", 1)
 				}
-				code += "Spicetify.Platform[\"" + name + "\"] = v[" + fmt.Sprint(i) + "];"
-				i = i + 1
+				code += "Spicetify.Platform[\"" + name + "\"] = v[" + fmt.Sprint(apiFuncIndex) + "];"
 			}
 			code += "});"
 			// Promise.all(...).then(...); return t = e.sent, e.next = 6, Promise.all(...);
