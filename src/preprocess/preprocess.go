@@ -312,14 +312,14 @@ Spicetify.React.useEffect(() => {
 	// React Component: Context Menu and Right Click Menu
 	utils.Replace(
 		&input,
-		`(const \w+)(=\w+=>\w+\(\)\.createElement\(([\w\.]+),\w+\(\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\)\})`,
-		`Spicetify.ReactComponent.ContextMenu=${3};${1}=Spicetify.ReactComponent.RightClickMenu${2}`)
+		`return (\w+\(\)\.createElement\(([\w\.]+),\w+\(\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\))`,
+		`Spicetify.ReactComponent.ContextMenu=${2};Spicetify.ReactComponent.RightClickMenu=${1};return Spicetify.ReactComponent.RightClickMenu`)
 
 	// React Component: Context Menu - Menu
 	utils.Replace(
 		&input,
-		`=\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+\}\)`,
-		`=Spicetify.ReactComponent.Menu${0}`)
+		`return (\w+\(\)\.createElement\("ul",\w+\(\)\(\{tabIndex:-?\d+,ref:\w+,role:"menu","data-depth":\w+\},\w+\),\w+\))`,//`\w+\(\)\.createElement\([\w\.]+,\{onClose:[\w\.]+,getInitialFocusElement:`,//`\w+\(\)\.createElement\([\w\.]+,\{className:[\w\.]+,onClose:[\w\.]+,onKeyDown:[\w\.]+,onKeyUp:[\w\.]+,getInitialFocusElement:[\w\.]+\},[\w\.]+\)`,
+		`return Spicetify.ReactComponent.Menu=${1}`)
 
 	// React Component: Context Menu - Menu Item
 	utils.Replace(
