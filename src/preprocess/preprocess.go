@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -198,8 +199,9 @@ func colorVariableReplaceForJS(content string) string {
 
 func disableSentry(input string) string {
 	// utils.Replace(&input, `sentry\.install\(\)[,;]`, "")
-	utils.Replace(&input, `;if\(\w+\.type===\w+\.\w+\.LOG_INTERACTION`, ";return${0}")
-	utils.Replace(&input, `\("https://\w+@sentry.io/\d+"`, `;("https://null@127.0.0.1/0"`)
+	// TODO Broken hooks
+	//utils.Replace(&input, `;if\(\w+\.type===\w+\.\w+\.LOG_INTERACTION`, ";return${0}")
+	//utils.Replace(&input, `\("https://\w+@sentry.io/\d+"`, `;("https://null@127.0.0.1/0"`)
 	return input
 }
 
@@ -258,40 +260,37 @@ func exposeAPIs_main(input string) string {
 		`\w+\(\)\.createElement\(\w+,\{onChange:this\.handleSaberStateChange\}\),`,
 		"")
 
-	utils.Replace(
+	// React Hook
+	utils.ReplaceOnce(
 		&input,
-		`;class \w+ extends (\w+)\(\).Component`,
-		`;Spicetify.React=${1}()${0}`)
+		`\w+=\(\w+,(\w+)\.lazy\)\(\(function\(\)\{return Promise\.resolve\(\)\.then\(\w+\.bind\(\w+,\w+\)\)\}\)\);`,
+		`${0}Spicetify.React=${1};`)
 
 	utils.Replace(
 		&input,
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`await Promise.all\(\[([\w\(\)\.,]+?)\]\)([;,])`)
+	reAllAPIPromises := regexp.MustCompile(`return (\w+=\w+\.sent),\w+\.next=\d,(Promise.all\(\[(\w\.getSession\(\),)([\w\(\)\.,]+?)\]\))([;,])`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
-		splitted := strings.Split(found[1], ",")
+		splitted := strings.Split(found[3] + found[4], ",")
 		if len(splitted) > 15 { // Actual number is about 24
 			re := regexp.MustCompile(`\w+\.(\w+)\(\)`)
-			code := "Spicetify.Platform = {"
+			// set t = e.sent, call Promise.all for APIs, then add Spicetify APIs to object
+			code := found[1] + ";" + found[2] + ".then(v => {Spicetify.Platform = {};"
 
-			for _, apiFunc := range splitted {
+			for apiFuncIndex, apiFunc := range splitted {
 				name := re.ReplaceAllString(apiFunc, `${1}`)
 
 				if strings.HasPrefix(name, "get") {
 					name = strings.Replace(name, "get", "", 1)
 				}
-
-				code += name + ": await " + apiFunc + ","
+				code += "Spicetify.Platform[\"" + name + "\"] = v[" + fmt.Sprint(apiFuncIndex) + "];"
 			}
-
-			code += "};"
-			if found[2] == "," { // Future proof
-				code = "undefined;" + code + "var "
-			}
-
-			input = strings.Replace(input, found[0], found[0]+code, 1)
+			code += "});"
+			// Promise.all(...).then(...); return t = e.sent, e.next = 6, Promise.all(...);
+			input = strings.Replace(input, found[0], code + found[0], 1)
 		}
 	}
 
@@ -313,14 +312,14 @@ Spicetify.React.useEffect(() => {
 	// React Component: Context Menu and Right Click Menu
 	utils.Replace(
 		&input,
-		`(const \w+)(=\w+=>\w+\(\)\.createElement\(([\w\.]+),\w+\(\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\)\})`,
-		`Spicetify.ReactComponent.ContextMenu=${3};${1}=Spicetify.ReactComponent.RightClickMenu${2}`)
+		`return (\w+\(\)\.createElement\(([\w\.]+),\w+\(\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\))`,
+		`Spicetify.ReactComponent.ContextMenu=${2};Spicetify.ReactComponent.RightClickMenu=${1};return Spicetify.ReactComponent.RightClickMenu`)
 
 	// React Component: Context Menu - Menu
 	utils.Replace(
 		&input,
-		`=\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+\}\)`,
-		`=Spicetify.ReactComponent.Menu${0}`)
+		`return (\w+\(\)\.createElement\("ul",\w+\(\)\(\{tabIndex:-?\d+,ref:\w+,role:"menu","data-depth":\w+\},\w+\),\w+\))`,//`\w+\(\)\.createElement\([\w\.]+,\{onClose:[\w\.]+,getInitialFocusElement:`,//`\w+\(\)\.createElement\([\w\.]+,\{className:[\w\.]+,onClose:[\w\.]+,onKeyDown:[\w\.]+,onKeyUp:[\w\.]+,getInitialFocusElement:[\w\.]+\},[\w\.]+\)`,
+		`return Spicetify.ReactComponent.Menu=${1}`)
 
 	// React Component: Context Menu - Menu Item
 	utils.Replace(

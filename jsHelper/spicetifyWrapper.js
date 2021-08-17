@@ -27,8 +27,8 @@ const Spicetify = {
             }
             Spicetify.Player.origin.seekTo(p);
         },
-        getProgress: () => Spicetify.Player.origin._state.position,
-        getProgressPercent: () => (Spicetify.Player.origin._state.position/Spicetify.Player.origin._state.duration),
+        getProgress: () => (Spicetify.Player.origin._state.isPaused ? 0 : Date.now() - Spicetify.Player.origin2.state.position.timestamp) + Spicetify.Player.origin2.state.position.position,
+        getProgressPercent: () => (Spicetify.Player.getProgress()/Spicetify.Player.origin._state.duration),
         getDuration: () => Spicetify.Player.origin._state.duration,
         setVolume: (v) => { Spicetify.Player.origin.setVolume(v) },
         increaseVolume: () => { Spicetify.Player.origin.setVolume(Spicetify.Player.getVolume() + 0.15) },
