@@ -149,7 +149,7 @@
      */
     const searchFolder = (rows, uri) => {
         for (const r of rows) {
-            if (r.type !== "folder") {
+            if (r.type !== "folder" || r.rows == null) {
                 continue;
             }
 
@@ -189,15 +189,7 @@
 
         fetchNested(requestFolder);
 
-        return await Promise.all(requestPlaylists).then((playlists) => {
-            const trackList = [];
-
-            playlists.forEach((p) => {
-                trackList.push(...p);
-            });
-
-            return trackList;
-        });
+        return (await Promise.all(requestPlaylists)).flat();
     };
 
     /**
