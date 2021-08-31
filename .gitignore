@@ -1,2 +1,3 @@
 bin/
 *.exe
+.DS_Store
