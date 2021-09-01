@@ -7,7 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function LoopyLoop() {
-    const bar = document.querySelector(".playback-bar > div:nth-child(2)");
+    const bar = document.querySelector(".playback-bar .progress-bar)");
     if (!bar) {
         setTimeout(LoopyLoop, 100);
         return;
