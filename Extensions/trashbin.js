@@ -65,8 +65,8 @@
     }
 
     /**
-     * 
-     * @param {string} uri 
+     *
+     * @param {string} uri
      * @param {string} type
      * @returns {boolean}
      */
@@ -77,7 +77,7 @@
                 return true;
             }
         }
-        
+
         if (type === Spicetify.URI.Type.ARTIST) {
             let count = 1;
             let artUri = curTrack.metadata["artist_uri"];
@@ -94,17 +94,16 @@
     }
 
     /**
-     * 
-     * @param {string[]} uris 
+     *
+     * @param {string[]} uris
      */
     function toggleThrow(uris) {
         const uri = uris[0];
         const uriObj = Spicetify.URI.fromString(uri);
         const type = uriObj.type;
 
-        let list = type === Spicetify.URI.Type.TRACK ?
-            trashSongList :
-            trashArtistList;
+        let list =
+            type === Spicetify.URI.Type.TRACK ? trashSongList : trashArtistList;
 
         if (!list[uri]) {
             list[uri] = true;
@@ -120,7 +119,7 @@
 
     /**
      * Only accept one track or artist URI
-     * @param {string[]} uris 
+     * @param {string[]} uris
      * @returns {boolean}
      */
     function shouldAddContextMenu(uris) {
@@ -146,7 +145,7 @@
     const cntxMenu = new Spicetify.ContextMenu.Item(
         THROW_TEXT,
         toggleThrow,
-        shouldAddContextMenu,
+        shouldAddContextMenu
     );
     cntxMenu.register();
 

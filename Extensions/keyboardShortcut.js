@@ -2,7 +2,7 @@
 
 // NAME: Keyboard Shortcut
 // AUTHOR: khanhas
-// DESCRIPTION: Register a few more keybinds to support keyboard-driven navigation in Spotify client. 
+// DESCRIPTION: Register a few more keybinds to support keyboard-driven navigation in Spotify client.
 
 /// <reference path="../globals.d.ts" />
 
@@ -16,12 +16,12 @@
 
     /**
      * Register your own keybind with function `registerBind`
-     * 
+     *
      * Syntax:
      *     registerBind(keyName, ctrl, shift, alt, callback)
-     * 
+     *
      * ctrl, shift and alt are boolean, true or false
-     * 
+     *
      * Valid keyName:
      * - BACKSPACE       - C               - Y               - F3
      * - TAB             - D               - Z               - F4
@@ -45,13 +45,13 @@
      * - DELETE          - V               - DIVIDE          - \
      * - A               - W               - F1              - ]
      * - B               - X               - F2              - "
-     * 
+     *
      * Use one of keyName as a string. If key that you want isn't in that list,
      * you can also put its keycode number in keyName as a number.
-     * 
-     * callback is name of function you want your shortcut to bind to. It also 
+     *
+     * callback is name of function you want your shortcut to bind to. It also
      * returns one KeyboardEvent parameter.
-     * 
+     *
      * Following are my default keybinds, use them as examples.
      */
 
@@ -88,26 +88,32 @@
     const vim = new VimBind();
     registerBind("F", false, false, false, vim.activate.bind(vim));
     // Esc to cancel Link Follow
-    vim.setCancelKey("ESCAPE")
+    vim.setCancelKey("ESCAPE");
 
     function rotateSidebarDown() {
-        rotateSidebar(1)
+        rotateSidebar(1);
     }
 
     function rotateSidebarUp() {
-        rotateSidebar(-1)
+        rotateSidebar(-1);
     }
 
     function clickQueueButton() {
-        document.querySelector(".control-button-wrapper .spoticon-queue-16").click();
+        document
+            .querySelector(".control-button-wrapper .spoticon-queue-16")
+            .click();
     }
 
     function clickNavigatingBackButton() {
-        document.querySelector(".main-topBar-historyButtons .main-topBar-back").click();
+        document
+            .querySelector(".main-topBar-historyButtons .main-topBar-back")
+            .click();
     }
 
     function clickNavigatingForwardButton() {
-        document.querySelector(".main-topBar-historyButtons .main-topBar-forward").click();
+        document
+            .querySelector(".main-topBar-historyButtons .main-topBar-forward")
+            .click();
     }
 
     function appScrollDown() {
@@ -135,15 +141,19 @@
     }
 
     /**
-     * 
-     * @param {KeyboardEvent} event 
+     *
+     * @param {KeyboardEvent} event
      */
     function openSearchPage(event) {
-        const searchInput = document.querySelector(".main-topBar-topbarContentWrapper input");
+        const searchInput = document.querySelector(
+            ".main-topBar-topbarContentWrapper input"
+        );
         if (searchInput) {
             searchInput.focus();
         } else {
-            const sidebarItem = document.querySelector(`.main-navBar-navBar a[href="/search"]`);
+            const sidebarItem = document.querySelector(
+                `.main-navBar-navBar a[href="/search"]`
+            );
             if (sidebarItem) {
                 sidebarItem.click();
             }
@@ -153,12 +163,12 @@
     }
 
     /**
-     * 
-     * @param {Spicetify.Keyboard.ValidKey} keyName 
-     * @param {boolean} ctrl 
-     * @param {boolean} shift 
-     * @param {boolean} alt 
-     * @param {(event: KeyboardEvent) => void} callback 
+     *
+     * @param {Spicetify.Keyboard.ValidKey} keyName
+     * @param {boolean} ctrl
+     * @param {boolean} shift
+     * @param {boolean} alt
+     * @param {(event: KeyboardEvent) => void} callback
      */
     function registerBind(keyName, ctrl, shift, alt, callback) {
         const key = Spicetify.Keyboard.KEYS[keyName];
@@ -174,7 +184,7 @@
                 if (!vim.isActive) {
                     callback(event);
                 }
-            },
+            }
         );
     }
 
@@ -204,8 +214,8 @@
     }
 
     /**
-     * 
-     * @param {1 | -1} direction 
+     *
+     * @param {1 | -1} direction
      */
     function rotateSidebar(direction) {
         const allItems = document.querySelectorAll(
@@ -271,8 +281,8 @@ function VimBind() {
     mousetrap.stopCallback = () => true;
 
     /**
-     * 
-     * @param {KeyboardEvent} event 
+     *
+     * @param {KeyboardEvent} event
      */
     this.activate = function (event) {
         vimOverlay.style.display = "block";
@@ -287,9 +297,11 @@ function VimBind() {
         let secondKey = 0;
 
         getLinks().forEach((e) => {
-            if (e.style.display === "none" ||
+            if (
+                e.style.display === "none" ||
                 e.style.visibility === "hidden" ||
-                e.style.opacity === "0") {
+                e.style.opacity === "0"
+            ) {
                 return;
             }
 
@@ -310,12 +322,9 @@ function VimBind() {
                 return;
             }
 
-            vimOverlay.append(createKey(
-                e,
-                keyList[firstKey] + keyList[secondKey],
-                top,
-                left
-            ));
+            vimOverlay.append(
+                createKey(e, keyList[firstKey] + keyList[secondKey], top, left)
+            );
 
             secondKey++;
             if (secondKey > lastKeyIndex) {
@@ -325,19 +334,22 @@ function VimBind() {
         });
 
         this.isActive = true;
-        setTimeout(() => mousetrap.stopCallback = orgStopCallback.bind(mousetrap), 100);
-    }
+        setTimeout(
+            () => (mousetrap.stopCallback = orgStopCallback.bind(mousetrap)),
+            100
+        );
+    };
 
     /**
-     * 
-     * @param {KeyboardEvent} event 
+     *
+     * @param {KeyboardEvent} event
      */
     this.deactivate = function (event) {
         mousetrap.stopCallback = () => true;
         this.isActive = false;
         vimOverlay.style.display = "none";
         getVims().forEach((e) => e.remove());
-    }
+    };
 
     function getLinks() {
         const elements = Array.from(document.querySelectorAll(elementQuery));
@@ -364,7 +376,7 @@ function VimBind() {
         }
 
         for (const div of vimkey) {
-            const text = div.innerText.toLowerCase()
+            const text = div.innerText.toLowerCase();
             if (text[0] !== event.key) {
                 div.remove();
                 continue;
@@ -391,7 +403,8 @@ function VimBind() {
             return;
         }
 
-        const findButton = element.querySelector(`button[data-ta-id="play-button"]`) ||
+        const findButton =
+            element.querySelector(`button[data-ta-id="play-button"]`) ||
             element.querySelector(`button[data-button="play"]`);
         if (findButton) {
             findButton.click();
@@ -403,8 +416,12 @@ function VimBind() {
         const index = parseInt(element.firstChild.innerText) - 1;
         const context = getContextUri();
         if (index >= 0 && context) {
-            console.log(index, context)
-            Spicetify.PlaybackControl.playFromResolver(context, { index }, () => {});
+            console.log(index, context);
+            Spicetify.PlaybackControl.playFromResolver(
+                context,
+                { index },
+                () => {}
+            );
             return;
         }
     }
@@ -425,8 +442,7 @@ function VimBind() {
         if (activeApp) {
             try {
                 return JSON.parse(activeApp).uri.replace("app:", "");
-            }
-            catch {
+            } catch {
                 return null;
             }
         }
@@ -435,12 +451,15 @@ function VimBind() {
     }
 
     /**
-     * 
-     * @param {Spicetify.Keyboard.ValidKey} key 
+     *
+     * @param {Spicetify.Keyboard.ValidKey} key
      */
-    this.setCancelKey = function(key) {
-        mousetrap.bind(Spicetify.Keyboard.KEYS[key], this.deactivate.bind(this));
-    }
+    this.setCancelKey = function (key) {
+        mousetrap.bind(
+            Spicetify.Keyboard.KEYS[key],
+            this.deactivate.bind(this)
+        );
+    };
 
     return this;
 }

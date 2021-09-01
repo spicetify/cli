@@ -7,26 +7,35 @@
 /// <reference path="../globals.d.ts" />
 
 (function ShufflePlus() {
-    if (!Spicetify.CosmosAsync ||
+    if (
+        !Spicetify.CosmosAsync ||
         !Spicetify.Player.origin2 ||
         !Spicetify.Platform
     ) {
         setTimeout(ShufflePlus, 1000);
         return;
     }
-    let playDiscography = localStorage.getItem("shuffleplus:artist_discography") === "true";
+    let playDiscography =
+        localStorage.getItem("shuffleplus:artist_discography") === "true";
     const playDiscographyMenu = new Spicetify.Menu.Item(
         "Shuffle artist discography",
         playDiscography,
         (menuItem) => {
             playDiscography = !playDiscography;
-            localStorage.setItem("shuffleplus:artist_discography", String(playDiscography));
+            localStorage.setItem(
+                "shuffleplus:artist_discography",
+                String(playDiscography)
+            );
             menuItem.isEnabled = playDiscography;
         }
     );
 
-    let playUriOGFunc = Spicetify.Player.origin2.playUri.bind(Spicetify.Player.origin2);
-    let playerPlayOGFunc = Spicetify.Platform.PlayerAPI.play.bind(Spicetify.Platform.PlayerAPI);
+    let playUriOGFunc = Spicetify.Player.origin2.playUri.bind(
+        Spicetify.Player.origin2
+    );
+    let playerPlayOGFunc = Spicetify.Platform.PlayerAPI.play.bind(
+        Spicetify.Platform.PlayerAPI
+    );
     let isInjected = localStorage.getItem("shuffleplus:on") === "true";
     injectFunctions(isInjected);
 
@@ -41,7 +50,10 @@
         }
     );
 
-    new Spicetify.Menu.SubMenu("Shuffle+", [autoShuffleMenu, playDiscographyMenu]).register();
+    new Spicetify.Menu.SubMenu("Shuffle+", [
+        autoShuffleMenu,
+        playDiscographyMenu,
+    ]).register();
 
     function injectFunctions(bool) {
         if (bool) {
@@ -60,12 +72,13 @@
                     } else if (options.skipTo.pageIndex !== undefined) {
                         uri.uri = options.skipTo.fallbackContextURI;
                     } else {
-                        throw "No idea what to do. Please report on Github repo, specify which page you are in."
+                        throw "No idea what to do. Please report on Github repo, specify which page you are in.";
                     }
                 }
                 fetchAndPlay(uri.uri);
             };
-        } else { // Revert
+        } else {
+            // Revert
             Spicetify.Player.origin2.playUri = playUriOGFunc;
             Spicetify.Platform.PlayerAPI.play = playerPlayOGFunc;
         }
@@ -104,12 +117,12 @@
             return true;
         },
         "shuffle"
-    )
+    );
     cntxMenu.register();
 
     /**
-     * 
-     * @param {string} uri 
+     *
+     * @param {string} uri
      * @returns {Promise<string[]>}
      */
     async function fetchListFromUri(uri) {
@@ -117,21 +130,21 @@
 
         switch (uriObj.type) {
             case Spicetify.URI.Type.SHOW:
-                return await fetchShow(uriObj.getBase62Id())
+                return await fetchShow(uriObj.getBase62Id());
             case Spicetify.URI.Type.PLAYLIST:
             case Spicetify.URI.Type.PLAYLIST_V2:
-                return await fetchPlaylist(uri)
+                return await fetchPlaylist(uri);
             case Spicetify.URI.Type.FOLDER:
-                return await fetchFolder(uri)
+                return await fetchFolder(uri);
             case Spicetify.URI.Type.ALBUM:
-                return await fetchAlbum(uri)
+                return await fetchAlbum(uri);
             case Spicetify.URI.Type.COLLECTION:
-                return await fetchCollection()
+                return await fetchCollection();
             case Spicetify.URI.Type.ARTIST:
                 if (playDiscography) {
-                    return await fetchDiscography(uriObj.getBase62Id())
+                    return await fetchDiscography(uriObj.getBase62Id());
                 }
-                return await fetchArtist(uriObj.getBase62Id())
+                return await fetchArtist(uriObj.getBase62Id());
             case Spicetify.URI.Type.TRACK:
             case Spicetify.URI.Type.EPISODE:
                 return [uri];
@@ -150,14 +163,14 @@
             { policy: { link: true } }
         );
         return res.rows.map((item) => item.link);
-    }
+    };
 
     /**
-    *
-    * @param {object} rows
-    * @param {string} uri
-    * @returns {object} folder
-    */
+     *
+     * @param {object} rows
+     * @param {string} uri
+     * @returns {object} folder
+     */
     const searchFolder = (rows, uri) => {
         for (const r of rows) {
             if (r.type !== "folder") {
@@ -194,23 +207,23 @@
             if (!folder.rows) return;
 
             for (const i of folder.rows) {
-                if (i.type === "playlist") requestPlaylists.push(fetchPlaylist(i.link));
+                if (i.type === "playlist")
+                    requestPlaylists.push(fetchPlaylist(i.link));
                 else if (i.type === "folder") fetchNested(i);
             }
         };
 
         fetchNested(requestFolder);
 
-        return await Promise.all(requestPlaylists)
-            .then((playlists) => {
-                const trackList = [];
+        return await Promise.all(requestPlaylists).then((playlists) => {
+            const trackList = [];
 
-                playlists.forEach((p) => {
-                    trackList.push(...p);
-                });
-
-                return trackList;
+            playlists.forEach((p) => {
+                trackList.push(...p);
             });
+
+            return trackList;
+        });
     };
 
     /**
@@ -225,7 +238,6 @@
         return res.item.map((item) => item.trackMetadata.link);
     };
 
-
     /**
      *
      * @param {string} uri
@@ -233,11 +245,13 @@
      */
     const fetchAlbum = async (uri) => {
         const arg = uri.split(":")[2];
-        const res = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${arg}/desktop`)
+        const res = await Spicetify.CosmosAsync.get(
+            `hm://album/v1/album-app/album/${arg}/desktop`
+        );
         const items = [];
         for (const disc of res.discs) {
-            const availables = disc.tracks.filter(track => track.playable);
-            items.push(...availables.map(track => track.uri));
+            const availables = disc.tracks.filter((track) => track.playable);
+            items.push(...availables.map((track) => track.uri));
         }
         return items;
     };
@@ -248,8 +262,12 @@
      * @returns {Promise<string[]>}
      */
     const fetchShow = async (uriBase62) => {
-        const res = await Spicetify.CosmosAsync.get(`sp://core-show/unstable/show/${uriBase62}?responseFormat=protobufJson`);
-        const availables = res.items.filter(track => track.episodePlayState.isPlayable);
+        const res = await Spicetify.CosmosAsync.get(
+            `sp://core-show/unstable/show/${uriBase62}?responseFormat=protobufJson`
+        );
+        const availables = res.items.filter(
+            (track) => track.episodePlayState.isPlayable
+        );
         return availables.map((item) => item.episodeMetadata.link);
     };
 
@@ -259,7 +277,9 @@
      * @returns {Promise<string[]>}
      */
     const fetchArtist = async (uriBase62) => {
-        const res = await Spicetify.CosmosAsync.get(`hm://artist/v1/${uriBase62}/desktop?format=json`);
+        const res = await Spicetify.CosmosAsync.get(
+            `hm://artist/v1/${uriBase62}/desktop?format=json`
+        );
         return res.top_tracks.tracks.map((item) => item.uri);
     };
 
@@ -268,9 +288,11 @@
      * @param {string} uriBase62
      * @returns {Promise<string[]>}
      */
-     const fetchDiscography = async (uriBase62) => {
-        Spicetify.showNotification(`Fetching albums list...`)
-        let res = await Spicetify.CosmosAsync.get(`hm://artist/v1/${uriBase62}/desktop?format=json`);
+    const fetchDiscography = async (uriBase62) => {
+        Spicetify.showNotification(`Fetching albums list...`);
+        let res = await Spicetify.CosmosAsync.get(
+            `hm://artist/v1/${uriBase62}/desktop?format=json`
+        );
         let albums = res.releases.albums.releases;
         const tracks = [];
         for (const album of albums) {
@@ -314,8 +336,8 @@
     }
 
     /**
-     * 
-     * @param {number} total 
+     *
+     * @param {number} total
      */
     function success(total) {
         Spicetify.showNotification(NOTIFICATION_TEXT(total));
@@ -323,12 +345,12 @@
 
     /**
      * Replace queue and play first track immediately.
-     * @param {string[]} list 
+     * @param {string[]} list
      */
     async function playList(list, context) {
         const count = list.length;
         if (count === 0) {
-            throw "There is no available track to play"
+            throw "There is no available track to play";
         } else if (count === 1) {
             playUriOGFunc(list[0]);
             return;
@@ -346,12 +368,12 @@
         }
         await Spicetify.CosmosAsync.put("sp://player/v2/main/queue", {
             revision: Spicetify.Queue?.revision,
-            next_tracks: list.map(uri => ({
+            next_tracks: list.map((uri) => ({
                 uri,
                 provider: context ? "context" : "queue",
                 metadata: {
                     is_queued: isQueue,
-                }
+                },
             })),
             prev_tracks: Spicetify.Queue?.prev_tracks,
         });

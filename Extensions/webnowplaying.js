@@ -23,7 +23,11 @@
         storage.ALBUM = meta.album_title;
         storage.DURATION = convertTimeToString(parseInt(meta.duration));
         storage.STATE = !data.is_paused ? 1 : 2;
-        storage.REPEAT = data.options.repeating_track ? 2 : (data.options.repeating_context ? 1 : 0);
+        storage.REPEAT = data.options.repeating_track
+            ? 2
+            : data.options.repeating_context
+            ? 1
+            : 0;
         storage.SHUFFLE = data.options.shuffling_context ? 1 : 0;
         storage.ARTIST = meta.artist_name;
         let artistCount = 1;
@@ -34,12 +38,15 @@
         if (!storage.ARTIST) {
             storage.ARTIST = meta.album_title; // Podcast
         }
-        Spicetify.Platform.LibraryAPI.contains(data.track.uri)
-            .then(([added]) => storage.RATING = (added ? 5 : 0));
-        
+        Spicetify.Platform.LibraryAPI.contains(data.track.uri).then(
+            ([added]) => (storage.RATING = added ? 5 : 0)
+        );
+
         const cover = meta.image_xlarge_url;
         if (cover?.indexOf("localfile") === -1) {
-            storage.COVER = "https://i.scdn.co/image/" + cover.substring(cover.lastIndexOf(":") + 1);
+            storage.COVER =
+                "https://i.scdn.co/image/" +
+                cover.substring(cover.lastIndexOf(":") + 1);
         } else {
             storage.COVER = "";
         }
@@ -168,6 +175,9 @@
         if (minutes < 60) {
             return `${minutes}:${pad(seconds % 60, 2)}`;
         }
-        return `${Math.floor(minutes / 60)}:${pad(minutes % 60, 2)}:${pad(seconds % 60, 2)}`;
+        return `${Math.floor(minutes / 60)}:${pad(minutes % 60, 2)}:${pad(
+            seconds % 60,
+            2
+        )}`;
     }
 })();
