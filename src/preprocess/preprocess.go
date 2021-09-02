@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -34,32 +35,58 @@ type jsMap struct {
 	SourcesContent []string `json:"sourcesContent"`
 }
 
-// Start preprocessing apps assets in extractedAppPath
-func Start(extractedAppsPath string, flags Flag) {
-	appPath := filepath.Join(extractedAppsPath, "xpui")
-	var cssTranslationMap = make(map[string]string)
-	// readSourceMapAndGenerateCSSMap(appPath)
-
-	var cssMapURL string = "https://raw.githubusercontent.com/khanhas/spicetify-cli/master/css-map.json"
+func readRemoteCssMap(tag string, cssTranslationMap *map[string]string) error {
+	var cssMapURL string = "https://raw.githubusercontent.com/khanhas/spicetify-cli/" + tag + "/css-map.json"
 	cssMapResp, err := http.Get(cssMapURL)
 	if err != nil {
-		utils.PrintInfo("Cannot fetch remote CSS map. Using local CSS map instead...")
-		cssMapLocalPath := path.Join(utils.GetExecutableDir(), "css-map.json")
-		cssMapContent, err := os.ReadFile(cssMapLocalPath)
-		if err != nil {
-			utils.PrintWarning("Cannot read local CSS map either.")
-		} else {
-			err = json.Unmarshal(cssMapContent, &cssTranslationMap)
-			if err != nil {
-				utils.PrintWarning("Local CSS map JSON malformed.")
-			}
-		}
+		return err
 	} else {
-		err := json.NewDecoder(cssMapResp.Body).Decode(&cssTranslationMap)
+		err := json.NewDecoder(cssMapResp.Body).Decode(cssTranslationMap)
 		if err != nil {
 			utils.PrintWarning("Remote CSS map JSON malformed.")
 		}
 	}
+	return nil
+}
+
+func readLocalCssMap(cssTranslationMap *map[string]string) error {
+	cssMapLocalPath := path.Join(utils.GetExecutableDir(), "css-map.json")
+	cssMapContent, err := os.ReadFile(cssMapLocalPath)
+	if err != nil {
+		utils.PrintWarning("Cannot read local CSS map.")
+		return err
+	} else {
+		err = json.Unmarshal(cssMapContent, cssTranslationMap)
+		if err != nil {
+			utils.PrintWarning("Local CSS map JSON malformed.")
+			return err
+		}
+	}
+	return nil
+}
+
+// Start preprocessing apps assets in extractedAppPath
+func Start(version string, extractedAppsPath string, flags Flag) {
+	appPath := filepath.Join(extractedAppsPath, "xpui")
+	var cssTranslationMap = make(map[string]string)
+	// readSourceMapAndGenerateCSSMap(appPath)
+
+	if version != "Dev" {
+		tag, err := FetchLatestTagMatchingVersion(version)
+		if err != nil {
+			utils.PrintWarning("Cannot fetch latest minor version tag")
+			tag = version
+		}
+		utils.PrintInfo("Fetching remote CSS map for newer minor version: " + tag)
+		if readRemoteCssMap(tag, &cssTranslationMap) != nil {
+			utils.PrintInfo("Cannot fetch remote CSS map. Using local CSS map instead...")
+			readLocalCssMap(&cssTranslationMap)
+		}
+	} else {
+		utils.PrintInfo("In development environment, using local CSS map")
+		readLocalCssMap(&cssTranslationMap)
+	}
+
 
 	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
 		fileName := info.Name()
@@ -493,4 +520,48 @@ func readSourceMapAndGenerateCSSMap(appPath string) {
 	} else {
 		println("CSS Map generator failed")
 	}
+}
+
+type githubRelease struct {
+	TagName string `json:"tag_name"`
+}
+
+func FetchLatestTagMatchingVersion(version string) (string, error) {
+	if version == "Dev" {
+		return "Dev", nil
+	}
+	res, err := http.Get("https://api.github.com/repos/khanhas/spicetify-cli/releases")
+	if err != nil {
+		return "", err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var releases []githubRelease
+	if err = json.Unmarshal(body, &releases); err != nil {
+		return "", err
+	}
+	curVer := strings.Split(version, ".")
+	curVerMin, err2 := strconv.Atoi(curVer[2])
+	if err2 != nil {
+		return "", err2
+	}
+	for _, rel := range releases {
+		ver := strings.Split(rel.TagName[1:], ".")
+		if len(ver) != 3 {
+			break;
+		} else {
+			verMin, err := strconv.Atoi(ver[2])
+			if err != nil {
+				return "", err
+			}
+			if ver[0] == curVer[0] && ver[1] == curVer[1] && verMin > curVerMin {
+				curVerMin = verMin
+			}
+		}
+	}
+	return "v" + curVer[0] + "." + curVer[1] + "." + strconv.Itoa(curVerMin), nil
 }
