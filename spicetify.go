@@ -33,6 +33,9 @@ func init() {
 		utils.PrintError("Unsupported OS.")
 		os.Exit(1)
 	}
+	if version == "" {
+		version = "Dev"
+	}
 
 	log.SetFlags(0)
 	// Supports print color output for Windows

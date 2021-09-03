@@ -59,6 +59,7 @@ func Backup(spicetifyVersion string) {
 	utils.PrintBold("Preprocessing:")
 
 	preprocess.Start(
+		spicetifyVersion,
 		rawFolder,
 		preprocess.Flag{
 			DisableSentry:  preprocSection.Key("disable_sentry").MustBool(false),
