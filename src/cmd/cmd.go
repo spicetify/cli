@@ -295,7 +295,7 @@ func CheckUpgrade(version string) {
 		return
 	}
 
-	latestTag, err := FetchLatestTag()
+	latestTag, err := utils.FetchLatestTag()
 
 	if err != nil {
 		utils.PrintError("Cannot fetch latest release info")

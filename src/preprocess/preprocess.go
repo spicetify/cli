@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -72,12 +73,13 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 	// readSourceMapAndGenerateCSSMap(appPath)
 
 	if version != "Dev" {
-		tag, err := FetchLatestTagMatchingVersion(version)
+		tag, err := FetchLatestTagMatchingOrMaster(version)
 		if err != nil {
-			utils.PrintWarning("Cannot fetch latest minor version tag")
+			utils.PrintWarning("Cannot fetch version tag for CSS mappings")
+			fmt.Printf("err: %v\n", err)
 			tag = version
 		}
-		utils.PrintInfo("Fetching remote CSS map for newer minor version: " + tag)
+		utils.PrintInfo("Fetching remote CSS map for newer compatible tag version: " + tag)
 		if readRemoteCssMap(tag, &cssTranslationMap) != nil {
 			utils.PrintInfo("Cannot fetch remote CSS map. Using local CSS map instead...")
 			readLocalCssMap(&cssTranslationMap)
@@ -522,8 +524,47 @@ func readSourceMapAndGenerateCSSMap(appPath string) {
 	}
 }
 
-type githubRelease struct {
-	TagName string `json:"tag_name"`
+type githubRelease = utils.GithubRelease
+
+func splitVersion(version string) ([3]int, error) {
+	vstring := version
+	if(vstring[0:1] == "v") {
+		vstring = version[1:]
+	}
+	vSplit := strings.Split(vstring, ".")
+	var vInts [3]int
+	if(len(vSplit) != 3) {
+		return [3]int{}, errors.New("Invalid version string")
+	}
+	for i := 0; i < 3; i++ {
+		conv, err := strconv.Atoi(vSplit[i])
+		if err != nil {
+			return [3]int{}, nil
+		}
+		vInts[i] = conv
+	}
+	return vInts, nil
+}
+
+func FetchLatestTagMatchingOrMaster(version string) (string, error) {
+	tag, err := utils.FetchLatestTag()
+	if err != nil {
+		return "", err
+	}
+	ver, err := splitVersion(tag)
+	if err != nil {
+		return "", err
+	}
+	versionS, err := splitVersion(version)
+	if err != nil {
+		return "", err
+	}
+	// major version matches latest, use master branch
+	if(ver[0] == versionS[0] && ver[1] == versionS[1]) {
+		return "master", nil
+	} else {
+		return FetchLatestTagMatchingVersion(version)
+	}
 }
 
 func FetchLatestTagMatchingVersion(version string) (string, error) {
