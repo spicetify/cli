@@ -268,6 +268,7 @@ function PopupLyrics() {
         centerAlign: boolLocalStorage("popup-lyrics:center-align"),
         showCover: boolLocalStorage("popup-lyrics:show-cover"),
         fontSize: LocalStorage.get("popup-lyrics:font-size"),
+        blurSize: LocalStorage.get("popup-lyrics:blur-size"),
         fontFamily:
             LocalStorage.get("popup-lyrics:font-family") || "spotify-circular",
         ratio: LocalStorage.get("popup-lyrics:ratio") || "11",
@@ -565,9 +566,8 @@ function PopupLyrics() {
         if (userConfigs.showCover) {
             const { width, height } = ctx.canvas;
             ctx.imageSmoothingEnabled = false;
-            const blur = 10;
             ctx.save();
-            ctx.filter = `blur(${blur}px)`;
+            ctx.filter = `blur(${userConfigs.blurSize}px)`;
             ctx.drawImage(
                 image,
                 -blur * 2,
@@ -982,6 +982,20 @@ button.switch.small {
                     LocalStorage.set("popup-lyrics:font-size", state);
                 }
             );
+            const blurSize = createOptions(
+                "Blur size",
+                {
+                    2: "2px",
+                    5: "5px",
+                    10: "10px",
+                    15: "15px",
+                },
+                String(userConfigs.blurSize),
+                (state) => {
+                    userConfigs.blurSize = Number(state);
+                    LocalStorage.set("popup-lyrics:blur-size", state);
+                }
+            );
 
             const serviceHeader = document.createElement("h2");
             serviceHeader.innerText = "Services";
@@ -1061,6 +1075,7 @@ button.switch.small {
                 smooth,
                 center,
                 cover,
+                blurSize,
                 fontSize,
                 ratio,
                 serviceHeader,
