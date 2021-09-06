@@ -271,25 +271,17 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return (\w+=\w+\.sent),\w+\.next=\d,(Promise.all\(\[(\w\.getSession\(\),)([\w\(\)\.,]+?)\]\))([;,])`)
+	reAllAPIPromises := regexp.MustCompile(`return{version:\w+,(\w+:[\w!\,\(\)\.]+,)+((get\w+:\(\)=>\w+,?)+)}`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
-		splitted := strings.Split(found[3] + found[4], ",")
-		if len(splitted) > 15 { // Actual number is about 24
-			re := regexp.MustCompile(`\w+\.(\w+)\(\)`)
-			// set t = e.sent, call Promise.all for APIs, then add Spicetify APIs to object
-			code := found[1] + ";" + found[2] + ".then(v => {Spicetify.Platform = {};"
-
-			for apiFuncIndex, apiFunc := range splitted {
-				name := re.ReplaceAllString(apiFunc, `${1}`)
-
-				if strings.HasPrefix(name, "get") {
-					name = strings.Replace(name, "get", "", 1)
-				}
-				code += "Spicetify.Platform[\"" + name + "\"] = v[" + fmt.Sprint(apiFuncIndex) + "];"
+		splitted := strings.Split(found[2], ",")
+		if len(splitted) > 15 { // Actual number is about 34
+			matchMap := regexp.MustCompile(`get(\w+):\(\)=>(\w+),?`)
+			code := "Spicetify.Platform={};"
+			for _, apiFunc := range splitted {
+				matches := matchMap.FindStringSubmatch(apiFunc)
+				code += "Spicetify.Platform[\"" + fmt.Sprint(matches[1]) + "\"]=" + fmt.Sprint(matches[2]) + ";"
 			}
-			code += "});"
-			// Promise.all(...).then(...); return t = e.sent, e.next = 6, Promise.all(...);
 			input = strings.Replace(input, found[0], code + found[0], 1)
 		}
 	}
