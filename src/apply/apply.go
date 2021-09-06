@@ -154,7 +154,7 @@ func getColorCSS(scheme map[string]string) string {
 func insertCustomApp(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		const REACT_REGEX = `lazy\(\(\(\)=>(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\)\)`
-		const REACT_ELEMENT_REGEX = `createElement\(([\w\.]+),\{path:"\/collection"\}`
+		const REACT_ELEMENT_REGEX = `\w+\(\)\.createElement\(([\w\.]+),\{path:"\/collection"\}`
 		reactSymbs := utils.FindSymbol(
 			"Custom app React symbols",
 			content,
