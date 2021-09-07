@@ -3,7 +3,8 @@
   <a href="https://goreportcard.com/report/github.com/khanhas/spicetify-cli"><img src="https://goreportcard.com/badge/github.com/khanhas/spicetify-cli"></a>
   <a href="https://github.com/khanhas/spicetify-cli/releases/latest"><img src="https://img.shields.io/github/release/khanhas/spicetify-cli/all.svg?colorB=97CA00?label=version"></a>
   <a href="https://github.com/khanhas/spicetify-cli/releases"><img src="https://img.shields.io/github/downloads/khanhas/spicetify-cli/total.svg?colorB=97CA00"></a>
-  <a href="https://spectrum.chat/spicetify"><img src="https://withspectrum.github.io/badge/badge.svg"></a>
+  <a href="https://discord.gg/VnevqPp2Rr"><img src="https://img.shields.io/discord/842219447716151306?label=Chat&logo=discord&logoColor=discord"></a>
+  <a href="https://www.reddit.com/r/spicetify"><img src="https://img.shields.io/reddit/subreddit-subscribers/spicetify?style=social"></a>
 </p>
 
 Command-line tool to customize new Spotify client (v1.1.58 or later).
