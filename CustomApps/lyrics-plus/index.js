@@ -217,7 +217,7 @@ class LyricsContainer extends react.Component {
         this.onQueueChange = async (queue) => {
             this.state.explicitMode = this.state.lockMode;
             this.currentTrackUri = queue.track.uri;
-            const [nextTrack] = queue.future;
+            const nextTrack = queue.next_tracks[0];
             const nextInfo = this.infoFromTrack(nextTrack);
             if (!nextInfo) {
                 this.fetchLyrics(queue.track, this.state.explicitMode);
