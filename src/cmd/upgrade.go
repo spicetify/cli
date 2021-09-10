@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -13,13 +11,9 @@ import (
 	"github.com/khanhas/spicetify-cli/src/utils"
 )
 
-type githubRelease struct {
-	TagName string `json:"tag_name"`
-}
-
 func Upgrade(currentVersion string) {
 	utils.PrintBold("Fetch latest release info:")
-	tagName, err := FetchLatestTag()
+	tagName, err := utils.FetchLatestTag()
 	if err != nil {
 		utils.PrintError("Cannot fetch latest release info")
 		utils.PrintError(err.Error())
@@ -104,23 +98,4 @@ func permissionError(err error) {
 	utils.PrintInfo("If fatal error is \"Permission denied\", please check read/write permission of spicetify executable directory.")
 	utils.PrintInfo("However, if you used a package manager to install spicetify, please upgrade by using the same package manager.")
 	utils.Fatal(err)
-}
-
-func FetchLatestTag() (string, error) {
-	res, err := http.Get("https://api.github.com/repos/khanhas/spicetify-cli/releases/latest")
-	if err != nil {
-		return "", err
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-
-	var release githubRelease
-	if err = json.Unmarshal(body, &release); err != nil {
-		return "", err
-	}
-
-	return release.TagName[1:], nil
 }

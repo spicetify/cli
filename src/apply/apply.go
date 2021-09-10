@@ -153,16 +153,18 @@ func getColorCSS(scheme map[string]string) string {
 
 func insertCustomApp(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
+		const REACT_REGEX = `lazy\(\(\(\)=>(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\)\)`
+		const REACT_ELEMENT_REGEX = `\w+\(\)\.createElement\(([\w\.]+),\{path:"\/collection"\}`
 		reactSymbs := utils.FindSymbol(
 			"Custom app React symbols",
 			content,
 			[]string{
-				`lazy\(\(function\(\)\{return (\w+)\.(\w+)\(\d+\).then\(\w+\.bind\(\w+,\d+\)\)\}\)\)`})
+				REACT_REGEX})
 		eleSymbs := utils.FindSymbol(
 			"Custom app React Element",
 			content,
 			[]string{
-				`createElement\(([\w\.]+),\{path:"\/collection"\}`})
+				REACT_ELEMENT_REGEX})
 
 		appMap := ""
 		appReactMap := ""
@@ -176,7 +178,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 			appNameArray += fmt.Sprintf(`"%s",`, app)
 
 			appReactMap += fmt.Sprintf(
-				`,spicetifyApp%d=Spicetify.React.lazy((function(){return %s.%s("%s").then(%s.bind(%s,"%s"))}))`,
+				`,spicetifyApp%d=Spicetify.React.lazy((()=>%s.%s("%s").then(%s.bind(%s,"%s"))))`,
 				index, reactSymbs[0], reactSymbs[1],
 				appName, reactSymbs[0], reactSymbs[0], appName)
 
@@ -194,12 +196,12 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		utils.ReplaceOnce(
 			&content,
-			`lazy\(\(function\(\)\{return [\w\.]+\(\d+\).then\(\w+\.bind\(\w+,\d+\)\)\}\)\)`,
+			REACT_REGEX,
 			`${0}`+appReactMap)
 
 		utils.ReplaceOnce(
 			&content,
-			`\w+\(\)\.createElement\([\w\.]+,\{path:"\/collection"\}`,
+			REACT_ELEMENT_REGEX,
 			appEleMap+`${0}`)
 
 		utils.Replace(
