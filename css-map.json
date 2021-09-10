@@ -211,7 +211,6 @@
     "_27a0987e9d138fa32458909db2cb8038": "artist-artistPick-heading",
     "_27b679e486d6dfdee56e28a99d439cad": "main-videoTakeoverComponent-closeButton",
     "_27c30c1c909a546eea5fa2c9631351d9": "profile-userEditDetails-textElement",
-    "NEEDS-REVIEW1": "main-playButton-button",
     "_28160026e8be14060f22ead8e2af36f5": "main-createPlaylistButton-svg",
     "_28830ce3f90d260443f338ca20b1ebdb": "main-ageRestriction-description",
     "_289652e9139b38a355fc9f9093586b2a": "x-album-releasesDropdown",
@@ -1359,5 +1358,7 @@
     "_u0zWe4lDi7MEyU9Tbhg": "main-button-tertiary",
     "c3c4fb6792baf990685ab6af8c9e74f9": "main-btn-block",
     "_9b6839a745ddbd386c60092f564d0f72": "x-actionBar-ActionButtonsRowWithoutPlay",
-    "dfe38cd1cd030cf851f075b5cb02a3b3": "x-proxySettings-fullWidth"
+    "dfe38cd1cd030cf851f075b5cb02a3b3": "x-proxySettings-fullWidth",
+    "pN0so1yYAJErPG_Ytb_N": "playback-progressbar",
+    "lRNLjBiX_H7SPYbkJKLp": "progress-bar"
 }
