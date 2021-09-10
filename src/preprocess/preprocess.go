@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -34,32 +36,59 @@ type jsMap struct {
 	SourcesContent []string `json:"sourcesContent"`
 }
 
-// Start preprocessing apps assets in extractedAppPath
-func Start(extractedAppsPath string, flags Flag) {
-	appPath := filepath.Join(extractedAppsPath, "xpui")
-	var cssTranslationMap = make(map[string]string)
-	// readSourceMapAndGenerateCSSMap(appPath)
-
+func readRemoteCssMap(tag string, cssTranslationMap *map[string]string) error {
 	var cssMapURL string = "https://raw.githubusercontent.com/khanhas/spicetify-cli/" + tag + "/css-map.json"
 	cssMapResp, err := http.Get(cssMapURL)
 	if err != nil {
-		utils.PrintInfo("Cannot fetch remote CSS map. Using local CSS map instead...")
-		cssMapLocalPath := path.Join(utils.GetExecutableDir(), "css-map.json")
-		cssMapContent, err := os.ReadFile(cssMapLocalPath)
-		if err != nil {
-			utils.PrintWarning("Cannot read local CSS map either.")
-		} else {
-			err = json.Unmarshal(cssMapContent, &cssTranslationMap)
-			if err != nil {
-				utils.PrintWarning("Local CSS map JSON malformed.")
-			}
-		}
+		return err
 	} else {
-		err := json.NewDecoder(cssMapResp.Body).Decode(&cssTranslationMap)
+		err := json.NewDecoder(cssMapResp.Body).Decode(cssTranslationMap)
 		if err != nil {
 			utils.PrintWarning("Remote CSS map JSON malformed.")
 		}
 	}
+	return nil
+}
+
+func readLocalCssMap(cssTranslationMap *map[string]string) error {
+	cssMapLocalPath := path.Join(utils.GetExecutableDir(), "css-map.json")
+	cssMapContent, err := os.ReadFile(cssMapLocalPath)
+	if err != nil {
+		utils.PrintWarning("Cannot read local CSS map.")
+		return err
+	} else {
+		err = json.Unmarshal(cssMapContent, cssTranslationMap)
+		if err != nil {
+			utils.PrintWarning("Local CSS map JSON malformed.")
+			return err
+		}
+	}
+	return nil
+}
+
+// Start preprocessing apps assets in extractedAppPath
+func Start(version string, extractedAppsPath string, flags Flag) {
+	appPath := filepath.Join(extractedAppsPath, "xpui")
+	var cssTranslationMap = make(map[string]string)
+	// readSourceMapAndGenerateCSSMap(appPath)
+
+	if version != "Dev" {
+		tag, err := FetchLatestTagMatchingOrMaster(version)
+		if err != nil {
+			utils.PrintWarning("Cannot fetch version tag for CSS mappings")
+			fmt.Printf("err: %v\n", err)
+			tag = version
+		}
+		utils.PrintInfo("Fetching remote CSS map for newer compatible tag version: " + tag)
+		if readRemoteCssMap(tag, &cssTranslationMap) != nil {
+			utils.PrintInfo("Cannot fetch remote CSS map. Using local CSS map instead...")
+			readLocalCssMap(&cssTranslationMap)
+		}
+	} else {
+		utils.PrintInfo("In development environment, using local CSS map")
+		readLocalCssMap(&cssTranslationMap)
+	}
+
 
 	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
 		fileName := info.Name()
@@ -263,7 +292,7 @@ func exposeAPIs_main(input string) string {
 	// React Hook
 	utils.ReplaceOnce(
 		&input,
-		`\w+=\(\w+,(\w+)\.lazy\)\(\(function\(\)\{return Promise\.resolve\(\)\.then\(\w+\.bind\(\w+,\w+\)\)\}\)\);`,
+		`\w+=\(\w+,(\w+)\.lazy\)\(\(\(\)=>Promise\.resolve\(\)\.then\(\w+\.bind\(\w+,\w+\)\)\)\);`,
 		`${0}Spicetify.React=${1};`)
 
 	utils.Replace(
@@ -271,25 +300,17 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return (\w+=\w+\.sent),\w+\.next=\d,(Promise.all\(\[(\w\.getSession\(\),)([\w\(\)\.,]+?)\]\))([;,])`)
+	reAllAPIPromises := regexp.MustCompile(`return{version:\w+,(\w+:[\w!\,\(\)\.]+,)+((get\w+:\(\)=>\w+,?)+)}`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
-		splitted := strings.Split(found[3] + found[4], ",")
-		if len(splitted) > 15 { // Actual number is about 24
-			re := regexp.MustCompile(`\w+\.(\w+)\(\)`)
-			// set t = e.sent, call Promise.all for APIs, then add Spicetify APIs to object
-			code := found[1] + ";" + found[2] + ".then(v => {Spicetify.Platform = {};"
-
-			for apiFuncIndex, apiFunc := range splitted {
-				name := re.ReplaceAllString(apiFunc, `${1}`)
-
-				if strings.HasPrefix(name, "get") {
-					name = strings.Replace(name, "get", "", 1)
-				}
-				code += "Spicetify.Platform[\"" + name + "\"] = v[" + fmt.Sprint(apiFuncIndex) + "];"
+		splitted := strings.Split(found[2], ",")
+		if len(splitted) > 15 { // Actual number is about 34
+			matchMap := regexp.MustCompile(`get(\w+):\(\)=>(\w+),?`)
+			code := "Spicetify.Platform={};"
+			for _, apiFunc := range splitted {
+				matches := matchMap.FindStringSubmatch(apiFunc)
+				code += "Spicetify.Platform[\"" + fmt.Sprint(matches[1]) + "\"]=" + fmt.Sprint(matches[2]) + ";"
 			}
-			code += "});"
-			// Promise.all(...).then(...); return t = e.sent, e.next = 6, Promise.all(...);
 			input = strings.Replace(input, found[0], code + found[0], 1)
 		}
 	}
@@ -312,14 +333,14 @@ Spicetify.React.useEffect(() => {
 	// React Component: Context Menu and Right Click Menu
 	utils.Replace(
 		&input,
-		`return (\w+\(\)\.createElement\(([\w\.]+),\w+\(\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\))`,
-		`Spicetify.ReactComponent.ContextMenu=${2};Spicetify.ReactComponent.RightClickMenu=${1};return Spicetify.ReactComponent.RightClickMenu`)
+		`=(\w+)=>(\w+\(\)\.createElement\(([\w\.]+),\(\w+,[\w\.]+\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\))`,
+		`=Spicetify.ReactComponent.RightClickMenu=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3}`)
 
 	// React Component: Context Menu - Menu
 	utils.Replace(
 		&input,
-		`return (\w+\(\)\.createElement\("ul",\w+\(\)\(\{tabIndex:-?\d+,ref:\w+,role:"menu","data-depth":\w+\},\w+\),\w+\))`,//`\w+\(\)\.createElement\([\w\.]+,\{onClose:[\w\.]+,getInitialFocusElement:`,//`\w+\(\)\.createElement\([\w\.]+,\{className:[\w\.]+,onClose:[\w\.]+,onKeyDown:[\w\.]+,onKeyUp:[\w\.]+,getInitialFocusElement:[\w\.]+\},[\w\.]+\)`,
-		`return Spicetify.ReactComponent.Menu=${1}`)
+		`=\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+\}\)`,
+		`=Spicetify.ReactComponent.Menu${0}`)
 
 	// React Component: Context Menu - Menu Item
 	utils.Replace(
@@ -493,4 +514,87 @@ func readSourceMapAndGenerateCSSMap(appPath string) {
 	} else {
 		println("CSS Map generator failed")
 	}
+}
+
+type githubRelease = utils.GithubRelease
+
+func splitVersion(version string) ([3]int, error) {
+	vstring := version
+	if(vstring[0:1] == "v") {
+		vstring = version[1:]
+	}
+	vSplit := strings.Split(vstring, ".")
+	var vInts [3]int
+	if(len(vSplit) != 3) {
+		return [3]int{}, errors.New("Invalid version string")
+	}
+	for i := 0; i < 3; i++ {
+		conv, err := strconv.Atoi(vSplit[i])
+		if err != nil {
+			return [3]int{}, nil
+		}
+		vInts[i] = conv
+	}
+	return vInts, nil
+}
+
+func FetchLatestTagMatchingOrMaster(version string) (string, error) {
+	tag, err := utils.FetchLatestTag()
+	if err != nil {
+		return "", err
+	}
+	ver, err := splitVersion(tag)
+	if err != nil {
+		return "", err
+	}
+	versionS, err := splitVersion(version)
+	if err != nil {
+		return "", err
+	}
+	// major version matches latest, use master branch
+	if(ver[0] == versionS[0] && ver[1] == versionS[1]) {
+		return "master", nil
+	} else {
+		return FetchLatestTagMatchingVersion(version)
+	}
+}
+
+func FetchLatestTagMatchingVersion(version string) (string, error) {
+	if version == "Dev" {
+		return "Dev", nil
+	}
+	res, err := http.Get("https://api.github.com/repos/khanhas/spicetify-cli/releases")
+	if err != nil {
+		return "", err
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var releases []githubRelease
+	if err = json.Unmarshal(body, &releases); err != nil {
+		return "", err
+	}
+	curVer := strings.Split(version, ".")
+	curVerMin, err2 := strconv.Atoi(curVer[2])
+	if err2 != nil {
+		return "", err2
+	}
+	for _, rel := range releases {
+		ver := strings.Split(rel.TagName[1:], ".")
+		if len(ver) != 3 {
+			break;
+		} else {
+			verMin, err := strconv.Atoi(ver[2])
+			if err != nil {
+				return "", err
+			}
+			if ver[0] == curVer[0] && ver[1] == curVer[1] && verMin > curVerMin {
+				curVerMin = verMin
+			}
+		}
+	}
+	return "v" + curVer[0] + "." + curVer[1] + "." + strconv.Itoa(curVerMin), nil
 }
