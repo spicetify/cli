@@ -5,7 +5,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function WebNowPlaying() {
-    if (!Spicetify.CosmosAsync) {
+    if (!Spicetify.CosmosAsync || !Spicetify.Platform) {
         setTimeout(WebNowPlaying, 500);
         return;
     }
@@ -38,6 +38,10 @@
         if (!storage.ARTIST) {
             storage.ARTIST = meta.album_title; // Podcast
         }
+
+        Spicetify.Platform.LibraryAPI.contains(data.track.uri).then(
+            ([added]) => (storage.RATING = added ? 5 : 0)
+        );
 
         const cover = meta.image_xlarge_url;
         if (cover?.indexOf("localfile") === -1) {
