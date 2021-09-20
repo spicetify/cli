@@ -892,7 +892,7 @@ class _HTMLGenericModal extends HTMLElement {
         content,
     }) {
         this.innerHTML = `
-<div class="GenericModal__overlay">
+<div class="GenericModal__overlay" style="z-index: 100;">
     <div class="GenericModal" tabindex="-1" role="dialog" aria-label="${title}" aria-modal="true">
         <div class="main-trackCreditsModal-container">
             <div class="main-trackCreditsModal-header">
