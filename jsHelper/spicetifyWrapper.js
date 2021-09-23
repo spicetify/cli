@@ -183,7 +183,7 @@ const Spicetify = {
         const event = new Event("onprogress");
         event.data = Spicetify.Player.getProgress();
         Spicetify.Player.dispatchEvent(event);
-    }, 1);
+    }, 100);
 
     Spicetify.addToQueue = Spicetify.Player.origin2.player.addToQueue;
     Spicetify.removeFromQueue = Spicetify.Player.origin2.removeFromQueue;
