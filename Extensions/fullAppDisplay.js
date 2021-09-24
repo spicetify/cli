@@ -485,10 +485,9 @@ body.video-full-screen.video-full-screen--hide-ui {
     }
 
     function updateProgress(event) {
-        prog.style.width = (event.data / Spicetify.Player.origin._state.duration) * 100 + "%";
-        elaps.innerText = Spicetify.Player.formatTime(
-            event.data
-        );
+        prog.style.width =
+            (event.data / Spicetify.Player.origin._state.duration) * 100 + "%";
+        elaps.innerText = Spicetify.Player.formatTime(event.data);
     }
 
     function updateControl({ data }) {
