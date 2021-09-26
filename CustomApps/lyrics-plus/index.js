@@ -233,6 +233,12 @@ class LyricsContainer extends react.Component {
             // Fetch next track
             this.tryServices(nextInfo, this.state.explicitMode);
         };
+ 
+        if(Spicetify.Player && Spicetify.Player.data && Spicetify.Player.data.track) {
+            this.state.explicitMode = this.state.lockMode;
+            this.currentTrackUri = Spicetify.Player.data.track.uri;
+            this.fetchLyrics(Spicetify.Player.data.track, this.state.explicitMode);
+        }
 
         this.updateVisualOnConfigChange();
         Utils.addQueueListener(this.onQueueChange);

@@ -567,13 +567,14 @@ function PopupLyrics() {
             const { width, height } = ctx.canvas;
             ctx.imageSmoothingEnabled = false;
             ctx.save();
-            ctx.filter = `blur(${userConfigs.blurSize}px)`;
+            let blurSize = Number(userConfigs.blurSize);
+            ctx.filter = `blur(${blurSize}px)`;
             ctx.drawImage(
                 image,
-                -blur * 2,
-                -blur * 2 - (width - height) / 2,
-                width + 4 * blur,
-                width + 4 * blur
+                -blurSize * 2,
+                -blurSize * 2 - (width - height) / 2,
+                width + 4 * blurSize,
+                width + 4 * blurSize
             );
             ctx.restore();
             ctx.fillStyle = "#000000b0";

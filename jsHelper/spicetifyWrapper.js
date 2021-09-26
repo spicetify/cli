@@ -155,7 +155,7 @@ const Spicetify = {
 // Wait for Spicetify.Player.origin and origin2 to be available
 // before adding following APIs
 (function waitOrigins() {
-    if (!Spicetify.Player.origin || !Spicetify.Player.origin2) {
+    if (!Spicetify.Player || !Spicetify.Player.origin || !Spicetify.Player.origin2 || !Spicetify.Player.origin._state) {
         setTimeout(waitOrigins, 10);
         return;
     }
@@ -179,11 +179,11 @@ const Spicetify = {
         }
     );
 
-    Spicetify.Player.origin2.state.addProgressListener((data) => {
+    setInterval(() => {
         const event = new Event("onprogress");
-        event.data = data.position;
+        event.data = Spicetify.Player.getProgress();
         Spicetify.Player.dispatchEvent(event);
-    });
+    }, 100);
 
     Spicetify.addToQueue = Spicetify.Player.origin2.player.addToQueue;
     Spicetify.removeFromQueue = Spicetify.Player.origin2.removeFromQueue;

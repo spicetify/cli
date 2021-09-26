@@ -484,11 +484,10 @@ body.video-full-screen.video-full-screen--hide-ui {
         requestAnimationFrame(animate);
     }
 
-    function updateProgress() {
-        prog.style.width = Spicetify.Player.getProgressPercent() * 100 + "%";
-        elaps.innerText = Spicetify.Player.formatTime(
-            Spicetify.Player.getProgress()
-        );
+    function updateProgress(event) {
+        prog.style.width =
+            (event.data / Spicetify.Player.origin._state.duration) * 100 + "%";
+        elaps.innerText = Spicetify.Player.formatTime(event.data);
     }
 
     function updateControl({ data }) {
@@ -503,7 +502,6 @@ body.video-full-screen.video-full-screen--hide-ui {
         updateInfo();
         Spicetify.Player.addEventListener("songchange", updateInfo);
         if (CONFIG.enableProgress) {
-            updateProgress();
             Spicetify.Player.addEventListener("onprogress", updateProgress);
         }
         if (CONFIG.enableControl) {
