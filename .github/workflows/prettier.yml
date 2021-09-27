@@ -10,5 +10,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actionsx/prettier@v2
+    - uses: ./
       with:
         args: --print-width 80 --tab-width 4 --trailing-comma es5 --arrow-parens always --write .\Extensions\*.js ".\jsHelper\{homeConfig,sidebarConfig}.js" CustomApps\*\*.css
