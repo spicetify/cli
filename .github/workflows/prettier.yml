@@ -3,7 +3,7 @@ name: Prettier
 on: [pull_request]
 
 jobs:
-  greeting:
+  prettier:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
