@@ -1,8 +1,12 @@
 (function SidebarConfig() {
     // STICKY container
     const appItems = document.querySelector(".main-navBar-entryPoints");
-    const playlistItems = document.querySelector(".main-rootlist-rootlistPlaylistsScrollNode .os-content");
-    const personalLibrary = document.querySelector(".main-rootlist-rootlistContent");
+    const playlistItems = document.querySelector(
+        ".main-rootlist-rootlistPlaylistsScrollNode .os-content"
+    );
+    const personalLibrary = document.querySelector(
+        ".main-rootlist-rootlistContent"
+    );
 
     if (!appItems || !playlistItems || !personalLibrary) {
         setTimeout(SidebarConfig, 300);
@@ -10,7 +14,9 @@
     }
 
     // Status enum
-    const HIDDEN = 0, SHOW = 1, STICKY = 2;
+    const HIDDEN = 0,
+        SHOW = 1,
+        STICKY = 2;
     // Store sidebar buttons elements
     let buttons = [];
     let ordered;
@@ -45,32 +51,34 @@
 
     let storage = [];
     try {
-        storage = JSON.parse(localStorage.getItem("spicetify-sidebar-config"))
+        storage = JSON.parse(localStorage.getItem("spicetify-sidebar-config"));
         if (!Array.isArray(storage)) throw "";
     } catch {
-        storage = buttons.map(el => [el.dataset.id, STICKY]);
+        storage = buttons.map((el) => [el.dataset.id, STICKY]);
     }
 
     function arrangeItems() {
         const newButtons = [...buttons];
         const orderedButtons = [];
         for (const ele of storage) {
-            const index = newButtons.findIndex(a => ele[0] === a?.dataset.id);
+            const index = newButtons.findIndex((a) => ele[0] === a?.dataset.id);
             if (index !== -1) {
                 orderedButtons.push([newButtons[index], ele[1]]);
                 newButtons[index] = undefined;
             }
         }
         newButtons
-            .filter(a => a)
-            .forEach(a => orderedButtons.push([a, STICKY]));
+            .filter((a) => a)
+            .forEach((a) => orderedButtons.push([a, STICKY]));
         ordered = orderedButtons;
     }
 
     function appendItems() {
-        const toShow = [], toHide = [], toStick = [];
+        const toShow = [],
+            toHide = [],
+            toStick = [];
         for (const el of ordered) {
-            const [ item, status ] = el;
+            const [item, status] = el;
             if (status === STICKY) {
                 appItems.append(item);
                 toStick.push(el);
@@ -82,11 +90,11 @@
                 toHide.push(el);
             }
         }
-        ordered = [ ...toStick, ...toShow, ...toHide ];
+        ordered = [...toStick, ...toShow, ...toHide];
     }
 
     function writeStorage() {
-        const array = ordered.map(a => [a[0].dataset.id, a[1]]);
+        const array = ordered.map((a) => [a[0].dataset.id, a[1]]);
         console.log(array);
         localStorage.setItem("spicetify-sidebar-config", JSON.stringify(array));
     }
@@ -96,8 +104,10 @@
 
     const container = document.createElement("div");
     container.id = "spicetify-sidebar-config";
-    const up = document.createElement("button"); up.innerText = "Up";
-    const down = document.createElement("button"); down.innerText = "Down";
+    const up = document.createElement("button");
+    up.innerText = "Up";
+    const down = document.createElement("button");
+    down.innerText = "Down";
     const hide = document.createElement("button");
     const stick = document.createElement("button");
     const style = document.createElement("style");
@@ -131,17 +141,20 @@
     function injectInteraction() {
         function onSwap(item, dir) {
             container.remove();
-            const curPos = ordered.findIndex(e => e[0] === item);
+            const curPos = ordered.findIndex((e) => e[0] === item);
             const newPos = curPos + dir;
-            if (newPos < 0 || newPos > (ordered.length - 1)) return;
+            if (newPos < 0 || newPos > ordered.length - 1) return;
 
-            [ordered[curPos], ordered[newPos]] = [ordered[newPos], ordered[curPos]];
+            [ordered[curPos], ordered[newPos]] = [
+                ordered[newPos],
+                ordered[curPos],
+            ];
             appendItems();
         }
-    
+
         function onChangeStatus(item, status) {
             container.remove();
-            const curPos = ordered.findIndex(e => e[0] === item);
+            const curPos = ordered.findIndex((e) => e[0] === item);
             ordered[curPos][1] = ordered[curPos][1] === status ? SHOW : status;
             appendItems();
         }
@@ -151,15 +164,21 @@
         hiddenList.classList.remove("hidden-visually");
         for (const el of ordered) {
             el[0].onmouseover = () => {
-                const [ item, status ] = el;
-                const index = ordered.findIndex(a => a === el);
-                if (index === 0 || ordered[index][1] !== ordered[index - 1][1]) {
+                const [item, status] = el;
+                const index = ordered.findIndex((a) => a === el);
+                if (
+                    index === 0 ||
+                    ordered[index][1] !== ordered[index - 1][1]
+                ) {
                     up.disabled = true;
                 } else {
                     up.disabled = false;
                     up.onclick = () => onSwap(item, -1);
                 }
-                if (index === (ordered.length - 1) || ordered[index][1] !== ordered[index + 1][1]) {
+                if (
+                    index === ordered.length - 1 ||
+                    ordered[index][1] !== ordered[index + 1][1]
+                ) {
                     down.disabled = true;
                 } else {
                     down.disabled = false;
@@ -179,22 +198,18 @@
     function removeInteraction() {
         hiddenList.classList.add("hidden-visually");
         container.remove();
-        ordered.forEach(a => a[0].onmouseover = undefined);
+        ordered.forEach((a) => (a[0].onmouseover = undefined));
         writeStorage();
     }
 
-    new Spicetify.Menu.Item(
-        "Sidebar config",
-        false,
-        (self) => {
-            self.isEnabled = !self.isEnabled;
-            if (self.isEnabled) {
-                injectInteraction();
-            } else {
-                removeInteraction();
-            }
+    new Spicetify.Menu.Item("Sidebar config", false, (self) => {
+        self.isEnabled = !self.isEnabled;
+        if (self.isEnabled) {
+            injectInteraction();
+        } else {
+            removeInteraction();
         }
-    ).register();
+    }).register();
 
     const customButtonStyle = document.createElement("style");
     customButtonStyle.innerHTML = `

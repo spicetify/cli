@@ -1,23 +1,29 @@
 SpicetifyHomeConfig = {};
 
-(function() {
+(function () {
     // Status enum
-    const NORMAL = 0, STICKY = 1, LOWERED = 2;
+    const NORMAL = 0,
+        STICKY = 1,
+        LOWERED = 2;
     // List of sections' metadata
     let list;
     // Store sections' statuses
     const statusDic = {};
 
-    SpicetifyHomeConfig.arrange = function(sections) {
+    SpicetifyHomeConfig.arrange = function (sections) {
         if (list) {
             return list;
         }
-        const stickList = (localStorage.getItem("spicetify-home-config:stick") || "").split(",");
-        const lowList = (localStorage.getItem("spicetify-home-config:low") || "").split(",");
+        const stickList = (
+            localStorage.getItem("spicetify-home-config:stick") || ""
+        ).split(",");
+        const lowList = (
+            localStorage.getItem("spicetify-home-config:low") || ""
+        ).split(",");
         let stickSections = [];
         let lowSections = [];
         for (const id of stickList) {
-            const index = sections.findIndex(a => a?.id === id);
+            const index = sections.findIndex((a) => a?.id === id);
             if (index !== -1) {
                 const item = sections[index];
                 statusDic[item.id] = STICKY;
@@ -26,7 +32,7 @@ SpicetifyHomeConfig = {};
             }
         }
         for (const id of lowList) {
-            const index = sections.findIndex(a => a?.id === id);
+            const index = sections.findIndex((a) => a?.id === id);
             if (index !== -1) {
                 const item = sections[index];
                 statusDic[item.id] = LOWERED;
@@ -34,14 +40,16 @@ SpicetifyHomeConfig = {};
                 sections[index] = undefined;
             }
         }
-        sections = sections.filter(a => a);
+        sections = sections.filter((a) => a);
 
         list = [...stickSections, ...sections, ...lowSections];
         return list;
-    }
+    };
 
-    const up = document.createElement("button"); up.innerText = "Up";
-    const down = document.createElement("button"); down.innerText = "Down";
+    const up = document.createElement("button");
+    up.innerText = "Up";
+    const down = document.createElement("button");
+    down.innerText = "Down";
     const lower = document.createElement("button");
     const stick = document.createElement("button");
     const style = document.createElement("style");
@@ -76,18 +84,26 @@ SpicetifyHomeConfig = {};
     function injectInteraction() {
         const main = document.querySelector(".main-home-content");
         elem = [...main.querySelectorAll("section")];
-        elem.forEach((item, index) => item.dataset.id = list[index].id);
+        elem.forEach((item, index) => (item.dataset.id = list[index].id));
 
         function appendItems() {
-            const stick = [], low = [], normal = [];
+            const stick = [],
+                low = [],
+                normal = [];
             for (const el of elem) {
                 if (statusDic[el.dataset.id] === STICKY) stick.push(el);
                 else if (statusDic[el.dataset.id] === LOWERED) low.push(el);
                 else normal.push(el);
             }
 
-            localStorage.setItem("spicetify-home-config:stick", stick.map(a => a.dataset.id));
-            localStorage.setItem("spicetify-home-config:low", low.map(a => a.dataset.id));
+            localStorage.setItem(
+                "spicetify-home-config:stick",
+                stick.map((a) => a.dataset.id)
+            );
+            localStorage.setItem(
+                "spicetify-home-config:low",
+                low.map((a) => a.dataset.id)
+            );
 
             elem = [...stick, ...normal, ...low];
             main.append(...elem);
@@ -95,9 +111,9 @@ SpicetifyHomeConfig = {};
 
         function onSwap(item, dir) {
             container.remove();
-            const curPos = elem.findIndex(e => e === item);
+            const curPos = elem.findIndex((e) => e === item);
             const newPos = curPos + dir;
-            if (newPos < 0 || newPos > (elem.length - 1)) return;
+            if (newPos < 0 || newPos > elem.length - 1) return;
 
             [elem[curPos], elem[newPos]] = [elem[newPos], elem[curPos]];
             [list[curPos], list[newPos]] = [list[newPos], list[curPos]];
@@ -114,7 +130,7 @@ SpicetifyHomeConfig = {};
         elem.forEach((el) => {
             el.onmouseover = () => {
                 const status = statusDic[el.dataset.id];
-                const index = elem.findIndex(a => a === el);
+                const index = elem.findIndex((a) => a === el);
 
                 if (
                     !status ||
@@ -129,7 +145,7 @@ SpicetifyHomeConfig = {};
 
                 if (
                     !status ||
-                    index === (elem.length - 1) ||
+                    index === elem.length - 1 ||
                     status !== statusDic[elem[index + 1]?.dataset.id]
                 ) {
                     down.disabled = true;
@@ -150,7 +166,7 @@ SpicetifyHomeConfig = {};
 
     function removeInteraction() {
         container.remove();
-        elem.forEach(a => a.onmouseover = undefined);
+        elem.forEach((a) => (a.onmouseover = undefined));
     }
 
     const menu = new Spicetify.Menu.Item("Home config", false, (self) => {
@@ -166,4 +182,4 @@ SpicetifyHomeConfig = {};
         menu.isEnabled = false;
         menu.deregister();
     };
-}());
+})();

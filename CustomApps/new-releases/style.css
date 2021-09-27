@@ -21,7 +21,7 @@ button.switch {
     align-items: center;
     border: 0px;
     border-radius: 50%;
-    background-color: rgba(var(--spice-rgb-shadow), .7);
+    background-color: rgba(var(--spice-rgb-shadow), 0.7);
     color: var(--spice-text);
     cursor: pointer;
     display: flex;
@@ -30,7 +30,7 @@ button.switch {
 }
 button.switch.disabled,
 button.switch[disabled] {
-    color: rgba(var(--spice-rgb-text), .3);
+    color: rgba(var(--spice-rgb-text), 0.3);
 }
 button.switch.small {
     width: 22px;
@@ -41,7 +41,7 @@ button.text {
     font-size: 12px;
     line-height: 16px;
     font-weight: 700;
-    letter-spacing: .1em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     text-align: center;
     color: var(--spice-text);
@@ -89,4 +89,3 @@ option {
 .new-releases-cardSubHeader {
     color: var(--spice-subtext);
 }
-
