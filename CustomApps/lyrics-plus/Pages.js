@@ -98,8 +98,7 @@ const KaraokeLyricsPage = react.memo(
         const [position, setPosition] = useState(0);
         useTrackPosition(() => {
             if (!Player.data.is_paused) {
-                const playback = Spicetify.Player.origin2.state.playback;
-                setPosition(playback.position_as_of_timestamp + (Date.now() - playback.timestamp));
+                setPosition(Spicetify.Player.getProgress());
             }
         });
 
