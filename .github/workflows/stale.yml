@@ -1,0 +1,37 @@
+name: Mark stale issues and pull requests
+
+on:
+  schedule:
+  - cron: '20 4 * * *'
+
+jobs:
+  stale:
+
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/stale@v4.0.0
+      with:
+        # Token for the repository. Can be passed in using `{{ secrets.GITHUB_TOKEN }}`.
+        repo-token: ${{ github.token }}
+        # The message to post on the issue when tagging it. If none provided, will not mark issues stale.
+        stale-issue-message: "Marking this issue as stale.\n\nLet someone know if I'm wrong, after all, I'm just a bot!"
+        # The message to post on the pull request when tagging it. If none provided, will not mark pull requests stale.
+        stale-pr-message: "Marking this PR as stale.\n\nLet someone know if I'm wrong, after all, I'm just a bot!"
+        # The message to post on the issue when closing it. If none provided, will not comment when closing an issue.
+        close-issue-message: "Closing this issue due to inactivity.\n\nLet someone know if I'm wrong, after all, I'm just a bot!"
+        # The message to post on the pull request when closing it. If none provided, will not comment when closing a pull requests.
+        close-pr-message: "Closing this PR due to inactivity.\n\nLet someone know if I'm wrong, after all, I'm just a bot!"
+        # The number of days old an issue or a pull request can be before marking it stale. Set to -1 to never mark issues or pull requests as stale automatically.
+        days-before-stale: 60
+        # The number of days to wait to close an issue or a pull request after it being marked stale. Set to -1 to never close stale issues or pull requests.
+        days-before-close: 7
+        # The label to apply when an issue is stale.
+        stale-issue-label: 'stale'
+        # Only issues with all of these labels are checked if stale. Defaults to `[]` (disabled) and can be a comma-separated list of labels. Override "only-labels" option regarding only the issues.
+        only-issue-labels: 'bug'
+        # Display some statistics at the end regarding the stale workflow (only when the logs are enabled).
+        enable-statistics: true
