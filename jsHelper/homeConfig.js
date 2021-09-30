@@ -14,12 +14,8 @@ SpicetifyHomeConfig = {};
         if (list) {
             return list;
         }
-        const stickList = (
-            localStorage.getItem("spicetify-home-config:stick") || ""
-        ).split(",");
-        const lowList = (
-            localStorage.getItem("spicetify-home-config:low") || ""
-        ).split(",");
+        const stickList = (localStorage.getItem("spicetify-home-config:stick") || "").split(",");
+        const lowList = (localStorage.getItem("spicetify-home-config:low") || "").split(",");
         let stickSections = [];
         let lowSections = [];
         for (const id of stickList) {
@@ -132,22 +128,14 @@ SpicetifyHomeConfig = {};
                 const status = statusDic[el.dataset.id];
                 const index = elem.findIndex((a) => a === el);
 
-                if (
-                    !status ||
-                    index === 0 ||
-                    status !== statusDic[elem[index - 1]?.dataset.id]
-                ) {
+                if (!status || index === 0 || status !== statusDic[elem[index - 1]?.dataset.id]) {
                     up.disabled = true;
                 } else {
                     up.disabled = false;
                     up.onclick = () => onSwap(el, -1);
                 }
 
-                if (
-                    !status ||
-                    index === elem.length - 1 ||
-                    status !== statusDic[elem[index + 1]?.dataset.id]
-                ) {
+                if (!status || index === elem.length - 1 || status !== statusDic[elem[index + 1]?.dataset.id]) {
                     down.disabled = true;
                 } else {
                     down.disabled = false;

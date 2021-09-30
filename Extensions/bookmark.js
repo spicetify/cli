@@ -7,14 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function Bookmark() {
-    const {
-        CosmosAsync,
-        Player,
-        LocalStorage,
-        PlaybackControl,
-        ContextMenu,
-        URI,
-    } = Spicetify;
+    const { CosmosAsync, Player, LocalStorage, PlaybackControl, ContextMenu, URI } = Spicetify;
     if (!(CosmosAsync && URI)) {
         setTimeout(Bookmark, 300);
         return;
@@ -45,9 +38,7 @@
             this.items.textContent = ""; // Remove all childs
             this.items.append(createMenuItem("Current page", storeThisPage));
             this.items.append(createMenuItem("Track", storeTrack));
-            this.items.append(
-                createMenuItem("Track with timestamp", storeTrackWithTime)
-            );
+            this.items.append(createMenuItem("Track with timestamp", storeTrackWithTime));
 
             const select = createSortSelect(this.filter);
             select.onchange = (event) => {
@@ -69,10 +60,7 @@
         }
 
         isTrack(uri) {
-            return (
-                uri.startsWith("spotify:track:") ||
-                uri.startsWith("spotify:episode:")
-            );
+            return uri.startsWith("spotify:track:") || uri.startsWith("spotify:episode:");
         }
 
         getStorage() {
@@ -146,13 +134,9 @@
                 ? `
             <div class="bookmark-fixed-height">
                 <div class="bookmark-progress">
-                    <div class="bookmark-progress__bar" style="--progress:${
-                        info.progress
-                    }"></div>
+                    <div class="bookmark-progress__bar" style="--progress:${info.progress}"></div>
                 </div>
-                <span class="bookmark-progress__time main-type-mesto">${Player.formatTime(
-                    info.time
-                )}</span>
+                <span class="bookmark-progress__time main-type-mesto">${Player.formatTime(info.time)}</span>
             </div>
         `
                 : ""
@@ -171,9 +155,7 @@
 
             if (isPlayable) {
                 /** @type {HTMLButtonElement} */
-                const playButton = this.querySelector(
-                    "button.main-playButton-PlayButton"
-                );
+                const playButton = this.querySelector("button.main-playButton-PlayButton");
                 playButton.onclick = (event) => {
                     onPlayClick(info);
                     event.stopPropagation();
@@ -264,12 +246,8 @@
             description = idToProperName(description);
         }
 
-        const headerElem = document.querySelector(
-            ".Root__main-view .main-entityHeader-background"
-        );
-        let imageUrl = headerElem?.style.backgroundImage
-            .replace('url("', "")
-            .replace('")', "");
+        const headerElem = document.querySelector(".Root__main-view .main-entityHeader-background");
+        let imageUrl = headerElem?.style.backgroundImage.replace('url("', "").replace('")', "");
 
         if (!imageUrl) {
             const firstImgElem = document.querySelector(".Root__main-view img");
@@ -297,15 +275,8 @@
             meta.description = Player.data.track.metadata.artist_name;
         }
         const contextUri = URI.fromString(Spicetify.Player.data.context_uri);
-        if (
-            contextUri &&
-            (contextUri.type === URI.Type.PLAYLIST ||
-                contextUri.type === URI.Type.PLAYLIST_V2 ||
-                contextUri.type === URI.Type.ALBUM)
-        ) {
-            meta.context = `/${contextUri.toURLPath()}?uid=${
-                Player.data.track.uid
-            }`;
+        if (contextUri && (contextUri.type === URI.Type.PLAYLIST || contextUri.type === URI.Type.PLAYLIST_V2 || contextUri.type === URI.Type.ALBUM)) {
+            meta.context = `/${contextUri.toURLPath()}?uid=${Player.data.track.uid}`;
         }
 
         return meta;
@@ -324,9 +295,7 @@
 
     // Utilities
     function idToProperName(id) {
-        id = id
-            .replace(/\-/g, " ")
-            .replace(/^.|\s./g, (char) => char.toUpperCase());
+        id = id.replace(/\-/g, " ").replace(/^.|\s./g, (char) => char.toUpperCase());
 
         return id;
     }
@@ -476,10 +445,7 @@
             const trackUid = info.context.split("?uid=", 2)[1];
             options.trackUid = trackUid;
 
-            Spicetify.PlaybackControl.playContext(
-                { uri, url: "context://" + uri },
-                options
-            );
+            Spicetify.PlaybackControl.playContext({ uri, url: "context://" + uri }, options);
             return;
         }
 
@@ -488,9 +454,7 @@
 
     const fetchAlbum = async (uri) => {
         const base62 = uri.split(":")[2];
-        const res = await CosmosAsync.get(
-            `hm://album/v1/album-app/album/${base62}/desktop`
-        );
+        const res = await CosmosAsync.get(`hm://album/v1/album-app/album/${base62}/desktop`);
         return {
             uri,
             title: res.name,
@@ -501,10 +465,9 @@
 
     const fetchShow = async (uri) => {
         const base62 = uri.split(":")[2];
-        const res = await CosmosAsync.get(
-            `sp://core-show/unstable/show/${base62}?responseFormat=protobufJson`,
-            { policy: { list: { index: true } } }
-        );
+        const res = await CosmosAsync.get(`sp://core-show/unstable/show/${base62}?responseFormat=protobufJson`, {
+            policy: { list: { index: true } },
+        });
         return {
             uri,
             title: res.header.showMetadata.name,
@@ -515,9 +478,7 @@
 
     const fetchArtist = async (uri) => {
         const base62 = uri.split(":")[2];
-        const res = await CosmosAsync.get(
-            `hm://artist/v1/${base62}/desktop?format=json`
-        );
+        const res = await CosmosAsync.get(`hm://artist/v1/${base62}/desktop?format=json`);
         return {
             uri,
             title: res.info.name,
@@ -528,12 +489,9 @@
 
     const fetchTrack = async (uri, uid, context) => {
         const base62 = uri.split(":")[2];
-        const res = await CosmosAsync.get(
-            `https://api.spotify.com/v1/tracks/${base62}`
-        );
+        const res = await CosmosAsync.get(`https://api.spotify.com/v1/tracks/${base62}`);
         if (context && uid && Spicetify.URI.isPlaylistV1OrV2(context)) {
-            context =
-                Spicetify.URI.from(context).toURLPath(true) + "?uid=" + uid;
+            context = Spicetify.URI.from(context).toURLPath(true) + "?uid=" + uid;
         }
         return {
             uri,
@@ -546,9 +504,7 @@
 
     const fetchEpisode = async (uri) => {
         const base62 = uri.split(":")[2];
-        const res = await CosmosAsync.get(
-            `https://api.spotify.com/v1/episodes/${base62}`
-        );
+        const res = await CosmosAsync.get(`https://api.spotify.com/v1/episodes/${base62}`);
         console.log(res);
         return {
             uri,
@@ -559,10 +515,9 @@
     };
 
     const fetchPlaylist = async (uri) => {
-        const res = await Spicetify.CosmosAsync.get(
-            `sp://core-playlist/v1/playlist/${uri}/metadata`,
-            { policy: { picture: true, name: true } }
-        );
+        const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/${uri}/metadata`, {
+            policy: { picture: true, name: true },
+        });
         return {
             uri,
             title: res.metadata.name,

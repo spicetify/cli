@@ -1,12 +1,8 @@
 (function SidebarConfig() {
     // STICKY container
     const appItems = document.querySelector(".main-navBar-entryPoints");
-    const playlistItems = document.querySelector(
-        ".main-rootlist-rootlistPlaylistsScrollNode .os-content"
-    );
-    const personalLibrary = document.querySelector(
-        ".main-rootlist-rootlistContent"
-    );
+    const playlistItems = document.querySelector(".main-rootlist-rootlistPlaylistsScrollNode .os-content");
+    const personalLibrary = document.querySelector(".main-rootlist-rootlistContent");
 
     if (!appItems || !playlistItems || !personalLibrary) {
         setTimeout(SidebarConfig, 300);
@@ -67,9 +63,7 @@
                 newButtons[index] = undefined;
             }
         }
-        newButtons
-            .filter((a) => a)
-            .forEach((a) => orderedButtons.push([a, STICKY]));
+        newButtons.filter((a) => a).forEach((a) => orderedButtons.push([a, STICKY]));
         ordered = orderedButtons;
     }
 
@@ -145,10 +139,7 @@
             const newPos = curPos + dir;
             if (newPos < 0 || newPos > ordered.length - 1) return;
 
-            [ordered[curPos], ordered[newPos]] = [
-                ordered[newPos],
-                ordered[curPos],
-            ];
+            [ordered[curPos], ordered[newPos]] = [ordered[newPos], ordered[curPos]];
             appendItems();
         }
 
@@ -166,19 +157,13 @@
             el[0].onmouseover = () => {
                 const [item, status] = el;
                 const index = ordered.findIndex((a) => a === el);
-                if (
-                    index === 0 ||
-                    ordered[index][1] !== ordered[index - 1][1]
-                ) {
+                if (index === 0 || ordered[index][1] !== ordered[index - 1][1]) {
                     up.disabled = true;
                 } else {
                     up.disabled = false;
                     up.onclick = () => onSwap(item, -1);
                 }
-                if (
-                    index === ordered.length - 1 ||
-                    ordered[index][1] !== ordered[index + 1][1]
-                ) {
+                if (index === ordered.length - 1 || ordered[index][1] !== ordered[index + 1][1]) {
                     down.disabled = true;
                 } else {
                     down.disabled = false;

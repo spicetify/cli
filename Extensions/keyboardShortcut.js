@@ -99,21 +99,15 @@
     }
 
     function clickQueueButton() {
-        document
-            .querySelector(".control-button-wrapper .spoticon-queue-16")
-            .click();
+        document.querySelector(".control-button-wrapper .spoticon-queue-16").click();
     }
 
     function clickNavigatingBackButton() {
-        document
-            .querySelector(".main-topBar-historyButtons .main-topBar-back")
-            .click();
+        document.querySelector(".main-topBar-historyButtons .main-topBar-back").click();
     }
 
     function clickNavigatingForwardButton() {
-        document
-            .querySelector(".main-topBar-historyButtons .main-topBar-forward")
-            .click();
+        document.querySelector(".main-topBar-historyButtons .main-topBar-forward").click();
     }
 
     function appScrollDown() {
@@ -145,15 +139,11 @@
      * @param {KeyboardEvent} event
      */
     function openSearchPage(event) {
-        const searchInput = document.querySelector(
-            ".main-topBar-topbarContentWrapper input"
-        );
+        const searchInput = document.querySelector(".main-topBar-topbarContentWrapper input");
         if (searchInput) {
             searchInput.focus();
         } else {
-            const sidebarItem = document.querySelector(
-                `.main-navBar-navBar a[href="/search"]`
-            );
+            const sidebarItem = document.querySelector(`.main-navBar-navBar a[href="/search"]`);
             if (sidebarItem) {
                 sidebarItem.click();
             }
@@ -237,13 +227,7 @@
 })();
 
 function VimBind() {
-    const elementQuery = [
-        "[href]",
-        "button",
-        "td.tl-play",
-        "td.tl-number",
-        "tr.TableRow",
-    ].join(",");
+    const elementQuery = ["[href]", "button", "td.tl-play", "td.tl-number", "tr.TableRow"].join(",");
 
     const keyList = "qwertasdfgzxcvyuiophjklbnm".split("");
 
@@ -297,11 +281,7 @@ function VimBind() {
         let secondKey = 0;
 
         getLinks().forEach((e) => {
-            if (
-                e.style.display === "none" ||
-                e.style.visibility === "hidden" ||
-                e.style.opacity === "0"
-            ) {
+            if (e.style.display === "none" || e.style.visibility === "hidden" || e.style.opacity === "0") {
                 return;
             }
 
@@ -322,9 +302,7 @@ function VimBind() {
                 return;
             }
 
-            vimOverlay.append(
-                createKey(e, keyList[firstKey] + keyList[secondKey], top, left)
-            );
+            vimOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
 
             secondKey++;
             if (secondKey > lastKeyIndex) {
@@ -334,10 +312,7 @@ function VimBind() {
         });
 
         this.isActive = true;
-        setTimeout(
-            () => (mousetrap.stopCallback = orgStopCallback.bind(mousetrap)),
-            100
-        );
+        setTimeout(() => (mousetrap.stopCallback = orgStopCallback.bind(mousetrap)), 100);
     };
 
     /**
@@ -403,9 +378,7 @@ function VimBind() {
             return;
         }
 
-        const findButton =
-            element.querySelector(`button[data-ta-id="play-button"]`) ||
-            element.querySelector(`button[data-button="play"]`);
+        const findButton = element.querySelector(`button[data-ta-id="play-button"]`) || element.querySelector(`button[data-button="play"]`);
         if (findButton) {
             findButton.click();
             return;
@@ -417,11 +390,7 @@ function VimBind() {
         const context = getContextUri();
         if (index >= 0 && context) {
             console.log(index, context);
-            Spicetify.PlaybackControl.playFromResolver(
-                context,
-                { index },
-                () => {}
-            );
+            Spicetify.PlaybackControl.playFromResolver(context, { index }, () => {});
             return;
         }
     }
@@ -455,10 +424,7 @@ function VimBind() {
      * @param {Spicetify.Keyboard.ValidKey} key
      */
     this.setCancelKey = function (key) {
-        mousetrap.bind(
-            Spicetify.Keyboard.KEYS[key],
-            this.deactivate.bind(this)
-        );
+        mousetrap.bind(Spicetify.Keyboard.KEYS[key], this.deactivate.bind(this));
     };
 
     return this;
