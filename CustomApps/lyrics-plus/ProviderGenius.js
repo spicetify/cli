@@ -59,14 +59,14 @@ const ProviderGenius = (function () {
                 persistent: false,
                 onSuccess: resolve,
                 onFailure: reject,
-            })
+            });
         });
     }
 
     async function fetchLyricsVersion(results, index) {
         const result = results[index];
         if (!result) {
-            console.warn(result)
+            console.warn(result);
             return;
         }
 
@@ -81,7 +81,7 @@ const ProviderGenius = (function () {
             return lyrics[1];
         }
 
-        let lyricsSections = body.match(/<div class="Lyrics__Container.+?>.+?<\/div>/sg);
+        let lyricsSections = body.match(/<div class="Lyrics__Container.+?>.+?<\/div>/gs);
         if (lyricsSections) {
             lyrics = "";
             for (const section of lyricsSections) {
@@ -93,7 +93,7 @@ const ProviderGenius = (function () {
             return lyrics;
         }
 
-        lyricsSections = body.match(/<div data-scrolltrigger-pin="true" class="Lyrics__Container.+?>.+?<\/div>/sg);
+        lyricsSections = body.match(/<div data-scrolltrigger-pin="true" class="Lyrics__Container.+?>.+?<\/div>/gs);
         if (lyricsSections) {
             lyrics = "";
             for (const section of lyricsSections) {
@@ -128,11 +128,10 @@ const ProviderGenius = (function () {
 
             const geniusSearch = await CosmosAsync.get(url);
 
-            hits = geniusSearch.response.sections[0].hits
-                .map(item => ({
-                    title: item.result.full_title,
-                    url: item.result.url,
-                }));
+            hits = geniusSearch.response.sections[0].hits.map((item) => ({
+                title: item.result.full_title,
+                url: item.result.url,
+            }));
 
             if (!hits.length) {
                 continue;
@@ -145,9 +144,9 @@ const ProviderGenius = (function () {
         if (!lyrics) {
             return { lyrics: null, versions: [] };
         }
-        
-        return {lyrics, versions: hits};
+
+        return { lyrics, versions: hits };
     }
 
-    return { fetchLyrics, getNote, fetchLyricsVersion }
+    return { fetchLyrics, getNote, fetchLyricsVersion };
 })();
