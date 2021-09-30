@@ -1,26 +1,34 @@
 const ButtonSVG = ({ icon, active = true, onClick }) => {
-    return react.createElement("button", {
-        className: "switch" + (active ? "" : " disabled"),
-        onClick,
-    }, react.createElement("svg", {
-        width: 16,
-        height: 16,
-        viewBox: "0 0 16 16",
-        fill: "currentColor",
-        dangerouslySetInnerHTML: {
-            __html: icon,
-        }
-    }));
+    return react.createElement(
+        "button",
+        {
+            className: "switch" + (active ? "" : " disabled"),
+            onClick,
+        },
+        react.createElement("svg", {
+            width: 16,
+            height: 16,
+            viewBox: "0 0 16 16",
+            fill: "currentColor",
+            dangerouslySetInnerHTML: {
+                __html: icon,
+            },
+        })
+    );
 };
 
 const ButtonText = ({ text, active = true, onClick }) => {
-    return react.createElement("button", {
-        className: "text" + (active ? "" : " disabled"),
-        onClick,
-    }, text);
+    return react.createElement(
+        "button",
+        {
+            className: "text" + (active ? "" : " disabled"),
+            onClick,
+        },
+        text
+    );
 };
 
-const ConfigSlider = ({ name, defaultValue, onChange = () => { } }) => {
+const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
     const [active, setActive] = useState(defaultValue);
 
     const toggleState = useCallback(() => {
@@ -29,66 +37,121 @@ const ConfigSlider = ({ name, defaultValue, onChange = () => { } }) => {
         onChange(state);
     }, [active]);
 
-    return react.createElement("div", {
-        className: "setting-row",
-    }, react.createElement("label", {
-        className: "col description",
-    }, name), react.createElement("div", {
-        className: "col action",
-    }, react.createElement(ButtonSVG, {
-        icon: Spicetify.SVGIcons.check,
-        active,
-        onClick: toggleState,
-    })));
+    return react.createElement(
+        "div",
+        {
+            className: "setting-row",
+        },
+        react.createElement(
+            "label",
+            {
+                className: "col description",
+            },
+            name
+        ),
+        react.createElement(
+            "div",
+            {
+                className: "col action",
+            },
+            react.createElement(ButtonSVG, {
+                icon: Spicetify.SVGIcons.check,
+                active,
+                onClick: toggleState,
+            })
+        )
+    );
 };
 
-const ConfigSelection = ({ name, defaultValue, options, onChange = () => { } }) => {
+const ConfigSelection = ({ name, defaultValue, options, onChange = () => {} }) => {
     const [value, setValue] = useState(defaultValue);
 
-    const setValueCallback = useCallback((event) => {
-        const value = event.target.value;
-        setValue(value);
-        onChange(value);
-    }, [value]);
+    const setValueCallback = useCallback(
+        (event) => {
+            const value = event.target.value;
+            setValue(value);
+            onChange(value);
+        },
+        [value]
+    );
 
-    return react.createElement("div", {
-        className: "setting-row",
-    }, react.createElement("label", {
-        className: "col description",
-    }, name), react.createElement("div", {
-        className: "col action",
-    }, react.createElement("select", {
-        value,
-        onChange: setValueCallback,
-    }, Object.keys(options).map(item => react.createElement("option", {
-        value: item,
-    }, options[item])))));
+    return react.createElement(
+        "div",
+        {
+            className: "setting-row",
+        },
+        react.createElement(
+            "label",
+            {
+                className: "col description",
+            },
+            name
+        ),
+        react.createElement(
+            "div",
+            {
+                className: "col action",
+            },
+            react.createElement(
+                "select",
+                {
+                    value,
+                    onChange: setValueCallback,
+                },
+                Object.keys(options).map((item) =>
+                    react.createElement(
+                        "option",
+                        {
+                            value: item,
+                        },
+                        options[item]
+                    )
+                )
+            )
+        )
+    );
 };
 
-const ConfigInput = ({ name, defaultValue, onChange = () => { } }) => {
+const ConfigInput = ({ name, defaultValue, onChange = () => {} }) => {
     const [value, setValue] = useState(defaultValue);
 
-    const setValueCallback = useCallback((event) => {
-        const value = event.target.value;
-        setValue(value);
-        onChange(value);
-    }, [value]);
+    const setValueCallback = useCallback(
+        (event) => {
+            const value = event.target.value;
+            setValue(value);
+            onChange(value);
+        },
+        [value]
+    );
 
-    return react.createElement("div", {
-        className: "setting-row",
-    }, react.createElement("label", {
-        className: "col description",
-    }, name), react.createElement("div", {
-        className: "col action",
-    }, react.createElement("input", {
-        value,
-        onChange: setValueCallback,
-    })));
+    return react.createElement(
+        "div",
+        {
+            className: "setting-row",
+        },
+        react.createElement(
+            "label",
+            {
+                className: "col description",
+            },
+            name
+        ),
+        react.createElement(
+            "div",
+            {
+                className: "col action",
+            },
+            react.createElement("input", {
+                value,
+                onChange: setValueCallback,
+            })
+        )
+    );
 };
 
 const OptionList = ({ items, onChange }) => {
-    const [ _, setItems ] = useState(items);
-    return items.map(item => {
+    const [_, setItems] = useState(items);
+    return items.map((item) => {
         if (!item.when()) {
             return;
         }
@@ -101,13 +164,16 @@ const OptionList = ({ items, onChange }) => {
                 setItems([...items]);
             },
         });
-    })
+    });
 };
 
 function openConfig() {
-    const configContainer = react.createElement("div", {
-        id: `${APP_NAME}-config-container`,
-    }, react.createElement(OptionList, {
+    const configContainer = react.createElement(
+        "div",
+        {
+            id: `${APP_NAME}-config-container`,
+        },
+        react.createElement(OptionList, {
             items: [
                 {
                     desc: "Time range",
@@ -115,10 +181,10 @@ function openConfig() {
                     defaultValue: CONFIG["range"],
                     type: ConfigSelection,
                     options: {
-                        "30": "30 days",
-                        "60": "60 days",
-                        "90": "90 days",
-                        "120": "120 days",
+                        30: "30 days",
+                        60: "60 days",
+                        90: "90 days",
+                        120: "120 days",
                     },
                     when: () => true,
                 },

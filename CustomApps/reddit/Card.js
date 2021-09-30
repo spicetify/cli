@@ -36,37 +36,52 @@ class Card extends react.Component {
         if (this.uriType === URI.Type.ALBUM || this.uriType === URI.Type.TRACK) {
             subtitle = this.subtitle.map((artist) => {
                 const artistHref = URI.from(artist.uri).toURLPath(true);
-                return react.createElement("a", {
-                    href: artistHref,
-                    onClick: (event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        History.push(artistHref);
+                return react.createElement(
+                    "a",
+                    {
+                        href: artistHref,
+                        onClick: (event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            History.push(artistHref);
+                        },
                     },
-                }, react.createElement("span", null, artist.name));
+                    react.createElement("span", null, artist.name)
+                );
             });
             // Insert commas between elements
-            subtitle = subtitle.flatMap((el, i, arr) => (arr.length - 1) !== i ? [el, ", "] : el);
+            subtitle = subtitle.flatMap((el, i, arr) => (arr.length - 1 !== i ? [el, ", "] : el));
         } else {
-            subtitle = react.createElement("div", {
-                className: `${this.visual.longDescription ? "reddit-longDescription " : ""}main-cardSubHeader-root main-type-mesto reddit-cardSubHeader`,
-                as: "div",
-            }, react.createElement("span", null, this.subtitle))
+            subtitle = react.createElement(
+                "div",
+                {
+                    className: `${
+                        this.visual.longDescription ? "reddit-longDescription " : ""
+                    }main-cardSubHeader-root main-type-mesto reddit-cardSubHeader`,
+                    as: "div",
+                },
+                react.createElement("span", null, this.subtitle)
+            );
         }
-        return react.createElement("div", {
-            className: "reddit-cardSubHeader main-type-mesto",
-        }, subtitle);
+        return react.createElement(
+            "div",
+            {
+                className: "reddit-cardSubHeader main-type-mesto",
+            },
+            subtitle
+        );
     }
 
     getFollowers() {
-        if (
-            this.visual.followers &&
-            (this.uriType === URI.Type.PLAYLIST || this.uriType === URI.Type.PLAYLIST_V2)
-        ) {
-            return react.createElement("div", {
-                className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
-                as: "div",
-            }, react.createElement("span", null, Spicetify.Locale.get("user.followers", this.followersCount)))
+        if (this.visual.followers && (this.uriType === URI.Type.PLAYLIST || this.uriType === URI.Type.PLAYLIST_V2)) {
+            return react.createElement(
+                "div",
+                {
+                    className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
+                    as: "div",
+                },
+                react.createElement("span", null, Spicetify.Locale.get("user.followers", this.followersCount))
+            );
         }
     }
 
@@ -75,60 +90,115 @@ class Card extends react.Component {
         this.visual.type && detail.push(this.type);
         this.visual.upvotes && detail.push(`▲ ${this.upvotes}`);
 
-        return react.createElement(Spicetify.ReactComponent.RightClickMenu || "div", {
-            menu: react.createElement(this.menuType, { uri: this.uri, }),
-        }, react.createElement("div", {
-            className: "main-card-card",
-            onClick: (event) => {
-                History.push(this.href);
-                event.preventDefault();
+        return react.createElement(
+            Spicetify.ReactComponent.RightClickMenu || "div",
+            {
+                menu: react.createElement(this.menuType, { uri: this.uri }),
             },
-        }, react.createElement("div", {
-            className: "main-card-draggable",
-            draggable: "true"
-        }, react.createElement("div", {
-            className: "main-card-imageContainer"
-        }, react.createElement("div", {
-            className: "main-cardImage-imageWrapper"
-        }, react.createElement("div", {
-        }, react.createElement("img", {
-            "aria-hidden": "false",
-            draggable: "false",
-            loading: "lazy",
-            src: this.imageURL,
-            className: "main-image-image main-cardImage-image"
-        }))), react.createElement("div", {
-            className: "main-card-PlayButtonContainer"
-        }, react.createElement("button", {
-            className: "main-playButton-PlayButton main-playButton-primary",
-            "aria-label": Spicetify.Locale.get("play"),
-            style: { "--size": "40px" },
-            onClick: this.play.bind(this),
-        }, react.createElement("svg", {
-            height: "16",
-            role: "img",
-            width: "16",
-            viewBox: "0 0 24 24",
-            "aria-hidden": "true"
-        }, react.createElement("polygon", {
-            points: "21.57 12 5.98 3 5.98 21 21.57 12",
-            fill: "currentColor"
-        }))))), react.createElement("div", {
-            className: "main-card-cardMetadata"
-        }, react.createElement("a", {
-            draggable: "false",
-            title: this.title,
-            className: "main-cardHeader-link",
-            dir: "auto",
-            href: this.href
-        }, react.createElement("div", {
-            className: "main-cardHeader-text main-type-balladBold",
-            as: "div"
-        }, this.title)), detail.length > 0 && react.createElement("div", {
-            className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
-            as: "div",
-        }, react.createElement("span", null, detail.join(" ‒ ")),
-        ), this.getFollowers(), this.getSubtitle(),
-        ))));
+            react.createElement(
+                "div",
+                {
+                    className: "main-card-card",
+                    onClick: (event) => {
+                        History.push(this.href);
+                        event.preventDefault();
+                    },
+                },
+                react.createElement(
+                    "div",
+                    {
+                        className: "main-card-draggable",
+                        draggable: "true",
+                    },
+                    react.createElement(
+                        "div",
+                        {
+                            className: "main-card-imageContainer",
+                        },
+                        react.createElement(
+                            "div",
+                            {
+                                className: "main-cardImage-imageWrapper",
+                            },
+                            react.createElement(
+                                "div",
+                                {},
+                                react.createElement("img", {
+                                    "aria-hidden": "false",
+                                    draggable: "false",
+                                    loading: "lazy",
+                                    src: this.imageURL,
+                                    className: "main-image-image main-cardImage-image",
+                                })
+                            )
+                        ),
+                        react.createElement(
+                            "div",
+                            {
+                                className: "main-card-PlayButtonContainer",
+                            },
+                            react.createElement(
+                                "button",
+                                {
+                                    className: "main-playButton-PlayButton main-playButton-primary",
+                                    "aria-label": Spicetify.Locale.get("play"),
+                                    style: { "--size": "40px" },
+                                    onClick: this.play.bind(this),
+                                },
+                                react.createElement(
+                                    "svg",
+                                    {
+                                        height: "16",
+                                        role: "img",
+                                        width: "16",
+                                        viewBox: "0 0 24 24",
+                                        "aria-hidden": "true",
+                                    },
+                                    react.createElement("polygon", {
+                                        points: "21.57 12 5.98 3 5.98 21 21.57 12",
+                                        fill: "currentColor",
+                                    })
+                                )
+                            )
+                        )
+                    ),
+                    react.createElement(
+                        "div",
+                        {
+                            className: "main-card-cardMetadata",
+                        },
+                        react.createElement(
+                            "a",
+                            {
+                                draggable: "false",
+                                title: this.title,
+                                className: "main-cardHeader-link",
+                                dir: "auto",
+                                href: this.href,
+                            },
+                            react.createElement(
+                                "div",
+                                {
+                                    className: "main-cardHeader-text main-type-balladBold",
+                                    as: "div",
+                                },
+                                this.title
+                            )
+                        ),
+                        detail.length > 0 &&
+                            react.createElement(
+                                "div",
+                                {
+                                    className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
+                                    as: "div",
+                                },
+                                react.createElement("span", null, detail.join(" ‒ "))
+                            ),
+                        this.getFollowers(),
+                        this.getSubtitle()
+                    )
+                )
+            )
+        );
     }
 }
