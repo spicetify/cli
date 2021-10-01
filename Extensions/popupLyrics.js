@@ -128,8 +128,9 @@ function PopupLyrics() {
                 body = body.message.body.macro_calls;
 
                 if (body["matcher.track.get"].message.header.status_code !== 200) {
+                    let head = body["matcher.track.get"].message.header;
                     return {
-                        error: `Requested error: ${body["matcher.track.get"].message.header.mode}`,
+                        error: `Requested error: ${head.status_code}: ${head.hint} - ${head.mode}`,
                     };
                 }
 

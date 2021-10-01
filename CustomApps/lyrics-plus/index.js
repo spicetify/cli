@@ -216,12 +216,13 @@ class LyricsContainer extends react.Component {
 
     componentDidMount() {
         this.onQueueChange = async (queue) => {
+            queue = queue.data;
             this.state.explicitMode = this.state.lockMode;
-            this.currentTrackUri = queue.track.uri;
-            const nextTrack = queue.next_tracks[0];
+            this.currentTrackUri = queue.current.uri;
+            const nextTrack = queue.nextUp[0];
             const nextInfo = this.infoFromTrack(nextTrack);
             if (!nextInfo) {
-                this.fetchLyrics(queue.track, this.state.explicitMode);
+                this.fetchLyrics(queue.current, this.state.explicitMode);
                 return;
             }
             // Debounce queue change emitter
@@ -229,7 +230,7 @@ class LyricsContainer extends react.Component {
                 return;
             }
             this.nextTrackUri = nextInfo.uri;
-            await this.fetchLyrics(queue.track, this.state.explicitMode);
+            await this.fetchLyrics(queue.current, this.state.explicitMode);
             this.viewPort.scrollTo(0, 0);
             // Fetch next track
             this.tryServices(nextInfo, this.state.explicitMode);

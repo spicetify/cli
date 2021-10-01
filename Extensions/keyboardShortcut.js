@@ -383,14 +383,17 @@ function VimBind() {
             findButton.click();
             return;
         }
-
+        alert("Let me know where you found this button, please. I can't click this for you without that information.");
+        return;
         // TableCell case where play button is hidden
         // Index number is in first column
         const index = parseInt(element.firstChild.innerText) - 1;
         const context = getContextUri();
         if (index >= 0 && context) {
-            console.log(index, context);
-            Spicetify.PlaybackControl.playFromResolver(context, { index }, () => {});
+            console.log(index);
+            console.log(context);
+
+            //Spicetify.PlaybackControl.playFromResolver(context, { index }, () => {});
             return;
         }
     }

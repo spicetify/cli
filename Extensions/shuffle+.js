@@ -7,7 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function ShufflePlus() {
-    if (!Spicetify.CosmosAsync || !Spicetify.Player.origin2 || !Spicetify.Platform) {
+    if (!Spicetify.CosmosAsync || !Spicetify.Player.origin || !Spicetify.Platform) {
         setTimeout(ShufflePlus, 1000);
         return;
     }
@@ -18,7 +18,7 @@
         menuItem.isEnabled = playDiscography;
     });
 
-    let playUriOGFunc = Spicetify.Player.origin2.playUri.bind(Spicetify.Player.origin2);
+    let playUriOGFunc = Spicetify.Player.origin.play.bind(Spicetify.Player.origin);
     let playerPlayOGFunc = Spicetify.Platform.PlayerAPI.play.bind(Spicetify.Platform.PlayerAPI);
     let isInjected = localStorage.getItem("shuffleplus:on") === "true";
     injectFunctions(isInjected);
@@ -34,9 +34,9 @@
 
     function injectFunctions(bool) {
         if (bool) {
-            Spicetify.Player.origin2.playUri = (uri, options) => {
+            Spicetify.Player.origin.play = (uri, context, options) => {
                 if (options?.trackUid) {
-                    playUriOGFunc(uri, options);
+                    playUriOGFunc(uri, context, options);
                     return;
                 }
                 fetchAndPlay(uri);
@@ -56,7 +56,7 @@
             };
         } else {
             // Revert
-            Spicetify.Player.origin2.playUri = playUriOGFunc;
+            Spicetify.Player.origin.play = playUriOGFunc;
             Spicetify.Platform.PlayerAPI.play = playerPlayOGFunc;
         }
     }
@@ -330,7 +330,7 @@
             });
         }
         await Spicetify.CosmosAsync.put("sp://player/v2/main/queue", {
-            revision: Spicetify.Queue?.revision,
+            queue_revision: Spicetify.Queue?.revision,
             next_tracks: list.map((uri) => ({
                 uri,
                 provider: context ? "context" : "queue",

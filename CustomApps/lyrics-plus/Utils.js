@@ -1,10 +1,10 @@
 class Utils {
     static addQueueListener(callback) {
-        Spicetify.Player.origin2.state.addQueueListener(callback);
+        Spicetify.Player.origin._events.addListener("queue_update", callback);
     }
 
     static removeQueueListener(callback) {
-        Spicetify.Player.origin2.state.queueListeners = Spicetify.Player.origin2.state.queueListeners.filter((v) => v != callback);
+        Spicetify.Player.origin._events.removeListener("queue_update", callback);
     }
 
     static convertIntToRGB(colorInt, div = 1) {
