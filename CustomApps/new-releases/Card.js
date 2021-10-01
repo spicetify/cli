@@ -15,8 +15,7 @@ class Card extends react.Component {
     }
 
     play(event) {
-        const api = Spicetify.Player.origin2 || Spicetify.PlaybackControl.playUri;
-        api.playUri(this.uri);
+        Spicetify.Player.playUri(this.uri, this.context);
         event.stopPropagation();
     }
 

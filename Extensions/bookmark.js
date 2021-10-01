@@ -7,7 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function Bookmark() {
-    const { CosmosAsync, Player, LocalStorage, PlaybackControl, ContextMenu, URI } = Spicetify;
+    const { CosmosAsync, Player, LocalStorage, ContextMenu, URI } = Spicetify;
     if (!(CosmosAsync && URI)) {
         setTimeout(Bookmark, 300);
         return;
@@ -433,23 +433,19 @@
     }
 
     function onPlayClick(info) {
-        console.log(info);
+        let uri = info.uri;
         const options = {};
         if (info.time) {
-            options.offset = info.time;
+            options.seekTo = info.time;
         }
-
         if (info?.context?.startsWith("/")) {
-            const uri = URI.fromString(info.context).toURI();
-
-            const trackUid = info.context.split("?uid=", 2)[1];
-            options.trackUid = trackUid;
-
-            Spicetify.PlaybackControl.playContext({ uri, url: "context://" + uri }, options);
-            return;
+            uri = URI.fromString(info.context).toURI();
+            options.skipTo = {};
+            options.skipTo.uid = info.context.split("?uid=", 2)[1];
+            options.skipTo.uri = info.uri;
         }
 
-        Spicetify.PlaybackControl.playUri(info.uri, options);
+        Spicetify.Player.playUri(uri, {}, options);
     }
 
     const fetchAlbum = async (uri) => {

@@ -265,11 +265,6 @@ func exposeAPIs_main(input string) string {
 		`this\._cosmos=(\w+),this\._defaultFeatureVersion=\w+`,
 		`(globalThis.Spicetify.Player.origin=this),${0}`)
 
-	utils.Replace(
-		&input,
-		`,this.player=\w+,`,
-		`,(globalThis.Spicetify.Player.origin2=this)${0}`)
-
 	// Show Notification
 	utils.Replace(
 		&input,
@@ -300,12 +295,12 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return{version:\w+,(\w+:[\w!\,\(\)\.]+,)+((get\w+:\(\)=>\w+,?)+)}`)
+	reAllAPIPromises := regexp.MustCompile(`return ?{version:\w+,(?:\w+:[\w!,().]+,)+(?:get\w+:(?:async)?\(\)=>[()\w=>{} ]+,)?((?:get\w+:\(\)=>(?:[\w$]+|[(){}]+),?)+)}`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
-		splitted := strings.Split(found[2], ",")
+		splitted := strings.Split(found[1], ",")
 		if len(splitted) > 15 { // Actual number is about 34
-			matchMap := regexp.MustCompile(`get(\w+):\(\)=>(\w+),?`)
+			matchMap := regexp.MustCompile(`get(\w+):\(\)=>([\w$]+|[(){}]+),?`)
 			code := "Spicetify.Platform={};"
 			for _, apiFunc := range splitted {
 				matches := matchMap.FindStringSubmatch(apiFunc)
@@ -377,6 +372,12 @@ Spicetify.React.useEffect(() => {
 		&input,
 		`this\._dictionary=\{\},`,
 		`${0}Spicetify.Locale=this,`)
+
+	// Prevent breaking popupLyrics
+	utils.Replace(
+		&input,
+		`document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null`,
+		``)
 
 	return input
 }
