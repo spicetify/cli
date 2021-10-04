@@ -1,5 +1,5 @@
 const Providers = {
-    spotify: async(info) => {
+    spotify: async (info) => {
         const result = {
             uri: info.uri,
             karaoke: null,
@@ -19,27 +19,20 @@ const Providers = {
         }
 
         const lines = body.lines;
-        if (
-            !lines ||
-            !lines.length
-        ) {
+        if (!lines || !lines.length) {
             return { error: "No lyric", uri: info.uri };
         }
 
         if (typeof lines[0].time === "number") {
-            result.synced = lines
-                .map((line) => ({
-                    startTime: line.time,
-                    text: line.words
-                        .map(b => b.string)
-                        .join(" "),
-                }));
+            result.synced = lines.map((line) => ({
+                startTime: line.time,
+                text: line.words.map((b) => b.string).join(" "),
+            }));
             result.unsynced = result.synced;
         } else {
-            result.unsynced = lines
-                .map((line) => ({
-                    text: line.words.map(b => b.string).join(" "),
-                }));;
+            result.unsynced = lines.map((line) => ({
+                text: line.words.map((b) => b.string).join(" "),
+            }));
         }
 
         result.provider = body.provider;
@@ -130,6 +123,6 @@ const Providers = {
             error: null,
             versions,
             versionIndex: 0,
-        }
+        };
     },
 };

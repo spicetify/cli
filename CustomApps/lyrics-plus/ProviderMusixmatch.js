@@ -9,7 +9,7 @@ const ProviderMusixmatch = (function () {
 
         const durr = info.duration / 1000;
         const tokens = CONFIG.providers.musixmatch.token.split("|");
-        const usertoken = tokens[Math.floor(Math.random() * tokens.length)]
+        const usertoken = tokens[Math.floor(Math.random() * tokens.length)];
 
         const params = {
             q_album: info.album,
@@ -22,9 +22,11 @@ const ProviderMusixmatch = (function () {
             usertoken,
         };
 
-        const finalURL = baseURL + Object.keys(params)
-            .map(key => key + "=" + encodeURIComponent(params[key]))
-            .join("&");
+        const finalURL =
+            baseURL +
+            Object.keys(params)
+                .map((key) => key + "=" + encodeURIComponent(params[key]))
+                .join("&");
 
         let body = await CosmosAsync.get(finalURL, null, headers);
 
@@ -54,11 +56,10 @@ const ProviderMusixmatch = (function () {
                 return null;
             }
 
-            return JSON.parse(subtitle.subtitle_body)
-                .map(line => ({
-                    text: line.text || "⋯",
-                    startTime: line.time.total * 1000,
-                }));
+            return JSON.parse(subtitle.subtitle_body).map((line) => ({
+                text: line.text || "⋯",
+                startTime: line.time.total * 1000,
+            }));
         }
 
         return null;
@@ -77,7 +78,7 @@ const ProviderMusixmatch = (function () {
             if (!lyrics) {
                 return null;
             }
-            return lyrics.split("\n").map(text => ({ text }));
+            return lyrics.split("\n").map((text) => ({ text }));
         }
 
         return null;

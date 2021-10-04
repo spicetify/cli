@@ -69,7 +69,7 @@ class Grid extends react.Component {
             tabs: CONFIG.services,
             rest: true,
             endOfList: endOfList,
-        }
+        };
     }
 
     newRequest(amount) {
@@ -114,7 +114,7 @@ class Grid extends react.Component {
     }
 
     updatePostsVisual() {
-        cardList = cardList.map(card => {
+        cardList = cardList.map((card) => {
             return react.createElement(Card, card.props);
         });
         this.setState({ cards: [...cardList] });
@@ -174,17 +174,12 @@ class Grid extends react.Component {
         quantity += cardList.length;
 
         requestAfter = await this.loadPage(queue);
-        while (
-            requestAfter &&
-            requestAfter !== -1 &&
-            cardList.length < quantity &&
-            !this.endOfList
-        ) {
+        while (requestAfter && requestAfter !== -1 && cardList.length < quantity && !this.endOfList) {
             requestAfter = await this.loadPage(queue);
         }
 
         if (requestAfter === -1) {
-            requestQueue = requestQueue.filter(a => a !== queue);
+            requestQueue = requestQueue.filter((a) => a !== queue);
             return;
         }
 
@@ -210,7 +205,8 @@ class Grid extends react.Component {
         this.checkScroll = this.isScrolledBottom.bind(this);
         viewPort.addEventListener("scroll", this.checkScroll);
 
-        if (cardList.length) { // Already loaded
+        if (cardList.length) {
+            // Already loaded
             if (lastScroll > 0) {
                 viewPort.scrollTo(0, lastScroll);
             }
@@ -230,49 +226,68 @@ class Grid extends react.Component {
 
     isScrolledBottom(event) {
         const viewPort = event.target;
-        if ((viewPort.scrollTop + viewPort.clientHeight) >= viewPort.scrollHeight) {
+        if (viewPort.scrollTop + viewPort.clientHeight >= viewPort.scrollHeight) {
             // At bottom, load more posts
             this.loadMore();
         }
     }
 
     render() {
-        return react.createElement("section", {
-            className: "contentSpacing"
-        }, react.createElement("div", {
-            className: "reddit-header"
-        }, react.createElement("h1", null, this.props.title), 
-        react.createElement(SortBox, {
-            onChange: this.updateSort.bind(this),
-            onServicesChange: this.updateTabs.bind(this),
-        })), react.createElement("div", {
-            id: "reddit-grid",
-            className: "main-gridContainer-gridContainer",
-            style: {
-                "--minimumColumnWidth": "180px"
+        return react.createElement(
+            "section",
+            {
+                className: "contentSpacing",
             },
-        }, [...cardList]), react.createElement("footer", {
-            style: {
-                margin: "auto",
-                textAlign: "center",
-            }
-        }, !this.state.endOfList && (this.state.rest ? react.createElement(LoadMoreIcon, { onClick: this.loadMore.bind(this) }) : react.createElement(LoadingIcon))
-        ), react.createElement(TopBarContent, {
-            switchCallback: this.switchTo.bind(this),
-            links: CONFIG.services,
-            activeLink: CONFIG.lastService,
-        }));
+            react.createElement(
+                "div",
+                {
+                    className: "reddit-header",
+                },
+                react.createElement("h1", null, this.props.title),
+                react.createElement(SortBox, {
+                    onChange: this.updateSort.bind(this),
+                    onServicesChange: this.updateTabs.bind(this),
+                })
+            ),
+            react.createElement(
+                "div",
+                {
+                    id: "reddit-grid",
+                    className: "main-gridContainer-gridContainer",
+                    style: {
+                        "--minimumColumnWidth": "180px",
+                    },
+                },
+                [...cardList]
+            ),
+            react.createElement(
+                "footer",
+                {
+                    style: {
+                        margin: "auto",
+                        textAlign: "center",
+                    },
+                },
+                !this.state.endOfList &&
+                    (this.state.rest ? react.createElement(LoadMoreIcon, { onClick: this.loadMore.bind(this) }) : react.createElement(LoadingIcon))
+            ),
+            react.createElement(TopBarContent, {
+                switchCallback: this.switchTo.bind(this),
+                links: CONFIG.services,
+                activeLink: CONFIG.lastService,
+            })
+        );
     }
 }
 
-async function getSubreddit(after = '') {
+async function getSubreddit(after = "") {
     // www is needed or it will block with "cross-origin" error.
-    var url = `https://www.reddit.com/r/${CONFIG.lastService}/${sortConfig.by}.json?limit=100&count=10&raw_json=1`
+    var url = `https://www.reddit.com/r/${CONFIG.lastService}/${sortConfig.by}.json?limit=100&count=10&raw_json=1`;
     if (after) {
-        url += `&after=${after}`
+        url += `&after=${after}`;
     }
     if (sortConfig.by.match(/top|controversial/) && sortConfig.time) {
-        url += `&t=${sortConfig.time}`
+        url += `&t=${sortConfig.time}`;
     }
 
     return await Spicetify.CosmosAsync.get(url);
@@ -280,19 +295,16 @@ async function getSubreddit(after = '') {
 
 async function fetchPlaylist(post) {
     try {
-        const res = await Spicetify.CosmosAsync.get(
-            `sp://core-playlist/v1/playlist/${post.uri}/metadata`,
-            {
-                policy: {
-                    name: true,
-                    picture: true,
-                    followers: true,
-                }
-            }
-        )
+        const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/${post.uri}/metadata`, {
+            policy: {
+                name: true,
+                picture: true,
+                followers: true,
+            },
+        });
 
         const { metadata } = res;
-        return ({
+        return {
             type: typesLocale.playlist,
             uri: post.uri,
             title: metadata.name,
@@ -300,7 +312,7 @@ async function fetchPlaylist(post) {
             imageURL: "https://i.scdn.co/image/" + metadata.picture.split(":")[2],
             upvotes: post.upvotes,
             followersCount: metadata.followers,
-        });
+        };
     } catch {
         return null;
     }
@@ -309,15 +321,15 @@ async function fetchPlaylist(post) {
 async function fetchAlbum(post) {
     const arg = post.uri.split(":")[2];
     try {
-        const metadata = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${arg}/desktop`)
-        return ({
+        const metadata = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${arg}/desktop`);
+        return {
             type: typesLocale.album,
             uri: post.uri,
             title: metadata.name,
             subtitle: metadata.artists,
             imageURL: metadata.cover.uri,
             upvotes: post.upvotes,
-        });
+        };
     } catch {
         return null;
     }
@@ -326,15 +338,15 @@ async function fetchAlbum(post) {
 async function fetchTrack(post) {
     const arg = post.uri.split(":")[2];
     try {
-        const metadata = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${arg}`)
-        return ({
+        const metadata = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/tracks/${arg}`);
+        return {
             type: typesLocale.song,
             uri: post.uri,
             title: metadata.name,
             subtitle: metadata.artists,
             imageURL: metadata.album.images[0].url,
             upvotes: post.upvotes,
-        });
+        };
     } catch {
         return null;
     }
@@ -342,20 +354,15 @@ async function fetchTrack(post) {
 
 function postMapper(posts) {
     var mappedPosts = [];
-    posts.forEach(post => {
+    posts.forEach((post) => {
         var uri = URI.from(post.data.url);
-        if (uri && (
-            uri.type == "playlist" ||
-            uri.type == "playlist-v2" ||
-            uri.type == "track" ||
-            uri.type == "album"
-        )) {
+        if (uri && (uri.type == "playlist" || uri.type == "playlist-v2" || uri.type == "track" || uri.type == "album")) {
             mappedPosts.push({
                 uri: uri.toURI(),
                 type: uri.type,
                 title: post.data.title,
-                upvotes: post.data.ups
-            })
+                upvotes: post.data.ups,
+            });
         }
     });
     return mappedPosts;

@@ -1,11 +1,10 @@
 class Utils {
     static addQueueListener(callback) {
-        Spicetify.Player.origin2.state.addQueueListener(callback);
+        Spicetify.Player.origin._events.addListener("queue_update", callback);
     }
 
     static removeQueueListener(callback) {
-        Spicetify.Player.origin2.state.queueListeners =
-          Spicetify.Player.origin2.state.queueListeners.filter(v => v != callback);
+        Spicetify.Player.origin._events.removeListener("queue_update", callback);
     }
 
     static convertIntToRGB(colorInt, div = 1) {
@@ -14,45 +13,42 @@ class Utils {
             g: Math.round(((colorInt >> 8) & 0xff) / div),
             b: Math.round((colorInt & 0xff) / div),
         };
-        return `rgb(${rgb.r},${rgb.g},${rgb.b})`
+        return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
     }
 
     static normalize(s, emptySymbol = true) {
         const result = s
-            .replace(/（/g, '(')
-            .replace(/）/g, ')')
-            .replace(/【/g, '[')
-            .replace(/】/g, ']')
-            .replace(/。/g, '. ')
-            .replace(/；/g, '; ')
-            .replace(/：/g, ': ')
-            .replace(/？/g, '? ')
-            .replace(/！/g, '! ')
-            .replace(/、|，/g, ', ')
+            .replace(/（/g, "(")
+            .replace(/）/g, ")")
+            .replace(/【/g, "[")
+            .replace(/】/g, "]")
+            .replace(/。/g, ". ")
+            .replace(/；/g, "; ")
+            .replace(/：/g, ": ")
+            .replace(/？/g, "? ")
+            .replace(/！/g, "! ")
+            .replace(/、|，/g, ", ")
             .replace(/‘|’|′|＇/g, "'")
             .replace(/“|”/g, '"')
-            .replace(/〜/g, '~')
-            .replace(/·|・/g, '•');
+            .replace(/〜/g, "~")
+            .replace(/·|・/g, "•");
         if (emptySymbol) {
-            result.replace(/-/g, ' ').replace(/\//g, ' ');
+            result.replace(/-/g, " ").replace(/\//g, " ");
         }
-        return result.replace(/\s+/g, ' ').trim();
+        return result.replace(/\s+/g, " ").trim();
     }
 
     static removeSongFeat(s) {
         return (
             s
-            .replace(/-\s+(feat|with).*/i, '')
-            .replace(/(\(|\[)(feat|with)\.?\s+.*(\)|\])$/i, '')
-            .trim() || s
+                .replace(/-\s+(feat|with).*/i, "")
+                .replace(/(\(|\[)(feat|with)\.?\s+.*(\)|\])$/i, "")
+                .trim() || s
         );
     }
 
     static removeExtraInfo(s) {
-        return (
-            s
-            .replace(/\s-\s.*/, "")
-        )
+        return s.replace(/\s-\s.*/, "");
     }
 
     static capitalize(s) {

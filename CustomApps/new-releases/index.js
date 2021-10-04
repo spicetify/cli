@@ -52,7 +52,7 @@ let limitInMs = CONFIG.range * DAY_DIVIDER;
 const dateFormat = {
     year: "numeric",
     month: "short",
-    day: "2-digit"
+    day: "2-digit",
 };
 const relativeDateFormat = {
     numeric: "auto",
@@ -66,21 +66,31 @@ class Grid extends react.Component {
         this.state = {
             cards: [],
             rest: true,
-        }
+        };
     }
 
     updatePostsVisual() {
         gridList = [];
         for (const date of dateList) {
-            gridList.push(react.createElement("div", {
-                className: "new-releases-header"
-            }, react.createElement("h2", null, date)),
-            react.createElement("div", {
-                className: "main-gridContainer-gridContainer",
-                style: {
-                    "--minimumColumnWidth": "180px"
-                },
-            }, separatedByDate[date].map(card => react.createElement(Card, card.props))));
+            gridList.push(
+                react.createElement(
+                    "div",
+                    {
+                        className: "new-releases-header",
+                    },
+                    react.createElement("h2", null, date)
+                ),
+                react.createElement(
+                    "div",
+                    {
+                        className: "main-gridContainer-gridContainer",
+                        style: {
+                            "--minimumColumnWidth": "180px",
+                        },
+                    },
+                    separatedByDate[date].map((card) => react.createElement(Card, card.props))
+                )
+            );
         }
         this.setState({ cards: [...gridList] });
     }
@@ -98,20 +108,20 @@ class Grid extends react.Component {
         let items = [];
         if (CONFIG.music) {
             let tracks = await fetchTracks();
-            items.push(...(tracks.flat()));
+            items.push(...tracks.flat());
         }
         if (CONFIG.podcast) {
             let episodes = await fetchPodcasts();
             items.push(...episodes);
         }
 
-        items = items.filter(a => a).sort((a, b) => b.time - a.time);
+        items = items.filter((a) => a).sort((a, b) => b.time - a.time);
 
         let timeFormat;
         if (CONFIG.relative) {
             timeFormat = new Intl.RelativeTimeFormat(CONFIG.locale, relativeDateFormat);
         } else {
-            timeFormat = new Intl.DateTimeFormat(CONFIG.locale, dateFormat)
+            timeFormat = new Intl.DateTimeFormat(CONFIG.locale, dateFormat);
         }
 
         for (const track of items) {
@@ -131,15 +141,25 @@ class Grid extends react.Component {
         }
 
         for (const date of dateList) {
-            gridList.push(react.createElement("div", {
-                className: "new-releases-header"
-            }, react.createElement("h2", null, date)),
-            react.createElement("div", {
-                className: "main-gridContainer-gridContainer",
-                style: {
-                    "--minimumColumnWidth": "180px"
-                },
-            }, separatedByDate[date]));
+            gridList.push(
+                react.createElement(
+                    "div",
+                    {
+                        className: "new-releases-header",
+                    },
+                    react.createElement("h2", null, date)
+                ),
+                react.createElement(
+                    "div",
+                    {
+                        className: "main-gridContainer-gridContainer",
+                        style: {
+                            "--minimumColumnWidth": "180px",
+                        },
+                    },
+                    separatedByDate[date]
+                )
+            );
         }
 
         this.setState({ rest: true });
@@ -153,7 +173,8 @@ class Grid extends react.Component {
 
         const viewPort = document.querySelector("main .os-viewport");
 
-        if (gridList.length) { // Already loaded
+        if (gridList.length) {
+            // Already loaded
             if (lastScroll > 0) {
                 viewPort.scrollTo(0, lastScroll);
             }
@@ -170,26 +191,37 @@ class Grid extends react.Component {
     }
 
     render() {
-        return react.createElement("section", {
-            className: "contentSpacing"
-        },  react.createElement("div", {
-            className: "new-releases-header",
-        }, react.createElement("h1", null, Spicetify.Locale.get("new_releases")),
-        react.createElement("div", {
-            className: "new-releases-controls-container"
-        }, react.createElement(ButtonText, {
-            text: Spicetify.Locale.get("playlist.extender.refresh"),
-            onClick: this.reload.bind(this),
-        }))),
-        this.state.rest ? gridList : LoadingIcon);
+        return react.createElement(
+            "section",
+            {
+                className: "contentSpacing",
+            },
+            react.createElement(
+                "div",
+                {
+                    className: "new-releases-header",
+                },
+                react.createElement("h1", null, Spicetify.Locale.get("new_releases")),
+                react.createElement(
+                    "div",
+                    {
+                        className: "new-releases-controls-container",
+                    },
+                    react.createElement(ButtonText, {
+                        text: Spicetify.Locale.get("playlist.extender.refresh"),
+                        onClick: this.reload.bind(this),
+                    })
+                )
+            ),
+            this.state.rest ? gridList : LoadingIcon
+        );
     }
 }
 
 async function getArtistList() {
-    const body = await CosmosAsync.get(
-        "sp://core-collection/unstable/@/list/artists/all?responseFormat=protobufJson",
-        { policy: { list: { link: true, name: true } } }
-    );
+    const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/artists/all?responseFormat=protobufJson", {
+        policy: { list: { link: true, name: true } },
+    });
     return body.item;
 }
 
@@ -203,7 +235,7 @@ async function getArtistEverything(artist) {
         [CONFIG["appears-on"], releases?.appears_on?.releases, Spicetify.Locale.get("artist.appears-on")],
         [CONFIG.compilations, releases?.compilations?.releases, Spicetify.Locale.get("compilation")],
         [CONFIG["single-ep"], releases?.singles?.releases, Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")],
-    ]
+    ];
     for (const type of types) {
         if (type[0] && type[1]) {
             for (const item of type[1]) {
@@ -223,17 +255,16 @@ async function getPodcastList() {
 }
 
 async function getPodcastRelease(uri) {
-    const body = await CosmosAsync.get(
-        `sp://core-show/unstable/show/${uri}?responseFormat=protobufJson`,
-        { policy: { list: { link: true, name: true, publishDate: true } } }
-    );
+    const body = await CosmosAsync.get(`sp://core-show/unstable/show/${uri}?responseFormat=protobufJson`, {
+        policy: { list: { link: true, name: true, publishDate: true } },
+    });
     return body.items;
 }
 
 function metaFromTrack(artist, track) {
-    const time = new Date(track.year, track.month - 1, track.day)
-    if ((today - time.getTime()) < limitInMs) {
-        return ({
+    const time = new Date(track.year, track.month - 1, track.day);
+    if (today - time.getTime() < limitInMs) {
+        return {
             uri: track.uri,
             title: track.name,
             artist: {
@@ -243,21 +274,21 @@ function metaFromTrack(artist, track) {
             imageURL: track.cover.uri,
             time,
             trackCount: track.track_count,
-        })
+        };
     }
     return null;
 }
 
 async function fetchTracks() {
-    let artistList = await getArtistList()
+    let artistList = await getArtistList();
 
     const requests = artistList.map(async (obj) => {
         const artist = obj.artistMetadata;
 
         return await getArtistEverything(artist);
-    })
+    });
 
-    return await Promise.all(requests)
+    return await Promise.all(requests);
 }
 
 async function fetchPodcasts() {
@@ -273,11 +304,11 @@ async function fetchPodcasts() {
         for (const track of tracks) {
             const time = new Date(track.episodeMetadata.publishDate * 1000);
 
-            if ((today - time.getTime()) > limitInMs) {
+            if (today - time.getTime() > limitInMs) {
                 break;
             }
 
-            items.push(({
+            items.push({
                 uri: track.episodeMetadata.link,
                 title: track.episodeMetadata.name,
                 artist: {
@@ -287,7 +318,7 @@ async function fetchPodcasts() {
                 imageURL: podcast.covers.standardLink,
                 time,
                 type: itemTypeStr,
-            }));
+            });
         }
     }
 

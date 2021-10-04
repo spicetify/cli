@@ -214,11 +214,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 
     const container = document.createElement("div");
     container.id = "full-app-display";
-    container.classList.add(
-        "Video",
-        "VideoPlayer--fullscreen",
-        "VideoPlayer--landscape"
-    );
+    container.classList.add("Video", "VideoPlayer--fullscreen", "VideoPlayer--landscape");
 
     let cover, back, title, artist, album, prog, elaps, durr, play;
     const nextTrackImg = new Image();
@@ -228,10 +224,7 @@ body.video-full-screen.video-full-screen--hide-ui {
         Spicetify.Player.removeEventListener("onprogress", updateProgress);
         Spicetify.Player.removeEventListener("onplaypause", updateControl);
 
-        style.innerHTML =
-            styleBase +
-            styleChoices[CONFIG.vertical ? 1 : 0] +
-            iconStyleChoices[CONFIG.icons ? 1 : 0];
+        style.innerHTML = styleBase + styleChoices[CONFIG.vertical ? 1 : 0] + iconStyleChoices[CONFIG.icons ? 1 : 0];
 
         container.innerHTML = `
 <canvas id="fad-background"></canvas>
@@ -260,9 +253,7 @@ body.video-full-screen.video-full-screen--hide-ui {
         </div>`
                 : ""
         }
-        <div id="fad-status" class="${
-            CONFIG.enableControl || CONFIG.enableProgress ? "active" : ""
-        }">
+        <div id="fad-status" class="${CONFIG.enableControl || CONFIG.enableProgress ? "active" : ""}">
             ${
                 CONFIG.enableControl
                     ? `
@@ -320,27 +311,17 @@ body.video-full-screen.video-full-screen--hide-ui {
         if (CONFIG.enableControl) {
             play = container.querySelector("#fad-play");
             play.onclick = Spicetify.Player.togglePlay;
-            container.querySelector("#fad-next").onclick =
-                Spicetify.Player.next;
+            container.querySelector("#fad-next").onclick = Spicetify.Player.next;
             if (CONFIG.vertical) {
-                container.querySelector("#fad-back").onclick =
-                    Spicetify.Player.back;
+                container.querySelector("#fad-back").onclick = Spicetify.Player.back;
             }
         }
     }
 
-    const classes = [
-        "video",
-        "video-full-screen",
-        "video-full-window",
-        "video-full-screen--hide-ui",
-        "fad-activated",
-    ];
+    const classes = ["video", "video-full-screen", "video-full-window", "video-full-screen--hide-ui", "fad-activated"];
 
     function getAlbumInfo(uri) {
-        return Spicetify.CosmosAsync.get(
-            `hm://album/v1/album-app/album/${uri}/desktop`
-        );
+        return Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${uri}/desktop`);
     }
 
     async function updateInfo() {
@@ -374,15 +355,9 @@ body.video-full-screen.video-full-screen--hide-ui {
             albumText = meta.album_title || "";
             const albumURI = meta.album_uri;
             if (albumURI?.startsWith("spotify:album:")) {
-                const albumInfo = await getAlbumInfo(
-                    albumURI.replace("spotify:album:", "")
-                );
+                const albumInfo = await getAlbumInfo(albumURI.replace("spotify:album:", ""));
 
-                const albumDate = new Date(
-                    albumInfo.year,
-                    (albumInfo.month || 1) - 1,
-                    albumInfo.day || 0
-                );
+                const albumDate = new Date(albumInfo.year, (albumInfo.month || 1) - 1, albumInfo.day || 0);
                 const recentDate = new Date();
                 recentDate.setMonth(recentDate.getMonth() - 6);
                 const dateStr = albumDate.toLocaleString(
@@ -446,34 +421,16 @@ body.video-full-screen.video-full-screen--hide-ui {
 
         if (!CONFIG.enableFade) {
             ctx.globalAlpha = 1;
-            ctx.drawImage(
-                nextImg,
-                -blur * 2,
-                -blur * 2 - (width - height) / 2,
-                dim + 4 * blur,
-                dim + 4 * blur
-            );
+            ctx.drawImage(nextImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
             return;
         }
 
         let factor = 0.0;
         const animate = () => {
             ctx.globalAlpha = 1;
-            ctx.drawImage(
-                prevImg,
-                -blur * 2,
-                -blur * 2 - (width - height) / 2,
-                dim + 4 * blur,
-                dim + 4 * blur
-            );
+            ctx.drawImage(prevImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
             ctx.globalAlpha = Math.sin((Math.PI / 2) * factor);
-            ctx.drawImage(
-                nextImg,
-                -blur * 2,
-                -blur * 2 - (width - height) / 2,
-                dim + 4 * blur,
-                dim + 4 * blur
-            );
+            ctx.drawImage(nextImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
 
             if (factor < 1.0) {
                 factor += 0.016;
@@ -484,11 +441,9 @@ body.video-full-screen.video-full-screen--hide-ui {
         requestAnimationFrame(animate);
     }
 
-    function updateProgress() {
-        prog.style.width = Spicetify.Player.getProgressPercent() * 100 + "%";
-        elaps.innerText = Spicetify.Player.formatTime(
-            Spicetify.Player.getProgress()
-        );
+    function updateProgress(event) {
+        prog.style.width = (event.data / Spicetify.Player.origin._state.duration) * 100 + "%";
+        elaps.innerText = Spicetify.Player.formatTime(event.data);
     }
 
     function updateControl({ data }) {
@@ -503,7 +458,6 @@ body.video-full-screen.video-full-screen--hide-ui {
         updateInfo();
         Spicetify.Player.addEventListener("songchange", updateInfo);
         if (CONFIG.enableProgress) {
-            updateProgress();
             Spicetify.Player.addEventListener("onprogress", updateProgress);
         }
         if (CONFIG.enableControl) {
@@ -544,9 +498,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 
     function getConfig() {
         try {
-            const parsed = JSON.parse(
-                Spicetify.LocalStorage.get("full-app-display-config")
-            );
+            const parsed = JSON.parse(Spicetify.LocalStorage.get("full-app-display-config"));
             if (parsed && typeof parsed === "object") {
                 return parsed;
             }
@@ -558,10 +510,7 @@ body.video-full-screen.video-full-screen--hide-ui {
     }
 
     function saveConfig() {
-        Spicetify.LocalStorage.set(
-            "full-app-display-config",
-            JSON.stringify(CONFIG)
-        );
+        Spicetify.LocalStorage.set("full-app-display-config", JSON.stringify(CONFIG));
     }
 
     function newMenuItem(name, key) {

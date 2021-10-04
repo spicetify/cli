@@ -8,19 +8,31 @@ class TabBarItem extends react.Component {
         this.props.lockIn(this.props.item.key);
     }
     render() {
-        return react.createElement("li", {
-            className: "lyrics-tabBar-headerItem",
-            onClick: this.onSelect.bind(this),
-            onDoubleClick: this.onLock.bind(this),
-            onContextMenu: this.onLock.bind(this),
-        }, react.createElement("a", {
-            "aria-current": "page",
-            className: `lyrics-tabBar-headerItemLink ${this.props.item.active ? "lyrics-tabBar-active" : ""}`,
-            draggable: "false",
-            href: "",
-        }, react.createElement("span", {
-            className: `main-type-mestoBold`,
-        }, this.props.item.value)));
+        return react.createElement(
+            "li",
+            {
+                className: "lyrics-tabBar-headerItem",
+                onClick: this.onSelect.bind(this),
+                onDoubleClick: this.onLock.bind(this),
+                onContextMenu: this.onLock.bind(this),
+            },
+            react.createElement(
+                "a",
+                {
+                    "aria-current": "page",
+                    className: `lyrics-tabBar-headerItemLink ${this.props.item.active ? "lyrics-tabBar-active" : ""}`,
+                    draggable: "false",
+                    href: "",
+                },
+                react.createElement(
+                    "span",
+                    {
+                        className: `main-type-mestoBold`,
+                    },
+                    this.props.item.value
+                )
+            )
+        );
     }
 }
 
@@ -33,17 +45,21 @@ const TabBarMore = react.memo(({ items, switchTo, lockIn }) => {
             lockIn(activeItem.key);
         }
     }
-    return react.createElement("li", {
-        className: `lyrics-tabBar-headerItem ${activeItem ? "lyrics-tabBar-active" : ""}`,
-        onDoubleClick: onLock,
-        onContextMenu: onLock,
-    }, react.createElement(OptionsMenu, {
-        options: items,
-        onSelect: switchTo,
-        selected: activeItem,
-        defaultValue: "More",
-        bold: true,
-    }));
+    return react.createElement(
+        "li",
+        {
+            className: `lyrics-tabBar-headerItem ${activeItem ? "lyrics-tabBar-active" : ""}`,
+            onDoubleClick: onLock,
+            onContextMenu: onLock,
+        },
+        react.createElement(OptionsMenu, {
+            options: items,
+            onSelect: switchTo,
+            selected: activeItem,
+            defaultValue: "More",
+            bold: true,
+        })
+    );
 });
 
 const TopBarContent = ({ links, activeLink, lockLink, switchCallback, lockCallback }) => {
@@ -59,25 +75,33 @@ const TopBarContent = ({ links, activeLink, lockLink, switchCallback, lockCallba
         };
     }, [resizeHandler]);
 
-    return react.createElement(TabBarContext, null, react.createElement(TabBar, {
-        className: "queue-queueHistoryTopBar-tabBar",
-        links,
-        activeLink,
-        lockLink,
-        switchCallback,
-        lockCallback,
-        windowSize,
-    }))
-}
+    return react.createElement(
+        TabBarContext,
+        null,
+        react.createElement(TabBar, {
+            className: "queue-queueHistoryTopBar-tabBar",
+            links,
+            activeLink,
+            lockLink,
+            switchCallback,
+            lockCallback,
+            windowSize,
+        })
+    );
+};
 
 const TabBarContext = ({ children }) => {
     return reactDOM.createPortal(
-        react.createElement("div", {
-            className: "main-topBar-topbarContent"
-        }, children),
+        react.createElement(
+            "div",
+            {
+                className: "main-topBar-topbarContent",
+            },
+            children
+        ),
         document.querySelector(".main-topBar-topbarContentWrapper")
     );
-}
+};
 
 const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCallback, windowSize = Infinity }) => {
     const tabBarRef = react.useRef(null);
@@ -91,7 +115,7 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
             value = "• " + value;
         }
         const active = key === activeLink;
-        return ({ key, value, active });
+        return { key, value, active };
     });
 
     useEffect(() => {
@@ -103,7 +127,7 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
         if (!tabBarRef.current) return;
 
         const children = Array.from(tabBarRef.current.children);
-        const tabbarItemSizes = children.map(child => child.clientWidth);
+        const tabbarItemSizes = children.map((child) => child.clientWidth);
 
         setChildrenSizes(tabbarItemSizes);
     }, [links]);
@@ -141,24 +165,36 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
         setDroplistItems(itemsToHide);
     }, [availableSpace, childrenSizes]);
 
-    return react.createElement("nav", {
-        className: "lyrics-tabBar lyrics-tabBar-nav",
-    }, react.createElement("ul", {
-        className: "lyrics-tabBar-header",
-        ref: tabBarRef,
-    }, react.createElement("li", {
-        className: "lyrics-tabBar-headerItem",
-    }), options
-        .filter((_, id) => !droplistItem.includes(id))
-        .map(item => react.createElement(TabBarItem, {
-            item,
-            switchTo: switchCallback,
-            lockIn: lockCallback,
-        })),
-        (droplistItem.length || childrenSizes.length === 0) ?
-            react.createElement(TabBarMore, {
-                items: droplistItem.map(i => options[i]).filter(i => i),
-                switchTo: switchCallback,
-                lockIn: lockCallback,
-            }) : null));
+    return react.createElement(
+        "nav",
+        {
+            className: "lyrics-tabBar lyrics-tabBar-nav",
+        },
+        react.createElement(
+            "ul",
+            {
+                className: "lyrics-tabBar-header",
+                ref: tabBarRef,
+            },
+            react.createElement("li", {
+                className: "lyrics-tabBar-headerItem",
+            }),
+            options
+                .filter((_, id) => !droplistItem.includes(id))
+                .map((item) =>
+                    react.createElement(TabBarItem, {
+                        item,
+                        switchTo: switchCallback,
+                        lockIn: lockCallback,
+                    })
+                ),
+            droplistItem.length || childrenSizes.length === 0
+                ? react.createElement(TabBarMore, {
+                      items: droplistItem.map((i) => options[i]).filter((i) => i),
+                      switchTo: switchCallback,
+                      lockIn: lockCallback,
+                  })
+                : null
+        )
+    );
 });

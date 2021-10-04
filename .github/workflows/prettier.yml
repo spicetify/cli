@@ -1,0 +1,14 @@
+name: Prettier
+
+on: [pull_request]
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actionsx/prettier@v2
+      with:
+        args: --print-width 150 --tab-width 4 --trailing-comma es5 --arrow-parens always --write "./Extensions/*.js" "./jsHelper/{homeConfig,sidebarConfig}.js" "CustomApps/*/*{.js,.css}"

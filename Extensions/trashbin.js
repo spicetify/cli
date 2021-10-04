@@ -21,10 +21,8 @@
     const THROW_TEXT = "Throw to Trashbin";
     const UNTHROW_TEXT = "Take out of Trashbin";
 
-    trashSongList =
-        JSON.parse(Spicetify.LocalStorage.get("TrashSongList")) || {};
-    trashArtistList =
-        JSON.parse(Spicetify.LocalStorage.get("TrashArtistList")) || {};
+    trashSongList = JSON.parse(Spicetify.LocalStorage.get("TrashSongList")) || {};
+    trashArtistList = JSON.parse(Spicetify.LocalStorage.get("TrashArtistList")) || {};
 
     putDataLocal();
 
@@ -102,8 +100,7 @@
         const uriObj = Spicetify.URI.fromString(uri);
         const type = uriObj.type;
 
-        let list =
-            type === Spicetify.URI.Type.TRACK ? trashSongList : trashArtistList;
+        let list = type === Spicetify.URI.Type.TRACK ? trashSongList : trashArtistList;
 
         if (!list[uri]) {
             list[uri] = true;
@@ -142,21 +139,11 @@
         return false;
     }
 
-    const cntxMenu = new Spicetify.ContextMenu.Item(
-        THROW_TEXT,
-        toggleThrow,
-        shouldAddContextMenu
-    );
+    const cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu);
     cntxMenu.register();
 
     function putDataLocal() {
-        Spicetify.LocalStorage.set(
-            "TrashSongList",
-            JSON.stringify(trashSongList)
-        );
-        Spicetify.LocalStorage.set(
-            "TrashArtistList",
-            JSON.stringify(trashArtistList)
-        );
+        Spicetify.LocalStorage.set("TrashSongList", JSON.stringify(trashSongList));
+        Spicetify.LocalStorage.set("TrashArtistList", JSON.stringify(trashArtistList));
     }
 })();
