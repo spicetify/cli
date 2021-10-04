@@ -19,22 +19,31 @@ class SortBox extends react.Component {
     }
 
     render() {
-        const sortBySelected = this.sortByOptions.filter(a => a.key === sortConfig.by)[0];
-        const sortTimeSelected = this.sortTimeOptions.filter(a => a.key === sortConfig.time)[0];
+        const sortBySelected = this.sortByOptions.filter((a) => a.key === sortConfig.by)[0];
+        const sortTimeSelected = this.sortTimeOptions.filter((a) => a.key === sortConfig.time)[0];
 
-        return react.createElement("div", {
-            className: "reddit-sort-bar",
-        }, react.createElement("div", {
-            className: "reddit-sort-container",
-        }, react.createElement(OptionsMenu, {
-            options: this.sortByOptions,
-            onSelect: (by) => this.props.onChange(by, null),
-            selected: sortBySelected,
-        }), !!sortConfig.by.match(/top|controversial/) &&
-        react.createElement(OptionsMenu, {
-            options: this.sortTimeOptions,
-            onSelect: (time) => this.props.onChange(null, time),
-            selected: sortTimeSelected,
-        })));
+        return react.createElement(
+            "div",
+            {
+                className: "reddit-sort-bar",
+            },
+            react.createElement(
+                "div",
+                {
+                    className: "reddit-sort-container",
+                },
+                react.createElement(OptionsMenu, {
+                    options: this.sortByOptions,
+                    onSelect: (by) => this.props.onChange(by, null),
+                    selected: sortBySelected,
+                }),
+                !!sortConfig.by.match(/top|controversial/) &&
+                    react.createElement(OptionsMenu, {
+                        options: this.sortTimeOptions,
+                        onSelect: (time) => this.props.onChange(null, time),
+                        selected: sortTimeSelected,
+                    })
+            )
+        );
     }
 }

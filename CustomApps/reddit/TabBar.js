@@ -1,34 +1,50 @@
 class TabBarItem extends react.Component {
     render() {
-        return react.createElement("li", {
-            className: "reddit-tabBar-headerItem",
-            onClick: (event) => {
-                event.preventDefault();
-                this.props.switchTo(this.props.item.key);
+        return react.createElement(
+            "li",
+            {
+                className: "reddit-tabBar-headerItem",
+                onClick: (event) => {
+                    event.preventDefault();
+                    this.props.switchTo(this.props.item.key);
+                },
             },
-        }, react.createElement("a", {
-            "aria-current": "page",
-            className: `reddit-tabBar-headerItemLink ${this.props.item.active ? "reddit-tabBar-active" : ""}`,
-            draggable: "false",
-            href: "",
-        }, react.createElement("span", {
-            className: "main-type-mestoBold"
-        }, this.props.item.value)));
+            react.createElement(
+                "a",
+                {
+                    "aria-current": "page",
+                    className: `reddit-tabBar-headerItemLink ${this.props.item.active ? "reddit-tabBar-active" : ""}`,
+                    draggable: "false",
+                    href: "",
+                },
+                react.createElement(
+                    "span",
+                    {
+                        className: "main-type-mestoBold",
+                    },
+                    this.props.item.value
+                )
+            )
+        );
     }
 }
 
 const TabBarMore = react.memo(({ items, switchTo }) => {
     const activeItem = items.find((item) => item.active);
 
-    return react.createElement("li", {
-        className: `reddit-tabBar-headerItem ${activeItem ? "reddit-tabBar-active" : ""}`,
-    }, react.createElement(OptionsMenu, {
-        options: items,
-        onSelect: switchTo,
-        selected: activeItem,
-        defaultValue: "More",
-        bold: true,
-    }));
+    return react.createElement(
+        "li",
+        {
+            className: `reddit-tabBar-headerItem ${activeItem ? "reddit-tabBar-active" : ""}`,
+        },
+        react.createElement(OptionsMenu, {
+            options: items,
+            onSelect: switchTo,
+            selected: activeItem,
+            defaultValue: "More",
+            bold: true,
+        })
+    );
 });
 
 const TopBarContent = ({ links, activeLink, switchCallback }) => {
@@ -44,23 +60,31 @@ const TopBarContent = ({ links, activeLink, switchCallback }) => {
         };
     }, [resizeHandler]);
 
-    return react.createElement(TabBarContext, null, react.createElement(TabBar, {
-        className: "queue-queueHistoryTopBar-tabBar",
-        links,
-        activeLink,
-        windowSize,
-        switchCallback,
-    }))
-}
+    return react.createElement(
+        TabBarContext,
+        null,
+        react.createElement(TabBar, {
+            className: "queue-queueHistoryTopBar-tabBar",
+            links,
+            activeLink,
+            windowSize,
+            switchCallback,
+        })
+    );
+};
 
 const TabBarContext = ({ children }) => {
     return reactDOM.createPortal(
-        react.createElement("div", {
-            className: "main-topBar-topbarContent"
-        }, children),
+        react.createElement(
+            "div",
+            {
+                className: "main-topBar-topbarContent",
+            },
+            children
+        ),
         document.querySelector(".main-topBar-topbarContentWrapper")
     );
-}
+};
 
 const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Infinity }) => {
     const tabBarRef = react.useRef(null);
@@ -70,7 +94,7 @@ const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Inf
 
     const options = links.map((key) => {
         const active = key === activeLink;
-        return ({ key, value: key, active });
+        return { key, value: key, active };
     });
 
     useEffect(() => {
@@ -82,7 +106,7 @@ const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Inf
         if (!tabBarRef.current) return;
 
         const children = Array.from(tabBarRef.current.children);
-        const tabbarItemSizes = children.map(child => child.clientWidth);
+        const tabbarItemSizes = children.map((child) => child.clientWidth);
 
         setChildrenSizes(tabbarItemSizes);
     }, [links]);
@@ -119,21 +143,31 @@ const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Inf
         setDroplistItems(itemsToHide);
     }, [availableSpace, childrenSizes]);
 
-    return react.createElement("nav", {
+    return react.createElement(
+        "nav",
+        {
             className: "reddit-tabBar reddit-tabBar-nav",
-        }, react.createElement("ul", {
-            className: "reddit-tabBar-header",
-            ref: tabBarRef,
-        }, options
-            .filter((_, id) => !droplistItem.includes(id))
-            .map(item => react.createElement(TabBarItem, {
-                item,
-                switchTo: switchCallback,
-            })),
-            (droplistItem.length || childrenSizes.length === 0) ?
-                react.createElement(TabBarMore, {
-                    items: droplistItem.map(i => options[i]).filter(i => i),
-                    switchTo: switchCallback,
-                }) : null)
-        );
+        },
+        react.createElement(
+            "ul",
+            {
+                className: "reddit-tabBar-header",
+                ref: tabBarRef,
+            },
+            options
+                .filter((_, id) => !droplistItem.includes(id))
+                .map((item) =>
+                    react.createElement(TabBarItem, {
+                        item,
+                        switchTo: switchCallback,
+                    })
+                ),
+            droplistItem.length || childrenSizes.length === 0
+                ? react.createElement(TabBarMore, {
+                      items: droplistItem.map((i) => options[i]).filter((i) => i),
+                      switchTo: switchCallback,
+                  })
+                : null
+        )
+    );
 });

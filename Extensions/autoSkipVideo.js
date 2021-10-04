@@ -13,10 +13,7 @@
 
         const meta = data.track.metadata;
         // Ads are also video media type so I need to exclude them out.
-        if (
-            meta["media.type"] === "video" &&
-            meta.is_advertisement !== "true"
-        ) {
+        if (meta["media.type"] === "video" && meta.is_advertisement !== "true") {
             Spicetify.Player.next();
         }
     });

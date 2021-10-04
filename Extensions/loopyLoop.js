@@ -107,9 +107,7 @@
     bar.oncontextmenu = (event) => {
         const { x, width } = bar.firstElementChild.getBoundingClientRect();
         mouseOnBarPercent = (event.clientX - x) / width;
-        contextMenu.style.transform = `translate(${event.clientX}px,${
-            event.clientY - contextMenuHeight
-        }px)`;
+        contextMenu.style.transform = `translate(${event.clientX}px,${event.clientY - contextMenuHeight}px)`;
         contextMenu.hidden = false;
         event.preventDefault();
     };

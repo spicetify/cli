@@ -178,6 +178,13 @@ declare namespace Spicetify {
          */
         function play(): void;
         /**
+         * Play a track, playlist, album, etc. immediately
+         * @param uri Spotify URI
+         * @param context
+         * @param options
+         */
+        async function playUri(uri: string, context: any = {}, options: Options = {});
+        /**
          * Unregister added event listener `type`.
          * @param type
          * @param callback
@@ -419,26 +426,6 @@ declare namespace Spicetify {
      * so new extension should use this library instead.
      */
      function Mousetrap(element?: any): void;
-
-    /**
-     * Use to force playing a track/episode/album/show/playlist/artist URI.
-     */
-    namespace PlaybackControl {
-        async function resume();
-        async function pause();
-        async function nextTrack();
-        async function previousTrack();
-        async function addToQueue(uri: string);
-        async function playTracks(trackList: ContextTrack[], options: ContextOption = {});
-        async function playUri(uri: string, options: Options = {});
-        async function playCollection(trackUri: string, sort: string, filter: string);
-        async function seek(positionInMs: number);
-        async function setShuffle(enabled: boolean);
-        async function setRepeatMode(repeat: 0 | 1 | 2);
-        async function setPrivateSession(enabled: boolean);
-        async function setPreferredSubtitle(language: string): Promise<void>;
-        async function getPreferredSubtitle(): Promise<string>;
-    }
 
     /**
      * Contains vast array of internal APIs.
