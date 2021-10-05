@@ -45,7 +45,7 @@ const Spicetify = {
         getRepeat: () => Spicetify.Player.origin._state.repeat,
         setRepeat: (r) => { Spicetify.Player.origin.setRepeat(r) },
         getMute: () => Spicetify.Player.getVolume() === 0,
-        toggleMute: () => { document.querySelector(".volume-bar__icon-button ").click() },
+        toggleMute: () => { document.querySelector(".volume-bar__icon-button").click() },
         setMute: (b) => {
             const isMuted = Spicetify.Player.getMute();
             if ((b && !isMuted) || (!b && isMuted)) {
@@ -58,7 +58,7 @@ const Spicetify = {
             seconds -= minutes * 60;
             return `${minutes}:${seconds > 9 ? "" : "0"}${String(seconds)}`;
         },
-        getHeart: () => document.querySelector('.control-button-heart button')?.ariaChecked === "true",
+        getHeart: () => document.querySelector('.control-button-heart')?.ariaChecked === "true",
         pause: () => { Spicetify.Player.origin.pause() },
         play: () => { Spicetify.Player.origin.resume() },
         playUri: async (uri, context = {}, options = {}) => {
@@ -78,7 +78,7 @@ const Spicetify = {
         },
         skipBack: (amount = 15e3) => {Spicetify.Player.origin.seekBackward(amount)},
         skipForward: (amount = 15e3) => {Spicetify.Player.origin.seekForward(amount)},
-        toggleHeart: () => {document.querySelector('.control-button-heart button')?.click()},
+        toggleHeart: () => {document.querySelector('.control-button-heart')?.click()},
     },
     test: () => {
         const SPICETIFY_METHOD = [
@@ -186,7 +186,7 @@ const Spicetify = {
     }
 
     Spicetify.Player.origin._cosmos.sub(
-        "sp://player/v2/main", 
+        "sp://player/v2/main",
         (data) => {
             if (!data || !data.track) return;
             const lastData = Spicetify.Player.data;
@@ -451,7 +451,7 @@ Spicetify.SVGIcons = {
 
 class _HTMLContextMenuItem extends HTMLLIElement {
     constructor({
-        name, 
+        name,
         disabled = false,
         icon = undefined,
         divider = false,
@@ -654,7 +654,7 @@ Spicetify.Menu = (function() {
 Spicetify.ContextMenu = (function () {
     let itemList = new Set();
     const iconList = Object.keys(Spicetify.SVGIcons);
-    
+
     class Item {
         constructor(name, onClick, shouldAdd = (uris) => true, icon = undefined, disabled = false) {
             this.onClick = onClick;
@@ -806,7 +806,7 @@ Spicetify.ContextMenu = (function () {
                     instance._tippy?.props?.onClickOutside();
                 }
             };
-            
+
             elemList.push(item._element);
         }
         list.prepend(...elemList);
@@ -934,7 +934,7 @@ class _HTMLGenericModal extends HTMLElement {
         const main = this.querySelector("main");
 
         let hidePopup = this.hide.bind(this);
-        
+
         // Listen for click events on Overlay
         this.querySelector(".GenericModal__overlay").addEventListener('click', (event) => {
             if (!this.querySelector('.GenericModal').contains(event.target))
