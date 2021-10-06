@@ -29,13 +29,9 @@ fi
 spicetify_install="$HOME/spicetify-cli"
 
 if [[ "$target" == *"darwin"* ]]; then
-	if [ ! -d "$HOME/.config" ]; then
-  	echo "Creating .config folder inside $HOME";
-		mkdir -p "$HOME/.config"
-	fi
-
 	spicetify_install="$HOME/.spicetify"
 	rcFile="$HOME/.zshenv"
+
 	if ! grep -q "$spicetify_install" "$rcFile"; then
 		echo "export PATH=${spicetify_install}:$PATH" >> "$rcFile"
 	fi
