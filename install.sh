@@ -63,7 +63,7 @@ echo "spicetify was installed successfully to $exe"
 echo ""
 if command -v spicetify > /dev/null; then
 	echo "Run 'spicetify --help' to get started"
-elif [[ "$spicetify_install" == *".config"* ]]; then
+elif [[ "$spicetify_install" == *".spicetify"* ]]; then
 	echo "Please restart your Terminal to have spicetify in your PATH."
 	echo "Then you can run:"
 	echo "'$exe --help' to get started"
