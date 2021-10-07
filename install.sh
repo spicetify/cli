@@ -26,11 +26,21 @@ else
 	download_uri="https://github.com/khanhas/spicetify-cli/releases/download/v${1}/spicetify-${1}-${target}.tar.gz"
 fi
 
-spicetify_install="${SPICETIFY_INSTALL:-$HOME/spicetify-cli}"
+spicetify_install="$HOME/spicetify-cli"
+
+if [[ "$target" == *"darwin"* ]]; then
+	spicetify_install="$HOME/.spicetify"
+	rcFile="$HOME/.zshenv"
+
+	if ! grep -q "$spicetify_install" "$rcFile"; then
+		echo "export PATH=${spicetify_install}:$PATH" >> "$rcFile"
+	fi
+fi
+
 exe="$spicetify_install/spicetify"
 
 if [ ! -d "$spicetify_install" ]; then
-    echo "MAKING FOLDER  $spicetify_install";
+  echo "Creating $spicetify_install";
 	mkdir -p "$spicetify_install"
 fi
 
@@ -51,8 +61,12 @@ rm "$tar_file"
 echo ""
 echo "spicetify was installed successfully to $exe"
 echo ""
-if command -v spicetify >/dev/null; then
+if command -v spicetify > /dev/null; then
 	echo "Run 'spicetify --help' to get started"
+elif [[ "$spicetify_install" == *".spicetify"* ]]; then
+	echo "Please restart your Terminal to have spicetify in your PATH."
+	echo "Then you can run:"
+	echo "'$exe --help' to get started"
 else
 	echo "Manually add the directory to your \$HOME/.bash_profile (or similar)"
 	echo "  export SPICETIFY_INSTALL=\"$spicetify_install\""
