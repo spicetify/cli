@@ -2,61 +2,61 @@
   {
     "name": "Auto Skip Videos",
     "description": "Videos are unable to play in some regions because of Spotify's policy. Instead of jumping to next song in playlist, it just stops playing. And it's kinda annoying to open up the client to manually click next every times it happens. Use this extension to skip them automatically.",
-    "preview": "",
+    "preview": null,
     "main": "Extensions/autoSkipVideo.js"
   },
   {
     "name": "Bookmark",
     "description": "Easily store and browse pages, play tracks or tracks in specific time. Useful for who wants to check out an artist, album later without following them or writing their name down.",
-    "preview": "https://camo.githubusercontent.com/09bf34a4f5c626c38fcdc7fea9cd21d4468524cac00bf37a7fd8293dab2c06ff/68747470733a2f2f692e696d6775722e636f6d2f697367553454532e706e67",
+    "preview": "https://i.imgur.com/isgU4TS.png",
     "main": "Extensions/bookmark.js"
   },
   {
     "name": "Christian Spotify",
     "description": "Auto skip explicit tracks. Toggle option is in Profile menu (top right button).",
-    "preview": "https://camo.githubusercontent.com/d09624606bf70ccf3468f54ee321105cf218fd844d41643e573aeecf4f124b6d/68747470733a2f2f692e696d6775722e636f6d2f357265477242622e706e67",
+    "preview": "https://i.imgur.com/5reGrBb.png",
     "main": "Extensions/autoSkipExplicit.js"
   },
   {
     "name": "Full App Display",
     "description": "Minimal album cover art display with beautiful blur effect background. Activating button locates in top bar. While in display mode, double click anywhere to exit. Right click anywhere to open setting menu.",
-    "preview": "https://camo.githubusercontent.com/2ef61d7d70cb83ae6016b0ac1cf0861447569a693c1103fc715e45fc8cb0fa8f/68747470733a2f2f692e696d6775722e636f6d2f533743505132732e706e67",
+    "preview": "https://i.imgur.com/S7CPQ2s.png",
     "main": "Extensions/fullAppDisplay.js"
   },
   {
     "name": "Keyboard Shortcut",
     "description": "Register some useful keybinds to support keyboard-driven navigation in Spotify client. Less time touching the mouse.",
-    "preview": "https://camo.githubusercontent.com/d0cc1350ae8695c7a024674f7c0a09d81d38e49457018868b7eadbd8a8b3de43/68747470733a2f2f692e696d6775722e636f6d2f65766b477639712e706e67",
+    "preview": "https://i.imgur.com/evkGv9q.png",
     "main": "Extensions/keyboardShortcut.js"
   },
   {
     "name": "Loopy Loop",
     "description": "Provide ability to mark start and end points on progress bar and automatically loop over that track portion.",
-    "preview": "https://camo.githubusercontent.com/2c0e4282810f05320026e596ed26abe459bc18be55a55235b71363ffb18552c4/68747470733a2f2f692e696d6775722e636f6d2f59456b626a4c432e706e67",
+    "preview": "https://i.imgur.com/YEkbjLC.png",
     "main": "Extensions/loopyLoop.js"
   },
   {
     "name": "Pop-up Lyrics",
     "description": "Have easy access to a pop-up window with the current song's lyrics. Click at microphone icon on top bar to open lyrics windows. Right click at the same icon to open config menu to customize looks and lyrics providers priorities.",
-    "preview": "https://camo.githubusercontent.com/2c44c17b0c9552b53cae89309ba6babd1d3a910eab0ecf59c6fb82f3327f85ae/68747470733a2f2f692e696d6775722e636f6d2f4e78394c7837442e706e67",
+    "preview": "https://i.imgur.com/Nx9Lx7D.png",
     "main": "Extensions/popupLyrics.js"
   },
   {
     "name": "Shuffle+",
     "description": "Shuffles using Fisher–Yates algorithm with zero bias. After installing extensions, right click album/playlist/artist item, there will be an option \"Play with Shuffle+\". You can also multiple select tracks and choose to \"Play with Shuffle+\". Moreover, enable option \"Auto Shuffle+\" in Profile menu to inject Shuffle+ into every play buttons, no need to right click anymore.",
-    "preview": "https://camo.githubusercontent.com/3b25a687458a798fec1b403cda35f4e3fb8de7ba72dc2b99230c93ec49b6539f/68747470733a2f2f692e696d6775722e636f6d2f6778626e71534e2e706e67",
+    "preview": "https://i.imgur.com/gxbnqSN.png",
     "main": "Extensions/shuffle+.js"
   },
   {
     "name": "Trash Bin",
     "description": "Throw songs/artists to trash bin and never hear them again (automatically skip). This extension will append a Throw to Trashbin option in tracks and artists link right click menu.",
-    "preview": "https://camo.githubusercontent.com/a292b60154e5ef8e3a554fd8e087ba5e9131daf28d2f08de8a8974daaa596289/68747470733a2f2f692e696d6775722e636f6d2f5a46547935526d2e706e67",
+    "preview": "https://i.imgur.com/ZFTy5Rm.png",
     "main": "Extensions/trashbin.js"
   },
   {
     "name": "Web Now Playing",
     "description": "For Rainmeter users, establish connection with WebNowPlaying plugin to send track metadata and control players.",
-    "preview": "",
+    "preview": null,
     "main": "Extensions/webnowplaying.js"
   }
 ]
