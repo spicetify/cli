@@ -90,7 +90,7 @@ func WatchExtensions(extName []string, liveUpdate bool) {
 	var extPathList []string
 
 	for _, v := range extNameList {
-		extPath, err := getExtensionPath(v)
+		extPath, err := utils.GetExtensionPath(v)
 		if err != nil {
 			utils.PrintError(`Extension "` + v + `" not found.`)
 			continue
@@ -134,7 +134,7 @@ func WatchCustomApp(appName []string, liveUpdate bool) {
 
 	threadCount := 0
 	for _, v := range appNameList {
-		appPath, err := getCustomAppPath(v)
+		appPath, err := utils.GetCustomAppPath(v)
 		if err != nil {
 			utils.PrintError(`Custom app "` + v + `" not found.`)
 			continue
@@ -155,13 +155,18 @@ func WatchCustomApp(appName []string, liveUpdate bool) {
 		manifestPath := filepath.Join(appPath, "manifest.json")
 		manifestFileContent, err := os.ReadFile(manifestPath)
 		if err == nil {
-			var manifestJson appManifest
+			var manifestJson utils.AppManifest
 			if err = json.Unmarshal(manifestFileContent, &manifestJson); err == nil {
 				for _, subfile := range(manifestJson.Files) {
 					subfilePath := filepath.Join(appPath, subfile)
 					appFileList = append(appFileList, subfilePath)
 				}
+				for _, subfile := range(manifestJson.ExtensionFiles) {
+					subfilePath := filepath.Join(appPath, subfile)
+					appFileList = append(appFileList, subfilePath)
+				}
 			}
+			
 		}
 
 		threadCount += 1

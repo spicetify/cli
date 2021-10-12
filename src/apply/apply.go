@@ -94,6 +94,19 @@ func htmlMod(htmlPath string, flags Flag) {
 		}
 	}
 
+	for _, v := range flags.CustomApp {
+		manifest, _, err := utils.GetAppManifest(v)
+		if err == nil {
+			for _, extensionFile := range manifest.ExtensionFiles {
+				if strings.HasSuffix(extensionFile, ".mjs") {
+					extensionsHTML += `<script defer type="module" src="extensions/` + v + `/` + extensionFile + `"></script>` + "\n"
+				} else {
+					extensionsHTML += `<script defer src="extensions/` + v + `/` + extensionFile + `"></script>` + "\n"
+				}
+			}
+		}
+	}
+
 	utils.ModifyFile(htmlPath, func(content string) string {
 		utils.Replace(
 			&content,

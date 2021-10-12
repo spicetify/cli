@@ -48,7 +48,7 @@ func ThemeAllAssetsPath() (string, error) {
 
 // ExtensionPath return path of extension file
 func ExtensionPath(name string) (string, error) {
-	return getExtensionPath(name)
+	return utils.GetExtensionPath(name)
 }
 
 // ExtensionAllPath returns paths of all extension files
@@ -56,7 +56,7 @@ func ExtensionAllPath() (string, error) {
 	exts := featureSection.Key("extensions").Strings("|")
 	results := []string{}
 	for _, v := range exts {
-		path, err := getExtensionPath(v)
+		path, err := utils.GetExtensionPath(v)
 		if err != nil {
 			path = utils.Red("Extension " + v + " not found")
 		}
@@ -68,7 +68,7 @@ func ExtensionAllPath() (string, error) {
 
 // AppPath return path of app directory
 func AppPath(name string) (string, error) {
-	return getCustomAppPath(name)
+	return utils.GetCustomAppPath(name)
 }
 
 // AppAllPath returns paths of all apps
@@ -76,7 +76,7 @@ func AppAllPath() (string, error) {
 	exts := featureSection.Key("custom_apps").Strings("|")
 	results := []string{}
 	for _, v := range exts {
-		path, err := getCustomAppPath(v)
+		path, err := utils.GetCustomAppPath(v)
 		if err != nil {
 			path = utils.Red("App " + v + " not found")
 		}
