@@ -33,13 +33,13 @@ func Upgrade(currentVersion string) {
 	switch runtime.GOOS {
 	case "windows":
 		assetURL += "-windows-x64.zip"
-		location = os.Getenv("TEMP") + "spicetify-" + tagName + ".zip"
+		location = os.TempDir() + "/spicetify-" + tagName + ".zip"
 	case "linux":
 		assetURL += "-linux-amd64.tar.gz"
-		location = "/tmp/spicetify-" + tagName + ".tar.gz"
+		location = os.TempDir() + "/spicetify-" + tagName + ".tar.gz"
 	case "darwin":
 		assetURL += "-darwin-amd64.tar.gz"
-		location = os.Getenv("TMPDIR") + "spicetify-" + tagName + ".tar.gz"
+		location = os.TempDir() + "/spicetify-" + tagName + ".tar.gz"
 	}
 
 	utils.PrintBold("Downloading:")
