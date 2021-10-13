@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	spicetifyFolder         = getSpicetifyFolder()
+	spicetifyFolder         = utils.GetSpicetifyFolder()
 	rawFolder, themedFolder = getExtractFolder()
-	backupFolder            = getUserFolder("Backup")
-	userThemesFolder        = getUserFolder("Themes")
-	userExtensionsFolder    = getUserFolder("Extensions")
-	userAppsFolder          = getUserFolder("CustomApps")
+	backupFolder            = utils.GetUserFolder("Backup")
+	userThemesFolder        = utils.GetUserFolder("Themes")
+	userExtensionsFolder    = utils.GetUserFolder("Extensions")
+	userAppsFolder          = utils.GetUserFolder("CustomApps")
 	quiet                   bool
 	isAppX                  = false
 	spotifyPath             string
@@ -191,48 +191,8 @@ func GetSpotifyPath() string {
 	return spotifyPath
 }
 
-func getSpicetifyFolder() string {
-	result, isAvailable := os.LookupEnv("SPICETIFY_CONFIG")
-	defer func() { utils.CheckExistAndCreate(result) }()
-
-	if isAvailable && len(result) > 0 {
-		return result
-	}
-
-	if runtime.GOOS == "windows" {
-		result = filepath.Join(os.Getenv("USERPROFILE"), ".spicetify")
-
-	} else if runtime.GOOS == "linux" {
-		parent, isAvailable := os.LookupEnv("XDG_CONFIG_HOME")
-
-		if !isAvailable || len(parent) == 0 {
-			parent = filepath.Join(os.Getenv("HOME"), ".config")
-			utils.CheckExistAndCreate(parent)
-		}
-
-		result = filepath.Join(parent, "spicetify")
-
-	} else if runtime.GOOS == "darwin" {
-		parent := filepath.Join(os.Getenv("HOME"), ".config")
-		utils.CheckExistAndCreate(parent)
-
-		result = filepath.Join(parent, "spicetify")
-	}
-
-	return result
-}
-
-// getUserFolder checks if folder `name` is available in spicetifyFolder,
-// else creates then returns the path.
-func getUserFolder(name string) string {
-	dir := filepath.Join(spicetifyFolder, name)
-	utils.CheckExistAndCreate(dir)
-
-	return dir
-}
-
 func getExtractFolder() (string, string) {
-	dir := getUserFolder("Extracted")
+	dir := utils.GetUserFolder("Extracted")
 
 	raw := filepath.Join(dir, "Raw")
 	utils.CheckExistAndCreate(raw)
