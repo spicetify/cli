@@ -134,9 +134,10 @@ function PopupLyrics() {
                     };
                 }
 
-                const isInstrumental = meta["track"]["instrumental"];
+
                 const meta = body["matcher.track.get"].message.body;
                 const hasSynced = meta.track.has_subtitles;
+                const isInstrumental = meta.track.instrumental;
 
                 if (hasSynced) {
                     const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
@@ -972,12 +973,12 @@ button.switch.small {
     <div class="col action">
         <select>
             ${Object.keys(options)
-                .map(
-                    (item) => `
+            .map(
+                (item) => `
                 <option value="${item}" dir="auto">${options[item]}</option>
             `
-                )
-                .join("\n")}
+            )
+            .join("\n")}
         </select>
     </div>
 </div>`;
