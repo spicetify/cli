@@ -248,8 +248,8 @@ function PopupLyrics() {
         smooth: boolLocalStorage("popup-lyrics:smooth"),
         centerAlign: boolLocalStorage("popup-lyrics:center-align"),
         showCover: boolLocalStorage("popup-lyrics:show-cover"),
-        fontSize: LocalStorage.get("popup-lyrics:font-size"),
-        blurSize: LocalStorage.get("popup-lyrics:blur-size"),
+        fontSize: Number(LocalStorage.get("popup-lyrics:font-size")),
+        blurSize: Number(LocalStorage.get("popup-lyrics:blur-size")),
         fontFamily: LocalStorage.get("popup-lyrics:font-family") || "spotify-circular",
         ratio: LocalStorage.get("popup-lyrics:ratio") || "11",
         services: {

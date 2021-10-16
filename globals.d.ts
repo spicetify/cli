@@ -1343,4 +1343,11 @@ declare namespace Spicetify {
             element: HTMLButtonElement;
         }
     }
+
+    /**
+     * SVG icons 
+     */
+    namespace SVGIcons {
+        const check: string;
+    }
 }
