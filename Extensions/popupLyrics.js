@@ -973,12 +973,12 @@ button.switch.small {
     <div class="col action">
         <select>
             ${Object.keys(options)
-            .map(
-                (item) => `
+                .map(
+                    (item) => `
                 <option value="${item}" dir="auto">${options[item]}</option>
             `
-            )
-            .join("\n")}
+                )
+                .join("\n")}
         </select>
     </div>
 </div>`;
