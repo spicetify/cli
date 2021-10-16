@@ -134,12 +134,17 @@ function PopupLyrics() {
                     };
                 }
 
-
                 const meta = body["matcher.track.get"].message.body;
+
+                const isRestricted = body["track.lyrics.get"].message.body.lyrics.restricted;
                 const hasSynced = meta.track.has_subtitles;
                 const isInstrumental = meta.track.instrumental;
 
-                if (hasSynced) {
+                if (isRestricted) {
+                    return { error: "Unfortunately we're not authorized to show these lyrics." };
+                } else if (isInstrumental) {
+                    return { error: "Instrumental" };
+                } else if (hasSynced) {
                     const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
 
                     const lyrics = JSON.parse(subtitle.subtitle_body).map((line) => ({
@@ -147,10 +152,7 @@ function PopupLyrics() {
                         startTime: line.time.total,
                     }));
                     return { lyrics };
-                }else if (isInstrumental) {
-                    return { error: "Instrumental" };
-                }
-                else {
+                } else {
                     return { error: "No lyric" };
                 }
             } catch (err) {
