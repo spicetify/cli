@@ -125,31 +125,35 @@ function PopupLyrics() {
                     cookie: "x-mxm-token-guid=",
                 });
 
-                body = body.message.body.macro_calls;
+                body = body["message"]["body"]["macro_calls"];
 
-                if (body["matcher.track.get"].message.header.status_code !== 200) {
-                    let head = body["matcher.track.get"].message.header;
+                if (body["matcher.track.get"]["message"]["header"]["status_code"] !== 200) {
+                    let head = body["matcher.track.get"]["message"]["header"];
                     return {
-                        error: `Requested error: ${head.status_code}: ${head.hint} - ${head.mode}`,
+                        error: `Requested error: ${head["status_code"]}: ${head.hint} - ${head.mode}`,
                     };
                 }
 
-                const meta = body["matcher.track.get"].message.body;
-                const hasSynced = meta.track.has_subtitles;
+                const meta = body["matcher.track.get"]["message"]["body"];
+                const hasSynced = meta["track"]["has_subtitles"];
+                const isInstrumental = meta["track"]["instrumental"];
 
                 if (hasSynced) {
-                    const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
+                    const subtitle = body["track.subtitles.get"]["message"]["body"]["subtitle_list"][0]["subtitle"];
 
-                    const lyrics = JSON.parse(subtitle.subtitle_body).map((line) => ({
+                    const lyrics = JSON.parse(subtitle["subtitle_body"]).map((line) => ({
                         text: line.text || "⋯",
                         startTime: line.time.total,
                     }));
                     return { lyrics };
-                } else {
+                }else if (isInstrumental) {
+                    return { error: "Instrumental" };
+                }
+                else {
                     return { error: "No lyric" };
                 }
             } catch (err) {
-                return { error: err.message };
+                return { error: err["message"] };
             }
         }
 
@@ -382,10 +386,8 @@ function PopupLyrics() {
             try {
                 const data = await service.call(info);
                 console.log(data);
-                if (!data.error && data.lyrics) {
-                    sharedData = data;
-                    return;
-                }
+                sharedData = data;
+                return;
             } catch (err) {
                 error = err;
             }
@@ -703,7 +705,11 @@ function PopupLyrics() {
         const { error, lyrics } = sharedData;
 
         if (error) {
-            drawText(lyricCtx, error, "red");
+            if (error === "Instrumental") {
+                drawText(lyricCtx, error);
+            }else{
+                drawText(lyricCtx, error, "red");
+            }
         } else if (!lyrics) {
             drawText(lyricCtx, "No lyric");
         } else if (audio.duration && lyrics.length) {
@@ -966,12 +972,12 @@ button.switch.small {
     <div class="col action">
         <select>
             ${Object.keys(options)
-                .map(
-                    (item) => `
+            .map(
+                (item) => `
                 <option value="${item}" dir="auto">${options[item]}</option>
             `
-                )
-                .join("\n")}
+            )
+            .join("\n")}
         </select>
     </div>
 </div>`;
