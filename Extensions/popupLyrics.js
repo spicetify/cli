@@ -125,23 +125,23 @@ function PopupLyrics() {
                     cookie: "x-mxm-token-guid=",
                 });
 
-                body = body["message"]["body"]["macro_calls"];
+                body = body.message.body.macro_calls;
 
-                if (body["matcher.track.get"]["message"]["header"]["status_code"] !== 200) {
-                    let head = body["matcher.track.get"]["message"]["header"];
+                if (body["matcher.track.get"].message.header.status_code !== 200) {
+                    let head = body["matcher.track.get"].message.header;
                     return {
-                        error: `Requested error: ${head["status_code"]}: ${head.hint} - ${head.mode}`,
+                        error: `Requested error: ${head.status_code}: ${head.hint} - ${head.mode}`,
                     };
                 }
 
-                const meta = body["matcher.track.get"]["message"]["body"];
-                const hasSynced = meta["track"]["has_subtitles"];
                 const isInstrumental = meta["track"]["instrumental"];
+                const meta = body["matcher.track.get"].message.body;
+                const hasSynced = meta.track.has_subtitles;
 
                 if (hasSynced) {
-                    const subtitle = body["track.subtitles.get"]["message"]["body"]["subtitle_list"][0]["subtitle"];
+                    const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
 
-                    const lyrics = JSON.parse(subtitle["subtitle_body"]).map((line) => ({
+                    const lyrics = JSON.parse(subtitle.subtitle_body).map((line) => ({
                         text: line.text || "⋯",
                         startTime: line.time.total,
                     }));
@@ -153,7 +153,7 @@ function PopupLyrics() {
                     return { error: "No lyric" };
                 }
             } catch (err) {
-                return { error: err["message"] };
+                return { error: err.message };
             }
         }
 
@@ -972,12 +972,12 @@ button.switch.small {
     <div class="col action">
         <select>
             ${Object.keys(options)
-            .map(
-                (item) => `
+                .map(
+                    (item) => `
                 <option value="${item}" dir="auto">${options[item]}</option>
             `
-            )
-            .join("\n")}
+                )
+                .join("\n")}
         </select>
     </div>
 </div>`;
