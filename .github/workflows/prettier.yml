@@ -1,6 +1,6 @@
 name: Prettier
 
-on: [pull_request]
+on: [pull_request, push]
 
 jobs:
   prettier:
@@ -11,4 +11,4 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actionsx/prettier@v2
       with:
-        args: --print-width 150 --tab-width 4 --trailing-comma es5 --arrow-parens always --write "./Extensions/*.js" "./jsHelper/{homeConfig,sidebarConfig}.js" "CustomApps/*/*{.js,.css}"
+        args: --check "./Extensions/*.js" "./jsHelper/{homeConfig,sidebarConfig}.js" "CustomApps/*/*{.js,.css}"
