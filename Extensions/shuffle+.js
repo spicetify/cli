@@ -321,8 +321,9 @@
                 },
             });
         }
+
         await Spicetify.CosmosAsync.put("sp://player/v2/main/queue", {
-            queue_revision: Spicetify.Queue?.revision,
+            queue_revision: Spicetify.Queue?.queueRevision,
             next_tracks: list.map((uri) => ({
                 uri,
                 provider: context ? "context" : "queue",
@@ -330,7 +331,7 @@
                     is_queued: isQueue,
                 },
             })),
-            prev_tracks: Spicetify.Queue?.prev_tracks,
+            prev_tracks: Spicetify.Queue?.prevTracks,
         });
         success(count);
         Spicetify.Player.next();
