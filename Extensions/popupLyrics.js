@@ -134,15 +134,18 @@ function PopupLyrics() {
                     };
                 }
 
-                const meta = body["matcher.track.get"].message.body;
+                if (body["track.lyrics.get"].message.header.status_code === 200) {
+                    const isRestricted = body["track.lyrics.get"].message.body.lyrics.restricted;
+                    if (isRestricted) {
+                        return { error: "Unfortunately we're not authorized to show these lyrics." };
+                    }
+                }
 
-                const isRestricted = body["track.lyrics.get"].message.body.lyrics.restricted;
+                const meta = body["matcher.track.get"].message.body;
                 const hasSynced = meta.track.has_subtitles;
                 const isInstrumental = meta.track.instrumental;
 
-                if (isRestricted) {
-                    return { error: "Unfortunately we're not authorized to show these lyrics." };
-                } else if (isInstrumental) {
+                if (isInstrumental) {
                     return { error: "Instrumental" };
                 } else if (hasSynced) {
                     const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
