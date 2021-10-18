@@ -710,7 +710,7 @@ function PopupLyrics() {
         if (error) {
             if (error === "Instrumental") {
                 drawText(lyricCtx, error);
-            }else{
+            } else {
                 drawText(lyricCtx, error, "red");
             }
         } else if (!lyrics) {
