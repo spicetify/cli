@@ -323,6 +323,7 @@ function PopupLyrics() {
 
     let lyricVideoIsOpen = false;
     lyricVideo.onenterpictureinpicture = () => {
+        lyricVideo.play();
         lyricVideoIsOpen = true;
         tick(userConfigs);
         updateTrack();
