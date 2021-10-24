@@ -15,7 +15,7 @@ var (
 		"Setting": {
 			"spotify_path":            "",
 			"prefs_path":              "",
-			"current_theme":           "SpicetifyDefault",
+			"current_theme":           "",
 			"color_scheme":            "",
 			"inject_css":              "1",
 			"replace_colors":          "1",
