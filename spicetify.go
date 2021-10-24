@@ -115,6 +115,7 @@ func main() {
 			cmd.EditConfig(commands)
 		}
 		return
+
 	case "color":
 		commands = commands[1:]
 		if len(commands) == 0 {
@@ -122,6 +123,10 @@ func main() {
 		} else {
 			cmd.EditColor(commands)
 		}
+		return
+
+	case "show-config-dir":
+		cmd.ShowConfigDirectory()
 		return
 
 	case "path":
@@ -325,6 +330,8 @@ color               1. Print all color fields and values.
                     spicetify color main_bg ff0000
                     - Change slider_bg to 00ff00 and pressing_fg to 0000ff
                     spicetify color slider_bg 00ff00 pressing_fg 0000ff
+
+show-config-dir		Shows config directory in file viewer
 
 upgrade             Upgrade spicetify latest version
 
