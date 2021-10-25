@@ -137,8 +137,7 @@ function PopupLyrics() {
                 const meta = body["matcher.track.get"].message.body;
                 const hasSynced = meta.track.has_subtitles;
                 const isRestricted =
-                    body["track.lyrics.get"].message.header.status_code === 200 &&
-                    body["track.lyrics.get"].message.body.lyrics.restricted;
+                    body["track.lyrics.get"].message.header.status_code === 200 && body["track.lyrics.get"].message.body.lyrics.restricted;
                 const isInstrumental = meta.track.instrumental;
 
                 if (isRestricted) {
