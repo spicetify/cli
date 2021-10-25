@@ -103,7 +103,12 @@ func init() {
 }
 
 func main() {
-	// Non-chainable commands
+	utils.PrintBold("spicetify v" + version)
+	cmd.CheckUpgrade(version)
+
+	cmd.InitPaths()
+
+	// Unchainable commands
 	switch commands[0] {
 	case "config":
 		commands = commands[1:]
@@ -155,15 +160,7 @@ func main() {
 	case "upgrade":
 		cmd.Upgrade(version)
 		return
-	}
 
-	utils.PrintBold("spicetify v" + version)
-	cmd.CheckUpgrade(version)
-
-	cmd.InitPaths()
-
-	// Unchainable commands
-	switch commands[0] {
 	case "watch":
 		var name []string
 		if len(commands) > 1 {
