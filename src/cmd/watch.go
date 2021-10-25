@@ -52,7 +52,7 @@ func Watch(liveUpdate bool) {
 				if err != nil {
 					utils.Fatal(err)
 				}
-				
+
 				updateAssets()
 				utils.PrintSuccess(utils.PrependTime("Custom assets are updated"))
 			}, autoReloadFunc)
@@ -109,7 +109,7 @@ func WatchExtensions(extName []string, liveUpdate bool) {
 			os.Exit(1)
 		}
 
-		pushExtensions(filePath)
+		pushExtensions(filePath, extName...)
 
 		utils.PrintSuccess(utils.PrependTime(`Extension "` + filePath + `" is updated.`))
 	}, autoReloadFunc)
@@ -125,7 +125,7 @@ func WatchCustomApp(appName []string, liveUpdate bool) {
 		startDebugger()
 	}
 
-	var appNameList []string 
+	var appNameList []string
 	if len(appName) > 0 {
 		appNameList = appName
 	} else {
@@ -139,7 +139,7 @@ func WatchCustomApp(appName []string, liveUpdate bool) {
 			utils.PrintError(`Custom app "` + v + `" not found.`)
 			continue
 		}
-	
+
 		var appFileList []string
 		jsFilePath := filepath.Join(appPath, "index.js")
 		if _, err := os.Stat(jsFilePath); err != nil {
@@ -157,16 +157,16 @@ func WatchCustomApp(appName []string, liveUpdate bool) {
 		if err == nil {
 			var manifestJson utils.AppManifest
 			if err = json.Unmarshal(manifestFileContent, &manifestJson); err == nil {
-				for _, subfile := range(manifestJson.Files) {
+				for _, subfile := range manifestJson.Files {
 					subfilePath := filepath.Join(appPath, subfile)
 					appFileList = append(appFileList, subfilePath)
 				}
-				for _, subfile := range(manifestJson.ExtensionFiles) {
+				for _, subfile := range manifestJson.ExtensionFiles {
 					subfilePath := filepath.Join(appPath, subfile)
 					appFileList = append(appFileList, subfilePath)
 				}
 			}
-			
+
 		}
 
 		threadCount += 1
@@ -176,9 +176,9 @@ func WatchCustomApp(appName []string, liveUpdate bool) {
 				utils.PrintError(err.Error())
 				os.Exit(1)
 			}
-	
+
 			pushApps(appName)
-	
+
 			utils.PrintSuccess(utils.PrependTime(`Custom app "` + appName + `" is updated.`))
 		}, autoReloadFunc)
 	}
