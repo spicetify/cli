@@ -26,7 +26,7 @@ jobs:
         # The message to post on the pull request when closing it. If none provided, will not comment when closing a pull requests.
         close-pr-message: "Closing this PR due to inactivity.\n\nLet someone know if I'm wrong, after all, I'm just a bot!"
         # The number of days old an issue or a pull request can be before marking it stale. Set to -1 to never mark issues or pull requests as stale automatically.
-        days-before-stale: 60
+        days-before-stale: 15
         # The number of days to wait to close an issue or a pull request after it being marked stale. Set to -1 to never close stale issues or pull requests.
         days-before-close: 7
         # The label to apply when an issue is stale.
