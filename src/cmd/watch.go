@@ -109,7 +109,7 @@ func WatchExtensions(extName []string, liveUpdate bool) {
 			os.Exit(1)
 		}
 
-		pushExtensions(filePath)
+		pushExtensions("",filePath)
 
 		utils.PrintSuccess(utils.PrependTime(`Extension "` + filePath + `" is updated.`))
 	}, autoReloadFunc)
