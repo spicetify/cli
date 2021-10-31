@@ -287,7 +287,7 @@ func exposeAPIs_main(input string) string {
 	// React Hook
 	utils.ReplaceOnce(
 		&input,
-		`\w+=\(\w+,(\w+)\.lazy\)\(\(\(\)=>Promise\.resolve\(\)\.then\(\w+\.bind\(\w+,\w+\)\)\)\);`,
+		`\w+=\(\w+,(\w+)\.lazy\)\(?\(\(\)=>\w+\.\w+\((?:\d+)?\)\.then\(\w+\.bind\(\w+,\w+\)\)\)\)?;`,
 		`${0}Spicetify.React=${1};`)
 
 	utils.Replace(
