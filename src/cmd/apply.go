@@ -53,6 +53,10 @@ func Apply(spicetifyVersion string) {
 	updateCSS()
 	utils.PrintGreen("OK")
 
+	utils.PrintBold(`Exporting Spicetify version:`)
+	updateSpicetifyVersion()
+	utils.PrintGreen("OK")
+
 	if overwriteAssets {
 		utils.PrintBold(`Overwriting custom assets:`)
 		updateAssets()
@@ -172,6 +176,16 @@ func updateCSS() {
 			configJsonBytes,
 			0700)
 	}
+}
+
+func updateSpicetifyVersion() {
+	backupSpicetifyVersion := backupSection.Key("with").MustString("")
+	jsVersion := fmt.Sprintf(`const spicetifyVersion = "%s";`, backupSpicetifyVersion)
+
+	os.WriteFile(
+		filepath.Join(appDestPath, "xpui", "helper", "version.js"),
+		[]byte(jsVersion),
+		0700)
 }
 
 func updateAssets() {

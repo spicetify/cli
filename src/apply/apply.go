@@ -86,6 +86,8 @@ func htmlMod(htmlPath string, flags Flag) {
 		helperHTML += `<script defer src="helper/homeConfig.js"></script>` + "\n"
 	}
 
+	helperHTML += `<script defer src="helper/version.js"></script>` + "\n"
+
 	for _, v := range flags.Extension {
 		if strings.HasSuffix(v, ".mjs") {
 			extensionsHTML += `<script defer type="module" src="extensions/` + v + `"></script>` + "\n"
