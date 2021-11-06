@@ -745,6 +745,34 @@ Spicetify.ContextMenu = (function () {
 
     SubMenu.iconList = iconList;
 
+    function _addItemsRecursive(instance, currentItem, uris, uids, contextUri) {
+        if (currentItem._items?.size) {
+            const htmlSubmenu = new _HTMLContextSubmenu({
+                placement: instance.firstChild.dataset.placement,
+            });
+
+            for (const child of currentItem._items) {
+                if (!child.shouldAdd(uris, uids, contextUri)) {
+                    continue;
+                }
+
+                child._element.onclick = () => {
+                    if (!child._disabled) {
+                        child.onClick(uris, uids, contextUri);
+                        htmlSubmenu.remove();
+                        instance._tippy?.props?.onClickOutside();
+                    }
+                };
+                htmlSubmenu.addItem(child._element);
+
+                _addItemsRecursive(instance, child, uris, uids, contextUri);
+            }
+
+            currentItem._submenuElement = htmlSubmenu;
+            currentItem.disabled = currentItem._disabled;
+        }
+    }
+
     function _addItems(instance) {
         const list = instance.querySelector("ul");
         const container = instance.firstChild;
@@ -779,23 +807,7 @@ Spicetify.ContextMenu = (function () {
             }
 
             if (item._items?.size) {
-                const htmlSubmenu = new _HTMLContextSubmenu({
-                    placement: instance.firstChild.dataset.placement,
-                });
-
-                for (const child of item._items) {
-                    child._element.onclick = () => {
-                        if (!child._disabled) {
-                            child.onClick(uris, uids, contextUri);
-                            htmlSubmenu.remove();
-                            instance._tippy?.props?.onClickOutside();
-                        }
-                    };
-                    htmlSubmenu.addItem(child._element);
-                }
-
-                item._submenuElement = htmlSubmenu;
-                item.disabled = item._disabled;
+                _addItemsRecursive(instance, item, uris, uids, contextUri);
                 elemList.push(item._element);
                 continue;
             }
