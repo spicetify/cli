@@ -16,6 +16,7 @@ type Flag struct {
 	CustomApp     []string
 	SidebarConfig bool
 	HomeConfig    bool
+	SpicetifyVer  string
 }
 
 // AdditionalOptions .
@@ -84,6 +85,10 @@ func htmlMod(htmlPath string, flags Flag) {
 
 	if flags.HomeConfig {
 		helperHTML += `<script defer src="helper/homeConfig.js"></script>` + "\n"
+	}
+
+	if flags.SpicetifyVer != "" {
+		helperHTML += `<script>Spicetify.version="` + flags.SpicetifyVer + `";</script>` + "\n"
 	}
 
 	for _, v := range flags.Extension {
