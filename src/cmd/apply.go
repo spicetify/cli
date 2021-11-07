@@ -358,7 +358,7 @@ func nodeModuleSymlink() {
 
 	utils.PrintBold(`Found node_modules folder. Creating node_modules symlink:`)
 
-	nodeModuleDest := filepath.Join(appDestPath, "xpui", "node_modules")
+	nodeModuleDest := filepath.Join(appDestPath, "xpui", "extensions", "node_modules")
 	if err = utils.CreateJunction(nodeModulePath, nodeModuleDest); err != nil {
 		utils.PrintError("Cannot create node_modules symlink")
 		return
