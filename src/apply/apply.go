@@ -262,8 +262,8 @@ func insertHomeConfig(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		utils.ReplaceOnce(
 			&content,
-			`(\w+\.filter\(\w+\))\.map`,
-			`SpicetifyHomeConfig.arrange(${1}).map`)
+			`(const \w+=null==\w+\?void 0\:)(\w+\.content\.items)`,
+			`${1}SpicetifyHomeConfig.arrange(${2})`)
 		utils.ReplaceOnce(
 			&content,
 			`;(\(0,\w+\.useEffect\))`,
