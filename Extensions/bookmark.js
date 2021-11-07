@@ -461,7 +461,7 @@
 
     const fetchShow = async (uri) => {
         const base62 = uri.split(":")[2];
-        const res = await CosmosAsync.get(`sp://core-show/unstable/show/${base62}?responseFormat=protobufJson`, {
+        const res = await CosmosAsync.get(`sp://core-show/v1/shows/${base62}?responseFormat=protobufJson`, {
             policy: { list: { index: true } },
         });
         return {

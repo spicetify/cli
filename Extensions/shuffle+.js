@@ -225,7 +225,7 @@
      * @returns {Promise<string[]>}
      */
     const fetchShow = async (uriBase62) => {
-        const res = await Spicetify.CosmosAsync.get(`sp://core-show/unstable/show/${uriBase62}?responseFormat=protobufJson`);
+        const res = await Spicetify.CosmosAsync.get(`sp://core-show/v1/shows/${uriBase62}?responseFormat=protobufJson`);
         const availables = res.items.filter((track) => track.episodePlayState.isPlayable);
         return availables.map((item) => item.episodeMetadata.link);
     };

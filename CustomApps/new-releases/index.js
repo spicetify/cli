@@ -255,7 +255,7 @@ async function getPodcastList() {
 }
 
 async function getPodcastRelease(uri) {
-    const body = await CosmosAsync.get(`sp://core-show/unstable/show/${uri}?responseFormat=protobufJson`, {
+    const body = await CosmosAsync.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`, {
         policy: { list: { link: true, name: true, publishDate: true } },
     });
     return body.items;
