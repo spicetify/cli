@@ -16,6 +16,7 @@ type Flag struct {
 	CustomApp     []string
 	SidebarConfig bool
 	HomeConfig    bool
+	ExpFeatures   bool
 	SpicetifyVer  string
 }
 
@@ -24,6 +25,7 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
 		filepath.Join(appsFolderPath, "xpui", "index.html"):          htmlMod,
 		filepath.Join(appsFolderPath, "xpui", "xpui.js"):             insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):      insertExpFeatures,
 		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"): insertHomeConfig,
 	}
 
@@ -44,6 +46,12 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	if flags.HomeConfig {
 		utils.CopyFile(
 			filepath.Join(utils.GetJsHelperDir(), "homeConfig.js"),
+			filepath.Join(appsFolderPath, "xpui", "helper"))
+	}
+
+	if flags.ExpFeatures {
+		utils.CopyFile(
+			filepath.Join(utils.GetJsHelperDir(), "expFeatures.js"),
 			filepath.Join(appsFolderPath, "xpui", "helper"))
 	}
 }
@@ -72,7 +80,8 @@ func UserAsset(appsFolderPath, themeFolder string) {
 func htmlMod(htmlPath string, flags Flag) {
 	if len(flags.Extension) == 0 &&
 		!flags.HomeConfig &&
-		!flags.SidebarConfig {
+		!flags.SidebarConfig &&
+		!flags.ExpFeatures {
 		return
 	}
 
@@ -85,6 +94,10 @@ func htmlMod(htmlPath string, flags Flag) {
 
 	if flags.HomeConfig {
 		helperHTML += `<script defer src="helper/homeConfig.js"></script>` + "\n"
+	}
+
+	if flags.ExpFeatures {
+		helperHTML += `<script defer src="helper/expFeatures.js"></script>` + "\n"
 	}
 
 	if flags.SpicetifyVer != "" {
@@ -280,4 +293,18 @@ func getAssetsPath(themeFolder string) string {
 	}
 
 	return dir
+}
+
+func insertExpFeatures(jsPath string, flags Flag) {
+	if !flags.ExpFeatures {
+		return
+	}
+
+	utils.ModifyFile(jsPath, func(content string) string {
+		utils.ReplaceOnce(
+			&content,
+			`(function \w+\((\w+)\)\{)(return \w+\(\{name:\w+\.name,description)`,
+			`${1}${2}=Spicetify.expFeatureOverride(${2});${3}`)
+		return content
+	})
 }

@@ -31,10 +31,11 @@ var (
 			"disable_upgrade_check": "1",
 		},
 		"AdditionalOptions": {
-			"extensions":     "",
-			"custom_apps":    "",
-			"sidebar_config": "1",
-			"home_config":    "1",
+			"extensions":            "",
+			"custom_apps":           "",
+			"sidebar_config":        "1",
+			"home_config":           "1",
+			"experimental_features": "1",
 		},
 		"Patch": {},
 	}
