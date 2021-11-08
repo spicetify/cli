@@ -125,7 +125,7 @@ func main() {
 		}
 		return
 
-	case "show-config-dir":
+	case "config-dir":
 		cmd.ShowConfigDirectory()
 		return
 
@@ -331,7 +331,7 @@ color               1. Print all color fields and values.
                     - Change slider_bg to 00ff00 and pressing_fg to 0000ff
                     spicetify color slider_bg 00ff00 pressing_fg 0000ff
 
-show-config-dir		Shows config directory in file viewer
+config-dir          Shows config directory in file viewer
 
 upgrade             Upgrade spicetify latest version
 
