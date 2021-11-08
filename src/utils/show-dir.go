@@ -12,7 +12,10 @@ func ShowDirectory(dir string) error {
 	err = nil
 
 	if runtime.GOOS == "windows" {
-		_, err = exec.Command("start", dir).Output()
+		_, err = exec.Command("explorer", dir).Output()
+		if(err != nil && err.Error() == "exit status 1") {
+			err = nil
+		}
 	} else if runtime.GOOS == "linux" {
 		_, err = exec.Command("xdg-open", dir).Output()
 	} else if runtime.GOOS == "darwin" {
