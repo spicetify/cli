@@ -1,4 +1,4 @@
-(function() {
+(function () {
     let overrideList;
     try {
         overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
@@ -7,13 +7,12 @@
         overrideList = {};
     }
 
-    Spicetify.expFeatureOverride = function(feature) {
-        if (typeof feature.default === "boolean" &&
-            overrideList[feature.name] !== undefined) {
+    Spicetify.expFeatureOverride = function (feature) {
+        if (typeof feature.default === "boolean" && overrideList[feature.name] !== undefined) {
             feature.default = overrideList[feature.name];
         }
-        return feature
-    }
+        return feature;
+    };
 
     let content = document.createElement("div");
     let style = document.createElement("style");
@@ -57,11 +56,10 @@ button.switch[disabled] {
     new Spicetify.Menu.Item("Experimental features", false, () => {
         Spicetify.PopupModal.display({
             title: "Experimental features",
-            content
-        })
+            content,
+        });
     }).register();
 
-    
     (function waitForRemoteConfigResolver() {
         let resolver = Spicetify.Platform?.RemoteConfigResolver;
         if (!resolver) {
@@ -78,7 +76,7 @@ button.switch[disabled] {
             localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
             resolver.activeProperties[name].value = value;
         }
-    
+
         function createSlider(name, desc, defaultVal) {
             const container = document.createElement("div");
             container.classList.add("setting-row");
@@ -89,29 +87,25 @@ button.switch[disabled] {
         ${Spicetify.SVGIcons.check}
     </svg>
 </button></div>`;
-    
+
             const slider = container.querySelector("button");
             slider.classList.toggle("disabled", !defaultVal);
-    
+
             slider.onclick = () => {
                 const state = slider.classList.contains("disabled");
                 slider.classList.toggle("disabled");
                 changeValue(name, state);
             };
-    
+
             return container;
         }
 
         for (const propName in resolver.propertySet.properties) {
             const prop = resolver.propertySet.properties[propName].spec;
-    
+
             if (prop.type !== "bool") continue;
-    
-            content.appendChild(createSlider(
-                propName,
-                prop.description,
-                resolver.activeProperties[propName].value,
-            ));
+
+            content.appendChild(createSlider(propName, prop.description, resolver.activeProperties[propName].value));
         }
     })();
 })();
