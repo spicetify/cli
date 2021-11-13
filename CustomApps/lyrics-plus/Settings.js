@@ -77,7 +77,10 @@ const ConfigSelection = ({ name, defaultValue, options, onChange = () => {} }) =
 
     const setValueCallback = useCallback(
         (event) => {
-            const value = event.target.value;
+            let value = event.target.value;
+            if (!isNaN(Number(value))) {
+                value = parseInt(value);
+            }
             setValue(value);
             onChange(value);
         },
@@ -295,6 +298,22 @@ function openConfig() {
                         center: "Center",
                         right: "Right",
                     },
+                    when: () => true,
+                },
+                {
+                    desc: "Lines to show before",
+                    key: "lines-before",
+                    defaultValue: CONFIG.visual["lines-before"],
+                    type: ConfigSelection,
+                    options: [0, 1, 2, 3, 4],
+                    when: () => true,
+                },
+                {
+                    desc: "Lines to show after",
+                    key: "lines-after",
+                    defaultValue: CONFIG.visual["lines-after"],
+                    type: ConfigSelection,
+                    options: [0, 1, 2, 3, 4],
                     when: () => true,
                 },
                 {

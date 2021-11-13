@@ -43,6 +43,8 @@ const CONFIG = {
         ["inactive-color"]: localStorage.getItem("lyrics-plus:visual:inactive-color") || "rgba(var(--spice-rgb-subtext),0.5)",
         ["highlight-color"]: localStorage.getItem("lyrics-plus:visual:highlight-color") || "var(--spice-button)",
         alignment: localStorage.getItem("lyrics-plus:visual:alignment") || "center",
+        ["lines-before"]: localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
+        ["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
     },
     providers: {
         netease: {
@@ -83,6 +85,8 @@ try {
 }
 
 CONFIG.locked = parseInt(CONFIG.locked);
+CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
+CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
 
 const CACHE = {};
 

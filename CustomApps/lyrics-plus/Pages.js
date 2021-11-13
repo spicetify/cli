@@ -24,11 +24,6 @@ const emptyLine = {
     text: "",
 };
 
-const LINES_TO_SHOW = 3;
-const lyricsLineCount = {
-    "--line-count": LINES_TO_SHOW,
-};
-
 const useTrackPosition = (callback) => {
     const callbackRef = useRef();
     callbackRef.current = callback;
@@ -68,15 +63,16 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
     }
 
     const activeLines = useMemo(() => {
-        const startIndex = Math.max(activeLineIndex - 1, 0);
-        return lyricWithEmptyLines.slice(startIndex, startIndex + LINES_TO_SHOW + 2);
+        const startIndex = Math.max(activeLineIndex - 1 - CONFIG.visual["lines-before"], 0);
+        // 3 lines = 1 padding top + 1 padding bottom + 1 active
+        const linesCount = CONFIG.visual["lines-before"] + CONFIG.visual["lines-after"] + 3;
+        return lyricWithEmptyLines.slice(startIndex, startIndex + linesCount);
     }, [activeLineIndex, lyricWithEmptyLines]);
 
     return react.createElement(
         "div",
         {
             className: "lyrics-lyricsContainer-SyncedLyricsPage",
-            style: lyricsLineCount,
         },
         react.createElement(
             "div",
@@ -84,10 +80,15 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
                 className: "lyrics-lyricsContainer-SyncedLyrics",
             },
             activeLines.map(({ text, lineNumber }, i) => {
+                let className = "lyrics-lyricsContainer-LyricsLine";
+                let activeElementIndex = Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1);
+                if (activeElementIndex === i) {
+                    className += " lyrics-lyricsContainer-LyricsLine-active";
+                }
                 return react.createElement(
                     "p",
                     {
-                        className: "lyrics-lyricsContainer-LyricsLine",
+                        className,
                         style: {
                             "--animation-index": i,
                         },
@@ -139,15 +140,16 @@ const KaraokeLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
     }
 
     const activeLines = useMemo(() => {
-        const startIndex = Math.max(activeLineIndex - 1, 0);
-        return padded.slice(startIndex, startIndex + LINES_TO_SHOW + 2);
+        const startIndex = Math.max(activeLineIndex - 1 - CONFIG.visual["lines-before"], 0);
+        // 3 lines = 1 padding top + 1 padding bottom + 1 active
+        const linesCount = CONFIG.visual["lines-before"] + CONFIG.visual["lines-after"] + 3;
+        return padded.slice(startIndex, startIndex + linesCount);
     }, [activeLineIndex, padded]);
 
     return react.createElement(
         "div",
         {
             className: "lyrics-lyricsContainer-SyncedLyricsPage",
-            style: lyricsLineCount,
         },
         react.createElement(
             "div",
@@ -156,6 +158,7 @@ const KaraokeLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
             },
             activeLines.map(({ text, lineNumber, startTime }, i) => {
                 let timeAcc = startTime;
+                let activeElementIndex = Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1);
                 return react.createElement(
                     "p",
                     {
@@ -166,7 +169,7 @@ const KaraokeLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
                         key: lineNumber,
                         dir: "auto",
                     },
-                    i == 1
+                    activeElementIndex === i
                         ? text.map(({ word, time }) => {
                               const isWordActive = position >= timeAcc;
                               timeAcc += time;
