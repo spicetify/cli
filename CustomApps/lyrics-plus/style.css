@@ -411,7 +411,7 @@ div.lyrics-tabBar-headerItemLink {
     clear: both;
 }
 .setting-row .col {
-    padding: 10px 0;
+    padding: 16px 0 4px;
     align-items: center;
 }
 .setting-row .col.description {
@@ -444,7 +444,7 @@ button.switch[disabled] {
 button.switch.small {
     width: 22px;
     height: 22px;
-    padding: 6px;
+    padding: 3px;
 }
 
 #lyrics-plus-config-container input {
@@ -461,4 +461,9 @@ button.switch.small {
     margin-inline-start: 12px;
     width: 22px;
     text-align: center;
+}
+
+#lyrics-plus-config-container span {
+    font-size: 14px;
+    opacity: .8;
 }

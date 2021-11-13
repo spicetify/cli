@@ -273,6 +273,7 @@ class LyricsContainer extends react.Component {
                 temp = fontSizeLimit.max;
             }
             CONFIG.visual["font-size"] = temp;
+            localStorage.setItem("lyrics-plus:visual:font-size", temp);
             lyricContainerUpdate();
         };
         window.addEventListener("mousewheel", this.onFontSizeChange);

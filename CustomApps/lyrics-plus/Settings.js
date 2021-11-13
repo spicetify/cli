@@ -318,14 +318,21 @@ const OptionList = ({ items, onChange }) => {
         if (!item.when()) {
             return;
         }
-        return react.createElement(item.type, {
-            ...item,
-            name: item.desc,
-            onChange: (value) => {
-                onChange(item.key, value);
-                setItems([...items]);
-            },
-        });
+        return react.createElement("div", null,
+            react.createElement(item.type, {
+                ...item,
+                name: item.desc,
+                onChange: (value) => {
+                    onChange(item.key, value);
+                    setItems([...items]);
+                },
+            }),
+            item.info && react.createElement("span", {
+                dangerouslySetInnerHTML: {
+                    __html: item.info,
+                },
+            }),
+        );
     });
 };
 
@@ -340,6 +347,7 @@ function openConfig() {
             items: [
                 {
                     desc: "Font size",
+                    info: "(or Ctrl + Mouse scroll in main app)",
                     key: "font-size",
                     defaultValue: CONFIG.visual["font-size"],
                     type: ConfigAdjust,
