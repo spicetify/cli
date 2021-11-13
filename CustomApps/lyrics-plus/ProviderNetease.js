@@ -7,7 +7,7 @@ const ProviderNetease = (function () {
         const searchURL = `https://music.xianqiao.wang/neteaseapiv2/search?limit=10&type=1&keywords=`;
         const lyricURL = `https://music.xianqiao.wang/neteaseapiv2/lyric?id=`;
 
-        const cleanTitle = Utils.removeSongFeat(Utils.normalize(info.title));
+        const cleanTitle = Utils.removeExtraInfo(Utils.removeSongFeat(Utils.normalize(info.title)));
         const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 
         const searchResults = await CosmosAsync.get(finalURL, null, requestHeader);
