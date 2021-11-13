@@ -119,6 +119,9 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 					utils.Replace(&content, k, v)
 				}
 				content = colorVariableReplaceForJS(content)
+
+				// Webpack name changed from v1.1.72
+				utils.Replace(&content, "webpackChunkclient_web", "webpackChunkopen")
 				return content
 			})
 		case ".css":
