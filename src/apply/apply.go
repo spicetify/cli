@@ -56,14 +56,16 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	}
 }
 
-// UserCSS creates user.css file in "xpui".
+// UserCSS creates colors.css user.css files in "xpui".
 // To not use custom css, set `themeFolder` to blank string
 // To use default color scheme, set `scheme` to `nil`
 func UserCSS(appsFolderPath, themeFolder string, scheme map[string]string) {
-	css := []byte(getColorCSS(scheme) + getUserCSS(themeFolder))
-
-	dest := filepath.Join(appsFolderPath, "xpui", "user.css")
-	if err := ioutil.WriteFile(dest, css, 0700); err != nil {
+	colorsDest := filepath.Join(appsFolderPath, "xpui", "colors.css")
+	if err := ioutil.WriteFile(colorsDest, []byte(getColorCSS(scheme)), 0700); err != nil {
+		utils.Fatal(err)
+	}
+	cssDest := filepath.Join(appsFolderPath, "xpui", "user.css")
+	if err := ioutil.WriteFile(cssDest, []byte(getUserCSS(themeFolder)), 0700); err != nil {
 		utils.Fatal(err)
 	}
 }
