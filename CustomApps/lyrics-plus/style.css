@@ -146,6 +146,7 @@
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine:first-of-type,
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine:last-of-type {
     opacity: 0;
+    line-height: 0;
 }
 
 .lyrics-lyricsContainer-LyricsUnavailableMessage,
@@ -174,46 +175,23 @@
 }
 
 .lyrics-lyricsContainer-UnsyncedLyricsPage .lyrics-lyricsContainer-LyricsLine {
-    font-size: 32px;
+    font-size: var(--lyrics-font-size);
     font-weight: 700;
     letter-spacing: -0.04em;
-    line-height: 54px;
-}
-
-@media (min-width: 1024px) {
-    .lyrics-lyricsContainer-UnsyncedLyricsPage .lyrics-lyricsContainer-LyricsLine {
-        font-size: 48px;
-        font-weight: 700;
-        letter-spacing: -0.04em;
-        line-height: 72px;
-    }
+    line-height: calc(4px + var(--lyrics-font-size));
 }
 
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
-    --lyrics-line-height: 36px;
-    font-size: 32px;
+    --lyrics-line-height: calc(4px + var(--lyrics-font-size));
+    font-size: var(--lyrics-font-size);
     font-weight: 700;
     letter-spacing: -0.04em;
-    line-height: 36px;
-}
-
-@media (min-width: 1024px) {
-    .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
-        --lyrics-line-height: 48px;
-        font-size: 48px;
-        font-weight: 700;
-        letter-spacing: -0.04em;
-        line-height: 48px;
-    }
+    line-height: var(--lyrics-line-height);
 }
 
 @media (min-width: 1280px) {
     .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
-        --lyrics-line-height: 64px;
-        font-size: 64px;
         font-weight: 900;
-        letter-spacing: -0.04em;
-        line-height: 64px;
     }
 }
 
@@ -478,4 +456,9 @@ button.switch.small {
     color: var(--spice-text);
     background-color: initial;
     border-bottom: 1px solid var(--spice-text);
+}
+#lyrics-plus-config-container .adjust-value {
+    margin-inline-start: 12px;
+    width: 22px;
+    text-align: center;
 }

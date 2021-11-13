@@ -161,6 +161,57 @@ const ConfigInput = ({ name, defaultValue, onChange = () => {} }) => {
     );
 };
 
+const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = () => {} }) => {
+    const [value, setValue] = useState(defaultValue);
+
+    function adjust(dir) {
+        console.log(defaultValue, value, step, dir, min, max)
+        let temp = value + dir * step;
+        if (temp < min) {
+            temp = min;
+        } else if (temp > max) {
+            temp = max;
+        }
+        setValue(temp);
+        onChange(temp);
+    }
+    return react.createElement(
+        "div",
+        {
+            className: "setting-row",
+        },
+        react.createElement(
+            "label",
+            {
+                className: "col description",
+            },
+            name
+        ),
+        react.createElement(
+            "div",
+            {
+                className: "col action",
+            },
+            react.createElement(SwapButton, {
+                icon: `<path d="M2 7h12v2H0z"/>`,
+                onClick: () => adjust(-1),
+                disabled: value === min,
+            }),
+            react.createElement("p",
+                {
+                    className: "adjust-value"
+                },
+                value
+            ),
+            react.createElement(SwapButton, {
+                icon: Spicetify.SVGIcons.plus2px,
+                onClick: () => adjust(1),
+                disabled: value === max,
+            })
+        )
+    );
+};
+
 const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false, onTokenChange = null }) => {
     const [token, setToken] = useState(item.token);
     const [active, setActive] = useState(item.on);
@@ -268,9 +319,8 @@ const OptionList = ({ items, onChange }) => {
             return;
         }
         return react.createElement(item.type, {
+            ...item,
             name: item.desc,
-            defaultValue: item.defaultValue,
-            options: item.options,
             onChange: (value) => {
                 onChange(item.key, value);
                 setItems([...items]);
@@ -288,6 +338,16 @@ function openConfig() {
         react.createElement("h2", null, "Options"),
         react.createElement(OptionList, {
             items: [
+                {
+                    desc: "Font size",
+                    key: "font-size",
+                    defaultValue: CONFIG.visual["font-size"],
+                    type: ConfigAdjust,
+                    min: fontSizeLimit.min,
+                    max: fontSizeLimit.max,
+                    step: fontSizeLimit.step,
+                    when: () => true,
+                },
                 {
                     desc: "Alignment",
                     key: "alignment",

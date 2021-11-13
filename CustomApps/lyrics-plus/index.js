@@ -45,6 +45,7 @@ const CONFIG = {
         alignment: localStorage.getItem("lyrics-plus:visual:alignment") || "center",
         ["lines-before"]: localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
         ["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
+        ["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
     },
     providers: {
         netease: {
@@ -87,6 +88,7 @@ try {
 CONFIG.locked = parseInt(CONFIG.locked);
 CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
 CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
+CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
 
 const CACHE = {};
 
@@ -98,6 +100,8 @@ const emptyState = {
 };
 
 let lyricContainerUpdate;
+
+const fontSizeLimit = { min: 16, max: 256, step: 4 };
 
 class LyricsContainer extends react.Component {
     constructor() {
@@ -258,11 +262,26 @@ class LyricsContainer extends react.Component {
 
         this.configButton = new Spicetify.Menu.Item("Lyrics Plus config", false, openConfig);
         this.configButton.register();
+
+        this.onFontSizeChange = (event) => {
+            if (!event.ctrlKey) return;
+            let dir = event.deltaY < 0 ? 1 : -1;
+            let temp = CONFIG.visual["font-size"] + dir * fontSizeLimit.step;
+            if (temp < fontSizeLimit.min) {
+                temp = fontSizeLimit.min;
+            } else if (temp > fontSizeLimit.max) {
+                temp = fontSizeLimit.max;
+            }
+            CONFIG.visual["font-size"] = temp;
+            lyricContainerUpdate();
+        };
+        window.addEventListener("mousewheel", this.onFontSizeChange);
     }
 
     componentWillUnmount() {
         Utils.removeQueueListener(this.onQueueChange);
         this.configButton.deregister();
+        window.removeEventListener("mousewheel", this.onFontSizeChange);
     }
 
     updateVisualOnConfigChange() {
@@ -283,6 +302,7 @@ class LyricsContainer extends react.Component {
         this.styleVariables = {
             ...this.styleVariables,
             "--lyrics-align-text": CONFIG.visual.alignment,
+            "--lyrics-font-size": CONFIG.visual["font-size"] + "px",
         };
     }
 
@@ -300,6 +320,7 @@ class LyricsContainer extends react.Component {
         this.styleVariables = {
             ...this.styleVariables,
             "--lyrics-align-text": CONFIG.visual.alignment,
+            "--lyrics-font-size": CONFIG.visual["font-size"] + "px",
         };
 
         let mode = -1;
