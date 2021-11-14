@@ -119,7 +119,12 @@ func init() {
 }
 
 func main() {
-	// Non-chainable commands
+	utils.PrintBold("spicetify v" + version)
+	cmd.CheckUpgrade(version)
+
+	cmd.InitPaths()
+
+	// Unchainable commands
 	switch commands[0] {
 	case "config":
 		commands = commands[1:]
@@ -131,6 +136,7 @@ func main() {
 			cmd.EditConfig(commands)
 		}
 		return
+
 	case "color":
 		commands = commands[1:]
 		if len(commands) == 0 {
@@ -138,6 +144,10 @@ func main() {
 		} else {
 			cmd.EditColor(commands)
 		}
+		return
+
+	case "config-dir":
+		cmd.ShowConfigDirectory()
 		return
 
 	case "path":
@@ -171,15 +181,7 @@ func main() {
 	case "upgrade":
 		cmd.Upgrade(version)
 		return
-	}
 
-	utils.PrintBold("spicetify v" + version)
-	cmd.CheckUpgrade(version)
-
-	cmd.InitPaths()
-
-	// Unchainable commands
-	switch commands[0] {
 	case "watch":
 		var name []string
 		if len(commands) > 1 {
@@ -342,6 +344,8 @@ color               1. Print all color fields and values.
                     - Change slider_bg to 00ff00 and pressing_fg to 0000ff
                     spicetify color slider_bg 00ff00 pressing_fg 0000ff
 
+config-dir          Shows config directory in file viewer
+
 upgrade             Upgrade spicetify latest version
 
 ` + utils.Bold("FLAGS") + `
@@ -425,6 +429,10 @@ custom_apps <string>
 extensions <string>
     List of Javascript files to be executed along with Spotify main script.
     Separate each extension with "|".
+
+experimental_features <0 | 1>
+    Enable ability to activate unfinished or work-in-progress features that would eventually be released in future Spotify updates.
+    Open "Experimental features" popup in Profile menu.
 
 home_config <0 | 1>
     Enable ability to re-arrange sections in Home page.

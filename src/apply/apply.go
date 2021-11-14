@@ -16,6 +16,8 @@ type Flag struct {
 	CustomApp     []string
 	SidebarConfig bool
 	HomeConfig    bool
+	ExpFeatures   bool
+	SpicetifyVer  string
 }
 
 // AdditionalOptions .
@@ -23,6 +25,7 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
 		filepath.Join(appsFolderPath, "xpui", "index.html"):          htmlMod,
 		filepath.Join(appsFolderPath, "xpui", "xpui.js"):             insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):      insertExpFeatures,
 		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"): insertHomeConfig,
 	}
 
@@ -45,16 +48,24 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 			filepath.Join(utils.GetJsHelperDir(), "homeConfig.js"),
 			filepath.Join(appsFolderPath, "xpui", "helper"))
 	}
+
+	if flags.ExpFeatures {
+		utils.CopyFile(
+			filepath.Join(utils.GetJsHelperDir(), "expFeatures.js"),
+			filepath.Join(appsFolderPath, "xpui", "helper"))
+	}
 }
 
-// UserCSS creates user.css file in "xpui".
+// UserCSS creates colors.css user.css files in "xpui".
 // To not use custom css, set `themeFolder` to blank string
 // To use default color scheme, set `scheme` to `nil`
 func UserCSS(appsFolderPath, themeFolder string, scheme map[string]string) {
-	css := []byte(getColorCSS(scheme) + getUserCSS(themeFolder))
-
-	dest := filepath.Join(appsFolderPath, "xpui", "user.css")
-	if err := ioutil.WriteFile(dest, css, 0700); err != nil {
+	colorsDest := filepath.Join(appsFolderPath, "xpui", "colors.css")
+	if err := ioutil.WriteFile(colorsDest, []byte(getColorCSS(scheme)), 0700); err != nil {
+		utils.Fatal(err)
+	}
+	cssDest := filepath.Join(appsFolderPath, "xpui", "user.css")
+	if err := ioutil.WriteFile(cssDest, []byte(getUserCSS(themeFolder)), 0700); err != nil {
 		utils.Fatal(err)
 	}
 }
@@ -71,7 +82,8 @@ func UserAsset(appsFolderPath, themeFolder string) {
 func htmlMod(htmlPath string, flags Flag) {
 	if len(flags.Extension) == 0 &&
 		!flags.HomeConfig &&
-		!flags.SidebarConfig {
+		!flags.SidebarConfig &&
+		!flags.ExpFeatures {
 		return
 	}
 
@@ -86,11 +98,32 @@ func htmlMod(htmlPath string, flags Flag) {
 		helperHTML += `<script defer src="helper/homeConfig.js"></script>` + "\n"
 	}
 
+	if flags.ExpFeatures {
+		helperHTML += `<script defer src="helper/expFeatures.js"></script>` + "\n"
+	}
+
+	if flags.SpicetifyVer != "" {
+		helperHTML += `<script>Spicetify.version="` + flags.SpicetifyVer + `";</script>` + "\n"
+	}
+
 	for _, v := range flags.Extension {
 		if strings.HasSuffix(v, ".mjs") {
 			extensionsHTML += `<script defer type="module" src="extensions/` + v + `"></script>` + "\n"
 		} else {
 			extensionsHTML += `<script defer src="extensions/` + v + `"></script>` + "\n"
+		}
+	}
+
+	for _, v := range flags.CustomApp {
+		manifest, _, err := utils.GetAppManifest(v)
+		if err == nil {
+			for _, extensionFile := range manifest.ExtensionFiles {
+				if strings.HasSuffix(extensionFile, ".mjs") {
+					extensionsHTML += `<script defer type="module" src="extensions/` + v + `/` + extensionFile + `"></script>` + "\n"
+				} else {
+					extensionsHTML += `<script defer src="extensions/` + v + `/` + extensionFile + `"></script>` + "\n"
+				}
+			}
 		}
 	}
 
@@ -206,7 +239,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		utils.Replace(
 			&content,
-			`\w+\(\)\.createElement\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
+			`\w+\(\)\.createElement\("li",\{className:[\w$]+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
 			`Spicetify._sidebarItemToClone=${0}`)
 
 		utils.ReplaceOnce(
@@ -216,7 +249,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		sidebarItemMatch := utils.SeekToCloseParen(
 			content,
-			`\("li",\{className:\w+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
+			`\("li",\{className:[\w$]+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
 			'(', ')')
 
 		content = strings.Replace(
@@ -244,8 +277,8 @@ func insertHomeConfig(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		utils.ReplaceOnce(
 			&content,
-			`(\w+\.filter\(\w+\))\.map`,
-			`SpicetifyHomeConfig.arrange(${1}).map`)
+			`(const \w+=null==\w+\?void 0\:)(\w+\.content\.items)`,
+			`${1}SpicetifyHomeConfig.arrange(${2})`)
 		utils.ReplaceOnce(
 			&content,
 			`;(\(0,\w+\.useEffect\))`,
@@ -262,4 +295,18 @@ func getAssetsPath(themeFolder string) string {
 	}
 
 	return dir
+}
+
+func insertExpFeatures(jsPath string, flags Flag) {
+	if !flags.ExpFeatures {
+		return
+	}
+
+	utils.ModifyFile(jsPath, func(content string) string {
+		utils.ReplaceOnce(
+			&content,
+			`(function \w+\((\w+)\)\{)(return \w+\(\{name:\w+\.name,description)`,
+			`${1}${2}=Spicetify.expFeatureOverride(${2});${3}`)
+		return content
+	})
 }

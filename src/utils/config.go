@@ -15,7 +15,7 @@ var (
 		"Setting": {
 			"spotify_path":            "",
 			"prefs_path":              "",
-			"current_theme":           "SpicetifyDefault",
+			"current_theme":           "",
 			"color_scheme":            "",
 			"inject_css":              "1",
 			"replace_colors":          "1",
@@ -31,10 +31,11 @@ var (
 			"disable_upgrade_check": "1",
 		},
 		"AdditionalOptions": {
-			"extensions":     "",
-			"custom_apps":    "",
-			"sidebar_config": "1",
-			"home_config":    "1",
+			"extensions":            "",
+			"custom_apps":           "",
+			"sidebar_config":        "1",
+			"home_config":           "1",
+			"experimental_features": "1",
 		},
 		"Patch": {},
 	}

@@ -29,7 +29,10 @@ function getConfig(name, defaultVal = true) {
 const APP_NAME = "lyrics-plus";
 
 // Modes enum
-const KARAOKE = 0, SYNCED = 1, UNSYNCED = 2, GENIUS = 3;
+const KARAOKE = 0,
+    SYNCED = 1,
+    UNSYNCED = 2,
+    GENIUS = 3;
 
 const CONFIG = {
     visual: {
@@ -39,6 +42,10 @@ const CONFIG = {
         ["active-color"]: localStorage.getItem("lyrics-plus:visual:active-color") || "var(--spice-text)",
         ["inactive-color"]: localStorage.getItem("lyrics-plus:visual:inactive-color") || "rgba(var(--spice-rgb-subtext),0.5)",
         ["highlight-color"]: localStorage.getItem("lyrics-plus:visual:highlight-color") || "var(--spice-button)",
+        alignment: localStorage.getItem("lyrics-plus:visual:alignment") || "center",
+        ["lines-before"]: localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
+        ["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
+        ["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
     },
     providers: {
         netease: {
@@ -61,7 +68,7 @@ const CONFIG = {
             on: getConfig("lyrics-plus:provider:genius:on"),
             desc: `Provide unsynced lyrics with insights from artists themselves.`,
             modes: [GENIUS],
-        }
+        },
     },
     providersOrder: localStorage.getItem("lyrics-plus:services-order"),
     modes: ["karaoke", "synced", "unsynced", "genius"],
@@ -70,10 +77,7 @@ const CONFIG = {
 
 try {
     CONFIG.providersOrder = JSON.parse(CONFIG.providersOrder);
-    if (
-        !Array.isArray(CONFIG.providersOrder) ||
-        Object.keys(CONFIG.providers).length !== CONFIG.providersOrder.length
-    ) {
+    if (!Array.isArray(CONFIG.providersOrder) || Object.keys(CONFIG.providers).length !== CONFIG.providersOrder.length) {
         throw "";
     }
 } catch {
@@ -82,6 +86,9 @@ try {
 }
 
 CONFIG.locked = parseInt(CONFIG.locked);
+CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
+CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
+CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
 
 const CACHE = {};
 
@@ -93,6 +100,8 @@ const emptyState = {
 };
 
 let lyricContainerUpdate;
+
+const fontSizeLimit = { min: 16, max: 256, step: 4 };
 
 class LyricsContainer extends react.Component {
     constructor() {
@@ -117,7 +126,7 @@ class LyricsContainer extends react.Component {
         this.currentTrackUri = "";
         this.nextTrackUri = "";
         this.availableModes = [];
-        this.colorVariables = {};
+        this.styleVariables = {};
     }
 
     infoFromTrack(track) {
@@ -136,7 +145,7 @@ class LyricsContainer extends react.Component {
     }
 
     async fetchColors(uri) {
-        let prominent = 0
+        let prominent = 0;
         try {
             const colors = await CosmosAsync.get(`hm://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
             prominent = colors.entries[0].color_swatches[4].color;
@@ -208,19 +217,27 @@ class LyricsContainer extends react.Component {
             this.setState({
                 genius: lyrics,
                 versionIndex: index,
-                isLoading: false
+                isLoading: false,
             });
         }
     }
 
     componentDidMount() {
         this.onQueueChange = async (queue) => {
+            queue = queue.data;
             this.state.explicitMode = this.state.lockMode;
-            this.currentTrackUri = queue.track.uri;
-            const nextTrack = queue.next_tracks[0];
+            this.currentTrackUri = queue.current.uri;
+
+            let nextTrack;
+            if (queue.queued.length) {
+                nextTrack = queue.queued[0];
+            } else {
+                nextTrack = queue.nextUp[0];
+            }
+
             const nextInfo = this.infoFromTrack(nextTrack);
             if (!nextInfo) {
-                this.fetchLyrics(queue.track, this.state.explicitMode);
+                this.fetchLyrics(queue.current, this.state.explicitMode);
                 return;
             }
             // Debounce queue change emitter
@@ -228,11 +245,17 @@ class LyricsContainer extends react.Component {
                 return;
             }
             this.nextTrackUri = nextInfo.uri;
-            await this.fetchLyrics(queue.track, this.state.explicitMode);
+            await this.fetchLyrics(queue.current, this.state.explicitMode);
             this.viewPort.scrollTo(0, 0);
             // Fetch next track
             this.tryServices(nextInfo, this.state.explicitMode);
         };
+
+        if (Spicetify.Player && Spicetify.Player.data && Spicetify.Player.data.track) {
+            this.state.explicitMode = this.state.lockMode;
+            this.currentTrackUri = Spicetify.Player.data.track.uri;
+            this.fetchLyrics(Spicetify.Player.data.track, this.state.explicitMode);
+        }
 
         this.updateVisualOnConfigChange();
         Utils.addQueueListener(this.onQueueChange);
@@ -246,50 +269,75 @@ class LyricsContainer extends react.Component {
 
         this.configButton = new Spicetify.Menu.Item("Lyrics Plus config", false, openConfig);
         this.configButton.register();
+
+        this.onFontSizeChange = (event) => {
+            if (!event.ctrlKey) return;
+            let dir = event.deltaY < 0 ? 1 : -1;
+            let temp = CONFIG.visual["font-size"] + dir * fontSizeLimit.step;
+            if (temp < fontSizeLimit.min) {
+                temp = fontSizeLimit.min;
+            } else if (temp > fontSizeLimit.max) {
+                temp = fontSizeLimit.max;
+            }
+            CONFIG.visual["font-size"] = temp;
+            localStorage.setItem("lyrics-plus:visual:font-size", temp);
+            lyricContainerUpdate();
+        };
+        window.addEventListener("mousewheel", this.onFontSizeChange);
     }
 
     componentWillUnmount() {
         Utils.removeQueueListener(this.onQueueChange);
         this.configButton.deregister();
+        window.removeEventListener("mousewheel", this.onFontSizeChange);
     }
 
     updateVisualOnConfigChange() {
-        this.availableModes = CONFIG.modes
-            .filter((_, id) => {
-                return Object.values(CONFIG.providers)
-                    .some(p => p.on && p.modes.includes(id));
-            });
+        this.availableModes = CONFIG.modes.filter((_, id) => {
+            return Object.values(CONFIG.providers).some((p) => p.on && p.modes.includes(id));
+        });
 
         if (!CONFIG.visual.colorful) {
-            this.colorVariables = {
-                '--lyrics-color-active': CONFIG.visual["active-color"],
-                '--lyrics-color-inactive': CONFIG.visual["inactive-color"],
-                '--lyrics-color-background': CONFIG.visual["background-color"],
-                '--lyrics-highlight-background': CONFIG.visual["highlight-color"],
-                '--lyrics-background-noise': CONFIG.visual.noise ? "var(--background-noise)" : "unset",
+            this.styleVariables = {
+                "--lyrics-color-active": CONFIG.visual["active-color"],
+                "--lyrics-color-inactive": CONFIG.visual["inactive-color"],
+                "--lyrics-color-background": CONFIG.visual["background-color"],
+                "--lyrics-highlight-background": CONFIG.visual["highlight-color"],
+                "--lyrics-background-noise": CONFIG.visual.noise ? "var(--background-noise)" : "unset",
             };
         }
+
+        this.styleVariables = {
+            ...this.styleVariables,
+            "--lyrics-align-text": CONFIG.visual.alignment,
+            "--lyrics-font-size": CONFIG.visual["font-size"] + "px",
+        };
     }
 
     render() {
         if (CONFIG.visual.colorful) {
-            this.colorVariables = {
-                '--lyrics-color-active': "white",
-                '--lyrics-color-inactive': this.state.colors.inactive,
-                '--lyrics-color-background': this.state.colors.background || "transparent",
-                '--lyrics-highlight-background': this.state.colors.inactive,
-                '--lyrics-background-noise': CONFIG.visual.noise ? "var(--background-noise)" : "unset",
+            this.styleVariables = {
+                "--lyrics-color-active": "white",
+                "--lyrics-color-inactive": this.state.colors.inactive,
+                "--lyrics-color-background": this.state.colors.background || "transparent",
+                "--lyrics-highlight-background": this.state.colors.inactive,
+                "--lyrics-background-noise": CONFIG.visual.noise ? "var(--background-noise)" : "unset",
             };
         }
+
+        this.styleVariables = {
+            ...this.styleVariables,
+            "--lyrics-align-text": CONFIG.visual.alignment,
+            "--lyrics-font-size": CONFIG.visual["font-size"] + "px",
+        };
 
         let mode = -1;
         if (this.state.explicitMode !== -1) {
             mode = this.state.explicitMode;
-
-        }  else if (this.state.lockMode !== -1) {
+        } else if (this.state.lockMode !== -1) {
             mode = this.state.lockMode;
-
-        } else { // Auto switch
+        } else {
+            // Auto switch
             if (this.state.karaoke) {
                 mode = KARAOKE;
             } else if (this.state.synced) {
@@ -339,34 +387,46 @@ class LyricsContainer extends react.Component {
         }
 
         if (!activeItem) {
-            activeItem = react.createElement("div", {
-                className: "lyrics-lyricsContainer-LyricsUnavailablePage",
-            }, react.createElement("span", {
-                className: "lyrics-lyricsContainer-LyricsUnavailableMessage",
-            }, this.state.isLoading ? LoadingIcon : "(• _ • )"));
+            activeItem = react.createElement(
+                "div",
+                {
+                    className: "lyrics-lyricsContainer-LyricsUnavailablePage",
+                },
+                react.createElement(
+                    "span",
+                    {
+                        className: "lyrics-lyricsContainer-LyricsUnavailableMessage",
+                    },
+                    this.state.isLoading ? LoadingIcon : "(• _ • )"
+                )
+            );
         }
 
         this.state.mode = mode;
 
-        return react.createElement("div", {
-            className: "lyrics-lyricsContainer-LyricsContainer",
-            style: this.colorVariables,
-        }, react.createElement("div", {
-            className: "lyrics-lyricsContainer-LyricsBackground",
-        }), activeItem,
+        return react.createElement(
+            "div",
+            {
+                className: "lyrics-lyricsContainer-LyricsContainer",
+                style: this.styleVariables,
+            },
+            react.createElement("div", {
+                className: "lyrics-lyricsContainer-LyricsBackground",
+            }),
+            activeItem,
             react.createElement(TopBarContent, {
                 links: this.availableModes,
                 activeLink: CONFIG.modes[mode],
                 lockLink: CONFIG.modes[this.state.lockMode],
                 switchCallback: (label) => {
-                    const mode  = CONFIG.modes.findIndex(a => a === label);
+                    const mode = CONFIG.modes.findIndex((a) => a === label);
                     if (mode !== this.state.mode) {
                         this.setState({ explicitMode: mode });
                         this.fetchLyrics(Player.data.track, mode);
                     }
                 },
                 lockCallback: (label) => {
-                    let mode  = CONFIG.modes.findIndex(a => a === label);
+                    let mode = CONFIG.modes.findIndex((a) => a === label);
                     if (mode === this.state.lockMode) {
                         mode = -1;
                     }
@@ -375,6 +435,7 @@ class LyricsContainer extends react.Component {
                     CONFIG.locked = mode;
                     localStorage.setItem("lyrics-plus:lock-mode", mode);
                 },
-            }));
+            })
+        );
     }
 }

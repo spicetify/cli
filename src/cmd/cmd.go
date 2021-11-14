@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	spicetifyFolder         = getSpicetifyFolder()
+	spicetifyFolder         = utils.GetSpicetifyFolder()
 	rawFolder, themedFolder = getExtractFolder()
-	backupFolder            = getUserFolder("Backup")
-	userThemesFolder        = getUserFolder("Themes")
-	userExtensionsFolder    = getUserFolder("Extensions")
-	userAppsFolder          = getUserFolder("CustomApps")
+	backupFolder            = utils.GetUserFolder("Backup")
+	userThemesFolder        = utils.GetUserFolder("Themes")
+	userExtensionsFolder    = utils.GetUserFolder("Extensions")
+	userAppsFolder          = utils.GetUserFolder("CustomApps")
 	quiet                   bool
 	isAppX                  = false
 	spotifyPath             string
@@ -191,6 +191,7 @@ func GetSpotifyPath() string {
 	return spotifyPath
 }
 
+
 func getSpicetifyFolder() string {
 	result, isAvailable := os.LookupEnv("SPICETIFY_CONFIG")
 	defer func() { utils.CheckExistAndCreate(result) }()
@@ -234,8 +235,9 @@ func getUserFolder(name string) string {
 	return dir
 }
 
+
 func getExtractFolder() (string, string) {
-	dir := getUserFolder("Extracted")
+	dir := utils.GetUserFolder("Extracted")
 
 	raw := filepath.Join(dir, "Raw")
 	utils.CheckExistAndCreate(raw)

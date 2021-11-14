@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -75,12 +74,14 @@ func Apply(spicetifyVersion string) {
 		CustomApp:     customAppsList,
 		SidebarConfig: featureSection.Key("sidebar_config").MustBool(false),
 		HomeConfig:    featureSection.Key("home_config").MustBool(false),
+		ExpFeatures:   featureSection.Key("experimental_features").MustBool(false),
+		SpicetifyVer:  backupSection.Key("with").MustString(""),
 	})
 	utils.PrintGreen("OK")
 
 	if len(extensionList) > 0 {
 		utils.PrintBold(`Transferring extensions:`)
-		pushExtensions(extensionList...)
+		pushExtensions("", extensionList...)
 		utils.PrintGreen("OK")
 		nodeModuleSymlink()
 	}
@@ -184,7 +185,7 @@ func UpdateAllExtension() {
 	checkStates()
 	list := featureSection.Key("extensions").Strings("|")
 	if len(list) > 0 {
-		pushExtensions(list...)
+		pushExtensions("", list...)
 		utils.PrintSuccess(utils.PrependTime("All extensions are updated."))
 	} else {
 		utils.PrintError("No extension to update.")
@@ -227,25 +228,14 @@ func checkStates() {
 	}
 }
 
-func getExtensionPath(name string) (string, error) {
-	extFilePath := filepath.Join(userExtensionsFolder, name)
-
-	if _, err := os.Stat(extFilePath); err == nil {
-		return extFilePath, nil
-	}
-
-	extFilePath = filepath.Join(utils.GetExecutableDir(), "Extensions", name)
-
-	if _, err := os.Stat(extFilePath); err == nil {
-		return extFilePath, nil
-	}
-
-	return "", errors.New("Extension not found")
-}
-
-func pushExtensions(list ...string) {
+func pushExtensions(destExt string, list ...string) {
 	var err error
-	var dest = filepath.Join(appDestPath, "xpui", "extensions")
+	var dest string
+	if len(destExt) > 0 {
+		dest = filepath.Join(appDestPath, "xpui", "extensions", destExt)
+	} else {
+		dest = filepath.Join(appDestPath, "xpui", "extensions")
+	}
 
 	for _, v := range list {
 		var extName, extPath string
@@ -255,7 +245,7 @@ func pushExtensions(list ...string) {
 			extPath = v
 		} else {
 			extName = v
-			extPath, err = getExtensionPath(v)
+			extPath, err = utils.GetExtensionPath(v)
 			if err != nil {
 				utils.PrintError(`Extension "` + extName + `" not found.`)
 				continue
@@ -285,31 +275,11 @@ func pushExtensions(list ...string) {
 	}
 }
 
-func getCustomAppPath(name string) (string, error) {
-	customAppFolderPath := filepath.Join(userAppsFolder, name)
-
-	if _, err := os.Stat(customAppFolderPath); err == nil {
-		return customAppFolderPath, nil
-	}
-
-	customAppFolderPath = filepath.Join(utils.GetExecutableDir(), "CustomApps", name)
-
-	if _, err := os.Stat(customAppFolderPath); err == nil {
-		return customAppFolderPath, nil
-	}
-
-	return "", errors.New("Custom app not found")
-}
-
-type appManifest struct {
-	Files []string `json:"subfiles"`
-}
-
 func pushApps(list ...string) {
 	for _, app := range list {
 		appName := `spicetify-routes-` + app
 
-		customAppPath, err := getCustomAppPath(app)
+		customAppPath, err := utils.GetCustomAppPath(app)
 		if err != nil {
 			utils.PrintError(`Custom app "` + app + `" not found.`)
 			continue
@@ -332,7 +302,7 @@ func pushApps(list ...string) {
 			manifestFileContent,
 			0700)
 
-		var manifestJson appManifest
+		var manifestJson utils.AppManifest
 		if err = json.Unmarshal(manifestFileContent, &manifestJson); err == nil {
 			for _, subfile := range manifestJson.Files {
 				subfilePath := filepath.Join(customAppPath, subfile)
@@ -342,6 +312,13 @@ func pushApps(list ...string) {
 				}
 				jsFileContent = append(jsFileContent, '\n')
 				jsFileContent = append(jsFileContent, subfileContent...)
+			}
+			for _, extensionFile := range manifestJson.ExtensionFiles {
+				subfilePath, err := filepath.Abs(filepath.Join(customAppPath, extensionFile))
+				if err != nil {
+					continue
+				}
+				pushExtensions(app, subfilePath)
 			}
 		}
 
@@ -375,14 +352,14 @@ func toTernary(key string) utils.TernaryBool {
 }
 
 func nodeModuleSymlink() {
-	nodeModulePath, err := getExtensionPath("node_modules")
+	nodeModulePath, err := utils.GetExtensionPath("node_modules")
 	if err != nil {
 		return
 	}
 
 	utils.PrintBold(`Found node_modules folder. Creating node_modules symlink:`)
 
-	nodeModuleDest := filepath.Join(appDestPath, "xpui", "node_modules")
+	nodeModuleDest := filepath.Join(appDestPath, "xpui", "extensions", "node_modules")
 	if err = utils.CreateJunction(nodeModulePath, nodeModuleDest); err != nil {
 		utils.PrintError("Cannot create node_modules symlink")
 		return

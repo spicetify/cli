@@ -1,0 +1,14 @@
+name: Prettier
+
+on: [pull_request, push]
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actionsx/prettier@v2
+      with:
+        args: --check "./Extensions/*.js" "./jsHelper/{homeConfig,sidebarConfig}.js" "CustomApps/*/*{.js,.css}"

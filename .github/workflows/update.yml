@@ -1,0 +1,16 @@
+name: Update Homebrew/AUR from tag
+
+on:
+    push:
+        tags:
+            - "v*"
+
+jobs:
+    update:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Request
+              uses: fjogeleit/http-request-action@master
+              with:
+                  url: https://vps.itsmeow.dev/spicetify-update
+                  method: GET

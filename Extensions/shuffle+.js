@@ -7,59 +7,36 @@
 /// <reference path="../globals.d.ts" />
 
 (function ShufflePlus() {
-    if (
-        !Spicetify.CosmosAsync ||
-        !Spicetify.Player.origin2 ||
-        !Spicetify.Platform
-    ) {
+    if (!Spicetify.CosmosAsync || !Spicetify.Player.origin || !Spicetify.Platform) {
         setTimeout(ShufflePlus, 1000);
         return;
     }
-    let playDiscography =
-        localStorage.getItem("shuffleplus:artist_discography") === "true";
-    const playDiscographyMenu = new Spicetify.Menu.Item(
-        "Shuffle artist discography",
-        playDiscography,
-        (menuItem) => {
-            playDiscography = !playDiscography;
-            localStorage.setItem(
-                "shuffleplus:artist_discography",
-                String(playDiscography)
-            );
-            menuItem.isEnabled = playDiscography;
-        }
-    );
+    let playDiscography = localStorage.getItem("shuffleplus:artist_discography") === "true";
+    const playDiscographyMenu = new Spicetify.Menu.Item("Shuffle artist discography", playDiscography, (menuItem) => {
+        playDiscography = !playDiscography;
+        localStorage.setItem("shuffleplus:artist_discography", String(playDiscography));
+        menuItem.isEnabled = playDiscography;
+    });
 
-    let playUriOGFunc = Spicetify.Player.origin2.playUri.bind(
-        Spicetify.Player.origin2
-    );
-    let playerPlayOGFunc = Spicetify.Platform.PlayerAPI.play.bind(
-        Spicetify.Platform.PlayerAPI
-    );
+    let playUriOGFunc = Spicetify.Player.origin.play.bind(Spicetify.Player.origin);
+    let playerPlayOGFunc = Spicetify.Platform.PlayerAPI.play.bind(Spicetify.Platform.PlayerAPI);
     let isInjected = localStorage.getItem("shuffleplus:on") === "true";
     injectFunctions(isInjected);
 
-    const autoShuffleMenu = new Spicetify.Menu.Item(
-        "Auto shuffle",
-        isInjected,
-        (menuItem) => {
-            isInjected = !isInjected;
-            localStorage.setItem("shuffleplus:on", String(isInjected));
-            menuItem.isEnabled = isInjected;
-            injectFunctions(isInjected);
-        }
-    );
+    const autoShuffleMenu = new Spicetify.Menu.Item("Auto shuffle", isInjected, (menuItem) => {
+        isInjected = !isInjected;
+        localStorage.setItem("shuffleplus:on", String(isInjected));
+        menuItem.isEnabled = isInjected;
+        injectFunctions(isInjected);
+    });
 
-    new Spicetify.Menu.SubMenu("Shuffle+", [
-        autoShuffleMenu,
-        playDiscographyMenu,
-    ]).register();
+    new Spicetify.Menu.SubMenu("Shuffle+", [autoShuffleMenu, playDiscographyMenu]).register();
 
     function injectFunctions(bool) {
         if (bool) {
-            Spicetify.Player.origin2.playUri = (uri, options) => {
+            Spicetify.Player.origin.play = (uri, context, options) => {
                 if (options?.trackUid) {
-                    playUriOGFunc(uri, options);
+                    playUriOGFunc(uri, context, options);
                     return;
                 }
                 fetchAndPlay(uri);
@@ -79,7 +56,7 @@
             };
         } else {
             // Revert
-            Spicetify.Player.origin2.playUri = playUriOGFunc;
+            Spicetify.Player.origin.play = playUriOGFunc;
             Spicetify.Platform.PlayerAPI.play = playerPlayOGFunc;
         }
     }
@@ -158,10 +135,9 @@
      * @returns {Promise<string[]>}
      */
     const fetchPlaylist = async (uri) => {
-        const res = await Spicetify.CosmosAsync.get(
-            `sp://core-playlist/v1/playlist/${uri}/rows`,
-            { policy: { link: true } }
-        );
+        const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/${uri}/rows`, {
+            policy: { link: true },
+        });
         return res.rows.map((item) => item.link);
     };
 
@@ -173,7 +149,7 @@
      */
     const searchFolder = (rows, uri) => {
         for (const r of rows) {
-            if (r.type !== "folder") {
+            if (r.type !== "folder" || r.rows == null) {
                 continue;
             }
 
@@ -192,10 +168,9 @@
      * @returns {Promise<string[]>}
      */
     const fetchFolder = async (uri) => {
-        const res = await Spicetify.CosmosAsync.get(
-            `sp://core-playlist/v1/rootlist`,
-            { policy: { folder: { rows: true, link: true } } }
-        );
+        const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/rootlist`, {
+            policy: { folder: { rows: true, link: true } },
+        });
 
         const requestFolder = searchFolder(res.rows, uri);
         if (requestFolder == null) {
@@ -207,23 +182,14 @@
             if (!folder.rows) return;
 
             for (const i of folder.rows) {
-                if (i.type === "playlist")
-                    requestPlaylists.push(fetchPlaylist(i.link));
+                if (i.type === "playlist") requestPlaylists.push(fetchPlaylist(i.link));
                 else if (i.type === "folder") fetchNested(i);
             }
         };
 
         fetchNested(requestFolder);
 
-        return await Promise.all(requestPlaylists).then((playlists) => {
-            const trackList = [];
-
-            playlists.forEach((p) => {
-                trackList.push(...p);
-            });
-
-            return trackList;
-        });
+        return (await Promise.all(requestPlaylists)).flat();
     };
 
     /**
@@ -231,10 +197,9 @@
      * @returns {Promise<string[]>}
      */
     const fetchCollection = async () => {
-        const res = await Spicetify.CosmosAsync.get(
-            "sp://core-collection/unstable/@/list/tracks/all?responseFormat=protobufJson",
-            { policy: { list: { link: true } } }
-        );
+        const res = await Spicetify.CosmosAsync.get("sp://core-collection/unstable/@/list/tracks/all?responseFormat=protobufJson", {
+            policy: { list: { link: true } },
+        });
         return res.item.map((item) => item.trackMetadata.link);
     };
 
@@ -245,9 +210,7 @@
      */
     const fetchAlbum = async (uri) => {
         const arg = uri.split(":")[2];
-        const res = await Spicetify.CosmosAsync.get(
-            `hm://album/v1/album-app/album/${arg}/desktop`
-        );
+        const res = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${arg}/desktop`);
         const items = [];
         for (const disc of res.discs) {
             const availables = disc.tracks.filter((track) => track.playable);
@@ -262,12 +225,8 @@
      * @returns {Promise<string[]>}
      */
     const fetchShow = async (uriBase62) => {
-        const res = await Spicetify.CosmosAsync.get(
-            `sp://core-show/unstable/show/${uriBase62}?responseFormat=protobufJson`
-        );
-        const availables = res.items.filter(
-            (track) => track.episodePlayState.isPlayable
-        );
+        const res = await Spicetify.CosmosAsync.get(`sp://core-show/v1/shows/${uriBase62}?responseFormat=protobufJson`);
+        const availables = res.items.filter((track) => track.episodePlayState.isPlayable);
         return availables.map((item) => item.episodeMetadata.link);
     };
 
@@ -277,9 +236,7 @@
      * @returns {Promise<string[]>}
      */
     const fetchArtist = async (uriBase62) => {
-        const res = await Spicetify.CosmosAsync.get(
-            `hm://artist/v1/${uriBase62}/desktop?format=json`
-        );
+        const res = await Spicetify.CosmosAsync.get(`hm://artist/v1/${uriBase62}/desktop?format=json`);
         return res.top_tracks.tracks.map((item) => item.uri);
     };
 
@@ -290,9 +247,7 @@
      */
     const fetchDiscography = async (uriBase62) => {
         Spicetify.showNotification(`Fetching albums list...`);
-        let res = await Spicetify.CosmosAsync.get(
-            `hm://artist/v1/${uriBase62}/desktop?format=json`
-        );
+        let res = await Spicetify.CosmosAsync.get(`hm://artist/v1/${uriBase62}/desktop?format=json`);
         let albums = res.releases.albums.releases;
         const tracks = [];
         for (const album of albums) {
@@ -357,7 +312,22 @@
         }
         list.push("spotify:delimiter");
 
-        const isQueue = !context || Spicetify.URI.isCollection(context);
+        Spicetify.Platform.PlayerAPI.clearQueue();
+
+        const isQueue = !context;
+
+        await Spicetify.CosmosAsync.put("sp://player/v2/main/queue", {
+            queue_revision: Spicetify.Queue?.queueRevision,
+            next_tracks: list.map((uri) => ({
+                uri,
+                provider: isQueue ? "queue" : "context",
+                metadata: {
+                    is_queued: isQueue,
+                },
+            })),
+            prev_tracks: Spicetify.Queue?.prevTracks,
+        });
+
         if (!isQueue) {
             await Spicetify.CosmosAsync.post("sp://player/v2/main/update", {
                 context: {
@@ -366,17 +336,7 @@
                 },
             });
         }
-        await Spicetify.CosmosAsync.put("sp://player/v2/main/queue", {
-            revision: Spicetify.Queue?.revision,
-            next_tracks: list.map((uri) => ({
-                uri,
-                provider: context ? "context" : "queue",
-                metadata: {
-                    is_queued: isQueue,
-                },
-            })),
-            prev_tracks: Spicetify.Queue?.prev_tracks,
-        });
+
         success(count);
         Spicetify.Player.next();
     }

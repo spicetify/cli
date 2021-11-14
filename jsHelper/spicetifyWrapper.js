@@ -1,6 +1,6 @@
 const Spicetify = {
     get CosmosAsync() {return Spicetify.Player.origin?._cosmos},
-    get Queue() {return Spicetify.Player.origin2?.state.currentQueue},
+    get Queue() {return Spicetify.Player.origin?._queue?._state},
     Player: {
         addEventListener: (type, callback) => {
             if (!(type in Spicetify.Player.eventListeners)) {
@@ -27,7 +27,7 @@ const Spicetify = {
             }
             Spicetify.Player.origin.seekTo(p);
         },
-        getProgress: () => (Spicetify.Player.origin._state.isPaused ? 0 : Date.now() - Spicetify.Player.origin2.state.position.timestamp) + Spicetify.Player.origin2.state.position.position,
+        getProgress: () => (Spicetify.Player.origin._state.isPaused ? 0 : Date.now() - Spicetify.Player.origin._state.timestamp) + Spicetify.Player.origin._state.positionAsOfTimestamp,
         getProgressPercent: () => (Spicetify.Player.getProgress()/Spicetify.Player.origin._state.duration),
         getDuration: () => Spicetify.Player.origin._state.duration,
         setVolume: (v) => { Spicetify.Player.origin.setVolume(v) },
@@ -45,7 +45,7 @@ const Spicetify = {
         getRepeat: () => Spicetify.Player.origin._state.repeat,
         setRepeat: (r) => { Spicetify.Player.origin.setRepeat(r) },
         getMute: () => Spicetify.Player.getVolume() === 0,
-        toggleMute: () => { document.querySelector(".volume-bar__icon-button ").click() },
+        toggleMute: () => { document.querySelector(".volume-bar__icon-button").click() },
         setMute: (b) => {
             const isMuted = Spicetify.Player.getMute();
             if ((b && !isMuted) || (!b && isMuted)) {
@@ -58,9 +58,12 @@ const Spicetify = {
             seconds -= minutes * 60;
             return `${minutes}:${seconds > 9 ? "" : "0"}${String(seconds)}`;
         },
-        getHeart: () => document.querySelector('.control-button-heart button')?.ariaChecked === "true",
+        getHeart: () => document.querySelector('.control-button-heart')?.ariaChecked === "true",
         pause: () => { Spicetify.Player.origin.pause() },
         play: () => { Spicetify.Player.origin.resume() },
+        playUri: async (uri, context = {}, options = {}) => {
+            return await Spicetify.Player.origin.play({uri: uri}, context, options);
+        },
         removeEventListener: (type, callback) => {
             if (!(type in Spicetify.Player.eventListeners)) {
                 return;
@@ -75,25 +78,35 @@ const Spicetify = {
         },
         skipBack: (amount = 15e3) => {Spicetify.Player.origin.seekBackward(amount)},
         skipForward: (amount = 15e3) => {Spicetify.Player.origin.seekForward(amount)},
-        toggleHeart: () => {document.querySelector('.control-button-heart button')?.click()},
+        toggleHeart: () => {document.querySelector('.control-button-heart')?.click()},
     },
     test: () => {
         const SPICETIFY_METHOD = [
             "Player",
             "addToQueue",
             "CosmosAsync",
-            "Event",
-            "EventDispatcher",
             "getAudioData",
             "Keyboard",
             "URI",
             "LocalStorage",
-            "PlaybackControl",
             "Queue",
             "removeFromQueue",
             "showNotification",
             "Menu",
             "ContextMenu",
+            "React",
+            "Mousetrap",
+            "Locale",
+            "ReactDOM",
+            "Topbar",
+            "ReactComponent",
+            "PopupModal",
+            "_cloneSidebarItem",
+            "_sidebarItemToClone",
+            "SVGIcons",
+            "colorExtractor",
+            "test",
+            "Platform"
         ];
 
         const PLAYER_METHOD = [
@@ -130,6 +143,7 @@ const Spicetify = {
             "togglePlay",
             "toggleRepeat",
             "toggleShuffle",
+            "origin"
         ]
 
         let count = SPICETIFY_METHOD.length;
@@ -149,19 +163,30 @@ const Spicetify = {
             }
         })
         console.log(`${count}/${PLAYER_METHOD.length} Spicetify.Player methods and objects are OK.`)
+
+        Object.keys(Spicetify).forEach(key => {
+            if(!SPICETIFY_METHOD.includes(key)) {
+                console.log(`Spicetify method ${key} exists but is not in the method list. Consider adding it.`)
+            }
+        })
+
+        Object.keys(Spicetify.Player).forEach(key => {
+            if(!PLAYER_METHOD.includes(key)) {
+                console.log(`Spicetify.Player method ${key} exists but is not in the method list. Consider adding it.`)
+            }
+        })
     }
 };
 
-// Wait for Spicetify.Player.origin and origin2 to be available
-// before adding following APIs
+// Wait for Spicetify.Player.origin._state before adding following APIs
 (function waitOrigins() {
-    if (!Spicetify.Player.origin || !Spicetify.Player.origin2) {
+    if (!Spicetify?.Player?.origin?._state) {
         setTimeout(waitOrigins, 10);
         return;
     }
 
     Spicetify.Player.origin._cosmos.sub(
-        "sp://player/v2/main", 
+        "sp://player/v2/main",
         (data) => {
             if (!data || !data.track) return;
             const lastData = Spicetify.Player.data;
@@ -179,15 +204,14 @@ const Spicetify = {
         }
     );
 
-    Spicetify.Player.origin2.state.addProgressListener((data) => {
+    setInterval(() => {
         const event = new Event("onprogress");
-        event.data = data.position;
+        event.data = Spicetify.Player.getProgress();
         Spicetify.Player.dispatchEvent(event);
-    });
+    }, 100);
 
-    Spicetify.addToQueue = Spicetify.Player.origin2.player.addToQueue;
-    Spicetify.removeFromQueue = Spicetify.Player.origin2.removeFromQueue;
-    Spicetify.PlaybackControl = Spicetify.Player.origin2.player;
+    Spicetify.addToQueue = Spicetify.Player.origin._queue.addToQueue;
+    Spicetify.removeFromQueue = Spicetify.Player.origin._queue.removeFromQueue;
 })();
 
 Spicetify.getAudioData = async (uri) => {
@@ -427,7 +451,7 @@ Spicetify.SVGIcons = {
 
 class _HTMLContextMenuItem extends HTMLLIElement {
     constructor({
-        name, 
+        name,
         disabled = false,
         icon = undefined,
         divider = false,
@@ -630,7 +654,7 @@ Spicetify.Menu = (function() {
 Spicetify.ContextMenu = (function () {
     let itemList = new Set();
     const iconList = Object.keys(Spicetify.SVGIcons);
-    
+
     class Item {
         constructor(name, onClick, shouldAdd = (uris) => true, icon = undefined, disabled = false) {
             this.onClick = onClick;
@@ -721,6 +745,34 @@ Spicetify.ContextMenu = (function () {
 
     SubMenu.iconList = iconList;
 
+    function _addItemsRecursive(instance, currentItem, uris, uids, contextUri) {
+        if (currentItem._items?.size) {
+            const htmlSubmenu = new _HTMLContextSubmenu({
+                placement: instance.firstChild.dataset.placement,
+            });
+
+            for (const child of currentItem._items) {
+                if (!child.shouldAdd(uris, uids, contextUri)) {
+                    continue;
+                }
+
+                child._element.onclick = () => {
+                    if (!child._disabled) {
+                        child.onClick(uris, uids, contextUri);
+                        htmlSubmenu.remove();
+                        instance._tippy?.props?.onClickOutside();
+                    }
+                };
+                htmlSubmenu.addItem(child._element);
+
+                _addItemsRecursive(instance, child, uris, uids, contextUri);
+            }
+
+            currentItem._submenuElement = htmlSubmenu;
+            currentItem.disabled = currentItem._disabled;
+        }
+    }
+
     function _addItems(instance) {
         const list = instance.querySelector("ul");
         const container = instance.firstChild;
@@ -755,23 +807,7 @@ Spicetify.ContextMenu = (function () {
             }
 
             if (item._items?.size) {
-                const htmlSubmenu = new _HTMLContextSubmenu({
-                    placement: instance.firstChild.dataset.placement,
-                });
-
-                for (const child of item._items) {
-                    child._element.onclick = () => {
-                        if (!child._disabled) {
-                            child.onClick(uris, uids, contextUri);
-                            htmlSubmenu.remove();
-                            instance._tippy?.props?.onClickOutside();
-                        }
-                    };
-                    htmlSubmenu.addItem(child._element);
-                }
-
-                item._submenuElement = htmlSubmenu;
-                item.disabled = item._disabled;
+                _addItemsRecursive(instance, item, uris, uids, contextUri);
                 elemList.push(item._element);
                 continue;
             }
@@ -782,7 +818,7 @@ Spicetify.ContextMenu = (function () {
                     instance._tippy?.props?.onClickOutside();
                 }
             };
-            
+
             elemList.push(item._element);
         }
         list.prepend(...elemList);
@@ -892,7 +928,7 @@ class _HTMLGenericModal extends HTMLElement {
         content,
     }) {
         this.innerHTML = `
-<div class="GenericModal__overlay">
+<div class="GenericModal__overlay" style="z-index: 100;">
     <div class="GenericModal" tabindex="-1" role="dialog" aria-label="${title}" aria-modal="true">
         <div class="main-trackCreditsModal-container">
             <div class="main-trackCreditsModal-header">
@@ -910,7 +946,7 @@ class _HTMLGenericModal extends HTMLElement {
         const main = this.querySelector("main");
 
         let hidePopup = this.hide.bind(this);
-        
+
         // Listen for click events on Overlay
         this.querySelector(".GenericModal__overlay").addEventListener('click', (event) => {
             if (!this.querySelector('.GenericModal').contains(event.target))
