@@ -5,8 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"runtime"
 
 	"github.com/khanhas/spicetify-cli/src/cmd"
@@ -62,20 +60,6 @@ func init() {
 		switch v {
 		case "-c", "--config":
 			fmt.Println(cmd.GetConfigPath())
-			switch runtime.GOOS{
-            case "windows":
-                com := exec.Command(`explorer`, filepath.Dir(cmd.GetConfigPath()))
-                com.Run()
-            case "darwin":
-                com := exec.Command(`open`, filepath.Dir(cmd.GetConfigPath()))
-                com.Run()
-            case "linux":
-                com:= exec.Command(`xdg-open`,filepath.Dir(cmd.GetConfigPath()))
-                com.Run()
-            default: 
-                fmt.Println("Unsupported OS or File explorer.")
-            }
-
 			os.Exit(0)
 		case "-h", "--help":
 			kind := ""
