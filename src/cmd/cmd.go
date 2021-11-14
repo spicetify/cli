@@ -218,8 +218,8 @@ func getSpicetifyFolder() string {
 		if !isAvailable || len(parent) == 0 {
 			parent = os.Getenv("HOME")
 		}
-
-		result = filepath.Join(parent, "spicetify_data")
+		
+		result = filepath.Join(parent, "/.config/spicetify/")
 	}
 
 	return result
