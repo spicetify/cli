@@ -64,11 +64,12 @@ function PopupLyrics() {
             return result.replace(/\s+/g, " ").trim();
         }
 
-        static removeSongFeat(s) {
+        static removeExtraInfo(s) {
             return (
                 s
                     .replace(/-\s+(feat|with).*/i, "")
                     .replace(/(\(|\[)(feat|with)\.?\s+.*(\)|\])$/i, "")
+                    .replace(/\s-\s.*/, "")
                     .trim() || s
             );
         }
@@ -167,7 +168,7 @@ function PopupLyrics() {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0",
             };
 
-            const cleanTitle = LyricUtils.removeSongFeat(LyricUtils.normalize(info.title));
+            const cleanTitle = LyricUtils.removeExtraInfo(LyricUtils.normalize(info.title));
             const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 
             const searchResults = await CosmosAsync.get(finalURL, null, requestHeader);
@@ -221,7 +222,7 @@ function PopupLyrics() {
                         const [min, sec] = [parseFloat(key), parseFloat(value)];
                         if (!isNaN(min) && !otherInfoRegexp.test(text)) {
                             result.startTime = min * 60 + sec;
-                            result.text = text || "...";
+                            result.text = text || "♪";
                         }
                         return result;
                     });

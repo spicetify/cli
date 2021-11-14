@@ -101,6 +101,7 @@
     grid-template-rows: 1fr 1fr 1fr 20px;
     overflow-y: hidden;
     text-align: var(--lyrics-align-text);
+    user-select: text;
 }
 
 .lyrics-lyricsContainer-LyricsBackground {
@@ -465,5 +466,5 @@ button.switch.small {
 
 #lyrics-plus-config-container span {
     font-size: 14px;
-    opacity: .8;
+    opacity: 0.8;
 }

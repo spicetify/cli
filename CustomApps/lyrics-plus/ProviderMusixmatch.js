@@ -57,7 +57,7 @@ const ProviderMusixmatch = (function () {
             }
 
             return JSON.parse(subtitle.subtitle_body).map((line) => ({
-                text: line.text || "⋯",
+                text: line.text || "♪",
                 startTime: line.time.total * 1000,
             }));
         }

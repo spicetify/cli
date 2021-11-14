@@ -165,7 +165,6 @@ const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = () => {} 
     const [value, setValue] = useState(defaultValue);
 
     function adjust(dir) {
-        console.log(defaultValue, value, step, dir, min, max)
         let temp = value + dir * step;
         if (temp < min) {
             temp = min;
@@ -197,9 +196,10 @@ const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = () => {} 
                 onClick: () => adjust(-1),
                 disabled: value === min,
             }),
-            react.createElement("p",
+            react.createElement(
+                "p",
                 {
-                    className: "adjust-value"
+                    className: "adjust-value",
                 },
                 value
             ),
@@ -318,7 +318,9 @@ const OptionList = ({ items, onChange }) => {
         if (!item.when()) {
             return;
         }
-        return react.createElement("div", null,
+        return react.createElement(
+            "div",
+            null,
             react.createElement(item.type, {
                 ...item,
                 name: item.desc,
@@ -327,11 +329,12 @@ const OptionList = ({ items, onChange }) => {
                     setItems([...items]);
                 },
             }),
-            item.info && react.createElement("span", {
-                dangerouslySetInnerHTML: {
-                    __html: item.info,
-                },
-            }),
+            item.info &&
+                react.createElement("span", {
+                    dangerouslySetInnerHTML: {
+                        __html: item.info,
+                    },
+                })
         );
     });
 };

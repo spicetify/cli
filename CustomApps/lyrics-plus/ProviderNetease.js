@@ -152,7 +152,7 @@ const ProviderNetease = (function () {
         const lyrics = lines
             .map((line) => {
                 const parsed = parseTimestamp(line);
-                if (!parsed.text) return null;
+                if (!parsed.text || containCredits(parsed.text)) return null;
                 return parsed;
             })
             .filter((a) => a);
