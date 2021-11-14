@@ -312,7 +312,22 @@
         }
         list.push("spotify:delimiter");
 
-        const isQueue = !context || Spicetify.URI.isCollection(context);
+        Spicetify.Platform.PlayerAPI.clearQueue();
+
+        const isQueue = !context;
+
+        await Spicetify.CosmosAsync.put("sp://player/v2/main/queue", {
+            queue_revision: Spicetify.Queue?.queueRevision,
+            next_tracks: list.map((uri) => ({
+                uri,
+                provider: isQueue ? "queue" : "context",
+                metadata: {
+                    is_queued: isQueue,
+                },
+            })),
+            prev_tracks: Spicetify.Queue?.prevTracks,
+        });
+
         if (!isQueue) {
             await Spicetify.CosmosAsync.post("sp://player/v2/main/update", {
                 context: {
@@ -322,17 +337,6 @@
             });
         }
 
-        await Spicetify.CosmosAsync.put("sp://player/v2/main/queue", {
-            queue_revision: Spicetify.Queue?.queueRevision,
-            next_tracks: list.map((uri) => ({
-                uri,
-                provider: context ? "context" : "queue",
-                metadata: {
-                    is_queued: isQueue,
-                },
-            })),
-            prev_tracks: Spicetify.Queue?.prevTracks,
-        });
         success(count);
         Spicetify.Player.next();
     }
