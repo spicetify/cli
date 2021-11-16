@@ -165,7 +165,9 @@ func main() {
 	case "upgrade":
 		cmd.Upgrade(version)
 		return
-
+	case "update":
+		cmd.Upgrade(version)
+		return
 	case "watch":
 		var name []string
 		if len(commands) > 1 {
@@ -194,7 +196,7 @@ func main() {
 			cmd.Apply(version)
 			restartSpotify()
 
-		case "update":
+		case "refresh":
 			if extensionFocus {
 				cmd.UpdateAllExtension()
 			} else {
@@ -246,9 +248,8 @@ backup              Start backup and preprocessing app files.
 
 apply               Apply customization.
 
-update              On default, update theme CSS and colors.
+refresh         On default, update theme CSS and colors.
                     Use with flag "-e" to update extensions.
-
 restore             Restore Spotify to original state.
 
 clear               Clear current backup files.
