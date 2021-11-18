@@ -7,7 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function ShufflePlus() {
-    if (!Spicetify.CosmosAsync || !Spicetify.Player.origin || !Spicetify.Platform) {
+    if (!Spicetify.CosmosAsync || !Spicetify.Platform) {
         setTimeout(ShufflePlus, 1000);
         return;
     }
@@ -18,7 +18,6 @@
         menuItem.isEnabled = playDiscography;
     });
 
-    let playUriOGFunc = Spicetify.Player.origin.play.bind(Spicetify.Player.origin);
     let playerPlayOGFunc = Spicetify.Platform.PlayerAPI.play.bind(Spicetify.Platform.PlayerAPI);
     let isInjected = localStorage.getItem("shuffleplus:on") === "true";
     injectFunctions(isInjected);
@@ -34,13 +33,6 @@
 
     function injectFunctions(bool) {
         if (bool) {
-            Spicetify.Player.origin.play = (uri, context, options) => {
-                if (options?.trackUid) {
-                    playUriOGFunc(uri, context, options);
-                    return;
-                }
-                fetchAndPlay(uri);
-            };
             Spicetify.Platform.PlayerAPI.play = (uri, origins, options) => {
                 if (options?.skipTo) {
                     if (options.skipTo.index !== undefined) {
@@ -56,7 +48,6 @@
             };
         } else {
             // Revert
-            Spicetify.Player.origin.play = playUriOGFunc;
             Spicetify.Platform.PlayerAPI.play = playerPlayOGFunc;
         }
     }
@@ -307,7 +298,7 @@
         if (count === 0) {
             throw "There is no available track to play";
         } else if (count === 1) {
-            playUriOGFunc(list[0]);
+            playerPlayOGFunc({ uri: list[0] }, { featureVersion: Spicetify.Platform.PlayerAPI._defaultFeatureVersion });
             return;
         }
         list.push("spotify:delimiter");
