@@ -1199,6 +1199,10 @@ declare namespace Spicetify {
              * or a HTML element for interactive config/setting menu
              */
             content: string | Element;
+            /**
+             * Bigger window
+             */
+            isLarge?: boolean;
         }
 
         function display(e: Content): void;
