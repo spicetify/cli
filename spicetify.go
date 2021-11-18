@@ -103,9 +103,6 @@ func init() {
 }
 
 func main() {
-	utils.PrintBold("spicetify v" + version)
-	cmd.CheckUpgrade(version)
-
 	cmd.InitPaths()
 
 	// Unchainable commands
@@ -180,6 +177,9 @@ func main() {
 		}
 		return
 	}
+
+	utils.PrintBold("spicetify v" + version)
+	cmd.CheckUpgrade(version)
 
 	// Chainable commands
 	for _, v := range commands {
