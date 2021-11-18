@@ -116,9 +116,11 @@
     color: var(--lyrics-color-inactive);
     grid-area: 4/1/-1/-1;
     justify-self: stretch;
-    margin: 20px;
     height: 25px;
     overflow: hidden;
+    background: linear-gradient(0deg, var(--lyrics-color-background) 30%, transparent);
+    z-index: 1;
+    padding: 60px 20px 30px;
 }
 
 .lyrics-lyricsContainer-SyncedLyrics {
