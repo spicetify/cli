@@ -172,13 +172,14 @@ class LyricsContainer extends react.Component {
         const audio = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/audio-features/${uri.split(":")[2]}`);
         let tempo = audio.tempo;
 
-        const MIN_TEMPO = 60, MAX_TEMPO = 150;
+        const MIN_TEMPO = 60,
+            MAX_TEMPO = 150;
         const MAX_PERIOD = 0.4;
         if (!tempo) tempo = 105;
         if (tempo < MIN_TEMPO) tempo = MIN_TEMPO;
         if (tempo > MAX_TEMPO) tempo = MAX_TEMPO;
 
-        let period = MAX_PERIOD - (tempo - MIN_TEMPO) / (MAX_TEMPO - MIN_TEMPO) * MAX_PERIOD;
+        let period = MAX_PERIOD - ((tempo - MIN_TEMPO) / (MAX_TEMPO - MIN_TEMPO)) * MAX_PERIOD;
         period = Math.round(period * 100) / 100;
 
         this.setState({

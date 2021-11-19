@@ -256,7 +256,7 @@ const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }) => {
                 value,
                 onFocus: record,
                 onBlur: finishRecord,
-            }),
+            })
         )
     );
 };

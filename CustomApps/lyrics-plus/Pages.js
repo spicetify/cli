@@ -89,7 +89,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
                 let animationIndex;
                 if (activeLineIndex <= CONFIG.visual["lines-before"]) {
                     animationIndex = i - activeLineIndex;
-                }  else {
+                } else {
                     animationIndex = i - CONFIG.visual["lines-before"] - 1;
                 }
 
@@ -173,7 +173,7 @@ const KaraokeLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
                 let animationIndex;
                 if (activeLineIndex <= CONFIG.visual["lines-before"]) {
                     animationIndex = i - activeLineIndex;
-                }  else {
+                } else {
                     animationIndex = i - CONFIG.visual["lines-before"] - 1;
                 }
 
