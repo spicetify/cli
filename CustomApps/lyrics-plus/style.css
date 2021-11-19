@@ -129,7 +129,7 @@
 
 .lyrics-lyricsContainer-LyricsLine {
     transform: translateY(calc(var(--position-index) * var(--lyrics-line-height)));
-    transform-origin: left;
+    transform-origin: var(--lyrics-align-text);
     transition-timing-function: cubic-bezier(0, 0, 0.58, 1);
     transition-duration: calc(var(--animation-index) * var(--animation-tempo) + 0.1s);
     transition-property: transform, color, opacity;
@@ -189,7 +189,7 @@
     font-size: var(--lyrics-font-size);
     font-weight: 700;
     letter-spacing: -0.04em;
-    line-height: calc(4px + var(--lyrics-font-size));
+    line-height: calc(12px + var(--lyrics-font-size));
 }
 
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
@@ -492,5 +492,9 @@ button.switch.small {
     height: 100vh;
     margin-bottom: 0;
     margin-top: 0;
-    overflow-y: scroll;
+    overflow-y: auto;
+}
+
+#lyrics-fullscreen-container .lyrics-lyricsContainer-LyricsContainer::-webkit-scrollbar {
+    background-color: var(--lyrics-color-background);
 }

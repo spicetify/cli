@@ -47,7 +47,7 @@ const CONFIG = {
         ["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
         ["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
         ["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
-        ["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:font-size") || "f12",
+        ["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
     },
     providers: {
         netease: {
