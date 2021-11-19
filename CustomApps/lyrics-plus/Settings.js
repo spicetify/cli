@@ -212,6 +212,55 @@ const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = () => {} 
     );
 };
 
+const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }) => {
+    const [value, setValue] = useState(defaultValue);
+    const [trap] = useState(new Spicetify.Mousetrap());
+
+    function record() {
+        trap.handleKey = (character, modifiers, e) => {
+            if (e.type == "keydown") {
+                const sequence = [...new Set([...modifiers, character])];
+                if (sequence.length === 1 && sequence[0] === "esc") {
+                    onChange("");
+                    setValue("");
+                    return;
+                }
+                setValue(sequence.join("+"));
+            }
+        };
+    }
+
+    function finishRecord() {
+        trap.handleKey = () => {};
+        onChange(value);
+    }
+
+    return react.createElement(
+        "div",
+        {
+            className: "setting-row",
+        },
+        react.createElement(
+            "label",
+            {
+                className: "col description",
+            },
+            name
+        ),
+        react.createElement(
+            "div",
+            {
+                className: "col action",
+            },
+            react.createElement("input", {
+                value,
+                onFocus: record,
+                onBlur: finishRecord,
+            }),
+        )
+    );
+};
+
 const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false, onTokenChange = null }) => {
     const [token, setToken] = useState(item.token);
     const [active, setActive] = useState(item.on);
@@ -369,6 +418,13 @@ function openConfig() {
                         center: "Center",
                         right: "Right",
                     },
+                    when: () => true,
+                },
+                {
+                    desc: "Fullscreen hotkey",
+                    key: "fullscreen-key",
+                    defaultValue: CONFIG.visual["fullscreen-key"],
+                    type: ConfigHotkey,
                     when: () => true,
                 },
                 {

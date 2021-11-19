@@ -478,3 +478,19 @@ button.switch.small {
     font-size: 14px;
     opacity: 0.8;
 }
+
+#lyrics-fullscreen-container {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    cursor: default;
+    left: 0;
+    top: 0;
+}
+
+#lyrics-fullscreen-container .lyrics-lyricsContainer-LyricsContainer {
+    height: 100vh;
+    margin-bottom: 0;
+    margin-top: 0;
+    overflow-y: scroll;
+}

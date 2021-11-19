@@ -47,6 +47,7 @@ const CONFIG = {
         ["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
         ["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
         ["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
+        ["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:font-size") || "f12",
     },
     providers: {
         netease: {
@@ -124,11 +125,15 @@ class LyricsContainer extends react.Component {
             mode: -1,
             isLoading: false,
             versionIndex: 0,
+            isFullscreen: false,
         };
         this.currentTrackUri = "";
         this.nextTrackUri = "";
         this.availableModes = [];
         this.styleVariables = {};
+        this.fullscreenContainer = document.createElement("div");
+        this.fullscreenContainer.id = "lyrics-fullscreen-container";
+        this.mousetrap = new Spicetify.Mousetrap();
     }
 
     infoFromTrack(track) {
@@ -306,12 +311,32 @@ class LyricsContainer extends react.Component {
             lyricContainerUpdate();
         };
         window.addEventListener("mousewheel", this.onFontSizeChange);
+
+        this.toggleFullscreen = () => {
+            const isEnabled = !this.state.isFullscreen;
+            if (isEnabled) {
+                document.body.append(this.fullscreenContainer);
+                document.documentElement.requestFullscreen();
+                this.mousetrap.bind("esc", this.toggleFullscreen);
+            } else {
+                this.fullscreenContainer.remove();
+                document.exitFullscreen();
+                this.mousetrap.unbind("esc");
+            }
+
+            this.setState({
+                isFullscreen: isEnabled,
+            });
+        };
+        this.mousetrap.reset();
+        this.mousetrap.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
     }
 
     componentWillUnmount() {
         Utils.removeQueueListener(this.onQueueChange);
         this.configButton.deregister();
         window.removeEventListener("mousewheel", this.onFontSizeChange);
+        this.mousetrap.reset();
     }
 
     updateVisualOnConfigChange() {
@@ -335,6 +360,9 @@ class LyricsContainer extends react.Component {
             "--lyrics-font-size": CONFIG.visual["font-size"] + "px",
             "--animation-tempo": this.state.tempo,
         };
+
+        this.mousetrap.reset();
+        this.mousetrap.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
     }
 
     render() {
@@ -428,7 +456,7 @@ class LyricsContainer extends react.Component {
 
         this.state.mode = mode;
 
-        return react.createElement(
+        const out = react.createElement(
             "div",
             {
                 className: "lyrics-lyricsContainer-LyricsContainer" + (CONFIG.visual["fade-blur"] ? " blur-enabled" : ""),
@@ -461,5 +489,11 @@ class LyricsContainer extends react.Component {
                 },
             })
         );
+
+        if (this.state.isFullscreen) {
+            return reactDOM.createPortal(out, this.fullscreenContainer);
+        } else {
+            return out;
+        }
     }
 }
