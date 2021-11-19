@@ -388,6 +388,13 @@ function openConfig() {
                     when: () => true,
                 },
                 {
+                    desc: "Fade-out blur",
+                    key: "fade-blur",
+                    defaultValue: CONFIG.visual["fade-blur"],
+                    type: ConfigSlider,
+                    when: () => true,
+                },
+                {
                     desc: "Noise overlay",
                     key: "noise",
                     defaultValue: CONFIG.visual["noise"],

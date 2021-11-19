@@ -46,6 +46,7 @@ const CONFIG = {
         ["lines-before"]: localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
         ["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
         ["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
+        ["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
     },
     providers: {
         netease: {
@@ -61,7 +62,7 @@ const CONFIG = {
         },
         spotify: {
             on: getConfig("lyrics-plus:provider:spotify:on"),
-            desc: `Lyrics officially provided by Spotify. Only available for some regions/countries' users (e.g., Japan, Vietnam, Thailand).`,
+            desc: `Lyrics sourced from official Spotify API.`,
             modes: [SYNCED, UNSYNCED],
         },
         genius: {
@@ -117,6 +118,7 @@ class LyricsContainer extends react.Component {
                 background: "",
                 inactive: "",
             },
+            tempo: "0.25s",
             explicitMode: -1,
             lockMode: CONFIG.locked,
             mode: -1,
@@ -161,6 +163,24 @@ class LyricsContainer extends react.Component {
         });
     }
 
+    async fetchTempo(uri) {
+        const audio = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/audio-features/${uri.split(":")[2]}`);
+        let tempo = audio.tempo;
+
+        const MIN_TEMPO = 60, MAX_TEMPO = 150;
+        const MAX_PERIOD = 0.4;
+        if (!tempo) tempo = 105;
+        if (tempo < MIN_TEMPO) tempo = MIN_TEMPO;
+        if (tempo > MAX_TEMPO) tempo = MAX_TEMPO;
+
+        let period = MAX_PERIOD - (tempo - MIN_TEMPO) / (MAX_TEMPO - MIN_TEMPO) * MAX_PERIOD;
+        period = Math.round(period * 100) / 100;
+
+        this.setState({
+            tempo: String(period) + "s",
+        });
+    }
+
     async tryServices(trackInfo, mode = -1) {
         for (const id of CONFIG.providersOrder) {
             const service = CONFIG.providers[id];
@@ -188,6 +208,8 @@ class LyricsContainer extends react.Component {
         if (CONFIG.visual.colorful) {
             this.fetchColors(info.uri);
         }
+
+        this.fetchTempo(info.uri);
 
         if (mode !== -1) {
             if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
@@ -311,6 +333,7 @@ class LyricsContainer extends react.Component {
             ...this.styleVariables,
             "--lyrics-align-text": CONFIG.visual.alignment,
             "--lyrics-font-size": CONFIG.visual["font-size"] + "px",
+            "--animation-tempo": this.state.tempo,
         };
     }
 
@@ -329,6 +352,7 @@ class LyricsContainer extends react.Component {
             ...this.styleVariables,
             "--lyrics-align-text": CONFIG.visual.alignment,
             "--lyrics-font-size": CONFIG.visual["font-size"] + "px",
+            "--animation-tempo": this.state.tempo,
         };
 
         let mode = -1;
@@ -407,7 +431,7 @@ class LyricsContainer extends react.Component {
         return react.createElement(
             "div",
             {
-                className: "lyrics-lyricsContainer-LyricsContainer",
+                className: "lyrics-lyricsContainer-LyricsContainer" + (CONFIG.visual["fade-blur"] ? " blur-enabled" : ""),
                 style: this.styleVariables,
             },
             react.createElement("div", {

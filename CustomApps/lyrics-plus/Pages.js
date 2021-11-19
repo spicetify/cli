@@ -85,12 +85,22 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
                 if (activeElementIndex === i) {
                     className += " lyrics-lyricsContainer-LyricsLine-active";
                 }
+
+                let animationIndex;
+                if (activeLineIndex <= CONFIG.visual["lines-before"]) {
+                    animationIndex = i - activeLineIndex;
+                }  else {
+                    animationIndex = i - CONFIG.visual["lines-before"] - 1;
+                }
+
                 return react.createElement(
                     "p",
                     {
                         className,
                         style: {
-                            "--animation-index": i,
+                            "--position-index": animationIndex,
+                            "--animation-index": (animationIndex < 0 ? 0 : animationIndex) + 1,
+                            "--blur-index": Math.abs(animationIndex),
                         },
                         key: lineNumber,
                         dir: "auto",
@@ -159,12 +169,22 @@ const KaraokeLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
             activeLines.map(({ text, lineNumber, startTime }, i) => {
                 let timeAcc = startTime;
                 let activeElementIndex = Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1);
+
+                let animationIndex;
+                if (activeLineIndex <= CONFIG.visual["lines-before"]) {
+                    animationIndex = i - activeLineIndex;
+                }  else {
+                    animationIndex = i - CONFIG.visual["lines-before"] - 1;
+                }
+
                 return react.createElement(
                     "p",
                     {
                         className: "lyrics-lyricsContainer-LyricsLine",
                         style: {
-                            "--animation-index": i,
+                            "--position-index": animationIndex,
+                            "--animation-index": (animationIndex < 0 ? 0 : animationIndex) + 1,
+                            "--blur-index": Math.abs(animationIndex),
                         },
                         key: lineNumber,
                         dir: "auto",

@@ -128,8 +128,15 @@
 }
 
 .lyrics-lyricsContainer-LyricsLine {
-    transform: translateY(calc((var(--animation-index) - 1) * var(--lyrics-line-height)));
-    transition: all 0.25s cubic-bezier(0, 0, 0, 1);
+    transform: translateY(calc(var(--position-index) * var(--lyrics-line-height)));
+    transform-origin: left;
+    transition-timing-function: cubic-bezier(0, 0, 0.58, 1);
+    transition-duration: calc(var(--animation-index) * var(--animation-tempo) + 0.1s);
+    transition-property: transform, color, opacity;
+}
+
+.lyrics-lyricsContainer-LyricsContainer.blur-enabled .lyrics-lyricsContainer-LyricsLine {
+    filter: blur(calc(var(--blur-index) * 1.5px));
 }
 
 .lyrics-lyricsContainer-UnsyncedLyricsPage .lyrics-lyricsContainer-LyricsLine,
@@ -144,12 +151,13 @@
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine.lyrics-lyricsContainer-LyricsLine-active {
     color: var(--lyrics-color-active);
     opacity: 1;
+    transform: translateY(calc(var(--position-index) * var(--lyrics-line-height))) scale(1.1);
 }
 
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine:first-of-type,
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine:last-of-type {
     opacity: 0;
-    line-height: 0;
+    height: 0;
 }
 
 .lyrics-lyricsContainer-LyricsUnavailableMessage,
