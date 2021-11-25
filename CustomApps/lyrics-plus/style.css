@@ -500,3 +500,24 @@ button.switch.small {
 #lyrics-fullscreen-container .lyrics-lyricsContainer-LyricsContainer::-webkit-scrollbar {
     background-color: var(--lyrics-color-background);
 }
+
+.lyrics-lyricsContainer-LyricsContainer.fad-enabled {
+    height: 100vh;
+    margin-top: 0;
+    margin-bottom: 0;
+    overflow-y: scroll;
+}
+
+.lyrics-lyricsContainer-LyricsContainer.fad-enabled .lyrics-lyricsContainer-LyricsLine {
+    margin-left: 100px;
+    margin-right: 100px;
+}
+
+.lyrics-lyricsContainer-LyricsContainer.fad-enabled .lyrics-lyricsContainer-LyricsBackground,
+.lyrics-lyricsContainer-LyricsContainer.fad-enabled .lyrics-lyricsContainer-Provider {
+    display: none;
+}
+
+.lyrics-lyricsContainer-LyricsContainer.fad-enabled .lyrics-lyricsContainer-SyncedLyricsPage {
+    width: 100%;
+}

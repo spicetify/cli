@@ -5,14 +5,17 @@
 // DESCRIPTION: Fancy artwork and track status display.
 
 /// <reference path="../globals.d.ts" />
-
 (function FullAppDisplay() {
-    if (!Spicetify.Keyboard) {
+    if (!Spicetify.Keyboard || !Spicetify.React || !Spicetify.ReactDOM) {
         setTimeout(FullAppDisplay, 200);
         return;
     }
 
+    const { React: react, ReactDOM: reactDOM } = Spicetify;
+    const { useState, useEffect } = react;
+
     const CONFIG = getConfig();
+    let updateVisual;
 
     const style = document.createElement("style");
     const styleBase = `
@@ -30,6 +33,9 @@
     width: 100%;
     height: 80px;
     -webkit-app-region: drag;
+}
+#fad-body {
+    height: 100vh;
 }
 #fad-foreground {
     position: relative;
@@ -105,6 +111,41 @@ body.video-full-screen.video-full-screen--hide-ui {
     border: 0;
     color: currentColor;
     padding: 0 5px;
+}
+#fad-artist svg, #fad-album svg {
+    display: inline-block;
+}
+.setting-row::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+.setting-row .col {
+    display: flex;
+    padding: 10px 0;
+    align-items: center;
+}
+.setting-row .col.description {
+    float: left;
+    padding-right: 15px;
+}
+.setting-row .col.action {
+    float: right;
+    text-align: right;
+}
+button.switch {
+    align-items: center;
+    border: 0px;
+    border-radius: 50%;
+    background-color: rgba(var(--spice-rgb-shadow), .7);
+    color: var(--spice-text);
+    cursor: pointer;
+    display: flex;
+    margin-inline-start: 12px;
+    padding: 8px;
+}
+button.switch.disabled {
+    color: rgba(var(--spice-rgb-text), .3);
 }
 `;
 
@@ -201,299 +242,397 @@ body.video-full-screen.video-full-screen--hide-ui {
 }`,
     ];
 
-    const iconStyleChoices = [
+    const lyricsPlusBase = `
+#fad-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+#fad-foreground {
+    padding: 0 50px 0 100px;
+    width: 50vw;
+}
+#fad-lyrics-plus-container {
+    width: 50vw;
+}
+`;
+    const lyricsPlusStyleChoices = [
         `
-#fad-artist svg, #fad-album svg {
-    display: none;
+#fad-title {
+    font-size: 54px;
+}
+#fad-art {
+    max-width: 210px;
+    margin-left: 50px;
 }`,
-        `
-#fad-artist svg, #fad-album svg {
-    display: inline-block;
-}`,
+        ``,
     ];
+    updateStyle();
 
-    const container = document.createElement("div");
-    container.id = "full-app-display";
-    container.classList.add("Video", "VideoPlayer--fullscreen", "VideoPlayer--landscape");
+    const DisplayIcon = ({ icon, size }) => {
+        return react.createElement("svg", {
+            width: size,
+            height: size,
+            viewBox: "0 0 16 16",
+            fill: "currentColor",
+            dangerouslySetInnerHTML: {
+                __html: icon,
+            },
+        });
+    };
 
-    let cover, back, title, artist, album, prog, elaps, durr, play;
-    const nextTrackImg = new Image();
+    const SubInfo = ({ text, id, icon }) => {
+        return react.createElement(
+            "div",
+            {
+                id,
+            },
+            CONFIG.icons && react.createElement(DisplayIcon, { icon, size: 35 }),
+            react.createElement("span", null, text)
+        );
+    };
 
-    function render() {
-        Spicetify.Player.removeEventListener("songchange", updateInfo);
-        Spicetify.Player.removeEventListener("onprogress", updateProgress);
-        Spicetify.Player.removeEventListener("onplaypause", updateControl);
+    const ButtonIcon = ({ icon, onClick }) => {
+        return react.createElement(
+            "button",
+            {
+                onClick,
+            },
+            react.createElement(DisplayIcon, { icon, size: 20 })
+        );
+    };
 
-        style.innerHTML = styleBase + styleChoices[CONFIG.vertical ? 1 : 0] + iconStyleChoices[CONFIG.icons ? 1 : 0];
+    const ProgressBar = () => {
+        const [value, setValue] = useState(Spicetify.Player.getProgress());
+        useEffect(() => {
+            const update = ({ data }) => setValue(data);
+            Spicetify.Player.addEventListener("onprogress", update);
+            return () => Spicetify.Player.removeEventListener("onprogress", update);
+        });
+        const duration = Spicetify.Platform.PlayerAPI._state.duration;
+        return react.createElement(
+            "div",
+            { id: "fad-progress-container" },
+            react.createElement("span", { id: "fad-elapsed" }, Spicetify.Player.formatTime(value)),
+            react.createElement(
+                "div",
+                { id: "fad-progress" },
+                react.createElement("div", {
+                    id: "fad-progress-inner",
+                    style: {
+                        width: (value / duration) * 100 + "%",
+                    },
+                })
+            ),
+            react.createElement("span", { id: "fad-duration" }, Spicetify.Player.formatTime(duration))
+        );
+    };
 
-        container.innerHTML = `
-<canvas id="fad-background"></canvas>
-<div id="fad-header"></div>
-<div id="fad-foreground">
-    <div id="fad-art">
-        <div id="fad-art-image">
-            <div id="fad-art-inner"></div>
-        </div>
-    </div>
-    <div id="fad-details">
-        <div id="fad-title"></div>
-        <div id="fad-artist">
-            <svg height="35" width="35" viewBox="0 0 16 16" fill="currentColor">
-                ${Spicetify.SVGIcons.artist}
-            </svg>
-            <span></span>
-        </div>
-        ${
-            CONFIG.showAlbum
-                ? `<div id="fad-album">
-            <svg height="35" width="35" viewBox="0 0 16 16" fill="currentColor">
-                ${Spicetify.SVGIcons.album}
-            </svg>
-            <span></span>
-        </div>`
-                : ""
+    const PlayerControls = () => {
+        const [value, setValue] = useState(Spicetify.Player.isPlaying());
+        useEffect(() => {
+            const update = ({ data }) => setValue(!data.is_paused);
+            Spicetify.Player.addEventListener("onplaypause", update);
+            return () => Spicetify.Player.removeEventListener("onplaypause", update);
+        });
+        return react.createElement(
+            "div",
+            { id: "fad-controls" },
+            react.createElement(ButtonIcon, {
+                icon: Spicetify.SVGIcons["skip-back"],
+                onClick: Spicetify.Player.back,
+            }),
+            react.createElement(ButtonIcon, {
+                icon: Spicetify.SVGIcons[value ? "pause" : "play"],
+                onClick: Spicetify.Player.togglePlay,
+            }),
+            react.createElement(ButtonIcon, {
+                icon: Spicetify.SVGIcons["skip-forward"],
+                onClick: Spicetify.Player.next,
+            })
+        );
+    };
+
+    class FAD extends react.Component {
+        constructor(props) {
+            super(props);
+
+            this.state = {
+                title: "",
+                artist: "",
+                album: "",
+                cover: "",
+            };
+            this.currTrackImg = new Image();
+            this.nextTrackImg = new Image();
+            this.mousetrap = new Spicetify.Mousetrap();
         }
-        <div id="fad-status" class="${CONFIG.enableControl || CONFIG.enableProgress ? "active" : ""}">
-            ${
-                CONFIG.enableControl
-                    ? `
-            <div id="fad-controls">
-                ${
-                    CONFIG.vertical
-                        ? `<button id="fad-back">
-                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
-                        ${Spicetify.SVGIcons["skip-back"]}
-                    </svg>
-                </button>`
-                        : ""
+
+        async getAlbumDate(uri) {
+            const id = uri.replace("spotify:album:", "");
+            const albumInfo = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${id}/desktop`);
+
+            const albumDate = new Date(albumInfo.year, (albumInfo.month || 1) - 1, albumInfo.day || 0);
+            const recentDate = new Date();
+            recentDate.setMonth(recentDate.getMonth() - 6);
+            return albumDate.toLocaleString("default", albumDate > recentDate ? { year: "numeric", month: "short" } : { year: "numeric" });
+        }
+
+        async fetchInfo() {
+            const meta = Spicetify.Player.data.track.metadata;
+
+            // prepare title
+            let rawTitle = meta.title;
+            if (CONFIG.trimTitle) {
+                rawTitle = rawTitle
+                    .replace(/\(.+?\)/g, "")
+                    .replace(/\[.+?\]/g, "")
+                    .replace(/\s\-\s.+?$/, "")
+                    .trim();
+            }
+
+            // prepare artist
+            let artistName;
+            if (CONFIG.showAllArtists) {
+                artistName = Object.keys(meta)
+                    .filter((key) => key.startsWith("artist_name"))
+                    .sort()
+                    .map((key) => meta[key])
+                    .join(", ");
+            } else {
+                artistName = meta.artist_name;
+            }
+
+            // prepare album
+            let albumText = meta.album_title || "";
+            if (CONFIG.showAlbum) {
+                const albumURI = meta.album_uri;
+                if (albumURI?.startsWith("spotify:album:")) {
+                    albumText += " • " + (await this.getAlbumDate(albumURI));
                 }
-                <button id="fad-play">
-                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
-                        ${Spicetify.SVGIcons.play}
-                    </svg>
-                </button>
-                <button id="fad-next">
-                    <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
-                        ${Spicetify.SVGIcons["skip-forward"]}
-                    </svg>
-                </button>
-            </div>`
-                    : ""
             }
-            ${
-                CONFIG.enableProgress
-                    ? `
-            <div id="fad-progress-container">
-                <span id="fad-elapsed"></span>
-                <div id="fad-progress"><div id="fad-progress-inner"></div></div>
-                <span id="fad-duration"></span>
-            </div>`
-                    : ""
+
+            if (meta.image_xlarge_url === this.currTrackImg.src) {
+                this.setState({
+                    title: rawTitle || "",
+                    artist: artistName || "",
+                    album: albumText || "",
+                });
+                return;
             }
-        </div>
-    </div>
-</div>`;
 
-        back = container.querySelector("canvas");
-        back.width = window.innerWidth;
-        back.height = window.innerHeight;
-        cover = container.querySelector("#fad-art-image");
-        title = container.querySelector("#fad-title");
-        artist = container.querySelector("#fad-artist span");
-        album = container.querySelector("#fad-album span");
+            // TODO: Pre-load next track
+            // Wait until next track image is downloaded then update UI text and images
+            const previousImg = this.currTrackImg.cloneNode();
+            this.currTrackImg.src = meta.image_xlarge_url;
+            this.currTrackImg.onload = () => {
+                const bgImage = `url("${this.currTrackImg.src}")`;
 
-        if (CONFIG.enableProgress) {
-            prog = container.querySelector("#fad-progress-inner");
-            durr = container.querySelector("#fad-duration");
-            elaps = container.querySelector("#fad-elapsed");
+                this.animateCanvas(previousImg, this.currTrackImg);
+                this.setState({
+                    title: rawTitle || "",
+                    artist: artistName || "",
+                    album: albumText || "",
+                    cover: bgImage,
+                });
+            };
+            this.currTrackImg.onerror = () => {
+                // Placeholder
+                this.currTrackImg.src =
+                    "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCI+CiAgPHJlY3Qgc3R5bGU9ImZpbGw6I2ZmZmZmZiIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiB4PSIwIiB5PSIwIiAvPgogIDxwYXRoIGZpbGw9IiNCM0IzQjMiIGQ9Ik0yNi4yNSAxNi4xNjJMMjEuMDA1IDEzLjEzNEwyMS4wMTIgMjIuNTA2QzIwLjU5NCAyMi4xOTIgMjAuMDgxIDIxLjk5OSAxOS41MTkgMjEuOTk5QzE4LjE0MSAyMS45OTkgMTcuMDE5IDIzLjEyMSAxNy4wMTkgMjQuNDk5QzE3LjAxOSAyNS44NzggMTguMTQxIDI2Ljk5OSAxOS41MTkgMjYuOTk5QzIwLjg5NyAyNi45OTkgMjIuMDE5IDI1Ljg3OCAyMi4wMTkgMjQuNDk5QzIyLjAxOSAyNC40MjIgMjIuMDA2IDE0Ljg2NyAyMi4wMDYgMTQuODY3TDI1Ljc1IDE3LjAyOUwyNi4yNSAxNi4xNjJaTTE5LjUxOSAyNS45OThDMTguNjkyIDI1Ljk5OCAxOC4wMTkgMjUuMzI1IDE4LjAxOSAyNC40OThDMTguMDE5IDIzLjY3MSAxOC42OTIgMjIuOTk4IDE5LjUxOSAyMi45OThDMjAuMzQ2IDIyLjk5OCAyMS4wMTkgMjMuNjcxIDIxLjAxOSAyNC40OThDMjEuMDE5IDI1LjMyNSAyMC4zNDYgMjUuOTk4IDE5LjUxOSAyNS45OThaIi8+Cjwvc3ZnPgo=";
+            };
         }
 
-        if (CONFIG.enableControl) {
-            play = container.querySelector("#fad-play");
-            play.onclick = Spicetify.Player.togglePlay;
-            container.querySelector("#fad-next").onclick = Spicetify.Player.next;
-            if (CONFIG.vertical) {
-                container.querySelector("#fad-back").onclick = Spicetify.Player.back;
+        animateCanvas(prevImg, nextImg) {
+            const { innerWidth: width, innerHeight: height } = window;
+            this.back.width = width;
+            this.back.height = height;
+            const dim = width > height ? width : height;
+
+            const ctx = this.back.getContext("2d");
+            ctx.imageSmoothingEnabled = false;
+            ctx.filter = `blur(30px) brightness(0.6)`;
+            const blur = 30;
+
+            if (!CONFIG.enableFade) {
+                ctx.globalAlpha = 1;
+                ctx.drawImage(nextImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
+                return;
             }
+
+            let factor = 0.0;
+            const animate = () => {
+                ctx.globalAlpha = 1;
+                ctx.drawImage(prevImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
+                ctx.globalAlpha = Math.sin((Math.PI / 2) * factor);
+                ctx.drawImage(nextImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
+
+                if (factor < 1.0) {
+                    factor += 0.016;
+                    requestAnimationFrame(animate);
+                }
+            };
+
+            requestAnimationFrame(animate);
+        }
+
+        componentDidMount() {
+            this.updateInfo = this.fetchInfo.bind(this);
+            Spicetify.Player.addEventListener("songchange", this.updateInfo);
+            this.updateInfo();
+
+            updateVisual = () => {
+                updateStyle();
+                this.fetchInfo();
+            };
+
+            this.onQueueChange = async (queue) => {
+                queue = queue.data;
+                let nextTrack;
+                if (queue.queued.length) {
+                    nextTrack = queue.queued[0];
+                } else {
+                    nextTrack = queue.nextUp[0];
+                }
+                this.nextTrackImg.src = nextTrack.metadata.image_xlarge_url;
+            };
+
+            Spicetify.Platform.PlayerAPI._events.addListener("queue_update", this.onQueueChange);
+            this.mousetrap.bind("esc", deactivate);
+            window.dispatchEvent(new Event("fad-request"));
+        }
+
+        componentWillUnmount() {
+            Spicetify.Player.removeEventListener("songchange", this.updateInfo);
+            Spicetify.Platform.PlayerAPI._events.removeListener("queue_update", this.onQueueChange);
+            this.mousetrap.unbind("esc");
+        }
+
+        render() {
+            return react.createElement(
+                "div",
+                {
+                    id: "full-app-display",
+                    className: "Video VideoPlayer--fullscreen VideoPlayer--landscape",
+                },
+                react.createElement("canvas", {
+                    id: "fad-background",
+                    width: window.innerWidth,
+                    height: window.innerHeight,
+                    ref: (el) => (this.back = el),
+                }),
+                react.createElement("div", { id: "fad-header" }),
+                react.createElement(
+                    "div",
+                    { id: "fad-body" },
+                    react.createElement(
+                        "div",
+                        { id: "fad-foreground" },
+                        react.createElement(
+                            "div",
+                            { id: "fad-art" },
+                            react.createElement(
+                                "div",
+                                {
+                                    id: "fad-art-image",
+                                    className: CONFIG.enableFade && "fad-background-fade",
+                                    style: {
+                                        backgroundImage: this.state.cover,
+                                    },
+                                },
+                                react.createElement("div", { id: "fad-art-inner" })
+                            )
+                        ),
+                        react.createElement(
+                            "div",
+                            { id: "fad-details" },
+                            react.createElement("div", { id: "fad-title" }, this.state.title),
+                            react.createElement(SubInfo, {
+                                id: "fad-artist",
+                                text: this.state.artist,
+                                icon: Spicetify.SVGIcons.artist,
+                            }),
+                            CONFIG.showAlbum &&
+                                react.createElement(SubInfo, {
+                                    id: "fad-album",
+                                    text: this.state.album,
+                                    icon: Spicetify.SVGIcons.album,
+                                }),
+                            react.createElement(
+                                "div",
+                                {
+                                    id: "fad-status",
+                                    className: (CONFIG.enableControl || CONFIG.enableProgress) && "active",
+                                },
+                                CONFIG.enableControl && react.createElement(PlayerControls),
+                                CONFIG.enableProgress && react.createElement(ProgressBar)
+                            )
+                        )
+                    ),
+                    CONFIG.lyricsPlus && react.createElement("div", { id: "fad-lyrics-plus-container" })
+                )
+            );
         }
     }
 
     const classes = ["video", "video-full-screen", "video-full-window", "video-full-screen--hide-ui", "fad-activated"];
 
-    function getAlbumInfo(uri) {
-        return Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${uri}/desktop`);
-    }
+    const container = document.createElement("div");
+    container.id = "fad-main";
+    let lastApp;
 
-    async function updateInfo() {
-        const meta = Spicetify.Player.data.track.metadata;
-
-        // prepare title
-        let rawTitle = meta.title;
-        if (CONFIG.trimTitle) {
-            rawTitle = rawTitle
-                .replace(/\(.+?\)/g, "")
-                .replace(/\[.+?\]/g, "")
-                .replace(/\s\-\s.+?$/, "")
-                .trim();
-        }
-
-        // prepare artist
-        let artistName;
-        if (CONFIG.showAllArtists) {
-            artistName = Object.keys(meta)
-                .filter((key) => key.startsWith("artist_name"))
-                .sort()
-                .map((key) => meta[key])
-                .join(", ");
-        } else {
-            artistName = meta.artist_name;
-        }
-
-        // prepare album
-        let albumText;
-        if (CONFIG.showAlbum) {
-            albumText = meta.album_title || "";
-            const albumURI = meta.album_uri;
-            if (albumURI?.startsWith("spotify:album:")) {
-                const albumInfo = await getAlbumInfo(albumURI.replace("spotify:album:", ""));
-
-                const albumDate = new Date(albumInfo.year, (albumInfo.month || 1) - 1, albumInfo.day || 0);
-                const recentDate = new Date();
-                recentDate.setMonth(recentDate.getMonth() - 6);
-                const dateStr = albumDate.toLocaleString(
-                    "default",
-                    albumDate > recentDate
-                        ? {
-                              year: "numeric",
-                              month: "short",
-                          }
-                        : {
-                              year: "numeric",
-                          }
-                );
-
-                albumText += " • " + dateStr;
-            }
-        }
-
-        // prepare duration
-        let durationText;
-        if (CONFIG.enableProgress) {
-            durationText = Spicetify.Player.formatTime(meta.duration);
-        }
-
-        // Wait until next track image is downloaded then update UI text and images
-        const previousImg = nextTrackImg.cloneNode();
-        nextTrackImg.src = meta.image_xlarge_url;
-        nextTrackImg.onload = () => {
-            const bgImage = `url("${nextTrackImg.src}")`;
-
-            animateCanvas(previousImg, nextTrackImg);
-
-            cover.style.backgroundImage = bgImage;
-
-            title.innerText = rawTitle || "";
-            artist.innerText = artistName || "";
-            if (album) {
-                album.innerText = albumText || "";
-            }
-            if (durr) {
-                durr.innerText = durationText || "";
-            }
-        };
-        nextTrackImg.onerror = () => {
-            // Placeholder
-            nextTrackImg.src =
-                "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCI+CiAgPHJlY3Qgc3R5bGU9ImZpbGw6I2ZmZmZmZiIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiB4PSIwIiB5PSIwIiAvPgogIDxwYXRoIGZpbGw9IiNCM0IzQjMiIGQ9Ik0yNi4yNSAxNi4xNjJMMjEuMDA1IDEzLjEzNEwyMS4wMTIgMjIuNTA2QzIwLjU5NCAyMi4xOTIgMjAuMDgxIDIxLjk5OSAxOS41MTkgMjEuOTk5QzE4LjE0MSAyMS45OTkgMTcuMDE5IDIzLjEyMSAxNy4wMTkgMjQuNDk5QzE3LjAxOSAyNS44NzggMTguMTQxIDI2Ljk5OSAxOS41MTkgMjYuOTk5QzIwLjg5NyAyNi45OTkgMjIuMDE5IDI1Ljg3OCAyMi4wMTkgMjQuNDk5QzIyLjAxOSAyNC40MjIgMjIuMDA2IDE0Ljg2NyAyMi4wMDYgMTQuODY3TDI1Ljc1IDE3LjAyOUwyNi4yNSAxNi4xNjJaTTE5LjUxOSAyNS45OThDMTguNjkyIDI1Ljk5OCAxOC4wMTkgMjUuMzI1IDE4LjAxOSAyNC40OThDMTguMDE5IDIzLjY3MSAxOC42OTIgMjIuOTk4IDE5LjUxOSAyMi45OThDMjAuMzQ2IDIyLjk5OCAyMS4wMTkgMjMuNjcxIDIxLjAxOSAyNC40OThDMjEuMDE5IDI1LjMyNSAyMC4zNDYgMjUuOTk4IDE5LjUxOSAyNS45OThaIi8+Cjwvc3ZnPgo=";
-        };
-    }
-
-    function animateCanvas(prevImg, nextImg) {
-        const { innerWidth: width, innerHeight: height } = window;
-        back.width = width;
-        back.height = height;
-        const dim = width > height ? width : height;
-
-        const ctx = back.getContext("2d");
-        ctx.imageSmoothingEnabled = false;
-        ctx.filter = `blur(30px) brightness(0.6)`;
-        const blur = 30;
-
-        if (!CONFIG.enableFade) {
-            ctx.globalAlpha = 1;
-            ctx.drawImage(nextImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
-            return;
-        }
-
-        let factor = 0.0;
-        const animate = () => {
-            ctx.globalAlpha = 1;
-            ctx.drawImage(prevImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
-            ctx.globalAlpha = Math.sin((Math.PI / 2) * factor);
-            ctx.drawImage(nextImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
-
-            if (factor < 1.0) {
-                factor += 0.016;
-                requestAnimationFrame(animate);
-            }
-        };
-
-        requestAnimationFrame(animate);
-    }
-
-    function updateProgress(event) {
-        prog.style.width = (event.data / Spicetify.Player.origin._state.duration) * 100 + "%";
-        elaps.innerText = Spicetify.Player.formatTime(event.data);
-    }
-
-    function updateControl({ data }) {
-        if (data.is_paused) {
-            play.innerHTML = `<svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.play}</svg>`;
-        } else {
-            play.innerHTML = `<svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.pause}</svg>`;
-        }
-    }
-
-    function activate() {
-        updateInfo();
-        Spicetify.Player.addEventListener("songchange", updateInfo);
-        if (CONFIG.enableProgress) {
-            Spicetify.Player.addEventListener("onprogress", updateProgress);
-        }
-        if (CONFIG.enableControl) {
-            updateControl({
-                data: { is_paused: !Spicetify.Player.isPlaying() },
-            });
-            Spicetify.Player.addEventListener("onplaypause", updateControl);
-        }
+    function toggleFullscreen() {
         if (CONFIG.enableFullscreen) {
             document.documentElement.requestFullscreen();
         } else if (document.webkitIsFullScreen) {
             document.exitFullscreen();
         }
-        if (CONFIG.enableFade) {
-            cover.classList.add("fad-background-fade");
-        } else {
-            cover.classList.remove("fad-background-fade");
-        }
+    }
+
+    function activate() {
+        toggleFullscreen();
+
         document.body.classList.add(...classes);
         document.body.append(style, container);
+        reactDOM.render(react.createElement(FAD), container);
+
+        if (CONFIG.lyricsPlus) {
+            lastApp = Spicetify.Platform.History.location.pathname;
+            if (lastApp !== "/lyrics-plus") {
+                Spicetify.Platform.History.push("/lyrics-plus");
+            }
+        }
     }
 
     function deactivate() {
-        Spicetify.Player.removeEventListener("songchange", updateInfo);
-        if (CONFIG.enableProgress) {
-            Spicetify.Player.removeEventListener("onprogress", updateProgress);
-        }
-        if (CONFIG.enableControl) {
-            Spicetify.Player.removeEventListener("onplaypause", updateControl);
-        }
         if (CONFIG.enableFullscreen || document.webkitIsFullScreen) {
             document.exitFullscreen();
         }
         document.body.classList.remove(...classes);
+        reactDOM.unmountComponentAtNode(container);
         style.remove();
         container.remove();
+        window.dispatchEvent(new Event("fad-request"));
+
+        if (CONFIG.lyricsPlus) {
+            if (lastApp !== "/lyrics-plus") {
+                Spicetify.Platform.History.push(lastApp);
+            }
+        }
+    }
+
+    function toggleFad() {
+        if (document.body.classList.contains("fad-activated")) {
+            deactivate();
+        } else {
+            activate();
+        }
+    }
+
+    function updateStyle() {
+        style.innerHTML =
+            styleBase +
+            styleChoices[CONFIG.vertical ? 1 : 0] +
+            (CONFIG.lyricsPlus ? lyricsPlusBase + lyricsPlusStyleChoices[CONFIG.vertical ? 1 : 0] : "");
     }
 
     function getConfig() {
@@ -513,87 +652,49 @@ body.video-full-screen.video-full-screen--hide-ui {
         Spicetify.LocalStorage.set("full-app-display-config", JSON.stringify(CONFIG));
     }
 
-    function newMenuItem(name, key) {
-        const container = document.createElement("div");
-        container.innerHTML = `
-<div class="setting-row">
-    <label class="col description">${name}</label>
-    <div class="col action"><button class="switch">
-        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
-            ${Spicetify.SVGIcons.check}
-        </svg>
-    </button></div>
-</div>`;
+    const ConfigItem = ({ name, field, func }) => {
+        const [value, setValue] = useState(CONFIG[field]);
+        return react.createElement(
+            "div",
+            { className: "setting-row" },
+            react.createElement("label", { className: "col description" }, name),
+            react.createElement(
+                "div",
+                { className: "col action" },
+                react.createElement(
+                    "button",
+                    {
+                        className: "switch" + (value ? "" : " disabled"),
+                        onClick: () => {
+                            const state = !value;
+                            CONFIG[field] = state;
+                            setValue(state);
+                            saveConfig();
+                            func();
+                        },
+                    },
+                    react.createElement(DisplayIcon, { icon: Spicetify.SVGIcons.check, size: 16 })
+                )
+            )
+        );
+    };
 
-        const slider = container.querySelector("button");
-        slider.classList.toggle("disabled", !CONFIG[key]);
-
-        slider.onclick = () => {
-            const state = slider.classList.contains("disabled");
-            slider.classList.toggle("disabled");
-            CONFIG[key] = state;
-            saveConfig();
-            render();
-            activate();
-        };
-
-        return container;
-    }
-
-    let configContainer;
     function openConfig(event) {
         event.preventDefault();
-        if (!configContainer) {
-            configContainer = document.createElement("div");
-            configContainer.id = "popup-config-container";
-            const style = document.createElement("style");
-            style.innerHTML = `
-.setting-row::after {
-    content: "";
-    display: table;
-    clear: both;
-}
-.setting-row .col {
-    display: flex;
-    padding: 10px 0;
-    align-items: center;
-}
-.setting-row .col.description {
-    float: left;
-    padding-right: 15px;
-}
-.setting-row .col.action {
-    float: right;
-    text-align: right;
-}
-button.switch {
-    align-items: center;
-    border: 0px;
-    border-radius: 50%;
-    background-color: rgba(var(--spice-rgb-shadow), .7);
-    color: var(--spice-text);
-    cursor: pointer;
-    display: flex;
-    margin-inline-start: 12px;
-    padding: 8px;
-}
-button.switch.disabled {
-    color: rgba(var(--spice-rgb-text), .3);
-}`;
-
-            configContainer.append(
-                style,
-                newMenuItem("Enable progress bar", "enableProgress"),
-                newMenuItem("Enable controls", "enableControl"),
-                newMenuItem("Trim title", "trimTitle"),
-                newMenuItem("Show album", "showAlbum"),
-                newMenuItem("Show all artists", "showAllArtists"),
-                newMenuItem("Show icons", "icons"),
-                newMenuItem("Vertical mode", "vertical"),
-                newMenuItem("Enable fullscreen", "enableFullscreen"),
-                newMenuItem("Enable song change animation", "enableFade")
-            );
-        }
+        let configContainer = react.createElement(
+            "div",
+            null,
+            react.createElement(ConfigItem, { name: "Enable Lyrics Plus integration", field: "lyricsPlus", func: updateVisual }),
+            react.createElement(ConfigItem, { name: "Enable progress bar", field: "enableProgress", func: updateVisual }),
+            react.createElement(ConfigItem, { name: "Enable controls", field: "enableControl", func: updateVisual }),
+            react.createElement(ConfigItem, { name: "Trim title", field: "trimTitle", func: updateVisual }),
+            react.createElement(ConfigItem, { name: "Show album", field: "showAlbum", func: updateVisual }),
+            react.createElement(ConfigItem, { name: "Show all artists", field: "showAllArtists", func: updateVisual }),
+            react.createElement(ConfigItem, { name: "Show icons", field: "icons", func: updateVisual }),
+            react.createElement(ConfigItem, { name: "Vertical mode", field: "vertical", func: updateStyle }),
+            react.createElement(ConfigItem, { name: "Enable fullscreen", field: "enableFullscreen", func: toggleFullscreen }),
+            react.createElement(ConfigItem, { name: "Enable song change animation", field: "enableFade", func: updateVisual })
+        );
         Spicetify.PopupModal.display({
             title: "Full App Display",
             content: configContainer,
@@ -603,30 +704,12 @@ button.switch.disabled {
     container.ondblclick = deactivate;
     container.oncontextmenu = openConfig;
 
-    function toggleFad() {
-        if (document.body.classList.contains("fad-activated")) {
-            deactivate();
-        } else {
-            activate();
-        }
-    }
-
     // Add activator on top bar
     new Spicetify.Topbar.Button(
         "Full App Display",
-        `<svg role="img" height="16" width="16" viewBox="0 0 32 32" fill="currentColor"><path d="M8.645 22.648l-5.804 5.804.707.707 5.804-5.804 2.647 2.646v-6h-6l2.646 2.647zM29.157 3.55l-.707-.707-5.804 5.805L20 6.001v6h6l-2.646-2.647 5.803-5.804z"></path></svg>`,
+        `<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.projector}</svg>`,
         activate
     );
 
-    Spicetify.Keyboard.registerShortcut(
-        {
-            key: Spicetify.Keyboard.KEYS["F11"],
-            ctrl: false,
-            shift: false,
-            alt: false,
-        },
-        toggleFad
-    );
-
-    render();
+    Spicetify.Mousetrap.bind("f11", toggleFad);
 })();

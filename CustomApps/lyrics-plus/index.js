@@ -331,6 +331,7 @@ class LyricsContainer extends react.Component {
         };
         this.mousetrap.reset();
         this.mousetrap.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
+        window.addEventListener("fad-request", lyricContainerUpdate);
     }
 
     componentWillUnmount() {
@@ -456,11 +457,15 @@ class LyricsContainer extends react.Component {
         }
 
         this.state.mode = mode;
+        const fadLyricsContainer = document.getElementById("fad-lyrics-plus-container");
 
         const out = react.createElement(
             "div",
             {
-                className: "lyrics-lyricsContainer-LyricsContainer" + (CONFIG.visual["fade-blur"] ? " blur-enabled" : ""),
+                className:
+                    "lyrics-lyricsContainer-LyricsContainer" +
+                    (CONFIG.visual["fade-blur"] ? " blur-enabled" : "") +
+                    (fadLyricsContainer ? " fad-enabled" : ""),
                 style: this.styleVariables,
             },
             react.createElement("div", {
@@ -493,6 +498,8 @@ class LyricsContainer extends react.Component {
 
         if (this.state.isFullscreen) {
             return reactDOM.createPortal(out, this.fullscreenContainer);
+        } else if (fadLyricsContainer) {
+            return reactDOM.createPortal(out, fadLyricsContainer);
         } else {
             return out;
         }
