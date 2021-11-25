@@ -461,6 +461,9 @@ button.switch.disabled {
 
             let factor = 0.0;
             const animate = () => {
+				if (ctx.filter == "none") {
+                    ctx.filter = `blur(30px) brightness(0.6)`;
+                }
                 ctx.globalAlpha = 1;
                 ctx.drawImage(prevImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
                 ctx.globalAlpha = Math.sin((Math.PI / 2) * factor);
