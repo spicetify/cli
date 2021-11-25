@@ -84,6 +84,7 @@
     grid-area: 1/1/-1/-1;
     grid-template-rows: 1fr 20px;
     user-select: text;
+    text-align: var(--lyrics-align-text);
 }
 
 .lyrics-lyricsContainer-LyricsUnsyncedMessage {
@@ -129,7 +130,7 @@
     height: 0;
 }
 
-.lyrics-lyricsContainer-LyricsLine {
+.lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
     transform: translateY(calc(var(--position-index) * var(--lyrics-line-height) + var(--offset)));
     transform-origin: var(--lyrics-align-text);
     transition-timing-function: cubic-bezier(0, 0, 0.58, 1);
@@ -137,7 +138,7 @@
     transition-property: transform, color, opacity;
 }
 
-.lyrics-lyricsContainer-LyricsContainer.blur-enabled .lyrics-lyricsContainer-LyricsLine {
+.lyrics-lyricsContainer-LyricsContainer.blur-enabled .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
     filter: blur(calc(var(--blur-index) * 1.5px));
 }
 
@@ -323,6 +324,7 @@ div.lyrics-tabBar-headerItemLink {
     color: var(--lyrics-highlight-background);
     box-shadow: 0 10px 15px 5px rgb(0, 0, 0, 0.2);
     cursor: default;
+    text-align: left;
 }
 
 .lyrics-Genius-divider {

@@ -72,7 +72,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
         return lyricWithEmptyLines.slice(startIndex, startIndex + linesCount);
     }, [activeLineIndex, lyricWithEmptyLines]);
 
-    let offset = lyricContainerEle.current ? (lyricContainerEle.current.clientHeight / 2) : 0;
+    let offset = lyricContainerEle.current ? lyricContainerEle.current.clientHeight / 2 : 0;
     if (activeLineEle.current) {
         offset += -(activeLineEle.current.offsetTop + activeLineEle.current.clientHeight / 2);
     }
@@ -174,7 +174,7 @@ const KaraokeLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
         return padded.slice(startIndex, startIndex + linesCount);
     }, [activeLineIndex, padded]);
 
-    let offset = lyricContainerEle.current ? (lyricContainerEle.current.clientHeight / 2) : 0;
+    let offset = lyricContainerEle.current ? lyricContainerEle.current.clientHeight / 2 : 0;
     if (activeLineEle.current) {
         offset += -(activeLineEle.current.offsetTop + activeLineEle.current.clientHeight / 2);
     }
@@ -394,20 +394,16 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
             variant: "main-type-ballad",
             className: "lyrics-lyricsContainer-LyricsUnsyncedMessage",
         }),
-        react.createElement(
-            "div",
-            null,
-            lyrics.map(({ text, desc }) => {
-                return react.createElement(
-                    "p",
-                    {
-                        className: "lyrics-lyricsContainer-LyricsLine",
-                        dir: "auto",
-                    },
-                    text
-                );
-            })
-        ),
+        lyrics.map(({ text, desc }) => {
+            return react.createElement(
+                "p",
+                {
+                    className: "lyrics-lyricsContainer-LyricsLine",
+                    dir: "auto",
+                },
+                text
+            );
+        }),
         react.createElement(CreditFooter, {
             provider,
             copyright,
