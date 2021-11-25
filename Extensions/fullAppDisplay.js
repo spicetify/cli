@@ -461,7 +461,7 @@ button.switch.disabled {
 
             let factor = 0.0;
             const animate = () => {
-				if (ctx.filter == "none") {
+		if (ctx.filter == "none") {
                     ctx.filter = `blur(30px) brightness(0.6)`;
                 }
                 ctx.globalAlpha = 1;
