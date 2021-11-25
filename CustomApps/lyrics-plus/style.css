@@ -155,6 +155,7 @@
     color: var(--lyrics-color-active);
     opacity: 1;
     transform: translateY(calc(var(--position-index) * var(--lyrics-line-height) + var(--offset))) scale(1.1);
+    filter: none !important;
 }
 
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine:first-of-type,
