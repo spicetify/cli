@@ -260,12 +260,6 @@ func removeRTL(input string) string {
 }
 
 func exposeAPIs_main(input string) string {
-	// Player
-	utils.Replace(
-		&input,
-		`this\._cosmos=(\w+),this\._defaultFeatureVersion=\w+`,
-		`(globalThis.Spicetify.Player.origin=this),${0}`)
-
 	// Show Notification
 	utils.Replace(
 		&input,
@@ -310,6 +304,12 @@ func exposeAPIs_main(input string) string {
 			input = strings.Replace(input, found[0], code+found[0], 1)
 		}
 	}
+
+	// Player
+	utils.Replace(
+		&input,
+		`(Spicetify.Platform\["PlayerAPI"\]=)`,
+		`${1}Spicetify.Player.origin=`)
 
 	// Profile Menu hook v1.1.56
 	utils.Replace(
