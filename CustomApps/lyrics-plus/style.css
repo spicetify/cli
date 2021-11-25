@@ -98,7 +98,7 @@
 .lyrics-lyricsContainer-SyncedLyricsPage {
     display: grid;
     grid-area: 1/1/-1/-1;
-    grid-template-rows: 1fr 1fr 1fr 20px;
+    grid-template-rows: 1fr 30px;
     overflow-y: hidden;
     text-align: var(--lyrics-align-text);
     user-select: text;
@@ -114,7 +114,7 @@
 .lyrics-lyricsContainer-Provider {
     align-self: end;
     color: var(--lyrics-color-inactive);
-    grid-area: 4/1/-1/-1;
+    grid-area: 2/1/-1/-1;
     justify-self: stretch;
     height: 25px;
     overflow: hidden;
@@ -124,11 +124,13 @@
 }
 
 .lyrics-lyricsContainer-SyncedLyrics {
-    grid-area: 2/1/-3/-1;
+    --lyrics-line-height: calc(4px + var(--lyrics-font-size));
+    grid-area: 1/1/-2/-1;
+    height: 0;
 }
 
 .lyrics-lyricsContainer-LyricsLine {
-    transform: translateY(calc(var(--position-index) * var(--lyrics-line-height)));
+    transform: translateY(calc(var(--position-index) * var(--lyrics-line-height) + var(--offset)));
     transform-origin: var(--lyrics-align-text);
     transition-timing-function: cubic-bezier(0, 0, 0.58, 1);
     transition-duration: calc(var(--animation-index) * var(--animation-tempo) + 0.1s);
@@ -151,13 +153,12 @@
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine.lyrics-lyricsContainer-LyricsLine-active {
     color: var(--lyrics-color-active);
     opacity: 1;
-    transform: translateY(calc(var(--position-index) * var(--lyrics-line-height))) scale(1.1);
+    transform: translateY(calc(var(--position-index) * var(--lyrics-line-height) + var(--offset))) scale(1.1);
 }
 
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine:first-of-type,
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine:last-of-type {
     opacity: 0;
-    height: 0;
 }
 
 .lyrics-lyricsContainer-LyricsUnavailableMessage,
@@ -193,7 +194,6 @@
 }
 
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
-    --lyrics-line-height: calc(4px + var(--lyrics-font-size));
     font-size: var(--lyrics-font-size);
     font-weight: 700;
     letter-spacing: -0.04em;

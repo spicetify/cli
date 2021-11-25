@@ -39,6 +39,9 @@ const useTrackPosition = (callback) => {
 
 const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
     const [position, setPosition] = useState(0);
+    const activeLineEle = useRef();
+    const lyricContainerEle = useRef();
+
     useTrackPosition(() => {
         if (!Player.data.is_paused) {
             setPosition(Spicetify.Player.getProgress());
@@ -69,21 +72,32 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
         return lyricWithEmptyLines.slice(startIndex, startIndex + linesCount);
     }, [activeLineIndex, lyricWithEmptyLines]);
 
+    let offset = lyricContainerEle.current ? (lyricContainerEle.current.clientHeight / 2) : 0;
+    if (activeLineEle.current) {
+        offset += -(activeLineEle.current.offsetTop + activeLineEle.current.clientHeight / 2);
+    }
+
     return react.createElement(
         "div",
         {
             className: "lyrics-lyricsContainer-SyncedLyricsPage",
+            ref: lyricContainerEle,
         },
         react.createElement(
             "div",
             {
                 className: "lyrics-lyricsContainer-SyncedLyrics",
+                style: {
+                    "--offset": offset + "px",
+                },
             },
             activeLines.map(({ text, lineNumber }, i) => {
                 let className = "lyrics-lyricsContainer-LyricsLine";
                 let activeElementIndex = Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1);
+                let ref;
                 if (activeElementIndex === i) {
                     className += " lyrics-lyricsContainer-LyricsLine-active";
+                    ref = activeLineEle;
                 }
 
                 let animationIndex;
@@ -104,6 +118,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
                         },
                         key: lineNumber,
                         dir: "auto",
+                        ref,
                     },
                     text
                 );
@@ -124,6 +139,9 @@ const emptyLineKara = {
 
 const KaraokeLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
     const [position, setPosition] = useState(0);
+    const activeLineEle = useRef();
+    const lyricContainerEle = useRef();
+
     useTrackPosition(() => {
         if (!Player.data.is_paused) {
             setPosition(Spicetify.Player.getProgress());
@@ -156,19 +174,33 @@ const KaraokeLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
         return padded.slice(startIndex, startIndex + linesCount);
     }, [activeLineIndex, padded]);
 
+    let offset = lyricContainerEle.current ? (lyricContainerEle.current.clientHeight / 2) : 0;
+    if (activeLineEle.current) {
+        offset += -(activeLineEle.current.offsetTop + activeLineEle.current.clientHeight / 2);
+    }
+
     return react.createElement(
         "div",
         {
             className: "lyrics-lyricsContainer-SyncedLyricsPage",
+            ref: lyricContainerEle,
         },
         react.createElement(
             "div",
             {
                 className: "lyrics-lyricsContainer-SyncedLyrics",
+                style: {
+                    "--offset": offset + "px",
+                },
             },
             activeLines.map(({ text, lineNumber, startTime }, i) => {
                 let timeAcc = startTime;
                 let activeElementIndex = Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1);
+
+                let ref;
+                if (activeElementIndex === i) {
+                    ref = activeLineEle;
+                }
 
                 let animationIndex;
                 if (activeLineIndex <= CONFIG.visual["lines-before"]) {
@@ -188,6 +220,7 @@ const KaraokeLyricsPage = react.memo(({ lyrics = [], provider, copyright }) => {
                         },
                         key: lineNumber,
                         dir: "auto",
+                        ref,
                     },
                     activeElementIndex === i
                         ? text.map(({ word, time }) => {
