@@ -516,8 +516,6 @@ button.switch.disabled {
                 },
                 react.createElement("canvas", {
                     id: "fad-background",
-                    width: window.innerWidth,
-                    height: window.innerHeight,
                     ref: (el) => (this.back = el),
                 }),
                 react.createElement("div", { id: "fad-header" }),
