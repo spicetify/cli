@@ -580,16 +580,16 @@ button.switch.disabled {
     container.id = "fad-main";
     let lastApp;
 
-    function toggleFullscreen() {
+    async function toggleFullscreen() {
         if (CONFIG.enableFullscreen) {
-            document.documentElement.requestFullscreen();
+            await document.documentElement.requestFullscreen();
         } else if (document.webkitIsFullScreen) {
-            document.exitFullscreen();
+            await document.exitFullscreen();
         }
     }
 
-    function activate() {
-        toggleFullscreen();
+    async function activate() {
+        await toggleFullscreen();
 
         document.body.classList.add(...classes);
         document.body.append(style, container);
