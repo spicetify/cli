@@ -167,14 +167,83 @@ div.GlueDropTarget.personal-library >*.active {
     color: var(--spice-text);
 }
 
-/** Player bar */
-.main-nowPlayingBar-nowPlayingBar {
-    height: var(--player-bar-height);
-}
+/** Player bar - code commented due to too much height compared to default*/
+/* .main-nowPlayingBar-nowPlayingBar {
+     height: var(--player-bar-height);
+} */                                         
 
 /** Buddy bar */
 .main-buddyFeed-activityMetadata .main-buddyFeed-artistAndTrackName a,
 .main-buddyFeed-activityMetadata .main-buddyFeed-username a,
 .main-buddyFeed-activityMetadata .main-buddyFeed-playbackContextLink {
     color: var(--spice-text);
+}
+
+/*-----------------------------------*/
+/*search bar and input icons visibility*/
+.kLGvny_QP8Dk6JyyIYy3 {
+    color: var(--spice-button) !important;
+}
+
+.tiPM_u9xb0TN0aBMDSdJ {
+    color: var(--spice-subtext) !important;
+}
+
+input {
+    border-bottom: solid 2px var(--spice-button) !important;
+    border-radius: 500px !important;
+    color: var(--spice-text) !important;
+}
+/*rename playlist input field (in sidebar) better design*/
+input.iAvY_9FCVJRDN9IBBbpu {
+    border-bottom: 2px solid var(--spice-button) !important;
+    border-top: 2px transparent !important;
+    border-right: 2px transparent !important;
+    border-left: 2px transparent !important;
+    padding-left: 15px !important;
+    padding-right:15px !important;
+}
+
+/*already added popup theme matching colors*/
+.UILtJ9wuWLACGlSsSoyy {
+    background-color: var(--spice-main) !important;
+    color: var(--spice-text) !important;
+}
+.qcCgKkd4kmBBT9HCaDEQ {
+    color: rgba(var(--spice-text),.5) !important;
+}
+
+/*search page menu carousel buttons theme matching colors*/
+.encore-dark-theme .encore-inverted-light-set {
+    --background-base: var(--spice-button) !important;
+    --background-highlight: var(--spice-card) !important;
+    --background-press: var(--spice-card) !important;
+    --text-base: var(--spice-text) !important;
+}
+
+/*save button and others if any - theme matching color*/
+.main-button-secondary {
+    background-color: var(--spice-main) !important;
+    color: var(--spice-text) !important;
+}
+
+/*popups-delete,add folder theme matching colors*/
+._XjIr3Jebi9c96f7h74J {
+    background-color: var(--spice-main) !important;
+    color: var(--spice-text) !important;
+}
+.LyU7KlQ6rn3lAqZ1KbR_ {
+    color: rgba(var(--spice-text),.5) !important;
+}
+.n3WG7PTwFzXfHr6t82fA {
+    background-color: var(--spice-main) !important;
+    color: var(--spice-text) !important;
+}
+._Yxwp_OOUFxJiW9tafZQ {
+    color: rgba(var(--spice-text),.5) !important;
+}
+
+/*connect bar text visibility*/
+.main-connectBar-connectBar.Nn4leRs7aeJugDtkoR5G {
+    color: var(--spice-button) !important;
 }
