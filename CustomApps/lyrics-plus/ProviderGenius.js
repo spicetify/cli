@@ -105,7 +105,7 @@ const ProviderGenius = (function () {
             return lyrics;
         }
 
-        if (!lyrics.length) {
+        if (!lyrics?.length) {
             console.warn("forceError");
             return null;
         }

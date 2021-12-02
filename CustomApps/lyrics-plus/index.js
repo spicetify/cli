@@ -48,6 +48,8 @@ const CONFIG = {
         ["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
         ["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
         ["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
+        ["synced-compact"]: getConfig("lyrics-plus:visual:synced-compact"),
+        delay: 0,
     },
     providers: {
         netease: {
@@ -126,6 +128,7 @@ class LyricsContainer extends react.Component {
             isLoading: false,
             versionIndex: 0,
             isFullscreen: false,
+            isFADMode: false,
         };
         this.currentTrackUri = "";
         this.nextTrackUri = "";
@@ -134,6 +137,7 @@ class LyricsContainer extends react.Component {
         this.fullscreenContainer = document.createElement("div");
         this.fullscreenContainer.id = "lyrics-fullscreen-container";
         this.mousetrap = new Spicetify.Mousetrap();
+        this.containerRef = react.createRef(null);
     }
 
     infoFromTrack(track) {
@@ -219,11 +223,13 @@ class LyricsContainer extends react.Component {
 
         if (mode !== -1) {
             if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
+                this.resetDelay();
                 this.setState({ ...CACHE[info.uri] });
                 return;
             }
         } else {
             if (CACHE[info.uri]) {
+                this.resetDelay();
                 this.setState({ ...CACHE[info.uri] });
                 return;
             }
@@ -234,8 +240,13 @@ class LyricsContainer extends react.Component {
         // In case user skips tracks too fast and multiple callbacks
         // set wrong lyrics to current track.
         if (resp.uri === this.currentTrackUri) {
+            this.resetDelay();
             this.setState({ ...resp, isLoading: false });
         }
+    }
+
+    resetDelay() {
+        CONFIG.visual.delay = 0;
     }
 
     async onVersionChange(items, index) {
@@ -311,7 +322,6 @@ class LyricsContainer extends react.Component {
             localStorage.setItem("lyrics-plus:visual:font-size", temp);
             lyricContainerUpdate();
         };
-        window.addEventListener("mousewheel", this.onFontSizeChange);
 
         this.toggleFullscreen = () => {
             const isEnabled = !this.state.isFullscreen;
@@ -337,8 +347,8 @@ class LyricsContainer extends react.Component {
     componentWillUnmount() {
         Utils.removeQueueListener(this.onQueueChange);
         this.configButton.deregister();
-        window.removeEventListener("mousewheel", this.onFontSizeChange);
         this.mousetrap.reset();
+        window.removeEventListener("fad-request", lyricContainerUpdate);
     }
 
     updateVisualOnConfigChange() {
@@ -368,7 +378,13 @@ class LyricsContainer extends react.Component {
     }
 
     render() {
-        if (CONFIG.visual.colorful) {
+        const fadLyricsContainer = document.getElementById("fad-lyrics-plus-container");
+        this.state.isFADMode = !!fadLyricsContainer;
+
+        if (this.state.isFADMode) {
+            // Text colors will be set by FAD extension
+            this.styleVariables = {};
+        } else if (CONFIG.visual.colorful) {
             this.styleVariables = {
                 "--lyrics-color-active": "white",
                 "--lyrics-color-inactive": this.state.colors.inactive,
@@ -407,14 +423,15 @@ class LyricsContainer extends react.Component {
 
         if (mode !== -1) {
             if (mode === KARAOKE && this.state.karaoke) {
-                activeItem = react.createElement(KaraokeLyricsPage, {
+                activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
+                    isKara: true,
                     trackUri: this.state.uri,
                     lyrics: this.state.karaoke,
                     provider: this.state.provider,
                     copyright: this.state.copyright,
                 });
             } else if (mode === SYNCED && this.state.synced) {
-                activeItem = react.createElement(SyncedLyricsPage, {
+                activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
                     trackUri: this.state.uri,
                     lyrics: this.state.synced,
                     provider: this.state.provider,
@@ -457,7 +474,6 @@ class LyricsContainer extends react.Component {
         }
 
         this.state.mode = mode;
-        const fadLyricsContainer = document.getElementById("fad-lyrics-plus-container");
 
         const out = react.createElement(
             "div",
@@ -467,10 +483,21 @@ class LyricsContainer extends react.Component {
                     (CONFIG.visual["fade-blur"] ? " blur-enabled" : "") +
                     (fadLyricsContainer ? " fad-enabled" : ""),
                 style: this.styleVariables,
+                ref: (el) => {
+                    if (!el) return;
+                    el.onmousewheel = this.onFontSizeChange;
+                }
             },
             react.createElement("div", {
                 className: "lyrics-lyricsContainer-LyricsBackground",
             }),
+            react.createElement(
+                "div",
+                {
+                    className: "lyrics-config-button-container",
+                },
+                react.createElement(AdjustmentsMenu, { mode })
+            ),
             activeItem,
             react.createElement(TopBarContent, {
                 links: this.availableModes,
