@@ -170,7 +170,7 @@
 
 .lyrics-lyricsContainer-LyricsUnavailableMessage,
 .lyrics-lyricsContainer-LyricsLine,
-.lyrics-lyricsContainer-LyricsUnsyncedMessage {
+.lyrics-versionSelector {
     margin-left: 100px;
     margin-right: 100px;
 }
@@ -178,7 +178,7 @@
 @media (min-width: 1024px) {
     .lyrics-lyricsContainer-LyricsUnavailableMessage,
     .lyrics-lyricsContainer-LyricsLine,
-    .lyrics-lyricsContainer-LyricsUnsyncedMessage {
+    .lyrics-versionSelector {
         margin-left: 150px;
         margin-right: 150px;
     }
@@ -187,7 +187,7 @@
 @media (min-width: 1280px) {
     .lyrics-lyricsContainer-LyricsUnavailableMessage,
     .lyrics-lyricsContainer-LyricsLine,
-    .lyrics-lyricsContainer-LyricsUnsyncedMessage {
+    .lyrics-versionSelector {
         margin-left: 200px;
         margin-right: 200px;
     }
