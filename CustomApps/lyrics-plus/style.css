@@ -163,7 +163,8 @@
     filter: none !important;
 }
 
-.lyrics-lyricsContainer-SyncedLyrics > :first-child {
+.lyrics-lyricsContainer-SyncedLyrics > :first-child,
+.lyrics-lyricsContainer-SyncedLyrics > :last-child {
     opacity: 0;
 }
 
@@ -395,6 +396,7 @@ div.lyrics-tabBar-headerItemLink {
     cursor: pointer;
     box-shadow: 0 10px 15px 5px rgb(0, 0, 0, 0.2);
     background-color: var(--lyrics-highlight-background);
+    margin-bottom: 75px;
 }
 
 .lyrics-versionSelector select {
@@ -594,4 +596,11 @@ button.switch.small {
 .lyrics-config-button-container .main-contextMenu-menu {
     color: var(--spice-text);
     padding: 12px 12px 6px;
+}
+
+.lyrics-lyricsContainer-UnsyncedLyricsPage .split {
+    display: flex;
+}
+.lyrics-lyricsContainer-UnsyncedLyricsPage .split > div {
+    flex: 50%;
 }

@@ -118,6 +118,12 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
                             type: ConfigSlider,
                             when: () => mode === SYNCED || mode === KARAOKE,
                         },
+                        {
+                            desc: "Dual panel",
+                            key: "dual-genius",
+                            type: ConfigSlider,
+                            when: () => mode === GENIUS,
+                        },
                     ],
                     onChange: (name, value) => {
                         CONFIG.visual[name] = value;

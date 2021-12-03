@@ -484,66 +484,89 @@ function showNote(parent, note) {
     }
 }
 
-const GeniusPage = react.memo(({ lyrics, provider, copyright, versions, versionIndex, onVersionChange }) => {
-    let notes = {};
-    let container = null;
+const GeniusPage = react.memo(
+    ({ lyrics, provider, copyright, versions, versionIndex, onVersionChange, isSplitted, lyrics2, versionIndex2, onVersionChange2 }) => {
+        let notes = {};
+        let container = null;
+        let container2 = null;
 
-    // Fetch notes
-    useEffect(() => {
-        if (!container) return;
-        notes = {};
-        const links = container.querySelectorAll("a");
-        for (const link of links) {
-            let id = link.pathname.match(/\/(\d+)\//);
-            if (!id) {
-                id = link.dataset.id;
-            } else {
-                id = id[1];
+        // Fetch notes
+        useEffect(() => {
+            if (!container) return;
+            notes = {};
+            let links = container.querySelectorAll("a");
+            if (isSplitted && container2) {
+                links = [...links, ...container2.querySelectorAll("a")];
             }
-            ProviderGenius.getNote(id).then((note) => {
-                notes[id] = note;
-                link.classList.add("fetched");
-            });
-            link.onclick = (event) => {
-                event.preventDefault();
-                if (!notes[id]) return;
-                showNote(link, notes[id]);
-            };
-        }
-    }, [lyrics]);
+            for (const link of links) {
+                let id = link.pathname.match(/\/(\d+)\//);
+                if (!id) {
+                    id = link.dataset.id;
+                } else {
+                    id = id[1];
+                }
+                ProviderGenius.getNote(id).then((note) => {
+                    notes[id] = note;
+                    link.classList.add("fetched");
+                });
+                link.onclick = (event) => {
+                    event.preventDefault();
+                    if (!notes[id]) return;
+                    showNote(link, notes[id]);
+                };
+            }
+        }, [lyrics, lyrics2]);
 
-    return react.createElement(
-        "div",
-        {
-            className: "lyrics-lyricsContainer-UnsyncedLyricsPage",
-        },
-        react.createElement(
-            "p",
-            {
-                variant: "main-type-ballad",
-                className: "lyrics-lyricsContainer-LyricsUnsyncedMessage",
-            },
-            versions?.length > 1 &&
-                react.createElement(VersionSelector, {
-                    items: versions,
-                    index: versionIndex,
-                    callback: onVersionChange,
+        const lyricsEl1 = react.createElement(
+            "div",
+            null,
+            react.createElement(VersionSelector, { items: versions, index: versionIndex, callback: onVersionChange }),
+            react.createElement("div", {
+                className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
+                ref: (c) => (container = c),
+                dangerouslySetInnerHTML: {
+                    __html: lyrics,
+                },
+            })
+        );
+
+        let mainContainer = [lyricsEl1];
+        const shouldSplit = versions.length > 1 && isSplitted;
+
+        if (shouldSplit) {
+            const lyricsEl2 = react.createElement(
+                "div",
+                null,
+                react.createElement(VersionSelector, { items: versions, index: versionIndex2, callback: onVersionChange2 }),
+                react.createElement("div", {
+                    className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
+                    ref: (c) => (container2 = c),
+                    dangerouslySetInnerHTML: {
+                        __html: lyrics2,
+                    },
                 })
-        ),
-        react.createElement("div", {
-            className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
-            ref: (c) => (container = c),
-            dangerouslySetInnerHTML: {
-                __html: lyrics,
+            );
+            mainContainer.push(lyricsEl2);
+        }
+
+        return react.createElement(
+            "div",
+            {
+                className: "lyrics-lyricsContainer-UnsyncedLyricsPage",
             },
-        }),
-        react.createElement(CreditFooter, {
-            provider,
-            copyright,
-        }),
-        react.createElement(SearchBar, null)
-    );
-});
+            react.createElement("p", {
+                variant: "main-type-ballad",
+                className: "lyrics-lyricsContainer-LyricsUnsyncedPadding",
+            }),
+            react.createElement("div", { className: shouldSplit ? "split" : "" }, mainContainer),
+            react.createElement(CreditFooter, {
+                provider,
+                copyright,
+            }),
+            react.createElement(SearchBar, null)
+        );
+    }
+);
 
 const LoadingIcon = react.createElement(
     "svg",
@@ -618,6 +641,9 @@ const LoadingIcon = react.createElement(
 );
 
 const VersionSelector = react.memo(({ items, index, callback }) => {
+    if (items.length < 2) {
+        return null;
+    }
     return react.createElement(
         "div",
         {

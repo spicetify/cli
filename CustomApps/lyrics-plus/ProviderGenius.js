@@ -124,7 +124,7 @@ const ProviderGenius = (function () {
 
         let lyrics, hits;
         for (const title of titles) {
-            const url = `https://genius.com/api/search/song?per_page=10&q=${encodeURIComponent(info.artist)}%20${encodeURIComponent(title)}`;
+            const url = `https://genius.com/api/search/song?per_page=20&q=${encodeURIComponent(title)}%20${encodeURIComponent(info.artist)}`;
 
             const geniusSearch = await CosmosAsync.get(url);
 

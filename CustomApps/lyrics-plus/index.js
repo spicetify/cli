@@ -49,6 +49,7 @@ const CONFIG = {
         ["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
         ["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
         ["synced-compact"]: getConfig("lyrics-plus:visual:synced-compact"),
+        ["dual-genius"]: getConfig("lyrics-plus:visual:dual-genius"),
         delay: 0,
     },
     providers: {
@@ -101,6 +102,7 @@ const emptyState = {
     synced: null,
     unsynced: null,
     genius: null,
+    genius2: null,
 };
 
 let lyricContainerUpdate;
@@ -115,6 +117,7 @@ class LyricsContainer extends react.Component {
             synced: null,
             unsynced: null,
             genius: null,
+            genius2: null,
             uri: "",
             provider: "",
             colors: {
@@ -127,6 +130,7 @@ class LyricsContainer extends react.Component {
             mode: -1,
             isLoading: false,
             versionIndex: 0,
+            versionIndex2: 0,
             isFullscreen: false,
             isFADMode: false,
         };
@@ -251,11 +255,23 @@ class LyricsContainer extends react.Component {
 
     async onVersionChange(items, index) {
         if (this.state.mode === GENIUS) {
-            this.setState({ ...emptyState, isLoading: true });
+            this.setState({ ...emptyLine, genius2: this.state.genius2, isLoading: true });
             const lyrics = await ProviderGenius.fetchLyricsVersion(items, index);
             this.setState({
                 genius: lyrics,
                 versionIndex: index,
+                isLoading: false,
+            });
+        }
+    }
+
+    async onVersionChange2(items, index) {
+        if (this.state.mode === GENIUS) {
+            this.setState({ ...emptyLine, genius: this.state.genius, isLoading: true });
+            const lyrics = await ProviderGenius.fetchLyricsVersion(items, index);
+            this.setState({
+                genius2: lyrics,
+                versionIndex2: index,
                 isLoading: false,
             });
         }
@@ -446,6 +462,7 @@ class LyricsContainer extends react.Component {
                 });
             } else if (mode === GENIUS && this.state.genius) {
                 activeItem = react.createElement(GeniusPage, {
+                    isSplitted: CONFIG.visual["dual-genius"],
                     trackUri: this.state.uri,
                     lyrics: this.state.genius,
                     provider: this.state.provider,
@@ -453,6 +470,9 @@ class LyricsContainer extends react.Component {
                     versions: this.state.versions,
                     versionIndex: this.state.versionIndex,
                     onVersionChange: this.onVersionChange.bind(this),
+                    lyrics2: this.state.genius2,
+                    versionIndex2: this.state.versionIndex2,
+                    onVersionChange2: this.onVersionChange2.bind(this),
                 });
             }
         }
@@ -486,7 +506,7 @@ class LyricsContainer extends react.Component {
                 ref: (el) => {
                     if (!el) return;
                     el.onmousewheel = this.onFontSizeChange;
-                }
+                },
             },
             react.createElement("div", {
                 className: "lyrics-lyricsContainer-LyricsBackground",
