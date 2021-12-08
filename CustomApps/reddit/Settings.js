@@ -100,10 +100,10 @@ function openConfig() {
 
     configContainer.append(
         optionHeader,
-        createSlider("Upvotes count", "upvotes"),
-        createSlider("Followers count", "followers"),
-        createSlider("Post type", "type"),
-        createSlider("Long description", "longDescription"),
+        createToggle("Upvotes count", "upvotes"),
+        createToggle("Followers count", "followers"),
+        createToggle("Post type", "type"),
+        createToggle("Long description", "longDescription"),
         serviceHeader,
         serviceContainer,
         serviceInput
@@ -115,23 +115,32 @@ function openConfig() {
     });
 }
 
-function createSlider(name, key) {
+// Generate the DOM markup for a toggle switch
+function renderToggle(enabled, classes) {
+    return `
+    <label class="x-toggle-wrapper ${classes ? classes.join(" "): ""}">
+        <input class="x-toggle-input" type="checkbox" ${enabled ? "checked" : ""}>
+        <span class="x-toggle-indicatorWrapper">
+            <span class="x-toggle-indicator"></span>
+        </span>
+    </label>
+    `;
+}
+
+function createToggle(name, key) {
     const container = document.createElement("div");
     container.innerHTML = `
 <div class="setting-row">
     <label class="col description">${name}</label>
-    <div class="col action"><button class="switch">
-        <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
-            ${Spicetify.SVGIcons.check}
-        </svg>
-    </button></div>
+    <div class="col action">
+        ${renderToggle(!!CONFIG.visual[key])}
+    </div>
 </div>`;
 
-    const slider = container.querySelector("button");
-    slider.classList.toggle("disabled", !CONFIG.visual[key]);
+    const toggle = container.querySelector("input");
 
-    slider.onclick = () => {
-        const state = !slider.classList.toggle("disabled");
+    toggle.onchange = () => {
+        const state = toggle.checked;
         CONFIG.visual[key] = state;
         localStorage.setItem(`reddit:${key}`, String(state));
         gridUpdatePostsVisual && gridUpdatePostsVisual();
