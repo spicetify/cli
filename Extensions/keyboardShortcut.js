@@ -84,6 +84,16 @@
     // Forward Slash to open search page
     registerBind("/", false, false, false, openSearchPage);
 
+    // CTRL + Arrow Left Next and CTRL + Arrow Right  Previous Song
+
+    registerBind("ARROW_RIGHT", true, false, false, nextSong)
+    registerBind("ARROW_LEFT", true, false, false, previousSong)
+
+    // CTRL + Arrow Up Increase Volume CTRL + Arrow Down Decrease Volume
+
+    registerBind("ARROW_UP", true, false, false, increaseVolume)
+    registerBind("ARROW_DOWN", true, false, false, decreaseVolume)
+
     // F to activate Link Follow function
     const vim = new VimBind();
     registerBind("F", false, false, false, vim.activate.bind(vim));
@@ -132,6 +142,22 @@
     function appScrollTop() {
         const app = focusOnApp();
         app.scroll(0, 0);
+    }
+
+    function nextSong() {
+        document.querySelector(".main-skipForwardButton-button").click();
+    }
+
+    function previousSong() {
+        document.querySelector(".main-skipBackButton-button").click();
+    }
+
+    function increaseVolume() {
+        Spicetify.Player.origin.setVolume(Spicetify.Player.getVolume() + 0.1);
+    }
+
+    function decreaseVolume() {
+        Spicetify.Player.origin.setVolume(Spicetify.Player.getVolume() - 0.1);
     }
 
     /**
