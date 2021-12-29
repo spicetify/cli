@@ -521,7 +521,7 @@ body.video-full-screen.video-full-screen--hide-ui {
                             ref: (el) => {
                                 if (!el) return;
                                 el.onmousewheel = this.onScaleChange;
-                            }
+                            },
                         },
                         react.createElement(
                             "div",
@@ -735,7 +735,7 @@ button.switch.disabled {
                 func: () => {
                     updateVisual();
                     requestLyricsPlus();
-                } 
+                },
             }),
             react.createElement(ConfigItem, { name: "Enable progress bar", field: "enableProgress", func: updateVisual }),
             react.createElement(ConfigItem, { name: "Enable controls", field: "enableControl", func: updateVisual }),
