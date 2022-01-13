@@ -109,7 +109,7 @@
     }
 
     function clickQueueButton() {
-        document.querySelector(".control-button-wrapper .spoticon-queue-16").click();
+        document.querySelector('[aria-label="Queue"]').click();
     }
 
     function clickNavigatingBackButton() {
