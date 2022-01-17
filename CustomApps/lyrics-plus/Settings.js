@@ -364,17 +364,21 @@ const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {}, 
 const OptionList = ({ items, onChange }) => {
     const [_, setItems] = useState(items);
     return items.map((item) => {
-        if (!item.when()) {
+        if (!item || (item.when && !item.when())) {
             return;
         }
+
+        const onChangeItem = item.onChange || onChange;
+
         return react.createElement(
             "div",
             null,
             react.createElement(item.type, {
                 ...item,
                 name: item.desc,
+                defaultValue: CONFIG.visual[item.key],
                 onChange: (value) => {
-                    onChange(item.key, value);
+                    onChangeItem(item.key, value);
                     setItems([...items]);
                 },
             }),
@@ -401,94 +405,74 @@ function openConfig() {
                     desc: "Font size",
                     info: "(or Ctrl + Mouse scroll in main app)",
                     key: "font-size",
-                    defaultValue: CONFIG.visual["font-size"],
                     type: ConfigAdjust,
                     min: fontSizeLimit.min,
                     max: fontSizeLimit.max,
                     step: fontSizeLimit.step,
-                    when: () => true,
                 },
                 {
                     desc: "Alignment",
                     key: "alignment",
-                    defaultValue: CONFIG.visual.alignment,
                     type: ConfigSelection,
                     options: {
                         left: "Left",
                         center: "Center",
                         right: "Right",
                     },
-                    when: () => true,
                 },
                 {
                     desc: "Fullscreen hotkey",
                     key: "fullscreen-key",
-                    defaultValue: CONFIG.visual["fullscreen-key"],
                     type: ConfigHotkey,
-                    when: () => true,
                 },
                 {
-                    desc: "Lines to show before",
+                    desc: "Compact synced: Lines to show before",
                     key: "lines-before",
-                    defaultValue: CONFIG.visual["lines-before"],
                     type: ConfigSelection,
                     options: [0, 1, 2, 3, 4],
-                    when: () => true,
                 },
                 {
-                    desc: "Lines to show after",
+                    desc: "Compact synced: Lines to show after",
                     key: "lines-after",
-                    defaultValue: CONFIG.visual["lines-after"],
                     type: ConfigSelection,
                     options: [0, 1, 2, 3, 4],
-                    when: () => true,
                 },
                 {
-                    desc: "Fade-out blur",
+                    desc: "Compact synced: Fade-out blur",
                     key: "fade-blur",
-                    defaultValue: CONFIG.visual["fade-blur"],
                     type: ConfigSlider,
-                    when: () => true,
                 },
                 {
                     desc: "Noise overlay",
                     key: "noise",
-                    defaultValue: CONFIG.visual["noise"],
                     type: ConfigSlider,
-                    when: () => true,
                 },
                 {
                     desc: "Colorful background",
                     key: "colorful",
-                    defaultValue: CONFIG.visual["colorful"],
                     type: ConfigSlider,
-                    when: () => true,
                 },
                 {
                     desc: "Background color",
                     key: "background-color",
-                    defaultValue: CONFIG.visual["background-color"],
                     type: ConfigInput,
                     when: () => !CONFIG.visual["colorful"],
                 },
                 {
                     desc: "Active text color",
                     key: "active-color",
-                    defaultValue: CONFIG.visual["active-color"],
                     type: ConfigInput,
                     when: () => !CONFIG.visual["colorful"],
                 },
                 {
                     desc: "Inactive text color",
                     key: "inactive-color",
-                    defaultValue: CONFIG.visual["inactive-color"],
                     type: ConfigInput,
                     when: () => !CONFIG.visual["colorful"],
                 },
                 {
                     desc: "Highlight text background",
                     key: "highlight-color",
-                    defaultValue: CONFIG.visual["highlight-color"],
                     type: ConfigInput,
                     when: () => !CONFIG.visual["colorful"],
                 },
@@ -522,5 +506,6 @@ function openConfig() {
     Spicetify.PopupModal.display({
         title: "Lyrics Plus",
         content: configContainer,
+        isLarge: true,
     });
 }

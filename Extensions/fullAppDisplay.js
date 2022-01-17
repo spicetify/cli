@@ -46,6 +46,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transform: scale(var(--fad-scale));
 }
 #fad-art-image {
     position: relative;
@@ -106,7 +107,7 @@ body.fad-activated #full-app-display {
 body.video-full-screen.video-full-screen--hide-ui {
     cursor: auto;
 }
-#full-app-display button {
+#fad-controls button {
     background-color: transparent;
     border: 0;
     color: currentColor;
@@ -115,37 +116,8 @@ body.video-full-screen.video-full-screen--hide-ui {
 #fad-artist svg, #fad-album svg {
     display: inline-block;
 }
-.setting-row::after {
-    content: "";
-    display: table;
-    clear: both;
-}
-.setting-row .col {
-    display: flex;
-    padding: 10px 0;
-    align-items: center;
-}
-.setting-row .col.description {
-    float: left;
-    padding-right: 15px;
-}
-.setting-row .col.action {
-    float: right;
-    text-align: right;
-}
-button.switch {
-    align-items: center;
-    border: 0px;
-    border-radius: 50%;
-    background-color: rgba(var(--spice-rgb-shadow), .7);
-    color: var(--spice-text);
-    cursor: pointer;
-    display: flex;
-    margin-inline-start: 12px;
-    padding: 8px;
-}
-button.switch.disabled {
-    color: rgba(var(--spice-rgb-text), .3);
+::-webkit-scrollbar {
+    width: 8px;
 }
 `;
 
@@ -496,6 +468,21 @@ button.switch.disabled {
                 this.nextTrackImg.src = nextTrack.metadata.image_xlarge_url;
             };
 
+            const scaleLimit = { min: 0.1, max: 4, step: 0.05 };
+            this.onScaleChange = (event) => {
+                if (!event.ctrlKey) return;
+                let dir = event.deltaY < 0 ? 1 : -1;
+                let temp = (CONFIG["scale"] || 1) + dir * scaleLimit.step;
+                if (temp < scaleLimit.min) {
+                    temp = scaleLimit.min;
+                } else if (temp > scaleLimit.max) {
+                    temp = scaleLimit.max;
+                }
+                CONFIG["scale"] = temp;
+                saveConfig();
+                updateVisual();
+            };
+
             Spicetify.Platform.PlayerAPI._events.addListener("queue_update", this.onQueueChange);
             this.mousetrap.bind("esc", deactivate);
             window.dispatchEvent(new Event("fad-request"));
@@ -513,6 +500,8 @@ button.switch.disabled {
                 {
                     id: "full-app-display",
                     className: "Video VideoPlayer--fullscreen VideoPlayer--landscape",
+                    onDoubleClick: deactivate,
+                    onContextMenu: openConfig,
                 },
                 react.createElement("canvas", {
                     id: "fad-background",
@@ -524,7 +513,16 @@ button.switch.disabled {
                     { id: "fad-body" },
                     react.createElement(
                         "div",
-                        { id: "fad-foreground" },
+                        {
+                            id: "fad-foreground",
+                            style: {
+                                "--fad-scale": CONFIG["scale"] || 1,
+                            },
+                            ref: (el) => {
+                                if (!el) return;
+                                el.onmousewheel = this.onScaleChange;
+                            },
+                        },
                         react.createElement(
                             "div",
                             { id: "fad-art" },
@@ -566,7 +564,14 @@ button.switch.disabled {
                             )
                         )
                     ),
-                    CONFIG.lyricsPlus && react.createElement("div", { id: "fad-lyrics-plus-container" })
+                    CONFIG.lyricsPlus &&
+                        react.createElement("div", {
+                            id: "fad-lyrics-plus-container",
+                            style: {
+                                "--lyrics-color-active": "#ffffff",
+                                "--lyrics-color-inactive": "#ffffff50",
+                            },
+                        })
                 )
             );
         }
@@ -593,12 +598,7 @@ button.switch.disabled {
         document.body.append(style, container);
         reactDOM.render(react.createElement(FAD), container);
 
-        if (CONFIG.lyricsPlus) {
-            lastApp = Spicetify.Platform.History.location.pathname;
-            if (lastApp !== "/lyrics-plus") {
-                Spicetify.Platform.History.push("/lyrics-plus");
-            }
-        }
+        requestLyricsPlus();
     }
 
     function deactivate() {
@@ -611,10 +611,8 @@ button.switch.disabled {
         container.remove();
         window.dispatchEvent(new Event("fad-request"));
 
-        if (CONFIG.lyricsPlus) {
-            if (lastApp !== "/lyrics-plus") {
-                Spicetify.Platform.History.push(lastApp);
-            }
+        if (lastApp && lastApp !== "/lyrics-plus") {
+            Spicetify.Platform.History.push(lastApp);
         }
     }
 
@@ -631,6 +629,16 @@ button.switch.disabled {
             styleBase +
             styleChoices[CONFIG.vertical ? 1 : 0] +
             (CONFIG.lyricsPlus ? lyricsPlusBase + lyricsPlusStyleChoices[CONFIG.vertical ? 1 : 0] : "");
+    }
+
+    function requestLyricsPlus() {
+        if (CONFIG.lyricsPlus) {
+            lastApp = Spicetify.Platform.History.location.pathname;
+            if (lastApp !== "/lyrics-plus") {
+                Spicetify.Platform.History.push("/lyrics-plus");
+            }
+        }
+        window.dispatchEvent(new Event("fad-request"));
     }
 
     function getConfig() {
@@ -679,10 +687,56 @@ button.switch.disabled {
 
     function openConfig(event) {
         event.preventDefault();
+        const style = react.createElement("style", {
+            dangerouslySetInnerHTML: {
+                __html: `
+.setting-row::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+.setting-row .col {
+    display: flex;
+    padding: 10px 0;
+    align-items: center;
+}
+.setting-row .col.description {
+    float: left;
+    padding-right: 15px;
+}
+.setting-row .col.action {
+    float: right;
+    text-align: right;
+}
+button.switch {
+    align-items: center;
+    border: 0px;
+    border-radius: 50%;
+    background-color: rgba(var(--spice-rgb-shadow), .7);
+    color: var(--spice-text);
+    cursor: pointer;
+    display: flex;
+    margin-inline-start: 12px;
+    padding: 8px;
+}
+button.switch.disabled {
+    color: rgba(var(--spice-rgb-text), .3);
+}
+`,
+            },
+        });
         let configContainer = react.createElement(
             "div",
             null,
-            react.createElement(ConfigItem, { name: "Enable Lyrics Plus integration", field: "lyricsPlus", func: updateVisual }),
+            style,
+            react.createElement(ConfigItem, {
+                name: "Enable Lyrics Plus integration",
+                field: "lyricsPlus",
+                func: () => {
+                    updateVisual();
+                    requestLyricsPlus();
+                },
+            }),
             react.createElement(ConfigItem, { name: "Enable progress bar", field: "enableProgress", func: updateVisual }),
             react.createElement(ConfigItem, { name: "Enable controls", field: "enableControl", func: updateVisual }),
             react.createElement(ConfigItem, { name: "Trim title", field: "trimTitle", func: updateVisual }),
@@ -698,9 +752,6 @@ button.switch.disabled {
             content: configContainer,
         });
     }
-
-    container.ondblclick = deactivate;
-    container.oncontextmenu = openConfig;
 
     // Add activator on top bar
     new Spicetify.Topbar.Button(
