@@ -68,6 +68,12 @@ button.switch[disabled] {
         }
 
         for (const propName in overrideList) {
+            if (!resolver.activeProperties[propName]) {
+                delete overrideList[propName];
+                localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+                continue;
+            }
+
             resolver.activeProperties[propName].value = overrideList[propName];
         }
 
