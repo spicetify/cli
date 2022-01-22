@@ -29,11 +29,10 @@ else
 fi
 
 spicetify_install="$HOME/.spicetify"
-path="export PATH=$PATH:${spicetify_install}"
+path="export PATH=\"\$PATH:\$HOME/.spicetify\""
 
-if [[ -f "$HOME/.zshenv" ]] && ! grep -q "$spicetify_install" "$HOME/.zshenv"; then echo "${path}" >> "$HOME/.zshenv"; fi
-if [[ -f "$HOME/.bashrc" ]] && ! grep -q "$spicetify_install" "$HOME/.bashrc"; then echo "${path}" >> "$HOME/.bashrc"; fi
-if [[ -f "$HOME/.zshrc" ]] && ! grep -q "$spicetify_install" "$HOME/.zshrc"; then echo "${path}" >> "$HOME/.zshrc"; fi
+if [[ -f "$HOME/.bashrc" ]] && ! grep -q "$path" "$HOME/.bashrc"; then echo "${path}" >>"$HOME/.bashrc"; fi
+if [[ -f "$HOME/.zshrc" ]] && ! grep -q "$path" "$HOME/.zshrc"; then echo "${path}" >>"$HOME/.zshrc"; fi
 
 exe="$spicetify_install/spicetify"
 
