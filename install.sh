@@ -29,16 +29,11 @@ else
 fi
 
 spicetify_install="$HOME/.spicetify"
+path="export PATH=$PATH:${spicetify_install}"
 
-if [[ "$target" == *"darwin"* ]]; then
-	rcFile="$HOME/.zshenv"
-else
-	rcFile="$HOME/.profile"
-fi
-
-if ! grep -q "$spicetify_install" "$rcFile"; then
-	echo "export PATH=$PATH:${spicetify_install}" >>"$rcFile"
-fi
+if [[ -f "$HOME/.zshenv" ]] && ! grep -q "$spicetify_install" "$HOME/.zshenv"; then echo "${path}" >> "$HOME/.zshenv"; fi
+if [[ -f "$HOME/.bashrc" ]] && ! grep -q "$spicetify_install" "$HOME/.bashrc"; then echo "${path}" >> "$HOME/.bashrc"; fi
+if [[ -f "$HOME/.zshrc" ]] && ! grep -q "$spicetify_install" "$HOME/.zshrc"; then echo "${path}" >> "$HOME/.zshrc"; fi
 
 exe="$spicetify_install/spicetify"
 
