@@ -1,8 +1,3 @@
 bin/
 *.exe
 .DS_Store
-CustomApps/spicetify-marketplace
-Extensions/keyboardShortcut.js
-Extensions/tinycolor.js
-Extensions/xpui_restructure.js
-Themes/m1_xpui
