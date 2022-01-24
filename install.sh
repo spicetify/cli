@@ -33,6 +33,7 @@ path="export PATH=\"\$PATH:\$HOME/.spicetify\""
 
 if [[ -f "$HOME/.bashrc" ]] && ! grep -q "$path" "$HOME/.bashrc"; then echo "${path}" >>"$HOME/.bashrc" && echo "SAVING         ${spicetify_install} to \$PATH"; fi
 if [[ -f "$HOME/.zshrc" ]] && ! grep -q "$path" "$HOME/.zshrc"; then echo "${path}" >>"$HOME/.zshrc" && echo "SAVING         ${spicetify_install} to \$PATH"; fi
+if [[ -f "$HOME/.config/fish/config.fish" ]] && ! grep -q "$path" "$HOME/.config/fish/config.fish"; then echo "${path}" >>"$HOME/.config/fish/config.fish" && echo "SAVING         ${spicetify_install} to \$PATH"; fi
 
 exe="$spicetify_install/spicetify"
 
