@@ -109,7 +109,7 @@
     }
 
     function clickQueueButton() {
-        document.querySelector(".control-button-wrapper .spoticon-queue-16").click();
+        document.querySelector("div.ExtraControls div.control-button-wrapper > button").click();
     }
 
     function clickNavigatingBackButton() {
