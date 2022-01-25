@@ -109,7 +109,7 @@
     }
 
     function clickQueueButton() {
-        document.querySelector(".main-nowPlayingBar-right > div.ExtraControls > div.GlueDropTarget > div.control-button-wrapper > button").click();
+        document.querySelector("div.ExtraControls div.control-button-wrapper > button").click();
     }
 
     function clickNavigatingBackButton() {
