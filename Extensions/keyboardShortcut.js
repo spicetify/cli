@@ -165,7 +165,7 @@
      * @param {KeyboardEvent} event
      */
     function openSearchPage(event) {
-        const searchInput = document.querySelector(".main-topBar-topbarContentWrapper input");
+        const searchInput = document.querySelector(".main-topBar-container input");
         if (searchInput) {
             searchInput.focus();
         } else {
