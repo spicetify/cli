@@ -1,20 +1,22 @@
 #!/bin/sh
-# Copyright 2019 khanhas. GPL license.
+# Copyright 2022 khanhas. GPL license.
 # Edited from project Denoland install script (https://github.com/denoland/deno_install)
 
 set -e
 
 case $(uname -sm) in
-    "Darwin x86_64") target="darwin-amd64" ;;
-    "Darwin arm64") target="darwin-arm64" ;;
-    "Linux x86_64") target="linux-amd64" ;;
-    *) echo "Unsupported platform $(uname -sm). Only Darwin x86_64, Darwin arm64 and Linux x86_64 binaries are available."
-    exit ;;
+"Darwin x86_64") target="darwin-amd64" ;;
+"Darwin arm64") target="darwin-arm64" ;;
+"Linux x86_64") target="linux-amd64" ;;
+*)
+	echo "Unsupported platform $(uname -sm). Only Darwin x86_64, Darwin arm64 and Linux x86_64 binaries are available."
+	exit
+	;;
 esac
 
 if [ $# -eq 0 ]; then
-    latest_release_uri="https://api.github.com/repos/khanhas/spicetify-cli/releases/latest"
-    echo "DOWNLOADING    $latest_release_uri"
+	latest_release_uri="https://api.github.com/repos/khanhas/spicetify-cli/releases/latest"
+	echo "DOWNLOADING    $latest_release_uri"
 	spicetify_asset_path=$(
 		command curl -sSf "$latest_release_uri" |
 			command grep -o "/khanhas/spicetify-cli/releases/download/.*/spicetify-.*-${target}\\.tar\\.gz" |
@@ -26,21 +28,17 @@ else
 	download_uri="https://github.com/khanhas/spicetify-cli/releases/download/v${1}/spicetify-${1}-${target}.tar.gz"
 fi
 
-spicetify_install="$HOME/spicetify-cli"
+spicetify_install="$HOME/.spicetify"
+path="export PATH=\"\$PATH:\$HOME/.spicetify\""
 
-if [[ "$target" == *"darwin"* ]]; then
-	spicetify_install="$HOME/.spicetify"
-	rcFile="$HOME/.zshenv"
-
-	if ! grep -q "$spicetify_install" "$rcFile"; then
-		echo "export PATH=${spicetify_install}:$PATH" >> "$rcFile"
-	fi
-fi
+if [[ -f "$HOME/.bashrc" ]] && ! grep -q "$path" "$HOME/.bashrc"; then echo "${path}" >>"$HOME/.bashrc" && echo "SAVING         ${spicetify_install} to \$PATH (bash)"; fi
+if [[ -f "$HOME/.zshrc" ]] && ! grep -q "$path" "$HOME/.zshrc"; then echo "${path}" >>"$HOME/.zshrc" && echo "SAVING         ${spicetify_install} to \$PATH (zsh)"; fi
+if [[ -f "$HOME/.config/fish/config.fish" ]] && ! grep -q "$path" "$HOME/.config/fish/config.fish"; then echo "${path}" >>"$HOME/.config/fish/config.fish" && echo "SAVING         ${spicetify_install} to \$PATH (fish)"; fi
 
 exe="$spicetify_install/spicetify"
 
 if [ ! -d "$spicetify_install" ]; then
-  echo "Creating $spicetify_install";
+	echo "Creating $spicetify_install"
 	mkdir -p "$spicetify_install"
 fi
 
@@ -61,7 +59,8 @@ rm "$tar_file"
 echo ""
 echo "spicetify was installed successfully to $exe"
 echo ""
-if command -v spicetify > /dev/null; then
+
+if command -v spicetify >/dev/null; then
 	echo "Run 'spicetify --help' to get started"
 elif [[ "$spicetify_install" == *".spicetify"* ]]; then
 	echo "Please restart your Terminal to have spicetify in your PATH."
@@ -71,6 +70,6 @@ else
 	echo "Manually add the directory to your \$HOME/.bash_profile (or similar)"
 	echo "  export SPICETIFY_INSTALL=\"$spicetify_install\""
 	echo "  export PATH=\"\$SPICETIFY_INSTALL:\$PATH\""
-    echo ""
+	echo ""
 	echo "Run '$exe --help' to get started"
 fi
