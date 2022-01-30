@@ -68,6 +68,12 @@ button.switch[disabled] {
         }
 
         for (const propName in overrideList) {
+            if (!resolver.activeProperties[propName]) {
+                delete overrideList[propName];
+                localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+                continue;
+            }
+
             resolver.activeProperties[propName].value = overrideList[propName];
         }
 
@@ -100,12 +106,12 @@ button.switch[disabled] {
             return container;
         }
 
-        for (const propName in resolver.propertySet.properties) {
-            const prop = resolver.propertySet.properties[propName].spec;
+        for (const propIndex in resolver.properties) {
+            const prop = resolver.properties[propIndex];
 
             if (prop.type !== "bool") continue;
 
-            content.appendChild(createSlider(propName, prop.description, resolver.activeProperties[propName].value));
+            content.appendChild(createSlider(prop.name, prop.description, resolver.activeProperties[prop.name].value));
         }
     })();
 })();

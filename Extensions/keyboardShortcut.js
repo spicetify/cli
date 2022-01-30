@@ -109,7 +109,7 @@
     }
 
     function clickQueueButton() {
-        document.querySelector(".control-button-wrapper .spoticon-queue-16").click();
+        document.querySelector("div.ExtraControls div.control-button-wrapper > button").click();
     }
 
     function clickNavigatingBackButton() {
@@ -165,7 +165,7 @@
      * @param {KeyboardEvent} event
      */
     function openSearchPage(event) {
-        const searchInput = document.querySelector(".main-topBar-topbarContentWrapper input");
+        const searchInput = document.querySelector(".main-topBar-container input");
         if (searchInput) {
             searchInput.focus();
         } else {
