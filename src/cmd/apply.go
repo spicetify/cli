@@ -245,7 +245,7 @@ func pushExtensions(destExt string, list ...string) {
 			extPath = v
 		} else {
 			extName = v
-			if(!strings.Contains(extName,".")){
+			if(!strings.Contains(extName,".js") && !strings.Contains(extName,".mjs")){
 				extName += ".js"
 			}
 			extPath, err = utils.GetExtensionPath(extName)
