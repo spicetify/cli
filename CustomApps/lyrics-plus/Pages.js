@@ -531,7 +531,8 @@ const GeniusPage = react.memo(
         );
 
         let mainContainer = [lyricsEl1];
-        const shouldSplit = versions.length > 1 && isSplitted;
+        //remove "&& false" below to restore the split display
+        const shouldSplit = versions.length > 1 && isSplitted && false;
 
         if (shouldSplit) {
             const lyricsEl2 = react.createElement(
