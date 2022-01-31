@@ -245,7 +245,10 @@ func pushExtensions(destExt string, list ...string) {
 			extPath = v
 		} else {
 			extName = v
-			extPath, err = utils.GetExtensionPath(v)
+			if(!strings.Contains(extName,".js") && !strings.Contains(extName,".mjs")){
+				extName += ".js"
+			}
+			extPath, err = utils.GetExtensionPath(extName)
 			if err != nil {
 				utils.PrintError(`Extension "` + extName + `" not found.`)
 				continue
