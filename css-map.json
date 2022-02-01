@@ -470,7 +470,6 @@
     "hzuVs5WHF7XZSJtOi_9H": "x-toggle-indicatorWrapper",
     "D6R5l2KovY1WfNxiDO5T": "x-toggle-input",
     "eCKCKQRCw3bQZ_FiDXuu": "x-toggle-wrapper",
-
     "ADfcsSbUjxExWNWdGyt8": "artist-artistAbout-about",
     "_igr7M9fWT4UCZ4_hRc9": "artist-artistAbout-artistGridContainer",
     "_vFp0d9BBb_MYdbrN_vY": "artist-artistAbout-artistOverviewContainer",
@@ -1582,7 +1581,7 @@
     "ARtnAVxkbmzyEjniZXVO": "main-skipForwardButton-button",
     "kpGMQq1KFz620g_BD_dS": "main-tag-container",
     "Upqw01TOXETOmR5Td7Dj": "main-topBar-UpgradeButton",
-    "pfMoD1MbelMuF1m8QeMc": "main-topBar-back",
+    "pfMoD1MbelMuF1m8QeMc": "main-topBar-forward",
     "T1xI1RTSFU7Wu94UuvE6": "main-topBar-background",
     "ql0zZd7giPXSnPg75NR0": "main-topBar-button",
     "facDIsOQo9q7kiWc4jSg": "main-topBar-container",
