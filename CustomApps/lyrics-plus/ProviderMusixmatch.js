@@ -51,11 +51,10 @@ const ProviderMusixmatch = (function () {
         const hasSynced = meta?.track?.has_subtitles;
 
         const isInstrumental = meta?.track?.instrumental;
-            
-        if (isInstrumental){
-            return [{text: "♪ Instrumental ♪", startTime: "0000"}]
-        } 
-        else if (hasSynced) {
+
+        if (isInstrumental) {
+            return [{ text: "♪ Instrumental ♪", startTime: "0000" }];
+        } else if (hasSynced) {
             const subtitle = body["track.subtitles.get"]?.message?.body.subtitle_list?.[0]?.subtitle;
             if (!subtitle) {
                 return null;
@@ -79,11 +78,10 @@ const ProviderMusixmatch = (function () {
         const hasUnSynced = meta.track.has_lyrics || meta.track.has_lyrics_crowd;
 
         const isInstrumental = meta?.track?.instrumental;
-            
-        if (isInstrumental){
-            return [{text: "♪ Instrumental ♪"}]
-        } 
-        else if (hasUnSynced) {
+
+        if (isInstrumental) {
+            return [{ text: "♪ Instrumental ♪" }];
+        } else if (hasUnSynced) {
             const lyrics = body["track.lyrics.get"]?.message?.body?.lyrics?.lyrics_body;
             if (!lyrics) {
                 return null;
