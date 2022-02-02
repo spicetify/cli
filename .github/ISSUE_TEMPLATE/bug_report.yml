@@ -18,7 +18,7 @@ body:
           required: true
   - type: textarea
     attributes:
-      label: 📦 Environment
+      label: ℹ Environment / Computer Info
       description: Please provide the details of the system Spicetify is running on.
       value: |
         - Spotify version: 
@@ -37,7 +37,7 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: Screenshots
+      label: 📸 Screenshots
       description: Place any screenshots of the issue here if needed
     validations:
       required: false
