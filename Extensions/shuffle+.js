@@ -298,7 +298,7 @@
      * @param {string[]} list
      */
     async function playList(list, context) {
-        if (list[0] === "playedstation"){
+        if (list[0] === "playedstation") {
             return;
         }
         const count = list.length;
