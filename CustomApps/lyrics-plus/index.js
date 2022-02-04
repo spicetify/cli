@@ -196,16 +196,23 @@ class LyricsContainer extends react.Component {
     }
 
     async tryServices(trackInfo, mode = -1) {
+        let unsynclyrics;
         for (const id of CONFIG.providersOrder) {
             const service = CONFIG.providers[id];
             if (!service.on) continue;
             if (mode !== -1 && !service.modes.includes(mode)) continue;
 
             const data = await Providers[id](trackInfo);
-            if (!data.error && (data.karaoke || data.synced || data.unsynced || data.genius)) {
+            if (!data.error && (data.karaoke || data.synced || data.genius)) {
                 CACHE[data.uri] = data;
                 return data;
+            } else if (!data.error && data.unsynced) {
+                unsynclyrics = data;
             }
+        }
+        if (unsynclyrics) {
+            CACHE[unsynclyrics.uri] = unsynclyrics;
+            return unsynclyrics;
         }
         const empty = { ...emptyState, uri: trackInfo.uri };
         CACHE[trackInfo.uri] = empty;
@@ -255,7 +262,11 @@ class LyricsContainer extends react.Component {
 
     async onVersionChange(items, index) {
         if (this.state.mode === GENIUS) {
-            this.setState({ ...emptyLine, genius2: this.state.genius2, isLoading: true });
+            this.setState({
+                ...emptyLine,
+                genius2: this.state.genius2,
+                isLoading: true,
+            });
             const lyrics = await ProviderGenius.fetchLyricsVersion(items, index);
             this.setState({
                 genius: lyrics,
@@ -267,7 +278,11 @@ class LyricsContainer extends react.Component {
 
     async onVersionChange2(items, index) {
         if (this.state.mode === GENIUS) {
-            this.setState({ ...emptyLine, genius: this.state.genius, isLoading: true });
+            this.setState({
+                ...emptyLine,
+                genius: this.state.genius,
+                isLoading: true,
+            });
             const lyrics = await ProviderGenius.fetchLyricsVersion(items, index);
             this.setState({
                 genius2: lyrics,

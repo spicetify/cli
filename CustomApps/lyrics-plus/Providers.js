@@ -65,12 +65,12 @@ const Providers = {
         const synced = ProviderMusixmatch.getSynced(list);
         if (synced) {
             result.synced = synced;
-            result.copyright = list["track.subtitles.get"].message.body.subtitle_list[0].subtitle.lyrics_copyright.trim();
+            result.copyright = list["track.subtitles.get"].message?.body?.subtitle_list?.[0]?.subtitle.lyrics_copyright.trim();
         }
         const unsynced = synced || ProviderMusixmatch.getUnsynced(list);
         if (unsynced) {
             result.unsynced = unsynced;
-            result.copyright = list["track.lyrics.get"].message.body.lyrics.lyrics_copyright.trim();
+            result.copyright = list["track.lyrics.get"].message?.body?.lyrics?.lyrics_copyright?.trim();
         }
 
         return result;
