@@ -37,6 +37,11 @@ const ProviderMusixmatch = (function () {
                 error: `Requested error: ${body["matcher.track.get"].message.header.mode}`,
                 uri: info.uri,
             };
+        } else if (body["track.lyrics.get"]?.message?.body?.lyrics?.restricted) {
+            return {
+                error: "Unfortunately we're not authorized to show these lyrics.",
+                uri: info.uri,
+            };
         }
 
         return body;
