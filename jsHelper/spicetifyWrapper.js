@@ -812,6 +812,8 @@ Spicetify.ContextMenu = (function () {
             uris = props.uris;
         } else if (props.uri) {
             uris = [props.uri];
+        } else if (props.item?.uri) {
+            uris = [props.item.uri];
         } else {
             return;
         }
@@ -819,9 +821,16 @@ Spicetify.ContextMenu = (function () {
             uids = props.uids;
         } else if (props.uid) {
             uids = [props.uid];
+        } else if (props.item?.uid) {
+            uids = [props.item.uid];
         }
-        contextUri = props?.contextUri;
 
+        if (props.contextUri) {
+            contextUri = props?.contextUri;
+        } else if (props.context?.uri) {
+            contextUri = props.context.uri;
+        }
+        
         const elemList = [];
         for (const item of itemList) {
             if (!item.shouldAdd(uris, uids, contextUri)) {
