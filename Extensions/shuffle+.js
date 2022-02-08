@@ -116,6 +116,10 @@
             case Spicetify.URI.Type.TRACK:
             case Spicetify.URI.Type.EPISODE:
                 return [uri];
+            case Spicetify.URI.Type.STATION:
+            case Spicetify.URI.Type.RADIO:
+                playerPlayOGFunc({ uri: uri }, { featureVersion: Spicetify.Platform.PlayerAPI._defaultFeatureVersion });
+                return ["playedstation"];
         }
         throw `Unsupported fetching URI type: ${uriObj.type}`;
     }
@@ -294,6 +298,9 @@
      * @param {string[]} list
      */
     async function playList(list, context) {
+        if (list[0] === "playedstation") {
+            return;
+        }
         const count = list.length;
         if (count === 0) {
             throw "There is no available track to play";

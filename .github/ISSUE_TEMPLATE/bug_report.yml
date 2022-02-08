@@ -1,0 +1,43 @@
+name: 🐛 Bug report
+description: Report errors or unexpected behavior
+labels: [🐛 bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: 🔍 Have you checked Spicetify.app page for your issue?
+      description: Please read the <a href="https://spicetify.app/docs/faq">FAQ</a> for steps to resolve common issues.
+      options:
+        - label: I have checked the FAQ
+          required: true
+  - type: checkboxes
+    attributes:
+      label: 🔍 Is there already an issue for your problem?
+      description: Please make sure you are not creating an already submitted <a href="https://github.com/khanhas/spicetify-cli/issues">Issue</a>. Check closed issues as well, because your issue may have already been fixed.
+      options:
+        - label: I have checked older issues, open and closed
+          required: true
+  - type: textarea
+    attributes:
+      label: ℹ Environment / Computer Info
+      description: Please provide the details of the system Spicetify is running on.
+      value: |
+        - Spotify version: 
+        - Spicetify version:
+      placeholder: |
+        - Spotify version: Spotify for macOS (Apple Silicon) 1.1.77.643.g3c4c6fc6
+        - Spicetify version: 2.8.5
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 📝 Description
+      description: List steps to reproduce the error and details on what happens and what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 📸 Screenshots
+      description: Place any screenshots of the issue here if needed
+    validations:
+      required: false
