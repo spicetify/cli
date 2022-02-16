@@ -88,7 +88,12 @@ func init() {
 			quiet = true
 		case "-n", "--no-restart":
 			noRestart = true
-		case "-l", "--live-update", "-s", "--style":
+		case "-s", "--style":
+			styleFocus = true
+			liveUpdate = true
+		case "-l", "--live-update":
+			extensionFocus = true
+			appFocus = true
 			styleFocus = true
 			liveUpdate = true
 		}
