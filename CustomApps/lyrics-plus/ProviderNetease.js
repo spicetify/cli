@@ -111,6 +111,7 @@ const ProviderNetease = (function () {
 
     function getSynced(list) {
         const lyricStr = list?.lrc?.lyric;
+        let isInstrumental = false;
 
         if (!lyricStr) {
             return null;
@@ -120,6 +121,9 @@ const ProviderNetease = (function () {
         const lyrics = lines
             .map((line) => {
                 const { time, text } = parseTimestamp(line);
+                if (text === "纯音乐, 请欣赏") {
+                    isInstrumental = true;
+                }
                 if (!time || !text) return null;
 
                 const [key, value] = time.split(":") || [];
@@ -137,12 +141,15 @@ const ProviderNetease = (function () {
         if (!lyrics.length) {
             return null;
         }
-
+        if (isInstrumental) {
+            return [{ startTime: "0000", text: "♪ Instrumental ♪" }];
+        }
         return lyrics;
     }
 
     function getUnsynced(list) {
         const lyricStr = list?.lrc?.lyric;
+        let isInstrumental = false;
 
         if (!lyricStr) {
             return null;
@@ -152,6 +159,9 @@ const ProviderNetease = (function () {
         const lyrics = lines
             .map((line) => {
                 const parsed = parseTimestamp(line);
+                if (parsed.text === "纯音乐, 请欣赏") {
+                    isInstrumental = true;
+                }
                 if (!parsed.text || containCredits(parsed.text)) return null;
                 return parsed;
             })
@@ -159,6 +169,10 @@ const ProviderNetease = (function () {
 
         if (!lyrics.length) {
             return null;
+        }
+
+        if (isInstrumental) {
+            return [{ text: "♪ Instrumental ♪" }];
         }
 
         return lyrics;

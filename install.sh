@@ -31,8 +31,8 @@ fi
 spicetify_install="$HOME/.spicetify"
 path="export PATH=\"\$PATH:\$HOME/.spicetify\""
 
-if [[ -f "$HOME/.bashrc" ]] && ! grep -q "$path" "$HOME/.bashrc"; then echo "${path}" >>"$HOME/.bashrc" && echo "SAVING         ${spicetify_install} to \$PATH (bash)"; fi
-if [[ -f "$HOME/.zshrc" ]] && ! grep -q "$path" "$HOME/.zshrc"; then echo "${path}" >>"$HOME/.zshrc" && echo "SAVING         ${spicetify_install} to \$PATH (zsh)"; fi
+if (grep -q "bash" $SHELL || [[ -f "$HOME/.bashrc" ]]) && ! grep -q "$path" "$HOME/.bashrc"; then echo "${path}" >>"$HOME/.bashrc" && echo "SAVING         ${spicetify_install} to \$PATH (bash)"; fi
+if (grep -q "zsh" $SHELL || [[ -f "$HOME/.zshrc" ]]) && ! grep -q "$path" "$HOME/.zshrc"; then echo "${path}" >>"$HOME/.zshrc" && echo "SAVING         ${spicetify_install} to \$PATH (zsh)"; fi
 if [[ -f "$HOME/.config/fish/config.fish" ]] && ! grep -q "$path" "$HOME/.config/fish/config.fish"; then echo "${path}" >>"$HOME/.config/fish/config.fish" && echo "SAVING         ${spicetify_install} to \$PATH (fish)"; fi
 
 exe="$spicetify_install/spicetify"
@@ -65,7 +65,7 @@ if command -v spicetify >/dev/null; then
 elif [[ "$spicetify_install" == *".spicetify"* ]]; then
 	echo "Please restart your Terminal to have spicetify in your PATH."
 	echo "Then you can run:"
-	echo "'$exe --help' to get started"
+	echo "'spicetify --help' to get started"
 else
 	echo "Manually add the directory to your \$HOME/.bash_profile (or similar)"
 	echo "  export SPICETIFY_INSTALL=\"$spicetify_install\""

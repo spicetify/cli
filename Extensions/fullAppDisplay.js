@@ -359,6 +359,7 @@ body.video-full-screen.video-full-screen--hide-ui {
                     .replace(/\(.+?\)/g, "")
                     .replace(/\[.+?\]/g, "")
                     .replace(/\s\-\s.+?$/, "")
+                    .replace(/,.+?$/, "")
                     .trim();
             }
 
