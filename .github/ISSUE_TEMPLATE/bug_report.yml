@@ -26,7 +26,7 @@ body:
       placeholder: |
         - Spotify version: Spotify for macOS (Apple Silicon) 1.1.77.643.g3c4c6fc6
         - Spicetify version: 2.8.5
-      render: markdown
+      render: Markdown
     validations:
       required: true
   - type: textarea
