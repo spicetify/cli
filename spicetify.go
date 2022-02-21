@@ -179,33 +179,33 @@ func main() {
 			name = commands[1:]
 		}
 
-		var watchGroup sync.WaitGroup;
+		var watchGroup sync.WaitGroup
 
 		if extensionFocus {
-			watchGroup.Add(1);
+			watchGroup.Add(1)
 			go func(name []string, liveUpdate bool) {
-				defer watchGroup.Done();
+				defer watchGroup.Done()
 				cmd.WatchExtensions(name, liveUpdate)
 			}(name, liveUpdate)
 		}
 
 		if appFocus {
-			watchGroup.Add(1);
+			watchGroup.Add(1)
 			go func(name []string, liveUpdate bool) {
-				defer watchGroup.Done();
+				defer watchGroup.Done()
 				cmd.WatchCustomApp(name, liveUpdate)
 			}(name, liveUpdate)
 		}
 
 		if styleFocus {
-			watchGroup.Add(1);
+			watchGroup.Add(1)
 			go func(liveUpdate bool) {
-				defer watchGroup.Done();
+				defer watchGroup.Done()
 				cmd.Watch(liveUpdate)
 			}(liveUpdate)
 		}
 
-		watchGroup.Wait();
+		watchGroup.Wait()
 		return
 	}
 
