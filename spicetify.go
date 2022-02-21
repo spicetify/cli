@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/khanhas/spicetify-cli/src/cmd"
 	"github.com/khanhas/spicetify-cli/src/utils"
@@ -22,6 +23,7 @@ var (
 	quiet          = false
 	extensionFocus = false
 	appFocus       = false
+	styleFocus     = false
 	noRestart      = false
 	liveUpdate     = false
 )
@@ -78,13 +80,21 @@ func init() {
 			os.Exit(0)
 		case "-e", "--extension":
 			extensionFocus = true
+			liveUpdate = true
 		case "-a", "--app":
 			appFocus = true
+			liveUpdate = true
 		case "-q", "--quiet":
 			quiet = true
 		case "-n", "--no-restart":
 			noRestart = true
+		case "-s", "--style":
+			styleFocus = true
+			liveUpdate = true
 		case "-l", "--live-update":
+			extensionFocus = true
+			appFocus = true
+			styleFocus = true
 			liveUpdate = true
 		}
 	}
@@ -168,13 +178,34 @@ func main() {
 		if len(commands) > 1 {
 			name = commands[1:]
 		}
+
+		var watchGroup sync.WaitGroup
+
 		if extensionFocus {
-			cmd.WatchExtensions(name, liveUpdate)
-		} else if appFocus {
-			cmd.WatchCustomApp(name, liveUpdate)
-		} else {
-			cmd.Watch(liveUpdate)
+			watchGroup.Add(1)
+			go func(name []string, liveUpdate bool) {
+				defer watchGroup.Done()
+				cmd.WatchExtensions(name, liveUpdate)
+			}(name, liveUpdate)
 		}
+
+		if appFocus {
+			watchGroup.Add(1)
+			go func(name []string, liveUpdate bool) {
+				defer watchGroup.Done()
+				cmd.WatchCustomApp(name, liveUpdate)
+			}(name, liveUpdate)
+		}
+
+		if styleFocus {
+			watchGroup.Add(1)
+			go func(liveUpdate bool) {
+				defer watchGroup.Done()
+				cmd.Watch(liveUpdate)
+			}(liveUpdate)
+		}
+
+		watchGroup.Wait()
 		return
 	}
 
