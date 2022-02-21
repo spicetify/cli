@@ -205,7 +205,7 @@
     }
 
     function focusOnApp() {
-        return document.querySelector("main .os-viewport");
+        return document.querySelector(".Root__main-view .os-viewport");
     }
 
     /**
