@@ -291,7 +291,12 @@ disable-devtool     Disable Spotify's developer tools.
 
 watch               Enter watch mode.
                     On default, update CSS on color.ini or user.css's changes.
-                    Use with flag "-e" to update extensions on changes.
+                    To update on change, use with any combination of the following flags: 
+						  "-e" (for extensions), 
+						  "-a" (for custom apps), 
+						  "-s" (for the active theme, color.ini and user.css) 
+						  "-l" (for extensions, custom apps, and active theme)
+
 
 restart             Restart Spotify client.
 
@@ -386,7 +391,7 @@ upgrade             Upgrade spicetify latest version
 
 -v, --version       Print version number and quit
 
-When using the "watch" command, any combination of the style (-s), extension (-e), and app (-a) flags can be used (ex. "watch -se" or "watch -ae").
+When using the "watch" command, any combination of the style (-s), extension (-e), and app (-a) flags can be used (ex. "watch -s -e" or "watch -e -a").
 For config information, run "spicetify -h config".
 For more information and bug report: https://github.com/khanhas/spicetify-cli/`)
 }
