@@ -368,15 +368,17 @@ upgrade             Upgrade spicetify latest version
                     like clear backup, restore will proceed without prompting
                     permission.
 
--e, --extension     Use with "update", "watch" or "path" command to
-                    focus on extensions.
+-s, --style         Use with "watch" command to auto-reload Spotify when changes are made to the active theme (color.ini, user.css).
 
--a, --app           Use with "path" to focus on custom apps.
+-e, --extension     Use with "update", "watch" or "path" command to
+                    focus on extensions. Use with "watch" command to auto-reload Spotify when changes are made to extensions.
+
+-a, --app           Use with "watch" or "path" to focus on custom apps. Use with "watch" command to auto-reload Spotify when changes are made to apps.
 
 -n, --no-restart    Do not restart Spotify after running command(s), except
                     "restart" command.
 
--l, --live-update   Use with "watch" command to auto-reload Spotify on change
+-l, --live-update   Use with "watch" command to auto-reload Spotify when changes are made to any custom component (color.ini, user.css, extensions, apps).
 
 -c, --config        Print config file path and quit
 
@@ -384,6 +386,7 @@ upgrade             Upgrade spicetify latest version
 
 -v, --version       Print version number and quit
 
+When using the "watch" command, any combination of the style (-s), extension (-e), and app (-a) flags can be used (ex. "watch -se" or "watch -ae").
 For config information, run "spicetify -h config".
 For more information and bug report: https://github.com/khanhas/spicetify-cli/`)
 }
