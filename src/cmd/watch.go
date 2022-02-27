@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
-	"github.com/khanhas/spicetify-cli/src/utils"
+	spotifystatus "github.com/spicetify/spicetify-cli/src/status/spotify"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 var (
@@ -109,7 +109,7 @@ func WatchExtensions(extName []string, liveUpdate bool) {
 			os.Exit(1)
 		}
 
-		pushExtensions("",filePath)
+		pushExtensions("", filePath)
 
 		utils.PrintSuccess(utils.PrependTime(`Extension "` + filePath + `" is updated.`))
 	}, autoReloadFunc)

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-ini/ini"
-	"github.com/khanhas/spicetify-cli/src/utils"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 var (

@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/khanhas/spicetify-cli/src/apply"
-	backupstatus "github.com/khanhas/spicetify-cli/src/status/backup"
-	spotifystatus "github.com/khanhas/spicetify-cli/src/status/spotify"
-	"github.com/khanhas/spicetify-cli/src/utils"
+	"github.com/spicetify/spicetify-cli/src/apply"
+	backupstatus "github.com/spicetify/spicetify-cli/src/status/backup"
+	spotifystatus "github.com/spicetify/spicetify-cli/src/status/spotify"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 // Apply .
@@ -245,7 +245,7 @@ func pushExtensions(destExt string, list ...string) {
 			extPath = v
 		} else {
 			extName = v
-			if(!strings.Contains(extName,".js") && !strings.Contains(extName,".mjs")){
+			if !strings.Contains(extName, ".js") && !strings.Contains(extName, ".mjs") {
 				extName += ".js"
 			}
 			extPath, err = utils.GetExtensionPath(extName)

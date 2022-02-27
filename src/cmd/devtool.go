@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/go-ini/ini"
-	"github.com/khanhas/spicetify-cli/src/utils"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 // SetDevTool enables/disables developer mode of Spotify client
