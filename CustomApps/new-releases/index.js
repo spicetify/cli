@@ -1,4 +1,4 @@
-// Run "npm i @type/react" to have this type package available in workspace
+// Run "npm i @types/react" to have this type package available in workspace
 /// <reference types="react" />
 
 /** @type {React} */
@@ -61,6 +61,8 @@ let separatedByDate = {};
 let dateList = [];
 
 class Grid extends react.Component {
+    viewportSelector = "#main .os-viewport";
+
     constructor() {
         super();
         this.state = {
@@ -69,7 +71,6 @@ class Grid extends react.Component {
         };
     }
 
-    viewportSelector = "#main .os-viewport";
     updatePostsVisual() {
         gridList = [];
         for (const date of dateList) {

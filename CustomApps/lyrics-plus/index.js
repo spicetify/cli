@@ -1,4 +1,4 @@
-// Run "npm i @type/react" to have this type package available in workspace
+// Run "npm i @types/react" to have this type package available in workspace
 /// <reference types="react" />
 /// <reference path="../../globals.d.ts" />
 
