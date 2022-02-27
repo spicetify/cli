@@ -69,6 +69,7 @@ class Grid extends react.Component {
         };
     }
 
+    viewportSelector = "#main .os-viewport";
     updatePostsVisual() {
         gridList = [];
         for (const date of dateList) {
@@ -171,7 +172,7 @@ class Grid extends react.Component {
         this.configButton = new Spicetify.Menu.Item("New Releases config", false, openConfig);
         this.configButton.register();
 
-        const viewPort = document.querySelector("main .os-viewport");
+        const viewPort = document.querySelector(this.viewportSelector);
 
         if (gridList.length) {
             // Already loaded
@@ -185,7 +186,7 @@ class Grid extends react.Component {
     }
 
     componentWillUnmount() {
-        const viewPort = document.querySelector("main .os-viewport");
+        const viewPort = document.querySelector(this.viewportSelector);
         lastScroll = viewPort.scrollTop;
         this.configButton.deregister();
     }
