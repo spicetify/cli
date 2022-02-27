@@ -15,17 +15,17 @@ case $(uname -sm) in
 esac
 
 if [ $# -eq 0 ]; then
-	latest_release_uri="https://api.github.com/repos/khanhas/spicetify-cli/releases/latest"
+	latest_release_uri="https://api.github.com/repos/spicetify/spicetify-cli/releases/latest"
 	echo "DOWNLOADING    $latest_release_uri"
 	spicetify_asset_path=$(
 		command curl -sSf "$latest_release_uri" |
-			command grep -o "/khanhas/spicetify-cli/releases/download/.*/spicetify-.*-${target}\\.tar\\.gz" |
+			command grep -o "/spicetify/spicetify-cli/releases/download/.*/spicetify-.*-${target}\\.tar\\.gz" |
 			command head -n 1
 	)
 	if [ ! "$spicetify_asset_path" ]; then exit 1; fi
 	download_uri="https://github.com${spicetify_asset_path}"
 else
-	download_uri="https://github.com/khanhas/spicetify-cli/releases/download/v${1}/spicetify-${1}-${target}.tar.gz"
+	download_uri="https://github.com/spicetify/spicetify-cli/releases/download/v${1}/spicetify-${1}-${target}.tar.gz"
 fi
 
 spicetify_install="$HOME/.spicetify"
