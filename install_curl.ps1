@@ -1,4 +1,4 @@
-# Copyright 2022 khanhas. GPL license.
+# Copyright 2022 Spicetify. GPL license.
 # Edited from project Denoland install script (https://github.com/denoland/deno_install)
 param (
   [string] $version
@@ -23,7 +23,7 @@ function Write-Done {
 if (-not $version) {
   # Determine latest Spicetify release via GitHub API.
   $latest_release_uri =
-    "https://api.github.com/repos/khanhas/spicetify-cli/releases/latest"
+    "https://api.github.com/repos/spicetify/spicetify-cli/releases/latest"
   Write-Part "DOWNLOADING    "; Write-Emphasized $latest_release_uri
   $latest_release_json = curl.exe --tlsv1.2 $latest_release_uri
   Write-Done
@@ -41,7 +41,7 @@ if (-not (Test-Path $sp_dir)) {
 
 # Download release.
 $zip_file = "${sp_dir}\spicetify-${version}-windows-x64.zip"
-$download_uri = "https://github.com/khanhas/spicetify-cli/releases/download/" +
+$download_uri = "https://github.com/spicetify/spicetify-cli/releases/download/" +
                 "v${version}/spicetify-${version}-windows-x64.zip"
 Write-Part "DOWNLOADING    "; Write-Emphasized $download_uri
 curl.exe --tlsv1.2 $download_uri -o $zip_file

@@ -63,7 +63,7 @@ func GetCustomAppPath(name string) (string, error) {
 		return customAppFolderPath, nil
 	}
 
-	return "", errors.New("Custom app not found")
+	return "", errors.New("custom app not found")
 }
 
 func GetExtensionPath(name string) (string, error) {
@@ -79,5 +79,5 @@ func GetExtensionPath(name string) (string, error) {
 		return extFilePath, nil
 	}
 
-	return "", errors.New("Extension not found")
+	return "", errors.New("extension not found")
 }

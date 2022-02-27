@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/khanhas/spicetify-cli/src/cmd"
-	"github.com/khanhas/spicetify-cli/src/utils"
 	colorable "github.com/mattn/go-colorable"
+	"github.com/spicetify/spicetify-cli/src/cmd"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 var (
@@ -393,7 +393,7 @@ upgrade             Upgrade spicetify latest version
 
 When using the "watch" command, any combination of the style (-s), extension (-e), and app (-a) flags can be used (ex. "watch -s -e" or "watch -e -a").
 For config information, run "spicetify -h config".
-For more information and bug report: https://github.com/khanhas/spicetify-cli/`)
+For more information and bug report: https://github.com/spicetify/spicetify-cli/`)
 }
 
 func helpConfig() {
@@ -421,7 +421,7 @@ replace_colors <0 | 1>
 spotify_launch_flags
     Command-line flags used when launching/restarting Spotify.
     Separate each flag with "|".
-    List of valid flags: https://github.com/khanhas/spicetify-cli/wiki/Spotify-Commandline-Flags
+    List of valid flags: https://spicetify.app/docs/development/spotify-cli-flags
 
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>

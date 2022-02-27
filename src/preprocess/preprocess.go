@@ -14,7 +14,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/khanhas/spicetify-cli/src/utils"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 // Flag enables/disables preprocesses to be applied
@@ -37,7 +37,7 @@ type jsMap struct {
 }
 
 func readRemoteCssMap(tag string, cssTranslationMap *map[string]string) error {
-	var cssMapURL string = "https://raw.githubusercontent.com/khanhas/spicetify-cli/" + tag + "/css-map.json"
+	var cssMapURL string = "https://raw.githubusercontent.com/spicetify/spicetify-cli/" + tag + "/css-map.json"
 	cssMapResp, err := http.Get(cssMapURL)
 	if err != nil {
 		return err
@@ -565,7 +565,7 @@ func FetchLatestTagMatchingVersion(version string) (string, error) {
 	if version == "Dev" {
 		return "Dev", nil
 	}
-	res, err := http.Get("https://api.github.com/repos/khanhas/spicetify-cli/releases")
+	res, err := http.Get("https://api.github.com/repos/spicetify/spicetify-cli/releases")
 	if err != nil {
 		return "", err
 	}

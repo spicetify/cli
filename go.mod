@@ -1,4 +1,4 @@
-module github.com/khanhas/spicetify-cli
+module github.com/spicetify/spicetify-cli
 
 go 1.16
 

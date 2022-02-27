@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/khanhas/spicetify-cli/src/utils"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 func Upgrade(currentVersion string) {
@@ -28,7 +28,7 @@ func Upgrade(currentVersion string) {
 		return
 	}
 
-	var assetURL string = "https://github.com/khanhas/spicetify-cli/releases/download/v" + tagName + "/spicetify-" + tagName
+	var assetURL string = "https://github.com/spicetify/spicetify-cli/releases/download/v" + tagName + "/spicetify-" + tagName
 	var location string
 	switch runtime.GOOS {
 	case "windows":

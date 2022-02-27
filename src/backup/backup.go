@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/khanhas/spicetify-cli/src/utils"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 // Start backing up Spotify Apps folder to backupPath

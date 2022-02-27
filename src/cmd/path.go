@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/khanhas/spicetify-cli/src/utils"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 // ThemeAssetPath returns path of theme assets color.ini and user.css
