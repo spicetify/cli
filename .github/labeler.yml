@@ -1,16 +1,16 @@
-aur:
-  - '(aur)'
-snap:
-  - '(snap)'
-brew:
-  - '(brew)'
-windows:
-  - '(windows)'
-linux:
-  - '(linux)'
-macos:
-  - '(macos)'
-extension:
-  - '(extension|auto.*?skip|bookmark|full.*?app.*?display|keyboard.*?shortcut|shuffle|web.*?now.*?playing|popup.*?lyrics)'
-custom app:
-  - '(custom.*?app|lyrics.*?plus|new.*?releases|store|reddit|lyrics)'
+📦 aur:
+  - "(aur)"
+📦 snap:
+  - "(snap)"
+📦 brew:
+  - "(brew)"
+🪟 windows:
+  - "(windows)"
+🐧 linux:
+  - "(linux)"
+🍎 macos:
+  - "(macos)"
+🔵 extension:
+  - "(extension|auto.*?skip|bookmark|full.*?app.*?display|keyboard.*?shortcut|shuffle|web.*?now.*?playing|popup.*?lyrics)"
+🔴 custom app:
+  - "(custom.*?app|lyrics.*?plus|new.*?releases|store|reddit|lyrics)"
