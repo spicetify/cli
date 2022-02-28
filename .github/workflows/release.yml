@@ -1,13 +1,14 @@
 name: Release
 
+on: push
 # on:
 #   push:
 #     tags:
 #       - "v*"
-on: push
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +23,8 @@ jobs:
       - name: Build
         run: go build .
 
-  release-amd64:
+  release:
+    name: Release
     strategy:
       matrix:
         os: ["linux", "darwin", "windows"]
