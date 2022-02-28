@@ -58,18 +58,21 @@ jobs:
         env:
           GOOS: ${{ matrix.os }}
 
-      - uses: edgarrc/action-7z@v1
+      - name: 7z - .tar
         if: ${{ matrix.os }} != "windows"
+        uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar" "./spicetify" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
-      - uses: edgarrc/action-7z@v1
+      - name: 7z - .tar.gz
         if: ${{ matrix.os }} != "windows"
+        uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar"
 
-      - uses: edgarrc/action-7z@v1
+      - name: 7z Windows
         if: ${{ matrix.os }} == "windows"
+        uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-x64.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
