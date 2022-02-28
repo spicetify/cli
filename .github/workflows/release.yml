@@ -68,10 +68,11 @@ jobs:
         with:
           args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar"
 
-      - if: ${{ matrix.os }} == "windows"
-        uses: edgarrc/action-7z@v1
+      - uses: edgarrc/action-7z@v1
+        if: ${{ matrix.os }} == "windows"
         with:
           args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-x64.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
+
       # - name: Release
       #   uses: softprops/action-gh-release@v1
       #   with:
