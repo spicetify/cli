@@ -61,17 +61,17 @@ jobs:
       - uses: edgarrc/action-7z@v1
         if: ${{ matrix.os }} != "windows"
         with:
-          args: 7z a -bb0 "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar" "./spicetify" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json" >$null 2>&1
+          args: 7z a -bb0 "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar" "./spicetify" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
       - uses: edgarrc/action-7z@v1
         if: ${{ matrix.os }} != "windows"
         with:
-          args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar" >$null 2>&1
+          args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar"
 
       - if: ${{ matrix.os }} == "windows"
         uses: edgarrc/action-7z@v1
         with:
-          args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-x64.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json" >$null 2>&1
+          args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-x64.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
       # - name: Release
       #   uses: softprops/action-gh-release@v1
       #   with:
