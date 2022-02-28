@@ -28,10 +28,10 @@ jobs:
     strategy:
       matrix:
         os: ["linux", "darwin", "windows"]
-        arch: ["amd64", "arm64"]
-        windows-arch: ["amd64", "386"]
+        arch: ["amd64", "arm64", "386"]
     runs-on: ubuntu-latest
     # if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ matrix.os == 'windows' && matrix.arch != 'arm64' || matrix.os != 'windows' && matrix.arch != '386' }}
     needs: build
 
     steps:
@@ -72,17 +72,11 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.windows-arch }}
 
-      - name: 7z - .zip (x64)
-        if: ${{ matrix.os == 'windows' && matrix.windows-arch == 'amd64' }}
+      - name: 7z - .zip
+        if: ${{ matrix.os == 'windows' }}
         uses: edgarrc/action-7z@v1
         with:
-          args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-x64.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
-
-      - name: 7z - .zip (x32)
-        if: ${{ matrix.os == 'windows' && matrix.windows-arch == '386' }}
-        uses: edgarrc/action-7z@v1
-        with:
-          args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-x32.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
+          args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-x${{ matrix.arch == 'arm64' && '64' || '32' }}.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
       # - name: Release
       #   uses: softprops/action-gh-release@v1
