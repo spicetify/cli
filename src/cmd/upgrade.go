@@ -32,13 +32,25 @@ func Upgrade(currentVersion string) {
 	var location string
 	switch runtime.GOOS {
 	case "windows":
-		assetURL += "-windows-x64.zip"
+		if runtime.GOARCH == "386" {
+			assetURL += "-windows-x32.zip"
+		} else {
+			assetURL += "-windows-x64.zip"
+		}
 		location = os.TempDir() + "/spicetify-" + tagName + ".zip"
 	case "linux":
-		assetURL += "-linux-amd64.tar.gz"
+		if runtime.GOARCH == "arm64" {
+			assetURL += "-linux-arm64.tar.gz"
+		} else {
+			assetURL += "-linux-amd64.tar.gz"
+		}
 		location = os.TempDir() + "/spicetify-" + tagName + ".tar.gz"
 	case "darwin":
-		assetURL += "-darwin-amd64.tar.gz"
+		if runtime.GOARCH == "arm64" {
+			assetURL += "-darwin-arm64.tar.gz"
+		} else {
+			assetURL += "-darwin-amd64.tar.gz"
+		}
 		location = os.TempDir() + "/spicetify-" + tagName + ".tar.gz"
 	}
 
