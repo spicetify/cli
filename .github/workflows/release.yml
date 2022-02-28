@@ -1,0 +1,59 @@
+name: Release
+
+# on:
+#   push:
+#     tags:
+#       - "v*"
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ‘1.17’
+
+      - name: Build
+        run: go build ./..
+
+  release-amd64:
+    strategy:
+      matrix:
+        os: ["linux", "darwin", "windows"]
+    runs-on: ubuntu-latest
+    # if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    env:
+      GOARCH: amd64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Get Tag
+        run: echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ‘1.17’
+
+      - name: Build
+        run: go build -ldflags "-X main.version=${{ env.TAG }}" -o ./spicetify
+        env:
+          GOOS: ${{ matrix.os }}
+
+      # - name: Release
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     files: |
+      #       target/release/discrakt_amd64
+      #       credentials.ini
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
