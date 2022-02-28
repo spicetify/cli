@@ -47,29 +47,29 @@ jobs:
           go-version: 1.17
 
       - name: Linux/MacOS Build
-      - if: ${{ matrix.os }} != "windows"
+        if: ${{ matrix.os }} != "windows"
         run: go build -ldflags "-X main.version=${{ env.TAG }}" -o ./spicetify
         env:
           GOOS: ${{ matrix.os }}
 
       - name: Windows Build
-      - if: ${{ matrix.os }} == "windows"
+        if: ${{ matrix.os }} == "windows"
         run: go build -ldflags "-X main.version=${{ env.TAG }}" -o ./spicetify
         env:
           GOOS: ${{ matrix.os }}
 
       - uses: edgarrc/action-7z@v1
-      - if: ${{ matrix.os }} != "windows"
+        if: ${{ matrix.os }} != "windows"
         with:
           args: 7z a -bb0 "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar" "./spicetify" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json" >$null 2>&1
 
       - uses: edgarrc/action-7z@v1
-      - if: ${{ matrix.os }} != "windows"
+        if: ${{ matrix.os }} != "windows"
         with:
           args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar" >$null 2>&1
 
-      - uses: edgarrc/action-7z@v1
       - if: ${{ matrix.os }} == "windows"
+        uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-x64.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json" >$null 2>&1
       # - name: Release
