@@ -20,7 +20,7 @@ jobs:
           go-version: 1.17
 
       - name: Build
-        run: go build ./..
+        run: go build .
 
   release-amd64:
     strategy:
@@ -42,7 +42,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: ‘1.17’
+          go-version: 1.17
 
       - name: Build
         run: go build -ldflags "-X main.version=${{ env.TAG }}" -o ./spicetify
