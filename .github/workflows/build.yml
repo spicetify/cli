@@ -31,7 +31,6 @@ jobs:
         arch: ["amd64", "arm64", "386"]
     runs-on: ubuntu-latest
     # if: startsWith(github.ref, 'refs/tags/')
-    if: ${{ matrix.os == 'windows' && matrix.arch != 'arm64' || matrix.os != 'windows' && matrix.arch != '386' }}
     needs: build
 
     steps:
@@ -47,33 +46,33 @@ jobs:
           go-version: 1.17
 
       - name: Linux/MacOS Build
-        if: ${{ matrix.os != 'windows' }}
+        if: ${{ matrix.os != 'windows' && matrix.arch != '386' }}
         run: go build -ldflags "-X main.version=${{ env.TAG }}" -o ./spicetify
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
 
       - name: 7z - .tar
-        if: ${{ matrix.os != 'windows' }}
+        if: ${{ matrix.os != 'windows' && matrix.arch != '386' }}
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar" "./spicetify" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
       - name: 7z - .tar.gz
-        if: ${{ matrix.os != 'windows' }}
+        if: ${{ matrix.os != 'windows' && matrix.arch != '386' }}
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar"
 
       - name: Windows Build
-        if: ${{ matrix.os == 'windows' }}
+        if: ${{ matrix.os == 'windows' && matrix.arch != 'arm64' }}
         run: go build -ldflags "-X main.version=${{ env.TAG }}" -o ./spicetify.exe
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.windows-arch }}
 
       - name: 7z - .zip
-        if: ${{ matrix.os == 'windows' }}
+        if: ${{ matrix.os == 'windows' && matrix.arch != 'arm64' }}
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-x${{ matrix.arch == 'arm64' && '64' || '32' }}.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
