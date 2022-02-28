@@ -62,7 +62,7 @@ jobs:
         if: ${{ matrix.os != 'windows' && matrix.arch != '386' }}
         uses: edgarrc/action-7z@v1
         with:
-          args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-amd64.tar"
+          args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar"
 
       - name: Windows Build
         if: ${{ matrix.os == 'windows' && matrix.arch != 'arm64' }}
