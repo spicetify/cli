@@ -80,6 +80,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  trigger-release:
+    runs-on: ubuntu-latest
+    name: Trigger Homebrew/AUR Release
+    needs: release
+    steps:
       - name: Update Homebrew/AUR
         uses: fjogeleit/http-request-action@master
         with:
