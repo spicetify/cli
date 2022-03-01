@@ -36,45 +36,44 @@ jobs:
       - name: Get Tag
         run: echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
+      - name: Is Unix Platform
+        run: echo "IS_UNIX=${{ matrix.os != 'windows' && matrix.arch != '386' }}" >> $GITHUB_ENV
+
+      - name: Is Windows Platform
+        run: echo "IS_WIN=${{ matrix.os == 'windows' && matrix.arch != 'arm64' }}" >> $GITHUB_ENV
+
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
           go-version: 1.17
 
-      - name: Linux/MacOS Build
-        if: ${{ matrix.os != 'windows' && matrix.arch != '386' }}
-        run: go build -ldflags "-X main.version=${{ env.TAG }}" -o ./spicetify
+      - name: Build
+        if: ${{ env.IS_UNIX || env.IS_WIN }}
+        run: go build -ldflags "-X main.version=${{ env.TAG }}" -o "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
 
       - name: 7z - .tar
-        if: ${{ matrix.os != 'windows' && matrix.arch != '386' }}
+        if: ${{ env.IS_UNIX }}
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar" "./spicetify" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
       - name: 7z - .tar.gz
-        if: ${{ matrix.os != 'windows' && matrix.arch != '386' }}
+        if: ${{ env.IS_UNIX }}
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar"
 
-      - name: Windows Build
-        if: ${{ matrix.os == 'windows' && matrix.arch != 'arm64' }}
-        run: go build -ldflags "-X main.version=${{ env.TAG }}" -o ./spicetify.exe
-        env:
-          GOOS: ${{ matrix.os }}
-          GOARCH: ${{ matrix.windows-arch }}
-
       - name: 7z - .zip
-        if: ${{ matrix.os == 'windows' && matrix.arch != 'arm64' }}
+        if: ${{ env.IS_WIN }}
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch == 'arm64' && 'x64' || 'x32' }}.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
       - name: Release
-        if: ${{ matrix.os != 'windows' && matrix.arch != '386' || matrix.os == 'windows' && matrix.arch != 'arm64' }}
+        if: ${{ env.IS_UNIX || env.IS_WIN }}
         uses: softprops/action-gh-release@v1
         with:
           files: "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.os == 'windows' && matrix.arch == 'arm64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }}.tar"
