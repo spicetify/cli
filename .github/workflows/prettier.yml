@@ -8,7 +8,7 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-    - uses: actions/checkout@v2
-    - uses: actionsx/prettier@v2
-      with:
-        args: --check "./Extensions/*.js" "./jsHelper/{homeConfig,sidebarConfig}.js" "CustomApps/*/*{.js,.css}"
+      - uses: actions/checkout@v2
+      - uses: actionsx/prettier@v2
+        with:
+          args: --check "./Extensions/*.js" "./jsHelper/{homeConfig,sidebarConfig}.js" "CustomApps/*/*{.js,.css}"
