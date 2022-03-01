@@ -80,3 +80,9 @@ jobs:
           files: "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.os == 'windows' && matrix.arch == 'arm64' && 'x64' || 'x32') || matrix.arch }}.tar"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew/AUR
+        uses: fjogeleit/http-request-action@master
+        with:
+          url: https://vps.itsmeow.dev/spicetify-update
+          method: GET
