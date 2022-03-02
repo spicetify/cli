@@ -29,7 +29,7 @@ jobs:
           # The number of days to wait to close an issue or a pull request after it being marked stale. Set to -1 to never close stale issues or pull requests.
           days-before-close: 7
           # The label to apply when an issue is stale.
-          stale-issue-label: "stale"
+          stale-issue-label: "☠️ stale"
           # Only issues with all of these labels are checked if stale. Defaults to `[]` (disabled) and can be a comma-separated list of labels. Override "only-labels" option regarding only the issues.
           only-issue-labels: "🐛 bug"
           # Display some statistics at the end regarding the stale workflow (only when the logs are enabled).
