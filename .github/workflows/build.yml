@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v1
 
       - name: Get Tag
-        run: echo "TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+        run: echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
 
       - name: Is Unix Platform
         run: echo "IS_UNIX=${{ matrix.os != 'windows' && matrix.arch != '386' }}" >> $GITHUB_ENV
