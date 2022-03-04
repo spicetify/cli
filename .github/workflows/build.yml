@@ -70,13 +70,13 @@ jobs:
         if: env.IS_WIN == 'true'
         uses: edgarrc/action-7z@v1
         with:
-          args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch == 'arm64' && 'x64' || 'x32' }}.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
+          args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch == 'amd64' && 'x64' || 'x32' }}.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
       - name: Release
         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          files: "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.os == 'windows' && matrix.arch == 'arm64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }}.tar"
+          files: "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.os == 'windows' && matrix.arch == 'amd64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }}.${{ matrix.os == 'windows' && 'zip' || 'tar.gz' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
