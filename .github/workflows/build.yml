@@ -48,32 +48,32 @@ jobs:
           go-version: 1.17
 
       - name: Build
-        if: ${{ env.IS_UNIX || env.IS_WIN }}
+        if: env.IS_UNIX == true || env.IS_WIN == true
         run: go build -ldflags "-X main.version=${{ env.TAG }}" -o "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
 
       - name: 7z - .tar
-        if: ${{ env.IS_UNIX }}
+        if: env.IS_UNIX == true
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar" "./spicetify" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
       - name: 7z - .tar.gz
-        if: ${{ env.IS_UNIX }}
+        if: env.IS_UNIX == true
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar"
 
       - name: 7z - .zip
-        if: ${{ env.IS_WIN }}
+        if: env.IS_WIN == true
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch == 'arm64' && 'x64' || 'x32' }}.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
 
       - name: Release
-        if: ${{ env.IS_UNIX || env.IS_WIN }}
+        if: env.IS_UNIX == true || env.IS_WIN == true
         uses: softprops/action-gh-release@v1
         with:
           files: "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.os == 'windows' && matrix.arch == 'arm64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }}.tar"
