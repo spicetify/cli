@@ -11,25 +11,28 @@ case $(uname -sm) in
 	*) echo "Unsupported platform $(uname -sm). Only Darwin x86_64, Darwin arm64 and Linux x86_64 binaries are available."; exit ;;
 esac
 
+# check for dependencies
 command -v curl >/dev/null || { echo "curl isn't installed\!" >&2; exit 1; }
 command -v tar >/dev/null || { echo "tar isn't installed\!" >&2; exit 1; }
+command -v grep >/dev/null || { echo "grep isn't installed\!" >&2; exit 1; }
 
 # download uri
-shortcut=https://github.com/spicetify/spicetify-cli
-tag=$(curl -LsH 'Accept: application/json' $shortcut/releases/latest)
+shortcut=https://github.com/spicetify/spicetify-cli/releases
+tag=$(curl -LsH 'Accept: application/json' $shortcut/latest)
 tag=${tag%\,\"update_url*}
 tag=${tag##*tag_name\":\"}
 tag=${tag%\"}
-download_uri="$shortcut/releases/download/$tag/spicetify-${tag#v}-$target.tar.gz"
-unset tag
+download_uri=$shortcut/download/$tag/spicetify-${tag#v}-$target.tar.gz
 
 # locations
-spicetify_install="${XDG_DATA_HOME:-$HOME/.local/share}/spicetify"
+spicetify_install="$HOME/.spicetify"
 exe="$spicetify_install/spicetify"
 tar="$spicetify_install/spicetify.tar.gz"
 
+# installing
 [ ! -d "$spicetify_install" ] && echo "CREATING $spicetify_install" && mkdir -p "$spicetify_install"
-echo "DOWNLOADING  $download_uri"
+
+echo "DOWNLOADING $download_uri"
 curl --fail --location --progress-bar --output "$tar" "$download_uri"
 
 echo "EXTRACTING $tar"
@@ -41,17 +44,37 @@ chmod +x "$exe"
 echo "REMOVING $tar"
 rm "$tar"
 
-echo "spicetify was installed successfully to $spicetify_install"
-
-cat << EOINFO
-
+notfound() {
+	cat << EOINFO
 Manually add the directory to your \$PATH through your shell profile
-  export SPICETIFY_INSTALL="$spicetify_install"
-  export PATH="\$PATH:$spicetify_install"
-
-	for zsh: $HOME/.zshrc 
-	for bash: $HOME/.bashrc
-	for fish: $HOME/.config/fish/config.fish
-
+export SPICETIFY_INSTALL="$spicetify_install"
+export PATH="\$PATH:$spicetify_install"
 EOINFO
+}
 
+check() {
+	local path="export PATH=\$PATH:$spicetify_install"
+	local shellrc=$HOME/$1
+	if [ -f $shellrc ]; then
+		if ! grep -q $spicetify_install $shellrc; then
+			echo "APPENDING $spicetify_install to PATH in $shellrc"
+		  	echo ${2:-$path} >> $shellrc
+			echo "Restart your shell to have spicetify in your PATH."
+		else
+			echo "spicetify path already set in $shellrc, continuing..."
+		fi
+	else
+		notfound
+	fi
+}
+
+case $SHELL in
+	*zsh) check ".zshrc" ;;
+	*bash) check ".bashrc" ;;
+	*fish) check ".config/fish/config.fish" "fish_add_path $spicetify_install" ;;
+	*) notfound ;;
+esac
+
+echo
+echo "spicetify $tag was installed successfully to $spicetify_install"
+echo "Run 'spicetify --help' to get started"
