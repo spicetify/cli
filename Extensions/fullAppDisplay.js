@@ -341,9 +341,6 @@ body.video-full-screen.video-full-screen--hide-ui {
 
         async getAlbumDate(uri) {
             const id = uri.replace("spotify:album:", "");
-            // const albumInfo = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${id}/desktop`);
-            // const albumDate = new Date(albumInfo.year, (albumInfo.month || 1) - 1, albumInfo.day || 0);
-            // hermes protocol deprecated 1.1.81 onwards
 
             const albumInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/albums/${id}`);
 

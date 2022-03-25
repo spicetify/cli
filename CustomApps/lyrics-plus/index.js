@@ -162,9 +162,6 @@ class LyricsContainer extends react.Component {
     async fetchColors(uri) {
         let prominent = 0;
         try {
-            // const colors = await CosmosAsync.get(`hm://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
-            // prominent = colors.entries[0].color_swatches[4].color;
-            // hermes deprecated 1.1.81 onwards
             const colors = await CosmosAsync.get(
                 `https://spclient.wg.spotify.com/color-lyrics/v2/track/${uri.split(":")[2]}/?format=json&vocalRemoval=false&market=from_token`
             );
