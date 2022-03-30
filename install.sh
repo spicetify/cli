@@ -8,7 +8,8 @@ case $(uname -sm) in
 	"Darwin x86_64") target="darwin-amd64" ;;
 	"Darwin arm64") target="darwin-arm64" ;;
 	"Linux x86_64") target="linux-amd64" ;;
-	*) echo "Unsupported platform $(uname -sm). Only Darwin x86_64, Darwin arm64 and Linux x86_64 binaries are available."; exit ;;
+	"Linux arm64") target="linux-arm64" ;;
+	*) echo "Unsupported platform $(uname -sm). x86_64 and arm64 binaries for Linux and Darwin are available."; exit ;;
 esac
 
 # check for dependencies
