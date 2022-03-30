@@ -229,11 +229,11 @@ async function getArtistList() {
 
 async function getArtistEverything(artist) {
     const uid = artist.link;
-    const body = await CosmosAsync.get(`https://api-partner.spotify.com/pathfinder/v1/query?operationName=queryArtistOverview&variables=%7B%22uri%22%3A%22${uid}%22%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22433e28d1e949372d3ca3aa6c47975cff428b5dc37b12f5325d9213accadf770a%22%7D%7D`);
+    const body = await CosmosAsync.get(`https://api-partner.spotify.com/pathfinder/v1/query?operationName=queryArtistDiscographyAll&variables=%7B%22uri%22%3A%22${uid}%22%2C%22offset%22%3A0%2C%22limit%22%3A5%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22e108cfbb0b850e577260638713504712091e98dd98ef768d7724c1c444de4cab%22%7D%7D`);
     const releases = body?.data?.artist;
     const items = [];
     const types = [
-        [CONFIG.album, releases?.discography?.albums?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("album")],
+        [CONFIG.album, releases?.discography?.all?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("album")],
         [CONFIG["appears-on"], releases?.relatedContent?.appearsOn?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("artist.appears-on")],
         [CONFIG.compilations, releases?.discography?.compilations?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("compilation")],
         [CONFIG["single-ep"], releases?.discography?.singles?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")],
@@ -264,7 +264,7 @@ async function getPodcastRelease(uri) {
 }
 
 function metaFromTrack(artist, track) {
-    const time = new Date(track.date.year, track.date.month - 1, track.date.day);
+    const time = new Date(track.date.isoString);
     if (today - time.getTime() < limitInMs) {
         return {
             uri: track.uri,
