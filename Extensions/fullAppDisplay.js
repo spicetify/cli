@@ -341,9 +341,10 @@ body.video-full-screen.video-full-screen--hide-ui {
 
         async getAlbumDate(uri) {
             const id = uri.replace("spotify:album:", "");
-            const albumInfo = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${id}/desktop`);
 
-            const albumDate = new Date(albumInfo.year, (albumInfo.month || 1) - 1, albumInfo.day || 0);
+            const albumInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/albums/${id}`);
+
+            const albumDate = new Date(albumInfo.release_date);
             const recentDate = new Date();
             recentDate.setMonth(recentDate.getMonth() - 6);
             return albumDate.toLocaleString("default", albumDate > recentDate ? { year: "numeric", month: "short" } : { year: "numeric" });
@@ -419,25 +420,38 @@ body.video-full-screen.video-full-screen--hide-ui {
             const { innerWidth: width, innerHeight: height } = window;
             this.back.width = width;
             this.back.height = height;
-            const dim = width > height ? width : height;
 
             const ctx = this.back.getContext("2d");
             ctx.imageSmoothingEnabled = false;
             ctx.filter = `blur(30px) brightness(0.6)`;
             const blur = 30;
 
+            const x = -blur * 2;
+
+            let y, dim;
+
+            if (width > height) {
+                dim = width;
+                y = x - (width - height) / 2;
+            } else {
+                dim = height;
+                y = x;
+            }
+
+            const size = dim + 4 * blur;
+
             if (!CONFIG.enableFade) {
                 ctx.globalAlpha = 1;
-                ctx.drawImage(nextImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
+                ctx.drawImage(nextImg, x, y, size, size);
                 return;
             }
 
             let factor = 0.0;
             const animate = () => {
                 ctx.globalAlpha = 1;
-                ctx.drawImage(prevImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
+                ctx.drawImage(prevImg, x, y, size, size);
                 ctx.globalAlpha = Math.sin((Math.PI / 2) * factor);
-                ctx.drawImage(nextImg, -blur * 2, -blur * 2 - (width - height) / 2, dim + 4 * blur, dim + 4 * blur);
+                ctx.drawImage(nextImg, x, y, size, size);
 
                 if (factor < 1.0) {
                     factor += 0.016;
