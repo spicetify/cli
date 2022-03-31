@@ -281,13 +281,25 @@ function metaFromTrack(artist, track) {
     return null;
 }
 
+var count = (function() {
+    var counter = {};
+    return function(v) {
+      return (counter[v] = (counter[v] || 0) + 1);
+    }
+}());
+
 async function fetchTracks() {
     let artistList = await getArtistList();
+    Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
     const requests = artistList.map(async (obj) => {
         const artist = obj.artistMetadata;
-
-        return await getArtistEverything(artist).catch(() => {});
+        return await getArtistEverything(artist).catch((err) => {
+            Spicetify.showNotification("Could not fetch all releases - error code: " + err.status);
+            if (err.status = 500) {
+                Spicetify.showNotification(`Missing releases from ${count('err')} artists`);
+            }
+        });
     });
 
     return await Promise.all(requests);
