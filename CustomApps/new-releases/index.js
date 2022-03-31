@@ -229,14 +229,24 @@ async function getArtistList() {
 
 async function getArtistEverything(artist) {
     const uid = artist.link;
-    const body = await CosmosAsync.get(`https://api-partner.spotify.com/pathfinder/v1/query?operationName=queryArtistDiscographyAll&variables=%7B%22uri%22%3A%22${uid}%22%2C%22offset%22%3A0%2C%22limit%22%3A5%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22e108cfbb0b850e577260638713504712091e98dd98ef768d7724c1c444de4cab%22%7D%7D`);
+    const body = await CosmosAsync.get(
+        `https://api-partner.spotify.com/pathfinder/v1/query?operationName=queryArtistDiscographyAll&variables=%7B%22uri%22%3A%22${uid}%22%2C%22offset%22%3A0%2C%22limit%22%3A5%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22e108cfbb0b850e577260638713504712091e98dd98ef768d7724c1c444de4cab%22%7D%7D`
+    );
     const releases = body?.data?.artist;
     const items = [];
     const types = [
         [CONFIG.album, releases?.discography?.all?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("album")],
-        [CONFIG["appears-on"], releases?.relatedContent?.appearsOn?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("artist.appears-on")],
+        [
+            CONFIG["appears-on"],
+            releases?.relatedContent?.appearsOn?.items.map((item) => item.releases.items[0]),
+            Spicetify.Locale.get("artist.appears-on"),
+        ],
         [CONFIG.compilations, releases?.discography?.compilations?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("compilation")],
-        [CONFIG["single-ep"], releases?.discography?.singles?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")],
+        [
+            CONFIG["single-ep"],
+            releases?.discography?.singles?.items.map((item) => item.releases.items[0]),
+            Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep"),
+        ],
     ];
     for (const type of types) {
         if (type[0] && type[1]) {
@@ -281,12 +291,12 @@ function metaFromTrack(artist, track) {
     return null;
 }
 
-var count = (function() {
+var count = (function () {
     var counter = {};
-    return function(v) {
-      return (counter[v] = (counter[v] || 0) + 1);
-    }
-}());
+    return function (v) {
+        return (counter[v] = (counter[v] || 0) + 1);
+    };
+})();
 
 async function fetchTracks() {
     let artistList = await getArtistList();
@@ -296,8 +306,8 @@ async function fetchTracks() {
         const artist = obj.artistMetadata;
         return await getArtistEverything(artist).catch((err) => {
             Spicetify.showNotification("Could not fetch all releases - error code: " + err.status);
-            if (err.status = 500) {
-                Spicetify.showNotification(`Missing releases from ${count('err')} artists`);
+            if ((err.status = 500)) {
+                Spicetify.showNotification(`Missing releases from ${count("err")} artists`);
             }
         });
     });
