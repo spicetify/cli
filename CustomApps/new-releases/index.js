@@ -245,7 +245,7 @@ async function getArtistEverything(artist) {
         [CONFIG.compilations, releases.filter((releases) => releases.type === "COMPILATION"), Spicetify.Locale.get("compilation")],
         [
             CONFIG["single-ep"],
-            releases.filter((releases) => releases.type === "SINGLE" || "EP"),
+            releases.filter((releases) => releases.type === ("SINGLE" || "EP")),
             Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep"),
         ],
     ];
