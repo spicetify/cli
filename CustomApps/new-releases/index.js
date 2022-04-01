@@ -224,6 +224,7 @@ async function getArtistList() {
     const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/artists/all?responseFormat=protobufJson", {
         policy: { list: { link: true, name: true } },
     });
+    count(true);
     return body.item;
 }
 
@@ -232,19 +233,19 @@ async function getArtistEverything(artist) {
     const body = await CosmosAsync.get(
         `https://api-partner.spotify.com/pathfinder/v1/query?operationName=queryArtistDiscographyAll&variables=%7B%22uri%22%3A%22${uid}%22%2C%22offset%22%3A0%2C%22limit%22%3A5%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22e108cfbb0b850e577260638713504712091e98dd98ef768d7724c1c444de4cab%22%7D%7D`
     );
-    const releases = body?.data?.artist;
+    const releases = body?.data?.artist.discography?.all?.items.map((item) => item.releases.items[0]);
     const items = [];
     const types = [
-        [CONFIG.album, releases?.discography?.all?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("album")],
+        [CONFIG.album, releases.filter((releases) => releases.type === "ALBUM"), Spicetify.Locale.get("album")],
         [
             CONFIG["appears-on"],
-            releases?.relatedContent?.appearsOn?.items.map((item) => item.releases.items[0]),
+            releases.filter((releases) => !releases.type === ("ALBUM" || "EP" || "COMPILATION" || "SINGLE")),
             Spicetify.Locale.get("artist.appears-on"),
         ],
-        [CONFIG.compilations, releases?.discography?.compilations?.items.map((item) => item.releases.items[0]), Spicetify.Locale.get("compilation")],
+        [CONFIG.compilations, releases.filter((releases) => releases.type === "COMPILATION"), Spicetify.Locale.get("compilation")],
         [
             CONFIG["single-ep"],
-            releases?.discography?.singles?.items.map((item) => item.releases.items[0]),
+            releases.filter((releases) => releases.type === "SINGLE" || "EP"),
             Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep"),
         ],
     ];
@@ -292,9 +293,9 @@ function metaFromTrack(artist, track) {
 }
 
 var count = (function () {
-    var counter = {};
-    return function (v) {
-        return (counter[v] = (counter[v] || 0) + 1);
+    var counter = 0;
+    return function (reset = false) {
+        return reset ? (counter = 0) : counter++;
     };
 })();
 
@@ -307,7 +308,7 @@ async function fetchTracks() {
         return await getArtistEverything(artist).catch((err) => {
             Spicetify.showNotification("Could not fetch all releases - error code: " + err.status);
             if ((err.status = 500)) {
-                Spicetify.showNotification(`Missing releases from ${count("err")} artists`);
+                Spicetify.showNotification(`Missing releases from ${count()} artists`);
             }
         });
     });
