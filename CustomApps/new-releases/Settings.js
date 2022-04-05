@@ -189,6 +189,13 @@ function openConfig() {
                     when: () => true,
                 },
                 {
+                    desc: "Track limit",
+                    key: "limit",
+                    defaultValue: CONFIG.limit,
+                    type: ConfigInput,
+                    when: () => true,
+                },
+                {
                     desc: "Date locale",
                     key: "locale",
                     defaultValue: CONFIG.locale,
