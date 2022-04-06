@@ -38,6 +38,7 @@ const CONFIG = {
     range: localStorage.getItem("new-releases:range") || "30",
     locale: localStorage.getItem("new-releases:locale") || navigator.language,
     relative: getConfig("new-releases:relative", false),
+    limit: localStorage.getItem("new-releases:limit") || 5,
 };
 
 let gridList = [];
@@ -224,19 +225,34 @@ async function getArtistList() {
     const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/artists/all?responseFormat=protobufJson", {
         policy: { list: { link: true, name: true } },
     });
+    count(true);
     return body.item;
 }
 
 async function getArtistEverything(artist) {
-    const uid = artist.link.replace("spotify:artist:", "");
-    const body = await CosmosAsync.get(`hm://artist/v3/${uid}/desktop/entity?format=json`);
-    const releases = body?.releases;
+    const uid = artist.link;
+    const offset = 0;
+    const limit = CONFIG.limit;
+    const body = await CosmosAsync.get(
+        `https://api-partner.spotify.com/pathfinder/v1/query?operationName=queryArtistDiscographyAll&variables=${encodeURIComponent(
+            `{\"uri\":\"${uid}\",\"offset\":${offset},\"limit\":${limit}}`
+        )}&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22e108cfbb0b850e577260638713504712091e98dd98ef768d7724c1c444de4cab%22%7D%7D`
+    );
+    const releases = body?.data?.artist.discography?.all?.items.map((item) => item.releases.items[0]);
     const items = [];
     const types = [
-        [CONFIG.album, releases?.albums?.releases, Spicetify.Locale.get("album")],
-        [CONFIG["appears-on"], releases?.appears_on?.releases, Spicetify.Locale.get("artist.appears-on")],
-        [CONFIG.compilations, releases?.compilations?.releases, Spicetify.Locale.get("compilation")],
-        [CONFIG["single-ep"], releases?.singles?.releases, Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")],
+        [CONFIG.album, releases.filter((releases) => releases.type === "ALBUM"), Spicetify.Locale.get("album")],
+        [
+            CONFIG["appears-on"],
+            releases.filter((releases) => releases.type !== ("ALBUM" || "EP" || "COMPILATION" || "SINGLE")),
+            Spicetify.Locale.get("artist.appears-on"),
+        ],
+        [CONFIG.compilations, releases.filter((releases) => releases.type === "COMPILATION"), Spicetify.Locale.get("compilation")],
+        [
+            CONFIG["single-ep"],
+            releases.filter((releases) => releases.type === ("SINGLE" || "EP")),
+            Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep"),
+        ],
     ];
     for (const type of types) {
         if (type[0] && type[1]) {
@@ -264,7 +280,7 @@ async function getPodcastRelease(uri) {
 }
 
 function metaFromTrack(artist, track) {
-    const time = new Date(track.year, track.month - 1, track.day);
+    const time = new Date(track.date.isoString);
     if (today - time.getTime() < limitInMs) {
         return {
             uri: track.uri,
@@ -273,21 +289,33 @@ function metaFromTrack(artist, track) {
                 name: artist.name,
                 uri: artist.link,
             },
-            imageURL: track.cover.uri,
+            imageURL: track.coverArt.sources[2].url,
             time,
-            trackCount: track.track_count,
+            trackCount: track.tracks.totalCount,
         };
     }
     return null;
 }
 
+var count = (function () {
+    var counter = 0;
+    return function (reset = false) {
+        return reset ? (counter = 0) : counter++;
+    };
+})();
+
 async function fetchTracks() {
     let artistList = await getArtistList();
+    Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
     const requests = artistList.map(async (obj) => {
         const artist = obj.artistMetadata;
-
-        return await getArtistEverything(artist);
+        return await getArtistEverything(artist).catch((err) => {
+            console.debug("Could not fetch all releases - error code: " + err.status);
+            if ((err.status = 500)) {
+                console.debug(`Missing releases from ${count()} artists`);
+            }
+        });
     });
 
     return await Promise.all(requests);
