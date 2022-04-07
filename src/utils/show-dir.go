@@ -13,7 +13,7 @@ func ShowDirectory(dir string) error {
 
 	if runtime.GOOS == "windows" {
 		_, err = exec.Command("explorer", dir).Output()
-		if(err != nil && err.Error() == "exit status 1") {
+		if err != nil && err.Error() == "exit status 1" {
 			err = nil
 		}
 	} else if runtime.GOOS == "linux" {
