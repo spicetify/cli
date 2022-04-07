@@ -20,7 +20,9 @@ jobs:
         run: go build .
 
       - name: Format
-        run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
+        run: |
+          gofmt -s -l .
+          if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
   release:
     name: Release
