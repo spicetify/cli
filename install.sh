@@ -18,11 +18,11 @@ command -v tar >/dev/null || { echo "tar isn't installed\!" >&2; exit 1; }
 command -v grep >/dev/null || { echo "grep isn't installed\!" >&2; exit 1; }
 
 # download uri
-shortcut=https://github.com/spicetify/spicetify-cli/releases
+releases_uri=https://github.com/spicetify/spicetify-cli/releases
 if [ $# -gt 0 ]; then
 	tag=$1
 else
-	tag=$(curl -LsH 'Accept: application/json' $shortcut/latest)
+	tag=$(curl -LsH 'Accept: application/json' $releases_uri/latest)
 	tag=${tag%\,\"update_url*}
 	tag=${tag##*tag_name\":\"}
 	tag=${tag%\"}
@@ -32,7 +32,7 @@ tag=${tag#v}
 
 echo "FETCHING Version $tag"
 
-download_uri=$shortcut/download/v$tag/spicetify-$tag-$target.tar.gz
+download_uri=$releases_uri/download/v$tag/spicetify-$tag-$target.tar.gz
 
 # locations
 spicetify_install="$HOME/.spicetify"
