@@ -21,16 +21,16 @@ command -v grep >/dev/null || { echo "grep isn't installed\!" >&2; exit 1; }
 shortcut=https://github.com/spicetify/spicetify-cli/releases
 if [ $# -gt 0 ]; then
 	tag=$1
-	echo "FETCHING Version $1"
 else
 	tag=$(curl -LsH 'Accept: application/json' $shortcut/latest)
 	tag=${tag%\,\"update_url*}
 	tag=${tag##*tag_name\":\"}
 	tag=${tag%\"}
-	echo "FETCHING Latest Version $1"
 fi
 
 tag=${tag#v}
+
+echo "FETCHING Version $tag"
 
 download_uri=$shortcut/download/v$tag/spicetify-$tag-$target.tar.gz
 
