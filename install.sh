@@ -30,7 +30,9 @@ else
 	echo "FETCHING Latest Version $1"
 fi
 
-download_uri=$shortcut/download/$tag/spicetify-${tag#v}-$target.tar.gz
+tag=${tag#v}
+
+download_uri=$shortcut/download/v$tag/spicetify-$tag-$target.tar.gz
 
 # locations
 spicetify_install="$HOME/.spicetify"
@@ -84,5 +86,5 @@ case $SHELL in
 esac
 
 echo
-echo "spicetify $tag was installed successfully to $spicetify_install"
+echo "spicetify v$tag was installed successfully to $spicetify_install"
 echo "Run 'spicetify --help' to get started"
