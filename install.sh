@@ -19,18 +19,18 @@ command -v grep >/dev/null || { echo "grep isn't installed\!" >&2; exit 1; }
 
 # download uri
 shortcut=https://github.com/spicetify/spicetify-cli/releases
-tag=$(curl -LsH 'Accept: application/json' $shortcut/latest)
-tag=${tag%\,\"update_url*}
-tag=${tag##*tag_name\":\"}
-tag=${tag%\"}
-
 if [ $# -gt 0 ]; then
-	download_uri=$shortcut/download/v$1/spicetify-$1-$target.tar.gz
+	tag=$1
 	echo "FETCHING Version $1"
 else
-	download_uri=$shortcut/download/$tag/spicetify-${tag#v}-$target.tar.gz
-	echo "FETCHING Latest Version"
+	tag=$(curl -LsH 'Accept: application/json' $shortcut/latest)
+	tag=${tag%\,\"update_url*}
+	tag=${tag##*tag_name\":\"}
+	tag=${tag%\"}
+	echo "FETCHING Latest Version $1"
 fi
+
+download_uri=$shortcut/download/$tag/spicetify-${tag#v}-$target.tar.gz
 
 # locations
 spicetify_install="$HOME/.spicetify"
