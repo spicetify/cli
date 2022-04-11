@@ -66,7 +66,7 @@ check() {
 	if [ -f $shellrc ]; then
 		if ! grep -q $spicetify_install $shellrc; then
 			echo "APPENDING $spicetify_install to PATH in $shellrc"
-		  	echo ${2:-$path} >> $shellrc
+			echo ${2:-$path} >> $shellrc
 			echo "Restart your shell to have spicetify in your PATH."
 		else
 			echo "spicetify path already set in $shellrc, continuing..."
@@ -78,7 +78,13 @@ check() {
 
 case $SHELL in
 	*zsh) check ".zshrc" ;;
-	*bash) check ".bashrc" ;;
+	*bash) 
+		if [ -f "$HOME/.bashrc" ];
+		then
+			check ".bashrc"
+		else
+			check ".bash_profile"
+		fi;;
 	*fish) check ".config/fish/config.fish" "fish_add_path $spicetify_install" ;;
 	*) notfound ;;
 esac
