@@ -81,12 +81,9 @@ check() {
 case $SHELL in
 	*zsh) check ".zshrc" ;;
 	*bash) 
-		if [ -f "$HOME/.bashrc" ];
-		then
-			check ".bashrc"
-		else
-			check ".bash_profile"
-		fi;;
+		[ -f "$HOME/.bashrc" ] && check $HOME/.bashrc
+		[ -f "$HOME/.bash_profile" ] && check $HOME/.bash_profile
+	;;
 	*fish) check ".config/fish/config.fish" "fish_add_path $spicetify_install" ;;
 	*) notfound ;;
 esac
