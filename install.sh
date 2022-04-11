@@ -23,7 +23,14 @@ tag=$(curl -LsH 'Accept: application/json' $shortcut/latest)
 tag=${tag%\,\"update_url*}
 tag=${tag##*tag_name\":\"}
 tag=${tag%\"}
-download_uri=$shortcut/download/$tag/spicetify-${tag#v}-$target.tar.gz
+
+if [ $# -gt 0 ]; then
+	download_uri=$shortcut/download/v$1/spicetify-$1-$target.tar.gz
+	echo "FETCHING Version $1"
+else
+	download_uri=$shortcut/download/$tag/spicetify-${tag#v}-$target.tar.gz
+	echo "FETCHING Latest Version"
+fi
 
 # locations
 spicetify_install="$HOME/.spicetify"
