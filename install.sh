@@ -18,19 +18,21 @@ command -v tar >/dev/null || { echo "tar isn't installed\!" >&2; exit 1; }
 command -v grep >/dev/null || { echo "grep isn't installed\!" >&2; exit 1; }
 
 # download uri
-shortcut=https://github.com/spicetify/spicetify-cli/releases
-tag=$(curl -LsH 'Accept: application/json' $shortcut/latest)
-tag=${tag%\,\"update_url*}
-tag=${tag##*tag_name\":\"}
-tag=${tag%\"}
-
+releases_uri=https://github.com/spicetify/spicetify-cli/releases
 if [ $# -gt 0 ]; then
-	download_uri=$shortcut/download/v$1/spicetify-$1-$target.tar.gz
-	echo "FETCHING Version $1"
+	tag=$1
 else
-	download_uri=$shortcut/download/$tag/spicetify-${tag#v}-$target.tar.gz
-	echo "FETCHING Latest Version"
+	tag=$(curl -LsH 'Accept: application/json' $releases_uri/latest)
+	tag=${tag%\,\"update_url*}
+	tag=${tag##*tag_name\":\"}
+	tag=${tag%\"}
 fi
+
+tag=${tag#v}
+
+echo "FETCHING Version $tag"
+
+download_uri=$releases_uri/download/v$tag/spicetify-$tag-$target.tar.gz
 
 # locations
 spicetify_install="$HOME/.spicetify"
@@ -90,5 +92,5 @@ case $SHELL in
 esac
 
 echo
-echo "spicetify $tag was installed successfully to $spicetify_install"
+echo "spicetify v$tag was installed successfully to $spicetify_install"
 echo "Run 'spicetify --help' to get started"
