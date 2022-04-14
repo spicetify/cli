@@ -18,12 +18,21 @@ command -v tar >/dev/null || { echo "tar isn't installed\!" >&2; exit 1; }
 command -v grep >/dev/null || { echo "grep isn't installed\!" >&2; exit 1; }
 
 # download uri
-shortcut=https://github.com/spicetify/spicetify-cli/releases
-tag=$(curl -LsH 'Accept: application/json' $shortcut/latest)
-tag=${tag%\,\"update_url*}
-tag=${tag##*tag_name\":\"}
-tag=${tag%\"}
-download_uri=$shortcut/download/$tag/spicetify-${tag#v}-$target.tar.gz
+releases_uri=https://github.com/spicetify/spicetify-cli/releases
+if [ $# -gt 0 ]; then
+	tag=$1
+else
+	tag=$(curl -LsH 'Accept: application/json' $releases_uri/latest)
+	tag=${tag%\,\"update_url*}
+	tag=${tag##*tag_name\":\"}
+	tag=${tag%\"}
+fi
+
+tag=${tag#v}
+
+echo "FETCHING Version $tag"
+
+download_uri=$releases_uri/download/v$tag/spicetify-$tag-$target.tar.gz
 
 # locations
 spicetify_install="$HOME/.spicetify"
@@ -59,7 +68,7 @@ check() {
 	if [ -f $shellrc ]; then
 		if ! grep -q $spicetify_install $shellrc; then
 			echo "APPENDING $spicetify_install to PATH in $shellrc"
-		  	echo ${2:-$path} >> $shellrc
+			echo ${2:-$path} >> $shellrc
 			echo "Restart your shell to have spicetify in your PATH."
 		else
 			echo "spicetify path already set in $shellrc, continuing..."
@@ -71,11 +80,14 @@ check() {
 
 case $SHELL in
 	*zsh) check ".zshrc" ;;
-	*bash) check ".bashrc" ;;
+	*bash) 
+		[ -f "$HOME/.bashrc" ] && check ".bashrc"
+		[ -f "$HOME/.bash_profile" ] && check ".bash_profile"
+	;;
 	*fish) check ".config/fish/config.fish" "fish_add_path $spicetify_install" ;;
 	*) notfound ;;
 esac
 
 echo
-echo "spicetify $tag was installed successfully to $spicetify_install"
+echo "spicetify v$tag was installed successfully to $spicetify_install"
 echo "Run 'spicetify --help' to get started"
