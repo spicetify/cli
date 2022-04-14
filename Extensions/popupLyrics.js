@@ -1,4 +1,4 @@
-// @ts-check
+// @ts-nocheck
 
 // NAME: Popup Lyrics
 // AUTHOR: khanhas
@@ -81,7 +81,7 @@ function PopupLyrics() {
 
     class LyricProviders {
         static async fetchSpotify(info) {
-            const baseURL = "hm://lyrics/v1/track/";
+            const baseURL = "wg://lyrics/v1/track/";
             const id = info.uri.split(":")[2];
             const body = await CosmosAsync.get(baseURL + id);
 
