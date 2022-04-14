@@ -133,7 +133,7 @@ func getDefaultConfig() *ini.File {
 	}
 
 	if len(prefsFilePath) == 0 {
-		PrintError(`Could not detect "prefs" file location.`)
+		PrintError("Could not detect \"prefs\" file location.")
 	} else {
 		configLayout["Setting"]["prefs_path"] = prefsFilePath
 	}
@@ -187,9 +187,9 @@ func FindPrefFilePath() string {
 	switch runtime.GOOS {
 	case "windows":
 		path := winPrefs()
-		if len(path) == 0 && len(winXApp()) != 0{
+		if len(path) == 0 && len(winXApp()) != 0 {
 			path = winXPrefs()
-		}else if(len(path) == 0){
+		} else if(len(path) == 0) {
 			PrintError("No valid path options found, ensure you have Spotify installed and have ran it for at least 30 seconds.")
 		}
 		return path
