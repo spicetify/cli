@@ -189,7 +189,7 @@ func FindPrefFilePath() string {
 		path := winPrefs()
 		if len(path) == 0 && len(winXApp()) != 0 {
 			path = winXPrefs()
-		} else if(len(path) == 0) {
+		} else if len(path) == 0 {
 			PrintError("No valid path options found, ensure you have Spotify installed and have ran it for at least 30 seconds.")
 		}
 		return path
