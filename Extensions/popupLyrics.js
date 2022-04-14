@@ -87,7 +87,7 @@ function PopupLyrics() {
 
             const lines = body.lines;
             if (!lines || !lines.length || typeof lines[0].time !== "number") {
-                return { error: "No lyric" };
+                return { error: "No lyrics" };
             }
 
             const lyrics = lines.map((a) => ({
@@ -154,7 +154,7 @@ function PopupLyrics() {
                     }));
                     return { lyrics };
                 } else {
-                    return { error: "No lyric" };
+                    return { error: "No lyrics" };
                 }
             } catch (err) {
                 return { error: err.message };
@@ -185,7 +185,7 @@ function PopupLyrics() {
             let lyricStr = meta.lrc;
 
             if (!lyricStr || !lyricStr.lyric) {
-                return { error: "No lyric" };
+                return { error: "No lyrics" };
             }
             lyricStr = lyricStr.lyric;
 
@@ -401,7 +401,7 @@ function PopupLyrics() {
             }
         }
         if (error || !sharedData.lyrics) {
-            sharedData = { error: "No lyric" };
+            sharedData = { error: "No lyrics" };
         }
     }
 
@@ -719,7 +719,7 @@ function PopupLyrics() {
                 drawText(lyricCtx, error, "red");
             }
         } else if (!lyrics) {
-            drawText(lyricCtx, "No lyric");
+            drawText(lyricCtx, "No lyrics");
         } else if (audio.duration && lyrics.length) {
             renderLyrics(lyricCtx, lyrics, audio.currentTime);
         } else if (!audio.duration || lyrics.length === 0) {

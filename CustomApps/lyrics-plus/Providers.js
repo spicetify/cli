@@ -20,7 +20,7 @@ const Providers = {
 
         const lines = body.lines;
         if (!lines || !lines.length) {
-            return { error: "No lyric", uri: info.uri };
+            return { error: "No lyrics", uri: info.uri };
         }
 
         if (typeof lines[0].time === "number") {
@@ -58,7 +58,7 @@ const Providers = {
                 throw "";
             }
         } catch {
-            result.error = "No lyric";
+            result.error = "No lyrics";
             return result;
         }
 
@@ -90,7 +90,7 @@ const Providers = {
         try {
             list = await ProviderNetease.findLyrics(info);
         } catch {
-            result.error = "No lyric";
+            result.error = "No lyrics";
             return result;
         }
 
