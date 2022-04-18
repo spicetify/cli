@@ -9,7 +9,7 @@ const Providers = {
             copyright: null,
         };
 
-        const baseURL = "hm://lyrics/v1/track/";
+        const baseURL = "wg://lyrics/v1/track/";
         const id = info.uri.split(":")[2];
         let body;
         try {
@@ -20,7 +20,7 @@ const Providers = {
 
         const lines = body.lines;
         if (!lines || !lines.length) {
-            return { error: "No lyric", uri: info.uri };
+            return { error: "No lyrics", uri: info.uri };
         }
 
         if (typeof lines[0].time === "number") {
@@ -58,7 +58,7 @@ const Providers = {
                 throw "";
             }
         } catch {
-            result.error = "No lyric";
+            result.error = "No lyrics";
             return result;
         }
 
@@ -90,7 +90,7 @@ const Providers = {
         try {
             list = await ProviderNetease.findLyrics(info);
         } catch {
-            result.error = "No lyric";
+            result.error = "No lyrics";
             return result;
         }
 
