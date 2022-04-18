@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 // NAME: Popup Lyrics
 // AUTHOR: khanhas
