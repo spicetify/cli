@@ -1,4 +1,3 @@
-
 // NAME: Popup Lyrics
 // AUTHOR: khanhas
 //         Netease API parser and UI from https://github.com/mantou132/Spotify-Lyrics
