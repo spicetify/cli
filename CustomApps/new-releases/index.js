@@ -85,9 +85,12 @@ class Grid extends react.Component {
                 react.createElement(
                     "div",
                     {
-                        className: "main-gridContainer-gridContainer",
+                        className: "main-gridContainer-gridContainer main-gridContainer-fixedWidth",
                         style: {
                             "--minimumColumnWidth": "180px",
+                            "--column-width": "minmax(var(--minimumColumnWidth),1fr)",
+                            "--column-count": "auto-fill",
+                            "--grid-gap": "24px",
                         },
                     },
                     separatedByDate[date].map((card) => react.createElement(Card, card.props))
@@ -154,9 +157,12 @@ class Grid extends react.Component {
                 react.createElement(
                     "div",
                     {
-                        className: "main-gridContainer-gridContainer",
+                        className: "main-gridContainer-gridContainer main-gridContainer-fixedWidth",
                         style: {
                             "--minimumColumnWidth": "180px",
+                            "--column-width": "minmax(var(--minimumColumnWidth),1fr)",
+                            "--column-count": "auto-fill",
+                            "--grid-gap": "24px",
                         },
                     },
                     separatedByDate[date]
