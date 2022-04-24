@@ -21,12 +21,18 @@ func SetDevTools() {
 		{
 			homePath := os.Getenv("HOME")
 			snapSpotifyHome := homePath + "/snap/spotify/common"
-			if _, err := os.Stat(snapSpotifyHome); os.IsNotExist(err) {
-				filePath = homePath + "/.config/spotify/offline.bnk"
+			if _, err := os.Stat(snapSpotifyHome); os.IsExist(err) {
+				homePath = snapSpotifyHome
 			}
+
+			filePath = homePath + "/.config/spotify/offline.bnk"
 		}
 	case "darwin":
 		filePath = os.Getenv("HOME") + "/Library/Application Support/Spotify/PersistentCache/offline.bnk"
+	}
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		log.Fatal("Can't find the offline.bnk file!")
 	}
 
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0644)
