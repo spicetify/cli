@@ -236,12 +236,8 @@ func main() {
 			cmd.Restore()
 			restartSpotify()
 
-		case "enable-devtool":
-			cmd.SetDevTool(true)
-			restartSpotify()
-
-		case "disable-devtool":
-			cmd.SetDevTool(false)
+		case "enable-devtools":
+			cmd.SetDevTools()
 			restartSpotify()
 
 		case "restart":
@@ -291,10 +287,10 @@ disable-devtool     Disable Spotify's developer tools.
 
 watch               Enter watch mode.
                     On default, update CSS on color.ini or user.css's changes.
-                    To update on change, use with any combination of the following flags: 
-						  "-e" (for extensions), 
-						  "-a" (for custom apps), 
-						  "-s" (for the active theme, color.ini and user.css) 
+                    To update on change, use with any combination of the following flags:
+						  "-e" (for extensions),
+						  "-a" (for custom apps),
+						  "-s" (for the active theme, color.ini and user.css)
 						  "-l" (for extensions, custom apps, and active theme)
 
 
@@ -322,14 +318,14 @@ path                Print path of color, css, extension file or
 
 config              1. Print all config fields and values:
                     spicetify config
-                    
+
                     2. Print one config field's value:
                     spicetify config <field>
 
                     Example usage:
                     spicetify config color_scheme
                     spicetify config custom_apps
-                    
+
                     3. Change value of one or multiple config fields.
                     spicetify config <field> <value> [<field> <value> ...]
 
@@ -347,10 +343,10 @@ config              1. Print all config fields and values:
                     - Disable "inject_css" and enable "song_page"
                     spicetify config inject_css 0 song_page 1
 
-color               1. Print all color fields and values. 
+color               1. Print all color fields and values.
                     spicetify color
 
-                    Color boxes require 24-bit color (True color) supported 
+                    Color boxes require 24-bit color (True color) supported
                     terminal to show colors correctly.
 
                     2. Change theme's one or multiple color values.
