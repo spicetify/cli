@@ -22,7 +22,7 @@ func SetDevTools() {
 			homePath := os.Getenv("HOME")
 			snapSpotifyHome := homePath + "/snap/spotify/common"
 			if _, err := os.Stat(snapSpotifyHome); os.IsNotExist(err) {
-				filePath = os.Getenv("HOME") + "/.config/spotify/offline.bnk"
+				filePath = homePath + "/.config/spotify/offline.bnk"
 			}
 		}
 	case "darwin":
