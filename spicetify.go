@@ -280,10 +280,8 @@ restore             Restore Spotify to original state.
 
 clear               Clear current backup files.
 
-enable-devtool      Enable Spotify's developer tools.
+enable-devtools     Enable Spotify's developer tools.
                     Hit Ctrl + Shift + I in the client to start using.
-
-disable-devtool     Disable Spotify's developer tools.
 
 watch               Enter watch mode.
                     On default, update CSS on color.ini or user.css's changes.
