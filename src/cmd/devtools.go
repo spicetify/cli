@@ -25,7 +25,7 @@ func SetDevTools() {
 				homePath = snapSpotifyHome
 			}
 
-			filePath = homePath + "/.config/spotify/offline.bnk"
+			filePath = homePath + "/.cache/spotify/offline.bnk"
 		}
 	case "darwin":
 		filePath = os.Getenv("HOME") + "/Library/Application Support/Spotify/PersistentCache/offline.bnk"
