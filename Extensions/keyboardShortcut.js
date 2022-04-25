@@ -109,7 +109,7 @@
     }
 
     function clickQueueButton() {
-        document.querySelector('.main-nowPlayingBar-right .control-button-wrapper > button').click();
+        document.querySelector(".main-nowPlayingBar-right .control-button-wrapper > button").click();
     }
 
     function clickNavigatingBackButton() {
