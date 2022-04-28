@@ -38,7 +38,7 @@ func RestartSpotify(flags ...string) {
 			exec.Command(filepath.Join(spotifyPath, "spotify"), flags...).Start()
 		}
 	case "darwin":
-        isRunning := exec.Command("sh", "-c", "ps aux | grep 'Spotify' | grep -v grep")
+		isRunning := exec.Command("sh", "-c", "ps aux | grep 'Spotify' | grep -v grep")
 		_, err := isRunning.CombinedOutput()
 		if err == nil {
 			exec.Command("pkill", "Spotify").Run()
