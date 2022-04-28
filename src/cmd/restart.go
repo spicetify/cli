@@ -38,8 +38,8 @@ func RestartSpotify(flags ...string) {
 			exec.Command(filepath.Join(spotifyPath, "spotify"), flags...).Start()
 		}
 	case "darwin":
-		isRunning := exec.Command("pgrep", "Spotify")
-		_, err := isRunning.Output()
+        isRunning := exec.Command("sh", "-c", "ps aux | grep 'Spotify' | grep -v grep")
+		_, err := isRunning.CombinedOutput()
 		if err == nil {
 			exec.Command("pkill", "Spotify").Run()
 			flags = append([]string{"-a", "/Applications/Spotify.app"}, flags...)
