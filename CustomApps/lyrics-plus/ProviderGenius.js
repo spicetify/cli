@@ -93,13 +93,15 @@ const ProviderGenius = (function () {
             return lyrics;
         }
 
-        lyricsSections = body.match(/<div ([\w-]+=[\w"]+ )+class="Lyrics__Container.+?>.+?<\/div>/gs);
+        lyricsSections = body.match(/<div ([\w-]+=[\w"]+ )+class="Lyrics__Container.+?>.+?(<\/div><\/div>.+?)?<\/div>/gs);
         if (lyricsSections) {
             lyrics = "";
             for (const section of lyricsSections) {
-                const fragment = section.match(/<div ([\w-]+=[\w"]+ )+class="Lyrics__Container.+?>(.+?)<\/div>/s);
+                const fragment = section.match(/<div ([\w-]+=[\w"]+ )+class="Lyrics__Container.+?>(.+?)(<\/div><\/div>(.+?))?<\/div>/s);
                 if (fragment) {
-                    lyrics += fragment[2];
+                    for (let i = 2; i < fragment.length; i++) {
+                        lyrics += fragment[i];
+                    }
                 }
             }
             return lyrics;
