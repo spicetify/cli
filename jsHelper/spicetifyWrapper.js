@@ -221,11 +221,11 @@ Spicetify.getAudioData = async (uri) => {
         throw "URI is invalid.";
     }
 
-    return await Spicetify.CosmosAsync.get(`hm://audio-attributes/v1/audio-analysis/${uriObj.getBase62Id()}`)
+    return await Spicetify.CosmosAsync.get(`wg://audio-attributes/v1/audio-analysis/${uriObj.getBase62Id()}`)
 }
 
 Spicetify.colorExtractor = async (uri) => {
-    const body = await Spicetify.CosmosAsync.get(`hm://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
+    const body = await Spicetify.CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
 
     if (body.entries && body.entries.length) {
         const list = {};
