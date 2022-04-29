@@ -323,7 +323,7 @@ async function fetchPlaylist(post) {
 async function fetchAlbum(post) {
     const arg = post.uri.split(":")[2];
     try {
-        const metadata = await Spicetify.CosmosAsync.get(`hm://album/v1/album-app/album/${arg}/desktop`);
+        const metadata = await Spicetify.CosmosAsync.get(`wg://album/v1/album-app/album/${arg}/desktop`);
         return {
             type: typesLocale.album,
             uri: post.uri,

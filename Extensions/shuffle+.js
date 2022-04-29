@@ -110,9 +110,9 @@
                 return await fetchCollection();
             case Spicetify.URI.Type.ARTIST:
                 if (playDiscography) {
-                    return await fetchDiscography(uri);
+                    return await fetchDiscography(uriObj.getBase62Id());
                 }
-                return await fetchArtist(uri);
+                return await fetchArtist(uriObj.getBase62Id());
             case Spicetify.URI.Type.TRACK:
             case Spicetify.URI.Type.EPISODE:
                 return [uri];
@@ -205,8 +205,13 @@
      */
     const fetchAlbum = async (uri) => {
         const arg = uri.split(":")[2];
-        const res = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/albums/${arg}`);
-        return res.tracks.items.map((item) => item.uri);
+        const res = await Spicetify.CosmosAsync.get(`wg://album/v1/album-app/album/${arg}/desktop`);
+        const items = [];
+        for (const disc of res.discs) {
+            const availables = disc.tracks.filter((track) => track.playable);
+            items.push(...availables.map((track) => track.uri));
+        }
+        return items;
     };
 
     /**
@@ -222,30 +227,26 @@
 
     /**
      *
-     * @param {string} uri
+     * @param {string} uriBase62
      * @returns {Promise<string[]>}
      */
-    const fetchArtist = async (uri) => {
-        const res = await Spicetify.CosmosAsync.get(
-            `https://api-partner.spotify.com/pathfinder/v1/query?operationName=queryArtistOverview&variables=%7B%22uri%22%3A%22${uri}%22%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22433e28d1e949372d3ca3aa6c47975cff428b5dc37b12f5325d9213accadf770a%22%7D%7D`
-        );
-        return res.data.artist.discography.topTracks.items.map((item) => item.track.uri);
+    const fetchArtist = async (uriBase62) => {
+        const res = await Spicetify.CosmosAsync.get(`wg://artist/v1/${uriBase62}/desktop?format=json`);
+        return res.top_tracks.tracks.map((item) => item.uri);
     };
 
     /**
      *
-     * @param {string} uri
+     * @param {string} uriBase62
      * @returns {Promise<string[]>}
      */
-    const fetchDiscography = async (uri) => {
+    const fetchDiscography = async (uriBase62) => {
         Spicetify.showNotification(`Fetching albums list...`);
-        const res = await Spicetify.CosmosAsync.get(
-            `https://api-partner.spotify.com/pathfinder/v1/query?operationName=queryArtistOverview&variables=%7B%22uri%22%3A%22${uri}%22%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22433e28d1e949372d3ca3aa6c47975cff428b5dc37b12f5325d9213accadf770a%22%7D%7D`
-        );
-        let albums = res.data.artist.discography.albums.items.map((items) => items.releases.items[0].uri);
+        let res = await Spicetify.CosmosAsync.get(`wg://artist/v1/${uriBase62}/desktop?format=json`);
+        let albums = res.releases.albums.releases;
         const tracks = [];
         for (const album of albums) {
-            tracks.push(...(await fetchAlbum(album)));
+            tracks.push(...(await fetchAlbum(album.uri)));
         }
         return tracks;
     };

@@ -450,7 +450,7 @@
 
     const fetchAlbum = async (uri) => {
         const base62 = uri.split(":")[2];
-        const res = await CosmosAsync.get(`hm://album/v1/album-app/album/${base62}/desktop`);
+        const res = await CosmosAsync.get(`wg://album/v1/album-app/album/${base62}/desktop`);
         return {
             uri,
             title: res.name,
@@ -474,7 +474,7 @@
 
     const fetchArtist = async (uri) => {
         const base62 = uri.split(":")[2];
-        const res = await CosmosAsync.get(`hm://artist/v1/${base62}/desktop?format=json`);
+        const res = await CosmosAsync.get(`wg://artist/v1/${base62}/desktop?format=json`);
         return {
             uri,
             title: res.info.name,
