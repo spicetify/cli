@@ -75,16 +75,16 @@ const ProviderGenius = (function () {
         if (!body) {
             return null;
         }
-		
-		let lyrics = "";
-		const parser = new DOMParser();
-		const htmlDoc = parser.parseFromString(body, "text/html");
-		const lyricsDiv = htmlDoc.querySelectorAll('div[data-lyrics-container="true"]');
-		
-		lyricsDiv.forEach(function (i, index){
-			console.log(i);
-			lyrics += i.innerHTML + "<br>";
-		});
+
+        let lyrics = "";
+        const parser = new DOMParser();
+        const htmlDoc = parser.parseFromString(body, "text/html");
+        const lyricsDiv = htmlDoc.querySelectorAll('div[data-lyrics-container="true"]');
+
+        lyricsDiv.forEach(function (i, index) {
+            console.log(i);
+            lyrics += i.innerHTML + "<br>";
+        });
 
         if (!lyrics?.length) {
             console.warn("forceError");
