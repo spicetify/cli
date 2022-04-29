@@ -100,7 +100,9 @@ const ProviderGenius = (function () {
                 const fragment = section.match(/<div ([\w-]+=[\w"]+ )+class="Lyrics__Container.+?>(.+?)(<\/div><\/div>(.+?))?<\/div>/s);
                 if (fragment) {
                     for (let i = 2; i < fragment.length; i++) {
-                        lyrics += fragment[i];
+                        if (fragment[i]) {
+                            lyrics += fragment[i];
+                        }
                     }
                 }
             }
