@@ -78,19 +78,19 @@ const ProviderGenius = (function () {
 		
 		let lyrics = "";
 		const parser = new DOMParser();
-		const htmlDoc = parser.parseFromString(body, 'text/html');
+		const htmlDoc = parser.parseFromString(body, "text/html");
 		const lyricsDiv = htmlDoc.querySelectorAll('div[data-lyrics-container="true"]');
 		
 		lyricsDiv.forEach(function (i, index){
 			console.log(i);
 			lyrics += i.innerHTML + "<br>";
-		})
+		});
 
         if (!lyrics?.length) {
             console.warn("forceError");
             return null;
         }
-		
+
         return lyrics;
     }
 
