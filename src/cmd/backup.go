@@ -48,7 +48,7 @@ func Backup(spicetifyVersion string) {
 	if totalApp > 0 {
 		utils.PrintGreen("OK")
 	} else {
-		utils.PrintError("Cannot backup app files. Reinstall Spotify and try again.")
+		utils.PrintError("Cannot backup app files. Does Spicetify have permissions to access Spotify files?")
 		os.Exit(1)
 	}
 
