@@ -45,9 +45,13 @@ func SetDevTools() {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(file)
 	content := buf.String()
-	location := strings.LastIndex(content, "app-developer")
-	patchLocation := int64(location + 15)
+	firstLocation := strings.Index(content, "app-developer")
+	firstPatchLocation := int64(firstLocation + 14)
 
-	file.WriteAt([]byte{50}, patchLocation)
+	secondLocation := strings.LastIndex(content, "app-developer")
+	secondPatchLocation := int64(secondLocation + 15)
+
+	file.WriteAt([]byte{50}, firstPatchLocation)
+	file.WriteAt([]byte{50}, secondPatchLocation)
 	utils.PrintSuccess("Enabled DevTools!")
 }
