@@ -203,7 +203,7 @@ func isValidForWatching() bool {
 
 func startDebugger() {
 	if len(utils.GetDebuggerPath()) == 0 {
-		RestartSpotify("--remote-debugging-port=9222")
+		RestartSpotify(true, "--remote-debugging-port=9222")
 		utils.PrintInfo("Spotify is restarted with debugger on. Waiting...")
 		for len(utils.GetDebuggerPath()) == 0 {
 			// Wait until debugger is up
