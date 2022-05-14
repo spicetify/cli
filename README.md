@@ -7,10 +7,13 @@
   <a href="https://www.reddit.com/r/spicetify"><img src="https://img.shields.io/reddit/subreddit-subscribers/spicetify?logo=reddit"></a>
 </p>
 
+---
+
+
 Command-line tool to customize the official Spotify client.
 Supports Windows, MacOS and Linux.
 
-<img src="https://i.imgur.com/VUXGKYZ.png" alt="img" align="right" width="600px" height="400px">  
+<img src="https://i.imgur.com/VUXGKYZ.png" alt="img" align="right" width="560px" height="400px">  
 
 ### Features
 - Change colors whole UI
@@ -30,9 +33,11 @@ Supports Windows, MacOS and Linux.
 
 
 ---
-
+<div markdown=1>
+  
 - [Installation](https://spicetify.app/docs/getting-started)
- - [Basic Usage](https://spicetify.app/docs/getting-started#basic-usage)
-[Customization](https://spicetify.app/docs/development/customization)
-[FAQ](https://spicetify.app/docs/faq)
-
+- [Basic Usage](https://spicetify.app/docs/getting-started#basic-usage)
+- [Customization](https://spicetify.app/docs/development/customization)
+- [FAQ](https://spicetify.app/docs/faq)
+  
+</div>
