@@ -43,7 +43,7 @@ func RestartSpotify(start bool, flags ...string) {
 		if err == nil || start {
 			exec.Command("pkill", "Spotify").Run()
 			flags := append([]string{"-a", "/Applications/Spotify.app", "--args"}, flags...)
-			exec.Command("open", flags...).Run()
+			exec.Command("open", flags...).Start()
 		}
 	}
 }
