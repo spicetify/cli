@@ -13,7 +13,7 @@
 Command-line tool to customize the official Spotify client.
 Supports Windows, MacOS and Linux.
 
-<img src="https://github.com/Im-Kal/spicetify-cli/blob/master/.github/assets/logo.png?raw=true" alt="img" align="right" width="560px" height="400px">  
+<img src=".github/assets/logo.png" alt="img" align="right" width="560px" height="400px">  
 
 ### Features
 - Change colors whole UI
