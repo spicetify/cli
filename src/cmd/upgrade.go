@@ -97,6 +97,7 @@ func Upgrade(currentVersion string) {
 		err = exec.Command("tar", "-xzf", location, "-C", utils.GetExecutableDir()).Run()
 	}
 	if err != nil {
+		os.Rename(exeOld, exe)
 		permissionError(err)
 	}
 
