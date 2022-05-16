@@ -76,34 +76,12 @@ const ProviderGenius = (function () {
             return null;
         }
 
-        let lyrics = body.match(/<div class="lyrics">(.+?)<\/div>/s);
-        if (lyrics) {
-            return lyrics[1];
-        }
+        let lyrics = "";
+        const parser = new DOMParser();
+        const htmlDoc = parser.parseFromString(body, "text/html");
+        const lyricsDiv = htmlDoc.querySelectorAll('div[data-lyrics-container="true"]');
 
-        let lyricsSections = body.match(/<div class="Lyrics__Container.+?>.+?<\/div>/gs);
-        if (lyricsSections) {
-            lyrics = "";
-            for (const section of lyricsSections) {
-                const fragment = section.match(/<div class="Lyrics__Container.+?>(.+?)<\/div>/s);
-                if (fragment) {
-                    lyrics += fragment[1];
-                }
-            }
-            return lyrics;
-        }
-
-        lyricsSections = body.match(/<div ([\w-]+=[\w"]+ )+class="Lyrics__Container.+?>.+?<\/div>/gs);
-        if (lyricsSections) {
-            lyrics = "";
-            for (const section of lyricsSections) {
-                const fragment = section.match(/<div ([\w-]+=[\w"]+ )+class="Lyrics__Container.+?>(.+?)<\/div>/s);
-                if (fragment) {
-                    lyrics += fragment[2];
-                }
-            }
-            return lyrics;
-        }
+        lyricsDiv.forEach((i) => (lyrics += i.innerHTML + "<br>"));
 
         if (!lyrics?.length) {
             console.warn("forceError");

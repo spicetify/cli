@@ -1,8 +1,8 @@
 (function SidebarConfig() {
     // STICKY container
     const appItems = document.querySelector(".main-navBar-entryPoints");
-    const playlistItems = document.querySelector(".main-rootlist-rootlistPlaylistsScrollNode .os-content");
-    const personalLibrary = document.querySelector(".main-rootlist-rootlistContent");
+    const playlistItems = document.querySelector(".main-navBar-navBar .os-content");
+    const personalLibrary = playlistItems?.parentElement;
 
     if (!appItems || !playlistItems || !personalLibrary) {
         setTimeout(SidebarConfig, 300);

@@ -38,7 +38,6 @@ const CONFIG = {
     range: localStorage.getItem("new-releases:range") || "30",
     locale: localStorage.getItem("new-releases:locale") || navigator.language,
     relative: getConfig("new-releases:relative", false),
-    limit: localStorage.getItem("new-releases:limit") || 5,
 };
 
 let gridList = [];
@@ -86,9 +85,12 @@ class Grid extends react.Component {
                 react.createElement(
                     "div",
                     {
-                        className: "main-gridContainer-gridContainer",
+                        className: "main-gridContainer-gridContainer main-gridContainer-fixedWidth",
                         style: {
                             "--minimumColumnWidth": "180px",
+                            "--column-width": "minmax(var(--minimumColumnWidth),1fr)",
+                            "--column-count": "auto-fill",
+                            "--grid-gap": "24px",
                         },
                     },
                     separatedByDate[date].map((card) => react.createElement(Card, card.props))
@@ -155,9 +157,12 @@ class Grid extends react.Component {
                 react.createElement(
                     "div",
                     {
-                        className: "main-gridContainer-gridContainer",
+                        className: "main-gridContainer-gridContainer main-gridContainer-fixedWidth",
                         style: {
                             "--minimumColumnWidth": "180px",
+                            "--column-width": "minmax(var(--minimumColumnWidth),1fr)",
+                            "--column-count": "auto-fill",
+                            "--grid-gap": "24px",
                         },
                     },
                     separatedByDate[date]
@@ -230,29 +235,15 @@ async function getArtistList() {
 }
 
 async function getArtistEverything(artist) {
-    const uid = artist.link;
-    const offset = 0;
-    const limit = CONFIG.limit;
-    const body = await CosmosAsync.get(
-        `https://api-partner.spotify.com/pathfinder/v1/query?operationName=queryArtistDiscographyAll&variables=${encodeURIComponent(
-            `{\"uri\":\"${uid}\",\"offset\":${offset},\"limit\":${limit}}`
-        )}&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22e108cfbb0b850e577260638713504712091e98dd98ef768d7724c1c444de4cab%22%7D%7D`
-    );
-    const releases = body?.data?.artist.discography?.all?.items.map((item) => item.releases.items[0]);
+    const uid = artist.link.replace("spotify:artist:", "");
+    const body = await CosmosAsync.get(`wg://artist/v3/${uid}/desktop/entity?format=json`);
+    const releases = body?.releases;
     const items = [];
     const types = [
-        [CONFIG.album, releases.filter((releases) => releases.type === "ALBUM"), Spicetify.Locale.get("album")],
-        [
-            CONFIG["appears-on"],
-            releases.filter((releases) => releases.type !== ("ALBUM" || "EP" || "COMPILATION" || "SINGLE")),
-            Spicetify.Locale.get("artist.appears-on"),
-        ],
-        [CONFIG.compilations, releases.filter((releases) => releases.type === "COMPILATION"), Spicetify.Locale.get("compilation")],
-        [
-            CONFIG["single-ep"],
-            releases.filter((releases) => releases.type === ("SINGLE" || "EP")),
-            Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep"),
-        ],
+        [CONFIG.album, releases.albums?.releases, Spicetify.Locale.get("album")],
+        [CONFIG["appears-on"], releases.appears_on?.releases, Spicetify.Locale.get("artist.appears-on")],
+        [CONFIG.compilations, releases.compilations?.releases, Spicetify.Locale.get("compilation")],
+        [CONFIG["single-ep"], releases.singles?.releases, Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")],
     ];
     for (const type of types) {
         if (type[0] && type[1]) {
@@ -280,7 +271,7 @@ async function getPodcastRelease(uri) {
 }
 
 function metaFromTrack(artist, track) {
-    const time = new Date(track.date.isoString);
+    const time = new Date(track.year, track.month - 1, track.day);
     if (today - time.getTime() < limitInMs) {
         return {
             uri: track.uri,
@@ -289,9 +280,9 @@ function metaFromTrack(artist, track) {
                 name: artist.name,
                 uri: artist.link,
             },
-            imageURL: track.coverArt.sources[2].url,
+            imageURL: track.cover.uri,
             time,
-            trackCount: track.tracks.totalCount,
+            trackCount: track.track_count,
         };
     }
     return null;
