@@ -8,8 +8,8 @@ import (
 	"runtime"
 )
 
-// RestartSpotify .
-func RestartSpotify(flags ...string) {
+// EvalSpotifyRestart Restarts/starts spotify
+func EvalSpotifyRestart(start bool, flags ...string) {
 	launchFlag := settingSection.Key("spotify_launch_flags").Strings("|")
 	if len(launchFlag) > 0 {
 		flags = append(flags, launchFlag...)
@@ -19,7 +19,7 @@ func RestartSpotify(flags ...string) {
 	case "windows":
 		isRunning := exec.Command("tasklist", "/FI", "ImageName eq spotify.exe")
 		result, _ := isRunning.Output()
-		if !bytes.Contains(result, []byte("No tasks are running")) {
+		if !bytes.Contains(result, []byte("No tasks are running")) || start {
 			exec.Command("taskkill", "/F", "/IM", "spotify.exe").Run()
 			if isAppX {
 				ps, _ := exec.LookPath("powershell.exe")
@@ -33,16 +33,16 @@ func RestartSpotify(flags ...string) {
 	case "linux":
 		isRunning := exec.Command("pgrep", "spotify")
 		_, err := isRunning.Output()
-		if err == nil {
+		if err == nil || start {
 			exec.Command("pkill", "spotify").Run()
 			exec.Command(filepath.Join(spotifyPath, "spotify"), flags...).Start()
 		}
 	case "darwin":
 		isRunning := exec.Command("sh", "-c", "ps aux | grep 'Spotify' | grep -v grep")
 		_, err := isRunning.CombinedOutput()
-		if err == nil {
+		if err == nil || start {
 			exec.Command("pkill", "Spotify").Run()
-			flags = append([]string{"-a", "/Applications/Spotify.app"}, flags...)
+			flags = append([]string{"-a", "/Applications/Spotify.app", "--args"}, flags...)
 			exec.Command("open", flags...).Start()
 		}
 	}
