@@ -8,8 +8,8 @@ import (
 	"runtime"
 )
 
-// RestartSpotify .
-func RestartSpotify(start bool, flags ...string) {
+// EvalSpotifyRestart Restarts/starts spotify
+func EvalSpotifyRestart(start bool, flags ...string) {
 	launchFlag := settingSection.Key("spotify_launch_flags").Strings("|")
 	if len(launchFlag) > 0 {
 		flags = append(flags, launchFlag...)

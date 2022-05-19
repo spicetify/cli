@@ -238,10 +238,10 @@ func main() {
 
 		case "enable-devtools":
 			cmd.SetDevTools()
-			cmd.RestartSpotify(true)
+			cmd.EvalSpotifyRestart(true)
 
 		case "restart":
-			cmd.RestartSpotify(false)
+			cmd.EvalSpotifyRestart(false)
 
 		case "auto":
 			cmd.Auto(version)
@@ -257,7 +257,7 @@ func main() {
 
 func restartSpotify() {
 	if !noRestart {
-		cmd.RestartSpotify(false)
+		cmd.EvalSpotifyRestart(false)
 	}
 }
 
