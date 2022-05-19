@@ -14,3 +14,5 @@
   - "(extension|auto.*?skip|bookmark|full.*?app.*?display|keyboard.*?shortcut|shuffle|web.*?now.*?playing|popup.*?lyrics)"
 🔴 custom app:
   - "(custom.*?app|lyrics.*?plus|new.*?releases|store|reddit|lyrics)"
+🖇 duplicate:
+  - "(duplicate)"
