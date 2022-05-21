@@ -18,6 +18,7 @@ type Flag struct {
 	HomeConfig    bool
 	ExpFeatures   bool
 	SpicetifyVer  string
+	SpotifyVer    string
 }
 
 // AdditionalOptions .
@@ -198,6 +199,11 @@ func insertCustomApp(jsPath string, flags Flag) {
 			content,
 			[]string{
 				REACT_ELEMENT_REGEX})
+
+		if (len(reactSymbs) < 2) || (len(eleSymbs) == 0) {
+			utils.PrintError("Spotify version mismatch with Spicetify\nSpicetify currently only supports until Spotify v" + flags.SpotifyVer)
+			return content
+		}
 
 		appMap := ""
 		appReactMap := ""
