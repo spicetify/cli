@@ -45,6 +45,11 @@ func PrintGreen(text string) {
 	log.Println(Green(text))
 }
 
+// PrintNote prints a warning message
+func PrintNote(text string) {
+	log.Println(Bold(Yellow("note")), Bold(text))
+}
+
 // PrintWarning prints a warning message
 func PrintWarning(text string) {
 	log.Println(Yellow("warning"), text)

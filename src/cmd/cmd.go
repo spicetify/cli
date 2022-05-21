@@ -13,12 +13,11 @@ import (
 )
 
 var (
+	supportedSpotifyVersion = "1.1.84"
 	spicetifyFolder         = utils.GetSpicetifyFolder()
 	rawFolder, themedFolder = getExtractFolder()
 	backupFolder            = utils.GetUserFolder("Backup")
 	userThemesFolder        = utils.GetUserFolder("Themes")
-	userExtensionsFolder    = utils.GetUserFolder("Extensions")
-	userAppsFolder          = utils.GetUserFolder("CustomApps")
 	quiet                   bool
 	isAppX                  = false
 	spotifyPath             string
@@ -260,8 +259,10 @@ func CheckUpgrade(version string) {
 		return
 	}
 
+	utils.PrintNote("Full Spicetify functionality is not guaranteed above Spotify's v" + supportedSpotifyVersion)
+
 	if latestTag == version {
-		utils.PrintInfo("spicetify up-to-date")
+		utils.PrintInfo("Spicetify up-to-date")
 	} else {
 		utils.PrintWarning("New version available!")
 		utils.PrintWarning(`Run "spicetify upgrade" or using package manager to upgrade spicetify`)
