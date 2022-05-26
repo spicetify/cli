@@ -187,8 +187,8 @@ func getColorCSS(scheme map[string]string) string {
 
 func insertCustomApp(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
-		const REACT_REGEX = `lazy\(\((?:\(\)=>|function\(\)\{return )(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\}?\)\)`
-		const REACT_ELEMENT_REGEX = `\w+(?:\(\))?\.createElement\(([\w\.]+),\{path:"\/collection"(?:,[:\.\w,]+)?\}`
+		const REACT_REGEX = `(\w+(?:\(\))?)\.lazy\(\((?:\(\)=>|function\(\)\{return )(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\}?\)\)`
+		const REACT_ELEMENT_REGEX = `(\w+(?:\(\))?)\.createElement\(([\w\.]+),\{path:"\/collection"(?:,[:\.\w,]+)?\}`
 		reactSymbs := utils.FindSymbol(
 			"Custom app React symbols",
 			content,
@@ -217,13 +217,13 @@ func insertCustomApp(jsPath string, flags Flag) {
 			appNameArray += fmt.Sprintf(`"%s",`, app)
 
 			appReactMap += fmt.Sprintf(
-				`,spicetifyApp%d=Spicetify.React.lazy((()=>%s.%s("%s").then(%s.bind(%s,"%s"))))`,
-				index, reactSymbs[0], reactSymbs[1],
-				appName, reactSymbs[0], reactSymbs[0], appName)
+				`,spicetifyApp%d=%s.lazy((()=>%s.%s("%s").then(%s.bind(%s,"%s"))))`,
+				index, reactSymbs[0], reactSymbs[1], reactSymbs[2],
+				appName, reactSymbs[1], reactSymbs[1], appName)
 
 			appEleMap += fmt.Sprintf(
-				`Spicetify.React.createElement(%s,{path:"/%s"},Spicetify.React.createElement(spicetifyApp%d,null)),`,
-				eleSymbs[0], app, index)
+				`%s.createElement(%s,{path:"/%s"},%s.createElement(spicetifyApp%d,null)),`,
+				eleSymbs[0], eleSymbs[1], app, eleSymbs[0], index)
 
 			cssEnableMap += fmt.Sprintf(`,"%s":1`, appName)
 		}
@@ -245,7 +245,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		utils.Replace(
 			&content,
-			`\w+\(\)\.createElement\("li",\{className:[\w$\.]+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
+			`[\w()]+\.createElement\("li",\{className:[\w$\.]+\},[\w()]+\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
 			`Spicetify._sidebarItemToClone=${0}`)
 
 		utils.ReplaceOnce(
@@ -255,7 +255,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		sidebarItemMatch := utils.SeekToCloseParen(
 			content,
-			`\("li",\{className:[\w$\.]+\},\w+\(\)\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
+			`\("li",\{className:[\w$\.]+\},[\w()]+\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"\}`,
 			'(', ')')
 
 		content = strings.Replace(
