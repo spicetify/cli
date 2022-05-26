@@ -153,11 +153,11 @@
     }
 
     function increaseVolume() {
-        Spicetify.Player.origin.setVolume(Spicetify.Player.getVolume() + 0.1);
+        Spicetify.Player.setVolume(Spicetify.Player.getVolume() + 0.05);
     }
 
     function decreaseVolume() {
-        Spicetify.Player.origin.setVolume(Spicetify.Player.getVolume() - 0.1);
+        Spicetify.Player.setVolume(Spicetify.Player.getVolume() - 0.05);
     }
 
     /**
