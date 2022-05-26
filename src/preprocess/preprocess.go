@@ -418,8 +418,8 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 
 	utils.ReplaceOnce(
 		&input,
-		`(\w+=)(\{createPortal:\w+)`,
-		`${1}Spicetify.ReactDOM=${2}`)
+		`((\w+)\.createPortal=\w+,)`,
+		`${1}Spicetify.ReactDOM=${2},`)
 
 	return input
 }
