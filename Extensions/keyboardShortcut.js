@@ -145,11 +145,11 @@
     }
 
     function nextSong() {
-        document.querySelector(".main-skipForwardButton-button").click();
+        document.querySelector("button[aria-label='Next']").click();
     }
 
     function previousSong() {
-        document.querySelector(".main-skipBackButton-button").click();
+        document.querySelector("button[aria-label='Previous']").click();
     }
 
     function increaseVolume() {
