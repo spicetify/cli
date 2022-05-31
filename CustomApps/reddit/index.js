@@ -255,9 +255,12 @@ class Grid extends react.Component {
                 "div",
                 {
                     id: "reddit-grid",
-                    className: "main-gridContainer-gridContainer",
+                    className: "main-gridContainer-gridContainer main-gridContainer-fixedWidth",
                     style: {
                         "--minimumColumnWidth": "180px",
+                        "--column-width": "minmax(var(--minimumColumnWidth),1fr)",
+                        "--column-count": "auto-fill",
+                        "--grid-gap": "24px",
                     },
                 },
                 [...cardList]
