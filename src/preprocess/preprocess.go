@@ -241,7 +241,7 @@ func disableLogging(input string) string {
 }
 
 func removeRTL(input string) string {
-	utils.Replace(&input, `}\[dir=ltr\]\s?`, "} ")
+	//utils.Replace(&input, `}\[dir=ltr\]\s?`, "} ")
 	utils.Replace(&input, `html\[dir=ltr\]`, "html")
 	utils.Replace(&input, `,\s?\[dir=rtl\].+?(\{.+?\})`, "$1")
 	utils.Replace(&input, `[\w\-\.]+\[dir=rtl\].+?\{.+?\}`, "")
