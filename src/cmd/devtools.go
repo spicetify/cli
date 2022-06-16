@@ -25,7 +25,14 @@ func SetDevTools() {
 				homePath = snapSpotifyHome
 			}
 
-			filePath = homePath + "/.cache/spotify/offline.bnk"
+			flatpackHome := homePath + "/.var/app/com.spotify.Client"
+			if _, err := os.Stat(flatpackHome); os.IsExist(err) {
+				homePath = flatpackHome
+				filePath = homePath + "/cache/spotify/offline.bnk"
+			} else {
+				filePath = homePath + "/.cache/spotify/offline.bnk"
+			}
+
 		}
 	case "darwin":
 		filePath = os.Getenv("HOME") + "/Library/Application Support/Spotify/PersistentCache/offline.bnk"
