@@ -1742,5 +1742,8 @@
     "ZcNcu7WZgOAz_Mkcoff3": "main-trackInfo-container",
     "Q_174taY6n64ZGC3GsKj": "main-trackInfo-name",
     "gpNta6i8q3KYJC6WBZQC": "main-trackInfo-artists",
-    "vnCew8qzJq3cVGlYFXRI": "main-playPauseButton-button"
+    "vnCew8qzJq3cVGlYFXRI": "main-playPauseButton-button",
+    "fn72ari9aEmKo4JcwteT": "main-skipBackButton-button",
+    "mnipjT4SLDMgwiDCEnRC": "main-skipForwardButton-button",
+    "Vz6yjzttS0YlLcwrkoUR": "main-repeatButton-button"
 }
