@@ -186,6 +186,7 @@ func colorVariableReplace(content string) string {
 	utils.Replace(&content, "#282828", "var(--spice-card)")
 
 	utils.Replace(&content, "#121212", "var(--spice-main)")
+	utils.Replace(&content, "#fff", "var(--spice-main)")
 
 	utils.Replace(&content, "#000", "var(--spice-sidebar)")
 	utils.Replace(&content, "#000000", "var(--spice-sidebar)")
