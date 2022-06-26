@@ -1,4 +1,4 @@
-name: Commit linter
+name: Commits linter
 
 on: [pull_request]
 
