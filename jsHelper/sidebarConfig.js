@@ -1,10 +1,10 @@
 (function SidebarConfig() {
     // STICKY container
     const appItems = document.querySelector(".main-navBar-entryPoints");
+    const rootList = document.querySelector(".main-rootlist-rootlist");
     const playlistItems = document.querySelector(".main-navBar-navBar .os-content");
-    const personalLibrary = playlistItems?.parentElement;
 
-    if (!appItems || !playlistItems || !personalLibrary) {
+    if (!appItems || !playlistItems || !rootList) {
         setTimeout(SidebarConfig, 300);
         return;
     }
@@ -34,7 +34,8 @@
         buttons.push(ele);
     }
 
-    for (const ele of personalLibrary.querySelectorAll("div.GlueDropTarget")) {
+    for (const ele of rootList.querySelectorAll("div.GlueDropTarget")) {
+        if (ele.classList.contains("GlueDropTarget--playlists")) break;
         const link = ele.querySelector("a");
         if (!link) {
             ele.dataset.id = "/add";
@@ -44,6 +45,8 @@
         ele.classList.add("personal-library");
         buttons.push(ele);
     }
+
+    console.log(buttons);
 
     let storage = [];
     try {
