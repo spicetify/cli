@@ -46,8 +46,6 @@
         buttons.push(ele);
     }
 
-    console.log(buttons);
-
     let storage = [];
     try {
         storage = JSON.parse(localStorage.getItem("spicetify-sidebar-config"));
