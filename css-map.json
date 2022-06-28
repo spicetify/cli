@@ -239,7 +239,6 @@
     "gqeP9Y0_y6DLm4CD_m3Q": "main-nowPlayingBar-container",
     "tRr_yfJqXI9lo4er3Tdb": "main-nowPlayingBar-left",
     "otEU_EZbRRfQ3N8GjRXp": "main-nowPlayingBar-nowPlayingBar",
-    "GD2gbRtcs5dOjMGAM_Y4": "main-nowPlayingBar-nowPlayingBar",
     "_Q_UIUCFJkd1IkvfdA_c": "main-nowPlayingBar-right",
     "kcsSU97t8iyz6ytEqk_9": "main-nowPlayingWidget-coverArt",
     "tjwF5PJ3oBgTZ38aoRuK": "main-nowPlayingWidget-coverExpanded",
@@ -1760,5 +1759,11 @@
     "Bwc9jlVb7HWs8JJupnBB": "main-createPlaylistButton-icon",
     "J4xXuqyaJnnwS6s2p3ZB": "main-createPlaylistButton-text",
     "LKgm9fCDTO7wqig_5U1q": "main-rootlist-rootlist",
-    "EY6S7vlkxB7SF_OjjF_Y": "main-rootlist-rootlistContent"
+    "EY6S7vlkxB7SF_OjjF_Y": "main-rootlist-rootlistContent",
+    "rVxzkDirgkuRPv5V1HYF": "main-coverSlotCollapsed-container",
+    "GD2gbRtcs5dOjMGAM_Y4": "main-nowPlayingBar-container",
+    "OCY4jHBlCVZEyGvtSv0J": "main-nowPlayingBar-nowPlayingBar",
+    "bYHWD_eQ1jAh3sAKTHtr": "main-nowPlayingWidget-coverExpanded",
+    "deomraqfhIAoSB3SgXpu": "main-nowPlayingWidget-nowPlaying",
+    "KVKoQ3u4JpKTvSSFtd6J": "main-shuffleButton-button"
 }
