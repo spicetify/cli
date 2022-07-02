@@ -41,8 +41,8 @@ if ($PSVersionTable.PSVersion.Major -gt $PSMinVersion) {
     $version = ($latest_release_json | ConvertFrom-Json).tag_name -replace "v", ""
   }
 
-  # Create ~\spicetify-cli directory if it doesn't already exist
-  $sp_dir = "${HOME}\spicetify-cli"
+  # Create %localappdata%\spicetify directory if it doesn't already exist
+  $sp_dir = "$env:LOCALAPPDATA\spicetify"
   if (-not (Test-Path $sp_dir)) {
     Write-Part "MAKING FOLDER  "; Write-Emphasized $sp_dir
     New-Item -Path $sp_dir -ItemType Directory | Out-Null
@@ -95,5 +95,3 @@ else {
   Write-Part "`nYour Powershell version is lesser than "; Write-Emphasized "$PSMinVersion";
   Write-Part "`nPlease, update your Powershell downloading the "; Write-Emphasized "'Windows Management Framework'"; Write-Part " greater than "; Write-Emphasized "$PSMinVersion"
 }
-
-
