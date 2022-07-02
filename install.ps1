@@ -39,7 +39,7 @@ function RemoveOldPath {
 function MigrateCfgFolder {
   $oldsp_dircontent = "${HOME}\spicetify-cli\*"
   $oldsp_dir = "${HOME}\spicetify-cli"
-  if(Test-Path -Path $oldsp_dir) {
+  if (Test-Path -Path $oldsp_dir) {
     Write-Part "MIGRATING      "; Write-Emphasized $oldsp_dir; Write-Part " into ";  Write-Emphasized $sp_dir
     Copy-item -Force -Recurse $oldsp_dircontent -Destination $sp_dir
     Write-Done
