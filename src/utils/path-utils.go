@@ -17,6 +17,7 @@ func MigrateConfigFolder() {
 			if err != nil {
 				Fatal(err)
 			}
+			os.RemoveAll(source)
 			PrintGreen("OK")
 		}
 	}
