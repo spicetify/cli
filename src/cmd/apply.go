@@ -15,9 +15,9 @@ import (
 
 // Apply .
 func Apply(spicetifyVersion string) {
+	utils.MigrateConfigFolder()
 	checkStates()
 	InitSetting()
-	utils.MigrateConfigFolder()
 
 	// Copy raw assets to Spotify Apps folder if Spotify is never applied
 	// before.
