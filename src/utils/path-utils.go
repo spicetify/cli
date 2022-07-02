@@ -7,6 +7,21 @@ import (
 	"runtime"
 )
 
+func MigrateConfigFolder() {
+	if runtime.GOOS == "windows" {
+		source := filepath.Join(os.Getenv("USERPROFILE"), ".spicetify")
+		if _, err := os.Stat(source); err == nil {
+			PrintBold("Migrating spicetify config folder")
+			destination := GetSpicetifyFolder()
+			err := Copy(source, destination, true, nil)
+			if err != nil {
+				Fatal(err)
+			}
+			PrintGreen("OK")
+		}
+	}
+}
+
 func GetSpicetifyFolder() string {
 	result, isAvailable := os.LookupEnv("SPICETIFY_CONFIG")
 	defer func() { CheckExistAndCreate(result) }()
