@@ -294,8 +294,8 @@ func linuxApp() string {
 
 	potentialList := []string{
 		"/opt/spotify/",
-		"/usr/share/spotify/",
 		"/opt/spotify/spotify-client/",
+		"/usr/share/spotify/",
 		"/usr/libexec/spotify/",
 		"/var/lib/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
 	}
