@@ -27,7 +27,7 @@ function RemoveOldPath {
     Write-Part "REMOVING       "; Write-Emphasized $oldsp_dir; Write-Part " from path"
     $replacedpath = $path.replace(";$oldsp_dir", "")
     [Environment]::SetEnvironmentVariable("PATH", $replacedpath, $user)
-    $env:PATH = $replacedpath
+    $env:PATH = $env:PATH.replace(";$oldsp_dir","")
     Write-Done
   }
 }

@@ -29,9 +29,10 @@ function RemoveOldPath {
   $isinpath = $paths -contains $oldsp_dir -or $paths -contains "${oldsp_dir}\"
   if ($isinpath) {
     Write-Part "REMOVING       "; Write-Emphasized $oldsp_dir; Write-Part " from Path"
+
     $replacedpath = $path.replace(";$oldsp_dir", "")
     [Environment]::SetEnvironmentVariable("PATH", $replacedpath, $user)
-    $env:PATH = $replacedpath
+    $env:PATH = $env:PATH.replace(";$oldsp_dir","")
     Write-Done
   }
 }
@@ -103,6 +104,7 @@ if ($PSVersionTable.PSVersion.Major -gt $PSMinVersion) {
 
   # Check whether spicetify dir is in the Path.
   $paths = $path -split ";"
+
   # Remove old spicetify folder from Path.
   RemoveOldPath
   $is_in_path = $paths -contains $sp_dir -or $paths -contains "${sp_dir}\"
