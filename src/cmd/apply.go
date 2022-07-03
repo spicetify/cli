@@ -15,6 +15,7 @@ import (
 
 // Apply .
 func Apply(spicetifyVersion string) {
+	utils.MigrateConfigFolder()
 	checkStates()
 	InitSetting()
 

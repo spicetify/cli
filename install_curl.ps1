@@ -20,6 +20,31 @@ function Write-Done {
   Write-Host "OK" -ForegroundColor "Green"
 }
 
+function RemoveOldPath {
+  $oldsp_dir = "${HOME}\spicetify-cli"
+  $isinpath = $paths -contains $oldsp_dir -or $paths -contains "${oldsp_dir}\"
+  if ($isinpath) {
+    Write-Part "REMOVING       "; Write-Emphasized $oldsp_dir; Write-Part " from path"
+    $replacedpath = $path.replace(";$oldsp_dir", "")
+    [Environment]::SetEnvironmentVariable("PATH", $replacedpath, $user)
+    $env:PATH = $env:PATH.replace(";$oldsp_dir","")
+    Write-Done
+  }
+}
+
+function MigrateCfgFolder {
+  $oldsp_dircontent = "${HOME}\spicetify-cli\*"
+  $oldsp_dir = "${HOME}\spicetify-cli"
+  if (Test-Path -Path $oldsp_dir) {
+    Write-Part "MIGRATING      "; Write-Emphasized $oldsp_dir; Write-Part " into ";  Write-Emphasized $sp_dir
+    Copy-item -Force -Recurse $oldsp_dircontent -Destination $sp_dir
+    Write-Done
+    Write-Part "REMOVING       "; Write-Emphasized $oldsp_dir
+    Remove-Item -LiteralPath $oldsp_dir -Force -Recurse
+    Write-Done
+  }
+}
+
 if (-not $version) {
   # Determine latest Spicetify release via GitHub API.
   $latest_release_uri =
@@ -31,13 +56,16 @@ if (-not $version) {
   $version = ($latest_release_json | ConvertFrom-Json).tag_name -replace "v", ""
 }
 
-# Create ~\spicetify-cli directory if it doesn't already exist
-$sp_dir = "${HOME}\spicetify-cli"
+# Create %localappdata%\spicetify directory if it doesn't already exist
+$sp_dir = "$env:LOCALAPPDATA\spicetify"
 if (-not (Test-Path $sp_dir)) {
   Write-Part "MAKING FOLDER  "; Write-Emphasized $sp_dir
   New-Item -Path $sp_dir -ItemType Directory | Out-Null
   Write-Done
 }
+
+# Migrate old spicetify folder to new location.
+MigrateCfgFolder
 
 # Download release.
 $zip_file = "${sp_dir}\spicetify-${version}-windows-x64.zip"
@@ -65,6 +93,8 @@ $path = [Environment]::GetEnvironmentVariable("PATH", $user)
 
 # Check whether spicetify dir is in the Path.
 $paths = $path -split ";"
+# Remove old spicetify folder from Path.
+RemoveOldPath
 $is_in_path = $paths -contains $sp_dir -or $paths -contains "${sp_dir}\"
 
 # Add Spicetify dir to PATH if it hasn't been added already.
@@ -78,7 +108,6 @@ if (-not $is_in_path) {
   Write-Done
 }
 
-Write-Host ""
-Write-Done "spicetify-cli was installed successfully."
+Write-Part "spicetify-cli was installed successfully."; Write-Done
 Write-Part "Run "; Write-Emphasized "spicetify --help"; Write-Host " to get started."
 Write-Host ""

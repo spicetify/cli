@@ -7,6 +7,22 @@ import (
 	"runtime"
 )
 
+func MigrateConfigFolder() {
+	if runtime.GOOS == "windows" {
+		source := filepath.Join(os.Getenv("USERPROFILE"), ".spicetify")
+		if _, err := os.Stat(source); err == nil {
+			PrintBold("Migrating spicetify config folder")
+			destination := GetSpicetifyFolder()
+			err := Copy(source, destination, true, nil)
+			if err != nil {
+				Fatal(err)
+			}
+			os.RemoveAll(source)
+			PrintGreen("OK")
+		}
+	}
+}
+
 func GetSpicetifyFolder() string {
 	result, isAvailable := os.LookupEnv("SPICETIFY_CONFIG")
 	defer func() { CheckExistAndCreate(result) }()
@@ -16,8 +32,9 @@ func GetSpicetifyFolder() string {
 	}
 
 	if runtime.GOOS == "windows" {
-		result = filepath.Join(os.Getenv("USERPROFILE"), ".spicetify")
+		parent := os.Getenv("APPDATA")
 
+		result = filepath.Join(parent, "spicetify")
 	} else if runtime.GOOS == "linux" {
 		parent, isAvailable := os.LookupEnv("XDG_CONFIG_HOME")
 
@@ -27,7 +44,6 @@ func GetSpicetifyFolder() string {
 		}
 
 		result = filepath.Join(parent, "spicetify")
-
 	} else if runtime.GOOS == "darwin" {
 		parent := filepath.Join(os.Getenv("HOME"), ".config")
 		CheckExistAndCreate(parent)

@@ -104,6 +104,7 @@ func init() {
 		os.Stdout = nil
 	}
 
+	utils.MigrateConfigFolder()
 	cmd.InitConfig(quiet)
 
 	if len(commands) < 1 {
