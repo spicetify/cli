@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 )
@@ -24,6 +25,10 @@ func FetchLatestTag() (string, error) {
 	var release GithubRelease
 	if err = json.Unmarshal(body, &release); err != nil {
 		return "", err
+	}
+
+	if release.TagName == "" {
+		return "", errors.New("No tag found")
 	}
 
 	return release.TagName[1:], nil
