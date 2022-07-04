@@ -13,7 +13,7 @@ type GithubRelease struct {
 }
 
 func FetchLatestTag() (string, error) {
-	res, err := http.Get("https://api.github.com/repos/spicetify/spicetify-cli/releases/v9")
+	res, err := http.Get("https://api.github.com/repos/spicetify/spicetify-cli/releases/latest")
 	if err != nil {
 		return "", err
 	}
