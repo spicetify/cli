@@ -9,6 +9,7 @@ import (
 
 type GithubRelease struct {
 	TagName string `json:"tag_name"`
+	Message string `json:"message"`
 }
 
 func FetchLatestTag() (string, error) {
@@ -28,7 +29,7 @@ func FetchLatestTag() (string, error) {
 	}
 
 	if release.TagName == "" {
-		return "", errors.New("No tag found")
+		return "", errors.New(release.Message)
 	}
 
 	return release.TagName[1:], nil
