@@ -50,11 +50,11 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 			filepath.Join(appsFolderPath, "xpui", "helper"))
 	}
 
-	if flags.ExpFeatures {
+	/*if flags.ExpFeatures {
 		utils.CopyFile(
 			filepath.Join(utils.GetJsHelperDir(), "expFeatures.js"),
 			filepath.Join(appsFolderPath, "xpui", "helper"))
-	}
+	}*/
 }
 
 // UserCSS creates colors.css user.css files in "xpui".
@@ -99,9 +99,9 @@ func htmlMod(htmlPath string, flags Flag) {
 		helperHTML += `<script defer src="helper/homeConfig.js"></script>` + "\n"
 	}
 
-	if flags.ExpFeatures {
+	/*if flags.ExpFeatures {
 		helperHTML += `<script defer src="helper/expFeatures.js"></script>` + "\n"
-	}
+	}*/
 
 	if flags.SpicetifyVer != "" {
 		helperHTML += `<script>Spicetify.version="` + flags.SpicetifyVer + `";</script>` + "\n"
