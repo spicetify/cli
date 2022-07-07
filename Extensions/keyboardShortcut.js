@@ -410,7 +410,7 @@ function VimBind() {
     }
 
     /**
-     * @param {{ hasAttribute: (arg0: string) => any; tagName: string; click: () => void; querySelector: (arg0: string) => any; firstChild: { innerText: string; }; }} element
+     * @param {HTMLElement} element
      */
     function click(element) {
         if (element.hasAttribute("href") || element.tagName === "BUTTON") {
@@ -419,7 +419,7 @@ function VimBind() {
         }
 
         const findButton = element.querySelector(`button[data-ta-id="play-button"]`) || element.querySelector(`button[data-button="play"]`);
-        if (findButton) {
+        if (findButton instanceof HTMLButtonElement) {
             findButton.click();
             return;
         }
