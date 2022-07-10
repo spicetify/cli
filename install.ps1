@@ -79,7 +79,8 @@ if ($PSVersionTable.PSVersion.Major -gt $PSMinVersion) {
   MigrateCfgFolder
 
   # Download release.
-  $zip_file = "${sp_dir}\spicetify-${version}-windows-x64.zip"
+  $architecture = if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64") { "x64" } else { "x32" }
+  $zip_file = "${sp_dir}\spicetify-${version}-windows-$architecture.zip"
   $download_uri = "https://github.com/spicetify/spicetify-cli/releases/download/" +
   "v${version}/spicetify-${version}-windows-x64.zip"
   Write-Part "DOWNLOADING    "; Write-Emphasized $download_uri
