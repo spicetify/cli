@@ -80,9 +80,9 @@ if ($PSVersionTable.PSVersion.Major -gt $PSMinVersion) {
 
   # Download release.
   $architecture = if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64") { "x64" } else { "x32" }
-  $zip_file = "${sp_dir}\spicetify-${version}-windows-$architecture.zip"
+  $zip_file = "${sp_dir}\spicetify-${version}-windows-${architecture}.zip"
   $download_uri = "https://github.com/spicetify/spicetify-cli/releases/download/" +
-  "v${version}/spicetify-${version}-windows-$architecture.zip"
+  "v${version}/spicetify-${version}-windows-${architecture}.zip"
   Write-Part "DOWNLOADING    "; Write-Emphasized $download_uri
   Invoke-WebRequest -Uri $download_uri -UseBasicParsing -OutFile $zip_file
   Write-Done
