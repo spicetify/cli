@@ -68,9 +68,10 @@ if (-not (Test-Path $sp_dir)) {
 MigrateCfgFolder
 
 # Download release.
-$zip_file = "${sp_dir}\spicetify-${version}-windows-x64.zip"
+$architecture = if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64") { "x64" } else { "x32" }
+$zip_file = "${sp_dir}\spicetify-${version}-windows-${architecture}.zip"
 $download_uri = "https://github.com/spicetify/spicetify-cli/releases/download/" +
-                "v${version}/spicetify-${version}-windows-x64.zip"
+                "v${version}/spicetify-${version}-windows-${architecture}.zip"
 Write-Part "DOWNLOADING    "; Write-Emphasized $download_uri
 curl.exe --tlsv1.2 $download_uri -o $zip_file
 Write-Done
