@@ -29,7 +29,7 @@ func SetDevTools() {
 			if _, err := os.Stat(flatpackHome); os.IsExist(err) {
 				homePath = flatpackHome
 				filePath = homePath + "/cache/spotify/offline.bnk"
-			} else if _, err := os.Stat(filePath; os.IsExist(err) {
+			} else if _, err := os.Stat(filePath); os.IsExist(err) {
 				filePath = homePath + "config/spotify/offline.bnk"	
 			} else {
 				filePath = homePath + "/.cache/spotify/offline.bnk"
