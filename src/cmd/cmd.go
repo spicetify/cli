@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	supportedSpotifyVersion = "1.1.84"
+	supportedSpotifyVersion = "1.1.90"
 	spicetifyFolder         = utils.GetSpicetifyFolder()
 	rawFolder, themedFolder = getExtractFolder()
 	backupFolder            = utils.GetUserFolder("Backup")
