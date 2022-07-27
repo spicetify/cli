@@ -131,9 +131,9 @@
      */
     const fetchPlaylist = async (uri) => {
         const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/${uri}/rows`, {
-            policy: { link: true },
+            policy: { link: true, playable: true },
         });
-        return res.rows.map((item) => item.link);
+        return res.rows.filter((track) => track.playable).map((item) => item.link);
     };
 
     /**
