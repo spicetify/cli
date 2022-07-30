@@ -776,4 +776,6 @@ button.switch.disabled {
     );
 
     Spicetify.Mousetrap.bind("f11", toggleFad);
+    Spicetify.Mousetrap.bind("f6", openConfig);
+
 })();
