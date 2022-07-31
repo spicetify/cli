@@ -617,13 +617,11 @@ button.switch.small {
     border-bottom-left-radius: 8px;
 }
 .lyrics-plus-option.is-selected {
-    background-color: rgba(var(--spice-rgb-selected-row), 0.1);
-    color: var(--spice-text);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 .lyrics-plus-sort-option:hover {
-    background-color: rgba(var(--spice-rgb-selected-row), 0.3);
+    background-color: rgba(var(--spice-rgb-selected-row), 0.1);
     color: var(--spice-text);
 }

@@ -159,13 +159,11 @@ div.reddit-tabBar-headerItemLink {
     padding: 8px 10px;
 }
 .reddit-sort-option.is-selected {
-    background-color: rgba(var(--spice-rgb-selected-row), 0.1);
-    color: var(--spice-text);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 .reddit-sort-option:hover {
-    background-color: rgba(var(--spice-rgb-selected-row), 0.3);
+    background-color: rgba(var(--spice-rgb-selected-row), 0.1);
     color: var(--spice-text);
 }
