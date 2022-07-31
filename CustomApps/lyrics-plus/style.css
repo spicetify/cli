@@ -612,10 +612,6 @@ button.switch.small {
     display: block;
     padding: 8px 10px;
 }
-.lyrics-plus-sort-option:last-child {
-    border-bottom-right-radius: 8px;
-    border-bottom-left-radius: 8px;
-}
 .lyrics-plus-option.is-selected {
     display: flex;
     justify-content: space-between;
