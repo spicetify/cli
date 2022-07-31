@@ -604,3 +604,20 @@ button.switch.small {
 .lyrics-lyricsContainer-UnsyncedLyricsPage .split > div {
     flex: 50%;
 }
+
+.lyrics-plus-sort-option {
+    box-sizing: border-box;
+    color: rgba(var(--spice-rgb-text), 0.7);
+    cursor: pointer;
+    display: block;
+    padding: 8px 10px;
+}
+.lyrics-plus-option.is-selected {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.lyrics-plus-sort-option:hover {
+    background-color: rgba(var(--spice-rgb-selected-row), 0.1);
+    color: var(--spice-text);
+}

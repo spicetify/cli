@@ -12,13 +12,17 @@ const OptionsMenuItemIcon = react.createElement(
 );
 
 const OptionsMenuItem = react.memo(({ onSelect, value, isSelected }) => {
+    let className = "lyrics-plus-sort-option";
+    if (isSelected) className += " is-selected";
+
     return react.createElement(
-        Spicetify.ReactComponent.MenuItem,
+        "li",
         {
+            className,
             onClick: onSelect,
-            icon: isSelected ? OptionsMenuItemIcon : null,
         },
-        value
+        value,
+        isSelected ? OptionsMenuItemIcon : null
     );
 });
 
