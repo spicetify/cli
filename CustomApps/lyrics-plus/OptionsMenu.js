@@ -16,13 +16,13 @@ const OptionsMenuItem = react.memo(({ onSelect, value, isSelected }) => {
     if (isSelected) className += " is-selected";
 
     return react.createElement(
-        "div",
+        "li",
         {
             className,
             onClick: onSelect,
-            icon: isSelected ? OptionsMenuItemIcon : null,
         },
-        value
+        value,
+        isSelected ? OptionsMenuItemIcon : null
     );
 });
 

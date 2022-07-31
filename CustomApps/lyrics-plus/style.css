@@ -616,11 +616,14 @@ button.switch.small {
     border-bottom-right-radius: 8px;
     border-bottom-left-radius: 8px;
 }
-.lyrics-plus-sort-option.is-selected {
-    background-color: rgba(var(--spice-rgb-text), 0.7);
-    color: var(--spice-sidebar);
+.lyrics-plus-option.is-selected {
+    background-color: rgba(var(--spice-rgb-selected-row), 0.1);
+    color: var(--spice-text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 .lyrics-plus-sort-option:hover {
-    background-color: rgb(var(--spice-rgb-text));
-    color: var(--spice-sidebar);
+    background-color: rgba(var(--spice-rgb-selected-row), 0.3);
+    color: var(--spice-text);
 }
