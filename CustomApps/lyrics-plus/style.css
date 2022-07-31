@@ -604,3 +604,23 @@ button.switch.small {
 .lyrics-lyricsContainer-UnsyncedLyricsPage .split > div {
     flex: 50%;
 }
+
+.lyrics-plus-sort-option {
+    box-sizing: border-box;
+    color: rgba(var(--spice-rgb-text), 0.7);
+    cursor: pointer;
+    display: block;
+    padding: 8px 10px;
+}
+.lyrics-plus-sort-option:last-child {
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+.lyrics-plus-sort-option.is-selected {
+    background-color: rgba(var(--spice-rgb-text), 0.7);
+    color: var(--spice-sidebar);
+}
+.lyrics-plus-sort-option:hover {
+    background-color: rgb(var(--spice-rgb-text));
+    color: var(--spice-sidebar);
+}

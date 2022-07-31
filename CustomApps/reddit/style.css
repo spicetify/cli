@@ -150,3 +150,19 @@ div.reddit-tabBar-headerItemLink {
 .reddit-longDescription {
     display: flex;
 }
+
+.reddit-sort-option {
+    box-sizing: border-box;
+    color: rgba(var(--spice-rgb-text), 0.7);
+    cursor: pointer;
+    display: block;
+    padding: 8px 10px;
+}
+.reddit-sort-option.is-selected {
+    background-color: rgba(var(--spice-rgb-text), 0.7);
+    color: var(--spice-sidebar);
+}
+.reddit-sort-option:hover {
+    background-color: rgb(var(--spice-rgb-text));
+    color: var(--spice-sidebar);
+}
