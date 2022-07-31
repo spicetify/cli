@@ -173,7 +173,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
                         key: lineNumber,
                         dir: "auto",
                         ref,
-                        onDoubleClick: (event) => {
+                        onClick: (event) => {
                             if (startTime) {
                                 Spicetify.Player.seek(startTime);
                             }
@@ -398,7 +398,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
                     className: "lyrics-lyricsContainer-LyricsLine" + (i <= activeLineIndex ? " lyrics-lyricsContainer-LyricsLine-active" : ""),
                     dir: "auto",
                     ref: isActive ? activeLineRef : null,
-                    onDoubleClick: (event) => {
+                    onClick: (event) => {
                         if (startTime) {
                             Spicetify.Player.seek(startTime);
                         }
