@@ -248,7 +248,7 @@ Spicetify.LocalStorage = {
 };
 
 Spicetify.getFontStyle = (font) => {
-    if (!font) return;
+    if (!font || !Spicetify._fontStyle) return;
     let rawStyle = Spicetify._fontStyle({ variant: font }).filter(style => typeof style === "string").join("");
     // Clean up empty rulesets
     rawStyle = rawStyle.replace(new RegExp("\\w+-\\w+:;", "g"), "").trim();
