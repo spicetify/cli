@@ -106,7 +106,9 @@ const Spicetify = {
             "SVGIcons",
             "colorExtractor",
             "test",
-            "Platform"
+            "Platform",
+            "getFontStyle",
+            "_fontStyle"
         ];
 
         const PLAYER_METHOD = [
@@ -244,6 +246,29 @@ Spicetify.LocalStorage = {
     remove: (key) => localStorage.removeItem(key),
     set: (key, value) => localStorage.setItem(key, value),
 };
+
+Spicetify.getFontStyle = (font) => {
+    if (!font) return;
+    let rawStyle = Spicetify._fontStyle({ variant: font }).filter(style => typeof style === "string").join("");
+    // Clean up empty rulesets
+    rawStyle = rawStyle.replace(new RegExp("\\w+-\\w+:;", "g"), "").trim();
+    // Split special rulesets
+    const mediaStyle = rawStyle.split("@");
+    let returnStyle = `.main-type-${font}`;
+
+    mediaStyle.map((ruleset, index) => {
+        if (index === 0) {
+            return returnStyle += `{${ruleset}}`;
+        } else {
+            if (ruleset.endsWith(";")) ruleset = ruleset.slice(0, -1);
+            ruleset = ruleset.split(")").join(`){.main-type-${font}`);
+            return returnStyle += `@${ruleset}}`;
+        }
+    });
+
+    if (returnStyle.endsWith(";")) returnStyle = returnStyle.slice(0, -1);
+    return returnStyle.replaceAll(";;", ";");
+}
 
 (function waitMouseTrap() {
     if (!Spicetify.Mousetrap) {
@@ -471,6 +496,15 @@ Spicetify.SVGIcons = {
     "x": "<path d=\"M14.354 2.353l-.708-.707L8 7.293 2.353 1.646l-.707.707L7.293 8l-5.647 5.646.707.708L8 8.707l5.646 5.647.708-.708L8.707 8z\"/>"
 };
 
+function appendFontStyle(fontName) {
+    if (document.querySelector(`style#${fontName}`)) return;
+    const fontStyle = document.createElement("style");
+    fontStyle.className = "spicetify-font";
+    fontStyle.id = fontName;
+    fontStyle.innerHTML = Spicetify.getFontStyle(fontName);
+    document.head.appendChild(fontStyle);
+}
+
 class _HTMLContextMenuItem extends HTMLLIElement {
     constructor({
         name,
@@ -490,6 +524,7 @@ class _HTMLContextMenuItem extends HTMLLIElement {
         if (icon && Spicetify.SVGIcons[icon]) {
             icon = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
         }
+        appendFontStyle("mesto");
         this.innerHTML = `
 <button class="main-contextMenu-menuItemButton ${this.disabled ? "main-contextMenu-disabled" : ""} ${this.divider ? "main-contextMenu-dividerAfter" : ""}">
     <span class="ellipsis-one-line main-type-mesto" dir="auto">${this.name}</span>
@@ -830,7 +865,7 @@ Spicetify.ContextMenu = (function () {
         } else if (props.context?.uri) {
             contextUri = props.context.uri;
         }
-        
+
         const elemList = [];
         for (const item of itemList) {
             if (!item.shouldAdd(uris, uids, contextUri)) {
@@ -942,6 +977,7 @@ Spicetify._cloneSidebarItem = function(list) {
         )
         reactObjs.push(obj);
     }
+    appendFontStyle("mestoBold");
     return reactObjs;
 }
 
@@ -959,6 +995,7 @@ class _HTMLGenericModal extends HTMLElement {
         content,
         isLarge = false,
     }) {
+        appendFontStyle("alto");
         this.innerHTML = `
 <div class="GenericModal__overlay" style="z-index: 100;">
     <div class="GenericModal" tabindex="-1" role="dialog" aria-label="${title}" aria-modal="true">
