@@ -108,7 +108,8 @@ const Spicetify = {
             "test",
             "Platform",
             "getFontStyle",
-            "_fontStyle"
+            "_fontStyle",
+            "version"
         ];
 
         const PLAYER_METHOD = [
@@ -145,7 +146,8 @@ const Spicetify = {
             "togglePlay",
             "toggleRepeat",
             "toggleShuffle",
-            "origin"
+            "origin",
+            "playUri"
         ]
 
         let count = SPICETIFY_METHOD.length;
