@@ -423,7 +423,7 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 
 	utils.ReplaceOnce(
 		&input,
-		`\(function\(\w+\)\{return \w+\.variant\?function\(\w+\)\{switch`,
+		`\(function\(\w+\)\{return \w+\.variant\?function\(\w+\)\{`,
 		`Spicetify._fontStyle=${0}`)
 
 	return input
