@@ -106,7 +106,10 @@ const Spicetify = {
             "SVGIcons",
             "colorExtractor",
             "test",
-            "Platform"
+            "Platform",
+            "getFontStyle",
+            "_fontStyle",
+            "version"
         ];
 
         const PLAYER_METHOD = [
@@ -143,7 +146,8 @@ const Spicetify = {
             "togglePlay",
             "toggleRepeat",
             "toggleShuffle",
-            "origin"
+            "origin",
+            "playUri"
         ]
 
         let count = SPICETIFY_METHOD.length;
@@ -244,6 +248,29 @@ Spicetify.LocalStorage = {
     remove: (key) => localStorage.removeItem(key),
     set: (key, value) => localStorage.setItem(key, value),
 };
+
+Spicetify.getFontStyle = (font) => {
+    if (!font || !Spicetify._fontStyle) return;
+    let rawStyle = Spicetify._fontStyle({ variant: font }).filter(style => typeof style === "string").join("");
+    // Clean up empty rulesets
+    rawStyle = rawStyle.replace(new RegExp("\\w+-\\w+:;", "g"), "").trim();
+    // Split special rulesets
+    const mediaStyle = rawStyle.split("@");
+    let returnStyle = `.main-type-${font}`;
+
+    mediaStyle.map((ruleset, index) => {
+        if (index === 0) {
+            return returnStyle += `{${ruleset}}`;
+        } else {
+            if (ruleset.endsWith(";")) ruleset = ruleset.slice(0, -1);
+            ruleset = ruleset.split(")").join(`){.main-type-${font}`);
+            return returnStyle += `@${ruleset}}`;
+        }
+    });
+
+    if (returnStyle.endsWith(";")) returnStyle = returnStyle.slice(0, -1);
+    return returnStyle.replaceAll(";;", ";");
+}
 
 (function waitMouseTrap() {
     if (!Spicetify.Mousetrap) {
@@ -470,6 +497,20 @@ Spicetify.SVGIcons = {
     "watch": "<path d=\"M4.347 1.122l-.403 1.899A2.25 2.25 0 002 5.25v5.5a2.25 2.25 0 001.944 2.23l.403 1.898c.14.654.717 1.122 1.386 1.122h4.535c.668 0 1.246-.468 1.385-1.122l.404-1.899A2.25 2.25 0 0014 10.75v-5.5a2.25 2.25 0 00-1.943-2.23l-.404-1.898A1.417 1.417 0 0010.267 0H5.734c-.67 0-1.247.468-1.386 1.122zM5.8 1.5h4.4l.319 1.5H5.48l.32-1.5zM10.52 13l-.319 1.5H5.8L5.481 13h5.038zM4.25 4.5h7.5a.75.75 0 01.75.75v5.5a.75.75 0 01-.75.75h-7.5a.75.75 0 01-.75-.75v-5.5a.75.75 0 01.75-.75z\"/>",
     "x": "<path d=\"M14.354 2.353l-.708-.707L8 7.293 2.353 1.646l-.707.707L7.293 8l-5.647 5.646.707.708L8 8.707l5.646 5.647.708-.708L8.707 8z\"/>"
 };
+
+(function appendAllFontStyle() {
+    if (!Spicetify._fontStyle) {
+        setTimeout(appendAllFontStyle, 1000);
+        return;
+    }
+    const fontList = Spicetify._fontStyle.toString().match(new RegExp('"\\w+"',"g")).map(font => font.replaceAll('"', ""));
+    const fontStyle = document.createElement("style");
+    fontStyle.className = "spicetify-font";
+    fontList.forEach(font => {
+        fontStyle.innerHTML += Spicetify.getFontStyle(font);
+    });
+    return document.head.appendChild(fontStyle);
+})()
 
 class _HTMLContextMenuItem extends HTMLLIElement {
     constructor({
@@ -830,7 +871,7 @@ Spicetify.ContextMenu = (function () {
         } else if (props.context?.uri) {
             contextUri = props.context.uri;
         }
-        
+
         const elemList = [];
         for (const item of itemList) {
             if (!item.shouldAdd(uris, uids, contextUri)) {

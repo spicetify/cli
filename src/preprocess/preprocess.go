@@ -421,6 +421,11 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		`((\w+)\.createPortal=\w+,)`,
 		`${1}Spicetify.ReactDOM=${2},`)
 
+	utils.ReplaceOnce(
+		&input,
+		`\(function\(\w+\)\{return \w+\.variant\?function\(\w+\)\{`,
+		`Spicetify._fontStyle=${0}`)
+
 	return input
 }
 
