@@ -128,6 +128,7 @@
 }
 
 .lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
+    cursor: pointer;
     transform: translateY(calc(var(--position-index) * var(--lyrics-line-height) + var(--offset)));
     transform-origin: var(--lyrics-align-text);
     transition-timing-function: cubic-bezier(0, 0, 0.58, 1);
