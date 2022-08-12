@@ -28,6 +28,7 @@
             notice.textContent = "Spotify version mismatch. Reload Spotify to apply new changes.";
             content.insertBefore(notice, content.firstChild);
 
+            newFeatures.push(feature.name);
             localStorage.setItem("spicetify-exp-features:update", JSON.stringify(newFeatures));
             overrideList.version = SpotifyVersion;
         }
