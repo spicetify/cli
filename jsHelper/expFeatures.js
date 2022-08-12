@@ -2,14 +2,18 @@
     let overrideList;
     try {
         overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
-        if (!overrideList || typeof overrideList !== "object") throw "";
+        if (!overrideList || overrideList !== Object(overrideList)) throw "";
     } catch {
         overrideList = {};
     }
 
     Spicetify.expFeatureOverride = function (feature) {
-        if (typeof feature.default === "boolean" && overrideList[feature.name] !== undefined) {
-            feature.default = overrideList[feature.name];
+        if (typeof feature.default === "boolean") {
+            if (overrideList[feature.name] === undefined) {
+                overrideList[feature.name] = { description: feature.description, value: feature.default };
+            }
+            feature.default = overrideList[feature.name].value;
+            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
         }
         return feature;
     };
@@ -50,6 +54,61 @@ button.switch {
 button.switch.disabled,
 button.switch[disabled] {
     color: rgba(var(--spice-rgb-text), .3);
+}
+button.reset {
+    box-sizing: border-box;
+    font-family:
+      var(--font-family, spotify-circular),
+      Helvetica,
+      Arial,
+      sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 700;
+    background-color: transparent;
+    border: 0px;
+    border-radius: 500px;
+    display: inline-block;
+    position: relative;
+    text-align: center;
+    text-decoration: none;
+    text-transform: none;
+    touch-action: manipulation;
+    transition-duration: 33ms;
+    transition-property:
+      background-color,
+      border-color,
+      color,
+      box-shadow,
+      filter,
+      transform;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    vertical-align: middle;
+    transform: translate3d(0px, 0px, 0px);
+    padding: 0px;
+    min-inline-size: 0px;
+    align-self: center;
+    position: relative;
+    background-color: var(--spice-text);
+    color: var(--spice-main);
+    border-radius: 500px;
+    font-size: inherit;
+    padding-block: 12px;
+    padding-inline: 32px;
+}
+@media screen and (min-width: 768px) {
+    .button.reset {
+      font-size: 1rem;
+      line-height: 1.5rem;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+}
+button.reset:hover {
+    transform: scale(1.04);
 }`;
     content.appendChild(style);
 
@@ -57,11 +116,32 @@ button.switch[disabled] {
         Spicetify.PopupModal.display({
             title: "Experimental features",
             content,
-        });
+        }),
+            (() => {
+                const resetButton = document.querySelector("button.reset");
+                if (resetButton)
+                    resetButton.onclick = () => {
+                        localStorage.removeItem("spicetify-exp-features");
+                        window.location.reload();
+                    };
+
+                const closeButton = document.querySelector("body > generic-modal button.main-trackCreditsModal-closeBtn");
+                const modalOverlay = document.querySelector("body > generic-modal > div");
+                if (closeButton && modalOverlay) {
+                    closeButton.onclick = () => location.reload();
+                    closeButton.setAttribute("style", "cursor: pointer;");
+                    modalOverlay.onclick = (e) => {
+                        // If clicked on overlay, also reload
+                        if (e.target === modalOverlay) {
+                            location.reload();
+                        }
+                    };
+                }
+            })();
     }).register();
 
     (function waitForRemoteConfigResolver() {
-        let resolver = Spicetify.Platform?.RemoteConfigResolver;
+        /* let resolver = Spicetify.Platform?.RemoteConfigResolver;
         if (!resolver) {
             setTimeout(waitForRemoteConfigResolver, 500);
             return;
@@ -75,12 +155,12 @@ button.switch[disabled] {
             }
 
             resolver.activeProperties[propName].value = overrideList[propName];
-        }
+        } */
 
         function changeValue(name, value) {
-            overrideList[name] = value;
+            overrideList[name].value = value;
             localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-            resolver.activeProperties[name].value = value;
+            // resolver.activeProperties[name].value = value;
         }
 
         function createSlider(name, desc, defaultVal) {
@@ -94,7 +174,7 @@ button.switch[disabled] {
     </svg>
 </button></div>`;
 
-            const slider = container.querySelector("button");
+            const slider = container.querySelector("button.switch");
             slider.classList.toggle("disabled", !defaultVal);
 
             slider.onclick = () => {
@@ -106,12 +186,28 @@ button.switch[disabled] {
             return container;
         }
 
-        for (const propIndex in resolver.properties) {
-            const prop = resolver.properties[propIndex];
+        content.innerHTML += `<p>Experimental features not found/is initializing. Try re-opening this modal.</p>`;
 
-            if (prop.type !== "bool") continue;
+        let expFeaturesLength = 0;
+        Object.keys(overrideList).forEach((name) => {
+            const feature = overrideList[name];
+            content.querySelector("p")?.remove();
+            expFeaturesLength++;
 
-            content.appendChild(createSlider(prop.name, prop.description, resolver.activeProperties[prop.name].value));
-        }
+            if (overrideList[name]?.description === undefined) return;
+
+            content.appendChild(createSlider(name, feature.description, feature.value));
+
+            if (expFeaturesLength === Object.keys(overrideList).length) {
+                const settingRow = document.createElement("div");
+                settingRow.classList.add("setting-row");
+                settingRow.innerHTML += `
+                    <label class="col description">Clear all cached features and preferences</label>
+                    <div class="col action">
+                        <button class="reset">Reset</button>
+                    </div>`;
+                content.appendChild(settingRow);
+            }
+        });
     })();
 })();
