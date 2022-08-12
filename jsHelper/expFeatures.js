@@ -23,14 +23,16 @@
         if (!overrideList.version) overrideList.version = SpotifyVersion;
 
         if (overrideList.version !== SpotifyVersion) {
-            const notice = document.createElement("p");
-            notice.style.cssText = "font-weight: bold;";
-            notice.textContent = "Spotify version mismatch. Reload Spotify to apply new changes.";
-            content.insertBefore(notice, content.firstChild);
+            if (!content.querySelector("p.notice")) {
+                const notice = document.createElement("p");
+                notice.className = "notice";
+                notice.style.cssText = "font-weight: bold;";
+                notice.textContent = "Spotify version mismatch. Reload Spotify to apply new changes.";
+                content.insertBefore(notice, content.firstChild);
+            }
 
             newFeatures.push(feature.name);
             localStorage.setItem("spicetify-exp-features:update", JSON.stringify(newFeatures));
-            overrideList.version = SpotifyVersion;
         }
 
         if (typeof feature.default === "boolean") {
@@ -171,15 +173,14 @@ button.reset:hover {
             setTimeout(waitForRemoteConfigResolver, 500);
             return;
         } */
-
+        const listLength = Object.keys(overrideList).length - 1;
         Object.keys(overrideList).forEach((key, index) => {
             if (newFeatures.length > 0 && !newFeatures.includes(key) && key !== "version") {
-                console.log(key);
                 delete overrideList[key];
-                overrideList.version = SpotifyVersion;
+                console.log(`Removed ${key} from override list`);
                 localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
             }
-            if (index === Object.keys(overrideList).length - 1) {
+            if (index === listLength) {
                 newFeatures = [];
                 localStorage.removeItem("spicetify-exp-features:update");
             }
@@ -224,6 +225,10 @@ button.reset:hover {
                 setTimeout(showOptions, 500);
                 return;
             }
+
+            overrideList.version = SpotifyVersion;
+            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+
             Object.keys(overrideList).forEach((name) => {
                 const feature = overrideList[name];
                 content.querySelector("p.placeholder")?.remove();
