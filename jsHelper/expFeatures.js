@@ -1,5 +1,7 @@
 (function () {
-    let overrideList;
+    let overrideList,
+        newFeatures,
+        hooksPatched = false;
     try {
         overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
         if (!overrideList || overrideList !== Object(overrideList)) throw "";
@@ -7,7 +9,29 @@
         overrideList = {};
     }
 
+    try {
+        newFeatures = JSON.parse(localStorage.getItem("spicetify-exp-features:update"));
+        if (!newFeatures || newFeatures !== Object(newFeatures)) throw "";
+    } catch {
+        newFeatures = [];
+    }
+
+    const SpotifyVersion = navigator.userAgent.match("Spotify/(.+) ")[1];
+
     Spicetify.expFeatureOverride = function (feature) {
+        hooksPatched = true;
+        if (!overrideList.version) overrideList.version = SpotifyVersion;
+
+        if (overrideList.version !== SpotifyVersion) {
+            const notice = document.createElement("p");
+            notice.style.cssText = "font-weight: bold;";
+            notice.textContent = "Spotify version mismatch. Reload Spotify to apply new changes.";
+            content.insertBefore(notice, content.firstChild);
+
+            localStorage.setItem("spicetify-exp-features:update", JSON.stringify(newFeatures));
+            overrideList.version = SpotifyVersion;
+        }
+
         if (typeof feature.default === "boolean") {
             if (overrideList[feature.name] === undefined) {
                 overrideList[feature.name] = { description: feature.description, value: feature.default };
@@ -145,17 +169,20 @@ button.reset:hover {
         if (!resolver) {
             setTimeout(waitForRemoteConfigResolver, 500);
             return;
-        }
-
-        for (const propName in overrideList) {
-            if (!resolver.activeProperties[propName]) {
-                delete overrideList[propName];
-                localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-                continue;
-            }
-
-            resolver.activeProperties[propName].value = overrideList[propName];
         } */
+
+        Object.keys(overrideList).forEach((key, index) => {
+            if (newFeatures.length > 0 && !newFeatures.includes(key) && key !== "version") {
+                console.log(key);
+                delete overrideList[key];
+                overrideList.version = SpotifyVersion;
+                localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+            }
+            if (index === Object.keys(overrideList).length - 1) {
+                newFeatures = [];
+                localStorage.removeItem("spicetify-exp-features:update");
+            }
+        });
 
         function changeValue(name, value) {
             overrideList[name].value = value;
@@ -186,28 +213,36 @@ button.reset:hover {
             return container;
         }
 
-        content.innerHTML += `<p>Experimental features not found/is initializing. Try re-opening this modal.</p>`;
+        // Just in case
+        content.innerHTML += `<p class="placeholder">Experimental features not found/is initializing. Try re-opening this modal.</p>`;
 
         let expFeaturesLength = 0;
-        Object.keys(overrideList).forEach((name) => {
-            const feature = overrideList[name];
-            content.querySelector("p")?.remove();
-            expFeaturesLength++;
+        (function showOptions() {
+            // Don't show options if hooks aren't patched/loaded
+            if (!hooksPatched) {
+                setTimeout(showOptions, 500);
+                return;
+            }
+            Object.keys(overrideList).forEach((name) => {
+                const feature = overrideList[name];
+                content.querySelector("p.placeholder")?.remove();
+                expFeaturesLength++;
 
-            if (overrideList[name]?.description === undefined) return;
+                if (overrideList[name]?.description === undefined) return;
 
-            content.appendChild(createSlider(name, feature.description, feature.value));
+                content.appendChild(createSlider(name, feature.description, feature.value));
 
-            if (expFeaturesLength === Object.keys(overrideList).length) {
-                const settingRow = document.createElement("div");
-                settingRow.classList.add("setting-row");
-                settingRow.innerHTML += `
+                if (expFeaturesLength === Object.keys(overrideList).length) {
+                    const settingRow = document.createElement("div");
+                    settingRow.classList.add("setting-row");
+                    settingRow.innerHTML += `
                     <label class="col description">Clear all cached features and preferences</label>
                     <div class="col action">
                         <button class="reset">Reset</button>
                     </div>`;
-                content.appendChild(settingRow);
-            }
-        });
+                    content.appendChild(settingRow);
+                }
+            });
+        })();
     })();
 })();
