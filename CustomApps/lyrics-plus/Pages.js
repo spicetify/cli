@@ -166,6 +166,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
                     {
                         className,
                         style: {
+                            cursor: "pointer",
                             "--position-index": animationIndex,
                             "--animation-index": (animationIndex < 0 ? 0 : animationIndex) + 1,
                             "--blur-index": Math.abs(animationIndex),
@@ -396,6 +397,9 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
                 "p",
                 {
                     className: "lyrics-lyricsContainer-LyricsLine" + (i <= activeLineIndex ? " lyrics-lyricsContainer-LyricsLine-active" : ""),
+                    style: {
+                        cursor: "pointer",
+                    },
                     dir: "auto",
                     ref: isActive ? activeLineRef : null,
                     onClick: (event) => {
