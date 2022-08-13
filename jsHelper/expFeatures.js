@@ -23,14 +23,6 @@
         if (!overrideList.version) overrideList.version = SpotifyVersion;
 
         if (overrideList.version !== SpotifyVersion) {
-            if (!content.querySelector("p.notice")) {
-                const notice = document.createElement("p");
-                notice.className = "notice";
-                notice.style.cssText = "font-weight: bold;";
-                notice.textContent = "Spotify version mismatch. Reload Spotify to apply new changes.";
-                content.insertBefore(notice, content.firstChild);
-            }
-
             newFeatures.push(feature.name);
             localStorage.setItem("spicetify-exp-features:update", JSON.stringify(newFeatures));
         }
@@ -138,6 +130,7 @@ button.reset:hover {
     transform: scale(1.04);
 }`;
     content.appendChild(style);
+    content.innerHTML += `<p class="placeholder">Experimental features not found/is initializing. Try re-opening this modal.</p>`;
 
     new Spicetify.Menu.Item("Experimental features", false, () => {
         Spicetify.PopupModal.display({
@@ -145,13 +138,6 @@ button.reset:hover {
             content,
         }),
             (() => {
-                const resetButton = document.querySelector("button.reset");
-                if (resetButton)
-                    resetButton.onclick = () => {
-                        localStorage.removeItem("spicetify-exp-features");
-                        window.location.reload();
-                    };
-
                 const closeButton = document.querySelector("body > generic-modal button.main-trackCreditsModal-closeBtn");
                 const modalOverlay = document.querySelector("body > generic-modal > div");
                 if (closeButton && modalOverlay) {
@@ -168,11 +154,12 @@ button.reset:hover {
     }).register();
 
     (function waitForRemoteConfigResolver() {
-        /* let resolver = Spicetify.Platform?.RemoteConfigResolver;
-        if (!resolver) {
+        // Don't show options if hooks aren't patched/loaded
+        if (!hooksPatched) {
             setTimeout(waitForRemoteConfigResolver, 500);
             return;
-        } */
+        }
+
         const listLength = Object.keys(overrideList).length - 1;
         Object.keys(overrideList).forEach((key, index) => {
             if (newFeatures.length > 0 && !newFeatures.includes(key) && key !== "version") {
@@ -185,6 +172,11 @@ button.reset:hover {
                 localStorage.removeItem("spicetify-exp-features:update");
             }
         });
+
+        if (overrideList.version !== SpotifyVersion) {
+            overrideList.version = SpotifyVersion;
+            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+        }
 
         function changeValue(name, value) {
             overrideList[name].value = value;
@@ -215,40 +207,32 @@ button.reset:hover {
             return container;
         }
 
-        // Just in case
-        content.innerHTML += `<p class="placeholder">Experimental features not found/is initializing. Try re-opening this modal.</p>`;
-
         let expFeaturesLength = 0;
-        (function showOptions() {
-            // Don't show options if hooks aren't patched/loaded
-            if (!hooksPatched) {
-                setTimeout(showOptions, 500);
-                return;
-            }
 
-            overrideList.version = SpotifyVersion;
-            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+        Object.keys(overrideList).forEach((name) => {
+            const feature = overrideList[name];
+            content.querySelector("p.placeholder")?.remove();
+            expFeaturesLength++;
 
-            Object.keys(overrideList).forEach((name) => {
-                const feature = overrideList[name];
-                content.querySelector("p.placeholder")?.remove();
-                expFeaturesLength++;
+            if (overrideList[name]?.description === undefined) return;
 
-                if (overrideList[name]?.description === undefined) return;
+            content.appendChild(createSlider(name, feature.description, feature.value));
 
-                content.appendChild(createSlider(name, feature.description, feature.value));
-
-                if (expFeaturesLength === Object.keys(overrideList).length) {
-                    const settingRow = document.createElement("div");
-                    settingRow.classList.add("setting-row");
-                    settingRow.innerHTML += `
+            if (expFeaturesLength === Object.keys(overrideList).length) {
+                const settingRow = document.createElement("div");
+                settingRow.classList.add("setting-row");
+                settingRow.innerHTML += `
                     <label class="col description">Clear all cached features and preferences</label>
                     <div class="col action">
                         <button class="reset">Reset</button>
                     </div>`;
-                    content.appendChild(settingRow);
-                }
-            });
-        })();
+                const resetButton = settingRow.querySelector("button.reset");
+                resetButton.onclick = () => {
+                    localStorage.removeItem("spicetify-exp-features");
+                    window.location.reload();
+                };
+                content.appendChild(settingRow);
+            }
+        });
     })();
 })();
