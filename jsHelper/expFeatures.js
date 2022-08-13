@@ -75,56 +75,13 @@ button.switch[disabled] {
     color: rgba(var(--spice-rgb-text), .3);
 }
 button.reset {
-    box-sizing: border-box;
-    font-family:
-      var(--font-family, spotify-circular),
-      Helvetica,
-      Arial,
-      sans-serif;
-    -webkit-tap-highlight-color: transparent;
-    font-size: 1rem;
-    line-height: 1.5rem;
     font-weight: 700;
-    background-color: transparent;
-    border: 0px;
-    border-radius: 500px;
-    display: inline-block;
-    position: relative;
-    text-align: center;
-    text-decoration: none;
-    text-transform: none;
-    touch-action: manipulation;
-    transition-duration: 33ms;
-    transition-property:
-      background-color,
-      border-color,
-      color,
-      box-shadow,
-      filter,
-      transform;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    user-select: none;
-    vertical-align: middle;
-    transform: translate3d(0px, 0px, 0px);
-    padding: 0px;
-    min-inline-size: 0px;
-    align-self: center;
-    position: relative;
     background-color: var(--spice-text);
     color: var(--spice-main);
     border-radius: 500px;
     font-size: inherit;
     padding-block: 12px;
     padding-inline: 32px;
-}
-@media screen and (min-width: 768px) {
-    .button.reset {
-      font-size: 1rem;
-      line-height: 1.5rem;
-      text-transform: none;
-      letter-spacing: normal;
-    }
 }
 button.reset:hover {
     transform: scale(1.04);
