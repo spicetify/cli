@@ -121,6 +121,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 
     const rawLyrics = lyrics
         .map((line) => {
+            if (!line.startTime) return line.text;
             let startTimeString = "";
 
             if (!isNaN(line.startTime)) {
@@ -387,6 +388,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 
     const rawLyrics = lyrics
         .map((line) => {
+            if (!line.startTime) return line.text;
             let startTimeString = "";
 
             if (!isNaN(line.startTime)) {
