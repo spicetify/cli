@@ -427,7 +427,6 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
             className: "lyrics-lyricsContainer-LyricsUnsyncedPadding",
         }),
         padded.map(({ text, startTime }, i) => {
-            console.log(startTime);
             if (i == 0) {
                 return react.createElement(IdlingIndicator, {
                     isActive: activeLineIndex == 0,
