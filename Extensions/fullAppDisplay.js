@@ -587,7 +587,7 @@ body.video-full-screen.video-full-screen--hide-ui {
                                         },
                                         react.createElement(DisplayIcon, {
                                             icon: Spicetify.SVGIcons[this.state.heart ? "heart-active" : "heart"],
-                                            size: 30,
+                                            size: 50,
                                         })
                                     )
                                 ),
