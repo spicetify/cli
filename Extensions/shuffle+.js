@@ -297,7 +297,7 @@
      * Replace queue and play first track immediately.
      * @param {string[]} list
      */
-    async function playList(list, context) {
+    async function playList(list, context = null) {
         if (list[0] === "playedstation") {
             return;
         }
@@ -310,7 +310,7 @@
         }
         list.push("spotify:delimiter");
 
-        Spicetify.Platform.PlayerAPI.clearQueue();
+        await Spicetify.Platform.PlayerAPI.clearQueue();
 
         const isQueue = !context;
 
