@@ -81,7 +81,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 15px;
-    backdrop-filter: brightness(0.8);
+    backdrop-filter: brightness(0.75);
 }
 #fad-heart {
     background-color: transparent;
