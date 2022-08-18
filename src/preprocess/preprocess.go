@@ -416,10 +416,19 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 	}
 };0`)
 
-	utils.ReplaceOnce(
-		&input,
-		`((\w+)\.createPortal=\w+,)`,
-		`${1}Spicetify.ReactDOM=${2},`)
+	// ReactDOM fallback if string doesn't match
+	match, _ := regexp.MatchString(`((\w+)\.createPortal=\w+,)`, input)
+	if match {
+		utils.ReplaceOnce(
+			&input,
+			`((\w+)\.createPortal=\w+,)`,
+			`${1}Spicetify.ReactDOM=${2},`)
+	} else {
+		utils.ReplaceOnce(
+			&input,
+			`(\w+)=(\{createPortal)`,
+			`${1}=Spicetify.ReactDOM=${2}`)
+	}
 
 	utils.ReplaceOnce(
 		&input,
