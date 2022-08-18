@@ -1,6 +1,6 @@
 const Spicetify = {
     get CosmosAsync() {return Spicetify.Player.origin?._cosmos},
-    get Queue() {return Spicetify.Player.origin?._queue?._state},
+    get Queue() {return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue},
     Player: {
         addEventListener: (type, callback) => {
             if (!(type in Spicetify.Player.eventListeners)) {
