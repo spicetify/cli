@@ -69,6 +69,26 @@
     backdrop-filter: blur(6px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
+#fad-art-overlay {
+    display: none;
+}
+#fad-art:hover #fad-art-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    backdrop-filter: brightness(0.75);
+}
+#fad-heart {
+    background-color: transparent;
+    border: 0;
+    color: #fff;
+    padding: 0 5px;
+}
 #fad-progress-container {
     width: 100%;
     display: flex;
@@ -333,6 +353,7 @@ body.video-full-screen.video-full-screen--hide-ui {
                 artist: "",
                 album: "",
                 cover: "",
+                heart: Spicetify.Player.getHeart(),
             };
             this.currTrackImg = new Image();
             this.nextTrackImg = new Image();
@@ -550,7 +571,29 @@ body.video-full-screen.video-full-screen--hide-ui {
                                         backgroundImage: this.state.cover,
                                     },
                                 },
-                                react.createElement("div", { id: "fad-art-inner" })
+                                react.createElement(
+                                    "div",
+                                    {
+                                        id: "fad-art-overlay",
+                                    },
+                                    react.createElement(
+                                        "button",
+                                        {
+                                            id: "fad-heart",
+                                            onClick: () => {
+                                                Spicetify.Player.toggleHeart();
+                                                this.setState({ heart: !this.state.heart });
+                                            },
+                                        },
+                                        react.createElement(DisplayIcon, {
+                                            icon: Spicetify.SVGIcons[this.state.heart ? "heart-active" : "heart"],
+                                            size: 50,
+                                        })
+                                    )
+                                ),
+                                react.createElement("div", {
+                                    id: "fad-art-inner",
+                                })
                             )
                         ),
                         react.createElement(
