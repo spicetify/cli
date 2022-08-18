@@ -290,7 +290,7 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)+(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
+	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$\.]+\([\w$\.]+\).)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)+(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
 		splitted := strings.Split(found[1], ",")
