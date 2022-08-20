@@ -246,13 +246,16 @@ func winXPrefs() string {
 
 	stdOut, err := cmd.CombinedOutput()
 	if err == nil {
-		return filepath.Join(
+		path := filepath.Join(
 			os.Getenv("LOCALAPPDATA"),
 			"Packages",
 			strings.TrimSpace(string(stdOut)),
 			"LocalState",
 			"Spotify",
 			"prefs")
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
 	}
 
 	return ""
