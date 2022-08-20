@@ -189,7 +189,8 @@ func FindPrefFilePath() string {
 		path := winPrefs()
 		if len(path) == 0 && len(winXApp()) != 0 {
 			path = winXPrefs()
-		} else if len(path) == 0 {
+		}
+		if len(path) == 0 {
 			PrintError("No valid path options found, ensure you have Spotify installed and have ran it for at least 30 seconds.")
 		}
 		return path
@@ -246,13 +247,16 @@ func winXPrefs() string {
 
 	stdOut, err := cmd.CombinedOutput()
 	if err == nil {
-		return filepath.Join(
+		path := filepath.Join(
 			os.Getenv("LOCALAPPDATA"),
 			"Packages",
 			strings.TrimSpace(string(stdOut)),
 			"LocalState",
 			"Spotify",
 			"prefs")
+		if _, err := os.Stat(path); err == nil {
+			return path
+		}
 	}
 
 	return ""
