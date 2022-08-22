@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -16,7 +17,13 @@ func SetDevTools() {
 
 	switch runtime.GOOS {
 	case "windows":
-		filePath = os.Getenv("LOCALAPPDATA") + "\\Spotify\\offline.bnk"
+		appFilePath := os.Getenv("LOCALAPPDATA") + "\\Spotify\\offline.bnk"
+		if _, err := os.Stat(appFilePath); err == nil {
+			filePath = appFilePath
+		} else if len(utils.WinXApp()) != 0 && len(utils.WinXPrefs()) != 0 {
+			dir, _ := filepath.Split(utils.WinXPrefs())
+			filePath = filepath.Join(dir, "offline.bnk")
+		}
 	case "linux":
 		{
 			homePath := os.Getenv("HOME")
@@ -39,7 +46,8 @@ func SetDevTools() {
 	}
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Fatal("Can't find the offline.bnk file!")
+		utils.PrintError("Can't find \"offline.bnk\"")
+		os.Exit(1)
 	}
 
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0644)

@@ -166,7 +166,7 @@ func FindAppPath() string {
 	case "windows":
 		path := winApp()
 		if len(path) == 0 {
-			path = winXApp()
+			path = WinXApp()
 		}
 		return path
 
@@ -187,8 +187,8 @@ func FindPrefFilePath() string {
 	switch runtime.GOOS {
 	case "windows":
 		path := winPrefs()
-		if len(path) == 0 && len(winXApp()) != 0 {
-			path = winXPrefs()
+		if len(path) == 0 && len(WinXApp()) != 0 {
+			path = WinXPrefs()
 		}
 		if len(path) == 0 {
 			PrintError("No valid path options found, ensure you have Spotify installed and have ran it for at least 30 seconds.")
@@ -223,7 +223,7 @@ func winPrefs() string {
 	return ""
 }
 
-func winXApp() string {
+func WinXApp() string {
 	ps, _ := exec.LookPath("powershell.exe")
 	cmd := exec.Command(ps,
 		"-NoProfile",
@@ -238,7 +238,7 @@ func winXApp() string {
 	return ""
 }
 
-func winXPrefs() string {
+func WinXPrefs() string {
 	ps, _ := exec.LookPath("powershell.exe")
 	cmd := exec.Command(ps,
 		"-NoProfile",
