@@ -46,7 +46,8 @@ func SetDevTools() {
 	}
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		log.Fatal("Can't find the offline.bnk file!")
+		utils.PrintError("Can't find \"offline.bnk\"")
+		os.Exit(1)
 	}
 
 	file, err := os.OpenFile(filePath, os.O_RDWR, 0644)
