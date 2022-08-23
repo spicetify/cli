@@ -878,14 +878,10 @@ button.switch.small {
                     LocalStorage.set("popup-lyrics:blur-size", state);
                 }
             );
-            const delay = createOptionsInput(
-                "Delay",
-                String(userConfigs.delay),
-                (state) => {
-                    userConfigs.delay = Number(state);
-                    LocalStorage.set("popup-lyrics:delay", state);
-                }
-            );
+            const delay = createOptionsInput("Delay", String(userConfigs.delay), (state) => {
+                userConfigs.delay = Number(state);
+                LocalStorage.set("popup-lyrics:delay", state);
+            });
 
             const serviceHeader = document.createElement("h2");
             serviceHeader.innerText = "Services";
@@ -1022,13 +1018,13 @@ button.switch.small {
         />
     </div>
     </div>`;
-    
+
         const input = container.querySelector("#popup-lyrics-delay-input");
         input.value = defaultValue;
-        input.onchange  = (e) => {
+        input.onchange = (e) => {
             callback(e.target.value);
         };
-    
+
         return container;
     }
 
