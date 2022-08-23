@@ -261,6 +261,7 @@ function PopupLyrics() {
         blurSize: Number(LocalStorage.get("popup-lyrics:blur-size")),
         fontFamily: LocalStorage.get("popup-lyrics:font-family") || "spotify-circular",
         ratio: LocalStorage.get("popup-lyrics:ratio") || "11",
+        delay: Number(LocalStorage.get("popup-lyrics:delay")),
         services: {
             netease: {
                 on: boolLocalStorage("popup-lyrics:services:netease:on"),
@@ -704,7 +705,7 @@ function PopupLyrics() {
         }
 
         const audio = {
-            currentTime: Player.getProgress() / 1000,
+            currentTime: (Player.getProgress() - Number(options.delay)) / 1000,
             duration: Player.getDuration() / 1000,
         };
 
@@ -807,7 +808,12 @@ button.switch.small {
     padding: 0 5px;
     height: 32px;
     border: 0;
-}`;
+}
+#popup-lyrics-delay-input {
+    background-color: rgba(var(--spice-rgb-shadow), .7);
+    color: var(--spice-text);
+}
+`;
             const optionHeader = document.createElement("h2");
             optionHeader.innerText = "Options";
             const smooth = createSlider("Smooth scrolling", userConfigs.smooth, (state) => {
@@ -872,6 +878,10 @@ button.switch.small {
                     LocalStorage.set("popup-lyrics:blur-size", state);
                 }
             );
+            const delay = createOptionsInput("Delay", String(userConfigs.delay), (state) => {
+                userConfigs.delay = Number(state);
+                LocalStorage.set("popup-lyrics:delay", state);
+            });
 
             const serviceHeader = document.createElement("h2");
             serviceHeader.innerText = "Services";
@@ -939,7 +949,7 @@ button.switch.small {
             });
             stackServiceElements();
 
-            configContainer.append(style, optionHeader, smooth, center, cover, blurSize, fontSize, ratio, serviceHeader, serviceContainer);
+            configContainer.append(style, optionHeader, smooth, center, cover, blurSize, fontSize, ratio, delay, serviceHeader, serviceContainer);
         }
         Spicetify.PopupModal.display({
             title: "Popup Lyrics",
@@ -991,6 +1001,27 @@ button.switch.small {
         const select = container.querySelector("select");
         select.value = defaultValue;
         select.onchange = (e) => {
+            callback(e.target.value);
+        };
+
+        return container;
+    }
+    function createOptionsInput(name, defaultValue, callback) {
+        const container = document.createElement("div");
+        container.innerHTML = `
+    <div class="setting-row">
+    <label class="col description">${name}</label>
+    <div class="col action">
+        <input
+          id="popup-lyrics-delay-input"
+          type="number"
+        />
+    </div>
+    </div>`;
+
+        const input = container.querySelector("#popup-lyrics-delay-input");
+        input.value = defaultValue;
+        input.onchange = (e) => {
             callback(e.target.value);
         };
 
