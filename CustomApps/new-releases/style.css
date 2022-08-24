@@ -89,3 +89,39 @@ option {
 .new-releases-cardSubHeader {
     color: var(--spice-subtext);
 }
+.new-releases-header + .main-gridContainer-gridContainer .main-card-card .main-playButton-PlayButton button {
+    -webkit-tap-highlight-color: transparent;
+    background-color: transparent;
+    border: 0px;
+    border-radius: 500px;
+    display: inline-block;
+    position: relative;
+    touch-action: manipulation;
+    transition-duration: 33ms;
+    transition-property: background-color, border-color, color, box-shadow, filter, transform;
+    user-select: none;
+    vertical-align: middle;
+    transform: translate3d(0px, 0px, 0px);
+    padding: 0px;
+    min-inline-size: 0px;
+    align-self: center;
+}
+.new-releases-header + .main-gridContainer-gridContainer .main-card-card .main-playButton-PlayButton span {
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    background-color: var(--spice-button-active);
+    color: var(--spice-sidebar);
+    display: flex;
+    border-radius: 500px;
+    font-size: inherit;
+    min-block-size: 48px;
+    -webkit-box-align: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    justify-content: center;
+    inline-size: 48px;
+    block-size: 48px;
+}
+.new-releases-header + .main-gridContainer-gridContainer .main-card-card .main-playButton-PlayButton span:hover {
+    transform: scale(1.04);
+}

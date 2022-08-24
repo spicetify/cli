@@ -137,7 +137,7 @@ class Card extends react.Component {
                                 className: "main-card-PlayButtonContainer",
                             },
                             react.createElement(
-                                "button",
+                                "div",
                                 {
                                     className: "main-playButton-PlayButton main-playButton-primary",
                                     "aria-label": Spicetify.Locale.get("play"),
@@ -145,18 +145,26 @@ class Card extends react.Component {
                                     onClick: this.play.bind(this),
                                 },
                                 react.createElement(
-                                    "svg",
-                                    {
-                                        height: "16",
-                                        role: "img",
-                                        width: "16",
-                                        viewBox: "0 0 24 24",
-                                        "aria-hidden": "true",
-                                    },
-                                    react.createElement("polygon", {
-                                        points: "21.57 12 5.98 3 5.98 21 21.57 12",
-                                        fill: "currentColor",
-                                    })
+                                    "button",
+                                    null,
+                                    react.createElement(
+                                        "span",
+                                        null,
+                                        react.createElement(
+                                            "svg",
+                                            {
+                                                height: "24",
+                                                role: "img",
+                                                width: "24",
+                                                viewBox: "0 0 24 24",
+                                                "aria-hidden": "true",
+                                            },
+                                            react.createElement("polygon", {
+                                                points: "21.57 12 5.98 3 5.98 21 21.57 12",
+                                                fill: "currentColor",
+                                            })
+                                        )
+                                    )
                                 )
                             )
                         )
