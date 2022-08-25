@@ -347,7 +347,7 @@ Spicetify.React.useEffect(() => {
 	// React Component: Album Context Menu items
 	utils.Replace(
 		&input,
-		`(const \w+)(=\w+\.memo\(\(function\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)\{(?:const\{spec:\w+\}=\(0,[\w\.]+\)\(\w+\);)?return \w+\.createElement\([\w\.]+,\{value:"album"\})`,
+		`(const \w+)(=\w+\.memo\(\(function\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)\{(?:const\{spec:\w+\}=[\(\)\w0-9,.]+;)?return \w+\.createElement\([\w\.]+,\{value:"album"\})`,
 		`${1}=Spicetify.ReactComponent.AlbumMenu${2}`)
 
 	// React Component: Show Context Menu items
@@ -359,7 +359,7 @@ Spicetify.React.useEffect(() => {
 	// React Component: Artist Context Menu items
 	utils.Replace(
 		&input,
-		`(const \w+)(=\w+\.memo\(\(function\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)\{(?:const\{spec:\w+\}=\(0,[\w\.]+\)\(\w+\);)?return \w+\.createElement\([\w\.]+,\{value:"artist"\})`,
+		`(const \w+)(=\w+\.memo\(\(function\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)\{(?:const\{spec:\w+\}=[\(\)\w0-9,.]+;)?return \w+\.createElement\([\w\.]+,\{value:"artist"\})`,
 		`${1}=Spicetify.ReactComponent.ArtistMenu${2}`)
 
 	// React Component: Playlist Context Menu items
