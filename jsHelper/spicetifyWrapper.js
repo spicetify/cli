@@ -217,7 +217,7 @@ const Spicetify = {
     Spicetify.addToQueue = (uri) => {
         return Spicetify.Player.origin._queue.addToQueue(uri);
     };
-    Spicetify.removeFromQueue = async (uri) => {
+    Spicetify.removeFromQueue = (uri) => {
         return Spicetify.Player.origin._queue.removeFromQueue(uri);
     };
 })();
