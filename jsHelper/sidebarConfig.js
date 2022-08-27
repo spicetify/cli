@@ -43,6 +43,16 @@
             ele.dataset.id = link.pathname;
         }
         ele.classList.add("personal-library");
+        new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === "attributes" && mutation.attributeName === "class") {
+                    if (!mutation.target.classList.contains("personal-library")) {
+                        mutation.target.classList.add("personal-library");
+                    }
+                }
+            }
+        }).observe(ele, { attributes: true, attributeFilter: ["class"] });
+
         buttons.push(ele);
     }
 
