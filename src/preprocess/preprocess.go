@@ -231,7 +231,7 @@ func colorVariableReplaceForJS(content string) string {
 }
 
 func disableSentry(input string) string {
-	utils.Replace(&input, `prototype\.bindClient=function\(\w+\)\{`, "${0}return;")
+	utils.Replace(&input, `bindClient\(\w+\)\{`, "${0}return;")
 	return input
 }
 
