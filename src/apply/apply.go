@@ -311,7 +311,7 @@ func insertExpFeatures(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		utils.ReplaceOnce(
 			&content,
-			`(function \w+\((\w+)\)\{)(const \w+\=\w\.name;if\("internal")`,
+			`(function \w+\((\w+)\)\{)(\w+ \w+=\w\.name;if\("internal")`,
 			`${1}${2}=Spicetify.expFeatureOverride(${2});${3}`)
 		return content
 	})
