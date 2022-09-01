@@ -214,8 +214,12 @@ const Spicetify = {
         Spicetify.Player.dispatchEvent(event);
     }, 100);
 
-    Spicetify.addToQueue = Spicetify.Player.origin._queue.addToQueue;
-    Spicetify.removeFromQueue = Spicetify.Player.origin._queue.removeFromQueue;
+    Spicetify.addToQueue = (uri) => {
+        return Spicetify.Player.origin._queue.addToQueue(uri);
+    };
+    Spicetify.removeFromQueue = (uri) => {
+        return Spicetify.Player.origin._queue.removeFromQueue(uri);
+    };
 })();
 
 Spicetify.getAudioData = async (uri) => {
