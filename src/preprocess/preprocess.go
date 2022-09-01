@@ -341,31 +341,31 @@ Spicetify.React.useEffect(() => {
 	// React Component: Context Menu - Menu Item
 	utils.Replace(
 		&input,
-		`\=\(\{children:\w+\,icon:\w+,disabled:\w+`,
+		`=(?:function\(\w+\)|\(|[\w\=\>]*)?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:children|icon|disabled)[:\w]*,){3,}`,
 		`=Spicetify.ReactComponent.MenuItem${0}`)
 
 	// React Component: Album Context Menu items
 	utils.Replace(
 		&input,
-		`(const \w+)(=\w+\(\)\.memo\(\(\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)=>\w+\(\)\.createElement\([\w\.]+,\{value:"album"\})`,
+		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function\([\{\w\}:,]+\)|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w=\(\).,]*;?(?:return |=>)\w+[\(\)]?\.createElement\([\w\.]+,\{value:"album"\})`,
 		`${1}=Spicetify.ReactComponent.AlbumMenu${2}`)
 
 	// React Component: Show Context Menu items
 	utils.Replace(
 		&input,
-		`(const \w+)(=\w+\(\)\.memo\(\(\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)=>\w+\(\)\.createElement\([\w\.]+,\{value:"show"\})`,
+		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function\([\{\w\}:,]+\)|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w=\(\).,]*;?(?:return |=>)\w+[\(\)]?\.createElement\([\w\.]+,\{value:"show"\})`,
 		`${1}=Spicetify.ReactComponent.PodcastShowMenu${2}`)
 
 	// React Component: Artist Context Menu items
 	utils.Replace(
 		&input,
-		`(const \w+)(=\w+\(\)\.memo\(\(\(\{uri:\w+,sharingInfo:\w+,onRemoveCallback:\w+\}\)=>\w+\(\)\.createElement\([\w\.]+,\{value:"artist"\})`,
+		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function\([\{\w\}:,]+\)|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w=\(\).,]*;?(?:return |=>)\w+[\(\)]?\.createElement\([\w\.]+,\{value:"artist"\})`,
 		`${1}=Spicetify.ReactComponent.ArtistMenu${2}`)
 
 	// React Component: Playlist Context Menu items
 	utils.Replace(
 		&input,
-		`(const \w+)(=\w+\(\)\.memo\(\(\(\{uri:\w+,onRemoveCallback:\w+\}\))`,
+		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function\([\{\w\}:,]+\)|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|isEnhanced|onRemoveCallback)[:\w]*,?){3,})`,
 		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
 
 	// Locale
