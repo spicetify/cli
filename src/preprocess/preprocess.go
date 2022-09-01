@@ -290,7 +290,7 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$\.]+\([\w$\.]+\).)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)+(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
+	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$\.]+\([\w$\.]+\).)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
 		splitted := strings.Split(found[1], ",")
@@ -329,8 +329,8 @@ Spicetify.React.useEffect(() => {
 	// React Component: Context Menu and Right Click Menu
 	utils.Replace(
 		&input,
-		`=(?:function\()?(\w+)(?:=>|\)\{return )(\w+(?:\(\))?\.createElement\(([\w\.]+),\w*\((\w+,[\w\.]+)?\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\))`,
-		`=Spicetify.ReactComponent.RightClickMenu=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};`)
+		`=(?:function\()?(\w+)(?:=>|\)\{return )(\w+(?:\(\))?\.createElement\(([\w\.]+),\w*\((?:\w+,[\w\.]+)?\)\(\{\},\w+,\{action:"open",trigger:"right-click"\}\)\))(?:\}(\}))?`,
+		`=Spicetify.ReactComponent.RightClickMenu=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
 
 	// React Component: Context Menu - Menu
 	utils.Replace(
