@@ -127,9 +127,8 @@ async function initShufflePlus() {
                         {
                             className: "checkbox" + (value ? "" : " disabled"),
                             onClick: async () => {
-                                let state = !value;
-                                CONFIG[field] = state;
-                                setValue(state);
+                                CONFIG[field] = !value;
+                                setValue(!value);
                                 await saveConfig();
                                 onclickFun();
                             },
