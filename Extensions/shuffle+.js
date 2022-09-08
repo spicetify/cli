@@ -476,7 +476,7 @@ async function initShufflePlus() {
                     break;
                 }
                 if (CONFIG.artistMode == "single") {
-                    Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.single} Singles, Totally ${count} Songs`);
+                    Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.single} Singles, Total of ${count} Songs`);
                     break;
                 }
                 if (CONFIG.artistMode == "album") {
