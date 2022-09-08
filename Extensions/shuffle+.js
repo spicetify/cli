@@ -1,5 +1,3 @@
-//@ts-check
-
 // NAME: Shuffle+
 // AUTHOR: khanhas, Tetrax-10
 // DESCRIPTION: True shuffle with no bias.
@@ -115,7 +113,7 @@ async function initShufflePlus() {
             });
         }
 
-        function checkBoxItem({ name, field, onclickFun }) {
+        function checkBoxItem({ name, field, onclickFun = () => {} }) {
             let [value, setValue] = useState(CONFIG[field]);
             return React.createElement(
                 "div",
@@ -142,7 +140,7 @@ async function initShufflePlus() {
             );
         }
 
-        function dropDownItem({ name, field, options, onclickFun }) {
+        function dropDownItem({ name, field, options, onclickFun = () => {} }) {
             const [value, setValue] = useState(CONFIG[field]);
             return React.createElement(
                 "div",
@@ -192,16 +190,10 @@ async function initShufflePlus() {
                     likedSongArtist: "Liked Songs of Artist",
                     topTen: "Top 10 Songs",
                 },
-                onclickFun: async () => {
-                    // console.log(CONFIG.artistMode);
-                },
             }),
             React.createElement(checkBoxItem, {
                 name: "Chosen artist must be included",
                 field: "artistNameMust",
-                onclickFun: async () => {
-                    // console.log(CONFIG.artistNameMust);
-                },
             })
         );
 
