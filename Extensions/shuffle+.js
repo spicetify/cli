@@ -438,7 +438,7 @@ async function initShufflePlus() {
             array[counter] = array[index];
             array[index] = temp;
         }
-
+        array.filter((track) => track);
         return array;
     }
 
