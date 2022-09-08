@@ -35,7 +35,7 @@ async function initShufflePlus() {
             throw "";
         } catch {
             await setLocalStorageDataWithKey("shufflePlus:settings", `{}`);
-            return { autoShuffle: true, artistMode: "all", artistNameMust: false };
+            return { artistMode: "all", artistNameMust: false };
         }
     }
 
