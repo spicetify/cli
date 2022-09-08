@@ -186,7 +186,7 @@ async function initShufflePlus() {
                     all: "All",
                     album: "Albums",
                     single: "Singles & EP",
-                    likedSongArtist: "Liked Songs of Artist",
+                    likedSongArtist: "Artist's Liked Songs",
                     topTen: "Top 10 Songs",
                 },
             }),
