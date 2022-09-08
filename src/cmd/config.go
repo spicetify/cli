@@ -50,7 +50,7 @@ func DisplayAllConfig() {
 	}
 
 	log.Println()
-	utils.PrintBold("AdditionFeatures")
+	utils.PrintBold("AdditionalFeatures")
 	for _, key := range featureSection.Keys() {
 		name := key.Name()
 		if name == "extensions" || name == "custom_apps" || name == "spotify_launch_flags" {
@@ -59,14 +59,18 @@ func DisplayAllConfig() {
 			if listLen == 0 {
 				log.Println(name)
 			} else {
-				log.Println(name + strings.Repeat(" ", maxLen-len(name)) + list[0])
-				for _, ext := range list[1:] {
-					log.Println(strings.Repeat(" ", maxLen) + ext)
-				}
+				log.Println(name + strings.Repeat(" ", maxLen-len(name)) + strings.Join(list, " | "))
 			}
 		} else {
 			log.Println(name + strings.Repeat(" ", maxLen-len(name)) + key.Value())
 		}
+	}
+
+	log.Println()
+	utils.PrintBold("Backup")
+	for _, key := range backupSection.Keys() {
+		name := key.Name()
+		log.Println(name + strings.Repeat(" ", maxLen-len(name)) + key.Value())
 	}
 }
 

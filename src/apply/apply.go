@@ -12,6 +12,8 @@ import (
 
 // Flag enables/disables additional feature
 type Flag struct {
+	CurrentTheme  string
+	ColorScheme   string
 	Extension     []string
 	CustomApp     []string
 	SidebarConfig bool
@@ -104,7 +106,24 @@ func htmlMod(htmlPath string, flags Flag) {
 	}
 
 	if flags.SpicetifyVer != "" {
-		helperHTML += `<script>Spicetify.version="` + flags.SpicetifyVer + `";</script>` + "\n"
+		var extList string
+		for _, ext := range flags.Extension {
+			extList += `"` + ext +`",`
+		}
+
+		var customAppList string
+		for _, app := range flags.CustomApp {
+			customAppList += `"` + app +`",`
+		}
+
+		helperHTML += `<script>
+			Spicetify.Config={};
+			Spicetify.Config["version"]="` + flags.SpicetifyVer + `";
+			Spicetify.Config["current_theme"]="` + flags.CurrentTheme + `";
+			Spicetify.Config["color_scheme"]="` + flags.ColorScheme + `";
+			Spicetify.Config["extensions"] = [` + extList + `];
+			Spicetify.Config["custom_apps"] = [` + customAppList + `];
+			</script>` + "\n"
 	}
 
 	for _, v := range flags.Extension {
