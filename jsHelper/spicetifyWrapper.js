@@ -1090,13 +1090,32 @@ Spicetify.Topbar = (function() {
         }
     }
 
-    (function waitForTopbarMounted() {
+    function waitForTopbarMounted() {
         leftContainer = document.querySelector(".main-topBar-historyButtons");
         if (!leftContainer) {
             setTimeout(waitForTopbarMounted, 300);
             return;
         }
         leftContainer.append(...buttonsStash);
+    };
+
+    waitForTopbarMounted();
+
+    (function attachObserver() {
+        const topBar = document.querySelector(".Root__top-bar")
+        if (!topBar) {
+            setTimeout(attachObserver, 300);
+            return;
+        }
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.removedNodes.length > 0) {
+                    leftContainer = null;
+                    waitForTopbarMounted();
+                }
+            });
+        });
+        observer.observe(topBar, {childList: true});
     })();
 
     return { Button };
