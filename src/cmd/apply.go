@@ -71,6 +71,8 @@ func Apply(spicetifyVersion string) {
 
 	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appDestPath, apply.Flag{
+		CurrentTheme:  settingSection.Key("current_theme").MustString(""),
+		ColorScheme:   settingSection.Key("color_scheme").MustString(""),
 		Extension:     extensionList,
 		CustomApp:     customAppsList,
 		SidebarConfig: featureSection.Key("sidebar_config").MustBool(false),
