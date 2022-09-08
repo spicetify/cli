@@ -108,12 +108,12 @@ func htmlMod(htmlPath string, flags Flag) {
 	if flags.SpicetifyVer != "" {
 		var extList string
 		for _, ext := range flags.Extension {
-			extList += `"` + ext +`",`
+			extList += `"` + ext + `",`
 		}
 
 		var customAppList string
 		for _, app := range flags.CustomApp {
-			customAppList += `"` + app +`",`
+			customAppList += `"` + app + `",`
 		}
 
 		helperHTML += `<script>
