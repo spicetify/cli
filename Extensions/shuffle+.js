@@ -197,7 +197,7 @@ async function initShufflePlus() {
                 },
             }),
             React.createElement(checkBoxItem, {
-                name: "Artist Name Must in Tracks",
+                name: "Chosen artist must be included",
                 field: "artistNameMust",
                 onclickFun: async () => {
                     // console.log(CONFIG.artistNameMust);
