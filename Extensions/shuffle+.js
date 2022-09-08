@@ -76,10 +76,6 @@ async function initShufflePlus() {
                     border-width: 0;
                     background-color: var(--spice-button-disabled);
                 }
-                .popup-row .space {
-                    margin-bottom: 20px;
-                    visibility: hidden;
-                }
                 button.checkbox {
                     align-items: center;
                     border: 0px;
@@ -204,8 +200,7 @@ async function initShufflePlus() {
                 onclickFun: async () => {
                     // console.log(CONFIG.artistNameMust);
                 },
-            }),
-            React.createElement("div", { className: "popup-row" }, React.createElement("hr", { className: "space" }, null))
+            })
         );
 
         Spicetify.PopupModal.display({
