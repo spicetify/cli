@@ -1,14 +1,12 @@
 // NAME: Shuffle+
-// AUTHOR: khanhas, Tetrax-10
+// AUTHORS: khanhas, Tetrax-10
 // DESCRIPTION: True shuffle with no bias.
 
 /// <reference path="../globals.d.ts" />
 
-let shufflePlusCount = 0;
 (async function shufflePlus() {
-    if (!(Spicetify.CosmosAsync && Spicetify.Platform) && shufflePlusCount < 200) {
+    if (!(Spicetify.CosmosAsync && Spicetify.Platform)) {
         setTimeout(shufflePlus, 300);
-        shufflePlusCount++;
         return;
     }
     await initShufflePlus();
