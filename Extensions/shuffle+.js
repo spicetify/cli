@@ -6,7 +6,7 @@
 
 let shufflePlusCount = 0;
 (async function shufflePlus() {
-    if (!(Spicetify.CosmosAsync && Spicetify.Platform && shufflePlusCount < 200)) {
+    if (!(Spicetify.CosmosAsync && Spicetify.Platform) && shufflePlusCount < 200) {
         setTimeout(shufflePlus, 300);
         shufflePlusCount++;
         return;
