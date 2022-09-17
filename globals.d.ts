@@ -332,6 +332,7 @@ declare namespace Spicetify {
         function registerImportantShortcut(keys: KeysDefine, callback: (event: KeyboardEvent) => void);
         function _deregisterShortcut(keys: KeysDefine);
         function deregisterImportantShortcut(keys: KeysDefine);
+        function changeShortcut(keys: KeysDefine, newKeys: KeysDefine);
     };
 
     /**
@@ -1361,4 +1362,15 @@ declare namespace Spicetify {
      * Can match any of the fonts listed in `Spicetify._fontStyle` or returns a generic style otherwise.
      */
     function getFontStyle(font: string): string;
+
+    /**
+     * A filtered copy of user's `config-xpui` file.
+     */
+    namespace Config {
+        const version: string;
+        const current_theme: string;
+        const color_scheme: string;
+        const extensions: string[];
+        const custom_apps: string[];
+    }
 }
