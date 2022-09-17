@@ -1340,7 +1340,7 @@ declare namespace Spicetify {
      */
     namespace Topbar {
         class Button {
-            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled: boolean);
+            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled?: boolean);
             label: string;
             icon: string;
             onClick: (self: Button) => void;
