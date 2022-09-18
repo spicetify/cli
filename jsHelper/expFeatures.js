@@ -1,7 +1,8 @@
 (function () {
     let overrideList,
-        newFeatures,
+        newFeatures = [],
         hooksPatched = false;
+
     try {
         overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
         if (!overrideList || overrideList !== Object(overrideList)) throw "";
@@ -9,30 +10,27 @@
         overrideList = {};
     }
 
-    try {
-        newFeatures = JSON.parse(localStorage.getItem("spicetify-exp-features:update"));
-        if (!newFeatures || newFeatures !== Object(newFeatures)) throw "";
-    } catch {
-        newFeatures = [];
-    }
-
-    const SpotifyVersion = navigator.userAgent.match("Spotify/(.+) ")[1];
-
     Spicetify.expFeatureOverride = function (feature) {
         hooksPatched = true;
-        if (!overrideList.version) overrideList.version = SpotifyVersion;
+        newFeatures.push(feature.name);
 
-        if (overrideList.version !== SpotifyVersion) {
-            newFeatures.push(feature.name);
-            localStorage.setItem("spicetify-exp-features:update", JSON.stringify(newFeatures));
-        }
-
-        if (typeof feature.default === "boolean") {
+        if (feature.type === "enum") {
+            if (overrideList[feature.name] === undefined) {
+                overrideList[feature.name] = { description: feature.description, value: feature.default, values: feature.values };
+            }
+            feature.default = overrideList[feature.name].value;
+            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+        } else if (typeof feature.default === "boolean") {
             if (overrideList[feature.name] === undefined) {
                 overrideList[feature.name] = { description: feature.description, value: feature.default };
             }
             feature.default = overrideList[feature.name].value;
             localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+        }
+
+        // Internal stuff may changes after updates, filter if so
+        if (overrideList[feature.name] && typeof overrideList[feature.name].value !== typeof feature.default) {
+            newFeatures = newFeatures.filter((f) => f !== feature.name);
         }
         return feature;
     };
@@ -93,6 +91,7 @@ button.reset:hover {
         Spicetify.PopupModal.display({
             title: "Experimental features",
             content,
+            isLarge: true,
         }),
             (() => {
                 const closeButton = document.querySelector("body > generic-modal button.main-trackCreditsModal-closeBtn");
@@ -117,23 +116,13 @@ button.reset:hover {
             return;
         }
 
-        const listLength = Object.keys(overrideList).length - 1;
-        Object.keys(overrideList).forEach((key, index) => {
-            if (newFeatures.length > 0 && !newFeatures.includes(key) && key !== "version") {
+        Object.keys(overrideList).forEach((key) => {
+            if (newFeatures.length > 0 && !newFeatures.includes(key)) {
                 delete overrideList[key];
                 console.log(`Removed ${key} from override list`);
                 localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
             }
-            if (index === listLength) {
-                newFeatures = [];
-                localStorage.removeItem("spicetify-exp-features:update");
-            }
         });
-
-        if (overrideList.version !== SpotifyVersion) {
-            overrideList.version = SpotifyVersion;
-            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-        }
 
         function changeValue(name, value) {
             overrideList[name].value = value;
@@ -164,32 +153,49 @@ button.reset:hover {
             return container;
         }
 
-        let expFeaturesLength = 0;
+        function createDropdown(name, desc, defaultVal, options) {
+            const container = document.createElement("div");
+            container.classList.add("setting-row");
+            container.innerHTML = `
+<label class="col description">${desc}</label>
+<div class="col action">
+<select class="dropdown">
+    ${options.map((option) => `<option value="${option}">${option}</option>`).join("")}
+</select>
+</div>`;
+            const dropdown = container.querySelector("select.dropdown");
+            dropdown.value = defaultVal;
+
+            dropdown.onchange = () => {
+                changeValue(name, dropdown.value);
+            };
+
+            return container;
+        }
 
         Object.keys(overrideList).forEach((name) => {
             const feature = overrideList[name];
             content.querySelector("p.placeholder")?.remove();
-            expFeaturesLength++;
 
-            if (overrideList[name]?.description === undefined) return;
+            if (!overrideList[name]?.description) return;
 
-            content.appendChild(createSlider(name, feature.description, feature.value));
+            if (overrideList[name].values) {
+                content.appendChild(createDropdown(name, feature.description, feature.value, feature.values));
+            } else content.appendChild(createSlider(name, feature.description, feature.value));
+        });
 
-            if (expFeaturesLength === Object.keys(overrideList).length) {
-                const settingRow = document.createElement("div");
-                settingRow.classList.add("setting-row");
-                settingRow.innerHTML += `
+        const settingRow = document.createElement("div");
+        settingRow.classList.add("setting-row");
+        settingRow.innerHTML += `
                     <label class="col description">Clear all cached features and preferences</label>
                     <div class="col action">
                         <button class="reset">Reset</button>
                     </div>`;
-                const resetButton = settingRow.querySelector("button.reset");
-                resetButton.onclick = () => {
-                    localStorage.removeItem("spicetify-exp-features");
-                    window.location.reload();
-                };
-                content.appendChild(settingRow);
-            }
-        });
+        const resetButton = settingRow.querySelector("button.reset");
+        resetButton.onclick = () => {
+            localStorage.removeItem("spicetify-exp-features");
+            window.location.reload();
+        };
+        content.appendChild(settingRow);
     })();
 })();
