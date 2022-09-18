@@ -139,7 +139,11 @@ func main() {
 		return
 
 	case "config-dir":
-		cmd.ShowConfigDirectory()
+		if quiet {
+			log.SetOutput(os.Stderr)
+			os.Stdout = os.Stderr
+		}
+		cmd.ShowConfigDirectory(quiet)
 		return
 
 	case "path":
