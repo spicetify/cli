@@ -288,7 +288,7 @@ declare namespace Spicetify {
         function del(url: string, body?: Body, headers?: Headers): Promise<Response["body"]>;
         function patch(url: string, body?: Body, headers?: Headers): Promise<Response["body"]>;
         function sub(url: string, callback: ((b: Response["body"]) => void), onError?: ((e: Error) => void), body?: Body, headers?: Headers): Promise<Response["body"]>;
-        function postSub(url: string, body?: Body, callback: ((b: Response["body"]) => void), onError?: ((e: Error) => void)): Promise<Response["body"]>;
+        function postSub(url: string, body: Body | null, callback: ((b: Response["body"]) => void), onError?: ((e: Error) => void)): Promise<Response["body"]>;
         function request(method: Method, url: string, body?: Body, headers?: Headers): Promise<Response>;
         function resolve(method: Method, url: string, body?: Body, headers?: Headers): Promise<Response>;
     }
