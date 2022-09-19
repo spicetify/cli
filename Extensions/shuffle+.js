@@ -68,7 +68,7 @@ async function initShufflePlus() {
                 }
                 .popup-row .div-title {
                     color: var(--spice-text);
-                }                
+                }
                 .popup-row .divider {
                     height: 2px;
                     border-width: 0;
@@ -224,9 +224,11 @@ async function initShufflePlus() {
 
     function shouldAddShufflePlusLiked(uri) {
         let uriObj = Spicetify.URI.fromString(uri[0]);
-        switch (uriObj.type) {
-            case Type.TRACK:
-                return true;
+        if (Spicetify.Platform.History.location.pathname === "/collection/tracks") {
+            switch (uriObj.type) {
+                case Type.TRACK:
+                    return true;
+            }
         }
         return false;
     }
