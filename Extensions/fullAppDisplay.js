@@ -686,11 +686,15 @@ body.video-full-screen.video-full-screen--hide-ui {
         style.innerHTML =
             styleBase +
             styleChoices[CONFIG.vertical ? 1 : 0] +
-            (CONFIG.lyricsPlus ? lyricsPlusBase + lyricsPlusStyleChoices[CONFIG.vertical ? 1 : 0] : "");
+            (checkLyricsPlus() && CONFIG.lyricsPlus ? lyricsPlusBase + lyricsPlusStyleChoices[CONFIG.vertical ? 1 : 0] : "");
+    }
+
+    function checkLyricsPlus() {
+        return Spicetify.Config?.custom_apps?.includes("lyrics-plus");
     }
 
     function requestLyricsPlus() {
-        if (CONFIG.lyricsPlus) {
+        if (CONFIG.lyricsPlus && checkLyricsPlus()) {
             lastApp = Spicetify.Platform.History.location.pathname;
             if (lastApp !== "/lyrics-plus") {
                 Spicetify.Platform.History.push("/lyrics-plus");
@@ -701,7 +705,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 
     function getConfig() {
         try {
-            const parsed = JSON.parse(Spicetify.LocalStorage.get("full-app-display-config"));
+            const parsed = JSON.parse(Spicetify.LocalStorage.get("full-app-display-config") || "{}");
             if (parsed && typeof parsed === "object") {
                 return parsed;
             }
@@ -716,7 +720,7 @@ body.video-full-screen.video-full-screen--hide-ui {
         Spicetify.LocalStorage.set("full-app-display-config", JSON.stringify(CONFIG));
     }
 
-    const ConfigItem = ({ name, field, func }) => {
+    const ConfigItem = ({ name, field, func, disabled = false }) => {
         const [value, setValue] = useState(CONFIG[field]);
         return react.createElement(
             "div",
@@ -729,6 +733,7 @@ body.video-full-screen.video-full-screen--hide-ui {
                     "button",
                     {
                         className: "switch" + (value ? "" : " disabled"),
+                        disabled,
                         onClick: () => {
                             const state = !value;
                             CONFIG[field] = state;
@@ -777,7 +782,8 @@ button.switch {
     margin-inline-start: 12px;
     padding: 8px;
 }
-button.switch.disabled {
+button.switch.disabled,
+button.switch[disabled] {
     color: rgba(var(--spice-rgb-text), .3);
 }
 `,
@@ -788,12 +794,13 @@ button.switch.disabled {
             null,
             style,
             react.createElement(ConfigItem, {
-                name: "Enable Lyrics Plus integration",
+                name: checkLyricsPlus() ? "Enable Lyrics Plus integration" : "Unable to find Lyrics Plus",
                 field: "lyricsPlus",
                 func: () => {
                     updateVisual();
                     requestLyricsPlus();
                 },
+                disabled: !checkLyricsPlus(),
             }),
             react.createElement(ConfigItem, { name: "Enable progress bar", field: "enableProgress", func: updateVisual }),
             react.createElement(ConfigItem, { name: "Enable controls", field: "enableControl", func: updateVisual }),
