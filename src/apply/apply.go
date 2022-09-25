@@ -207,7 +207,7 @@ func getColorCSS(scheme map[string]string) string {
 func insertCustomApp(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		const REACT_REGEX = `(\w+(?:\(\))?)\.lazy\(\((?:\(\)=>|function\(\)\{return )(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\}?\)\)`
-		const REACT_ELEMENT_REGEX = `(\w+(?:\(\))?)\.createElement\(([\w\.]+),\{path:"\/collection"(?:,[:\.\w,]+)?\}`
+		const REACT_ELEMENT_REGEX = `(\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,[:\.\w,\{\}\(\)]+)?\}`
 		reactSymbs := utils.FindSymbol(
 			"Custom app React symbols",
 			content,
@@ -241,7 +241,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 				appName, reactSymbs[1], reactSymbs[1], appName)
 
 			appEleMap += fmt.Sprintf(
-				`%s.createElement(%s,{path:"/%s"},%s.createElement(spicetifyApp%d,null)),`,
+				`%s(%s,{path:"/%s",children:%s(spicetifyApp%d,{})}),`,
 				eleSymbs[0], eleSymbs[1], app, eleSymbs[0], index)
 
 			cssEnableMap += fmt.Sprintf(`,"%s":1`, appName)
@@ -264,7 +264,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		utils.Replace(
 			&content,
-			`[\w()]+\.createElement\("li",\{className:[\w$\.]+\},[\w()]+\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"(,onDrop:\w+,onNavigate:\w+)?\}`,
+			`\([\w$\.,]+\)\("li",\{className:[\w$\.]+\}?,(?:children:)?\([\w$\.,]+\)\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
 			`Spicetify._sidebarItemToClone=${0}`)
 
 		utils.ReplaceOnce(
@@ -274,7 +274,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		sidebarItemMatch := utils.SeekToCloseParen(
 			content,
-			`\("li",\{className:[\w$\.]+\},[\w()]+\.createElement\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"(,onDrop:\w+,onNavigate:\w+)?\}`,
+			`\("li",\{className:[\w$\.]+\}?,(?:children:)?\([\w$\.,]+\)\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
 			'(', ')')
 
 		content = strings.Replace(

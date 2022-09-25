@@ -109,7 +109,7 @@ const Spicetify = {
             "Platform",
             "getFontStyle",
             "_fontStyle",
-            "version"
+            "Config"
         ];
 
         const PLAYER_METHOD = [
