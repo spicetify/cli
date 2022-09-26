@@ -417,6 +417,15 @@ Spicetify.getFontStyle = (font) => {
         _deregisterShortcut: (keys) => {
             Spicetify.Mousetrap.unbind(formatKeys(keys));
         },
+        changeShortcut: (keys, newKeys) => {
+            if (!keys || !newKeys) throw "Spicetify.Keyboard.changeShortcut: Invalid keys";
+
+            const callback = Object.keys(Spicetify.Mousetrap.trigger()._directMap).find(key => key.startsWith(formatKeys(keys)));
+            if (!callback) throw "Spicetify.Keyboard.changeShortcut: Shortcut not found";
+
+            Spicetify.Keyboard.registerShortcut(newKeys, Spicetify.Mousetrap.trigger()._directMap[callback]);
+            Spicetify.Keyboard._deregisterShortcut(keys);
+        },
     };
     Spicetify.Keyboard.registerIsolatedShortcut = Spicetify.Keyboard.registerShortcut;
     Spicetify.Keyboard.registerImportantShortcut = Spicetify.Keyboard.registerShortcut;
