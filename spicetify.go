@@ -114,6 +114,13 @@ func init() {
 }
 
 func main() {
+	// Show config directory without needing to initialize config
+	switch commands[0] {
+	case "config-dir":
+		cmd.ShowConfigDirectory()
+		return
+	}
+
 	cmd.InitPaths()
 
 	// Unchainable commands
@@ -136,10 +143,6 @@ func main() {
 		} else {
 			cmd.EditColor(commands)
 		}
-		return
-
-	case "config-dir":
-		cmd.ShowConfigDirectory()
 		return
 
 	case "path":
