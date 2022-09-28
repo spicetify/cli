@@ -55,6 +55,7 @@ func InitConfig(isQuiet bool) {
 // of them is invalid.
 func InitPaths() {
 	spotifyPath = settingSection.Key("spotify_path").String()
+	prefsPath = settingSection.Key("prefs_path").String()
 
 	if len(spotifyPath) == 0 {
 		spotifyPath = utils.FindAppPath()
@@ -69,7 +70,12 @@ func InitPaths() {
 	}
 
 	if runtime.GOOS == "windows" {
-		isAppX = strings.Contains(spotifyPath, "SpotifyAB.SpotifyMusic")
+		if strings.Contains(spotifyPath, "SpotifyAB.SpotifyMusic") {
+			isAppX = true
+		}
+		if strings.Contains(prefsPath, "SpotifyAB.SpotifyMusic") {
+			isAppX = true
+		}
 	}
 
 	if _, err := os.Stat(spotifyPath); err != nil {
@@ -83,10 +89,27 @@ func InitPaths() {
 		os.Exit(1)
 	}
 
-	prefsPath = settingSection.Key("prefs_path").String()
+	if runtime.GOOS == "windows" {
+		if _, err := os.Stat(filepath.Join(spotifyPath, "Spotify.exe")); err != nil {
+			if isAppX {
+				settingSection.Key("spotify_path").SetValue("")
+				isAppX = false
+				InitPaths()
+				return
+			}
+			utils.PrintError(spotifyPath + ` is not a valid path. Please manually set "spotify_path" in config-xpui.ini to correct directory of Spotify.`)
+			os.Exit(1)
+		}
+	}
 
 	if len(prefsPath) != 0 {
 		if _, err := os.Stat(prefsPath); err != nil {
+			if isAppX {
+				settingSection.Key("prefs_path").SetValue("")
+				isAppX = false
+				InitPaths()
+				return
+			}
 			utils.PrintError(prefsPath + ` does not exist or is not a valid path. Please manually set "prefs_path" in config-xpui.ini to correct path of "prefs" file.`)
 			os.Exit(1)
 		}
