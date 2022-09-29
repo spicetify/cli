@@ -449,8 +449,10 @@ declare namespace Spicetify {
     function removeFromQueue(uri: string | string[]): Promise<void>;
     /**
      * Display a bubble of notification. Useful for a visual feedback.
+     * @param message Message to display
+     * @param isError If true, bubble will be red. Defaults to false.
      */
-    function showNotification(text: string): void;
+    function showNotification(text: string, isError?: boolean): void;
     /**
      * Set of APIs method to parse and validate URIs.
      */
