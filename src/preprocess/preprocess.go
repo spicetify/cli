@@ -268,7 +268,7 @@ func exposeAPIs_main(input string) string {
 	utils.Replace(
 		&input,
 		`,(\w+)=(\(\w+=\w+\.dispatch)`,
-		`;globalThis.Spicetify.showNotification=(message)=>${1}({message});const ${1}=${2}`)
+		`;globalThis.Spicetify.showNotification=(message,isError=false)=>${1}({message,feedbackType:isError?"ERROR":"NOTICE"});const ${1}=${2}`)
 
 	// Remove list of exclusive shows
 	utils.Replace(
