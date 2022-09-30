@@ -2,6 +2,7 @@
     let overrideList,
         newFeatures = [],
         hooksPatched = false;
+    const featureMap = {};
 
     try {
         overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
@@ -92,29 +93,17 @@ button.reset:hover {
             title: "Experimental features",
             content,
             isLarge: true,
-        }),
-            (() => {
-                const closeButton = document.querySelector("body > generic-modal button.main-trackCreditsModal-closeBtn");
-                const modalOverlay = document.querySelector("body > generic-modal > div");
-                if (closeButton && modalOverlay) {
-                    closeButton.onclick = () => location.reload();
-                    closeButton.setAttribute("style", "cursor: pointer;");
-                    modalOverlay.onclick = (e) => {
-                        // If clicked on overlay, also reload
-                        if (e.target === modalOverlay) {
-                            location.reload();
-                        }
-                    };
-                }
-            })();
+        });
     }).register();
 
     (function waitForRemoteConfigResolver() {
         // Don't show options if hooks aren't patched/loaded
-        if (!hooksPatched) {
+        if (!hooksPatched || !Spicetify.RemoteConfigResolver) {
             setTimeout(waitForRemoteConfigResolver, 500);
             return;
         }
+
+        const { setOverrides } = Spicetify.RemoteConfigResolver.value;
 
         Object.keys(overrideList).forEach((key) => {
             if (newFeatures.length > 0 && !newFeatures.includes(key)) {
@@ -127,7 +116,9 @@ button.reset:hover {
         function changeValue(name, value) {
             overrideList[name].value = value;
             localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-            // resolver.activeProperties[name].value = value;
+
+            featureMap[name] = value;
+            setOverrides(Spicetify.createInternalMap(featureMap));
         }
 
         function createSlider(name, desc, defaultVal) {
@@ -182,6 +173,8 @@ button.reset:hover {
             if (overrideList[name].values) {
                 content.appendChild(createDropdown(name, feature.description, feature.value, feature.values));
             } else content.appendChild(createSlider(name, feature.description, feature.value));
+
+            featureMap[name] = feature.value;
         });
 
         const settingRow = document.createElement("div");
@@ -197,5 +190,7 @@ button.reset:hover {
             window.location.reload();
         };
         content.appendChild(settingRow);
+
+        setOverrides(Spicetify.createInternalMap(featureMap));
     })();
 })();
