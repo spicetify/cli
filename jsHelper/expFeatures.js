@@ -1,7 +1,8 @@
 (function () {
     let overrideList,
         newFeatures = [],
-        hooksPatched = false;
+        hooksPatched = false,
+        featureMap = {};
 
     try {
         overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
@@ -10,28 +11,43 @@
         overrideList = {};
     }
 
+    try {
+        remoteConfig = JSON.parse(localStorage.getItem("spicetify-remote-config"));
+        if (!remoteConfig || remoteConfig !== Object(remoteConfig)) throw "";
+    } catch {
+        remoteConfig = {};
+    }
+
     Spicetify.expFeatureOverride = function (feature) {
         hooksPatched = true;
         newFeatures.push(feature.name);
 
-        if (feature.type === "enum") {
-            if (overrideList[feature.name] === undefined) {
-                overrideList[feature.name] = { description: feature.description, value: feature.default, values: feature.values };
-            }
-            feature.default = overrideList[feature.name].value;
-            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-        } else if (typeof feature.default === "boolean") {
-            if (overrideList[feature.name] === undefined) {
-                overrideList[feature.name] = { description: feature.description, value: feature.default };
-            }
-            feature.default = overrideList[feature.name].value;
-            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+        switch (feature.type) {
+            case "enum":
+                if (!overrideList[feature.name]) {
+                    overrideList[feature.name] = { description: feature.description, value: feature.default, values: feature.values };
+                }
+                feature.default = overrideList[feature.name].value;
+                break;
+            case "bool":
+                if (!overrideList[feature.name]) {
+                    overrideList[feature.name] = { description: feature.description, value: feature.default };
+                }
+                feature.default = overrideList[feature.name].value;
+                break;
+        }
+
+        if (remoteConfig[feature.name] !== undefined && overrideList[feature.name]) {
+            feature.default = remoteConfig[feature.name];
+            overrideList[feature.name].value = remoteConfig[feature.name];
         }
 
         // Internal stuff may changes after updates, filter if so
         if (overrideList[feature.name] && typeof overrideList[feature.name].value !== typeof feature.default) {
             newFeatures = newFeatures.filter((f) => f !== feature.name);
         }
+
+        localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
         return feature;
     };
 
@@ -83,38 +99,44 @@ button.reset {
 }
 button.reset:hover {
     transform: scale(1.04);
+}
+.setting-row#search .col.action {
+    position: relative;
+    width: 100%;
+}
+.setting-row#search svg {
+    position: absolute;
+    margin: 12px;
+}
+input.search {
+    border-style: solid;
+    border-color: var(--spice-sidebar);
+    background-color: var(--spice-sidebar);
+    border-radius: 8px;
+    padding: 10px 36px;
+    color: var(--spice-text);
+    width: 100%;
 }`;
     content.appendChild(style);
-    content.innerHTML += `<p class="placeholder">Experimental features not found/is initializing. Try re-opening this modal.</p>`;
 
     new Spicetify.Menu.Item("Experimental features", false, () => {
         Spicetify.PopupModal.display({
             title: "Experimental features",
             content,
             isLarge: true,
-        }),
-            (() => {
-                const closeButton = document.querySelector("body > generic-modal button.main-trackCreditsModal-closeBtn");
-                const modalOverlay = document.querySelector("body > generic-modal > div");
-                if (closeButton && modalOverlay) {
-                    closeButton.onclick = () => location.reload();
-                    closeButton.setAttribute("style", "cursor: pointer;");
-                    modalOverlay.onclick = (e) => {
-                        // If clicked on overlay, also reload
-                        if (e.target === modalOverlay) {
-                            location.reload();
-                        }
-                    };
-                }
-            })();
+        });
     }).register();
 
     (function waitForRemoteConfigResolver() {
         // Don't show options if hooks aren't patched/loaded
-        if (!hooksPatched) {
+        if (!hooksPatched || !Spicetify.RemoteConfigResolver) {
             setTimeout(waitForRemoteConfigResolver, 500);
             return;
         }
+
+        localStorage.removeItem("spicetify-remote-config");
+
+        const { setOverrides, remoteConfiguration } = Spicetify.RemoteConfigResolver.value;
 
         Object.keys(overrideList).forEach((key) => {
             if (newFeatures.length > 0 && !newFeatures.includes(key)) {
@@ -127,12 +149,15 @@ button.reset:hover {
         function changeValue(name, value) {
             overrideList[name].value = value;
             localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-            // resolver.activeProperties[name].value = value;
+
+            featureMap[name] = value;
+            setOverrides(Spicetify.createInternalMap(featureMap));
         }
 
         function createSlider(name, desc, defaultVal) {
             const container = document.createElement("div");
             container.classList.add("setting-row");
+            container.id = name;
             container.innerHTML = `
 <label class="col description">${desc}</label>
 <div class="col action"><button class="switch">
@@ -156,6 +181,7 @@ button.reset:hover {
         function createDropdown(name, desc, defaultVal, options) {
             const container = document.createElement("div");
             container.classList.add("setting-row");
+            container.id = name;
             container.innerHTML = `
 <label class="col description">${desc}</label>
 <div class="col action">
@@ -173,29 +199,78 @@ button.reset:hover {
             return container;
         }
 
+        function searchBar() {
+            const container = document.createElement("div");
+            container.classList.add("setting-row");
+            container.id = "search";
+            container.innerHTML = `
+<div class="col action">
+<div class="search-container">
+<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
+    ${Spicetify.SVGIcons.search}
+</svg>
+<input type="text" class="search" placeholder="Search for a feature">
+</div>
+</div>`;
+            const search = container.querySelector("input.search");
+
+            search.oninput = () => {
+                const query = search.value.toLowerCase();
+                const rows = content.querySelectorAll(".setting-row");
+                rows.forEach((row) => {
+                    if (row.id === "search" || row.id === "reset") return;
+                    if (row.textContent.trim().toLowerCase().includes(query) || row.id.toLowerCase().includes(query)) {
+                        row.style.display = "flex";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            };
+
+            return container;
+        }
+
+        function resetButton() {
+            const resetRow = document.createElement("div");
+            resetRow.classList.add("setting-row");
+            resetRow.id = "reset";
+            resetRow.innerHTML += `
+                        <label class="col description">Clear all cached features and preferences</label>
+                        <div class="col action">
+                            <button class="reset">Reset</button>
+                        </div>`;
+            const resetButton = resetRow.querySelector("button.reset");
+            resetButton.onclick = () => {
+                const defaultRemoteConfig = remoteConfiguration.values;
+                featureMap = {};
+
+                localStorage.removeItem("spicetify-exp-features");
+                defaultRemoteConfig.forEach((value, name) => {
+                    featureMap[name] = value;
+                });
+                localStorage.setItem("spicetify-remote-config", JSON.stringify(featureMap));
+                window.location.reload();
+            };
+
+            return resetRow;
+        }
+
+        content.appendChild(searchBar());
+
         Object.keys(overrideList).forEach((name) => {
             const feature = overrideList[name];
-            content.querySelector("p.placeholder")?.remove();
 
             if (!overrideList[name]?.description) return;
 
             if (overrideList[name].values) {
                 content.appendChild(createDropdown(name, feature.description, feature.value, feature.values));
             } else content.appendChild(createSlider(name, feature.description, feature.value));
+
+            featureMap[name] = feature.value;
         });
 
-        const settingRow = document.createElement("div");
-        settingRow.classList.add("setting-row");
-        settingRow.innerHTML += `
-                    <label class="col description">Clear all cached features and preferences</label>
-                    <div class="col action">
-                        <button class="reset">Reset</button>
-                    </div>`;
-        const resetButton = settingRow.querySelector("button.reset");
-        resetButton.onclick = () => {
-            localStorage.removeItem("spicetify-exp-features");
-            window.location.reload();
-        };
-        content.appendChild(settingRow);
+        content.appendChild(resetButton());
+
+        setOverrides(Spicetify.createInternalMap(featureMap));
     })();
 })();

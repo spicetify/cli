@@ -290,6 +290,13 @@ func insertCustomApp(jsPath string, flags Flag) {
 				`return true${1}${2}?.uri||""`)
 		}
 
+		if flags.ExpFeatures {
+			utils.ReplaceOnce(
+				&content,
+				`(([\w$.]+\.fromJSON)\(\w+\)+;)(return ?[\w{}().,]+[\w$]+\.Provider,)(\{value:\{localConfiguration)`,
+				`${1}Spicetify.createInternalMap=${2};${3}Spicetify.RemoteConfigResolver=${4}`)
+		}
+
 		return content
 	})
 }
