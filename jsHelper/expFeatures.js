@@ -1,14 +1,21 @@
 (function () {
     let overrideList,
         newFeatures = [],
-        hooksPatched = false;
-    const featureMap = {};
+        hooksPatched = false,
+        featureMap = {};
 
     try {
         overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
         if (!overrideList || overrideList !== Object(overrideList)) throw "";
     } catch {
         overrideList = {};
+    }
+
+    try {
+        remoteConfig = JSON.parse(localStorage.getItem("spicetify-remote-config"));
+        if (!remoteConfig || remoteConfig !== Object(remoteConfig)) throw "";
+    } catch {
+        remoteConfig = {};
     }
 
     Spicetify.expFeatureOverride = function (feature) {
@@ -30,10 +37,16 @@
                 break;
         }
 
+        if (remoteConfig[feature.name] !== undefined && overrideList[feature.name]) {
+            feature.default = remoteConfig[feature.name];
+            overrideList[feature.name].value = remoteConfig[feature.name];
+        }
+
         // Internal stuff may changes after updates, filter if so
         if (overrideList[feature.name] && typeof overrideList[feature.name].value !== typeof feature.default) {
             newFeatures = newFeatures.filter((f) => f !== feature.name);
         }
+
         localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
         return feature;
     };
@@ -104,7 +117,9 @@ button.reset:hover {
             return;
         }
 
-        const { setOverrides } = Spicetify.RemoteConfigResolver.value;
+        localStorage.removeItem("spicetify-remote-config");
+
+        const { setOverrides, remoteConfiguration } = Spicetify.RemoteConfigResolver.value;
 
         Object.keys(overrideList).forEach((key) => {
             if (newFeatures.length > 0 && !newFeatures.includes(key)) {
@@ -187,7 +202,14 @@ button.reset:hover {
                     </div>`;
         const resetButton = settingRow.querySelector("button.reset");
         resetButton.onclick = () => {
+            const defaultRemoteConfig = remoteConfiguration.values;
+            featureMap = {};
+
             localStorage.removeItem("spicetify-exp-features");
+            defaultRemoteConfig.forEach((value, name) => {
+                featureMap[name] = value;
+            });
+            localStorage.setItem("spicetify-remote-config", JSON.stringify(featureMap));
             window.location.reload();
         };
         content.appendChild(settingRow);
