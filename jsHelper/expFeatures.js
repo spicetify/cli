@@ -15,24 +15,26 @@
         hooksPatched = true;
         newFeatures.push(feature.name);
 
-        if (feature.type === "enum") {
-            if (overrideList[feature.name] === undefined) {
-                overrideList[feature.name] = { description: feature.description, value: feature.default, values: feature.values };
-            }
-            feature.default = overrideList[feature.name].value;
-            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-        } else if (typeof feature.default === "boolean") {
-            if (overrideList[feature.name] === undefined) {
-                overrideList[feature.name] = { description: feature.description, value: feature.default };
-            }
-            feature.default = overrideList[feature.name].value;
-            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+        switch (feature.type) {
+            case "enum":
+                if (!overrideList[feature.name]) {
+                    overrideList[feature.name] = { description: feature.description, value: feature.default, values: feature.values };
+                }
+                feature.default = overrideList[feature.name].value;
+                break;
+            case "bool":
+                if (!overrideList[feature.name]) {
+                    overrideList[feature.name] = { description: feature.description, value: feature.default };
+                }
+                feature.default = overrideList[feature.name].value;
+                break;
         }
 
         // Internal stuff may changes after updates, filter if so
         if (overrideList[feature.name] && typeof overrideList[feature.name].value !== typeof feature.default) {
             newFeatures = newFeatures.filter((f) => f !== feature.name);
         }
+        localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
         return feature;
     };
 
@@ -86,7 +88,6 @@ button.reset:hover {
     transform: scale(1.04);
 }`;
     content.appendChild(style);
-    content.innerHTML += `<p class="placeholder">Experimental features not found/is initializing. Try re-opening this modal.</p>`;
 
     new Spicetify.Menu.Item("Experimental features", false, () => {
         Spicetify.PopupModal.display({
