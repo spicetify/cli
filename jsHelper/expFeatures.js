@@ -100,6 +100,9 @@ button.reset {
 button.reset:hover {
     transform: scale(1.04);
 }
+.search-container {
+    width: 100%;
+}
 .setting-row#search .col.action {
     position: relative;
     width: 100%;
