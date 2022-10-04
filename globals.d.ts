@@ -1294,6 +1294,42 @@ declare namespace Spicetify {
              */
             icon?: React.ReactNode;
         };
+        type TooltipProps = {
+            /**
+             * Label to display in the tooltip
+             */
+            label: string;
+            /**
+             * The child element that the tooltip will be attached to
+             * and will display when hovered over
+             */
+            children: React.ReactNode;
+            /**
+             * Decide whether to use the global singleton tooltip (rendered in `<body>`)
+             * or a new inline tooltip (rendered in a sibling
+             * element to `children`)
+             */
+            renderInline?: boolean;
+            /**
+             * Delay in milliseconds before the tooltip is displayed
+             * after the user hovers over the child element
+             */
+            showDelay?: number;
+            /**
+             * Determine whether the tooltip should be displayed
+             */
+            disabled?: boolean;
+            /**
+             * The preferred placement of the context menu when it opens.
+             * Relative to trigger element.
+             * @default 'top'
+             */
+            placement?: 'top' | 'top-start' | 'top-end' | 'right' | 'right-start' | 'right-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end';
+            /**
+             * Class name to apply to the tooltip
+             */
+            labelClassName?: string;
+        };
         /**
          * Generic context menu provider
          *
@@ -1335,6 +1371,14 @@ declare namespace Spicetify {
         const PodcastShowMenu: any;
         const ArtistMenu: any;
         const PlaylistMenu: any;
+        /**
+         * Component to display tooltip when hovering over element
+         * Useful for accessibility
+         *
+         * Props:
+         * @see Spicetify.ReactComponent.TooltipProps
+         */
+        const TooltipWrapper: any;
     };
 
     /**

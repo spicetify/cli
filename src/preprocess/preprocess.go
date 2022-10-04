@@ -372,6 +372,12 @@ Spicetify.React.useEffect(() => {
 		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function\([\{\w\}:,]+\)|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|isEnhanced|onRemoveCallback)[:\w]*,?){3,})`,
 		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
 
+	// React Component: Tooltip Wrapper
+	utils.Replace(
+		&input,
+		`(\w+)(=(?:function\([\{\w\}:,]+\)|\()\{(?:[\w. =]*(?:label|children|renderInline|showDelay)[\w:]*,?){4})`,
+		`${1}=Spicetify.ReactComponent.TooltipWrapper${2}`)
+
 	// Locale
 	utils.Replace(
 		&input,
