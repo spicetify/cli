@@ -690,7 +690,7 @@ body.video-full-screen.video-full-screen--hide-ui {
     }
 
     function checkLyricsPlus() {
-        return Spicetify.Config?.custom_apps?.includes("lyrics-plus");
+        return Spicetify.Config?.custom_apps?.includes("lyrics-plus") || !!document.querySelector("a[href='/lyrics-plus']");
     }
 
     function requestLyricsPlus() {
@@ -794,7 +794,7 @@ button.switch[disabled] {
             null,
             style,
             react.createElement(ConfigItem, {
-                name: checkLyricsPlus() ? "Enable Lyrics Plus integration" : "Unable to find Lyrics Plus",
+                name: checkLyricsPlus() ? "Enable Lyrics Plus integration" : "Lyrics Plus not applied",
                 field: "lyricsPlus",
                 func: () => {
                     updateVisual();

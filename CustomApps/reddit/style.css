@@ -79,6 +79,11 @@ option {
     margin: 16px 0;
 }
 
+/* New layout top bar height = 64px + Original margin = 16px */
+.Root__fixed-top-bar ~ .Root__main-view .reddit-header {
+    margin-top: 80px;
+}
+
 .reddit-sort-bar {
     align-items: center;
     display: flex;
