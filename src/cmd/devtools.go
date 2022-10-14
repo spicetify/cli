@@ -28,13 +28,13 @@ func SetDevTools() {
 		{
 			homePath := os.Getenv("HOME")
 			snapSpotifyHome := homePath + "/snap/spotify/common"
-			if _, err := os.Stat(snapSpotifyHome); os.IsExist(err) {
+			if _, err := os.Stat(snapSpotifyHome); err == nil {
 				homePath = snapSpotifyHome
 			}
 
-			flatpackHome := homePath + "/.var/app/com.spotify.Client"
-			if _, err := os.Stat(flatpackHome); os.IsExist(err) {
-				homePath = flatpackHome
+			flatpakHome := homePath + "/.var/app/com.spotify.Client"
+			if _, err := os.Stat(flatpakHome); err == nil {
+				homePath = flatpakHome
 				filePath = homePath + "/cache/spotify/offline.bnk"
 			} else {
 				filePath = homePath + "/.cache/spotify/offline.bnk"
@@ -46,7 +46,7 @@ func SetDevTools() {
 	}
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		utils.PrintError("Can't find \"offline.bnk\"")
+		utils.PrintError("Can't find \"offline.bnk\". Try running spotify first.")
 		os.Exit(1)
 	}
 
