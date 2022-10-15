@@ -65,6 +65,14 @@ EOINFO
 check() {
 	local path="export PATH=\$PATH:$spicetify_install"
 	local shellrc=$HOME/$1
+
+	# Create shellrc if it doesn't exist
+	if ! [ -f $shellrc ]; then
+		echo "CREATING $shellrc"
+		touch $shellrc
+	fi
+
+	# Still checking again, in case touch command failed
 	if [ -f $shellrc ]; then
 		if ! grep -q $spicetify_install $shellrc; then
 			echo "APPENDING $spicetify_install to PATH in $shellrc"
@@ -80,7 +88,7 @@ check() {
 
 case $SHELL in
 	*zsh) check ".zshrc" ;;
-	*bash) 
+	*bash)
 		[ -f "$HOME/.bashrc" ] && check ".bashrc"
 		[ -f "$HOME/.bash_profile" ] && check ".bash_profile"
 	;;
