@@ -183,7 +183,7 @@ declare namespace Spicetify {
          * @param context
          * @param options
          */
-        function playUri(uri: string, context: any, options: any): Promise<void>;
+        function playUri(uri: string, context?: any, options?: any): Promise<void>;
         /**
          * Unregister added event listener `type`.
          * @param type
