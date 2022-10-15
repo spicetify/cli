@@ -67,9 +67,9 @@ check() {
 	local shellrc=$HOME/$1
 
 	# Create shellrc if it doesn't exist
-  if ! [ -f $shellrc ]; then
+	if ! [ -f $shellrc ]; then
 		echo "CREATING $shellrc"
-  	touch $shellrc
+		touch $shellrc
 	fi
 
 	# Still checking again, in case touch command failed
