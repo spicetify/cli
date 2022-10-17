@@ -26,10 +26,11 @@ type Flag struct {
 // AdditionalOptions .
 func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
-		filepath.Join(appsFolderPath, "xpui", "index.html"):          htmlMod,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):             insertCustomApp,
-		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):      insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"): insertHomeConfig,
+		filepath.Join(appsFolderPath, "xpui", "index.html"):             htmlMod,
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):         insertExpFeatures,
+		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):    insertHomeConfig,
+		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): insertVersionInfo,
 	}
 
 	for file, call := range filesToModified {
@@ -339,6 +340,21 @@ func insertExpFeatures(jsPath string, flags Flag) {
 			&content,
 			`(function \w+\((\w+)\)\{)(\w+ \w+=\w\.name;if\("internal")`,
 			`${1}${2}=Spicetify.expFeatureOverride(${2});${3}`)
+		return content
+	})
+}
+
+func insertVersionInfo(jsPath string, flags Flag) {
+	utils.ModifyFile(jsPath, func(content string) string {
+		utils.ReplaceOnce(
+			&content,
+			`(\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\([\w\."]+,[\w{}():,]+\.containerVersion\}?\),`,
+			`${0}${1}("details",{children: [
+				${1}("summary",{children: "Spicetify v" + Spicetify.Config.version}),
+				${1}("li",{children: "Theme: " + Spicetify.Config.current_theme + " / " + Spicetify.Config.color_scheme}),
+				${1}("li",{children: "Extensions: " + Spicetify.Config.extensions.join(", ")}),
+				${1}("li",{children: "Custom apps: " + Spicetify.Config.custom_apps.join(", ")}),
+				]}),`)
 		return content
 	})
 }
