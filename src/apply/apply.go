@@ -351,7 +351,7 @@ func insertVersionInfo(jsPath string, flags Flag) {
 			`(\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\([\w\."]+,[\w{}():,]+\.containerVersion\}?\),`,
 			`${0}${1}("details",{children: [
 				${1}("summary",{children: "Spicetify v" + Spicetify.Config.version}),
-				${1}("li",{children: "Theme: " + Spicetify.Config.current_theme + " / " + Spicetify.Config.color_scheme}),
+				${1}("li",{children: "Theme: " + Spicetify.Config.current_theme + (Spicetify.Config.color_scheme && " / ") + Spicetify.Config.color_scheme}),
 				${1}("li",{children: "Extensions: " + Spicetify.Config.extensions.join(", ")}),
 				${1}("li",{children: "Custom apps: " + Spicetify.Config.custom_apps.join(", ")}),
 				]}),`)
