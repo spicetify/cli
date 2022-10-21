@@ -76,6 +76,7 @@
         "OptionsMenu.js",
         "TabBar.js",
         "Utils.js",
-        "Settings.js"
+        "Settings.js",
+        "Translator.js"
     ]
 }
