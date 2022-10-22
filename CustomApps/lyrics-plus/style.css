@@ -613,6 +613,7 @@ button.switch.small {
     align-items: center;
     background-color: rgba(0, 0, 0, 0.5);
     border: 0;
+    margin: 5px;
     border-radius: 4px;
     color: #eee;
     cursor: pointer;
