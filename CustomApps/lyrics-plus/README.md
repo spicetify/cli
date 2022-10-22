@@ -22,10 +22,6 @@ Lyrics in Unsynced and Genius modes can be search and jump to. Hit Ctrl + Shift 
 
 ![search](./search.png)
 
-You can choose to display Japanese Lyrics as Furigana, Romaji, Hiragana or Katakana.
-
-![conversion](./conversion.png)
-
 Customise colors, change providers' priorities in config menu. Config menu locates in Profile Menu (top right button with your user name).
 
 To install, run:
@@ -39,4 +35,3 @@ spicetify apply
 
 -   A few parts of app code are taken from Spotify official app, including SyncedLyricsPage, CSS animation and TabBar. Please do not distribute these code else where out of Spotify/Spicetify context.
 -   Netease synced lyrics parser is adapted from [mantou132/Spotify-Lyrics](https://github.com/mantou132/Spotify-Lyrics). Give it a Star if you like this app.
--   Japanese conversion tools are adapted from [41pha1/spicetify-romaji-lyrics](https://github.com/41pha1/spicetify-romaji-lyrics). Give it a Star if you like that function.
