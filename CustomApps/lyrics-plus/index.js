@@ -148,6 +148,7 @@ class LyricsContainer extends react.Component {
         this.fullscreenContainer.id = "lyrics-fullscreen-container";
         this.mousetrap = new Spicetify.Mousetrap();
         this.containerRef = react.createRef(null);
+        this.translator = new Translator();
     }
 
     infoFromTrack(track) {
@@ -270,6 +271,11 @@ class LyricsContainer extends react.Component {
 
     async translateLyrics()
     {
+        if(!this.translator || !this.translator.finished){
+            setTimeout(this.translateLyrics.bind(this), 100);
+            return;
+        }
+
         if (!this.state.synced)
             return;
 
@@ -278,7 +284,7 @@ class LyricsContainer extends react.Component {
             lyricText += lyric.text + "\n";
 
         [["romaji", "spaced", "romaji"], ["hiragana", "furigana", "furigana"], ["hiragana", "normal", "hiragana"], ["katakana", "normal", "katakana"]].map( params => 
-            romajifyText(lyricText, params[0], params[1]).then( (result) => {
+            this.translator.romajifyText(lyricText, params[0], params[1]).then( (result) => {
                 let translatedLines = result.split("\n");
             
                 this.state[params[2]] = []
@@ -548,6 +554,7 @@ class LyricsContainer extends react.Component {
 
         this.state.mode = mode;
         let showTranslationButton = this.state.synced && Utils.isJapanese(this.state.synced) && (mode == SYNCED || mode == UNSYNCED);
+        let translatorLoaded = this.translator.finished;
 
         const out = react.createElement(
             "div",
@@ -570,7 +577,7 @@ class LyricsContainer extends react.Component {
                 {
                     className: "lyrics-config-button-container",
                 },
-                react.createElement(TranslationMenu, { showTranslationButton }),
+                react.createElement(TranslationMenu, { showTranslationButton, translatorLoaded }),
                 react.createElement(AdjustmentsMenu, { mode })
             ),
             activeItem,
