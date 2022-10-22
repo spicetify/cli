@@ -30,9 +30,15 @@ const IdlingIndicator = ({ isActive, progress, delay }) => {
                 "--indicator-delay": delay + "ms",
             },
         },
-        react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.05 ? "active" : ""}` }),
-        react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.33 ? "active" : ""}` }),
-        react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.66 ? "active" : ""}` })
+        react.createElement("div", {
+            className: `lyrics-idling-indicator__circle ${progress >= 0.05 ? "active" : ""}`,
+        }),
+        react.createElement("div", {
+            className: `lyrics-idling-indicator__circle ${progress >= 0.33 ? "active" : ""}`,
+        }),
+        react.createElement("div", {
+            className: `lyrics-idling-indicator__circle ${progress >= 0.66 ? "active" : ""}`,
+        })
     );
 };
 
@@ -204,7 +210,14 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
                                 .catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
                         },
                     },
-                    !isKara ? text : react.createElement(KaraokeLine, { text, startTime, position, isActive })
+                    !isKara
+                        ? text
+                        : react.createElement(KaraokeLine, {
+                              text,
+                              startTime,
+                              position,
+                              isActive,
+                          })
                 );
             })
         ),
@@ -458,7 +471,14 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
                             .catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
                     },
                 },
-                !isKara ? text : react.createElement(KaraokeLine, { text, startTime, position, isActive })
+                !isKara
+                    ? text
+                    : react.createElement(KaraokeLine, {
+                          text,
+                          startTime,
+                          position,
+                          isActive,
+                      })
             );
         }),
         react.createElement("p", {
@@ -581,7 +601,11 @@ const GeniusPage = react.memo(
         const lyricsEl1 = react.createElement(
             "div",
             null,
-            react.createElement(VersionSelector, { items: versions, index: versionIndex, callback: onVersionChange }),
+            react.createElement(VersionSelector, {
+                items: versions,
+                index: versionIndex,
+                callback: onVersionChange,
+            }),
             react.createElement("div", {
                 className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
                 ref: (c) => (container = c),
@@ -599,7 +623,11 @@ const GeniusPage = react.memo(
             const lyricsEl2 = react.createElement(
                 "div",
                 null,
-                react.createElement(VersionSelector, { items: versions, index: versionIndex2, callback: onVersionChange2 }),
+                react.createElement(VersionSelector, {
+                    items: versions,
+                    index: versionIndex2,
+                    callback: onVersionChange2,
+                }),
                 react.createElement("div", {
                     className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
                     ref: (c) => (container2 = c),
