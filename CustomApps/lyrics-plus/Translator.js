@@ -1,6 +1,3 @@
-const dict1_url = "https://cdn.jsdelivr.net/gh/41pha1/spicetify-romaji-lyrics@main/marketplace/dict_part_1.js";
-const dict2_url = "https://cdn.jsdelivr.net/gh/41pha1/spicetify-romaji-lyrics@main/marketplace/dict_part_2.js";
-
 !(function (f) {
     "object" == typeof exports && "undefined" != typeof module
         ? (module.exports = f())
@@ -6056,8 +6053,6 @@ class Translator {
         this.missingdicts = true;
         this.initializing = false;
         this.finished = false;
-        setTimeout(this.include_external.bind(this), 0, dict1_url);
-        setTimeout(this.include_external.bind(this), 0, dict2_url);
         this.init();
     }
 
@@ -6072,15 +6067,6 @@ class Translator {
             this.initializing = false;
             this.finished = true;
         });
-    }
-
-    include_external(url) {
-        var s = document.createElement("script");
-        s.setAttribute("type", "text/javascript");
-        s.setAttribute("src", url);
-        var nodes = document.getElementsByTagName("*");
-        var node = nodes[nodes.length - 1].parentNode;
-        node.appendChild(s);
     }
 
     async romajifyText(text, target = "romaji", mode = "spaced") {
