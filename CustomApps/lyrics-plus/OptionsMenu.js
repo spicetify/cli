@@ -85,7 +85,7 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
     );
 });
 
-const TranslationMenu = react.memo(({ showTranslationButton }) => {
+const TranslationMenu = react.memo(({ showTranslationButton, translatorLoaded}) => {
     if(!showTranslationButton)
         return null;
 
@@ -95,8 +95,8 @@ const TranslationMenu = react.memo(({ showTranslationButton }) => {
             menu: react.createElement(
                 Spicetify.ReactComponent.Menu,
                 {},
-                react.createElement("h3", null, " Translations"),
-                react.createElement(OptionList, {
+                react.createElement("h3", null, " Conversions"),
+                translatorLoaded ? react.createElement(OptionList, {
                     items: [
                         {
                             desc: "Mode",
@@ -111,7 +111,7 @@ const TranslationMenu = react.memo(({ showTranslationButton }) => {
                             renderInline: true,
                         },
                         {
-                            desc: "Translate",
+                            desc: "Convert",
                             key: "translate",
                             type: ConfigSlider,
                             trigger: "click",
@@ -124,7 +124,11 @@ const TranslationMenu = react.memo(({ showTranslationButton }) => {
                         localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
                         lyricContainerUpdate && lyricContainerUpdate();
                     },
-                })
+                }) : 
+                react.createElement("div", null, 
+                    react.createElement("p1", null, "Loading"),
+                    react.createElement("div", {class : "lyircs-translation-spinner"}, "")
+                )
             ),
             trigger: "click",
             action: "toggle",
