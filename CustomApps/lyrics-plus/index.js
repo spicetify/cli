@@ -227,7 +227,7 @@ class LyricsContainer extends react.Component {
     }
 
     async fetchLyrics(track, mode = -1) {
-        this.state.furigana, (this.state.romaji = null);
+        this.state.furigana = this.state.romaji = this.state.hirgana = this.state.katakana = null;
         const info = this.infoFromTrack(track);
         if (!info) {
             this.setState({ error: "No track info" });
