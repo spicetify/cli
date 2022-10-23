@@ -497,7 +497,7 @@ class LyricsContainer extends react.Component {
             }
         }
 
-        let translatedLyrics = this.state[CONFIG.visual["translation-mode"]];
+        const translatedLyrics = this.state[CONFIG.visual["translation-mode"]];
         let activeItem;
 
         if (mode !== -1) {
