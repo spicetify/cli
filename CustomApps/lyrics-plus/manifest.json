@@ -77,8 +77,6 @@
         "TabBar.js",
         "Utils.js",
         "Settings.js",
-        "Translator.js",
-        "dict_part_1.js",
-        "dict_part_2.js"
+        "Translator.js"
     ]
 }
