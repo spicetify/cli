@@ -289,7 +289,7 @@ class LyricsContainer extends react.Component {
             ["katakana", "normal", "katakana"],
         ].map((params) =>
             this.translator.romajifyText(lyricText, params[0], params[1]).then((result) => {
-                let translatedLines = result.split("\n");
+                const translatedLines = result.split("\n");
 
                 this.state[params[2]] = [];
 
