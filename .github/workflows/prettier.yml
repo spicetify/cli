@@ -16,6 +16,6 @@ jobs:
       - name: Prettify code
         uses: creyD/prettier_action@v4.2
         with:
-          prettier_options: --write "./Extensions/*.js" "./jsHelper/{homeConfig,sidebarConfig}.js" "CustomApps/**/*{.js,.css}"
+          prettier_options: --write ./Extensions/*.js ./jsHelper/{homeConfig,sidebarConfig}.js CustomApps/**/*{.js,.css}
           only_changed: True
           commit_message: "style: prettify code"
