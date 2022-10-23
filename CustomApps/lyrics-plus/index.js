@@ -275,9 +275,8 @@ class LyricsContainer extends react.Component {
             return;
         }
 
-        let lyricsToTranslate = this.state.synced;
+        const lyricsToTranslate = this.state.synced ?? this.state.unsynced;
 
-        if (!lyricsToTranslate) lyricsToTranslate = this.state.unsynced;
         if (!lyricsToTranslate) return;
 
         let lyricText = "";
