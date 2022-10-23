@@ -6062,8 +6062,7 @@ class Translator {
 
     init() {
         if (typeof base_dat_gz === "undefined" || typeof tid_pos_dat_gz === "undefined") {
-            if(!this.downloadingdicts)
-            {
+            if (!this.downloadingdicts) {
                 setTimeout(this.include_external.bind(this), 0, dict1_url);
                 setTimeout(this.include_external.bind(this), 0, dict2_url);
                 this.downloadingdicts = true;
@@ -6078,7 +6077,7 @@ class Translator {
             this.finished = true;
         });
     }
-    
+
     include_external(url) {
         var s = document.createElement("script");
         s.setAttribute("type", "text/javascript");
