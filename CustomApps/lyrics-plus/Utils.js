@@ -75,8 +75,8 @@ class Utils {
         reactChildren.push(rubyElems[0]);
 
         for (let i = 1; i < rubyElems.length; i++) {
-            let kanji = rubyElems[i].split("<rp>")[0];
-            let furigana = rubyElems[i].split("<rt>")[1].split("</rt>")[0];
+            const kanji = rubyElems[i].split("<rp>")[0];
+            const furigana = rubyElems[i].split("<rt>")[1].split("</rt>")[0];
 
             reactChildren.push(react.createElement("ruby", null, kanji, react.createElement("rt", null, furigana)));
 
