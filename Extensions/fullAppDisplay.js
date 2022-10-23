@@ -1,4 +1,3 @@
-// @ts-check
 // NAME: Full App Display
 // AUTHOR: khanhas
 // VERSION: 1.0
