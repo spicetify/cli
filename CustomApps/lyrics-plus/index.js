@@ -275,10 +275,13 @@ class LyricsContainer extends react.Component {
             return;
         }
 
-        if (!this.state.synced) return;
+        let lyricsToTranslate = this.state.synced;
+
+        if (!lyricsToTranslate) lyricsToTranslate = this.state.unsynced;
+        if (!lyricsToTranslate) return;
 
         let lyricText = "";
-        for (let lyric of this.state.synced) lyricText += lyric.text + "\n";
+        for (let lyric of lyricsToTranslate) lyricText += lyric.text + "\n";
 
         [
             ["romaji", "spaced", "romaji"],
@@ -291,9 +294,9 @@ class LyricsContainer extends react.Component {
 
                 this.state[params[2]] = [];
 
-                for (let i = 0; i < this.state.synced.length; i++)
+                for (let i = 0; i < lyricsToTranslate.length; i++)
                     this.state[params[2]].push({
-                        startTime: this.state.synced[i].startTime,
+                        startTime: lyricsToTranslate[i].startTime || 0,
                         text: Utils.rubyTextToReact(translatedLines[i]),
                     });
                 lyricContainerUpdate && lyricContainerUpdate();
@@ -555,7 +558,7 @@ class LyricsContainer extends react.Component {
         }
 
         this.state.mode = mode;
-        let showTranslationButton = this.state.synced && Utils.isJapanese(this.state.synced) && (mode == SYNCED || mode == UNSYNCED);
+        let showTranslationButton = (this.state.synced || this.state.unsynced) && Utils.isJapanese(this.state.synced || this.state.unsynced) && (mode == SYNCED || mode == UNSYNCED);
         let translatorLoaded = this.translator.finished;
 
         const out = react.createElement(
