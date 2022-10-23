@@ -22,7 +22,7 @@ Lyrics in Unsynced and Genius modes can be search and jump to. Hit Ctrl + Shift 
 
 ![search](./search.png)
 
-Choose between different option of displaying japanese lyrics. [Furigana, Romaji, Hirgana, Katakana]
+Choose between different option of displaying Japanese lyrics. (Furigana, Romaji, Hirgana, Katakana)
 
 ![conversion](./conversion.png)
 
