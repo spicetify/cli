@@ -517,7 +517,7 @@ class LyricsContainer extends react.Component {
             } else if (mode === UNSYNCED && this.state.unsynced) {
                 activeItem = react.createElement(UnsyncedLyricsPage, {
                     trackUri: this.state.uri,
-                    lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.synced,
+                    lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.unsynced,
                     provider: this.state.provider,
                     copyright: this.state.copyright,
                 });
