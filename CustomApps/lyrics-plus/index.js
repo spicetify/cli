@@ -557,7 +557,10 @@ class LyricsContainer extends react.Component {
         }
 
         this.state.mode = mode;
-        const showTranslationButton = (this.state.synced || this.state.unsynced) && Utils.isJapanese(this.state.synced || this.state.unsynced) && (mode == SYNCED || mode == UNSYNCED);
+        const showTranslationButton =
+            (this.state.synced || this.state.unsynced) &&
+            Utils.isJapanese(this.state.synced || this.state.unsynced) &&
+            (mode == SYNCED || mode == UNSYNCED);
         const translatorLoaded = this.translator.finished;
 
         const out = react.createElement(
