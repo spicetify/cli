@@ -276,11 +276,12 @@ class Grid extends react.Component {
                 !this.state.endOfList &&
                     (this.state.rest ? react.createElement(LoadMoreIcon, { onClick: this.loadMore.bind(this) }) : react.createElement(LoadingIcon))
             ),
-            react.createElement(TopBarContent, {
-                switchCallback: this.switchTo.bind(this),
-                links: CONFIG.services,
-                activeLink: CONFIG.lastService,
-            })
+            !!document.querySelector(".main-topBar-topbarContentWrapper") &&
+                react.createElement(TopBarContent, {
+                    switchCallback: this.switchTo.bind(this),
+                    links: CONFIG.services,
+                    activeLink: CONFIG.lastService,
+                })
         );
     }
 }
