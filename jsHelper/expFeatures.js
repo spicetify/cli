@@ -144,7 +144,7 @@ input.search {
         Object.keys(overrideList).forEach((key) => {
             if (newFeatures.length > 0 && !newFeatures.includes(key)) {
                 delete overrideList[key];
-                console.log(`Removed ${key} from override list`);
+                console.warn(`[spicetify-exp-features] Removed ${key} from override list`);
                 localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
             }
         });

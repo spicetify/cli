@@ -534,28 +534,29 @@ class LyricsContainer extends react.Component {
                 react.createElement(AdjustmentsMenu, { mode })
             ),
             activeItem,
-            react.createElement(TopBarContent, {
-                links: this.availableModes,
-                activeLink: CONFIG.modes[mode],
-                lockLink: CONFIG.modes[this.state.lockMode],
-                switchCallback: (label) => {
-                    const mode = CONFIG.modes.findIndex((a) => a === label);
-                    if (mode !== this.state.mode) {
-                        this.setState({ explicitMode: mode });
+            !!document.querySelector(".main-topBar-topbarContentWrapper") &&
+                react.createElement(TopBarContent, {
+                    links: this.availableModes,
+                    activeLink: CONFIG.modes[mode],
+                    lockLink: CONFIG.modes[this.state.lockMode],
+                    switchCallback: (label) => {
+                        const mode = CONFIG.modes.findIndex((a) => a === label);
+                        if (mode !== this.state.mode) {
+                            this.setState({ explicitMode: mode });
+                            this.fetchLyrics(Player.data.track, mode);
+                        }
+                    },
+                    lockCallback: (label) => {
+                        let mode = CONFIG.modes.findIndex((a) => a === label);
+                        if (mode === this.state.lockMode) {
+                            mode = -1;
+                        }
+                        this.setState({ explicitMode: mode, lockMode: mode });
                         this.fetchLyrics(Player.data.track, mode);
-                    }
-                },
-                lockCallback: (label) => {
-                    let mode = CONFIG.modes.findIndex((a) => a === label);
-                    if (mode === this.state.lockMode) {
-                        mode = -1;
-                    }
-                    this.setState({ explicitMode: mode, lockMode: mode });
-                    this.fetchLyrics(Player.data.track, mode);
-                    CONFIG.locked = mode;
-                    localStorage.setItem("lyrics-plus:lock-mode", mode);
-                },
-            })
+                        CONFIG.locked = mode;
+                        localStorage.setItem("lyrics-plus:lock-mode", mode);
+                    },
+                })
         );
 
         if (this.state.isFullscreen) {
