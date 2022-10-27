@@ -1,123 +1,123 @@
 let configContainer;
 
 function openConfig() {
-    if (configContainer) {
-        Spicetify.PopupModal.display({
-            title: "Reddit",
-            content: configContainer,
-        });
-        return;
-    }
+	if (configContainer) {
+		Spicetify.PopupModal.display({
+			title: "Reddit",
+			content: configContainer
+		});
+		return;
+	}
 
-    CONFIG.servicesElement = {};
+	CONFIG.servicesElement = {};
 
-    configContainer = document.createElement("div");
-    configContainer.id = "reddit-config-container";
+	configContainer = document.createElement("div");
+	configContainer.id = "reddit-config-container";
 
-    const optionHeader = document.createElement("h2");
-    optionHeader.innerText = "Options";
+	const optionHeader = document.createElement("h2");
+	optionHeader.innerText = "Options";
 
-    const serviceHeader = document.createElement("h2");
-    serviceHeader.innerText = "Subreddits";
+	const serviceHeader = document.createElement("h2");
+	serviceHeader.innerText = "Subreddits";
 
-    const serviceContainer = document.createElement("div");
+	const serviceContainer = document.createElement("div");
 
-    function stackServiceElements() {
-        CONFIG.services.forEach((name, index) => {
-            const el = CONFIG.servicesElement[name];
+	function stackServiceElements() {
+		CONFIG.services.forEach((name, index) => {
+			const el = CONFIG.servicesElement[name];
 
-            const [up, down] = el.querySelectorAll("button");
-            if (CONFIG.services.length === 1) {
-                up.disabled = true;
-                down.disabled = true;
-            } else if (index === 0) {
-                up.disabled = true;
-                down.disabled = false;
-            } else if (index === CONFIG.services.length - 1) {
-                up.disabled = false;
-                down.disabled = true;
-            } else {
-                up.disabled = false;
-                down.disabled = false;
-            }
+			const [up, down] = el.querySelectorAll("button");
+			if (CONFIG.services.length === 1) {
+				up.disabled = true;
+				down.disabled = true;
+			} else if (index === 0) {
+				up.disabled = true;
+				down.disabled = false;
+			} else if (index === CONFIG.services.length - 1) {
+				up.disabled = false;
+				down.disabled = true;
+			} else {
+				up.disabled = false;
+				down.disabled = false;
+			}
 
-            serviceContainer.append(el);
-        });
-        gridUpdateTabs && gridUpdateTabs();
-    }
+			serviceContainer.append(el);
+		});
+		gridUpdateTabs && gridUpdateTabs();
+	}
 
-    function posCallback(el, dir) {
-        const id = el.dataset.id;
-        const curPos = CONFIG.services.findIndex((val) => val === id);
-        const newPos = curPos + dir;
+	function posCallback(el, dir) {
+		const id = el.dataset.id;
+		const curPos = CONFIG.services.findIndex(val => val === id);
+		const newPos = curPos + dir;
 
-        if (CONFIG.services.length > 1) {
-            const temp = CONFIG.services[newPos];
-            CONFIG.services[newPos] = CONFIG.services[curPos];
-            CONFIG.services[curPos] = temp;
-        }
+		if (CONFIG.services.length > 1) {
+			const temp = CONFIG.services[newPos];
+			CONFIG.services[newPos] = CONFIG.services[curPos];
+			CONFIG.services[curPos] = temp;
+		}
 
-        localStorage.setItem("reddit:services", JSON.stringify(CONFIG.services));
+		localStorage.setItem("reddit:services", JSON.stringify(CONFIG.services));
 
-        stackServiceElements();
-    }
+		stackServiceElements();
+	}
 
-    function removeCallback(el) {
-        const id = el.dataset.id;
-        CONFIG.services = CONFIG.services.filter((s) => s != id);
-        CONFIG.servicesElement[id].remove();
+	function removeCallback(el) {
+		const id = el.dataset.id;
+		CONFIG.services = CONFIG.services.filter(s => s != id);
+		CONFIG.servicesElement[id].remove();
 
-        localStorage.setItem("reddit:services", JSON.stringify(CONFIG.services));
+		localStorage.setItem("reddit:services", JSON.stringify(CONFIG.services));
 
-        stackServiceElements();
-    }
+		stackServiceElements();
+	}
 
-    CONFIG.services.forEach((name) => {
-        CONFIG.servicesElement[name] = createServiceOption(name, posCallback, removeCallback);
-    });
-    stackServiceElements();
+	CONFIG.services.forEach(name => {
+		CONFIG.servicesElement[name] = createServiceOption(name, posCallback, removeCallback);
+	});
+	stackServiceElements();
 
-    const serviceInput = document.createElement("input");
-    serviceInput.placeholder = "Add new subreddit";
-    serviceInput.onkeydown = (event) => {
-        if (event.key != "Enter") {
-            return;
-        }
-        event.preventDefault();
-        const name = serviceInput.value;
+	const serviceInput = document.createElement("input");
+	serviceInput.placeholder = "Add new subreddit";
+	serviceInput.onkeydown = event => {
+		if (event.key != "Enter") {
+			return;
+		}
+		event.preventDefault();
+		const name = serviceInput.value;
 
-        if (!CONFIG.services.includes(name)) {
-            CONFIG.services.push(name);
-            CONFIG.servicesElement[name] = createServiceOption(name, posCallback, removeCallback);
-            localStorage.setItem("reddit:services", JSON.stringify(CONFIG.services));
-        }
+		if (!CONFIG.services.includes(name)) {
+			CONFIG.services.push(name);
+			CONFIG.servicesElement[name] = createServiceOption(name, posCallback, removeCallback);
+			localStorage.setItem("reddit:services", JSON.stringify(CONFIG.services));
+		}
 
-        stackServiceElements();
-        serviceInput.value = "";
-        const parent = configContainer.parentElement.parentElement;
-        parent.scrollTo(0, parent.scrollHeight);
-    };
+		stackServiceElements();
+		serviceInput.value = "";
+		const parent = configContainer.parentElement.parentElement;
+		parent.scrollTo(0, parent.scrollHeight);
+	};
 
-    configContainer.append(
-        optionHeader,
-        createSlider("Upvotes count", "upvotes"),
-        createSlider("Followers count", "followers"),
-        createSlider("Post type", "type"),
-        createSlider("Long description", "longDescription"),
-        serviceHeader,
-        serviceContainer,
-        serviceInput
-    );
+	configContainer.append(
+		optionHeader,
+		createSlider("Upvotes count", "upvotes"),
+		createSlider("Followers count", "followers"),
+		createSlider("Post type", "type"),
+		createSlider("Long description", "longDescription"),
+		serviceHeader,
+		serviceContainer,
+		serviceInput
+	);
 
-    Spicetify.PopupModal.display({
-        title: "Reddit",
-        content: configContainer,
-    });
+	Spicetify.PopupModal.display({
+		title: "Reddit",
+		content: configContainer
+	});
 }
 
 function createSlider(name, key) {
-    const container = document.createElement("div");
-    container.innerHTML = `
+	const container = document.createElement("div");
+	container.innerHTML = `
 <div class="setting-row">
     <label class="col description">${name}</label>
     <div class="col action"><button class="switch">
@@ -127,23 +127,23 @@ function createSlider(name, key) {
     </button></div>
 </div>`;
 
-    const slider = container.querySelector("button");
-    slider.classList.toggle("disabled", !CONFIG.visual[key]);
+	const slider = container.querySelector("button");
+	slider.classList.toggle("disabled", !CONFIG.visual[key]);
 
-    slider.onclick = () => {
-        const state = !slider.classList.toggle("disabled");
-        CONFIG.visual[key] = state;
-        localStorage.setItem(`reddit:${key}`, String(state));
-        gridUpdatePostsVisual && gridUpdatePostsVisual();
-    };
+	slider.onclick = () => {
+		const state = !slider.classList.toggle("disabled");
+		CONFIG.visual[key] = state;
+		localStorage.setItem(`reddit:${key}`, String(state));
+		gridUpdatePostsVisual && gridUpdatePostsVisual();
+	};
 
-    return container;
+	return container;
 }
 
 function createServiceOption(id, posCallback, removeCallback) {
-    const container = document.createElement("div");
-    container.dataset.id = id;
-    container.innerHTML = `
+	const container = document.createElement("div");
+	container.dataset.id = id;
+	container.innerHTML = `
 <div class="setting-row">
     <h3 class="col description">${id}</h3>
     <div class="col action">
@@ -165,11 +165,11 @@ function createServiceOption(id, posCallback, removeCallback) {
     </div>
 </div>`;
 
-    const [up, down, remove] = container.querySelectorAll("button");
+	const [up, down, remove] = container.querySelectorAll("button");
 
-    up.onclick = () => posCallback(container, -1);
-    down.onclick = () => posCallback(container, 1);
-    remove.onclick = () => removeCallback(container);
+	up.onclick = () => posCallback(container, -1);
+	down.onclick = () => posCallback(container, 1);
+	remove.onclick = () => removeCallback(container);
 
-    return container;
+	return container;
 }
