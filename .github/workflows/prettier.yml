@@ -4,6 +4,7 @@ on: [pull_request]
 
 permissions:
   pull-requests: write
+  contents: write
 
 jobs:
   prettier:
