@@ -294,7 +294,7 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$\.]+\([\w$\.]+\).)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
+	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$\.]+[\w$\.()=!]+.)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
 		splitted := strings.Split(found[1], ",")
@@ -333,7 +333,7 @@ Spicetify.React.useEffect(() => {
 	// React Component: Context Menu and Right Click Menu
 	utils.Replace(
 		&input,
-		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),[\w(){},\.]+,[\w{}]+,\{action:"open",trigger:"right-click"\}\)\))(?:\}(\}))?`,
+		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),(?:[\w(){},\.]+,[\w{}]+,)?\{[.,\w+]*action:"open",trigger:"right-click"\}\)\)?)(?:\}(\}))?`,
 		`=Spicetify.ReactComponent.RightClickMenu=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
 
 	// React Component: Context Menu - Menu
@@ -357,7 +357,7 @@ Spicetify.React.useEffect(() => {
 	// React Component: Show Context Menu items
 	utils.Replace(
 		&input,
-		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function\([\{\w\}:,]+\)|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w=\(\).,]*;?(?:return ?|=>)[\w$\.,()]+\([\w\.]+,\{value:"show")`,
+		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function[()\{\w\}:,]+|\()?\{(?:\w+ ?[\w\{\}\(\)=,:.!]*)?(?:[\w=\.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w=\(\).,]*;?(?:return ?|=>)[\w$\.,()]+\([\w\.]+,\{value:"show")`,
 		`${1}=Spicetify.ReactComponent.PodcastShowMenu${2}`)
 
 	// React Component: Artist Context Menu items
@@ -369,7 +369,7 @@ Spicetify.React.useEffect(() => {
 	// React Component: Playlist Context Menu items
 	utils.Replace(
 		&input,
-		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function\([\{\w\}:,]+\)|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|isEnhanced|onRemoveCallback)[:\w]*,?){3,})`,
+		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function[\{\w\}:,()]*|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|isEnhanced|onRemoveCallback)[:\w]*,?){3,})`,
 		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
 
 	// React Component: Tooltip Wrapper
