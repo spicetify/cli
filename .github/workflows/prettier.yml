@@ -16,6 +16,7 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Prettify code
         uses: creyD/prettier_action@v4.2
