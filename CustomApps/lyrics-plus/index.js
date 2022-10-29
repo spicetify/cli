@@ -35,51 +35,51 @@ const KARAOKE = 0,
 	GENIUS = 3;
 
 const CONFIG = {
-    visual: {
-        colorful: getConfig("lyrics-plus:visual:colorful"),
-        noise: getConfig("lyrics-plus:visual:noise"),
-        ["background-color"]: localStorage.getItem("lyrics-plus:visual:background-color") || "var(--spice-main)",
-        ["active-color"]: localStorage.getItem("lyrics-plus:visual:active-color") || "var(--spice-text)",
-        ["inactive-color"]: localStorage.getItem("lyrics-plus:visual:inactive-color") || "rgba(var(--spice-rgb-subtext),0.5)",
-        ["highlight-color"]: localStorage.getItem("lyrics-plus:visual:highlight-color") || "var(--spice-button)",
-        alignment: localStorage.getItem("lyrics-plus:visual:alignment") || "center",
-        ["lines-before"]: localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
-        ["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
-        ["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
-        ["translation-mode"]: localStorage.getItem("lyrics-plus:visual:translation-mode") || "furigana",
-        ["translate"]: getConfig("lyrics-plus:visual:translate"),
-        ["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
-        ["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
-        ["synced-compact"]: getConfig("lyrics-plus:visual:synced-compact"),
-        ["dual-genius"]: getConfig("lyrics-plus:visual:dual-genius"),
-        delay: 0,
-    },
-    providers: {
-        netease: {
-            on: getConfig("lyrics-plus:provider:netease:on"),
-            desc: `Crowdsourced lyrics provider ran by Chinese developers and users.`,
-            modes: [KARAOKE, SYNCED, UNSYNCED],
-        },
-        musixmatch: {
-            on: getConfig("lyrics-plus:provider:musixmatch:on"),
-            desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://spicetify.app/docs/faq#sometimes-popup-lyrics-andor-lyrics-plus-seem-to-not-work">Spicetify Docs</a>.`,
-            token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
-            modes: [SYNCED, UNSYNCED],
-        },
-        spotify: {
-            on: getConfig("lyrics-plus:provider:spotify:on"),
-            desc: `Lyrics sourced from official Spotify API.`,
-            modes: [SYNCED, UNSYNCED],
-        },
-        genius: {
-            on: getConfig("lyrics-plus:provider:genius:on"),
-            desc: `Provide unsynced lyrics with insights from artists themselves.`,
-            modes: [GENIUS],
-        },
-    },
-    providersOrder: localStorage.getItem("lyrics-plus:services-order"),
-    modes: ["karaoke", "synced", "unsynced", "genius"],
-    locked: localStorage.getItem("lyrics-plus:lock-mode") || "-1",
+	visual: {
+		colorful: getConfig("lyrics-plus:visual:colorful"),
+		noise: getConfig("lyrics-plus:visual:noise"),
+		["background-color"]: localStorage.getItem("lyrics-plus:visual:background-color") || "var(--spice-main)",
+		["active-color"]: localStorage.getItem("lyrics-plus:visual:active-color") || "var(--spice-text)",
+		["inactive-color"]: localStorage.getItem("lyrics-plus:visual:inactive-color") || "rgba(var(--spice-rgb-subtext),0.5)",
+		["highlight-color"]: localStorage.getItem("lyrics-plus:visual:highlight-color") || "var(--spice-button)",
+		alignment: localStorage.getItem("lyrics-plus:visual:alignment") || "center",
+		["lines-before"]: localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
+		["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
+		["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
+		["translation-mode"]: localStorage.getItem("lyrics-plus:visual:translation-mode") || "furigana",
+		["translate"]: getConfig("lyrics-plus:visual:translate"),
+		["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
+		["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
+		["synced-compact"]: getConfig("lyrics-plus:visual:synced-compact"),
+		["dual-genius"]: getConfig("lyrics-plus:visual:dual-genius"),
+		delay: 0
+	},
+	providers: {
+		netease: {
+			on: getConfig("lyrics-plus:provider:netease:on"),
+			desc: `Crowdsourced lyrics provider ran by Chinese developers and users.`,
+			modes: [KARAOKE, SYNCED, UNSYNCED]
+		},
+		musixmatch: {
+			on: getConfig("lyrics-plus:provider:musixmatch:on"),
+			desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://spicetify.app/docs/faq#sometimes-popup-lyrics-andor-lyrics-plus-seem-to-not-work">Spicetify Docs</a>.`,
+			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
+			modes: [SYNCED, UNSYNCED]
+		},
+		spotify: {
+			on: getConfig("lyrics-plus:provider:spotify:on"),
+			desc: `Lyrics sourced from official Spotify API.`,
+			modes: [SYNCED, UNSYNCED]
+		},
+		genius: {
+			on: getConfig("lyrics-plus:provider:genius:on"),
+			desc: `Provide unsynced lyrics with insights from artists themselves.`,
+			modes: [GENIUS]
+		}
+	},
+	providersOrder: localStorage.getItem("lyrics-plus:services-order"),
+	modes: ["karaoke", "synced", "unsynced", "genius"],
+	locked: localStorage.getItem("lyrics-plus:lock-mode") || "-1"
 };
 
 try {
@@ -112,44 +112,44 @@ let lyricContainerUpdate;
 const fontSizeLimit = { min: 16, max: 256, step: 4 };
 
 class LyricsContainer extends react.Component {
-    constructor() {
-        super();
-        this.state = {
-            karaoke: null,
-            synced: null,
-            unsynced: null,
-            genius: null,
-            genius2: null,
-            romaji: null,
-            furigana: null,
-            hiragana: null,
-            katakana: null,
-            uri: "",
-            provider: "",
-            colors: {
-                background: "",
-                inactive: "",
-            },
-            tempo: "0.25s",
-            explicitMode: -1,
-            lockMode: CONFIG.locked,
-            mode: -1,
-            isLoading: false,
-            versionIndex: 0,
-            versionIndex2: 0,
-            isFullscreen: false,
-            isFADMode: false,
-        };
-        this.currentTrackUri = "";
-        this.nextTrackUri = "";
-        this.availableModes = [];
-        this.styleVariables = {};
-        this.fullscreenContainer = document.createElement("div");
-        this.fullscreenContainer.id = "lyrics-fullscreen-container";
-        this.mousetrap = new Spicetify.Mousetrap();
-        this.containerRef = react.createRef(null);
-        this.translator = new Translator();
-    }
+	constructor() {
+		super();
+		this.state = {
+			karaoke: null,
+			synced: null,
+			unsynced: null,
+			genius: null,
+			genius2: null,
+			romaji: null,
+			furigana: null,
+			hiragana: null,
+			katakana: null,
+			uri: "",
+			provider: "",
+			colors: {
+				background: "",
+				inactive: ""
+			},
+			tempo: "0.25s",
+			explicitMode: -1,
+			lockMode: CONFIG.locked,
+			mode: -1,
+			isLoading: false,
+			versionIndex: 0,
+			versionIndex2: 0,
+			isFullscreen: false,
+			isFADMode: false
+		};
+		this.currentTrackUri = "";
+		this.nextTrackUri = "";
+		this.availableModes = [];
+		this.styleVariables = {};
+		this.fullscreenContainer = document.createElement("div");
+		this.fullscreenContainer.id = "lyrics-fullscreen-container";
+		this.mousetrap = new Spicetify.Mousetrap();
+		this.containerRef = react.createRef(null);
+		this.translator = new Translator();
+	}
 
 	infoFromTrack(track) {
 		const meta = track?.metadata;
@@ -226,13 +226,13 @@ class LyricsContainer extends react.Component {
 		return empty;
 	}
 
-    async fetchLyrics(track, mode = -1) {
-        this.state.furigana = this.state.romaji = this.state.hirgana = this.state.katakana = null;
-        const info = this.infoFromTrack(track);
-        if (!info) {
-            this.setState({ error: "No track info" });
-            return;
-        }
+	async fetchLyrics(track, mode = -1) {
+		this.state.furigana = this.state.romaji = this.state.hirgana = this.state.katakana = null;
+		const info = this.infoFromTrack(track);
+		if (!info) {
+			this.setState({ error: "No track info" });
+			return;
+		}
 
 		if (CONFIG.visual.colorful) {
 			this.fetchColors(info.uri);
@@ -240,68 +240,68 @@ class LyricsContainer extends react.Component {
 
 		this.fetchTempo(info.uri);
 
-        if (mode !== -1) {
-            if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
-                this.resetDelay();
-                this.setState({ ...CACHE[info.uri] });
-                this.translateLyrics();
-                return;
-            }
-        } else {
-            if (CACHE[info.uri]) {
-                this.resetDelay();
-                this.setState({ ...CACHE[info.uri] });
-                this.translateLyrics();
-                return;
-            }
-        }
+		if (mode !== -1) {
+			if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
+				this.resetDelay();
+				this.setState({ ...CACHE[info.uri] });
+				this.translateLyrics();
+				return;
+			}
+		} else {
+			if (CACHE[info.uri]) {
+				this.resetDelay();
+				this.setState({ ...CACHE[info.uri] });
+				this.translateLyrics();
+				return;
+			}
+		}
 
-        this.setState({ ...emptyState, isLoading: true });
-        const resp = await this.tryServices(info, mode);
+		this.setState({ ...emptyState, isLoading: true });
+		const resp = await this.tryServices(info, mode);
 
-        // In case user skips tracks too fast and multiple callbacks
-        // set wrong lyrics to current track.
-        if (resp.uri === this.currentTrackUri) {
-            this.resetDelay();
-            this.setState({ ...resp, isLoading: false });
-        }
+		// In case user skips tracks too fast and multiple callbacks
+		// set wrong lyrics to current track.
+		if (resp.uri === this.currentTrackUri) {
+			this.resetDelay();
+			this.setState({ ...resp, isLoading: false });
+		}
 
-        this.translateLyrics();
-    }
+		this.translateLyrics();
+	}
 
-    async translateLyrics() {
-        if (!this.translator || !this.translator.finished) {
-            setTimeout(this.translateLyrics.bind(this), 100);
-            return;
-        }
+	async translateLyrics() {
+		if (!this.translator || !this.translator.finished) {
+			setTimeout(this.translateLyrics.bind(this), 100);
+			return;
+		}
 
-        const lyricsToTranslate = this.state.synced ?? this.state.unsynced;
+		const lyricsToTranslate = this.state.synced ?? this.state.unsynced;
 
-        if (!lyricsToTranslate) return;
+		if (!lyricsToTranslate) return;
 
-        let lyricText = "";
-        for (let lyric of lyricsToTranslate) lyricText += lyric.text + "\n";
+		let lyricText = "";
+		for (let lyric of lyricsToTranslate) lyricText += lyric.text + "\n";
 
-        [
-            ["romaji", "spaced", "romaji"],
-            ["hiragana", "furigana", "furigana"],
-            ["hiragana", "normal", "hiragana"],
-            ["katakana", "normal", "katakana"],
-        ].map((params) =>
-            this.translator.romajifyText(lyricText, params[0], params[1]).then((result) => {
-                const translatedLines = result.split("\n");
+		[
+			["romaji", "spaced", "romaji"],
+			["hiragana", "furigana", "furigana"],
+			["hiragana", "normal", "hiragana"],
+			["katakana", "normal", "katakana"]
+		].map(params =>
+			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
+				const translatedLines = result.split("\n");
 
-                this.state[params[2]] = [];
+				this.state[params[2]] = [];
 
-                for (let i = 0; i < lyricsToTranslate.length; i++)
-                    this.state[params[2]].push({
-                        startTime: lyricsToTranslate[i].startTime || 0,
-                        text: Utils.rubyTextToReact(translatedLines[i]),
-                    });
-                lyricContainerUpdate && lyricContainerUpdate();
-            })
-        );
-    }
+				for (let i = 0; i < lyricsToTranslate.length; i++)
+					this.state[params[2]].push({
+						startTime: lyricsToTranslate[i].startTime || 0,
+						text: Utils.rubyTextToReact(translatedLines[i])
+					});
+				lyricContainerUpdate && lyricContainerUpdate();
+			})
+		);
+	}
 
 	resetDelay() {
 		CONFIG.visual.delay = 0;
@@ -497,48 +497,48 @@ class LyricsContainer extends react.Component {
 			}
 		}
 
-        const translatedLyrics = this.state[CONFIG.visual["translation-mode"]];
-        let activeItem;
+		const translatedLyrics = this.state[CONFIG.visual["translation-mode"]];
+		let activeItem;
 
-        if (mode !== -1) {
-            if (mode === KARAOKE && this.state.karaoke) {
-                activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
-                    isKara: true,
-                    trackUri: this.state.uri,
-                    lyrics: this.state.karaoke,
-                    provider: this.state.provider,
-                    copyright: this.state.copyright,
-                });
-            } else if (mode === SYNCED && this.state.synced) {
-                activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
-                    trackUri: this.state.uri,
-                    lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.synced,
-                    provider: this.state.provider,
-                    copyright: this.state.copyright,
-                });
-            } else if (mode === UNSYNCED && this.state.unsynced) {
-                activeItem = react.createElement(UnsyncedLyricsPage, {
-                    trackUri: this.state.uri,
-                    lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.unsynced,
-                    provider: this.state.provider,
-                    copyright: this.state.copyright,
-                });
-            } else if (mode === GENIUS && this.state.genius) {
-                activeItem = react.createElement(GeniusPage, {
-                    isSplitted: CONFIG.visual["dual-genius"],
-                    trackUri: this.state.uri,
-                    lyrics: this.state.genius,
-                    provider: this.state.provider,
-                    copyright: this.state.copyright,
-                    versions: this.state.versions,
-                    versionIndex: this.state.versionIndex,
-                    onVersionChange: this.onVersionChange.bind(this),
-                    lyrics2: this.state.genius2,
-                    versionIndex2: this.state.versionIndex2,
-                    onVersionChange2: this.onVersionChange2.bind(this),
-                });
-            }
-        }
+		if (mode !== -1) {
+			if (mode === KARAOKE && this.state.karaoke) {
+				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
+					isKara: true,
+					trackUri: this.state.uri,
+					lyrics: this.state.karaoke,
+					provider: this.state.provider,
+					copyright: this.state.copyright
+				});
+			} else if (mode === SYNCED && this.state.synced) {
+				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
+					trackUri: this.state.uri,
+					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.synced,
+					provider: this.state.provider,
+					copyright: this.state.copyright
+				});
+			} else if (mode === UNSYNCED && this.state.unsynced) {
+				activeItem = react.createElement(UnsyncedLyricsPage, {
+					trackUri: this.state.uri,
+					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.unsynced,
+					provider: this.state.provider,
+					copyright: this.state.copyright
+				});
+			} else if (mode === GENIUS && this.state.genius) {
+				activeItem = react.createElement(GeniusPage, {
+					isSplitted: CONFIG.visual["dual-genius"],
+					trackUri: this.state.uri,
+					lyrics: this.state.genius,
+					provider: this.state.provider,
+					copyright: this.state.copyright,
+					versions: this.state.versions,
+					versionIndex: this.state.versionIndex,
+					onVersionChange: this.onVersionChange.bind(this),
+					lyrics2: this.state.genius2,
+					versionIndex2: this.state.versionIndex2,
+					onVersionChange2: this.onVersionChange2.bind(this)
+				});
+			}
+		}
 
 		if (!activeItem) {
 			activeItem = react.createElement(
@@ -556,64 +556,62 @@ class LyricsContainer extends react.Component {
 			);
 		}
 
-        this.state.mode = mode;
-        const showTranslationButton =
-            (this.state.synced || this.state.unsynced) &&
-            Utils.isJapanese(this.state.synced || this.state.unsynced) &&
-            (mode == SYNCED || mode == UNSYNCED);
-        const translatorLoaded = this.translator.finished;
+		this.state.mode = mode;
+		const showTranslationButton =
+			(this.state.synced || this.state.unsynced) &&
+			Utils.isJapanese(this.state.synced || this.state.unsynced) &&
+			(mode == SYNCED || mode == UNSYNCED);
+		const translatorLoaded = this.translator.finished;
 
-        const out = react.createElement(
-            "div",
-            {
-                className:
-                    "lyrics-lyricsContainer-LyricsContainer" +
-                    (CONFIG.visual["fade-blur"] ? " blur-enabled" : "") +
-                    (fadLyricsContainer ? " fad-enabled" : ""),
-                style: this.styleVariables,
-                ref: (el) => {
-                    if (!el) return;
-                    el.onmousewheel = this.onFontSizeChange;
-                },
-            },
-            react.createElement("div", {
-                className: "lyrics-lyricsContainer-LyricsBackground",
-            }),
-            react.createElement(
-                "div",
-                {
-                    className: "lyrics-config-button-container",
-                },
-                react.createElement(TranslationMenu, {
-                    showTranslationButton,
-                    translatorLoaded,
-                }),
-                react.createElement(AdjustmentsMenu, { mode })
-            ),
-            activeItem,
-            react.createElement(TopBarContent, {
-                links: this.availableModes,
-                activeLink: CONFIG.modes[mode],
-                lockLink: CONFIG.modes[this.state.lockMode],
-                switchCallback: (label) => {
-                    const mode = CONFIG.modes.findIndex((a) => a === label);
-                    if (mode !== this.state.mode) {
-                        this.setState({ explicitMode: mode });
-                        this.fetchLyrics(Player.data.track, mode);
-                    }
-                },
-                lockCallback: (label) => {
-                    let mode = CONFIG.modes.findIndex((a) => a === label);
-                    if (mode === this.state.lockMode) {
-                        mode = -1;
-                    }
-                    this.setState({ explicitMode: mode, lockMode: mode });
-                    this.fetchLyrics(Player.data.track, mode);
-                    CONFIG.locked = mode;
-                    localStorage.setItem("lyrics-plus:lock-mode", mode);
-                },
-            })
-        );
+		const out = react.createElement(
+			"div",
+			{
+				className:
+					"lyrics-lyricsContainer-LyricsContainer" + (CONFIG.visual["fade-blur"] ? " blur-enabled" : "") + (fadLyricsContainer ? " fad-enabled" : ""),
+				style: this.styleVariables,
+				ref: el => {
+					if (!el) return;
+					el.onmousewheel = this.onFontSizeChange;
+				}
+			},
+			react.createElement("div", {
+				className: "lyrics-lyricsContainer-LyricsBackground"
+			}),
+			react.createElement(
+				"div",
+				{
+					className: "lyrics-config-button-container"
+				},
+				react.createElement(TranslationMenu, {
+					showTranslationButton,
+					translatorLoaded
+				}),
+				react.createElement(AdjustmentsMenu, { mode })
+			),
+			activeItem,
+			react.createElement(TopBarContent, {
+				links: this.availableModes,
+				activeLink: CONFIG.modes[mode],
+				lockLink: CONFIG.modes[this.state.lockMode],
+				switchCallback: label => {
+					const mode = CONFIG.modes.findIndex(a => a === label);
+					if (mode !== this.state.mode) {
+						this.setState({ explicitMode: mode });
+						this.fetchLyrics(Player.data.track, mode);
+					}
+				},
+				lockCallback: label => {
+					let mode = CONFIG.modes.findIndex(a => a === label);
+					if (mode === this.state.lockMode) {
+						mode = -1;
+					}
+					this.setState({ explicitMode: mode, lockMode: mode });
+					this.fetchLyrics(Player.data.track, mode);
+					CONFIG.locked = mode;
+					localStorage.setItem("lyrics-plus:lock-mode", mode);
+				}
+			})
+		);
 
 		if (this.state.isFullscreen) {
 			return reactDOM.createPortal(out, this.fullscreenContainer);

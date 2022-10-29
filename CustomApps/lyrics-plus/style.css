@@ -589,31 +589,31 @@ button.switch.small {
 }
 
 .lyircs-translation-spinner {
-    border: 2px solid #cdcdcd;
-    border-top: 3px solid rgba(255, 255, 255, 0);
-    border-radius: 50%;
-    width: 15px;
-    height: 15px;
-    margin-left: 5px;
-    margin-top: 5px;
-    display: inline-block;
-    -webkit-animation: spin 1s linear infinite;
+	border: 2px solid #cdcdcd;
+	border-top: 3px solid rgba(255, 255, 255, 0);
+	border-radius: 50%;
+	width: 15px;
+	height: 15px;
+	margin-left: 5px;
+	margin-top: 5px;
+	display: inline-block;
+	-webkit-animation: spin 1s linear infinite;
 }
 
 @-webkit-keyframes spin {
-    0% {
-        -webkit-transform: rotate(0deg);
-    }
-    100% {
-        -webkit-transform: rotate(360deg);
-    }
+	0% {
+		-webkit-transform: rotate(0deg);
+	}
+	100% {
+		-webkit-transform: rotate(360deg);
+	}
 }
 
 .lyrics-config-button {
 	align-items: center;
 	background-color: rgba(0, 0, 0, 0.5);
 	border: 0;
-    margin: 5px;
+	margin: 5px;
 	border-radius: 4px;
 	color: #eee;
 	cursor: pointer;

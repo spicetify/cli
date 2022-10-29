@@ -18,30 +18,6 @@ const CreditFooter = react.memo(({ provider, copyright }) => {
 });
 
 const IdlingIndicator = ({ isActive, progress, delay }) => {
-<<<<<<< HEAD
-    return react.createElement(
-        "div",
-        {
-            className: `lyrics-idling-indicator ${
-                !isActive ? "lyrics-idling-indicator-hidden" : ""
-            } lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active`,
-            style: {
-                "--position-index": 0,
-                "--animation-index": 1,
-                "--indicator-delay": delay + "ms",
-            },
-        },
-        react.createElement("div", {
-            className: `lyrics-idling-indicator__circle ${progress >= 0.05 ? "active" : ""}`,
-        }),
-        react.createElement("div", {
-            className: `lyrics-idling-indicator__circle ${progress >= 0.33 ? "active" : ""}`,
-        }),
-        react.createElement("div", {
-            className: `lyrics-idling-indicator__circle ${progress >= 0.66 ? "active" : ""}`,
-        })
-    );
-=======
 	return react.createElement(
 		"div",
 		{
@@ -58,7 +34,6 @@ const IdlingIndicator = ({ isActive, progress, delay }) => {
 		react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.33 ? "active" : ""}` }),
 		react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.66 ? "active" : ""}` })
 	);
->>>>>>> upstream/master
 };
 
 const emptyLine = {
@@ -205,48 +180,6 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 					animationIndex = i - CONFIG.visual["lines-before"] - 1;
 				}
 
-<<<<<<< HEAD
-                return react.createElement(
-                    "p",
-                    {
-                        className,
-                        style: {
-                            cursor: "pointer",
-                            "--position-index": animationIndex,
-                            "--animation-index": (animationIndex < 0 ? 0 : animationIndex) + 1,
-                            "--blur-index": Math.abs(animationIndex),
-                        },
-                        key: lineNumber,
-                        dir: "auto",
-                        ref,
-                        onClick: (event) => {
-                            if (startTime) {
-                                Spicetify.Player.seek(startTime);
-                            }
-                        },
-                        onAuxClick: async (event) => {
-                            await Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
-                                .then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-                                .catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-                        },
-                    },
-                    !isKara
-                        ? text
-                        : react.createElement(KaraokeLine, {
-                              text,
-                              startTime,
-                              position,
-                              isActive,
-                          })
-                );
-            })
-        ),
-        react.createElement(CreditFooter, {
-            provider,
-            copyright,
-        })
-    );
-=======
 				return react.createElement(
 					"p",
 					{
@@ -280,7 +213,6 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 			copyright
 		})
 	);
->>>>>>> upstream/master
 });
 
 class SearchBar extends react.Component {
@@ -505,48 +437,6 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 				});
 			}
 
-<<<<<<< HEAD
-            const isActive = i == activeLineIndex;
-            return react.createElement(
-                "p",
-                {
-                    className: "lyrics-lyricsContainer-LyricsLine" + (i <= activeLineIndex ? " lyrics-lyricsContainer-LyricsLine-active" : ""),
-                    style: {
-                        cursor: "pointer",
-                    },
-                    dir: "auto",
-                    ref: isActive ? activeLineRef : null,
-                    onClick: (event) => {
-                        if (startTime) {
-                            Spicetify.Player.seek(startTime);
-                        }
-                    },
-                    onAuxClick: async (event) => {
-                        await Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
-                            .then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-                            .catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-                    },
-                },
-                !isKara
-                    ? text
-                    : react.createElement(KaraokeLine, {
-                          text,
-                          startTime,
-                          position,
-                          isActive,
-                      })
-            );
-        }),
-        react.createElement("p", {
-            className: "lyrics-lyricsContainer-LyricsUnsyncedPadding",
-        }),
-        react.createElement(CreditFooter, {
-            provider,
-            copyright,
-        }),
-        react.createElement(SearchBar, null)
-    );
-=======
 			const isActive = i == activeLineIndex;
 			return react.createElement(
 				"p",
@@ -580,7 +470,6 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 		}),
 		react.createElement(SearchBar, null)
 	);
->>>>>>> upstream/master
 });
 
 const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
@@ -689,24 +578,6 @@ const GeniusPage = react.memo(
 			}
 		}, [lyrics, lyrics2]);
 
-<<<<<<< HEAD
-        const lyricsEl1 = react.createElement(
-            "div",
-            null,
-            react.createElement(VersionSelector, {
-                items: versions,
-                index: versionIndex,
-                callback: onVersionChange,
-            }),
-            react.createElement("div", {
-                className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
-                ref: (c) => (container = c),
-                dangerouslySetInnerHTML: {
-                    __html: lyrics,
-                },
-            })
-        );
-=======
 		const lyricsEl1 = react.createElement(
 			"div",
 			null,
@@ -719,33 +590,11 @@ const GeniusPage = react.memo(
 				}
 			})
 		);
->>>>>>> upstream/master
 
 		let mainContainer = [lyricsEl1];
 		//remove "&& false" below to restore the split display
 		const shouldSplit = versions.length > 1 && isSplitted && false;
 
-<<<<<<< HEAD
-        if (shouldSplit) {
-            const lyricsEl2 = react.createElement(
-                "div",
-                null,
-                react.createElement(VersionSelector, {
-                    items: versions,
-                    index: versionIndex2,
-                    callback: onVersionChange2,
-                }),
-                react.createElement("div", {
-                    className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
-                    ref: (c) => (container2 = c),
-                    dangerouslySetInnerHTML: {
-                        __html: lyrics2,
-                    },
-                })
-            );
-            mainContainer.push(lyricsEl2);
-        }
-=======
 		if (shouldSplit) {
 			const lyricsEl2 = react.createElement(
 				"div",
@@ -761,7 +610,6 @@ const GeniusPage = react.memo(
 			);
 			mainContainer.push(lyricsEl2);
 		}
->>>>>>> upstream/master
 
 		return react.createElement(
 			"div",
