@@ -1,6 +1,10 @@
 name: Prettier
 
-on: [pull_request, push]
+on: [pull_request]
+
+permissions:
+  pull-requests: write
+  contents: write
 
 jobs:
   prettier:
@@ -9,6 +13,14 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v2
-      - uses: actionsx/prettier@v2
         with:
-          args: --check "./Extensions/*.js" "./jsHelper/{homeConfig,sidebarConfig}.js" "CustomApps/*/*{.js,.css}"
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prettify code
+        uses: creyD/prettier_action@v4.2
+        with:
+          prettier_options: --write ./Extensions/*.js ./jsHelper/{homeConfig,sidebarConfig}.js CustomApps/**/*{.js,.css}
+          commit_message: "style: prettify code"
+          github_token: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
