@@ -23,6 +23,7 @@ Lyrics in Unsynced and Genius modes can be search and jump to. Hit Ctrl + Shift 
 ![search](./search.png)
 
 Customise colors, change providers' priorities in config menu. Config menu locates in Profile Menu (top right button with your user name).
+> Note - You have to be in the lyrics section of the spotify app for these settings to show
 
 To install, run:
 
