@@ -2,10 +2,6 @@ name: Prettier
 
 on: [pull_request]
 
-permissions:
-  pull-requests: write
-  contents: write
-
 jobs:
   prettier:
     runs-on: ubuntu-latest
