@@ -2,19 +2,14 @@ name: Prettier
 
 on: [pull_request]
 
-permissions:
-  pull-requests: write
-  contents: write
-
 jobs:
   prettier:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
           fetch-depth: 0
           persist-credentials: false
 
