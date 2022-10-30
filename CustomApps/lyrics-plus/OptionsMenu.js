@@ -129,7 +129,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, translatorLoaded })
                           "div",
                           null,
                           react.createElement("p1", null, "Loading"),
-                          react.createElement("div", { class: "lyircs-translation-spinner" }, "")
+                          react.createElement("div", { class: "lyrics-translation-spinner" }, "")
                       )
             ),
             trigger: "click",

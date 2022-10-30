@@ -6047,8 +6047,8 @@
         )(29);
     });
 
-const dict1_url = "https://cdn.jsdelivr.net/gh/41pha1/spicetify-romaji-lyrics@main/marketplace/dict_part_1.js";
-const dict2_url = "https://cdn.jsdelivr.net/gh/41pha1/spicetify-romaji-lyrics@main/marketplace/dict_part_2.js";
+const dict1_url = "https://cdn.jsdelivr.net/gh/spicetify/spicetify-lyrics-romaji@main/dictionary/split_1.js";
+const dict2_url = "https://cdn.jsdelivr.net/gh/spicetify/spicetify-lyrics-romaji@main/dictionary/split_2.js";
 
 class Translator {
     constructor() {
