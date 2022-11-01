@@ -86,73 +86,73 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 });
 
 const TranslationMenu = react.memo(({ showTranslationButton, translatorLoaded }) => {
-    if (!showTranslationButton) return null;
+	if (!showTranslationButton) return null;
 
-    return react.createElement(
-        Spicetify.ReactComponent.ContextMenu,
-        {
-            menu: react.createElement(
-                Spicetify.ReactComponent.Menu,
-                {},
-                react.createElement("h3", null, " Conversions"),
-                translatorLoaded
-                    ? react.createElement(OptionList, {
-                          items: [
-                              {
-                                  desc: "Mode",
-                                  key: "translation-mode",
-                                  type: ConfigSelection,
-                                  options: {
-                                      furigana: "Furigana",
-                                      romaji: "Romaji",
-                                      hiragana: "Hiragana",
-                                      katakana: "Katakana",
-                                  },
-                                  renderInline: true,
-                              },
-                              {
-                                  desc: "Convert",
-                                  key: "translate",
-                                  type: ConfigSlider,
-                                  trigger: "click",
-                                  action: "toggle",
-                                  renderInline: true,
-                              },
-                          ],
-                          onChange: (name, value) => {
-                              CONFIG.visual[name] = value;
-                              localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
-                              lyricContainerUpdate && lyricContainerUpdate();
-                          },
-                      })
-                    : react.createElement(
-                          "div",
-                          null,
-                          react.createElement("p1", null, "Loading"),
-                          react.createElement("div", { class: "lyrics-translation-spinner" }, "")
-                      )
-            ),
-            trigger: "click",
-            action: "toggle",
-            renderInline: true,
-        },
-        react.createElement(
-            "button",
-            {
-                className: "lyrics-config-button",
-            },
-            react.createElement(
-                "p1",
-                {
-                    width: 16,
-                    height: 16,
-                    viewBox: "0 0 16 10.3",
-                    fill: "currentColor",
-                },
-                "あ"
-            )
-        )
-    );
+	return react.createElement(
+		Spicetify.ReactComponent.ContextMenu,
+		{
+			menu: react.createElement(
+				Spicetify.ReactComponent.Menu,
+				{},
+				react.createElement("h3", null, " Conversions"),
+				translatorLoaded
+					? react.createElement(OptionList, {
+							items: [
+								{
+									desc: "Mode",
+									key: "translation-mode",
+									type: ConfigSelection,
+									options: {
+										furigana: "Furigana",
+										romaji: "Romaji",
+										hiragana: "Hiragana",
+										katakana: "Katakana"
+									},
+									renderInline: true
+								},
+								{
+									desc: "Convert",
+									key: "translate",
+									type: ConfigSlider,
+									trigger: "click",
+									action: "toggle",
+									renderInline: true
+								}
+							],
+							onChange: (name, value) => {
+								CONFIG.visual[name] = value;
+								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
+								lyricContainerUpdate && lyricContainerUpdate();
+							}
+					  })
+					: react.createElement(
+							"div",
+							null,
+							react.createElement("p1", null, "Loading"),
+							react.createElement("div", { class: "lyrics-translation-spinner" }, "")
+					  )
+			),
+			trigger: "click",
+			action: "toggle",
+			renderInline: true
+		},
+		react.createElement(
+			"button",
+			{
+				className: "lyrics-config-button"
+			},
+			react.createElement(
+				"p1",
+				{
+					width: 16,
+					height: 16,
+					viewBox: "0 0 16 10.3",
+					fill: "currentColor"
+				},
+				"あ"
+			)
+		)
+	);
 });
 
 const AdjustmentsMenu = react.memo(({ mode }) => {

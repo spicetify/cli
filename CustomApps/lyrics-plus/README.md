@@ -3,10 +3,11 @@
 ### Lyrics Plus
 
 Show current track lyrics. Current lyrics providers:
--   Internal Spotify lyrics service.
--   Netease: From Chinese developers and users. Provides karaoke and synced lyrics.
--   Musixmatch: A company from Italy. Provided synced lyrics.
--   Genius: Provide unsynced lyrics but with description/insight from artists themselve.
+
+- Internal Spotify lyrics service.
+- Netease: From Chinese developers and users. Provides karaoke and synced lyrics.
+- Musixmatch: A company from Italy. Provided synced lyrics.
+- Genius: Provide unsynced lyrics but with description/insight from artists themselve.
 
 ![kara](./kara.png)
 
@@ -37,6 +38,6 @@ spicetify apply
 
 ### Credits
 
--   A few parts of app code are taken from Spotify official app, including SyncedLyricsPage, CSS animation and TabBar. Please do not distribute these code else where out of Spotify/Spicetify context.
--   Netease synced lyrics parser is adapted from [mantou132/Spotify-Lyrics](https://github.com/mantou132/Spotify-Lyrics). Give it a Star if you like this app.
--   The algorithm for converting Japanese lyrics is based on [Hexenq's Kuroshiro](https://github.com/hexenq/kuroshiro).
+- A few parts of app code are taken from Spotify official app, including SyncedLyricsPage, CSS animation and TabBar. Please do not distribute these code else where out of Spotify/Spicetify context.
+- Netease synced lyrics parser is adapted from [mantou132/Spotify-Lyrics](https://github.com/mantou132/Spotify-Lyrics). Give it a Star if you like this app.
+- The algorithm for converting Japanese lyrics is based on [Hexenq's Kuroshiro](https://github.com/hexenq/kuroshiro).
