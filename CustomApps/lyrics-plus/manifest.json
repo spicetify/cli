@@ -77,6 +77,8 @@
 		"TabBar.js",
 		"Utils.js",
 		"Settings.js",
+		"Kuromoji.js",
+		"Kuroshiro.js",
 		"Translator.js"
 	]
 }
