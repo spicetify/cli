@@ -2033,5 +2033,11 @@
     "iGyMsGo7FgYQQThBj2y9": "search-searchResult-topResult",
     "eITFAR9yPwhjL_2gxB09": "search-searchResult-topResultCard",
     "DFtdzavKSbEhwKYkPTa6": "playback-progressbar-isInteractive",
-    "gQoa8JTSpjSmYyABcag2": "main-connectBar-connectBar"
+    "gQoa8JTSpjSmYyABcag2": "main-connectBar-connectBar",
+    "KAZD28usA1vPz5GVpm63": "main-genericButton-button",
+	"RK45o6dbvO1mb0wQtSwq": "main-genericButton-buttonActive",
+	"PrhIVExjBkmjHt6Ea4XE": "main-connectPicker-button",
+	"n8Bz0c0v17whD3KfMdOk": "album-albumPage-sectionWrapper",
+	"aQMtxnKeiJqZ9XCcDuZ7": "show-showPage-sectionWrapper",
+	"YJMECPbMHWgMUs8RFdcV": "folder-folderPage-sectionWrapper"
 }
