@@ -26,11 +26,12 @@ type Flag struct {
 // AdditionalOptions .
 func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
-		filepath.Join(appsFolderPath, "xpui", "index.html"):             htmlMod,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertCustomApp,
-		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):         insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):    insertHomeConfig,
-		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): insertVersionInfo,
+		filepath.Join(appsFolderPath, "xpui", "index.html"):                     htmlMod,
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                        insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):                 insertExpFeatures,
+		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):            insertHomeConfig,
+		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"):         insertVersionInfo,
+		filepath.Join(appsFolderPath, "xpui", "xpui-routes-your-library-x.js"):  insertCustomAppX,
 	}
 
 	for file, call := range filesToModified {
@@ -263,26 +264,10 @@ func insertCustomApp(jsPath string, flags Flag) {
 			REACT_ELEMENT_REGEX,
 			appEleMap+`${0}`)
 
-		utils.Replace(
-			&content,
-			`(?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
-			`Spicetify._sidebarItemToClone=${0}`)
-
 		utils.ReplaceOnce(
 			&content,
 			`\d+:1,\d+:1,\d+:1`,
 			"${0}"+cssEnableMap)
-
-		sidebarItemMatch := utils.SeekToCloseParen(
-			content,
-			`\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
-			'(', ')')
-
-		content = strings.Replace(
-			content,
-			sidebarItemMatch,
-			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
-			1)
 
 		if flags.SidebarConfig {
 			utils.ReplaceOnce(
@@ -297,6 +282,37 @@ func insertCustomApp(jsPath string, flags Flag) {
 				`(([\w$.]+\.fromJSON)\(\w+\)+;)(return ?[\w{}().,]+[\w$]+\.Provider,)(\{value:\{localConfiguration)`,
 				`${1}Spicetify.createInternalMap=${2};${3}Spicetify.RemoteConfigResolver=${4}`)
 		}
+
+		return content
+	})
+}
+
+func insertCustomAppX(jsPath string, flags Flag) {
+	utils.ModifyFile(jsPath, func(content string) string {
+		appMap := ""
+		appNameArray := ""
+
+		for _, app := range flags.CustomApp {
+			appName := `spicetify-routes-` + app
+			appMap += fmt.Sprintf(`"%s":"%s",`, appName, appName)
+			appNameArray += fmt.Sprintf(`"%s",`, app)
+		}
+
+		utils.Replace(
+			&content,
+			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$_.]+,\{label:[\w".${}()\x60-]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$_.]+,\{to:"/collection",referrer:"your_library"`,
+			`Spicetify._sidebarItemToClone=${0}`)
+
+		sidebarItemMatch := utils.SeekToCloseParen(
+			content,
+			`\([\w$_.]+,\{label:[\w".${}()\x60-]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$_.]+,\{to:"/collection",referrer:"your_library"`,
+			'(', ')')
+
+		content = strings.Replace(
+			content,
+			sidebarItemMatch,
+			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
+			1)
 
 		return content
 	})
