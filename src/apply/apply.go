@@ -26,12 +26,12 @@ type Flag struct {
 // AdditionalOptions .
 func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
-		filepath.Join(appsFolderPath, "xpui", "index.html"):                     htmlMod,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                        insertCustomApp,
-		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):                 insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):            insertHomeConfig,
-		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"):         insertVersionInfo,
-		filepath.Join(appsFolderPath, "xpui", "xpui-routes-your-library-x.js"):  insertCustomAppX,
+		filepath.Join(appsFolderPath, "xpui", "index.html"):                    htmlMod,
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                       insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):                insertExpFeatures,
+		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):           insertHomeConfig,
+		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"):        insertVersionInfo,
+		filepath.Join(appsFolderPath, "xpui", "xpui-routes-your-library-x.js"): insertCustomAppX,
 	}
 
 	for file, call := range filesToModified {
