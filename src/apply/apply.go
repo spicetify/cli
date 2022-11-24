@@ -305,12 +305,9 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 func insertCustomAppX(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
-		appMap := ""
 		appNameArray := ""
 
 		for _, app := range flags.CustomApp {
-			appName := `spicetify-routes-` + app
-			appMap += fmt.Sprintf(`"%s":"%s",`, appName, appName)
 			appNameArray += fmt.Sprintf(`"%s",`, app)
 		}
 
