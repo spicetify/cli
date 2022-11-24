@@ -1044,10 +1044,14 @@ dynamicSidebar.innerHTML = `
     }
     .Root__nav-bar.isCollapsed header {
         flex-direction: column;
-    }`;
+    }
+	/* Hide 'Your Library' when custom apps are applied*/
+	.main-yourLibraryX-collectionLinkButton + .main-yourLibraryX-collectionLinkButton + span {
+		display: none;
+	}`;
 document.head.appendChild(dynamicSidebar);
 
-Spicetify._cloneSidebarItem = function (list) {
+Spicetify._cloneSidebarItem = function (list, libraryX = false) {
 	function findChild(parent, key, value) {
 		if (!parent.props) return null;
 
@@ -1092,38 +1096,77 @@ Spicetify._cloneSidebarItem = function (list) {
 		const activeIcon = manifest["active-icon"] || icon;
 
 		const appLink = "/" + app;
-		const link = findChild(Spicetify._sidebarItemToClone, "className", "main-yourLibraryX-collectionLinkButton");
-		const obj = React.cloneElement(
-			Spicetify._sidebarItemToClone,
-			{
-				label: appProper
-			},
-			React.cloneElement(
-				link,
-				{
-					to: appLink,
-					isActive: (e, { pathname: t }) => t.startsWith(appLink),
-					"aria-label": appProper
-				},
-				React.createElement("svg", {
-					className: "main-yourLibraryX-collectionIcon",
-					height: "24",
-					width: "24",
-					dangerouslySetInnerHTML: {
-						__html: icon
-					}
-				}),
-				React.createElement("svg", {
-					className: "main-yourLibraryX-collectionIconActive",
-					height: "24",
-					width: "24",
-					dangerouslySetInnerHTML: {
-						__html: activeIcon
-					}
-				})
-			)
-		);
-		reactObjs.push(obj);
+		let link, obj;
+		switch (libraryX) {
+			case false:
+				link = findChild(Spicetify._sidebarItemToClone, "className", "main-navBar-navBarLink");
+				obj = React.cloneElement(
+					Spicetify._sidebarItemToClone,
+					null,
+					React.cloneElement(
+						link,
+						{
+							to: appLink,
+							isActive: (e, { pathname: t }) => t.startsWith(appLink)
+						},
+						React.createElement("div", {
+							className: "icon collection-icon",
+							dangerouslySetInnerHTML: {
+								__html: icon
+							}
+						}),
+						React.createElement("div", {
+							className: "icon collection-active-icon",
+							dangerouslySetInnerHTML: {
+								__html: activeIcon
+							}
+						}),
+						React.createElement(
+							"span",
+							{
+								className: "ellipsis-one-line main-type-mestoBold"
+							},
+							appProper
+						)
+					)
+				);
+				reactObjs.push(obj);
+				break;
+			case true:
+				link = findChild(Spicetify._sidebarXItemToClone, "className", "main-yourLibraryX-collectionLinkButton");
+				obj = React.cloneElement(
+					Spicetify._sidebarXItemToClone,
+					{
+						label: appProper
+					},
+					React.cloneElement(
+						link,
+						{
+							to: appLink,
+							isActive: (e, { pathname: t }) => t.startsWith(appLink),
+							"aria-label": appProper
+						},
+						React.createElement("svg", {
+							className: "main-yourLibraryX-collectionIcon",
+							height: "24",
+							width: "24",
+							dangerouslySetInnerHTML: {
+								__html: icon
+							}
+						}),
+						React.createElement("svg", {
+							className: "main-yourLibraryX-collectionIconActive",
+							height: "24",
+							width: "24",
+							dangerouslySetInnerHTML: {
+								__html: activeIcon
+							}
+						})
+					)
+				);
+				reactObjs.push(obj);
+				break;
+		}
 	}
 	return reactObjs;
 };

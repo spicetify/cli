@@ -264,10 +264,26 @@ func insertCustomApp(jsPath string, flags Flag) {
 			REACT_ELEMENT_REGEX,
 			appEleMap+`${0}`)
 
+		utils.Replace(
+			&content,
+			`(?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
+			`Spicetify._sidebarItemToClone=${0}`)
+
 		utils.ReplaceOnce(
 			&content,
 			`\d+:1,\d+:1,\d+:1`,
 			"${0}"+cssEnableMap)
+
+		sidebarItemMatch := utils.SeekToCloseParen(
+			content,
+			`\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
+			'(', ')')
+
+		content = strings.Replace(
+			content,
+			sidebarItemMatch,
+			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
+			1)
 
 		if flags.SidebarConfig {
 			utils.ReplaceOnce(
@@ -301,7 +317,7 @@ func insertCustomAppX(jsPath string, flags Flag) {
 		utils.Replace(
 			&content,
 			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$_.]+,\{label:[\w".${}()\x60-]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$_.]+,\{to:"/collection",referrer:"your_library"`,
-			`Spicetify._sidebarItemToClone=${0}`)
+			`Spicetify._sidebarXItemToClone=${0}`)
 
 		sidebarItemMatch := utils.SeekToCloseParen(
 			content,
@@ -311,7 +327,7 @@ func insertCustomAppX(jsPath string, flags Flag) {
 		content = strings.Replace(
 			content,
 			sidebarItemMatch,
-			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
+			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],true)",
 			1)
 
 		return content
