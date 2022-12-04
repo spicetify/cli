@@ -78,9 +78,9 @@ check() {
 
 	# Still checking again, in case touch command failed
 	if [ -f $shellrc ]; then
-		if !grep -q $spicetify_install $shellrc; then
+		if ! grep -q $spicetify_install $shellrc; then
 			echo "APPENDING $spicetify_install to PATH in $shellrc"
-			if !endswith_newline $shellrc; then
+			if ! endswith_newline $shellrc; then
 				echo >> $shellrc
 			fi
 			echo ${2:-$path} >> $shellrc
