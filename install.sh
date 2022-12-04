@@ -82,6 +82,7 @@ check() {
 			echo "APPENDING $spicetify_install to PATH in $shellrc"
 			if !endswith_newline $shellrc; then
 				echo >> $shellrc
+			fi
 			echo ${2:-$path} >> $shellrc
 			echo "Restart your shell to have spicetify in your PATH."
 		else
