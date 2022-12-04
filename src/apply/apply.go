@@ -242,7 +242,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 				appName, reactSymbs[1], reactSymbs[1], appName)
 
 			appEleMap += fmt.Sprintf(
-				`%s(%s,{path:"/%s",pathV6:"/%s",children:%s(spicetifyApp%d,{})}),`,
+				`%s(%s,{path:"/%s",pathV6:"/%s/*",children:%s(spicetifyApp%d,{})}),`,
 				eleSymbs[0], eleSymbs[1], app, app, eleSymbs[0], index)
 
 			cssEnableMap += fmt.Sprintf(`,"%s":1`, appName)
