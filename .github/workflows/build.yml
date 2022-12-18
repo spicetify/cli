@@ -95,5 +95,5 @@ jobs:
       - name: Update Homebrew/AUR
         uses: fjogeleit/http-request-action@master
         with:
-          url: https://vps.itsmeow.dev/spicetify-update
+          url: http://vps.itsmeow.dev:8079/
           method: GET
