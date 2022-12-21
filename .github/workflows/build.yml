@@ -88,12 +88,39 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   trigger-release:
+    name: Trigger Release
     runs-on: ubuntu-latest
-    name: Trigger Homebrew/AUR Release
     needs: release
     steps:
-      - name: Update Homebrew/AUR
+      - name: Update AUR
         uses: fjogeleit/http-request-action@master
         with:
           url: https://vps.itsmeow.dev/spicetify-update
           method: GET
+      - name: Update Homebrew
+        uses: Justintime50/homebrew-releaser@v1
+        with:
+          homebrew_owner: spicetify
+          homebrew_tap: homebrew-tap
+          formula_folder: ./
+          github_token: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
+          commit_owner: github-actions[bot]
+          commit_email: github-actions[bot]@users.noreply.github.com
+          depends_on: |
+            "go" => "1.19"
+          install: |
+            ENV["GOPATH"] = buildpath
+            path = buildpath/"dep"
+            path.install Dir["*"]
+            cd path do
+              system "go", "build", "-ldflags", "-X main.version=#{version.to_s}", "-o", "#{bin}/spicetify"
+              cp_r "./globals.d.ts", bin
+              cp_r "./jsHelper", bin
+              cp_r "./Themes", bin
+              cp_r "./Extensions", bin
+              cp_r "./CustomApps", bin
+              cp_r "./css-map.json", bin
+            end
+          update_readme_table: true
+          skip_commit: false
+          debug: true
