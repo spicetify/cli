@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"net/http"
@@ -129,9 +130,9 @@ func SendReload(debuggerURL *string) error {
 	}
 	defer socket.Close()
 
-	if _, err := socket.Write([]byte(`{"id":1,"method":"Page.reload"}`)); err != nil {
+	if _, err := socket.Write([]byte(`{"id":0,"method":"Runtime.evaluate","params":{"expression": "window.location.reload()"}}`)); err != nil {
+		fmt.Println(err)
 		return err
 	}
-
 	return nil
 }
