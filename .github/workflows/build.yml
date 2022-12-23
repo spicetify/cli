@@ -121,6 +121,7 @@ jobs:
               cp_r "./CustomApps", bin
               cp_r "./css-map.json", bin
             end
+          test: 'assert_match version.to_s, shell_output("#{bin}/spicetify", "-v")'
           update_readme_table: true
           skip_commit: false
           debug: true
