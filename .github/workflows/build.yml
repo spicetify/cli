@@ -92,8 +92,8 @@ jobs:
     name: Trigger Homebrew/AUR Release
     needs: release
     steps:
-      - name: Update Homebrew/AUR
+      - name: Update AUR package
         uses: fjogeleit/http-request-action@master
         with:
-          url: https://vps.itsmeow.dev/spicetify-update
+          url: http://vps.itsmeow.dev:8079/
           method: GET
