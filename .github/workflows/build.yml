@@ -92,7 +92,7 @@ jobs:
     name: Trigger Homebrew/AUR Release
     needs: release
     steps:
-      - name: Update Homebrew/AUR
+      - name: Update AUR package
         uses: fjogeleit/http-request-action@master
         with:
           url: http://vps.itsmeow.dev:8079/
