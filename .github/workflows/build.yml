@@ -92,10 +92,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: release
     steps:
-      - name: Update AUR
+      - name: Update AUR package
         uses: fjogeleit/http-request-action@master
         with:
-          url: https://vps.itsmeow.dev/spicetify-update
+          url: http://vps.itsmeow.dev:8079/
           method: GET
       - name: Update Homebrew
         uses: Justintime50/homebrew-releaser@v1
