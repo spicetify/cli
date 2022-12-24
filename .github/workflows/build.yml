@@ -103,7 +103,7 @@ jobs:
           homebrew_owner: spicetify
           homebrew_tap: homebrew-tap
           formula_folder: ./
-          github_token: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
+          github_token: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
           commit_owner: github-actions[bot]
           commit_email: github-actions[bot]@users.noreply.github.com
           depends_on: |
