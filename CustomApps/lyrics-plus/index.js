@@ -320,7 +320,7 @@ class LyricsContainer extends react.Component {
 			}
 		}
 
-		this.setState({ synced, unsynced, provider: "Local" });
+		this.setState({ synced, unsynced, provider: "local" });
 	}
 
 	processLyricsFromFile(event) {
@@ -610,7 +610,7 @@ class LyricsContainer extends react.Component {
 						const mode = CONFIG.modes.findIndex(a => a === label);
 						if (mode !== this.state.mode) {
 							this.setState({ explicitMode: mode });
-							this.state.provider !== "Local" && this.fetchLyrics(Player.data.track, mode);
+							this.state.provider !== "local" && this.fetchLyrics(Player.data.track, mode);
 						}
 					},
 					lockCallback: label => {

@@ -1,7 +1,5 @@
 const CreditFooter = react.memo(({ provider, copyright }) => {
-	if (provider === "Local") {
-		return null;
-	}
+	if (provider === "local") return null;
 	const credit = [Spicetify.Locale.get("web-player.lyrics.providedBy", provider)];
 	if (copyright) {
 		credit.push(...copyright.split("\n"));
