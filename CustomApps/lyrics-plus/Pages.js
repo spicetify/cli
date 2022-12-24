@@ -211,11 +211,10 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 				);
 			})
 		),
-		provider !== "local" &&
-			react.createElement(CreditFooter, {
-				provider,
-				copyright
-			})
+		react.createElement(CreditFooter, {
+			provider,
+			copyright
+		})
 	);
 });
 
