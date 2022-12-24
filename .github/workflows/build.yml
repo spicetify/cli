@@ -97,31 +97,20 @@ jobs:
         with:
           url: http://vps.itsmeow.dev:8079/
           method: GET
+      - name: Extract version
+        id: extract-version
+        run: |
+          printf "::set-output name=%s::%s\n" tag-name "${GITHUB_REF#refs/tags/}"
       - name: Update Homebrew tap
-        uses: Justintime50/homebrew-releaser@v1
+        uses: mislav/bump-homebrew-formula-action@v2
+        if: "!contains(github.ref, '-')" # skip prereleases
         with:
-          homebrew_owner: spicetify
-          homebrew_tap: homebrew-tap
-          formula_folder: ./
-          github_token: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
-          commit_owner: github-actions[bot]
-          commit_email: github-actions[bot]@users.noreply.github.com
-          depends_on: |
-            "go" => "1.19"
-          install: |
-            ENV["GOPATH"] = buildpath
-            path = buildpath/"dep"
-            path.install Dir["*"]
-            cd path do
-              system "go", "build", "-ldflags", "-X main.version=#{version.to_s}", "-o", "#{bin}/spicetify"
-              cp_r "./globals.d.ts", bin
-              cp_r "./jsHelper", bin
-              cp_r "./Themes", bin
-              cp_r "./Extensions", bin
-              cp_r "./CustomApps", bin
-              cp_r "./css-map.json", bin
-            end
-          test: 'assert_match version.to_s, shell_output("#{bin}/spicetify", "-v")'
-          update_readme_table: false
-          skip_commit: false
-          debug: true
+          formula-name: spicetify-cli
+          formula-path: spicetify-cli.rb
+          homebrew-tap: spicetify/homebrew-tap
+          base-branch: master
+          download-url: https://github.com/spicetify/spicetify-cli/archive/${{ steps.extract-version.outputs.tag-name }}.tar.gz
+          commit-message: |
+            {{formulaName}} {{version}}
+        env:
+          COMMITTER_TOKEN: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
