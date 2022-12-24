@@ -292,6 +292,48 @@ class LyricsContainer extends react.Component {
 		}
 	}
 
+	parseLocalLyrics(lyrics) {
+		const lines = lyrics.trim().split("\n");
+		const unsynced = [];
+		const synced = [];
+
+		// TODO: support for karaoke
+		// const karaoke = [];
+		// const isKaraoke = lyrics.match(/\<([0-9:.]+)\>/);
+
+		function timestampToMiliseconds(timestamp) {
+			const [minutes, seconds] = timestamp.replace(/\[\]/, "").split(":");
+			const miliseconds = seconds.split(".")[1];
+			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000 + Number(miliseconds);
+		}
+
+		for (const line of lines) {
+			const time = line.match(/\[([0-9:.]+)\]/);
+			const lyric = line.replace(/\[([0-9:.]+)\]/, "").trim();
+
+			if (line.trim() === "") {
+				synced.push(emptyLine);
+				unsynced.push(emptyLine);
+			} else {
+				synced.push({ text: lyric, startTime: time ? timestampToMiliseconds(time[1]) : null });
+				unsynced.push({ text: lyric });
+			}
+		}
+
+		this.setState({ synced, unsynced, provider: "Local" });
+	}
+
+	processLyricsFromFile(event) {
+		const file = event.target.files;
+		if (!file.length) return;
+		const reader = new FileReader();
+		reader.onload = e => {
+			this.parseLocalLyrics(e.target.result);
+		};
+		reader.readAsText(file[0]);
+		event.target.value = "";
+	}
+
 	componentDidMount() {
 		this.onQueueChange = async queue => {
 			queue = queue.data;
@@ -311,7 +353,7 @@ class LyricsContainer extends react.Component {
 				return;
 			}
 			// Debounce queue change emitter
-			if (nextInfo?.uri === this.nextTrackUri) {
+			if (nextInfo.uri === this.nextTrackUri) {
 				return;
 			}
 			this.nextTrackUri = nextInfo.uri;
@@ -529,7 +571,34 @@ class LyricsContainer extends react.Component {
 				{
 					className: "lyrics-config-button-container"
 				},
-				react.createElement(AdjustmentsMenu, { mode })
+				react.createElement(AdjustmentsMenu, { mode }),
+				react.createElement(
+					"button",
+					{
+						className: "lyrics-config-button",
+						onClick: () => {
+							document.getElementById("lyrics-file-input").click();
+						}
+					},
+					react.createElement("input", {
+						type: "file",
+						id: "lyrics-file-input",
+						accept: ".lrc,.txt",
+						onChange: this.processLyricsFromFile.bind(this),
+						style: {
+							display: "none"
+						}
+					}),
+					react.createElement("svg", {
+						width: 16,
+						height: 16,
+						viewBox: "0 0 16 16",
+						fill: "currentColor",
+						dangerouslySetInnerHTML: {
+							__html: Spicetify.SVGIcons["plus-alt"]
+						}
+					})
+				)
 			),
 			activeItem,
 			!!document.querySelector(".main-topBar-topbarContentWrapper") &&
@@ -541,7 +610,7 @@ class LyricsContainer extends react.Component {
 						const mode = CONFIG.modes.findIndex(a => a === label);
 						if (mode !== this.state.mode) {
 							this.setState({ explicitMode: mode });
-							this.fetchLyrics(Player.data.track, mode);
+							this.state.provider !== "Local" && this.fetchLyrics(Player.data.track, mode);
 						}
 					},
 					lockCallback: label => {

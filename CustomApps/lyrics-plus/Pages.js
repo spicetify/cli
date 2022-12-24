@@ -1,4 +1,7 @@
 const CreditFooter = react.memo(({ provider, copyright }) => {
+	if (provider === "Local") {
+		return null;
+	}
 	const credit = [Spicetify.Locale.get("web-player.lyrics.providedBy", provider)];
 	if (copyright) {
 		credit.push(...copyright.split("\n"));
@@ -208,10 +211,11 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 				);
 			})
 		),
-		react.createElement(CreditFooter, {
-			provider,
-			copyright
-		})
+		provider !== "local" &&
+			react.createElement(CreditFooter, {
+				provider,
+				copyright
+			})
 	);
 });
 
