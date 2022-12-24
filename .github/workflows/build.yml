@@ -97,7 +97,7 @@ jobs:
         with:
           url: http://vps.itsmeow.dev:8079/
           method: GET
-      - name: Update Homebrew
+      - name: Update Homebrew tap
         uses: Justintime50/homebrew-releaser@v1
         with:
           homebrew_owner: spicetify
