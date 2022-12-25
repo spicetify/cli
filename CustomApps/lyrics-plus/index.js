@@ -257,7 +257,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	resetDelay() {
-		CONFIG.visual.delay = 0;
+		CONFIG.visual.delay = Number(localStorage.getItem(`lyrics-delay:${Spicetify.Player.data.track.uri}`)) || 0;
 	}
 
 	async onVersionChange(items, index) {
@@ -363,7 +363,7 @@ class LyricsContainer extends react.Component {
 			this.tryServices(nextInfo, this.state.explicitMode);
 		};
 
-		if (Spicetify.Player && Spicetify.Player.data && Spicetify.Player.data.track) {
+		if (Spicetify.Player?.data?.track) {
 			this.state.explicitMode = this.state.lockMode;
 			this.currentTrackUri = Spicetify.Player.data.track.uri;
 			this.fetchLyrics(Spicetify.Player.data.track, this.state.explicitMode);
