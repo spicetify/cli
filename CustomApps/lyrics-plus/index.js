@@ -314,8 +314,8 @@ class LyricsContainer extends react.Component {
 				synced.push(emptyLine);
 				unsynced.push(emptyLine);
 			} else {
-				synced.push({ text: lyric, startTime: time ? timestampToMiliseconds(time[1]) : null });
-				unsynced.push({ text: lyric });
+				synced.push({ text: lyric || "♪", startTime: time ? timestampToMiliseconds(time[1]) : null });
+				unsynced.push({ text: lyric || "♪" });
 			}
 		}
 
