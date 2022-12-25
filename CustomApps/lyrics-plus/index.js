@@ -310,10 +310,7 @@ class LyricsContainer extends react.Component {
 			const time = line.match(/\[([0-9:.]+)\]/);
 			const lyric = line.replace(/\[([0-9:.]+)\]/, "").trim();
 
-			if (line.trim() === "") {
-				synced.push(emptyLine);
-				unsynced.push(emptyLine);
-			} else {
+			if (line.trim() !== "") {
 				synced.push({ text: lyric || "♪", startTime: time ? timestampToMiliseconds(time[1]) : null });
 				unsynced.push({ text: lyric || "♪" });
 			}
