@@ -27,6 +27,8 @@ class Translator {
 	 * Adapted from: https://github.com/mobilusoss/textlint-browser-runner/pull/7
 	 */
 	applyKuromojiFix() {
+		if(typeof XMLHttpRequest.prototype.realOpen !== "undefined")
+			return;
 		XMLHttpRequest.prototype.realOpen = XMLHttpRequest.prototype.open;
 		XMLHttpRequest.prototype.open = function (method, url, bool) {
 			if (url.indexOf(dictPath.replace("https://", "https:/")) === 0) {
