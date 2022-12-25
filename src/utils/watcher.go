@@ -130,7 +130,7 @@ func SendReload(debuggerURL *string) error {
 	}
 	defer socket.Close()
 
-	if _, err := socket.Write([]byte(`{"id":0,"method":"Runtime.evaluate","params":{"expression": "window.location.reload()"}}`)); err != nil {
+	if _, err := socket.Write([]byte(`{"id":0,"method":"Runtime.evaluate","params":{"expression":"window.location.reload()"}}`)); err != nil {
 		fmt.Println(err)
 		return err
 	}
