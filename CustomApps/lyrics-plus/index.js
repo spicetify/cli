@@ -294,8 +294,9 @@ class LyricsContainer extends react.Component {
 
 	parseLocalLyrics(lyrics) {
 		const lines = lyrics.trim().split("\n");
+		const isSynced = lines[0].match(/\[([0-9:.]+)\]/);
 		const unsynced = [];
-		const synced = [];
+		const synced = isSynced ? [] : null;
 
 		// TODO: support for karaoke
 		// const karaoke = [];
@@ -311,7 +312,7 @@ class LyricsContainer extends react.Component {
 			const lyric = line.replace(/\[([0-9:.]+)\]/, "").trim();
 
 			if (line.trim() !== "") {
-				synced.push({ text: lyric || "♪", startTime: time ? timestampToMiliseconds(time[1]) : null });
+				time && synced.push({ text: lyric || "♪", startTime: timestampToMiliseconds(time[1]) });
 				unsynced.push({ text: lyric || "♪" });
 			}
 		}
@@ -327,8 +328,15 @@ class LyricsContainer extends react.Component {
 		reader.onload = e => {
 			this.parseLocalLyrics(e.target.result);
 		};
-		reader.readAsText(file[0]);
-		event.target.value = "";
+
+		try {
+			reader.readAsText(file[0]);
+		} catch (e) {
+			console.error(e);
+			Spicetify.showNotification("Failed to read file", true);
+		} finally {
+			event.target.value = "";
+		}
 	}
 
 	componentDidMount() {
@@ -570,31 +578,38 @@ class LyricsContainer extends react.Component {
 				},
 				react.createElement(AdjustmentsMenu, { mode }),
 				react.createElement(
-					"button",
+					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						className: "lyrics-config-button",
-						onClick: () => {
-							document.getElementById("lyrics-file-input").click();
-						}
+						label: "Lyrics from file",
+						showDelay: 100
 					},
-					react.createElement("input", {
-						type: "file",
-						id: "lyrics-file-input",
-						accept: ".lrc,.txt",
-						onChange: this.processLyricsFromFile.bind(this),
-						style: {
-							display: "none"
-						}
-					}),
-					react.createElement("svg", {
-						width: 16,
-						height: 16,
-						viewBox: "0 0 16 16",
-						fill: "currentColor",
-						dangerouslySetInnerHTML: {
-							__html: Spicetify.SVGIcons["plus-alt"]
-						}
-					})
+					react.createElement(
+						"button",
+						{
+							className: "lyrics-config-button",
+							onClick: () => {
+								document.getElementById("lyrics-file-input").click();
+							}
+						},
+						react.createElement("input", {
+							type: "file",
+							id: "lyrics-file-input",
+							accept: ".lrc,.txt",
+							onChange: this.processLyricsFromFile.bind(this),
+							style: {
+								display: "none"
+							}
+						}),
+						react.createElement("svg", {
+							width: 16,
+							height: 16,
+							viewBox: "0 0 16 16",
+							fill: "currentColor",
+							dangerouslySetInnerHTML: {
+								__html: Spicetify.SVGIcons["plus-alt"]
+							}
+						})
+					)
 				)
 			),
 			activeItem,
