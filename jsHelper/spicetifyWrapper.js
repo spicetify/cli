@@ -934,6 +934,14 @@ Spicetify._cloneSidebarItem = function(list) {
         return null;
     }
 
+    function conditionalAppend(baseClassname, conditionalClassname, location) {
+        if (Spicetify.Platform?.History?.location && Spicetify.Platform.History.location.pathname.startsWith(location)) {
+            baseClassname += " " + conditionalClassname;
+        }
+
+        return baseClassname;
+    }
+
     const React = Spicetify.React;
     const reactObjs = [];
     for (const app of list) {
@@ -967,6 +975,7 @@ Spicetify._cloneSidebarItem = function(list) {
                 {
                     to: appLink,
                     isActive: (e, {pathname: t})=> t.startsWith(appLink),
+                    className: conditionalAppend("link-subtle main-navBar-navBarLink", "main-navBar-navBarLinkActive", appLink),
                 },
                 React.createElement(
                     "div",

@@ -174,6 +174,7 @@
 .lyrics-lyricsContainer-SyncedLyrics > :first-child,
 .lyrics-lyricsContainer-SyncedLyrics > :last-child {
 	opacity: 0;
+	pointer-events: none;
 }
 
 .lyrics-lyricsContainer-LyricsUnavailableMessage,
@@ -621,6 +622,7 @@ button.switch.small {
 	gap: 8px;
 	justify-content: center;
 	padding: 12px;
+	margin-left: 5px;
 }
 
 .lyrics-config-button-container .main-contextMenu-menu {

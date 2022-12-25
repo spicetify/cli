@@ -304,7 +304,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	resetDelay() {
-		CONFIG.visual.delay = 0;
+		CONFIG.visual.delay = Number(localStorage.getItem(`lyrics-delay:${Spicetify.Player.data.track.uri}`)) || 0;
 	}
 
 	async onVersionChange(items, index) {
@@ -339,6 +339,56 @@ class LyricsContainer extends react.Component {
 		}
 	}
 
+	parseLocalLyrics(lyrics) {
+		const lines = lyrics.trim().split("\n");
+		const isSynced = lines[0].match(/\[([0-9:.]+)\]/);
+		const unsynced = [];
+		const synced = isSynced ? [] : null;
+
+		// TODO: support for karaoke
+		// const karaoke = [];
+		// const isKaraoke = lyrics.match(/\<([0-9:.]+)\>/);
+
+		function timestampToMiliseconds(timestamp) {
+			const [minutes, seconds] = timestamp.replace(/\[\]/, "").split(":");
+			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000;
+		}
+
+		for (const line of lines) {
+			const time = line.match(/\[([0-9:.]+)\]/);
+			const lyric = line.replace(/\[([0-9:.]+)\]/, "").trim();
+
+			if (line.trim() !== "") {
+				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMiliseconds(time[1]) });
+				unsynced.push({ text: lyric || "♪" });
+			}
+		}
+
+		this.setState({ synced, unsynced, provider: "local" });
+		CACHE[this.currentTrackUri] = { synced, unsynced, provider: "local", uri: this.currentTrackUri };
+	}
+
+	processLyricsFromFile(event) {
+		const file = event.target.files;
+		if (!file.length) return;
+		const reader = new FileReader();
+
+		if (file[0].size > 1024 * 1024) {
+			Spicetify.showNotification("File too large", true);
+			return;
+		}
+		reader.onload = e => {
+			this.parseLocalLyrics(e.target.result);
+		};
+		reader.onerror = e => {
+			console.error(e);
+			Spicetify.showNotification("Failed to read file", true);
+		};
+
+		reader.readAsText(file[0]);
+		event.target.value = "";
+	}
+
 	componentDidMount() {
 		this.onQueueChange = async queue => {
 			queue = queue.data;
@@ -358,7 +408,7 @@ class LyricsContainer extends react.Component {
 				return;
 			}
 			// Debounce queue change emitter
-			if (nextInfo?.uri === this.nextTrackUri) {
+			if (nextInfo.uri === this.nextTrackUri) {
 				return;
 			}
 			this.nextTrackUri = nextInfo.uri;
@@ -368,7 +418,7 @@ class LyricsContainer extends react.Component {
 			this.tryServices(nextInfo, this.state.explicitMode);
 		};
 
-		if (Spicetify.Player && Spicetify.Player.data && Spicetify.Player.data.track) {
+		if (Spicetify.Player?.data?.track) {
 			this.state.explicitMode = this.state.lockMode;
 			this.currentTrackUri = Spicetify.Player.data.track.uri;
 			this.fetchLyrics(Spicetify.Player.data.track, this.state.explicitMode);
@@ -586,31 +636,66 @@ class LyricsContainer extends react.Component {
 					showTranslationButton,
 					translatorLoaded
 				}),
-				react.createElement(AdjustmentsMenu, { mode })
+				react.createElement(AdjustmentsMenu, { mode }),
+				react.createElement(
+					Spicetify.ReactComponent.TooltipWrapper,
+					{
+						label: "Lyrics from file",
+						showDelay: 100
+					},
+					react.createElement(
+						"button",
+						{
+							className: "lyrics-config-button",
+							onClick: () => {
+								document.getElementById("lyrics-file-input").click();
+							}
+						},
+						react.createElement("input", {
+							type: "file",
+							id: "lyrics-file-input",
+							accept: ".lrc,.txt",
+							onChange: this.processLyricsFromFile.bind(this),
+							style: {
+								display: "none"
+							}
+						}),
+						react.createElement("svg", {
+							width: 16,
+							height: 16,
+							viewBox: "0 0 16 16",
+							fill: "currentColor",
+							dangerouslySetInnerHTML: {
+								__html: Spicetify.SVGIcons["plus-alt"]
+							}
+						})
+					)
+				)
 			),
 			activeItem,
-			react.createElement(TopBarContent, {
-				links: this.availableModes,
-				activeLink: CONFIG.modes[mode],
-				lockLink: CONFIG.modes[this.state.lockMode],
-				switchCallback: label => {
-					const mode = CONFIG.modes.findIndex(a => a === label);
-					if (mode !== this.state.mode) {
-						this.setState({ explicitMode: mode });
+			!!document.querySelector(".main-topBar-topbarContentWrapper") &&
+				react.createElement(TopBarContent, {
+					links: this.availableModes,
+					activeLink: CONFIG.modes[mode],
+					lockLink: CONFIG.modes[this.state.lockMode],
+					switchCallback: label => {
+						const mode = CONFIG.modes.findIndex(a => a === label);
+						if (mode !== this.state.mode) {
+							this.setState({ explicitMode: mode });
+							this.state.provider !== "local" && this.fetchLyrics(Player.data.track, mode);
+						}
+					},
+					lockCallback: label => {
+						let mode = CONFIG.modes.findIndex(a => a === label);
+						if (mode === this.state.lockMode) {
+							mode = -1;
+						}
+						this.setState({ explicitMode: mode, lockMode: mode });
 						this.fetchLyrics(Player.data.track, mode);
+						CONFIG.locked = mode;
+						localStorage.setItem("lyrics-plus:lock-mode", mode);
 					}
-				},
-				lockCallback: label => {
-					let mode = CONFIG.modes.findIndex(a => a === label);
-					if (mode === this.state.lockMode) {
-						mode = -1;
-					}
-					this.setState({ explicitMode: mode, lockMode: mode });
-					this.fetchLyrics(Player.data.track, mode);
-					CONFIG.locked = mode;
-					localStorage.setItem("lyrics-plus:lock-mode", mode);
-				}
-			})
+				})
 		);
 
 		if (this.state.isFullscreen) {

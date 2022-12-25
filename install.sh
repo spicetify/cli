@@ -62,6 +62,10 @@ export PATH="\$PATH:$spicetify_install"
 EOINFO
 }
 
+endswith_newline() {
+    [[ $(tail -c1 "$1" | wc -l) -gt 0 ]]
+}
+
 check() {
 	local path="export PATH=\$PATH:$spicetify_install"
 	local shellrc=$HOME/$1
@@ -76,6 +80,9 @@ check() {
 	if [ -f $shellrc ]; then
 		if ! grep -q $spicetify_install $shellrc; then
 			echo "APPENDING $spicetify_install to PATH in $shellrc"
+			if ! endswith_newline $shellrc; then
+				echo >> $shellrc
+			fi
 			echo ${2:-$path} >> $shellrc
 			echo "Restart your shell to have spicetify in your PATH."
 		else
