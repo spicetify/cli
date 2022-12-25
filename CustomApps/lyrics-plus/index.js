@@ -328,15 +328,12 @@ class LyricsContainer extends react.Component {
 		reader.onload = e => {
 			this.parseLocalLyrics(e.target.result);
 		};
-
-		try {
-			reader.readAsText(file[0]);
-		} catch (e) {
+		reader.onerror = e => {
 			console.error(e);
 			Spicetify.showNotification("Failed to read file", true);
-		} finally {
-			event.target.value = "";
-		}
+		};
+		reader.readAsText(file[0]);
+		event.target.value = "";
 	}
 
 	componentDidMount() {
