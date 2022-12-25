@@ -317,6 +317,7 @@ class LyricsContainer extends react.Component {
 		}
 
 		this.setState({ synced, unsynced, provider: "local" });
+		CACHE[this.currentTrackUri] = { synced, unsynced, provider: "local", uri: this.currentTrackUri };
 	}
 
 	processLyricsFromFile(event) {
@@ -334,7 +335,6 @@ class LyricsContainer extends react.Component {
 		this.onQueueChange = async queue => {
 			queue = queue.data;
 			this.state.explicitMode = this.state.lockMode;
-			if (queue.current.uri === this.currentTrackUri) return;
 			this.currentTrackUri = queue.current.uri;
 
 			let nextTrack;
