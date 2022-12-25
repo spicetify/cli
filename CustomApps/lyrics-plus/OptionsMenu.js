@@ -128,6 +128,7 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 					onChange: (name, value) => {
 						CONFIG.visual[name] = value;
 						localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
+						name === "delay" && localStorage.setItem(`lyrics-delay:${Spicetify.Player.data.track.uri}`, value);
 						lyricContainerUpdate && lyricContainerUpdate();
 					}
 				})
