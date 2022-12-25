@@ -312,7 +312,7 @@ class LyricsContainer extends react.Component {
 			const lyric = line.replace(/\[([0-9:.]+)\]/, "").trim();
 
 			if (line.trim() !== "") {
-				time && synced.push({ text: lyric || "♪", startTime: timestampToMiliseconds(time[1]) });
+				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMiliseconds(time[1]) });
 				unsynced.push({ text: lyric || "♪" });
 			}
 		}
@@ -325,6 +325,11 @@ class LyricsContainer extends react.Component {
 		const file = event.target.files;
 		if (!file.length) return;
 		const reader = new FileReader();
+
+		if (file[0].size > 1024 * 1024) {
+			Spicetify.showNotification("File too large", true);
+			return;
+		}
 		reader.onload = e => {
 			this.parseLocalLyrics(e.target.result);
 		};
@@ -332,6 +337,7 @@ class LyricsContainer extends react.Component {
 			console.error(e);
 			Spicetify.showNotification("Failed to read file", true);
 		};
+
 		reader.readAsText(file[0]);
 		event.target.value = "";
 	}
