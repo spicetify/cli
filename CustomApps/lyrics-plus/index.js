@@ -294,8 +294,9 @@ class LyricsContainer extends react.Component {
 
 	parseLocalLyrics(lyrics) {
 		const lines = lyrics.trim().split("\n");
+		const isSynced = lines[0].match(/\[([0-9:.]+)\]/);
 		const unsynced = [];
-		const synced = [];
+		const synced = isSynced ? [] : null;
 
 		// TODO: support for karaoke
 		// const karaoke = [];
@@ -303,33 +304,40 @@ class LyricsContainer extends react.Component {
 
 		function timestampToMiliseconds(timestamp) {
 			const [minutes, seconds] = timestamp.replace(/\[\]/, "").split(":");
-			const miliseconds = seconds.split(".")[1];
-			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000 + Number(miliseconds);
+			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000;
 		}
 
 		for (const line of lines) {
 			const time = line.match(/\[([0-9:.]+)\]/);
 			const lyric = line.replace(/\[([0-9:.]+)\]/, "").trim();
 
-			if (line.trim() === "") {
-				synced.push(emptyLine);
-				unsynced.push(emptyLine);
-			} else {
-				synced.push({ text: lyric, startTime: time ? timestampToMiliseconds(time[1]) : null });
-				unsynced.push({ text: lyric });
+			if (line.trim() !== "") {
+				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMiliseconds(time[1]) });
+				unsynced.push({ text: lyric || "♪" });
 			}
 		}
 
 		this.setState({ synced, unsynced, provider: "local" });
+		CACHE[this.currentTrackUri] = { synced, unsynced, provider: "local", uri: this.currentTrackUri };
 	}
 
 	processLyricsFromFile(event) {
 		const file = event.target.files;
 		if (!file.length) return;
 		const reader = new FileReader();
+
+		if (file[0].size > 1024 * 1024) {
+			Spicetify.showNotification("File too large", true);
+			return;
+		}
 		reader.onload = e => {
 			this.parseLocalLyrics(e.target.result);
 		};
+		reader.onerror = e => {
+			console.error(e);
+			Spicetify.showNotification("Failed to read file", true);
+		};
+
 		reader.readAsText(file[0]);
 		event.target.value = "";
 	}
@@ -573,31 +581,38 @@ class LyricsContainer extends react.Component {
 				},
 				react.createElement(AdjustmentsMenu, { mode }),
 				react.createElement(
-					"button",
+					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						className: "lyrics-config-button",
-						onClick: () => {
-							document.getElementById("lyrics-file-input").click();
-						}
+						label: "Lyrics from file",
+						showDelay: 100
 					},
-					react.createElement("input", {
-						type: "file",
-						id: "lyrics-file-input",
-						accept: ".lrc,.txt",
-						onChange: this.processLyricsFromFile.bind(this),
-						style: {
-							display: "none"
-						}
-					}),
-					react.createElement("svg", {
-						width: 16,
-						height: 16,
-						viewBox: "0 0 16 16",
-						fill: "currentColor",
-						dangerouslySetInnerHTML: {
-							__html: Spicetify.SVGIcons["plus-alt"]
-						}
-					})
+					react.createElement(
+						"button",
+						{
+							className: "lyrics-config-button",
+							onClick: () => {
+								document.getElementById("lyrics-file-input").click();
+							}
+						},
+						react.createElement("input", {
+							type: "file",
+							id: "lyrics-file-input",
+							accept: ".lrc,.txt",
+							onChange: this.processLyricsFromFile.bind(this),
+							style: {
+								display: "none"
+							}
+						}),
+						react.createElement("svg", {
+							width: 16,
+							height: 16,
+							viewBox: "0 0 16 16",
+							fill: "currentColor",
+							dangerouslySetInnerHTML: {
+								__html: Spicetify.SVGIcons["plus-alt"]
+							}
+						})
+					)
 				)
 			),
 			activeItem,
