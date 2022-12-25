@@ -303,8 +303,7 @@ class LyricsContainer extends react.Component {
 
 		function timestampToMiliseconds(timestamp) {
 			const [minutes, seconds] = timestamp.replace(/\[\]/, "").split(":");
-			const miliseconds = seconds.split(".")[1];
-			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000 + Number(miliseconds);
+			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000;
 		}
 
 		for (const line of lines) {

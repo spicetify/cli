@@ -137,7 +137,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 				startTimeString = line.startTime.toString();
 			}
 
-			return `[${startTimeString}] ${line.text}`;
+			return `[${startTimeString}]${line.text}`;
 		})
 		.join("\n");
 
@@ -404,7 +404,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 				startTimeString = line.startTime.toString();
 			}
 
-			return `[${startTimeString}] ${line.text}`;
+			return `[${startTimeString}]${line.text}`;
 		})
 		.join("\n");
 
