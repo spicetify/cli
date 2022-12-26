@@ -622,7 +622,7 @@ button.switch.small {
 	gap: 8px;
 	justify-content: center;
 	padding: 12px;
-	margin-left: 5px;
+	width: 40px;
 }
 
 .lyrics-config-button-container .main-contextMenu-menu {
