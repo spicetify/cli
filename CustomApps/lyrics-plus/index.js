@@ -46,6 +46,8 @@ const CONFIG = {
 		["lines-before"]: localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
 		["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
 		["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
+		["translation-mode"]: localStorage.getItem("lyrics-plus:visual:translation-mode") || "furigana",
+		["translate"]: getConfig("lyrics-plus:visual:translate"),
 		["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
 		["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
 		["synced-compact"]: getConfig("lyrics-plus:visual:synced-compact"),
@@ -118,6 +120,10 @@ class LyricsContainer extends react.Component {
 			unsynced: null,
 			genius: null,
 			genius2: null,
+			romaji: null,
+			furigana: null,
+			hiragana: null,
+			katakana: null,
 			uri: "",
 			provider: "",
 			colors: {
@@ -142,6 +148,7 @@ class LyricsContainer extends react.Component {
 		this.fullscreenContainer.id = "lyrics-fullscreen-container";
 		this.mousetrap = new Spicetify.Mousetrap();
 		this.containerRef = react.createRef(null);
+		this.translator = new Translator();
 	}
 
 	infoFromTrack(track) {
@@ -220,6 +227,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	async fetchLyrics(track, mode = -1) {
+		this.state.furigana = this.state.romaji = this.state.hirgana = this.state.katakana = null;
 		const info = this.infoFromTrack(track);
 		if (!info) {
 			this.setState({ error: "No track info" });
@@ -236,24 +244,63 @@ class LyricsContainer extends react.Component {
 			if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
 				this.resetDelay();
 				this.setState({ ...CACHE[info.uri] });
+				this.translateLyrics();
 				return;
 			}
 		} else {
 			if (CACHE[info.uri]) {
 				this.resetDelay();
 				this.setState({ ...CACHE[info.uri] });
+				this.translateLyrics();
 				return;
 			}
 		}
 
 		this.setState({ ...emptyState, isLoading: true });
 		const resp = await this.tryServices(info, mode);
+
 		// In case user skips tracks too fast and multiple callbacks
 		// set wrong lyrics to current track.
 		if (resp.uri === this.currentTrackUri) {
 			this.resetDelay();
 			this.setState({ ...resp, isLoading: false });
 		}
+
+		this.translateLyrics();
+	}
+
+	async translateLyrics() {
+		if (!this.translator || !this.translator.finished) {
+			setTimeout(this.translateLyrics.bind(this), 100);
+			return;
+		}
+
+		const lyricsToTranslate = this.state.synced ?? this.state.unsynced;
+
+		if (!lyricsToTranslate || !Utils.isJapanese(lyricsToTranslate)) return;
+
+		let lyricText = "";
+		for (let lyric of lyricsToTranslate) lyricText += lyric.text + "\n";
+
+		[
+			["romaji", "spaced", "romaji"],
+			["hiragana", "furigana", "furigana"],
+			["hiragana", "normal", "hiragana"],
+			["katakana", "normal", "katakana"]
+		].map(params =>
+			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
+				const translatedLines = result.split("\n");
+
+				this.state[params[2]] = [];
+
+				for (let i = 0; i < lyricsToTranslate.length; i++)
+					this.state[params[2]].push({
+						startTime: lyricsToTranslate[i].startTime || 0,
+						text: Utils.rubyTextToReact(translatedLines[i])
+					});
+				lyricContainerUpdate && lyricContainerUpdate();
+			})
+		);
 	}
 
 	resetDelay() {
@@ -500,6 +547,7 @@ class LyricsContainer extends react.Component {
 			}
 		}
 
+		const translatedLyrics = this.state[CONFIG.visual["translation-mode"]];
 		let activeItem;
 
 		if (mode !== -1) {
@@ -514,14 +562,14 @@ class LyricsContainer extends react.Component {
 			} else if (mode === SYNCED && this.state.synced) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					trackUri: this.state.uri,
-					lyrics: this.state.synced,
+					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.synced,
 					provider: this.state.provider,
 					copyright: this.state.copyright
 				});
 			} else if (mode === UNSYNCED && this.state.unsynced) {
 				activeItem = react.createElement(UnsyncedLyricsPage, {
 					trackUri: this.state.uri,
-					lyrics: this.state.unsynced,
+					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.unsynced,
 					provider: this.state.provider,
 					copyright: this.state.copyright
 				});
@@ -559,6 +607,11 @@ class LyricsContainer extends react.Component {
 		}
 
 		this.state.mode = mode;
+		const showTranslationButton =
+			(this.state.synced || this.state.unsynced) &&
+			Utils.isJapanese(this.state.synced || this.state.unsynced) &&
+			(mode == SYNCED || mode == UNSYNCED);
+		const translatorLoaded = this.translator.finished;
 
 		const out = react.createElement(
 			"div",
@@ -579,6 +632,10 @@ class LyricsContainer extends react.Component {
 				{
 					className: "lyrics-config-button-container"
 				},
+				react.createElement(TranslationMenu, {
+					showTranslationButton,
+					translatorLoaded
+				}),
 				react.createElement(AdjustmentsMenu, { mode }),
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
