@@ -103,7 +103,7 @@ jobs:
           printf "::set-output name=%s::%s\n" tag-name "${GITHUB_REF#refs/tags/}"
       - name: Update Homebrew tap
         uses: mislav/bump-homebrew-formula-action@v2
-        if: "!contains(github.ref, '-')" # skip prereleases
+        if: "!contains(github.ref, '-')"
         with:
           formula-name: spicetify-cli
           formula-path: spicetify-cli.rb
@@ -111,6 +111,6 @@ jobs:
           base-branch: main
           download-url: https://github.com/spicetify/spicetify-cli/archive/${{ steps.extract-version.outputs.tag-name }}.tar.gz
           commit-message: |
-            {{formulaName}} {{version}}
+            chore: {{version}} release
         env:
           COMMITTER_TOKEN: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
