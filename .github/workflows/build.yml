@@ -88,8 +88,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   trigger-release:
-    runs-on: ubuntu-latest
     name: Trigger Homebrew/AUR Release
+    runs-on: ubuntu-latest
     needs: release
     steps:
       - name: Update AUR package
@@ -97,3 +97,21 @@ jobs:
         with:
           url: http://vps.itsmeow.dev:8079/
           method: GET
+      - name: Extract version
+        id: extract-version
+        run: |
+          echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - name: Update Homebrew tap
+        uses: mislav/bump-homebrew-formula-action@v2
+        if: "!contains(github.ref, '-')"
+        with:
+          formula-name: spicetify-cli
+          formula-path: spicetify-cli.rb
+          homebrew-tap: spicetify/homebrew-tap
+          tag-name: ${{ env.tag_name }}
+          base-branch: main
+          download-url: https://github.com/spicetify/spicetify-cli/archive/${{ steps.extract-version.outputs.tag-name }}.tar.gz
+          commit-message: |
+            chore: {{version}} release
+        env:
+          COMMITTER_TOKEN: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
