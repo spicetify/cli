@@ -26,11 +26,12 @@ type Flag struct {
 // AdditionalOptions .
 func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
-		filepath.Join(appsFolderPath, "xpui", "index.html"):             htmlMod,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertCustomApp,
-		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):         insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):    insertHomeConfig,
-		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): insertVersionInfo,
+		filepath.Join(appsFolderPath, "xpui", "index.html"):                    htmlMod,
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                       insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):                insertExpFeatures,
+		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):           insertHomeConfig,
+		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"):        insertVersionInfo,
+		filepath.Join(appsFolderPath, "xpui", "xpui-routes-your-library-x.js"): insertCustomAppX,
 	}
 
 	for file, call := range filesToModified {
@@ -268,6 +269,11 @@ func insertCustomApp(jsPath string, flags Flag) {
 			`(?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
 			`Spicetify._sidebarItemToClone=${0}`)
 
+		utils.Replace(
+			&content,
+			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{to:"/",referrer:"home"`,
+			`Spicetify._topbarItemToClone=${0}`)
+
 		utils.ReplaceOnce(
 			&content,
 			`\d+:1,\d+:1,\d+:1`,
@@ -355,6 +361,28 @@ func insertVersionInfo(jsPath string, flags Flag) {
 				${1}("li",{children: "Extensions: " + Spicetify.Config.extensions.join(", ")}),
 				${1}("li",{children: "Custom apps: " + Spicetify.Config.custom_apps.join(", ")}),
 				]}),`)
+		return content
+	})
+}
+
+func insertCustomAppX(jsPath string, flags Flag) {
+	utils.ModifyFile(jsPath, func(content string) string {
+		appNameArray := ""
+
+		for _, app := range flags.CustomApp {
+			appNameArray += fmt.Sprintf(`"%s",`, app)
+		}
+
+		sidebarXItemMatch := utils.SeekToCloseParen(
+			content,
+			`\([\w$._]+,{label:\w+\?[\w.]+\("[\w-.]+expand-your-library`,
+			'(', ')')
+
+		content = strings.Replace(
+			content,
+			sidebarXItemMatch,
+			sidebarXItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],true)",
+			1)
 		return content
 	})
 }
