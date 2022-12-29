@@ -1108,12 +1108,17 @@ Spicetify._cloneSidebarItem = function (list, appX = false) {
 		const activeIcon = manifest["active-icon"] || icon;
 
 		const appLink = "/" + app;
-		const link = !appX && findChild(Spicetify._sidebarItemToClone, "className", "main-navBar-navBarLink");
-		let obj;
+		let obj, link;
 
 		if (appX) {
+			link = findChild(Spicetify._topbarItemToClone, "className", "main-topBar-navLink");
 			obj = React.cloneElement(
 				Spicetify._topbarItemToClone,
+				{
+					label: appProper,
+				},
+				React.cloneElement(
+				link,
 				{
 					to: appLink,
 					isActive: (e, { pathname: t }) => t.startsWith(appLink),
@@ -1134,16 +1139,10 @@ Spicetify._cloneSidebarItem = function (list, appX = false) {
 					dangerouslySetInnerHTML: {
 						__html: activeIcon
 					}
-				}),
-				React.createElement(
-					"span",
-					{
-						className: "ellipsis-one-line main-type-mestoBold"
-					},
-					appProper
-				)
-			);
+				})
+			))
 		} else {
+			link = findChild(Spicetify._sidebarItemToClone, "className", "main-navBar-navBarLink");
 			obj = React.cloneElement(
 				Spicetify._sidebarItemToClone,
 				null,

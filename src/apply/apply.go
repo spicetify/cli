@@ -271,7 +271,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		utils.Replace(
 			&content,
-			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{to:"/",referrer:"home"`,
+			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()\x60⌥ ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{to:"/",referrer:"home"`,
 			`Spicetify._topbarItemToClone=${0}`)
 
 		utils.ReplaceOnce(
