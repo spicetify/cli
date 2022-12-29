@@ -122,9 +122,22 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 
 	const rawLyrics = lyrics
 		.map(line => {
+			// Process converted Japanese lyrics
+			if (line.text.props?.children) {
+				line.rawText = line.text.props.children
+					.map(child => {
+						if (typeof child === "string") {
+							return child;
+						} else if (child.props?.children) {
+							return child.props?.children[0];
+						}
+					})
+					.join("");
+			}
 			if (!line.startTime) return line.text;
 			let startTimeString = "";
 
+			// Convert milliseconds to mm:ss format
 			if (!isNaN(line.startTime)) {
 				let minutes = Math.trunc(line.startTime / 60000),
 					seconds = ((line.startTime - minutes * 60000) / 1000).toFixed(2);
@@ -137,7 +150,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 				startTimeString = line.startTime.toString();
 			}
 
-			return `[${startTimeString}]${line.text}`;
+			return `[${startTimeString}]${line.rawText || line.text}`;
 		})
 		.join("\n");
 
@@ -389,9 +402,22 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 
 	const rawLyrics = lyrics
 		.map(line => {
+			// Process converted Japanese lyrics
+			if (line.text.props?.children) {
+				line.rawText = line.text.props.children
+					.map(child => {
+						if (typeof child === "string") {
+							return child;
+						} else if (child.props?.children) {
+							return child.props?.children[0];
+						}
+					})
+					.join("");
+			}
 			if (!line.startTime) return line.text;
 			let startTimeString = "";
 
+			// Convert milliseconds to mm:ss format
 			if (!isNaN(line.startTime)) {
 				let minutes = Math.trunc(line.startTime / 60000),
 					seconds = ((line.startTime - minutes * 60000) / 1000).toFixed(2);
@@ -404,7 +430,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 				startTimeString = line.startTime.toString();
 			}
 
-			return `[${startTimeString}]${line.text}`;
+			return `[${startTimeString}]${line.rawText || line.text}`;
 		})
 		.join("\n");
 
