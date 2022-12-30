@@ -1047,14 +1047,12 @@ dynamicSidebar.innerHTML = `
 .Root__nav-bar.isCollapsed header {
     overflow-y: visible;
 }
-.Root__nav-bar.isCollapsed header .main-topBar-navLink > span {
-    display: none;
-}
 /* Hide 'Your Library' when custom apps are applied*/
 .main-topBar-navLink + span {
     display: none;
 }`;
 document.head.appendChild(dynamicSidebar);
+
 Spicetify._cloneSidebarItem = function (list, appX = false) {
 	function findChild(parent, key, value) {
 		if (!parent.props) return null;
@@ -1115,32 +1113,33 @@ Spicetify._cloneSidebarItem = function (list, appX = false) {
 			obj = React.cloneElement(
 				Spicetify._topbarItemToClone,
 				{
-					label: appProper,
+					label: appProper
 				},
 				React.cloneElement(
-				link,
-				{
-					to: appLink,
-					isActive: (e, { pathname: t }) => t.startsWith(appLink),
-					className: conditionalAppend("main-topBar-navLink", "main-topBar-buttonActive", appLink)
-				},
-				React.createElement("svg", {
-					className: "home-icon",
-					height: "24",
-					width: "24",
-					dangerouslySetInnerHTML: {
-						__html: icon
-					}
-				}),
-				React.createElement("svg", {
-					className: "home-active-icon",
-					height: "24",
-					width: "24",
-					dangerouslySetInnerHTML: {
-						__html: activeIcon
-					}
-				})
-			))
+					link,
+					{
+						to: appLink,
+						isActive: (e, { pathname: t }) => t.startsWith(appLink),
+						className: conditionalAppend("main-topBar-navLink", "main-topBar-buttonActive", appLink)
+					},
+					React.createElement("svg", {
+						className: "home-icon",
+						height: "24",
+						width: "24",
+						dangerouslySetInnerHTML: {
+							__html: icon
+						}
+					}),
+					React.createElement("svg", {
+						className: "home-active-icon",
+						height: "24",
+						width: "24",
+						dangerouslySetInnerHTML: {
+							__html: activeIcon
+						}
+					})
+				)
+			);
 		} else {
 			link = findChild(Spicetify._sidebarItemToClone, "className", "main-navBar-navBarLink");
 			obj = React.cloneElement(
