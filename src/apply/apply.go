@@ -235,6 +235,14 @@ func insertCustomApp(jsPath string, flags Flag) {
 		cssEnableMap := ""
 		appNameArray := ""
 
+		// Spotify's new route system
+		wildcard := ""
+		if eleSymbs[2] == "" {
+			eleSymbs[2] = "children"
+		} else if eleSymbs[2] == "element" {
+			wildcard = "*"
+		}
+
 		for index, app := range flags.CustomApp {
 			appName := `spicetify-routes-` + app
 			appMap += fmt.Sprintf(`"%s":"%s",`, appName, appName)
@@ -246,8 +254,8 @@ func insertCustomApp(jsPath string, flags Flag) {
 				appName, reactSymbs[1], reactSymbs[1], appName)
 
 			appEleMap += fmt.Sprintf(
-				`%s(%s,{path:"/%s",pathV6:"/%s/*",%s:%s(spicetifyApp%d,{})}),`,
-				eleSymbs[0], eleSymbs[1], app, app, eleSymbs[2], eleSymbs[0], index)
+				`%s(%s,{path:"/%s/%s",pathV6:"/%s/*",%s:%s(spicetifyApp%d,{})}),`,
+				eleSymbs[0], eleSymbs[1], app, wildcard, app, eleSymbs[2], eleSymbs[0], index)
 
 			cssEnableMap += fmt.Sprintf(`,"%s":1`, appName)
 		}
