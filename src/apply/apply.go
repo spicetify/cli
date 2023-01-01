@@ -208,7 +208,7 @@ func getColorCSS(scheme map[string]string) string {
 func insertCustomApp(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		const REACT_REGEX = `(\w+(?:\(\))?)\.lazy\(\((?:\(\)=>|function\(\)\{return )(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\}?\)\)`
-		const REACT_ELEMENT_REGEX = `(\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,[:.\w,{}()/*"]+)?\}`
+		const REACT_ELEMENT_REGEX = `(\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,(element|children)?[:.\w,{}()/*"]+)?\}`
 		reactSymbs := utils.FindSymbol(
 			"Custom app React symbols",
 			content,
@@ -223,6 +223,10 @@ func insertCustomApp(jsPath string, flags Flag) {
 		if (len(reactSymbs) < 2) || (len(eleSymbs) == 0) {
 			utils.PrintError("Spotify version mismatch with Spicetify\nSpicetify currently only supports until Spotify v" + flags.SpotifyVer)
 			return content
+		}
+
+		if eleSymbs[2] == "" {
+			eleSymbs[2] = "children"
 		}
 
 		appMap := ""
@@ -242,8 +246,8 @@ func insertCustomApp(jsPath string, flags Flag) {
 				appName, reactSymbs[1], reactSymbs[1], appName)
 
 			appEleMap += fmt.Sprintf(
-				`%s(%s,{path:"/%s",pathV6:"/%s/*",children:%s(spicetifyApp%d,{})}),`,
-				eleSymbs[0], eleSymbs[1], app, app, eleSymbs[0], index)
+				`%s(%s,{path:"/%s",pathV6:"/%s/*",%s:%s(spicetifyApp%d,{})}),`,
+				eleSymbs[0], eleSymbs[1], app, app, eleSymbs[2], eleSymbs[0], index)
 
 			cssEnableMap += fmt.Sprintf(`,"%s":1`, appName)
 		}
