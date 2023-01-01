@@ -225,10 +225,6 @@ func insertCustomApp(jsPath string, flags Flag) {
 			return content
 		}
 
-		if eleSymbs[2] == "" {
-			eleSymbs[2] = "children"
-		}
-
 		appMap := ""
 		appReactMap := ""
 		appEleMap := ""
