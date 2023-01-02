@@ -100,7 +100,7 @@ jobs:
       - name: Extract version
         id: extract-version
         run: |
-          echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "tag-name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
       - name: Update Homebrew tap
         uses: mislav/bump-homebrew-formula-action@v2
         if: "!contains(github.ref, '-')"
@@ -108,7 +108,7 @@ jobs:
           formula-name: spicetify-cli
           formula-path: spicetify-cli.rb
           homebrew-tap: spicetify/homebrew-tap
-          tag-name: ${{ env.tag_name }}
+          tag-name: ${{ env.tag-name }}
           base-branch: main
           download-url: https://github.com/spicetify/spicetify-cli/archive/${{ steps.extract-version.outputs.tag-name }}.tar.gz
           commit-message: |
