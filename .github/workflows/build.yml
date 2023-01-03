@@ -110,7 +110,7 @@ jobs:
           homebrew-tap: spicetify/homebrew-tap
           tag-name: ${{ env.tag_name }}
           base-branch: main
-          download-url: https://github.com/spicetify/spicetify-cli/archive/${{ steps.extract-version.outputs.tag-name }}.tar.gz
+          download-url: https://github.com/spicetify/spicetify-cli/archive/${{ steps.extract-version.outputs.tag_name }}.tar.gz
           commit-message: |
             chore: {{version}} release
         env:
