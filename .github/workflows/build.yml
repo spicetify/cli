@@ -108,7 +108,7 @@ jobs:
           formula-name: spicetify-cli
           formula-path: spicetify-cli.rb
           homebrew-tap: spicetify/homebrew-tap
-          tag-name: ${{ env.tag-name }}
+          tag-name: ${{ env.tag_name }}
           base-branch: main
           download-url: https://github.com/spicetify/spicetify-cli/archive/${{ steps.extract-version.outputs.tag-name }}.tar.gz
           commit-message: |
