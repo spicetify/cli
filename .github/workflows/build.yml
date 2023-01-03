@@ -100,7 +100,7 @@ jobs:
       - name: Extract version
         id: extract-version
         run: |
-          echo "tag-name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
       - name: Update Homebrew tap
         uses: mislav/bump-homebrew-formula-action@v2
         if: "!contains(github.ref, '-')"
