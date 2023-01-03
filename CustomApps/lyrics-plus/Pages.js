@@ -120,26 +120,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 		offset += -(activeLineEle.current.offsetTop + activeLineEle.current.clientHeight / 2);
 	}
 
-	const rawLyrics = lyrics
-		.map(line => {
-			if (!line.startTime) return line.text;
-			let startTimeString = "";
-
-			if (!isNaN(line.startTime)) {
-				let minutes = Math.trunc(line.startTime / 60000),
-					seconds = ((line.startTime - minutes * 60000) / 1000).toFixed(2);
-
-				if (minutes < 10) minutes = "0" + minutes;
-				if (seconds < 10) seconds = "0" + seconds;
-
-				startTimeString = `${minutes}:${seconds}`;
-			} else {
-				startTimeString = line.startTime.toString();
-			}
-
-			return `[${startTimeString}]${line.text}`;
-		})
-		.join("\n");
+	const rawLyrics = Utils.convertParsedToLRC(lyrics);
 
 	return react.createElement(
 		"div",
@@ -387,26 +368,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 		}
 	}
 
-	const rawLyrics = lyrics
-		.map(line => {
-			if (!line.startTime) return line.text;
-			let startTimeString = "";
-
-			if (!isNaN(line.startTime)) {
-				let minutes = Math.trunc(line.startTime / 60000),
-					seconds = ((line.startTime - minutes * 60000) / 1000).toFixed(2);
-
-				if (minutes < 10) minutes = "0" + minutes;
-				if (seconds < 10) seconds = "0" + seconds;
-
-				startTimeString = `${minutes}:${seconds}`;
-			} else {
-				startTimeString = line.startTime.toString();
-			}
-
-			return `[${startTimeString}]${line.text}`;
-		})
-		.join("\n");
+	const rawLyrics = Utils.convertParsedToLRC(lyrics);
 
 	useEffect(() => {
 		if (activeLineRef.current && (!intialScroll[0] || isInViewport(activeLineRef.current))) {
