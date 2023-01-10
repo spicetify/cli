@@ -82,6 +82,7 @@ const Providers = {
 			karaoke: null,
 			synced: null,
 			unsynced: null,
+			neteaseTranslation: null,
 			provider: "Netease",
 			copyright: null
 		};
@@ -105,6 +106,10 @@ const Providers = {
 		const unsynced = synced || ProviderNetease.getUnsynced(list);
 		if (unsynced) {
 			result.unsynced = unsynced;
+		}
+		const translation = ProviderNetease.getTranslation(list);
+		if (translation) {
+			result.neteaseTranslation = translation;
 		}
 
 		return result;

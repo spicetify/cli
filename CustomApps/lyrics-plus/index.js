@@ -124,6 +124,7 @@ class LyricsContainer extends react.Component {
 			furigana: null,
 			hiragana: null,
 			katakana: null,
+			neteaseTranslation: null,
 			uri: "",
 			provider: "",
 			colors: {
@@ -227,7 +228,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	async fetchLyrics(track, mode = -1) {
-		this.state.furigana = this.state.romaji = this.state.hirgana = this.state.katakana = null;
+		this.state.furigana = this.state.romaji = this.state.hirgana = this.state.katakana = this.state.neteaseTranslation = null;
 		const info = this.infoFromTrack(track);
 		if (!info) {
 			this.setState({ error: "No track info" });
@@ -607,10 +608,9 @@ class LyricsContainer extends react.Component {
 		}
 
 		this.state.mode = mode;
-		const showTranslationButton =
-			(this.state.synced || this.state.unsynced) &&
-			Utils.isJapanese(this.state.synced || this.state.unsynced) &&
-			(mode == SYNCED || mode == UNSYNCED);
+		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
+		const isJapanese = (this.state.synced || this.state.unsynced) && Utils.isJapanese(this.state.synced || this.state.unsynced);
+		const showTranslationButton = (isJapanese || hasNeteaseTranslation) && (mode == SYNCED || mode == UNSYNCED);
 		const translatorLoaded = this.translator.finished;
 
 		const out = react.createElement(
@@ -634,7 +634,9 @@ class LyricsContainer extends react.Component {
 				},
 				react.createElement(TranslationMenu, {
 					showTranslationButton,
-					translatorLoaded
+					translatorLoaded,
+					isJapanese,
+					hasNeteaseTranslation
 				}),
 				react.createElement(AdjustmentsMenu, { mode }),
 				react.createElement(
