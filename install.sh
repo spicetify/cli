@@ -4,18 +4,26 @@
 
 set -e
 
+# wipe existing log
+> install.log
+
+log() {
+	echo $1
+	echo "["$(date +'%H:%M:%S %Y-%m-%d')"]" $1 >> install.log
+}
+
 case $(uname -sm) in
 	"Darwin x86_64") target="darwin-amd64" ;;
 	"Darwin arm64") target="darwin-arm64" ;;
 	"Linux x86_64") target="linux-amd64" ;;
 	"Linux aarch64") target="linux-arm64" ;;
-	*) echo "Unsupported platform $(uname -sm). x86_64 and arm64 binaries for Linux and Darwin are available."; exit ;;
+	*) log "Unsupported platform $(uname -sm). x86_64 and arm64 binaries for Linux and Darwin are available."; exit ;;
 esac
 
 # check for dependencies
-command -v curl >/dev/null || { echo "curl isn't installed\!" >&2; exit 1; }
-command -v tar >/dev/null || { echo "tar isn't installed\!" >&2; exit 1; }
-command -v grep >/dev/null || { echo "grep isn't installed\!" >&2; exit 1; }
+command -v curl >/dev/null || { log "curl isn't installed\!" >&2; exit 1; }
+command -v tar >/dev/null || { log "tar isn't installed\!" >&2; exit 1; }
+command -v grep >/dev/null || { log "grep isn't installed\!" >&2; exit 1; }
 
 # download uri
 releases_uri=https://github.com/spicetify/spicetify-cli/releases
@@ -30,7 +38,7 @@ fi
 
 tag=${tag#v}
 
-echo "FETCHING Version $tag"
+log "FETCHING Version $tag"
 
 download_uri=$releases_uri/download/v$tag/spicetify-$tag-$target.tar.gz
 
@@ -40,18 +48,18 @@ exe="$spicetify_install/spicetify"
 tar="$spicetify_install/spicetify.tar.gz"
 
 # installing
-[ ! -d "$spicetify_install" ] && echo "CREATING $spicetify_install" && mkdir -p "$spicetify_install"
+[ ! -d "$spicetify_install" ] && log "CREATING $spicetify_install" && mkdir -p "$spicetify_install"
 
-echo "DOWNLOADING $download_uri"
+log "DOWNLOADING $download_uri"
 curl --fail --location --progress-bar --output "$tar" "$download_uri"
 
-echo "EXTRACTING $tar"
+log "EXTRACTING $tar"
 tar xzf "$tar" -C "$spicetify_install"
 
-echo "SETTING EXECUTABLE PERMISSIONS TO $exe"
+log "SETTING EXECUTABLE PERMISSIONS TO $exe"
 chmod +x "$exe"
 
-echo "REMOVING $tar"
+log "REMOVING $tar"
 rm "$tar"
 
 notfound() {
@@ -72,21 +80,21 @@ check() {
 
 	# Create shellrc if it doesn't exist
 	if ! [ -f $shellrc ]; then
-		echo "CREATING $shellrc"
+		log "CREATING $shellrc"
 		touch $shellrc
 	fi
 
 	# Still checking again, in case touch command failed
 	if [ -f $shellrc ]; then
 		if ! grep -q $spicetify_install $shellrc; then
-			echo "APPENDING $spicetify_install to PATH in $shellrc"
+			log "APPENDING $spicetify_install to PATH in $shellrc"
 			if ! endswith_newline $shellrc; then
 				echo >> $shellrc
 			fi
 			echo ${2:-$path} >> $shellrc
-			echo "Restart your shell to have spicetify in your PATH."
+			log "Restart your shell to have spicetify in your PATH."
 		else
-			echo "spicetify path already set in $shellrc, continuing..."
+			log "spicetify path already set in $shellrc, continuing..."
 		fi
 	else
 		notfound
@@ -104,5 +112,5 @@ case $SHELL in
 esac
 
 echo
-echo "spicetify v$tag was installed successfully to $spicetify_install"
-echo "Run 'spicetify --help' to get started"
+log "spicetify v$tag was installed successfully to $spicetify_install"
+log "Run 'spicetify --help' to get started"
