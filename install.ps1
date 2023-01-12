@@ -10,8 +10,6 @@ if ($v) {
     $version = $v
 }
 
-$log_file_dir = "$sp_dir\install.log"
-
 # Function to log output to file.
 Function Log {
   Param([String] $ActionText, [String[]] $Texts, [Boolean[]] $Emphasized, [Boolean] $NewLine)
@@ -84,6 +82,8 @@ if ($PSVersionTable.PSVersion.Major -gt $PSMinVersion) {
 
   # Create %localappdata%\spicetify directory if it doesn't already exist
   $sp_dir = "$env:LOCALAPPDATA\spicetify"
+  $log_file_dir = "$sp_dir\install.log"
+
   if (-not (Test-Path $sp_dir)) {
     Log "MAKING FOLDER" -Texts $sp_dir -Emphasized $true
     Write-Done
