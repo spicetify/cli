@@ -1030,30 +1030,7 @@ Spicetify.ContextMenu = (function () {
 	return { Item, SubMenu, _addItems };
 })();
 
-const dynamicSidebar = document.createElement("style");
-dynamicSidebar.innerHTML = `
-::-webkit-scrollbar {
-    border-radius: 4px;
-    height: 6px;
-    background-color: var(--spice-button-disabled);
-}
-.Root__nav-bar header .main-topBar-navLink {
-    padding: 12px;
-}
-.Root__nav-bar:not(.isCollapsed) header {
-    overflow-x: auto;
-    overflow-y: clip;
-}
-.Root__nav-bar.isCollapsed header {
-    overflow-y: visible;
-}
-/* Hide 'Your Library' when custom apps are applied*/
-.main-topBar-navLink + span {
-    display: none;
-}`;
-document.head.appendChild(dynamicSidebar);
-
-Spicetify._cloneSidebarItem = function (list, appX = false) {
+Spicetify._cloneSidebarItem = function (list, appX = false, sidebarIsCollapsed) {
 	function findChild(parent, key, value) {
 		if (!parent.props) return null;
 
@@ -1109,18 +1086,16 @@ Spicetify._cloneSidebarItem = function (list, appX = false) {
 		let obj, link;
 
 		if (appX) {
-			link = findChild(Spicetify._topbarItemToClone, "className", "main-topBar-navLink");
+			link = findChild(Spicetify._sidebarXItemToClone, "className", "main-yourLibraryX-navLink");
 			obj = React.cloneElement(
-				Spicetify._topbarItemToClone,
-				{
-					label: appProper
-				},
+				Spicetify._sidebarXItemToClone,
+				null,
 				React.cloneElement(
 					link,
 					{
 						to: appLink,
 						isActive: (e, { pathname: t }) => t.startsWith(appLink),
-						className: conditionalAppend("main-topBar-navLink", "main-topBar-buttonActive", appLink)
+						className: conditionalAppend("link-subtle main-yourLibraryX-navLink", "main-yourLibraryX-navLinkActive", appLink)
 					},
 					React.createElement("svg", {
 						className: "home-icon",
@@ -1137,7 +1112,15 @@ Spicetify._cloneSidebarItem = function (list, appX = false) {
 						dangerouslySetInnerHTML: {
 							__html: activeIcon
 						}
-					})
+					}),
+					!sidebarIsCollapsed &&
+						React.createElement(
+							"span",
+							{
+								className: "main-type-balladBold"
+							},
+							appProper
+						)
 				)
 			);
 		} else {

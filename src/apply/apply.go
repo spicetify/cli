@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spicetify/spicetify-cli/src/utils"
@@ -26,12 +27,11 @@ type Flag struct {
 // AdditionalOptions .
 func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified := map[string]func(path string, flags Flag){
-		filepath.Join(appsFolderPath, "xpui", "index.html"):                    htmlMod,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                       insertCustomApp,
-		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):                insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):           insertHomeConfig,
-		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"):        insertVersionInfo,
-		filepath.Join(appsFolderPath, "xpui", "xpui-routes-your-library-x.js"): insertCustomAppX,
+		filepath.Join(appsFolderPath, "xpui", "index.html"):             htmlMod,
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertCustomApp,
+		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):         insertExpFeatures,
+		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):    insertHomeConfig,
+		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): insertVersionInfo,
 	}
 
 	for file, call := range filesToModified {
@@ -279,8 +279,8 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		utils.Replace(
 			&content,
-			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()\x60⌥ ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{to:"/",referrer:"home"`,
-			`Spicetify._topbarItemToClone=${0}`)
+			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\("li",{className:[-\w".${}()?!:, ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()?!:, ]+,(\w+:[-\w".${}() ]+,)*children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,\{to:"/"`,
+			`Spicetify._sidebarXItemToClone=${0}`)
 
 		utils.ReplaceOnce(
 			&content,
@@ -292,10 +292,23 @@ func insertCustomApp(jsPath string, flags Flag) {
 			`\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
 			'(', ')')
 
+		sidebarXIsCollapsed := regexp.MustCompile(`\w+ ?\{leftSidebarIsCollapsed:([\w$_.]+)`).FindStringSubmatch
+
 		content = strings.Replace(
 			content,
 			sidebarItemMatch,
 			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
+			1)
+
+		sidebarXItemMatch := utils.SeekToCloseParen(
+			content,
+			`\("li",{className:[-\w".${}()?!:, ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()?!:, ]+,(\w+:[-\w".${}() ]+,)*children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,\{to:"/search"`,
+			'(', ')')
+
+		content = strings.Replace(
+			content,
+			sidebarXItemMatch,
+			sidebarXItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],true,"+sidebarXIsCollapsed(content)[1]+")",
 			1)
 
 		if flags.SidebarConfig {
@@ -369,28 +382,6 @@ func insertVersionInfo(jsPath string, flags Flag) {
 				${1}("li",{children: "Extensions: " + Spicetify.Config.extensions.join(", ")}),
 				${1}("li",{children: "Custom apps: " + Spicetify.Config.custom_apps.join(", ")}),
 				]}),`)
-		return content
-	})
-}
-
-func insertCustomAppX(jsPath string, flags Flag) {
-	utils.ModifyFile(jsPath, func(content string) string {
-		appNameArray := ""
-
-		for _, app := range flags.CustomApp {
-			appNameArray += fmt.Sprintf(`"%s",`, app)
-		}
-
-		sidebarXItemMatch := utils.SeekToCloseParen(
-			content,
-			`\([\w$._]+,{label:\w+\?[\w.]+\("[\w-.]+expand-your-library`,
-			'(', ')')
-
-		content = strings.Replace(
-			content,
-			sidebarXItemMatch,
-			sidebarXItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],true)",
-			1)
 		return content
 	})
 }
