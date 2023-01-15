@@ -1,5 +1,7 @@
 # Executables
 bin/
+spicetify-cli
+spicetify
 *.exe
 
 # MacOS
@@ -9,3 +11,6 @@ bin/
 node_modules
 package-lock.json
 package.json
+
+# Logs
+install.log
