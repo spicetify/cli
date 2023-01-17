@@ -78,7 +78,7 @@ check() {
 	local path="export PATH=\$PATH:$spicetify_install"
 	local shellrc=$HOME/$1
 	
-	if [ "$1" == ".zshrc" ] && [ ! -z "{$ZDOTDIR}" ]; then
+	if [ "$1" == ".zshrc" ] && [ ! -z "${ZDOTDIR}" ]; then
 		shellrc=$ZDOTDIR/$1
 	fi
 
