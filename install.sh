@@ -80,6 +80,10 @@ check() {
 
 	# Create shellrc if it doesn't exist
 	if ! [ -f $shellrc ]; then
+		# Check $ZDOTDIR for .zshrc
+		if [ "$1" == ".zshrc" ] && [ -f $ZDOTDIR/$1 ]; then
+			shellrc=$ZDOTDIR/$1
+		fi
 		log "CREATING $shellrc"
 		touch $shellrc
 	fi
