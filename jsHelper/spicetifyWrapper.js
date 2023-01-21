@@ -1091,36 +1091,45 @@ Spicetify._cloneSidebarItem = function (list, appX = false, sidebarIsCollapsed) 
 				Spicetify._sidebarXItemToClone,
 				null,
 				React.cloneElement(
-					link,
+					Spicetify._sidebarXItemToClone.props.children,
 					{
-						to: appLink,
-						isActive: (e, { pathname: t }) => t.startsWith(appLink),
-						className: conditionalAppend("link-subtle main-yourLibraryX-navLink", "main-yourLibraryX-navLinkActive", appLink)
+						label: sidebarIsCollapsed ? appProper : ""
 					},
-					React.createElement("svg", {
-						className: "home-icon",
-						height: "24",
-						width: "24",
-						dangerouslySetInnerHTML: {
-							__html: icon
-						}
-					}),
-					React.createElement("svg", {
-						className: "home-active-icon",
-						height: "24",
-						width: "24",
-						dangerouslySetInnerHTML: {
-							__html: activeIcon
-						}
-					}),
-					!sidebarIsCollapsed &&
-						React.createElement(
-							"span",
-							{
-								className: "main-type-balladBold"
-							},
-							appProper
-						)
+					React.cloneElement(
+						link,
+						{
+							to: appLink,
+							isActive: (e, { pathname: t }) => t.startsWith(appLink),
+							className: conditionalAppend("link-subtle main-yourLibraryX-navLink", "main-yourLibraryX-navLinkActive", appLink)
+						},
+						React.createElement("svg", {
+							className: "home-icon",
+							height: "24",
+							width: "24",
+							dangerouslySetInnerHTML: {
+								__html: icon
+							}
+						}),
+						React.createElement("svg", {
+							className: "home-active-icon",
+							height: "24",
+							width: "24",
+							dangerouslySetInnerHTML: {
+								__html: activeIcon
+							}
+						}),
+						!sidebarIsCollapsed &&
+							React.createElement(
+								"span",
+								{
+									className: "main-type-balladBold",
+									style: {
+										color: "var(--spice-text)"
+									}
+								},
+								appProper
+							)
+					)
 				)
 			);
 		} else {
