@@ -445,6 +445,16 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		`\(function\(\w+\)\{return \w+\.variant\?function\(\w+\)\{`,
 		`Spicetify._fontStyle=${0}`)
 
+	utils.ReplaceOnce(
+		&input,
+		`=[\w$\.,]+\.forwardRef\(\((?:\([\w,]+\)=>|function\([\w,]+\)\{)\w\.color`,
+		`=Spicetify.ReactComponent.TextComponent${0}`)
+
+	utils.ReplaceOnce(
+		&input,
+		`=(?:\(\w\)=>|function\(\w\)\{)\w+ ?\w=\w\.iconSize`,
+		`=Spicetify.ReactComponent.IconComponent${0}`)
+
 	return input
 }
 

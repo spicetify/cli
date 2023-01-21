@@ -1102,30 +1102,26 @@ Spicetify._cloneSidebarItem = function (list, appX = false, sidebarIsCollapsed) 
 							isActive: (e, { pathname: t }) => t.startsWith(appLink),
 							className: conditionalAppend("link-subtle main-yourLibraryX-navLink", "main-yourLibraryX-navLinkActive", appLink)
 						},
-						React.createElement("svg", {
+						React.createElement(Spicetify.ReactComponent.IconComponent, {
 							className: "home-icon",
-							height: "24",
-							width: "24",
+							iconSize: "24",
 							dangerouslySetInnerHTML: {
 								__html: icon
 							}
 						}),
-						React.createElement("svg", {
+						React.createElement(Spicetify.ReactComponent.IconComponent, {
 							className: "home-active-icon",
-							height: "24",
-							width: "24",
+							iconSize: "24",
 							dangerouslySetInnerHTML: {
 								__html: activeIcon
 							}
 						}),
 						!sidebarIsCollapsed &&
 							React.createElement(
-								"span",
+								Spicetify.ReactComponent.TextComponent,
 								{
-									className: "main-type-balladBold",
-									style: {
-										color: "var(--spice-text)"
-									}
+									variant: "balladBold",
+									semanticColor: "textBase"
 								},
 								appProper
 							)
