@@ -1331,6 +1331,74 @@ declare namespace Spicetify {
              */
             labelClassName?: string;
         };
+        type IconComponentProps = {
+            /**
+             * Icon size
+             * @default 24
+             */
+            iconSize: number;
+            /**
+             * Icon color
+             * Might not be used by component
+             * @default 'currentColor'
+             */
+            color: string;
+            /**
+             * Semantic color name
+             * Matches color variables used in xpui
+             * @default Inherit from parent
+             */
+            semanticColor?: 'textBase' | 'textSubdued' | 'textBrightAccent' | 'textNegative' | 'textWarning' | 'textPositive' | 'textAnnouncement' | 'essentialBase' | 'essentialSubdued' | 'essentialBrightAccent' | 'essentialNegative' | 'essentialWarning' | 'essentialPositive' | 'essentialAnnouncement' | 'decorativeBase' | 'decorativeSubdued' | 'backgroundBase' | 'backgroundHighlight' | 'backgroundPress' | 'backgroundElevatedBase' | 'backgroundElevatedHighlight' | 'backgroundElevatedPress' | 'backgroundTintedBase' | 'backgroundTintedHighlight' | 'backgroundTintedPress' | 'backgroundUnsafeForSmallTextBase' | 'backgroundUnsafeForSmallTextHighlight' | 'backgroundUnsafeForSmallTextPress';
+            /**
+             * Icon title
+             * @default ''
+             */
+            title?: string;
+            /**
+             * Title ID (internal)
+             */
+            titleId?: string;
+            /**
+             * Icon description
+             */
+            desc?: string;
+            /**
+             * Description ID (internal)
+             */
+            descId?: string;
+            /**
+             * Auto mirror icon
+             * @default false
+             */
+            autoMirror?: boolean;
+        }
+        type TextComponentProps = {
+            /**
+             * Text color
+             * Might not be used by component
+             * @default 'currentColor'
+             */
+            color?: string;
+            /**
+             * Semantic color name
+             * Matches color variables used in xpui
+             * @default Inherit from parent
+             */
+            semanticColor?: 'textBase' | 'textSubdued' | 'textBrightAccent' | 'textNegative' | 'textWarning' | 'textPositive' | 'textAnnouncement' | 'essentialBase' | 'essentialSubdued' | 'essentialBrightAccent' | 'essentialNegative' | 'essentialWarning' | 'essentialPositive' | 'essentialAnnouncement' | 'decorativeBase' | 'decorativeSubdued' | 'backgroundBase' | 'backgroundHighlight' | 'backgroundPress' | 'backgroundElevatedBase' | 'backgroundElevatedHighlight' | 'backgroundElevatedPress' | 'backgroundTintedBase' | 'backgroundTintedHighlight' | 'backgroundTintedPress' | 'backgroundUnsafeForSmallTextBase' | 'backgroundUnsafeForSmallTextHighlight' | 'backgroundUnsafeForSmallTextPress';
+            /**
+             * Text style variant
+             * @default 'viola'
+             */
+            variant: 'bass' | 'forte' | 'brio' | 'altoBrio' | 'alto' | 'canon' | 'celloCanon' | 'cello' | 'ballad' | 'balladBold' | 'viola' | 'violaBold' | 'mesto' | 'mestoBold' | 'metronome' | 'finale' | 'finaleBold' | 'minuet' | 'minuetBold';
+            /**
+             * Bottom padding size
+             */
+            paddingBottom?: string;
+            /**
+             * Font weight
+             */
+            weight?: 'book' | 'bold' | 'black';
+        }
         /**
          * Generic context menu provider
          *
@@ -1382,6 +1450,7 @@ declare namespace Spicetify {
         const TooltipWrapper: any;
         /**
          * Component to render Spotify-style icon
+         * @since Spotify `1.1.95`
          *
          * Props:
          * @see Spicetify.ReactComponent.IconComponentProps
@@ -1389,6 +1458,7 @@ declare namespace Spicetify {
         const IconComponent: any;
         /**
          * Component to render Spotify-style text
+         * @since Spotify `1.1.95`
          *
          * Props:
          * @see Spicetify.ReactComponent.TextComponentProps
