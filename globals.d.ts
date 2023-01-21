@@ -1380,6 +1380,20 @@ declare namespace Spicetify {
          * @see Spicetify.ReactComponent.TooltipProps
          */
         const TooltipWrapper: any;
+        /**
+         * Component to render Spotify-style icon
+         *
+         * Props:
+         * @see Spicetify.ReactComponent.IconComponentProps
+         */
+        const IconComponent: any;
+        /**
+         * Component to render Spotify-style text
+         *
+         * Props:
+         * @see Spicetify.ReactComponent.TextComponentProps
+         */
+        const TextComponent: any;
     };
 
     /**
