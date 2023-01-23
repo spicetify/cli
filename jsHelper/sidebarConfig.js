@@ -190,14 +190,11 @@
 		}
 	}
 
-	async function removeInteraction() {
+	function removeInteraction() {
 		hiddenList.classList.add("hidden-visually");
 		container.remove();
 		ordered.forEach(a => (a[0].onmouseover = undefined));
-		document.documentElement.style.setProperty(
-			"--nav-bar-width",
-			Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width") + "px"
-		);
+		document.documentElement.style.setProperty("--nav-bar-width", Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width") + "px");
 		writeStorage();
 	}
 
