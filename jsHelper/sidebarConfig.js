@@ -195,7 +195,10 @@
 		hiddenList.classList.add("hidden-visually");
 		container.remove();
 		ordered.forEach(a => (a[0].onmouseover = undefined));
-		document.documentElement.style.setProperty("--nav-bar-width", localStorage.getItem(`${(await Spicetify.CosmosAsync.get("sp://desktop/v1/session")).username}:nav-bar-width`) + "px");
+		document.documentElement.style.setProperty(
+			"--nav-bar-width",
+			localStorage.getItem(`${(await Spicetify.CosmosAsync.get("sp://desktop/v1/session")).username}:nav-bar-width`) + "px"
+		);
 		writeStorage();
 	}
 
