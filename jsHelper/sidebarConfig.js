@@ -100,7 +100,7 @@
 
 	function writeStorage() {
 		const array = ordered.map(a => [a[0].dataset.id, a[1]]);
-		console.log(array);
+		// console.log(array); prints path
 		localStorage.setItem("spicetify-sidebar-config", JSON.stringify(array));
 	}
 
@@ -191,10 +191,11 @@
 		}
 	}
 
-	function removeInteraction() {
+	async function removeInteraction() {
 		hiddenList.classList.add("hidden-visually");
 		container.remove();
 		ordered.forEach(a => (a[0].onmouseover = undefined));
+		document.documentElement.style.setProperty("--nav-bar-width", localStorage.getItem(`${(await Spicetify.CosmosAsync.get("sp://desktop/v1/session")).username}:nav-bar-width`) + "px");
 		writeStorage();
 	}
 
