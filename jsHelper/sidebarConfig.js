@@ -100,7 +100,6 @@
 
 	function writeStorage() {
 		const array = ordered.map(a => [a[0].dataset.id, a[1]]);
-		console.log(array);
 		localStorage.setItem("spicetify-sidebar-config", JSON.stringify(array));
 	}
 
@@ -195,6 +194,7 @@
 		hiddenList.classList.add("hidden-visually");
 		container.remove();
 		ordered.forEach(a => (a[0].onmouseover = undefined));
+		document.documentElement.style.setProperty("--nav-bar-width", Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width") + "px");
 		writeStorage();
 	}
 
