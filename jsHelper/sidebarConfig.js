@@ -100,7 +100,6 @@
 
 	function writeStorage() {
 		const array = ordered.map(a => [a[0].dataset.id, a[1]]);
-		// console.log(array); prints path
 		localStorage.setItem("spicetify-sidebar-config", JSON.stringify(array));
 	}
 
