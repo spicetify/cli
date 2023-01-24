@@ -88,6 +88,8 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 const TranslationMenu = react.memo(({ showTranslationButton, translatorLoaded, isJapanese, hasNeteaseTranslation }) => {
 	if (!showTranslationButton) return null;
 
+	let translator = new Translator();
+
 	let menuOptions = null;
 	if (isJapanese) {
 		menuOptions = {
@@ -111,7 +113,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, translatorLoaded, i
 				Spicetify.ReactComponent.Menu,
 				{},
 				react.createElement("h3", null, " Conversions"),
-				translatorLoaded || !isJapanese
+				translatorLoaded || isJapanese
 					? react.createElement(OptionList, {
 							items: [
 								{
@@ -134,6 +136,8 @@ const TranslationMenu = react.memo(({ showTranslationButton, translatorLoaded, i
 								CONFIG.visual[name] = value;
 								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 								lyricContainerUpdate && lyricContainerUpdate();
+								CONFIG.visual[name] ? Spicetify.showNotification("Translating...", false, 500) : null;
+								translator.includeExternal("inject");
 							}
 					  })
 					: react.createElement(
