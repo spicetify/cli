@@ -580,6 +580,7 @@ button.switch.small {
 .lyrics-config-button-container {
 	-webkit-margin-end: 32px;
 	-webkit-box-pack: end;
+	pointer-events: none;
 	bottom: 32px;
 	display: flex;
 	justify-content: flex-end;
@@ -587,6 +588,10 @@ button.switch.small {
 	margin-inline-end: 32px;
 	position: sticky;
 	z-index: 2;
+}
+
+.lyrics-config-button-container > * {
+	pointer-events: auto;
 }
 
 .lyrics-translation-spinner {
