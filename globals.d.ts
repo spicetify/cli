@@ -1336,13 +1336,13 @@ declare namespace Spicetify {
              * Icon size
              * @default 24
              */
-            iconSize: number;
+            iconSize?: number;
             /**
              * Icon color
              * Might not be used by component
              * @default 'currentColor'
              */
-            color: string;
+            color?: string;
             /**
              * Semantic color name
              * Matches color variables used in xpui
@@ -1389,7 +1389,7 @@ declare namespace Spicetify {
              * Text style variant
              * @default 'viola'
              */
-            variant: 'bass' | 'forte' | 'brio' | 'altoBrio' | 'alto' | 'canon' | 'celloCanon' | 'cello' | 'ballad' | 'balladBold' | 'viola' | 'violaBold' | 'mesto' | 'mestoBold' | 'metronome' | 'finale' | 'finaleBold' | 'minuet' | 'minuetBold';
+            variant?: 'bass' | 'forte' | 'brio' | 'altoBrio' | 'alto' | 'canon' | 'celloCanon' | 'cello' | 'ballad' | 'balladBold' | 'viola' | 'violaBold' | 'mesto' | 'mestoBold' | 'metronome' | 'finale' | 'finaleBold' | 'minuet' | 'minuetBold';
             /**
              * Bottom padding size
              */
@@ -1450,6 +1450,7 @@ declare namespace Spicetify {
         const TooltipWrapper: any;
         /**
          * Component to render Spotify-style icon
+         * @since Spotify `1.1.95`
          *
          * Props:
          * @see Spicetify.ReactComponent.IconComponentProps
@@ -1457,6 +1458,7 @@ declare namespace Spicetify {
         const IconComponent: any;
         /**
          * Component to render Spotify-style text
+         * @since Spotify `1.1.95`
          *
          * Props:
          * @see Spicetify.ReactComponent.TextComponentProps

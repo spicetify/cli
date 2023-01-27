@@ -147,6 +147,37 @@ const ProviderNetease = (function () {
 		return lyrics;
 	}
 
+	function getTranslation(list) {
+		const lyricStr = list?.tlyric?.lyric;
+
+		if (!lyricStr) {
+			return null;
+		}
+
+		const lines = lyricStr.split(/\r?\n/).map(line => line.trim());
+		const translation = lines
+			.map(line => {
+				const { time, text } = parseTimestamp(line);
+				if (!time || !text) return null;
+
+				const [key, value] = time.split(":") || [];
+				const [min, sec] = [parseFloat(key), parseFloat(value)];
+				if (!isNaN(min) && !isNaN(sec) && !containCredits(text)) {
+					return {
+						startTime: (min * 60 + sec) * 1000,
+						text: text || ""
+					};
+				}
+				return null;
+			})
+			.filter(a => a);
+
+		if (!translation.length) {
+			return null;
+		}
+		return translation;
+	}
+
 	function getUnsynced(list) {
 		const lyricStr = list?.lrc?.lyric;
 		let isInstrumental = false;
@@ -178,5 +209,5 @@ const ProviderNetease = (function () {
 		return lyrics;
 	}
 
-	return { findLyrics, getKaraoke, getSynced, getUnsynced };
+	return { findLyrics, getKaraoke, getSynced, getUnsynced, getTranslation };
 })();
