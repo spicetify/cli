@@ -30,7 +30,7 @@ releases_uri=https://github.com/spicetify/spicetify-cli/releases
 if [ $# -gt 0 ]; then
 	tag=$1
 else
-	tag=$(curl -LsH 'Accept: application/json' $releases_uri/latest)
+	tag=$(curl -Ls -o /dev/null -w %{url_effective} $releases_uri/latest)
 	tag=${tag%\,\"update_url*}
 	tag=${tag##*tag_name\":\"}
 	tag=${tag%\"}
