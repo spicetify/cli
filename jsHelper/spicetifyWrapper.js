@@ -283,6 +283,9 @@ if (!Spicetify.URI) Spicetify.URI = {};
             return uriObj.type === Spicetify.URI.Type[type];
         };
     }
+    Spicetify.URI.isPlaylistV1OrV2 = (uri) => {
+        return Spicetify.URI.isPlaylist(uri) || Spicetify.URI.isPlaylistV2(uri);
+    };
 })();
 
 

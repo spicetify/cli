@@ -2,8 +2,8 @@ class Card extends react.Component {
 	constructor(props) {
 		super(props);
 		Object.assign(this, props);
-		this.href = URI.from(this.uri).toURLPath(true);
-		this.artistHref = URI.from(this.artist.uri).toURLPath(true);
+		this.href = URI.fromString(this.uri).toURLPath(true);
+		this.artistHref = URI.fromString(this.artist.uri).toURLPath(true);
 		const uriType = Spicetify.URI.fromString(this.uri)?.type;
 		switch (uriType) {
 			case Spicetify.URI.Type.ALBUM:
