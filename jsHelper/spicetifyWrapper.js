@@ -110,7 +110,9 @@ const Spicetify = {
             "getFontStyle",
             "_fontStyle",
             "Config",
-            "expFeatureOverride"
+            "expFeatureOverride",
+            "createInternalMap",
+            "RemoteConfigResolver"
         ];
 
         const PLAYER_METHOD = [
@@ -151,10 +153,24 @@ const Spicetify = {
             "playUri"
         ]
 
+        const REACT_COMPONENT = [
+            "RightClickMenu",
+            "ContextMenu",
+            "Menu",
+            "MenuItem",
+            "AlbumMenu",
+            "PodcastShowMenu",
+            "ArtistMenu",
+            "PlaylistMenu",
+            "TooltipWrapper",
+            "TextComponent",
+            "IconComponent"
+        ]
+
         let count = SPICETIFY_METHOD.length;
         SPICETIFY_METHOD.forEach((method) => {
             if (Spicetify[method] === undefined || Spicetify[method] === null) {
-                console.error(`Spicetify.${method} is not available. Please open an issue in Spicetify repository to inform me about it.`)
+                console.error(`Spicetify.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`)
                 count--;
             }
         })
@@ -163,11 +179,20 @@ const Spicetify = {
         count = PLAYER_METHOD.length;
         PLAYER_METHOD.forEach((method) => {
             if (Spicetify.Player[method] === undefined || Spicetify.Player[method] === null) {
-                console.error(`Spicetify.Player.${method} is not available. Please open an issue in Spicetify repository to inform me about it.`)
+                console.error(`Spicetify.Player.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`)
                 count--;
             }
         })
         console.log(`${count}/${PLAYER_METHOD.length} Spicetify.Player methods and objects are OK.`)
+
+        count = REACT_COMPONENT.length;
+        REACT_COMPONENT.forEach((method) => {
+            if (Spicetify.ReactComponent[method] === undefined || Spicetify.ReactComponent[method] === null) {
+                console.error(`Spicetify.ReactComponent.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`)
+                count--;
+            }
+        })
+        console.log(`${count}/${REACT_COMPONENT.length} Spicetify.ReactComponent methods and objects are OK.`)
 
         Object.keys(Spicetify).forEach(key => {
             if(!SPICETIFY_METHOD.includes(key)) {
@@ -178,6 +203,12 @@ const Spicetify = {
         Object.keys(Spicetify.Player).forEach(key => {
             if(!PLAYER_METHOD.includes(key)) {
                 console.log(`Spicetify.Player method ${key} exists but is not in the method list. Consider adding it.`)
+            }
+        })
+
+        Object.keys(Spicetify.ReactComponent).forEach(key => {
+            if(!REACT_COMPONENT.includes(key)) {
+                console.log(`Spicetify.ReactComponent method ${key} exists but is not in the method list. Consider adding it.`)
             }
         })
     }
@@ -225,13 +256,39 @@ const Spicetify = {
 
 Spicetify.getAudioData = async (uri) => {
     uri = uri || Spicetify.Player.data.track.uri;
-    const uriObj = Spicetify.URI.from(uri);
-    if (!uriObj && uriObj.Type !== Spicetify.URI.Type.TRACK) {
+    const uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
+    if (!uriObj || (uriObj.Type || uriObj.type) !== Spicetify.URI.Type.TRACK) {
         throw "URI is invalid.";
     }
 
-    return await Spicetify.CosmosAsync.get(`wg://audio-attributes/v1/audio-analysis/${uriObj.getBase62Id()}`)
+    return await Spicetify.CosmosAsync.get(`wg://audio-attributes/v1/audio-analysis/${uriObj.getBase62Id?.() ?? uriObj.id}?format=json`);
 }
+
+if (!Spicetify.URI) Spicetify.URI = {};
+(function appendValidationFunc() {
+    if (!Spicetify.URI.Type) {
+        setTimeout(appendValidationFunc, 10);
+        return;
+    }
+    if (Spicetify.URI.isTrack) return;
+    for (const type in Spicetify.URI.Type) {
+        const funcName = type
+            .toLowerCase()
+            .split("_")
+            .map((word) => word[0].toUpperCase() + word.slice(1))
+            .join("");
+        Spicetify.URI[`is${funcName}`] = (uri) => {
+            const uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
+            if (!uriObj) return false;
+            return uriObj.type === Spicetify.URI.Type[type];
+        };
+    }
+    Spicetify.URI.isPlaylistV1OrV2 = (uri) => {
+        return Spicetify.URI.isPlaylist(uri) || Spicetify.URI.isPlaylistV2(uri);
+    };
+})();
+
+
 
 Spicetify.colorExtractor = async (uri) => {
     const body = await Spicetify.CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
