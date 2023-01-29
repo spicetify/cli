@@ -170,7 +170,7 @@ const Spicetify = {
         let count = SPICETIFY_METHOD.length;
         SPICETIFY_METHOD.forEach((method) => {
             if (Spicetify[method] === undefined || Spicetify[method] === null) {
-                console.error(`Spicetify.${method} is not available. Please open an issue in Spicetify repository to inform me about it.`)
+                console.error(`Spicetify.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`)
                 count--;
             }
         })
@@ -179,7 +179,7 @@ const Spicetify = {
         count = PLAYER_METHOD.length;
         PLAYER_METHOD.forEach((method) => {
             if (Spicetify.Player[method] === undefined || Spicetify.Player[method] === null) {
-                console.error(`Spicetify.Player.${method} is not available. Please open an issue in Spicetify repository to inform me about it.`)
+                console.error(`Spicetify.Player.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`)
                 count--;
             }
         })
@@ -188,7 +188,7 @@ const Spicetify = {
         count = REACT_COMPONENT.length;
         REACT_COMPONENT.forEach((method) => {
             if (Spicetify.ReactComponent[method] === undefined || Spicetify.ReactComponent[method] === null) {
-                console.error(`Spicetify.ReactComponent.${method} is not available. Please open an issue in Spicetify repository to inform me about it.`)
+                console.error(`Spicetify.ReactComponent.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`)
                 count--;
             }
         })
