@@ -505,7 +505,7 @@ async function initShufflePlus() {
 			} else {
 				let uriObj = Spicetify.URI.fromString(rawUri);
 				type = uriObj.type;
-				uri = uriObj._base62Id;
+				uri = uriObj._base62Id ?? uriObj.id;
 
 				switch (type) {
 					case Type.PLAYLIST:
