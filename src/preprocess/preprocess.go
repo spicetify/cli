@@ -401,15 +401,17 @@ func exposeAPIs_vendor(input string) string {
 		`,(globalThis.Spicetify.URI=${1})${0}`)
 
 	// URI after 1.2.4
-	utils.Replace(
-		&input,
-		`([\w$_]+)(=\{AD:"ad")`,
-		`${1}=Spicetify.URI.Type${2}`)
+	if !strings.Contains(input, "Spicetify.URI") {
+		utils.Replace(
+			&input,
+			`([\w$_]+)(=\{AD:"ad")`,
+			`${1}=Spicetify.URI.Type${2}`)
 
-	utils.Replace(
-		&input,
-		`function ([\w_$]+)\([\w,]+\)\{[\w&?!,;(){}= .]+[\w_$]\.allowedTypes`,
-		`Spicetify.URI.fromString=${1};${0}`)
+		utils.Replace(
+			&input,
+			`function ([\w_$]+)\([\w,]+\)\{[\w&?!,;(){}= .]+[\w_$]\.allowedTypes`,
+			`Spicetify.URI.fromString=${1};${0}`)
+	}
 
 	// Mousetrap
 	utils.Replace(
