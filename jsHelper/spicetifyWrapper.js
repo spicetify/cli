@@ -275,7 +275,7 @@ if (!Spicetify.URI) Spicetify.URI = {};
         const funcName = type
             .toLowerCase()
             .split("_")
-            .map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
+            .map((word) => word[0].toUpperCase() + word.slice(1))
             .join("");
         Spicetify.URI[`is${funcName}`] = (uri) => {
             const uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
