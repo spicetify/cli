@@ -212,12 +212,14 @@ class SearchBar extends react.Component {
 		this.viewPort = document.querySelector(".main-view-container .os-viewport");
 		this.mainViewOffsetTop = document.querySelector(".Root__main-view").offsetTop;
 		this.toggleCallback = () => {
-			if (this.state.hidden) {
-				this.setState({ hidden: false });
-				this.container.focus();
-			} else {
-				this.setState({ hidden: true });
-				this.container.blur();
+			if (Spicetify.Platform.History.location.pathname === "/lyrics-plus" && this.container) {
+				if (this.state.hidden) {
+					this.setState({ hidden: false });
+					this.container.focus();
+				} else {
+					this.setState({ hidden: true });
+					this.container.blur();
+				}
 			}
 		};
 		this.unFocusCallback = () => {
