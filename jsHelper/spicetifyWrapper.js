@@ -1041,6 +1041,8 @@ Spicetify.ContextMenu = (function () {
 			uris = [props.uri];
 		} else if (props.item?.uri) {
 			uris = [props.item.uri];
+		} else if (props.reference?.uri) {
+			uris = [props.reference.uri];
 		} else {
 			return;
 		}
