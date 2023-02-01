@@ -14,12 +14,17 @@ class Translator {
 	}
 
 	includeExternal(url) {
-		var s = document.createElement("script");
-		s.setAttribute("type", "text/javascript");
-		s.setAttribute("src", url);
-		var nodes = document.getElementsByTagName("*");
-		var node = nodes[nodes.length - 1].parentNode;
-		node.appendChild(s);
+		if (CONFIG.visual.translate && !document.querySelector(`script[src="${url}"]`)) {
+			var script = document.createElement("script");
+			script.setAttribute("type", "text/javascript");
+			script.setAttribute("src", url);
+			document.body.appendChild(script);
+		}
+	}
+
+	injectExternals() {
+		this.includeExternal(kuroshiroPath);
+		this.includeExternal(kuromojiPath);
 	}
 
 	/**

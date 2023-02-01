@@ -594,18 +594,6 @@ button.switch.small {
 	pointer-events: auto;
 }
 
-.lyrics-translation-spinner {
-	border: 2px solid #cdcdcd;
-	border-top: 3px solid rgba(255, 255, 255, 0);
-	border-radius: 50%;
-	width: 15px;
-	height: 15px;
-	margin-left: 5px;
-	margin-top: 5px;
-	display: inline-block;
-	-webkit-animation: spin 1s linear infinite;
-}
-
 @-webkit-keyframes spin {
 	0% {
 		-webkit-transform: rotate(0deg);
