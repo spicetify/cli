@@ -346,7 +346,6 @@ class LyricsContainer extends react.Component {
 			.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
 			.trim()
 			.split("\n");
-		console.log(lines);
 		const isSynced = lines[0].match(/\[([0-9:.]+)\]/);
 		const unsynced = [];
 		const synced = isSynced ? [] : null;
