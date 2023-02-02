@@ -343,9 +343,10 @@ class LyricsContainer extends react.Component {
 	parseLocalLyrics(lyrics) {
 		// Preprocess lyrics by removing [tags] and empty lines
 		const lines = lyrics
-			.replace(/\[[a-zA-Z]+:.+\]/, "")
+			.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
 			.trim()
 			.split("\n");
+		console.log(lines);
 		const isSynced = lines[0].match(/\[([0-9:.]+)\]/);
 		const unsynced = [];
 		const synced = isSynced ? [] : null;
