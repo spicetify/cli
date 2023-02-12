@@ -97,21 +97,29 @@ jobs:
         with:
           url: http://vps.itsmeow.dev:8079/
           method: GET
-      - name: Extract version
-        id: extract-version
-        run: |
-          echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
       - name: Update Homebrew tap
         uses: mislav/bump-homebrew-formula-action@v2
-        if: "!contains(github.ref, '-')"
+        if: "!contains(github.ref_name, '-')"
         with:
           formula-name: spicetify-cli
           formula-path: spicetify-cli.rb
           homebrew-tap: spicetify/homebrew-tap
-          tag-name: ${{ env.tag_name }}
+          tag-name: ${{ github.ref_name }}
           base-branch: main
-          download-url: https://github.com/spicetify/spicetify-cli/archive/${{ env.tag_name }}.tar.gz
+          download-url: https://github.com/spicetify/spicetify-cli/archive/${{ github.ref_name }}.tar.gz
           commit-message: |
             chore: {{version}} release
         env:
           COMMITTER_TOKEN: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
+
+  trigger-winget-release:
+    name: Trigger Winget Release
+    runs-on: windows-latest # Action can only run on Windows
+    needs: release
+    steps:
+      - name: Update Winget package
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: Spicetify.Spicetify
+          installers-regex: '-windows-\w+\.zip$'
+          token: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
