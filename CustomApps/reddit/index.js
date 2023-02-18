@@ -361,7 +361,7 @@ async function fetchTrack(post) {
 function postMapper(posts) {
 	var mappedPosts = [];
 	posts.forEach(post => {
-		var uri = URI.from(post.data.url);
+		var uri = URI.fromString(post.data.url);
 		if (uri && (uri.type == "playlist" || uri.type == "playlist-v2" || uri.type == "track" || uri.type == "album")) {
 			mappedPosts.push({
 				uri: uri.toURI(),
