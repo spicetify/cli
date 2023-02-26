@@ -480,10 +480,10 @@ async function initShufflePlus() {
 					break;
 				}
 				if (CONFIG.artistMode == "album") {
-					Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.album} Albums, Totally ${count} Songs`);
+					Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.album} Albums, Total of ${count} Songs`);
 					break;
 				}
-				Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.album} Albums, ${artistFetchTypeCount.single} Singles, Totally ${count} Songs`);
+				Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.album} Albums, ${artistFetchTypeCount.single} Singles, Total of ${count} Songs`);
 				break;
 			default:
 				Spicetify.showNotification(`Shuffled ${count} Songs`);
@@ -537,8 +537,8 @@ async function initShufflePlus() {
 						break;
 				}
 
-				if (!list.length) {
-					Spicetify.showNotification("Nothing to Play");
+				if (!list?.length) {
+					Spicetify.showNotification("Nothing to play", true);
 					return;
 				}
 
@@ -550,7 +550,7 @@ async function initShufflePlus() {
 
 			await Queue(shuffle(list), context, type);
 		} catch (error) {
-			Spicetify.showNotification(`${error}`);
+			Spicetify.showNotification(String(error), true);
 			console.log(error);
 		}
 	}
