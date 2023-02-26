@@ -351,19 +351,19 @@ Spicetify.React.useEffect(() => {
 	// React Component: Album Context Menu items
 	utils.Replace(
 		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"album")`,
+		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"album")`,
 		`${1}=Spicetify.ReactComponent.AlbumMenu${2}`)
 
 	// React Component: Show Context Menu items
 	utils.Replace(
 		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"show")`,
+		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"show")`,
 		`${1}=Spicetify.ReactComponent.PodcastShowMenu${2}`)
 
 	// React Component: Artist Context Menu items
 	utils.Replace(
 		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"artist")`,
+		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"artist")`,
 		`${1}=Spicetify.ReactComponent.ArtistMenu${2}`)
 
 	// React Component: Playlist Context Menu items
