@@ -233,6 +233,17 @@ async function initShufflePlus() {
 		return false;
 	}
 
+	function shouldAddShufflePlusLocal(uri) {
+		let uriObj = Spicetify.URI.fromString(uri[0]);
+		if (Spicetify.Platform.History.location.pathname === "/collection/local-files") {
+			switch (uriObj.type) {
+				case Type.TRACK:
+				case Type.LOCAL_TRACK:
+					return true;
+			}
+		}
+	}
+
 	new Spicetify.ContextMenu.Item(
 		"Play with Shuffle+",
 		async uri => {
@@ -253,6 +264,15 @@ async function initShufflePlus() {
 		},
 		shouldAddShufflePlusLiked,
 		"heart-active"
+	).register();
+
+	new Spicetify.ContextMenu.Item(
+		"Shuffle+ Local Files",
+		async uri => {
+			await fetchAndPlay(uri[0]);
+		},
+		shouldAddShufflePlusLocal,
+		"playlist-folder"
 	).register();
 
 	async function fetchPlaylistTracks(uri) {
@@ -408,6 +428,36 @@ async function initShufflePlus() {
 		return res.item.filter(track => track.trackMetadata.playable).map(track => track.trackMetadata.link);
 	}
 
+	async function fetchLocalTracks() {
+		let res = await Spicetify.Platform.LocalFilesAPI.getTracks();
+
+		return res.map(track => track.uri);
+	}
+
+	async function fetchCollection(uriObj) {
+		const { category, type } = uriObj;
+		const { pathname } = Spicetify.Platform.History.location;
+
+		switch (type) {
+			case Type.TRACK:
+			case Type.LOCAL_TRACK:
+				switch (pathname) {
+					case "/collection/tracks":
+						return await fetchLikedTracks();
+					case "/collection/local-files":
+						return await fetchLocalTracks();
+				}
+				break;
+			case Type.COLLECTION:
+				switch (category) {
+					case "tracks":
+						return await fetchLikedTracks();
+					case "local-files":
+						return await fetchLocalTracks();
+				}
+		}
+	}
+
 	async function fetchShows(uri) {
 		const res = await Spicetify.CosmosAsync.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`);
 		const availables = res.items.filter(track => track.episodePlayState.isPlayable);
@@ -527,7 +577,9 @@ async function initShufflePlus() {
 						list = await fetchArtistTracks(uri);
 						break;
 					case Type.TRACK:
-						list = await fetchLikedTracks();
+					case Type.LOCAL_TRACK:
+					case Type.COLLECTION:
+						list = await fetchCollection(uriObj);
 						break;
 					case Type.FOLDER:
 						list = await fetchFolderTracks(rawUri);

@@ -568,62 +568,66 @@ declare namespace Spicetify {
          *
          */
         static Type: {
-            EMPTY: string;
-            ALBUM: string;
             AD: string;
-            /** URI particle; not an actual URI. */
-            APP: string;
+            ALBUM: string;
+            GENRE: string;
+            QUEUE: string;
             APPLICATION: string;
             ARTIST: string;
             ARTIST_TOPLIST: string;
+            ARTIST_CONCERTS: string;
             AUDIO_FILE: string;
             COLLECTION: string;
             COLLECTION_ALBUM: string;
-            COLLECTION_MISSING_ALBUM: string;
             COLLECTION_ARTIST: string;
+            COLLECTION_MISSING_ALBUM: string;
+            COLLECTION_TRACK_LIST: string;
+            CONCERT: string;
             CONTEXT_GROUP: string;
             DAILY_MIX: string;
+            EMPTY: string;
             EPISODE: string;
             /** URI particle; not an actual URI. */
             FACEBOOK: string;
             FOLDER: string;
             FOLLOWERS: string;
             FOLLOWING: string;
-            /** URI particle; not an actual URI. */
-            GLOBAL: string;
             IMAGE: string;
             INBOX: string;
             INTERRUPTION: string;
-            LOCAL_ARTIST: string;
-            LOCAL_ALBUM: string;
-            LOCAL: string;
             LIBRARY: string;
+            LIVE: string;
+            ROOM: string;
+            EXPRESSION: string;
+            LOCAL: string;
+            LOCAL_TRACK: string;
+            LOCAL_ALBUM: string;
+            LOCAL_ARTIST: string;
+            MERCH: string;
             MOSAIC: string;
             PLAYLIST: string;
-            /** Only used for URI classification. Not a valid URI fragment. */
             PLAYLIST_V2: string;
+            PRERELEASE: string;
             PROFILE: string;
             PUBLISHED_ROOTLIST: string;
             RADIO: string;
             ROOTLIST: string;
-            COLLECTION_TRACK_LIST: string;
             SEARCH: string;
             SHOW: string;
-            SOCIAL_SESSION: string,
-            CONCERT: string;
+            SOCIAL_SESSION: string;
             SPECIAL: string;
             STARRED: string;
             STATION: string;
             TEMP_PLAYLIST: string;
-            /** URI particle; not an actual URI. */
-            TOP: string;
             TOPLIST: string;
             TRACK: string;
             TRACKSET: string;
-            /** URI particle; not an actual URI. */
-            USER: string;
             USER_TOPLIST: string;
             USER_TOP_TRACKS: string;
+            UNKNOWN: string;
+            MEDIA: string;
+            QUESTION: string;
+            POLL: string;
         };
 
         /**
