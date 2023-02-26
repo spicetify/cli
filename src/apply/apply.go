@@ -292,7 +292,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 			`\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
 			'(', ')')
 
-		sidebarXIsCollapsed := regexp.MustCompile(`([\w$_.]+)=[\w().,$_]+\.leftSidebarIsCollapsed`).FindStringSubmatch
+		sidebarXIsCollapsed := regexp.MustCompile(`\w+ ?\{isCollapsed:([\w$_.]+)\}`).FindStringSubmatch
 
 		content = strings.Replace(
 			content,
