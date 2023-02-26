@@ -125,7 +125,7 @@
 		let sendData;
 
 		ws.onopen = () => {
-			ws.send("PLAYER: Spotify Desktop");
+			ws.send("PLAYER:Spotify Desktop");
 			currState = 1;
 			currentMusicInfo = {};
 			sendData = setInterval(updateInfo, 500);
