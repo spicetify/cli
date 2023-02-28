@@ -122,4 +122,4 @@ jobs:
         with:
           identifier: Spicetify.Spicetify
           installers-regex: '-windows-\w+\.zip$'
-          token: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
+          token: ${{ secrets.SPICETIFY_WINGET_TOKEN }}
