@@ -180,8 +180,9 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 								Spicetify.Player.seek(startTime);
 							}
 						},
-						onAuxClick: async event => {
-							await Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
+						onContextMenu: event => {
+							event.preventDefault();
+							Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
 								.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
 								.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
 						}
@@ -417,8 +418,9 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 							Spicetify.Player.seek(startTime);
 						}
 					},
-					onAuxClick: async event => {
-						await Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
+					onContextMenu: event => {
+						event.preventDefault();
+						Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
 							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
 							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
 					}
@@ -454,8 +456,9 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 				{
 					className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
 					dir: "auto",
-					onAuxClick: async event => {
-						await Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
+					onContextMenu: event => {
+						event.preventDefault();
+						Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
 							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
 							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
 					}
