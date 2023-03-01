@@ -340,52 +340,6 @@ class LyricsContainer extends react.Component {
 		}
 	}
 
-	parseLocalLyrics(lyrics) {
-		// Preprocess lyrics by removing [tags] and empty lines
-		const lines = lyrics
-			.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
-			.trim()
-			.split("\n");
-		const isSynced = lines[0].match(/\[([0-9:.]+)\]/);
-		const unsynced = [];
-		const synced = isSynced ? [] : null;
-		const isKaraoke = lyrics.match(/\<([0-9:.]+)\>/);
-		const karaoke = isKaraoke ? [] : null;
-
-		function timestampToMs(timestamp) {
-			const [minutes, seconds] = timestamp.replace(/\[\]\<\>/, "").split(":");
-			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000;
-		}
-
-		function parseKaraokeLine(line, startTime) {
-			let wordTime = timestampToMs(startTime);
-			let karaokeLine = [];
-			const karaoke = line.matchAll(/(\S+ ?)\<([0-9:.]+)\>/g);
-			for (const match of karaoke) {
-				const word = match[1];
-				const time = match[2];
-				karaokeLine.push({ word, time: timestampToMs(time) - wordTime });
-				wordTime = timestampToMs(time);
-			}
-			return karaokeLine;
-		}
-
-		for (const line of lines) {
-			const time = line.match(/\[([0-9:.]+)\]/)?.[1];
-			const lyricContent = line.replace(/\[([0-9:.]+)\]/, "");
-			const lyric = lyricContent.replaceAll(/\<([0-9:.]+)\>/g, "").trim();
-
-			if (line.trim() !== "") {
-				isKaraoke && karaoke.push({ text: parseKaraokeLine(lyricContent, time), startTime: timestampToMs(time) });
-				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMs(time) });
-				unsynced.push({ text: lyric || "♪" });
-			}
-		}
-
-		this.setState({ karaoke, synced, unsynced, provider: "local" });
-		CACHE[this.currentTrackUri] = { karaoke, synced, unsynced, provider: "local", uri: this.currentTrackUri };
-	}
-
 	processLyricsFromFile(event) {
 		const file = event.target.files;
 		if (!file.length) return;
@@ -395,9 +349,14 @@ class LyricsContainer extends react.Component {
 			Spicetify.showNotification("File too large", true);
 			return;
 		}
+
 		reader.onload = e => {
-			this.parseLocalLyrics(e.target.result);
+			const { karaoke, synced, unsynced } = Utils.parseLocalLyrics(e.target.result);
+			this.setState({ karaoke, synced, unsynced, provider: "local" });
+			CACHE[this.currentTrackUri] = { karaoke, synced, unsynced, provider: "local", uri: this.currentTrackUri };
+			Spicetify.showNotification("Lyrics loaded from file");
 		};
+
 		reader.onerror = e => {
 			console.error(e);
 			Spicetify.showNotification("Failed to read file", true);

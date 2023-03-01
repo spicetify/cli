@@ -82,6 +82,18 @@ class Utils {
 		return react.createElement("p1", null, reactChildren);
 	}
 
+	static formatTime(timestamp) {
+		if (!isNaN(timestamp)) {
+			let minutes = Math.trunc(timestamp / 60000),
+				seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
+
+			if (minutes < 10) minutes = "0" + minutes;
+			if (seconds < 10) seconds = "0" + seconds;
+
+			return `${minutes}:${seconds}`;
+		} else return timestamp.toString();
+	}
+
 	static convertParsedToLRC(lyrics) {
 		function formatTime(timestamp) {
 			if (!isNaN(timestamp)) {
@@ -123,5 +135,64 @@ class Utils {
 				return `[${formatTime(line.startTime)}]${processText(line.text, line.startTime)}`;
 			})
 			.join("\n");
+	}
+
+	static parseLocalLyrics(lyrics) {
+		// Preprocess lyrics by removing [tags] and empty lines
+		const lines = lyrics
+			.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
+			.trim()
+			.split("\n");
+
+		const syncedTimestamp = /\[([0-9:.]+)\]/;
+		const karaokeTimestamp = /\<([0-9:.]+)\>/;
+
+		const unsynced = [];
+
+		const isSynced = lines[0].match(syncedTimestamp);
+		const synced = isSynced ? [] : null;
+
+		const isKaraoke = lines[0].match(karaokeTimestamp);
+		const karaoke = isKaraoke ? [] : null;
+
+		function timestampToMs(timestamp) {
+			const [minutes, seconds] = timestamp.replace(/\[\]\<\>/, "").split(":");
+			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000;
+		}
+
+		function parseKaraokeLine(line, startTime) {
+			let wordTime = timestampToMs(startTime);
+			let karaokeLine = [];
+			const karaoke = line.matchAll(/(\S+ ?)\<([0-9:.]+)\>/g);
+			for (const match of karaoke) {
+				const word = match[1];
+				const time = match[2];
+				karaokeLine.push({ word, time: timestampToMs(time) - wordTime });
+				wordTime = timestampToMs(time);
+			}
+			return karaokeLine;
+		}
+
+		lines.forEach((line, i) => {
+			const time = line.match(syncedTimestamp)?.[1];
+			let lyricContent = line.replace(syncedTimestamp, "").trim();
+			const lyric = lyricContent.replaceAll(/\<([0-9:.]+)\>/g, "").trim();
+
+			if (line.trim() !== "") {
+				if (isKaraoke) {
+					if (!lyricContent.endsWith(">")) {
+						// For some reason there are a variety of formats for karaoke lyrics, Wikipedia is also inconsisent in their examples
+						const endTime = lines[i + 1]?.match(syncedTimestamp)?.[1] || this.formatTime(Number(Spicetify.Player.track.metadata.duration));
+						lyricContent += `<${endTime}>`;
+					}
+					const karaokeLine = parseKaraokeLine(lyricContent, time);
+					karaoke.push({ text: karaokeLine, startTime: timestampToMs(time) });
+				}
+				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMs(time) });
+				unsynced.push({ text: lyric || "♪" });
+			}
+		});
+
+		return { synced, unsynced, karaoke };
 	}
 }
