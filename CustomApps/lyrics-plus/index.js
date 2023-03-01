@@ -358,12 +358,17 @@ class LyricsContainer extends react.Component {
 					.map(key => key[0].toUpperCase() + key.slice(1))
 					.map(key => `<strong>${key}</strong>`);
 
+				if (!parsedKeys.length) {
+					Spicetify.showNotification("Nothing to load", true);
+					return;
+				}
+
 				this.setState({ ...localLyrics, provider: "local" });
 				CACHE[this.currentTrackUri] = { ...localLyrics, provider: "local", uri: this.currentTrackUri };
-				Spicetify.showNotification(`Parsed ${parsedKeys.join(", ")} lyrics from file`);
+				Spicetify.showNotification(`Loaded ${parsedKeys.join(", ")} lyrics from file`);
 			} catch (e) {
 				console.error(e);
-				Spicetify.showNotification("Failed to parse file", true);
+				Spicetify.showNotification("Failed to load lyrics", true);
 			}
 		};
 
