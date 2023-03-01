@@ -349,28 +349,41 @@ class LyricsContainer extends react.Component {
 		const isSynced = lines[0].match(/\[([0-9:.]+)\]/);
 		const unsynced = [];
 		const synced = isSynced ? [] : null;
+		const isKaraoke = lyrics.match(/\<([0-9:.]+)\>/);
+		const karaoke = isKaraoke ? [] : null;
 
-		// TODO: support for karaoke
-		// const karaoke = [];
-		// const isKaraoke = lyrics.match(/\<([0-9:.]+)\>/);
-
-		function timestampToMiliseconds(timestamp) {
-			const [minutes, seconds] = timestamp.replace(/\[\]/, "").split(":");
+		function timestampToMs(timestamp) {
+			const [minutes, seconds] = timestamp.replace(/\[\]\<\>/, "").split(":");
 			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000;
 		}
 
+		function parseKaraokeLine(line, startTime) {
+			let wordTime = timestampToMs(startTime);
+			let karaokeLine = [];
+			const karaoke = line.matchAll(/(\S+ ?)\<([0-9:.]+)\>/g);
+			for (const match of karaoke) {
+				const word = match[1];
+				const time = match[2];
+				karaokeLine.push({ word, time: timestampToMs(time) - wordTime });
+				wordTime = timestampToMs(time);
+			}
+			return karaokeLine;
+		}
+
 		for (const line of lines) {
-			const time = line.match(/\[([0-9:.]+)\]/);
-			const lyric = line.replace(/\[([0-9:.]+)\]/, "").trim();
+			const time = line.match(/\[([0-9:.]+)\]/)?.[1];
+			const lyricContent = line.replace(/\[([0-9:.]+)\]/, "");
+			const lyric = lyricContent.replaceAll(/\<([0-9:.]+)\>/g, "").trim();
 
 			if (line.trim() !== "") {
-				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMiliseconds(time[1]) });
+				isKaraoke && karaoke.push({ text: parseKaraokeLine(lyricContent, time), startTime: timestampToMs(time) });
+				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMs(time) });
 				unsynced.push({ text: lyric || "♪" });
 			}
 		}
 
-		this.setState({ synced, unsynced, provider: "local" });
-		CACHE[this.currentTrackUri] = { synced, unsynced, provider: "local", uri: this.currentTrackUri };
+		this.setState({ karaoke, synced, unsynced, provider: "local" });
+		CACHE[this.currentTrackUri] = { karaoke, synced, unsynced, provider: "local", uri: this.currentTrackUri };
 	}
 
 	processLyricsFromFile(event) {

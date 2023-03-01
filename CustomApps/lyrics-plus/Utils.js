@@ -83,37 +83,44 @@ class Utils {
 	}
 
 	static convertParsedToLRC(lyrics) {
+		function formatTime(timestamp) {
+			if (!isNaN(timestamp)) {
+				let minutes = Math.trunc(timestamp / 60000),
+					seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
+
+				if (minutes < 10) minutes = "0" + minutes;
+				if (seconds < 10) seconds = "0" + seconds;
+
+				return `${minutes}:${seconds}`;
+			} else return timestamp.toString();
+		}
+
+		function processText(text, startTime = 0) {
+			if (text.props?.children) {
+				return text.props.children
+					.map(child => {
+						if (typeof child === "string") {
+							return child;
+						} else if (child.props?.children) {
+							return child.props?.children[0];
+						}
+					})
+					.join("");
+			} else if (Array.isArray(text)) {
+				let wordTime = startTime;
+				return text
+					.map(word => {
+						wordTime += word.time;
+						return `${word.word}<${formatTime(wordTime)}>`;
+					})
+					.join("");
+			} else return text;
+		}
+
 		return lyrics
 			.map(line => {
-				// Process converted Japanese lyrics
-				if (line.text.props?.children) {
-					line.rawText = line.text.props.children
-						.map(child => {
-							if (typeof child === "string") {
-								return child;
-							} else if (child.props?.children) {
-								return child.props?.children[0];
-							}
-						})
-						.join("");
-				}
 				if (!line.startTime) return line.text;
-				let startTimeString = "";
-
-				// Convert milliseconds to mm:ss format
-				if (!isNaN(line.startTime)) {
-					let minutes = Math.trunc(line.startTime / 60000),
-						seconds = ((line.startTime - minutes * 60000) / 1000).toFixed(2);
-
-					if (minutes < 10) minutes = "0" + minutes;
-					if (seconds < 10) seconds = "0" + seconds;
-
-					startTimeString = `${minutes}:${seconds}`;
-				} else {
-					startTimeString = line.startTime.toString();
-				}
-
-				return `[${startTimeString}]${line.rawText || line.text}`;
+				return `[${formatTime(line.startTime)}]${processText(line.text, line.startTime)}`;
 			})
 			.join("\n");
 	}
