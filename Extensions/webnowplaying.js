@@ -133,8 +133,6 @@ class WNPReduxWebSocket {
 				case "1":
 					OnMessageRev1(this, event.data);
 					break;
-				default:
-					break;
 			}
 
 			// Sending an update immediately would normally do nothing, as it takes some time for
@@ -163,8 +161,6 @@ class WNPReduxWebSocket {
 				break;
 			case "1":
 				SendUpdateRev1(this);
-				break;
-			default:
 				break;
 		}
 	}
@@ -220,8 +216,6 @@ function OnMessageLegacy(self, message) {
 				self.spicetifyInfo.Rating = rating;
 				break;
 			}
-			default:
-				break;
 		}
 	} catch (e) {
 		self.send(`Error:Error sending event to ${self.spicetifyInfo.Player}`);
@@ -310,8 +304,6 @@ function OnMessageRev1(self, message) {
 				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
 				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();
 				self.spicetifyInfo.Rating = rating;
-				break;
-			default:
 				break;
 		}
 	} catch (e) {
