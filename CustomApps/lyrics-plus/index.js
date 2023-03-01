@@ -351,10 +351,20 @@ class LyricsContainer extends react.Component {
 		}
 
 		reader.onload = e => {
-			const { karaoke, synced, unsynced } = Utils.parseLocalLyrics(e.target.result);
-			this.setState({ karaoke, synced, unsynced, provider: "local" });
-			CACHE[this.currentTrackUri] = { karaoke, synced, unsynced, provider: "local", uri: this.currentTrackUri };
-			Spicetify.showNotification("Lyrics loaded from file");
+			try {
+				const localLyrics = Utils.parseLocalLyrics(e.target.result);
+				const parsedKeys = Object.keys(localLyrics)
+					.filter(key => localLyrics[key])
+					.map(key => key[0].toUpperCase() + key.slice(1))
+					.map(key => `<strong>${key}</strong>`);
+
+				this.setState({ ...localLyrics, provider: "local" });
+				CACHE[this.currentTrackUri] = { ...localLyrics, provider: "local", uri: this.currentTrackUri };
+				Spicetify.showNotification(`Parsed ${parsedKeys.join(", ")} lyrics from file`);
+			} catch (e) {
+				console.error(e);
+				Spicetify.showNotification("Failed to parse file", true);
+			}
 		};
 
 		reader.onerror = e => {
