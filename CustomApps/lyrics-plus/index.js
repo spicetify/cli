@@ -670,7 +670,7 @@ class LyricsContainer extends react.Component {
 								}
 
 								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke });
-								Spicetify.showNotification("Lyrics cached for offline use.");
+								Spicetify.showNotification("Lyrics cached.");
 							}
 						},
 						react.createElement("svg", {
