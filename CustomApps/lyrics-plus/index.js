@@ -78,7 +78,7 @@ const CONFIG = {
 		},
 		local: {
 			on: getConfig("lyrics-plus:provider:local:on"),
-			desc: `Provide lyrics from local files loaded from previous Spotify sessions.`,
+			desc: `Provide lyrics from cache/local files loaded from previous Spotify sessions.`,
 			modes: [KARAOKE, SYNCED, UNSYNCED]
 		}
 	},
@@ -144,7 +144,8 @@ class LyricsContainer extends react.Component {
 			versionIndex: 0,
 			versionIndex2: 0,
 			isFullscreen: false,
-			isFADMode: false
+			isFADMode: false,
+			isCached: false
 		};
 		this.currentTrackUri = "";
 		this.nextTrackUri = "";
@@ -240,6 +241,8 @@ class LyricsContainer extends react.Component {
 			return;
 		}
 
+		const isCached = this.lyricsSaved(info.uri);
+
 		if (CONFIG.visual.colorful) {
 			this.fetchColors(info.uri);
 		}
@@ -249,14 +252,14 @@ class LyricsContainer extends react.Component {
 		if (mode !== -1) {
 			if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
 				this.resetDelay();
-				this.setState({ ...CACHE[info.uri] });
+				this.setState({ ...CACHE[info.uri], isCached });
 				this.translateLyrics();
 				return;
 			}
 		} else {
 			if (CACHE[info.uri]) {
 				this.resetDelay();
-				this.setState({ ...CACHE[info.uri] });
+				this.setState({ ...CACHE[info.uri], isCached });
 				this.translateLyrics();
 				return;
 			}
@@ -349,6 +352,12 @@ class LyricsContainer extends react.Component {
 		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
 		localLyrics[uri] = lyrics;
 		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
+		this.setState({ isCached: true });
+	}
+
+	lyricsSaved(uri) {
+		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
+		return !!localLyrics[uri];
 	}
 
 	processLyricsFromFile(event) {
@@ -646,7 +655,39 @@ class LyricsContainer extends react.Component {
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						label: "Lyrics from file",
+						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics",
+						showDelay: 100
+					},
+					react.createElement(
+						"button",
+						{
+							className: "lyrics-config-button",
+							onClick: () => {
+								const { synced, unsynced, karaoke } = this.state;
+								if (!synced && !unsynced && !karaoke) {
+									Spicetify.showNotification("No lyrics to cache.", true);
+									return;
+								}
+
+								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke });
+								Spicetify.showNotification("Lyrics cached for offline use.");
+							}
+						},
+						react.createElement("svg", {
+							width: 16,
+							height: 16,
+							viewBox: "0 0 16 16",
+							fill: "currentColor",
+							dangerouslySetInnerHTML: {
+								__html: Spicetify.SVGIcons[this.state.isCached ? "downloaded" : "download"]
+							}
+						})
+					)
+				),
+				react.createElement(
+					Spicetify.ReactComponent.TooltipWrapper,
+					{
+						label: "Load lyrics from file",
 						showDelay: 100
 					},
 					react.createElement(

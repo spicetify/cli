@@ -50,7 +50,7 @@ const CacheButton = () => {
 	}
 
 	const [count, setCount] = useState(Object.keys(lyrics).length);
-	const text = count > 0 ? "Clear local lyrics" : "No local lyrics";
+	const text = count > 0 ? "Clear cached lyrics" : "No cached lyrics";
 
 	return react.createElement(
 		"button",
