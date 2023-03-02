@@ -497,6 +497,29 @@ button.switch.small {
 	opacity: 0.8;
 }
 
+.col.action .btn {
+	font-weight: 700;
+	background-color: transparent;
+	border-radius: 500px;
+	transition-duration: 33ms;
+	transition-property: background-color, border-color, color, box-shadow, filter, transform;
+	padding-inline: 15px;
+	border: 1px solid #727272;
+	color: var(--spice-text);
+	min-block-size: 32px;
+	cursor: pointer;
+}
+
+.col.action .btn:hover {
+	transform: scale(1.04);
+	border-color: var(--spice-text);
+}
+
+.col.action .btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 #lyrics-fullscreen-container {
 	position: fixed;
 	width: 100vw;

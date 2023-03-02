@@ -75,6 +75,11 @@ const CONFIG = {
 			on: getConfig("lyrics-plus:provider:genius:on"),
 			desc: `Provide unsynced lyrics with insights from artists themselves.`,
 			modes: [GENIUS]
+		},
+		local: {
+			on: getConfig("lyrics-plus:provider:local:on"),
+			desc: `Provide lyrics from local files loaded from previous Spotify sessions.`,
+			modes: [KARAOKE, SYNCED, UNSYNCED]
 		}
 	},
 	providersOrder: localStorage.getItem("lyrics-plus:services-order"),
@@ -340,6 +345,12 @@ class LyricsContainer extends react.Component {
 		}
 	}
 
+	saveLocalLyrics(uri, lyrics) {
+		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
+		localLyrics[uri] = lyrics;
+		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
+	}
+
 	processLyricsFromFile(event) {
 		const file = event.target.files;
 		if (!file.length) return;
@@ -365,6 +376,8 @@ class LyricsContainer extends react.Component {
 
 				this.setState({ ...localLyrics, provider: "local" });
 				CACHE[this.currentTrackUri] = { ...localLyrics, provider: "local", uri: this.currentTrackUri };
+				this.saveLocalLyrics(this.currentTrackUri, localLyrics);
+
 				Spicetify.showNotification(`Loaded ${parsedKeys.join(", ")} lyrics from file`);
 			} catch (e) {
 				console.error(e);
