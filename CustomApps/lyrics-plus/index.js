@@ -241,7 +241,7 @@ class LyricsContainer extends react.Component {
 			return;
 		}
 
-		const isCached = this.lyricsSaved(info.uri);
+		let isCached = this.lyricsSaved(info.uri);
 
 		if (CONFIG.visual.colorful) {
 			this.fetchColors(info.uri);
@@ -265,14 +265,16 @@ class LyricsContainer extends react.Component {
 			}
 		}
 
-		this.setState({ ...emptyState, isLoading: true });
+		this.setState({ ...emptyState, isLoading: true, isCached: false });
 		const resp = await this.tryServices(info, mode);
+
+		isCached = this.lyricsSaved(resp.uri);
 
 		// In case user skips tracks too fast and multiple callbacks
 		// set wrong lyrics to current track.
 		if (resp.uri === this.currentTrackUri) {
 			this.resetDelay();
-			this.setState({ ...resp, isLoading: false });
+			this.setState({ ...resp, isLoading: false, isCached });
 		}
 
 		this.translateLyrics();
