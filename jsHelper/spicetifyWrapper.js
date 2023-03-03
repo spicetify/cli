@@ -771,7 +771,7 @@ Spicetify.Menu = (function() {
             this._items.add(item);
         }
         removeItem(item) {
-            this._items.remove(item);
+            this._items.delete(item);
         }
 
         register() {
@@ -852,7 +852,7 @@ Spicetify.ContextMenu = (function () {
             this._items.add(item);
         }
         removeItem(item) {
-            this._items.remove(item);
+            this._items.delete(item);
         }
 
         set disabled(bool) {
@@ -873,7 +873,7 @@ Spicetify.ContextMenu = (function () {
             itemList.add(this);
         }
         deregister() {
-            itemList.remove(this);
+            itemList.delete(this);
         }
     }
 
