@@ -12,7 +12,7 @@ class LanguageDetector {
 			var script = document.createElement("script");
 			script.setAttribute("type", "module");
 			script.setAttribute("id", 'languageDetecting');
-			script[(script.innerText===undefined?"textContent":"innerText")] = "import {franc, francAll} from 'https://esm.sh/franc@6'; window.franc = franc; window.francAll = francAll"
+			script[(script.innerText===undefined?"textContent":"innerText")] = "import {franc, francAll} from 'https://esm.sh/franc-min@6'; window.franc = franc; window.francAll = francAll"
 			document.body.appendChild(script);
 		}
 	}
