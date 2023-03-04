@@ -402,6 +402,27 @@ func exposeAPIs_vendor(input string) string {
 
 	// URI after 1.2.4
 	if !strings.Contains(input, "Spicetify.URI") {
+		URIObj := regexp.MustCompile(`(?:class ([\w$_]+)\{constructor|([\w$_]+)=function\(\)\{function ?[\w$_]+)\([\w$.,={}]+\)\{[\w !?:=.,>&(){}[\];]*this\.hasBase62Id`).FindStringSubmatch(input)
+
+		if len(URIObj) != 0 {
+			URI := utils.SeekToCloseParen(
+				input,
+				`\{(?:constructor|function ?[\w$_]+)\([\w$.,={}]+\)\{[\w !?:=.,>&(){}[\];]*this\.hasBase62Id`,
+				'{', '}')
+
+			if URIObj[1] == "" {
+				URIObj[1] = URIObj[2]
+				// Class is a self-invoking function
+				URI = URI + "()"
+			}
+
+			input = strings.Replace(
+				input,
+				URI,
+				URI+";Object.assign("+URIObj[1]+",Spicetify.URI);Object.defineProperty(Spicetify,\"URI\",{get:()=>"+URIObj[1]+"});",
+				1)
+		}
+
 		utils.Replace(
 			&input,
 			`([\w$_]+)(=\{AD:"ad")`,
@@ -410,6 +431,11 @@ func exposeAPIs_vendor(input string) string {
 		utils.Replace(
 			&input,
 			`function ([\w_$]+)\([\w,]+\)\{[\w&?!,;(){}= .]+[\w_$]\.allowedTypes`,
+			`Spicetify.URI.from=${1};${0}`)
+
+		utils.Replace(
+			&input,
+			`function ([\w$_]+)\([\w$_,]+\)\{if\("string"!==?typeof [\w$_]+\)throw new TypeError\("Argument \x60uri\x60 must be a string`,
 			`Spicetify.URI.fromString=${1};${0}`)
 	}
 
