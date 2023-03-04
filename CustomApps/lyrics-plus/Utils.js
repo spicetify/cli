@@ -56,19 +56,35 @@ class Utils {
 	}
 
 	static isJapanese(lyrics) {
-
 		let rawLyrics = "";
 
-		for (let lyric of lyrics)
-			rawLyrics = rawLyrics + ` ${lyric.text}`
+		for (let lyric of lyrics) rawLyrics = rawLyrics + ` ${lyric.text}`;
 
-		const language = window.franc(rawLyrics, {allow: ['cmn', 'jpn']})
+		const jpRegex = /[\u3001-\u3003\u3005\u3007\u301d-\u301f\u3021-\u3035\u3038-\u303a\u3040-\u30ff\uff66-\uff9f]/gu;
 
-		console.log(language)
+		const cjkRegex = /\p{Unified_Ideograph}/gu;
 
-		const result = language == 'jpn' ? true : false
+		const charMatch = rawLyrics.match(new RegExp(jpRegex.source + "|" + cjkRegex.source, "gu"));
 
-		return result
+		let cjkCount = 0;
+
+		let jpCount = 0;
+
+		for (const character of charMatch) {
+			if (character.match(cjkRegex)) {
+				cjkCount++;
+			} else {
+				jpCount++;
+			}
+		}
+
+		if (cjkCount / charMatch.length > 0.6 && jpCount / charMatch.length < 0.4) {
+			console.log("chinese");
+			return false;
+		} else {
+			console.log("japanese");
+			return true;
+		}
 	}
 
 	static rubyTextToReact(s) {

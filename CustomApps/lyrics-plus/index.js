@@ -114,7 +114,6 @@ const fontSizeLimit = { min: 16, max: 256, step: 4 };
 class LyricsContainer extends react.Component {
 	constructor() {
 		super();
-		this.languageDetector = new LanguageDetector();
 		this.state = {
 			karaoke: null,
 			synced: null,
@@ -614,14 +613,6 @@ class LyricsContainer extends react.Component {
 
 		this.state.mode = mode;
 		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
-		function waitForLanguageDetector() {
-			if (typeof window.franc !== 'function') {
-				setTimeout(waitForLanguageDetector.bind(waitForLanguageDetector), 500);
-				return;
-			}
-		}
-		console.log(window.franc)
-		waitForLanguageDetector()
 		const isJapanese = (this.state.synced || this.state.unsynced) && Utils.isJapanese(this.state.synced || this.state.unsynced);
 		const showTranslationButton = (isJapanese || hasNeteaseTranslation) && (mode == SYNCED || mode == UNSYNCED);
 		const translatorLoaded = this.translator.finished;
