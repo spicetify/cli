@@ -77,7 +77,6 @@
 		"TabBar.js",
 		"Utils.js",
 		"Settings.js",
-		"Translator.js",
-		"LanguageDetector.js"
+		"Translator.js"
 	]
 }
