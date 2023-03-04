@@ -60,25 +60,32 @@ class Utils {
 
 		for (let lyric of lyrics) rawLyrics = rawLyrics + ` ${lyric.text}`;
 
-		const jpRegex = /[\u3001-\u3003\u3005\u3007\u301d-\u301f\u3021-\u3035\u3038-\u303a\u3040-\u30ff\uff66-\uff9f]/gu;
+		const kanaRegex = /[\u3001-\u3003\u3005\u3007\u301d-\u301f\u3021-\u3035\u3038-\u303a\u3040-\u30ff\uff66-\uff9f]/gu;
 
 		const cjkRegex = /\p{Unified_Ideograph}/gu;
 
-		const charMatch = rawLyrics.match(new RegExp(jpRegex.source + "|" + cjkRegex.source, "gu"));
+		const charMatch = rawLyrics.match(new RegExp(kanaRegex.source + "|" + cjkRegex.source, "gu"));
 
 		let cjkCount = 0;
 
-		let jpCount = 0;
+		let kanaCount = 0;
 
-		for (const character of charMatch) {
-			if (character.match(cjkRegex)) {
-				cjkCount++;
-			} else {
-				jpCount++;
+		if (charMatch) {
+			for (const character of charMatch) {
+				if (character.match(cjkRegex)) {
+					cjkCount++;
+				} else {
+					kanaCount++;
+				}
 			}
+		} else {
+			console.log("not chinese nor japanese");
+			return false;
 		}
 
-		if (cjkCount / charMatch.length > 0.6 && jpCount / charMatch.length < 0.4) {
+		console.log(`Hanzi: ${cjkCount / charMatch.length}, Kana: ${kanaCount / charMatch.length}`)
+
+		if (cjkCount / charMatch.length > 0.6 && kanaCount / charMatch.length < 0.4) {
 			console.log("chinese");
 			return false;
 		} else {
