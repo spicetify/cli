@@ -65,16 +65,14 @@ class Utils {
 		let cjkCount = 0;
 		let kanaCount = 0;
 
-		if (charMatch) {
-			for (const character of charMatch) {
-				if (character.match(cjkRegex)) {
-					cjkCount++;
-				} else {
-					kanaCount++;
-				}
+		if (!charMatch) return false;
+
+		for (const character of charMatch) {
+			if (character.match(cjkRegex)) {
+				cjkCount++;
+			} else {
+				kanaCount++;
 			}
-		} else {
-			return false;
 		}
 
 		return !(((cjkCount / charMatch.length - kanaCount / charMatch.length + 1 ) / 2 * 100 ) >= CONFIG.visual["detect-threshold"])
