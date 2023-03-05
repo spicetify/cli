@@ -97,7 +97,6 @@ CONFIG.locked = parseInt(CONFIG.locked);
 CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
 CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
 CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
-
 CONFIG.visual["detect-threshold"] = parseInt(CONFIG.visual["detect-threshold"])
 
 const CACHE = {};
