@@ -475,7 +475,15 @@ function openConfig() {
 					key: "highlight-color",
 					type: ConfigInput,
 					when: () => !CONFIG.visual["colorful"]
-				}
+				},
+				{
+					desc: "Text convertion: Japanese/Chinese threshold",
+					key: "detect-threshold",
+					type: ConfigAdjust,
+					min: thresholdSizeLimit.min,
+					max: thresholdSizeLimit.max,
+					step: thresholdSizeLimit.step
+				},
 			],
 			onChange: (name, value) => {
 				CONFIG.visual[name] = value;
