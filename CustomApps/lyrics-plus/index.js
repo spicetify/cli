@@ -48,6 +48,7 @@ const CONFIG = {
 		["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
 		["translation-mode"]: localStorage.getItem("lyrics-plus:visual:translation-mode") || "furigana",
 		["translate"]: getConfig("lyrics-plus:visual:translate"),
+		["detect-threshold"]: localStorage.getItem("lyrics-plus:visual:detect-threshold") || "0.2",
 		["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
 		["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
 		["synced-compact"]: getConfig("lyrics-plus:visual:synced-compact"),
@@ -97,6 +98,8 @@ CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
 CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
 CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
 
+CONFIG.visual["detect-threshold"] = parseFloat(CONFIG.visual["detect-threshold"])
+
 const CACHE = {};
 
 const emptyState = {
@@ -110,6 +113,8 @@ const emptyState = {
 let lyricContainerUpdate;
 
 const fontSizeLimit = { min: 16, max: 256, step: 4 };
+
+const thresholdSizeLimit = { min: 0, max: 1, step: 0.05 };
 
 class LyricsContainer extends react.Component {
 	constructor() {
