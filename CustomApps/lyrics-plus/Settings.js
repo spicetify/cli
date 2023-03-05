@@ -477,7 +477,7 @@ function openConfig() {
 					when: () => !CONFIG.visual["colorful"]
 				},
 				{
-					desc: "Text convertion: Japanese/Chinese threshold",
+					desc: "Text convertion: Japanese-Chinese detection threshold",
 					key: "detect-threshold",
 					type: ConfigAdjust,
 					min: thresholdSizeLimit.min,
