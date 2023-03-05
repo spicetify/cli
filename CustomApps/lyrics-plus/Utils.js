@@ -77,7 +77,7 @@ class Utils {
 			return false;
 		}
 
-		return !((cjkCount / charMatch.length - kanaCount / charMatch.length + 1 ) / 2 * 100 ) >= CONFIG.visual["detect-threshold"]
+		return !(((cjkCount / charMatch.length - kanaCount / charMatch.length + 1 ) / 2 * 100 ) >= CONFIG.visual["detect-threshold"])
 	}
 
 	static rubyTextToReact(s) {
