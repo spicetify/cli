@@ -478,7 +478,7 @@ function openConfig() {
 				},
 				{
 					desc: "Text convertion: Japanese-Chinese Detection threshold",
-					info: "(Compares the word count difference between Kana and Hanzi/Kanji in the lyrics to the threshold. If the result passes the threshold, it's most likely Chinese, and vice versa. This setting is in percentage.)",
+					info: "(Checks if whenever Hanzi/Kanji or Kana is dominant. If the result passes the threshold, it's most likely Chinese, and vice versa. This setting is in percentage.)",
 					key: "detect-threshold",
 					type: ConfigAdjust,
 					min: thresholdSizeLimit.min,
