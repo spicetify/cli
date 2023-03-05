@@ -56,9 +56,7 @@ class Utils {
 	}
 
 	static isJapanese(lyrics) {
-		let rawLyrics = "";
-
-		for (let lyric of lyrics) rawLyrics = rawLyrics + ` ${lyric.text}`;
+		const rawLyrics = lyrics.map(line => line.text).join(" ");
 
 		const kanaRegex = /[\u3001-\u3003\u3005\u3007\u301d-\u301f\u3021-\u3035\u3038-\u303a\u3040-\u30ff\uff66-\uff9f]/gu;
 		const cjkRegex = /\p{Unified_Ideograph}/gu;
