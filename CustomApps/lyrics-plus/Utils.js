@@ -83,9 +83,9 @@ class Utils {
 			return false;
 		}
 
-		console.log(`Hanzi/Kanji: ${cjkCount / charMatch.length}, Kana: ${kanaCount / charMatch.length}, Difference: ${(cjkCount / charMatch.length - kanaCount / charMatch.length )}`)
+		console.log(`Hanzi/Kanji: ${cjkCount / charMatch.length * 100}, Kana: ${kanaCount / charMatch.length * 100}, Difference: ${(cjkCount / charMatch.length - kanaCount / charMatch.length + 1) / 2 * 100}`)
 
-		if ((cjkCount / charMatch.length - kanaCount / charMatch.length ) >= CONFIG.visual["detect-threshold"]) { // default threshold is 0.2 as 0.6-0.4=0.2, below 0 is definitely Japanese
+		if (((cjkCount / charMatch.length - kanaCount / charMatch.length + 1 ) / 2 * 100 ) >= CONFIG.visual["detect-threshold"]) {
 			console.log("chinese");
 			return false;
 		} else {
