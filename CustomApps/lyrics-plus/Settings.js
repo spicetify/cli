@@ -477,8 +477,8 @@ function openConfig() {
 					when: () => !CONFIG.visual["colorful"]
 				},
 				{
-					desc: "Text convertion: Detection threshold",
-					info: "(Distinguish between Japanese and Chinese; in percentage)",
+					desc: "Text convertion: Japanese-Chinese Detection threshold",
+					info: "(Counts the percentage of Kana and Hanzi/Kanji from lyrics, differentiate them and compare to the threshold to determine if it is Japanese or Chinese, if the result passes the threshold, it's most likely Chinese, otherwise it's most likely Japanese. The threshold is in percentage.)",
 					key: "detect-threshold",
 					type: ConfigAdjust,
 					min: thresholdSizeLimit.min,
