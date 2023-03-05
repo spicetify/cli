@@ -79,11 +79,7 @@ class Utils {
 			return false;
 		}
 
-		if (((cjkCount / charMatch.length - kanaCount / charMatch.length + 1 ) / 2 * 100 ) >= CONFIG.visual["detect-threshold"]) {
-			return false;
-		} else {
-			return true;
-		}
+		return !((cjkCount / charMatch.length - kanaCount / charMatch.length + 1 ) / 2 * 100 ) >= CONFIG.visual["detect-threshold"]
 	}
 
 	static rubyTextToReact(s) {
