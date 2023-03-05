@@ -79,17 +79,12 @@ class Utils {
 				}
 			}
 		} else {
-			console.log("not chinese nor japanese");
 			return false;
 		}
 
-		console.log(`Hanzi/Kanji: ${cjkCount / charMatch.length * 100}, Kana: ${kanaCount / charMatch.length * 100}, Difference: ${(cjkCount / charMatch.length - kanaCount / charMatch.length + 1) / 2 * 100}`)
-
 		if (((cjkCount / charMatch.length - kanaCount / charMatch.length + 1 ) / 2 * 100 ) >= CONFIG.visual["detect-threshold"]) {
-			console.log("chinese");
 			return false;
 		} else {
-			console.log("japanese");
 			return true;
 		}
 	}
