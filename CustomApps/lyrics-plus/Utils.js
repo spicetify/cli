@@ -56,10 +56,29 @@ class Utils {
 	}
 
 	static isJapanese(lyrics) {
-		for (let lyric of lyrics)
-			if (/[\u3000-\u303F]|[\u3040-\u309F]|[\u30A0-\u30FF]|[\uFF00-\uFFEF]|[\u4E00-\u9FAF]|[\u2605-\u2606]|[\u2190-\u2195]|\u203B/g.test(lyric.text))
-				return true;
-		return false;
+		const rawLyrics = lyrics.map(line => line.text).join(" ");
+
+		const kanaRegex = /[\u3001-\u3003]|[\u3005\u3007]|[\u301d-\u301f]|[\u3021-\u3035]|[\u3038-\u303a]|[\u3040-\u30ff]|[\uff66-\uff9f]/gu;
+		const cjkRegex = /\p{Unified_Ideograph}/gu;
+		const charMatch = rawLyrics.match(new RegExp(kanaRegex.source + "|" + cjkRegex.source, "gu"));
+
+		let cjkCount = 0;
+		let kanaCount = 0;
+
+		if (!charMatch) return false;
+
+		for (const character of charMatch) {
+			if (character.match(cjkRegex)) {
+				cjkCount++;
+			} else {
+				kanaCount++;
+			}
+		}
+
+		const kanaPercentage = kanaCount / charMatch.length;
+		const cjkPercentage = cjkCount / charMatch.length;
+
+		return ((kanaPercentage - cjkPercentage + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"];
 	}
 
 	static rubyTextToReact(s) {

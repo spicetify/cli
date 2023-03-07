@@ -475,6 +475,15 @@ function openConfig() {
 					key: "highlight-color",
 					type: ConfigInput,
 					when: () => !CONFIG.visual["colorful"]
+				},
+				{
+					desc: "Text convertion: Chinese-Japanese Detection threshold (Advanced)",
+					info: "Checks if whenever Hanzi/Kanji or Kana is dominant in lyrics. If the result passes the threshold, it's most likely Japanese, and vice versa. This setting is in percentage.",
+					key: "ja-detect-threshold",
+					type: ConfigAdjust,
+					min: thresholdSizeLimit.min,
+					max: thresholdSizeLimit.max,
+					step: thresholdSizeLimit.step
 				}
 			],
 			onChange: (name, value) => {
