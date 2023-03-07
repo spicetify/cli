@@ -29,7 +29,7 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		filepath.Join(appsFolderPath, "xpui", "index.html"):             htmlMod,
 		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertCustomApp,
 		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):         insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):    insertHomeConfig,
+		filepath.Join(appsFolderPath, "xpui", "home-v2.js"):             insertHomeConfig,
 		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): insertVersionInfo,
 	}
 
@@ -318,12 +318,8 @@ func insertHomeConfig(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		utils.ReplaceOnce(
 			&content,
-			`(const \w+=null==\w+\?void 0\:)(\w+\.content\.items)`,
-			`${1}SpicetifyHomeConfig.arrange(${2})`)
-		utils.ReplaceOnce(
-			&content,
-			`;(\(0,\w+\.useEffect\))`,
-			`;${1}(()=>{SpicetifyHomeConfig.addToMenu();return SpicetifyHomeConfig.removeMenu;},[])${0}`)
+			`([\w$\.]+\.sections\.items)(\.map)`,
+			`SpicetifyHomeConfig.arrange(${1})${2}`)
 		return content
 	})
 }
