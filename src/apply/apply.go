@@ -318,7 +318,7 @@ func insertHomeConfig(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		utils.ReplaceOnce(
 			&content,
-			`([\w$\.]+\.sections\.items)(\.map)`,
+			`([\w$_\.]+\.sections\.items)(\.map)`,
 			`SpicetifyHomeConfig.arrange(${1})${2}`)
 		return content
 	})
