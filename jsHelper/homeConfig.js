@@ -130,8 +130,6 @@ SpicetifyHomeConfig = {};
 				const status = statusDic[el.dataset.uri];
 				const index = elem.findIndex(a => a === el);
 
-				console.log(status, index, statusDic);
-
 				if (!status || index === 0 || status !== statusDic[elem[index - 1]?.dataset.uri]) {
 					up.disabled = true;
 				} else {
