@@ -1,79 +1,86 @@
 (function () {
-    let overrideList,
-        newFeatures = [],
-        hooksPatched = false,
-        featureMap = {};
+	let overrideList,
+		newFeatures = [],
+		hooksPatched = false,
+		featureMap = {};
 
-    try {
-        overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
-        if (!overrideList || overrideList !== Object(overrideList)) throw "";
-    } catch {
-        overrideList = {};
-    }
+	try {
+		overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
+		if (!overrideList || overrideList !== Object(overrideList)) throw "";
+	} catch {
+		overrideList = {};
+	}
 
-    try {
-        remoteConfig = JSON.parse(localStorage.getItem("spicetify-remote-config"));
-        if (!remoteConfig || remoteConfig !== Object(remoteConfig)) throw "";
-    } catch {
-        remoteConfig = {};
-    }
+	try {
+		remoteConfig = JSON.parse(localStorage.getItem("spicetify-remote-config"));
+		if (!remoteConfig || remoteConfig !== Object(remoteConfig)) throw "";
+	} catch {
+		remoteConfig = {};
+	}
 
-    Spicetify.expFeatureOverride = function (feature) {
-        hooksPatched = true;
-        newFeatures.push(feature.name);
+	Spicetify.expFeatureOverride = function (feature) {
+		hooksPatched = true;
+		newFeatures.push(feature.name);
 
-        switch (feature.type) {
-            case "enum":
-                if (!overrideList[feature.name]) {
-                    overrideList[feature.name] = { description: feature.description, value: feature.default, values: feature.values };
-                }
-                feature.default = overrideList[feature.name].value;
-                break;
-            case "bool":
-                if (!overrideList[feature.name]) {
-                    overrideList[feature.name] = { description: feature.description, value: feature.default };
-                }
-                feature.default = overrideList[feature.name].value;
-                break;
-        }
+		switch (feature.type) {
+			case "enum":
+				if (!overrideList[feature.name]) {
+					overrideList[feature.name] = { description: feature.description, value: feature.default, values: feature.values };
+				}
+				feature.default = overrideList[feature.name].value;
+				break;
+			case "bool":
+				if (!overrideList[feature.name]) {
+					overrideList[feature.name] = { description: feature.description, value: feature.default };
+				}
+				feature.default = overrideList[feature.name].value;
+				break;
+		}
 
-        if (remoteConfig[feature.name] !== undefined && overrideList[feature.name]) {
-            feature.default = remoteConfig[feature.name];
-            overrideList[feature.name].value = remoteConfig[feature.name];
-        }
+		if (remoteConfig[feature.name] !== undefined && overrideList[feature.name]) {
+			feature.default = remoteConfig[feature.name];
+			overrideList[feature.name].value = remoteConfig[feature.name];
+		}
 
-        // Internal stuff may changes after updates, filter if so
-        if (overrideList[feature.name] && typeof overrideList[feature.name].value !== typeof feature.default) {
-            newFeatures = newFeatures.filter((f) => f !== feature.name);
-        }
+		// Internal stuff may changes after updates, filter if so
+		if (overrideList[feature.name] && typeof overrideList[feature.name].value !== typeof feature.default) {
+			newFeatures = newFeatures.filter(f => f !== feature.name);
+		}
 
-        localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-        return feature;
-    };
+		localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+		return feature;
+	};
 
-    let content = document.createElement("div");
-    let style = document.createElement("style");
-    style.innerHTML = `
-.setting-row::after {
+	let content = document.createElement("div");
+	content.classList.add("spicetify-exp-features");
+	let style = document.createElement("style");
+	style.innerHTML = `
+.spicetify-exp-features .col {
+    padding: 0;
+}
+.spicetify-exp-features .setting-row::after {
     content: "";
     display: table;
     clear: both;
 }
-.setting-row {
+.spicetify-exp-features .setting-row {
     display: flex;
     padding: 10px 0;
     align-items: center;
 }
-.setting-row .col.description {
+.spicetify-exp-features .setting-row .col.description {
     float: left;
     padding-right: 15px;
     width: 100%;
 }
-.setting-row .col.action {
+.spicetify-exp-features .setting-row .col.action {
     float: right;
     text-align: right;
 }
-button.switch {
+.spicetify-exp-features .setting-row .col.action .dropdown {
+	width: max-content;
+}
+.spicetify-exp-features button.switch {
     align-items: center;
     border: 0px;
     border-radius: 50%;
@@ -84,34 +91,39 @@ button.switch {
     margin-inline-start: 12px;
     padding: 8px;
 }
-button.switch.disabled,
-button.switch[disabled] {
+.spicetify-exp-features button.switch.disabled,
+.spicetify-exp-features button.switch[disabled] {
     color: rgba(var(--spice-rgb-text), .3);
 }
-button.reset {
-    font-weight: 700;
-    background-color: var(--spice-text);
-    color: var(--spice-main);
-    border-radius: 500px;
-    font-size: inherit;
-    padding-block: 12px;
-    padding-inline: 32px;
+.spicetify-exp-features button.reset {
+	font-weight: 700;
+	font-size: medium;
+	background-color: transparent;
+	border-radius: 500px;
+	transition-duration: 33ms;
+	transition-property: background-color, border-color, color, box-shadow, filter, transform;
+	padding-inline: 15px;
+	border: 1px solid #727272;
+	color: var(--spice-text);
+	min-block-size: 32px;
+	cursor: pointer;
 }
-button.reset:hover {
-    transform: scale(1.04);
+.spicetify-exp-features button.reset:hover {
+	transform: scale(1.04);
+	border-color: var(--spice-text);
 }
-.search-container {
+.spicetify-exp-features .search-container {
     width: 100%;
 }
-.setting-row#search .col.action {
+.spicetify-exp-features .setting-row#search .col.action {
     position: relative;
     width: 100%;
 }
-.setting-row#search svg {
+.spicetify-exp-features .setting-row#search svg {
     position: absolute;
     margin: 12px;
 }
-input.search {
+.spicetify-exp-features input.search {
     border-style: solid;
     border-color: var(--spice-sidebar);
     background-color: var(--spice-sidebar);
@@ -120,48 +132,48 @@ input.search {
     color: var(--spice-text);
     width: 100%;
 }`;
-    content.appendChild(style);
+	content.appendChild(style);
 
-    new Spicetify.Menu.Item("Experimental features", false, () => {
-        Spicetify.PopupModal.display({
-            title: "Experimental features",
-            content,
-            isLarge: true,
-        });
-    }).register();
+	new Spicetify.Menu.Item("Experimental features", false, () => {
+		Spicetify.PopupModal.display({
+			title: "Experimental features",
+			content,
+			isLarge: true
+		});
+	}).register();
 
-    (function waitForRemoteConfigResolver() {
-        // Don't show options if hooks aren't patched/loaded
-        if (!hooksPatched || !Spicetify.RemoteConfigResolver) {
-            setTimeout(waitForRemoteConfigResolver, 500);
-            return;
-        }
+	(function waitForRemoteConfigResolver() {
+		// Don't show options if hooks aren't patched/loaded
+		if (!hooksPatched || !Spicetify.RemoteConfigResolver) {
+			setTimeout(waitForRemoteConfigResolver, 500);
+			return;
+		}
 
-        localStorage.removeItem("spicetify-remote-config");
+		localStorage.removeItem("spicetify-remote-config");
 
-        const { setOverrides, remoteConfiguration } = Spicetify.RemoteConfigResolver.value;
+		const { setOverrides, remoteConfiguration } = Spicetify.RemoteConfigResolver.value;
 
-        Object.keys(overrideList).forEach((key) => {
-            if (newFeatures.length > 0 && !newFeatures.includes(key)) {
-                delete overrideList[key];
-                console.warn(`[spicetify-exp-features] Removed ${key} from override list`);
-                localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-            }
-        });
+		Object.keys(overrideList).forEach(key => {
+			if (newFeatures.length > 0 && !newFeatures.includes(key)) {
+				delete overrideList[key];
+				console.warn(`[spicetify-exp-features] Removed ${key} from override list`);
+				localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+			}
+		});
 
-        function changeValue(name, value) {
-            overrideList[name].value = value;
-            localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+		function changeValue(name, value) {
+			overrideList[name].value = value;
+			localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
 
-            featureMap[name] = value;
-            setOverrides(Spicetify.createInternalMap(featureMap));
-        }
+			featureMap[name] = value;
+			setOverrides(Spicetify.createInternalMap(featureMap));
+		}
 
-        function createSlider(name, desc, defaultVal) {
-            const container = document.createElement("div");
-            container.classList.add("setting-row");
-            container.id = name;
-            container.innerHTML = `
+		function createSlider(name, desc, defaultVal) {
+			const container = document.createElement("div");
+			container.classList.add("setting-row");
+			container.id = name;
+			container.innerHTML = `
 <label class="col description">${desc}</label>
 <div class="col action"><button class="switch">
     <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
@@ -169,44 +181,44 @@ input.search {
     </svg>
 </button></div>`;
 
-            const slider = container.querySelector("button.switch");
-            slider.classList.toggle("disabled", !defaultVal);
+			const slider = container.querySelector("button.switch");
+			slider.classList.toggle("disabled", !defaultVal);
 
-            slider.onclick = () => {
-                const state = slider.classList.contains("disabled");
-                slider.classList.toggle("disabled");
-                changeValue(name, state);
-            };
+			slider.onclick = () => {
+				const state = slider.classList.contains("disabled");
+				slider.classList.toggle("disabled");
+				changeValue(name, state);
+			};
 
-            return container;
-        }
+			return container;
+		}
 
-        function createDropdown(name, desc, defaultVal, options) {
-            const container = document.createElement("div");
-            container.classList.add("setting-row");
-            container.id = name;
-            container.innerHTML = `
+		function createDropdown(name, desc, defaultVal, options) {
+			const container = document.createElement("div");
+			container.classList.add("setting-row");
+			container.id = name;
+			container.innerHTML = `
 <label class="col description">${desc}</label>
 <div class="col action">
-<select class="dropdown">
-    ${options.map((option) => `<option value="${option}">${option}</option>`).join("")}
+<select class="dropdown main-dropDown-dropDown">
+    ${options.map(option => `<option value="${option}">${option}</option>`).join("")}
 </select>
 </div>`;
-            const dropdown = container.querySelector("select.dropdown");
-            dropdown.value = defaultVal;
+			const dropdown = container.querySelector("select");
+			dropdown.value = defaultVal;
 
-            dropdown.onchange = () => {
-                changeValue(name, dropdown.value);
-            };
+			dropdown.onchange = () => {
+				changeValue(name, dropdown.value);
+			};
 
-            return container;
-        }
+			return container;
+		}
 
-        function searchBar() {
-            const container = document.createElement("div");
-            container.classList.add("setting-row");
-            container.id = "search";
-            container.innerHTML = `
+		function searchBar() {
+			const container = document.createElement("div");
+			container.classList.add("setting-row");
+			container.id = "search";
+			container.innerHTML = `
 <div class="col action">
 <div class="search-container">
 <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
@@ -215,65 +227,65 @@ input.search {
 <input type="text" class="search" placeholder="Search for a feature">
 </div>
 </div>`;
-            const search = container.querySelector("input.search");
+			const search = container.querySelector("input.search");
 
-            search.oninput = () => {
-                const query = search.value.toLowerCase();
-                const rows = content.querySelectorAll(".setting-row");
-                rows.forEach((row) => {
-                    if (row.id === "search" || row.id === "reset") return;
-                    if (row.textContent.trim().toLowerCase().includes(query) || row.id.toLowerCase().includes(query)) {
-                        row.style.display = "flex";
-                    } else {
-                        row.style.display = "none";
-                    }
-                });
-            };
+			search.oninput = () => {
+				const query = search.value.toLowerCase();
+				const rows = content.querySelectorAll(".setting-row");
+				rows.forEach(row => {
+					if (row.id === "search" || row.id === "reset") return;
+					if (row.textContent.trim().toLowerCase().includes(query) || row.id.toLowerCase().includes(query)) {
+						row.style.display = "flex";
+					} else {
+						row.style.display = "none";
+					}
+				});
+			};
 
-            return container;
-        }
+			return container;
+		}
 
-        function resetButton() {
-            const resetRow = document.createElement("div");
-            resetRow.classList.add("setting-row");
-            resetRow.id = "reset";
-            resetRow.innerHTML += `
+		function resetButton() {
+			const resetRow = document.createElement("div");
+			resetRow.classList.add("setting-row");
+			resetRow.id = "reset";
+			resetRow.innerHTML += `
                         <label class="col description">Clear all cached features and preferences</label>
                         <div class="col action">
                             <button class="reset">Reset</button>
                         </div>`;
-            const resetButton = resetRow.querySelector("button.reset");
-            resetButton.onclick = () => {
-                const defaultRemoteConfig = remoteConfiguration.values;
-                featureMap = {};
+			const resetButton = resetRow.querySelector("button.reset");
+			resetButton.onclick = () => {
+				const defaultRemoteConfig = remoteConfiguration.values;
+				featureMap = {};
 
-                localStorage.removeItem("spicetify-exp-features");
-                defaultRemoteConfig.forEach((value, name) => {
-                    featureMap[name] = value;
-                });
-                localStorage.setItem("spicetify-remote-config", JSON.stringify(featureMap));
-                window.location.reload();
-            };
+				localStorage.removeItem("spicetify-exp-features");
+				defaultRemoteConfig.forEach((value, name) => {
+					featureMap[name] = value;
+				});
+				localStorage.setItem("spicetify-remote-config", JSON.stringify(featureMap));
+				window.location.reload();
+			};
 
-            return resetRow;
-        }
+			return resetRow;
+		}
 
-        content.appendChild(searchBar());
+		content.appendChild(searchBar());
 
-        Object.keys(overrideList).forEach((name) => {
-            const feature = overrideList[name];
+		Object.keys(overrideList).forEach(name => {
+			const feature = overrideList[name];
 
-            if (!overrideList[name]?.description) return;
+			if (!overrideList[name]?.description) return;
 
-            if (overrideList[name].values) {
-                content.appendChild(createDropdown(name, feature.description, feature.value, feature.values));
-            } else content.appendChild(createSlider(name, feature.description, feature.value));
+			if (overrideList[name].values) {
+				content.appendChild(createDropdown(name, feature.description, feature.value, feature.values));
+			} else content.appendChild(createSlider(name, feature.description, feature.value));
 
-            featureMap[name] = feature.value;
-        });
+			featureMap[name] = feature.value;
+		});
 
-        content.appendChild(resetButton());
+		content.appendChild(resetButton());
 
-        setOverrides(Spicetify.createInternalMap(featureMap));
-    })();
+		setOverrides(Spicetify.createInternalMap(featureMap));
+	})();
 })();
