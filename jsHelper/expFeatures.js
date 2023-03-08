@@ -97,6 +97,7 @@
 }
 .spicetify-exp-features button.reset {
 	font-weight: 700;
+	font-size: medium;
 	background-color: transparent;
 	border-radius: 500px;
 	transition-duration: 33ms;
