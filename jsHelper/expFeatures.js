@@ -77,6 +77,9 @@
     float: right;
     text-align: right;
 }
+.spicetify-exp-features .setting-row .col.action .dropdown {
+	width: max-content;
+}
 .spicetify-exp-features button.switch {
     align-items: center;
     border: 0px;
@@ -196,7 +199,7 @@
 			container.innerHTML = `
 <label class="col description">${desc}</label>
 <div class="col action">
-<select class="main-dropDown-dropDown">
+<select class="dropdown main-dropDown-dropDown">
     ${options.map(option => `<option value="${option}">${option}</option>`).join("")}
 </select>
 </div>`;
