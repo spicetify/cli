@@ -200,7 +200,7 @@ async function initShufflePlus() {
 		});
 	}
 
-	new Spicetify.Menu.Item("Shuffle+", false, settingsPage).register();
+	new Spicetify.Menu.Item("Shuffle+", false, settingsPage, "shuffle").register();
 
 	let { Type } = Spicetify.URI;
 
