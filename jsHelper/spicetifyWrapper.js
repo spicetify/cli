@@ -718,19 +718,20 @@ Spicetify.Menu = (function() {
     }
 
     class Item {
-        constructor(name, isEnabled, onClick) {
+        constructor(name, isEnabled, onClick, icon = undefined) {
             this._name = name;
             this._isEnabled = isEnabled;
+            this._icon = icon;
             this.onClick = () => {onClick(this)};
             this._element = new _HTMLContextMenuItem({
                 name: name,
-                icon: isEnabled ? "check" : "",
+                icon: isEnabled ? "check" : icon ?? ""
             });
         }
 
         setState(isEnabled) {
             this._isEnabled = isEnabled;
-            this._element.update("icon", isEnabled ? "check" : "");
+            this._element.update("icon", isEnabled ? "check" : this._icon ?? "");
         }
         set isEnabled(bool) { this.setState(bool); }
         get isEnabled() { return this._isEnabled; }
@@ -741,6 +742,13 @@ Spicetify.Menu = (function() {
         }
         set name(text) { this.setName(text); }
         get name() { return this._name; }
+
+        setIcon(icon) {
+            this._icon = icon;
+            this._element.update("icon", icon);
+        }
+        set icon(icon) { this.setIcon(icon); }
+        get icon() { return this._icon; }
 
         register() {
             collection.add(this);
