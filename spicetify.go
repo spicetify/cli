@@ -227,7 +227,7 @@ func main() {
 
 		case "apply":
 			cmd.Apply(version)
-			restartSpotify()
+			restartSpotify(false)
 
 		case "update":
 			if extensionFocus {
@@ -238,7 +238,7 @@ func main() {
 
 		case "restore":
 			cmd.Restore()
-			restartSpotify()
+			restartSpotify(false)
 
 		case "enable-devtools":
 			cmd.SetDevTools()
@@ -249,7 +249,7 @@ func main() {
 
 		case "auto":
 			cmd.Auto(version)
-			restartSpotify()
+			restartSpotify(true)
 
 		default:
 			utils.PrintError(`Command "` + v + `" not found.`)
@@ -259,9 +259,9 @@ func main() {
 	}
 }
 
-func restartSpotify() {
+func restartSpotify(start bool) {
 	if !noRestart {
-		cmd.EvalSpotifyRestart(false)
+		cmd.EvalSpotifyRestart(start)
 	}
 }
 
