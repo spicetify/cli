@@ -362,6 +362,7 @@ func insertVersionInfo(jsPath string, flags Flag) {
 				${1}("li",{children: "Theme: " + Spicetify.Config.current_theme + (Spicetify.Config.color_scheme && " / ") + Spicetify.Config.color_scheme}),
 				${1}("li",{children: "Extensions: " + Spicetify.Config.extensions.join(", ")}),
 				${1}("li",{children: "Custom apps: " + Spicetify.Config.custom_apps.join(", ")}),
+				${1}("li",{children: "Marketplace: " + Marketplace ? Marketplace.version : "Not installed"}),
 				]}),`)
 		return content
 	})
