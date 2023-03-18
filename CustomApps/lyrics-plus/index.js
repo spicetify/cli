@@ -46,9 +46,11 @@ const CONFIG = {
 		["lines-before"]: localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
 		["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
 		["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
-		["translation-mode"]: localStorage.getItem("lyrics-plus:visual:translation-mode") || "furigana",
+		["translation-mode:japanese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:japanese") || "furigana",
+		["translation-mode:chinese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:chinese") || "cn",
 		["translate"]: getConfig("lyrics-plus:visual:translate"),
 		["ja-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
+		["hans-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
 		["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
 		["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
 		["synced-compact"]: getConfig("lyrics-plus:visual:synced-compact"),
@@ -98,6 +100,7 @@ CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
 CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
 CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
 CONFIG.visual["ja-detect-threshold"] = parseInt(CONFIG.visual["ja-detect-threshold"]);
+CONFIG.visual["hans-detect-threshold"] = parseInt(CONFIG.visual["hans-detect-threshold"]);
 
 const CACHE = {};
 
@@ -128,6 +131,9 @@ class LyricsContainer extends react.Component {
 			furigana: null,
 			hiragana: null,
 			katakana: null,
+			cn: null,
+			hk: null,
+			tw: null,
 			neteaseTranslation: null,
 			uri: "",
 			provider: "",
@@ -232,7 +238,15 @@ class LyricsContainer extends react.Component {
 	}
 
 	async fetchLyrics(track, mode = -1) {
-		this.state.furigana = this.state.romaji = this.state.hiragana = this.state.katakana = this.state.neteaseTranslation = null;
+		this.state.furigana =
+			this.state.romaji =
+			this.state.hiragana =
+			this.state.katakana =
+			this.state.cn =
+			this.state.hk =
+			this.state.tw =
+			this.state.neteaseTranslation =
+				null;
 		const info = this.infoFromTrack(track);
 		if (!info) {
 			this.setState({ error: "No track info" });
@@ -282,7 +296,11 @@ class LyricsContainer extends react.Component {
 
 		const lyricsToTranslate = this.state.synced ?? this.state.unsynced;
 
-		if (!lyricsToTranslate || !Utils.isJapanese(lyricsToTranslate)) return;
+		if (!lyricsToTranslate) return;
+
+		const language = Utils.detectLanguage(lyricsToTranslate);
+
+		if (!language) return;
 
 		let lyricText = "";
 		for (let lyric of lyricsToTranslate) lyricText += lyric.text + "\n";
@@ -292,20 +310,26 @@ class LyricsContainer extends react.Component {
 			["hiragana", "furigana", "furigana"],
 			["hiragana", "normal", "hiragana"],
 			["katakana", "normal", "katakana"]
-		].map(params =>
+		].map(params => {
+			if (language != "ja") return;
 			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
-				const translatedLines = result.split("\n");
-
-				this.state[params[2]] = [];
-
-				for (let i = 0; i < lyricsToTranslate.length; i++)
-					this.state[params[2]].push({
-						startTime: lyricsToTranslate[i].startTime || 0,
-						text: Utils.rubyTextToReact(translatedLines[i])
-					});
+				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[2] });
 				lyricContainerUpdate && lyricContainerUpdate();
-			})
-		);
+			});
+		});
+		[
+			["cn", "hk"],
+			["cn", "tw"],
+			["t", "cn"],
+			["t", "hk"],
+			["t", "tw"]
+		].map(params => {
+			if (!language.includes("zh") || (language == "zh-hans" && params[0] == "t") || (language == "zh-hant" && params[0] == "cn")) return;
+			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
+				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
+				lyricContainerUpdate && lyricContainerUpdate();
+			});
+		});
 	}
 
 	resetDelay() {
@@ -556,7 +580,13 @@ class LyricsContainer extends react.Component {
 			}
 		}
 
-		const translatedLyrics = this.state[CONFIG.visual["translation-mode"]];
+		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
+		const language = (this.state.synced || this.state.unsynced) && Utils.detectLanguage(this.state.synced || this.state.unsynced);
+		const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
+		const friendlyLanguage = language && languageDisplayNames.of(language.split("-")[0]).toLowerCase();
+		const showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == SYNCED || mode == UNSYNCED);
+		const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
+
 		let activeItem;
 
 		if (mode !== -1) {
@@ -616,10 +646,6 @@ class LyricsContainer extends react.Component {
 		}
 
 		this.state.mode = mode;
-		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
-		const isJapanese = (this.state.synced || this.state.unsynced) && Utils.isJapanese(this.state.synced || this.state.unsynced);
-		const showTranslationButton = (isJapanese || hasNeteaseTranslation) && (mode == SYNCED || mode == UNSYNCED);
-		const translatorLoaded = this.translator.finished;
 
 		const out = react.createElement(
 			"div",
@@ -642,8 +668,7 @@ class LyricsContainer extends react.Component {
 				},
 				react.createElement(TranslationMenu, {
 					showTranslationButton,
-					translatorLoaded,
-					isJapanese,
+					friendlyLanguage,
 					hasNeteaseTranslation
 				}),
 				react.createElement(AdjustmentsMenu, { mode }),

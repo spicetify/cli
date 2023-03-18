@@ -484,6 +484,15 @@ function openConfig() {
 					min: thresholdSizeLimit.min,
 					max: thresholdSizeLimit.max,
 					step: thresholdSizeLimit.step
+				},
+				{
+					desc: "Text convertion: Traditional-Simplified Detection threshold (Advanced)",
+					info: "Same as above but with Traditional/Simplified Chinese. This setting is in percentage.",
+					key: "hans-detect-threshold",
+					type: ConfigAdjust,
+					min: thresholdSizeLimit.min,
+					max: thresholdSizeLimit.max,
+					step: thresholdSizeLimit.step
 				}
 			],
 			onChange: (name, value) => {
