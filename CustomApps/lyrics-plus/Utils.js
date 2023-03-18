@@ -71,7 +71,7 @@ class Utils {
 		let tradCount = 0;
 		let simpCount = 0;
 
-		if (!cjkMatch) return false;
+		if (!cjkMatch) return;
 
 		for (const character of cjkMatch) {
 			if (character.match(kanaRegex)) {
