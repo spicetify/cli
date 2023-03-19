@@ -94,15 +94,6 @@ class Utils {
 	}
 
 	static convertParsedToLRC(lyrics) {
-		function formatTime(timestamp) {
-			if (isNaN(timestamp)) return timestamp.toString();
-			let minutes = Math.trunc(timestamp / 60000),
-				seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
-			if (minutes < 10) minutes = "0" + minutes;
-			if (seconds < 10) seconds = "0" + seconds;
-			return `${minutes}:${seconds}`;
-		}
-
 		function processText(text, startTime = 0) {
 			if (text.props?.children) {
 				return text.props.children
@@ -119,7 +110,7 @@ class Utils {
 				return text
 					.map(word => {
 						wordTime += word.time;
-						return `${word.word}<${formatTime(wordTime)}>`;
+						return `${word.word}<${Utils.formatTime(wordTime)}>`;
 					})
 					.join("");
 			} else return text;
@@ -128,7 +119,7 @@ class Utils {
 		return lyrics
 			.map(line => {
 				if (!line.startTime) return line.text;
-				return `[${formatTime(line.startTime)}]${processText(line.text, line.startTime)}`;
+				return `[${Utils.formatTime(line.startTime)}]${processText(line.text, line.startTime)}`;
 			})
 			.join("\n");
 	}
