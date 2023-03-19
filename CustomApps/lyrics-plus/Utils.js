@@ -83,28 +83,24 @@ class Utils {
 	}
 
 	static formatTime(timestamp) {
-		if (!isNaN(timestamp)) {
-			let minutes = Math.trunc(timestamp / 60000),
-				seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
+		if (isNaN(timestamp)) return timestamp.toString();
+		let minutes = Math.trunc(timestamp / 60000),
+			seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
 
-			if (minutes < 10) minutes = "0" + minutes;
-			if (seconds < 10) seconds = "0" + seconds;
+		if (minutes < 10) minutes = "0" + minutes;
+		if (seconds < 10) seconds = "0" + seconds;
 
-			return `${minutes}:${seconds}`;
-		} else return timestamp.toString();
+		return `${minutes}:${seconds}`;
 	}
 
 	static convertParsedToLRC(lyrics) {
 		function formatTime(timestamp) {
-			if (!isNaN(timestamp)) {
-				let minutes = Math.trunc(timestamp / 60000),
-					seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
-
-				if (minutes < 10) minutes = "0" + minutes;
-				if (seconds < 10) seconds = "0" + seconds;
-
-				return `${minutes}:${seconds}`;
-			} else return timestamp.toString();
+		if (isNaN(timestamp)) return timestamp.toString();
+		let minutes = Math.trunc(timestamp / 60000),
+			seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
+		if (minutes < 10) minutes = "0" + minutes;
+		if (seconds < 10) seconds = "0" + seconds;
+		return `${minutes}:${seconds}`;
 		}
 
 		function processText(text, startTime = 0) {
@@ -162,7 +158,7 @@ class Utils {
 
 		function parseKaraokeLine(line, startTime) {
 			let wordTime = timestampToMs(startTime);
-			let karaokeLine = [];
+			const karaokeLine = [];
 			const karaoke = line.matchAll(/(\S+ ?)\<([0-9:.]+)\>/g);
 			for (const match of karaoke) {
 				const word = match[1];
