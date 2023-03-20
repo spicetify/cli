@@ -249,7 +249,7 @@ func main() {
 
 		case "auto":
 			cmd.Auto(version)
-			restartSpotify()
+			cmd.EvalSpotifyRestart(true)
 
 		default:
 			utils.PrintError(`Command "` + v + `" not found.`)
