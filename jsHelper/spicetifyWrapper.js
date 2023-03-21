@@ -311,6 +311,20 @@ Spicetify.LocalStorage = {
     set: (key, value) => localStorage.setItem(key, value),
 };
 
+Spicetify._getStyledClassName = (element) => {
+    if (!element) return;
+
+    const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "aria-", ""];
+
+    return Object.keys(element).map((key) => {
+        const value = element[key];
+
+        if (typeof value === "string" && !value.includes(" ") && !excludedKeys.some(prefix => key.startsWith(prefix))) {
+            return value;
+        }
+    }).filter(Boolean).join("-");
+};
+
 Spicetify.getFontStyle = (font) => {
     if (!font || !Spicetify._fontStyle) return;
     let rawStyle = Spicetify._fontStyle({ variant: font }).filter(style => typeof style === "string").join("");
