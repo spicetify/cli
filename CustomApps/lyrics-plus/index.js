@@ -311,7 +311,7 @@ class LyricsContainer extends react.Component {
 			["hiragana", "normal", "hiragana"],
 			["katakana", "normal", "katakana"]
 		].map(params => {
-			if (language != "ja") return;
+			if (language !== "ja") return;
 			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[2] });
 				lyricContainerUpdate && lyricContainerUpdate();
