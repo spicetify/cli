@@ -314,7 +314,7 @@ Spicetify.LocalStorage = {
 Spicetify._getStyledClassName = (element) => {
     if (!element) return;
 
-    const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "aria-", ""];
+    const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "aria-", ""];
 
     return Object.keys(element).map((key) => {
         const value = element[key];
