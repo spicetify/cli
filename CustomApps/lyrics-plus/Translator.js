@@ -48,7 +48,7 @@ class Translator {
 
 	async createTranslator() {
 		if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined" || typeof OpenCC === "undefined") {
-			//Waiting for JSDeliver to load Kuroshiro and Kuromoji
+			// Waiting for JSDeliver to load Kuroshiro, Kuromoji and OpenCC
 			setTimeout(this.createTranslator.bind(this), 50);
 			return;
 		}
