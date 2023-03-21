@@ -322,7 +322,6 @@ Spicetify._getStyledClassName = (element) => {
         const value = element[key];
 
         if (typeof value === "string" && !value.includes(" ") && !excludedKeys.includes(key) && !excludedPrefix.some(prefix => key.startsWith(prefix))) {
-            if (value === "img") console.log(element);
             return value;
         }
     }).filter(Boolean).join("-");
