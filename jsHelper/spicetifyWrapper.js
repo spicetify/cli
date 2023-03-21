@@ -314,12 +314,13 @@ Spicetify.LocalStorage = {
 Spicetify._getStyledClassName = (element) => {
     if (!element) return;
 
-    const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "aria-", ""];
+    const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", ""];
+    const excludedPrefix = ["aria-"];
 
     return Object.keys(element).map((key) => {
         const value = element[key];
 
-        if (typeof value === "string" && !value.includes(" ") && !excludedKeys.some(prefix => key.startsWith(prefix))) {
+        if (typeof value === "string" && !value.includes(" ") && !excludedKeys.includes(key) && !excludedPrefix.some(prefix => key.startsWith(prefix))) {
             return value;
         }
     }).filter(Boolean).join("-");
