@@ -312,6 +312,7 @@ Spicetify.LocalStorage = {
 };
 
 Spicetify._getStyledClassName = (element) => {
+    element = Array.from(element).find(e => e?.children || e?.dangerouslySetInnerHTML);
     if (!element) return;
 
     const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", ""];
@@ -321,6 +322,7 @@ Spicetify._getStyledClassName = (element) => {
         const value = element[key];
 
         if (typeof value === "string" && !value.includes(" ") && !excludedKeys.includes(key) && !excludedPrefix.some(prefix => key.startsWith(prefix))) {
+            if (value === "img") console.log(element);
             return value;
         }
     }).filter(Boolean).join("-");

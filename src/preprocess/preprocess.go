@@ -472,7 +472,7 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 	utils.Replace(
 		&input,
 		`(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)`,
-		`${1}=Spicetify._getStyledClassName(arguments[0])`)
+		`${1}=Spicetify._getStyledClassName(arguments)`)
 
 	return input
 }
