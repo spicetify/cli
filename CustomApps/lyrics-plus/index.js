@@ -324,7 +324,7 @@ class LyricsContainer extends react.Component {
 			["t", "hk"],
 			["t", "tw"]
 		].map(params => {
-			if (!language.includes("zh") || (language == "zh-hans" && params[0] == "t") || (language == "zh-hant" && params[0] == "cn")) return;
+			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) return;
 			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
 				lyricContainerUpdate && lyricContainerUpdate();
