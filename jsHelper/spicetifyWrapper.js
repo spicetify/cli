@@ -311,20 +311,33 @@ Spicetify.LocalStorage = {
     set: (key, value) => localStorage.setItem(key, value),
 };
 
-Spicetify._getStyledClassName = (element) => {
-    element = Array.from(element).find(e => e?.children || e?.dangerouslySetInnerHTML);
+Spicetify._getStyledClassName = (args, component) => {
+    const element = Array.from(args).find(e => e?.children || e?.dangerouslySetInnerHTML);
     if (!element) return;
+
+    let className = /(?:\w+__)?(\w+)-[\w-]+/.exec(component.componentId)?.[1];
+
+    const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "paddingBottom"];
+
+
+    for (const key of includedKeys) {
+        if (typeof element[key] === "string" && element[key].length) {
+            className += `-${element[key]}`;
+        }
+    }
 
     const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", ""];
     const excludedPrefix = ["aria-"];
 
-    return Object.keys(element).map((key) => {
-        const value = element[key];
+    const booleanKeys = Object.keys(element).filter(key => typeof element[key] === "boolean" && element[key]);
 
-        if (typeof value === "string" && !value.includes(" ") && !excludedKeys.includes(key) && !excludedPrefix.some(prefix => key.startsWith(prefix))) {
-            return value;
-        }
-    }).filter(Boolean).join("-");
+    for (const key of booleanKeys) {
+        if (excludedKeys.includes(key)) continue;
+        if (excludedPrefix.some(prefix => key.startsWith(prefix))) continue;
+        className += `-${key}`;
+    }
+
+    return className;
 };
 
 Spicetify.getFontStyle = (font) => {
