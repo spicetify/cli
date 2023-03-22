@@ -317,7 +317,7 @@ Spicetify._getStyledClassName = (args, component) => {
 
     let className = /(?:\w+__)?(\w+)-[\w-]+/.exec(component.componentId)?.[1];
 
-    const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "paddingBottom"];
+    const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "paddingBottom", "data-encore-id"];
 
 
     for (const key of includedKeys) {
