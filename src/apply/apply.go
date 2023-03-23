@@ -292,13 +292,13 @@ func insertCustomApp(jsPath string, flags Flag) {
 			`\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
 			'(', ')')
 
-		sidebarXIsCollapsed := regexp.MustCompile(`\w+ ?\{isCollapsed:([\w$_.]+)\}`).FindStringSubmatch
-
 		content = strings.Replace(
 			content,
 			sidebarItemMatch,
 			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
 			1)
+
+		sidebarXIsCollapsed := regexp.MustCompile(`\w+ ?\{isCollapsed:([\w$_.]+)\}`).FindStringSubmatch
 
 		sidebarXItemMatch := utils.SeekToCloseParen(
 			content,
@@ -309,10 +309,8 @@ func insertCustomApp(jsPath string, flags Flag) {
 			content = strings.Replace(
 				content,
 				sidebarXItemMatch,
-				sidebarXItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],true,"+sidebarXIsCollapsed(content)[1]+")",
+				sidebarXItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],"+sidebarXIsCollapsed(content)[1]+")",
 				1)
-		} else {
-			utils.PrintError("Failed to find sidebarXIsCollapsed")
 		}
 
 		if flags.SidebarConfig {

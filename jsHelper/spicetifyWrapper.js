@@ -980,7 +980,7 @@ Spicetify.ContextMenu = (function () {
     return { Item, SubMenu, _addItems };
 })();
 
-Spicetify._cloneSidebarItem = function (list, appX = false, sidebarIsCollapsed) {
+Spicetify._cloneSidebarItem = function (list, sidebarIsCollapsed) {
 	function findChild(parent, key, value) {
 		if (!parent.props) return null;
 
@@ -1035,7 +1035,7 @@ Spicetify._cloneSidebarItem = function (list, appX = false, sidebarIsCollapsed) 
 		const appLink = "/" + app;
 		let obj, link;
 
-		if (appX) {
+		if (typeof sidebarIsCollapsed === "boolean") {
 			link = findChild(Spicetify._sidebarXItemToClone, "className", "main-yourLibraryX-navLink");
 			obj = React.cloneElement(
 				Spicetify._sidebarXItemToClone,
