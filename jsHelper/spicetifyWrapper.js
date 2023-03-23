@@ -1001,9 +1001,9 @@ Spicetify._cloneSidebarItem = function (list, sidebarIsCollapsed) {
 		return null;
 	}
 
-	function conditionalAppend(baseClassname, conditionalClassname, location) {
-		if (Spicetify.Platform?.History?.location && Spicetify.Platform.History.location.pathname.startsWith(location)) {
-			baseClassname += " " + conditionalClassname;
+	function conditionalAppend(baseClassname, activeClassname, location) {
+		if (Spicetify.Platform?.History?.location?.pathname.startsWith(location)) {
+			baseClassname += " " + activeClassname;
 		}
 
 		return baseClassname;
