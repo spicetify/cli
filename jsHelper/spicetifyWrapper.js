@@ -982,7 +982,9 @@ Spicetify.ContextMenu = (function () {
 
 Spicetify._cloneSidebarItem = function (list, sidebarIsCollapsed) {
 	function findChild(parent, key, value) {
-		if (!parent.props) return null;
+		if (!parent.props) {
+            return null;
+        }
 
 		if (value && parent.props[key]?.includes(value)) {
 			return parent;
