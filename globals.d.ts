@@ -1301,8 +1301,19 @@ declare namespace Spicetify {
             divider?: 'before' | 'after' | 'both';
             /**
              * React component icon that will be rendered at the end of the `MenuItem`
+             * @deprecated Since Spotify `1.2.8`. Use `leadingIcon` or `trailingIcon` instead
              */
             icon?: React.ReactNode;
+            /**
+             * React component icon that will be rendered at the start of the `MenuItem`
+             * @since Spotify `1.2.8`
+             */
+            leadingIcon?: React.ReactNode;
+            /**
+             * React component icon that will be rendered at the end of the `MenuItem`
+             * @since Spotify `1.2.8`
+             */
+            trailingIcon?: React.ReactNode;
         };
         type TooltipProps = {
             /**

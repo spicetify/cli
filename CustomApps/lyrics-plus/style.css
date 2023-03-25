@@ -177,7 +177,6 @@
 	pointer-events: none;
 }
 
-.lyrics-lyricsContainer-LyricsUnavailableMessage,
 .lyrics-lyricsContainer-LyricsLine,
 .lyrics-versionSelector {
 	margin-left: 100px;
@@ -185,7 +184,6 @@
 }
 
 @media (min-width: 1024px) {
-	.lyrics-lyricsContainer-LyricsUnavailableMessage,
 	.lyrics-lyricsContainer-LyricsLine,
 	.lyrics-versionSelector {
 		margin-left: 150px;
@@ -194,7 +192,6 @@
 }
 
 @media (min-width: 1280px) {
-	.lyrics-lyricsContainer-LyricsUnavailableMessage,
 	.lyrics-lyricsContainer-LyricsLine,
 	.lyrics-versionSelector {
 		margin-left: 200px;

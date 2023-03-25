@@ -339,13 +339,13 @@ Spicetify.React.useEffect(() => {
 	// React Component: Context Menu - Menu
 	utils.Replace(
 		&input,
-		`=(?:function\(\w\)\{\w+ \w=\w.children,\w=\w.onClose,\w=\w.getInitialFocusElement|\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+\}\))`,
+		`=(?:function\(\w\)\{\w+ \w=\w.children,\w=\w.onClose,\w=\w.getInitialFocusElement|\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+)`,
 		`=Spicetify.ReactComponent.Menu${0}`)
 
 	// React Component: Context Menu - Menu Item
 	utils.Replace(
 		&input,
-		`=(?:function\(\w+\)|\(|[\w\=\>]*)?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:children|icon|disabled)[:\w]*,){3,}`,
+		`=(?:function\(\w+\)|\(|[\w\=\>]*)?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:children|icon|divider|disabled)[:\w]*,){3,}`,
 		`=Spicetify.ReactComponent.MenuItem${0}`)
 
 	// React Component: Album Context Menu items
