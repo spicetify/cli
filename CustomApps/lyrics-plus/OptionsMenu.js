@@ -16,7 +16,8 @@ const OptionsMenuItem = react.memo(({ onSelect, value, isSelected }) => {
 		Spicetify.ReactComponent.MenuItem,
 		{
 			onClick: onSelect,
-			icon: isSelected ? OptionsMenuItemIcon : null
+			icon: isSelected ? OptionsMenuItemIcon : null,
+			trailingIcon: isSelected ? OptionsMenuItemIcon : null
 		},
 		value
 	);
