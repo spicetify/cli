@@ -166,9 +166,9 @@ color: var(--spice-button-disabled);
 
 	function InitSidebarConfig(init = true) {
 		// STICKY container
-		let legacyAppItems = document.querySelector(".main-navBar-entryPoints");
-		let rootList = document.querySelector(".main-rootlist-rootlist");
-		let playlistItems = document.querySelector(".main-navBar-navBar .os-content");
+		const legacyAppItems = document.querySelector(".main-navBar-entryPoints");
+		const rootList = document.querySelector(".main-rootlist-rootlist");
+		const playlistItems = document.querySelector(".main-navBar-navBar .os-content");
 
 		if (!legacyAppItems || !playlistItems || !rootList) {
 			setTimeout(() => InitSidebarConfig(init), 300);
@@ -258,8 +258,8 @@ div.GlueDropTarget.personal-library >*.active {
 
 	function InitSidebarXConfig(init = true) {
 		// STICKY container
-		let YLXAppItems = document.querySelector(".main-yourLibraryX-navItems");
-		let libraryItems = document.querySelector(".main-yourLibraryX-library");
+		const YLXAppItems = document.querySelector(".main-yourLibraryX-navItems");
+		const libraryItems = document.querySelector(".main-yourLibraryX-library");
 
 		if (!YLXAppItems || !libraryItems) {
 			setTimeout(() => InitSidebarXConfig(init), 300);
