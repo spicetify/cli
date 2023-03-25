@@ -487,7 +487,7 @@ function openConfig() {
 				},
 				{
 					desc: "Text convertion: Traditional-Simplified Detection threshold (Advanced)",
-					info: "Same as above but with Traditional/Simplified Chinese. This setting is in percentage.",
+					info: "Checks if whenever Traditional or Simplified is dominant in lyrics. If the result passes the threshold, it's most likely Simplified, and vice versa. This setting is in percentage.",
 					key: "hans-detect-threshold",
 					type: ConfigAdjust,
 					min: thresholdSizeLimit.min,
