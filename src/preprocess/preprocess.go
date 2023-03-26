@@ -494,6 +494,12 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		`=(?:\(\w\)=>|function\(\w\)\{)\w+ ?\w=\w\.iconSize`,
 		`=Spicetify.ReactComponent.IconComponent${0}`)
 
+	// Mapping styled-components classes
+	utils.Replace(
+		&input,
+		`(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)`,
+		`${1}=Spicetify._getStyledClassName(arguments,this)`)
+
 	return input
 }
 
