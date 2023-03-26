@@ -16,7 +16,8 @@ const OptionsMenuItem = react.memo(({ onSelect, value, isSelected }) => {
 		Spicetify.ReactComponent.MenuItem,
 		{
 			onClick: onSelect,
-			icon: isSelected ? OptionsMenuItemIcon : null
+			icon: isSelected ? OptionsMenuItemIcon : null,
+			trailingIcon: isSelected ? OptionsMenuItemIcon : null
 		},
 		value
 	);
@@ -85,19 +86,31 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 	);
 });
 
-const TranslationMenu = react.memo(({ showTranslationButton, translatorLoaded, isJapanese, hasNeteaseTranslation }) => {
+const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, hasNeteaseTranslation }) => {
 	if (!showTranslationButton) return null;
 
 	let translator = new Translator();
 
 	let menuOptions = null;
-	if (isJapanese) {
-		menuOptions = {
-			furigana: "Furigana",
-			romaji: "Romaji",
-			hiragana: "Hiragana",
-			katakana: "Katakana"
-		};
+
+	switch (friendlyLanguage) {
+		case "japanese": {
+			menuOptions = {
+				furigana: "Furigana",
+				romaji: "Romaji",
+				hiragana: "Hiragana",
+				katakana: "Katakana"
+			};
+			break;
+		}
+		case "chinese": {
+			menuOptions = {
+				cn: "Simplified Chinese",
+				hk: "Traditional Chinese (Hong Kong)",
+				tw: "Traditional Chinese (Taiwan)"
+			};
+			break;
+		}
 	}
 	if (hasNeteaseTranslation) {
 		menuOptions = {
@@ -117,7 +130,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, translatorLoaded, i
 					items: [
 						{
 							desc: "Mode",
-							key: "translation-mode",
+							key: `translation-mode:${friendlyLanguage}`,
 							type: ConfigSelection,
 							options: menuOptions,
 							renderInline: true
@@ -157,7 +170,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, translatorLoaded, i
 					viewBox: "0 0 16 10.3",
 					fill: "currentColor"
 				},
-				"あ"
+				"⇄"
 			)
 		)
 	);

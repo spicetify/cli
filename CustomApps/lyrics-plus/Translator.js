@@ -1,5 +1,6 @@
 const kuroshiroPath = "https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js";
 const kuromojiPath = "https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js";
+const openCCPath = "https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.min.js";
 
 const dictPath = "https:/cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict";
 
@@ -7,8 +8,9 @@ class Translator {
 	constructor() {
 		this.includeExternal(kuroshiroPath);
 		this.includeExternal(kuromojiPath);
+		this.includeExternal(openCCPath);
 
-		this.createKuroshiro();
+		this.createTranslator();
 
 		this.finished = false;
 	}
@@ -25,6 +27,7 @@ class Translator {
 	injectExternals() {
 		this.includeExternal(kuroshiroPath);
 		this.includeExternal(kuromojiPath);
+		this.includeExternal(openCCPath);
 	}
 
 	/**
@@ -43,14 +46,16 @@ class Translator {
 		};
 	}
 
-	async createKuroshiro() {
-		if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
-			//Waiting for JSDeliver to load Kuroshiro and Kuromoji
-			setTimeout(this.createKuroshiro.bind(this), 50);
+	async createTranslator() {
+		if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined" || typeof OpenCC === "undefined") {
+			// Waiting for JSDeliver to load Kuroshiro, Kuromoji and OpenCC
+			setTimeout(this.createTranslator.bind(this), 50);
 			return;
 		}
 
 		this.kuroshiro = new Kuroshiro.default();
+
+		this.OpenCC = OpenCC;
 
 		this.applyKuromojiFix();
 
@@ -71,5 +76,19 @@ class Translator {
 			to: target,
 			mode: mode
 		});
+	}
+
+	async convertChinese(text, from, target) {
+		if (!this.finished) {
+			setTimeout(this.convertChinese.bind(this), 100, text, target);
+			return;
+		}
+
+		const converter = this.OpenCC.Converter({
+			from: from,
+			to: target
+		});
+
+		return converter(text);
 	}
 }
