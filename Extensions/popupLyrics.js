@@ -391,7 +391,7 @@ function PopupLyrics() {
 				const data = await service.call(info);
 				console.log(data);
 				sharedData = data;
-				if (sharedData.error == null) {
+				if (!sharedData.error) {
 					return;
 				}
 			} catch (err) {
