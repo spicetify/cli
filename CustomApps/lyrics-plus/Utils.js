@@ -67,29 +67,17 @@ class Utils {
 
 		const cjkMatch = rawLyrics.match(new RegExp(kanaRegex.source + "|" + /\p{Unified_Ideograph}/gu.source, "gu"));
 
-		let kanaCount = 0;
-		let tradCount = 0;
-		let simpCount = 0;
-
 		if (!cjkMatch) return;
 
-		for (const character of cjkMatch) {
-			if (character.match(kanaRegex)) {
-				kanaCount++;
-			}
-			if (character.match(simpRegex)) {
-				simpCount++;
-			}
-			if (character.match(tradRegex)) {
-				tradCount++;
-			}
-		}
+		const kanaCount = cjkMatch.filter(letter => kanaRegex.test(letter)).length;
+		const simpCount = cjkMatch.filter(letter => simpRegex.test(letter)).length;
+		const tradCount = cjkMatch.filter(letter => tradRegex.test(letter)).length;
 
 		const kanaPercentage = kanaCount / cjkMatch.length;
 		const simpPercentage = simpCount / cjkMatch.length;
 		const tradPercentage = tradCount / cjkMatch.length;
 
-		if (((kanaPercentage - (simpPercentage + tradPercentage) + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"]) {
+		if (((kanaPercentage - (1 - kanaPercentage) + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"]) {
 			return "ja";
 		}
 
