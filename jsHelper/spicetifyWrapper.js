@@ -980,101 +980,143 @@ Spicetify.ContextMenu = (function () {
     return { Item, SubMenu, _addItems };
 })();
 
-Spicetify._cloneSidebarItem = function(list) {
-    function findChild(parent, key, value) {
-        if (!parent.props) return null;
-
-        if (value && parent.props[key]?.includes(value)) {
-            return parent;
-        } else if (!parent.props.children) {
+Spicetify._cloneSidebarItem = function (list, sidebarIsCollapsed) {
+	function findChild(parent, key, value) {
+		if (!parent.props) {
             return null;
-        }else if (Array.isArray(parent.props.children)) {
-            for (const child of parent.props.children) {
-                let ele = findChild(child, key, value);
-                if (ele) {
-                    return ele;
-                }
-            }
-        } else if (parent.props.children) {
-            return findChild(parent.props.children, key, value);
-        }
-        return null;
-    }
-
-    function conditionalAppend(baseClassname, conditionalClassname, location) {
-        if (Spicetify.Platform?.History?.location && Spicetify.Platform.History.location.pathname.startsWith(location)) {
-            baseClassname += " " + conditionalClassname;
         }
 
-        return baseClassname;
-    }
+		if (value && parent.props[key]?.includes(value)) {
+			return parent;
+		} else if (!parent.props.children) {
+			return null;
+		} else if (Array.isArray(parent.props.children)) {
+			for (const child of parent.props.children) {
+				let ele = findChild(child, key, value);
+				if (ele) {
+					return ele;
+				}
+			}
+		} else if (parent.props.children) {
+			return findChild(parent.props.children, key, value);
+		}
+		return null;
+	}
 
-    const React = Spicetify.React;
-    const reactObjs = [];
-    for (const app of list) {
-        let manifest;
-        try {
-            var request = new XMLHttpRequest();
-            request.open('GET', `spicetify-routes-${app}.json`, false);
-            request.send(null);
-            manifest = JSON.parse(request.responseText);
-        } catch {
-            manifest = {};
-        }
+	function conditionalAppend(baseClassname, activeClassname, location) {
+		if (Spicetify.Platform?.History?.location?.pathname.startsWith(location)) {
+			baseClassname += " " + activeClassname;
+		}
 
-        let appProper = manifest.name;
-        if (typeof appProper === "object") {
-            appProper = appProper[Spicetify.Locale.getLocale()] || appProper["en"];
-        }
-        if (!appProper) {
-            appProper = (app[0].toUpperCase() + app.slice(1));
-        }
-        const icon = manifest.icon || "";
-        const activeIcon = manifest["active-icon"] || icon;
+		return baseClassname;
+	}
 
-        const appLink = "/" + app;
-        const link = findChild(Spicetify._sidebarItemToClone, "className", "main-navBar-navBarLink");
-        const obj = React.cloneElement(
-            Spicetify._sidebarItemToClone,
-            null,
-            React.cloneElement(
-                link,
-                {
-                    to: appLink,
-                    isActive: (e, {pathname: t})=> t.startsWith(appLink),
-                    className: conditionalAppend("link-subtle main-navBar-navBarLink", "main-navBar-navBarLinkActive", appLink),
-                },
-                React.createElement(
-                    "div",
-                    {
-                        className: "icon collection-icon",
-                        dangerouslySetInnerHTML: {
-                            __html: icon,
-                        }
-                    },
-                ),
-                React.createElement(
-                    "div",
-                    {
-                        className: "icon collection-active-icon",
-                        dangerouslySetInnerHTML: {
-                            __html: activeIcon,
-                        }
-                    },
-                ),
-                React.createElement(
-                    "span",
-                    {
-                        className: "ellipsis-one-line main-type-mestoBold"
-                    },
-                    appProper,
-                ),
-            )
-        )
-        reactObjs.push(obj);
-    }
-    return reactObjs;
-}
+	const React = Spicetify.React;
+	const reactObjs = [];
+	for (const app of list) {
+		let manifest;
+		try {
+			var request = new XMLHttpRequest();
+			request.open("GET", `spicetify-routes-${app}.json`, false);
+			request.send(null);
+			manifest = JSON.parse(request.responseText);
+		} catch {
+			manifest = {};
+		}
+
+		let appProper = manifest.name;
+		if (typeof appProper === "object") {
+			appProper = appProper[Spicetify.Locale.getLocale()] || appProper["en"];
+		}
+		if (!appProper) {
+			appProper = app[0].toUpperCase() + app.slice(1);
+		}
+		const icon = manifest.icon || "";
+		const activeIcon = manifest["active-icon"] || icon;
+
+		const appLink = "/" + app;
+		let obj, link;
+
+		if (typeof sidebarIsCollapsed === "boolean") {
+			link = findChild(Spicetify._sidebarXItemToClone, "className", "main-yourLibraryX-navLink");
+			obj = React.cloneElement(
+				Spicetify._sidebarXItemToClone,
+				null,
+				React.cloneElement(
+					Spicetify._sidebarXItemToClone.props.children,
+					{
+						label: sidebarIsCollapsed ? appProper : ""
+					},
+					React.cloneElement(
+						link,
+						{
+							to: appLink,
+							isActive: (e, { pathname: t }) => t.startsWith(appLink),
+							className: conditionalAppend("link-subtle main-yourLibraryX-navLink", "main-yourLibraryX-navLinkActive", appLink)
+						},
+						React.createElement(Spicetify.ReactComponent.IconComponent, {
+							className: "home-icon",
+							iconSize: "24",
+							dangerouslySetInnerHTML: {
+								__html: icon
+							}
+						}),
+						React.createElement(Spicetify.ReactComponent.IconComponent, {
+							className: "home-active-icon",
+							iconSize: "24",
+							dangerouslySetInnerHTML: {
+								__html: activeIcon
+							}
+						}),
+						!sidebarIsCollapsed &&
+							React.createElement(
+								Spicetify.ReactComponent.TextComponent,
+								{
+									variant: "balladBold",
+								},
+								appProper
+							)
+					)
+				)
+			);
+		} else {
+			link = findChild(Spicetify._sidebarItemToClone, "className", "main-navBar-navBarLink");
+			obj = React.cloneElement(
+				Spicetify._sidebarItemToClone,
+				null,
+				React.cloneElement(
+					link,
+					{
+						to: appLink,
+						isActive: (e, { pathname: t }) => t.startsWith(appLink),
+						className: conditionalAppend("link-subtle main-navBar-navBarLink", "main-navBar-navBarLinkActive", appLink)
+					},
+					React.createElement("div", {
+						className: "icon collection-icon",
+						dangerouslySetInnerHTML: {
+							__html: icon
+						}
+					}),
+					React.createElement("div", {
+						className: "icon collection-active-icon",
+						dangerouslySetInnerHTML: {
+							__html: activeIcon
+						}
+					}),
+					React.createElement(
+						"span",
+						{
+							className: "ellipsis-one-line main-type-mestoBold"
+						},
+						appProper
+					)
+				)
+			);
+		}
+		reactObjs.push(obj);
+	}
+	return reactObjs;
+};
 
 class _HTMLGenericModal extends HTMLElement {
     constructor() {
