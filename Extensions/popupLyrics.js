@@ -382,24 +382,21 @@ function PopupLyrics() {
 			uri: Player.data.track.uri
 		};
 
-		sharedData = { lyrics: [] };
-		let error = null;
-
 		for (let name of userConfigs.servicesOrder) {
 			const service = userConfigs.services[name];
 			if (!service.on) continue;
+			sharedData = { lyrics: [] };
 
 			try {
 				const data = await service.call(info);
 				console.log(data);
 				sharedData = data;
-				return;
+				if (sharedData.error == null) {
+					return;
+				}
 			} catch (err) {
-				error = err;
+				sharedData = { error: "No lyrics" };
 			}
-		}
-		if (error || !sharedData.lyrics) {
-			sharedData = { error: "No lyrics" };
 		}
 	}
 
