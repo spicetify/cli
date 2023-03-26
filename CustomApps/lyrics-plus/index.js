@@ -48,7 +48,7 @@ const CONFIG = {
 		["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
 		["translation-mode:japanese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:japanese") || "furigana",
 		["translation-mode:chinese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:chinese") || "cn",
-		["translate"]: getConfig("lyrics-plus:visual:translate"),
+		["translate"]: localStorage.getItem("lyrics-plus:visual:translate") || false,
 		["ja-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
 		["hans-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
 		["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
