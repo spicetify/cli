@@ -1,8 +1,4 @@
 const ProviderMusixmatch = (function () {
-	const headers = {
-		authority: "apic-desktop.musixmatch.com",
-		cookie: "x-mxm-token-guid="
-	};
 
 	async function findLyrics(info) {
 		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
@@ -28,7 +24,10 @@ const ProviderMusixmatch = (function () {
 				.map(key => key + "=" + encodeURIComponent(params[key]))
 				.join("&");
 
-		let body = await CosmosAsync.get(finalURL, null, headers);
+		let body = await CosmosAsync.get(finalURL, null, {
+			authority: "apic-desktop.musixmatch.com",
+			cookie: "x-mxm-token-guid="
+		});
 
 		body = body.message.body.macro_calls;
 
