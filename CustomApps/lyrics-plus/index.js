@@ -66,7 +66,7 @@ const CONFIG = {
 		musixmatch: {
 			on: getConfig("lyrics-plus:provider:musixmatch:on"),
 			desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://spicetify.app/docs/faq#sometimes-popup-lyrics-andor-lyrics-plus-seem-to-not-work">Spicetify Docs</a>.`,
-			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "2005218b74f939209bda92cb633c7380612e14cb7fe92dcd6a780f|2211116e5392cee08db76d4ce398786a1f2d7ba5c12a6184f28d46",
+			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
 			modes: [SYNCED, UNSYNCED]
 		},
 		spotify: {
