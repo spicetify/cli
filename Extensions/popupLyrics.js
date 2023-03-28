@@ -100,8 +100,6 @@ function PopupLyrics() {
 			const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_synched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
 
 			const durr = info.duration / 1000;
-			const tokens = userConfigs.services.musixmatch.token.split("|");
-			const usertoken = tokens[Math.floor(Math.random() * tokens.length)];
 
 			const params = {
 				q_album: info.album,
@@ -111,7 +109,7 @@ function PopupLyrics() {
 				track_spotify_id: info.uri,
 				q_duration: durr,
 				f_subtitle_length: Math.floor(durr),
-				usertoken
+				usertoken: userConfigs.services.musixmatch.token
 			};
 
 			const finalURL =
