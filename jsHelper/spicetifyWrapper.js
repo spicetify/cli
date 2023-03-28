@@ -313,7 +313,10 @@ Spicetify.LocalStorage = {
 
 Spicetify._getStyledClassName = (args, component) => {
     const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "position", "paddingBottom", "data-encore-id"];
-    const element = Array.from(args).find(e => e?.children || e?.dangerouslySetInnerHTML || includedKeys.some(key => typeof e?.[key] !== "undefined"));
+    const element = Array.from(args).find(
+		e => e?.children || e?.dangerouslySetInnerHTML || typeof e?.className !== "undefined" || includedKeys.some(key => typeof e?.[key] !== "undefined")
+	);
+
     if (!element) return;
 
     let className = /(?:\w+__)?(\w+)-[\w-]+/.exec(component.componentId)?.[1];
