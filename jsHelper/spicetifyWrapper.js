@@ -319,7 +319,7 @@ Spicetify._getStyledClassName = (args, component) => {
 
     if (!element) return;
 
-    let className = /(?:\w+__)?(\w+)-sc-([\w-])+/.exec(component.componentId)?.[1];
+    let className = /(?:\w+__)?(\w+)-[\w-]+/.exec(component.componentId)?.[1];
 
     for (const key of includedKeys) {
         if ((typeof element[key] === "string" && element[key].length) || typeof element[key] === "number") {
