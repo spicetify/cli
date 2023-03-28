@@ -8,8 +8,6 @@ const ProviderMusixmatch = (function () {
 		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
 
 		const durr = info.duration / 1000;
-		const tokens = CONFIG.providers.musixmatch.token.split("|");
-		const usertoken = tokens[Math.floor(Math.random() * tokens.length)];
 
 		const params = {
 			q_album: info.album,
@@ -19,7 +17,7 @@ const ProviderMusixmatch = (function () {
 			track_spotify_id: info.uri,
 			q_duration: durr,
 			f_subtitle_length: Math.floor(durr),
-			usertoken
+			usertoken: CONFIG.providers.musixmatch.token
 		};
 
 		const finalURL =
