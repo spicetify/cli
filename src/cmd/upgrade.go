@@ -17,7 +17,7 @@ func Upgrade(currentVersion string) bool {
 	if err != nil {
 		utils.PrintError("Cannot fetch latest release info")
 		utils.PrintError(err.Error())
-		return true
+		return false
 	}
 	utils.PrintGreen("OK")
 
