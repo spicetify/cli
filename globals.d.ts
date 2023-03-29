@@ -1043,6 +1043,21 @@ declare namespace Spicetify {
     }
 
     /**
+     * Add button in player controls
+     */
+    namespace Playbar {
+        class Button {
+            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled?: boolean, isEnabled?: boolean);
+            label: string;
+            icon: string;
+            onClick: (self: Button) => void;
+            disabled: boolean;
+            isEnabled: boolean;
+            element: HTMLButtonElement;
+        }
+    }
+
+    /**
      * SVG icons
      */
     namespace SVGIcons {

@@ -1279,6 +1279,89 @@ Spicetify.Topbar = (function() {
     return { Button };
 })();
 
+Spicetify.Playbar = (function() {
+    let rightContainer;
+    let sibling;
+    const buttonsStash = new Set();
+
+    class Button {
+        constructor(label, icon, onClick, disabled = false, isEnabled = false) {
+            this.element = document.createElement("button");
+            this.element.classList.add("main-genericButton-button");
+            this.label = label;
+            this.icon = icon;
+            this.onClick = onClick;
+            this.disabled = disabled;
+            this.isEnabled = isEnabled;
+            Array.from(sibling?.classList ?? []).forEach((className) => {
+                if (!className.startsWith("main-genericButton")) {
+                    this.element.classList.add(className);
+                }
+            });
+            buttonsStash.add(this.element);
+            rightContainer?.prepend(...buttonsStash);
+        }
+        get label() { return this._label; }
+        set label(text) {
+            this._label = text;
+            this.element.setAttribute("title", text);
+        }
+        get icon() { return this._icon; }
+        set icon(input) {
+            if (input && Spicetify.SVGIcons[input]) {
+                input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
+            }
+            this._icon = input;
+            this.element.innerHTML = input;
+        }
+        get onClick() { return this._onClick; }
+        set onClick(func) {
+            this._onClick = func;
+            this.element.onclick = () => this._onClick(this);
+        }
+        get disabled() { return this._disabled; }
+        set disabled(bool) {
+            this._disabled = bool;
+            this.element.disabled = bool;
+            if (bool) {
+                this.element.classList.add("disabled");
+            } else {
+                this.element.classList.remove("disabled");
+            }
+        }
+        set isEnabled(bool) {
+            this._isEnabled = bool;
+            if (bool) {
+                this.element.classList.add("main-genericButton-buttonActive");
+            } else {
+                this.element.classList.remove("main-genericButton-buttonActive");
+            }
+        }
+        get isEnabled() { return this._isEnabled; }
+    }
+
+    (function waitForPlaybarMounted() {
+        sibling = document.querySelector(".main-nowPlayingBar-right .main-genericButton-button");
+        rightContainer = sibling?.parentElement;
+        if (!rightContainer) {
+            setTimeout(waitForPlaybarMounted, 300);
+            return;
+        }
+        Array.from(sibling?.classList ?? []).forEach((className) => {
+            if (!className.startsWith("main-genericButton")) {
+                buttonsStash.forEach((button) => {
+                    if (!button.classList.contains(className)) {
+                        button.classList.add(className);
+                    }
+                });
+            }
+        });
+        rightContainer.prepend(...buttonsStash);
+    })();
+
+    return { Button };
+})();
+
 (function waitForHistoryAPI() {
     const main = document.querySelector(".main-view-container__scroll-node-child");
     if (!main || !Spicetify.Platform?.History) {
