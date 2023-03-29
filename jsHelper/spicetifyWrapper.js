@@ -1350,9 +1350,7 @@ Spicetify.Playbar = (function() {
         Array.from(sibling?.classList ?? []).forEach((className) => {
             if (!className.startsWith("main-genericButton")) {
                 buttonsStash.forEach((button) => {
-                    if (!button.classList.contains(className)) {
-                        button.classList.add(className);
-                    }
+                    button.classList.add(className);
                 });
             }
         });
