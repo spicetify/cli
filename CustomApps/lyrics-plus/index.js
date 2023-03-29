@@ -78,6 +78,11 @@ const CONFIG = {
 			on: getConfig("lyrics-plus:provider:genius:on"),
 			desc: `Provide unsynced lyrics with insights from artists themselves.`,
 			modes: [GENIUS]
+		},
+		local: {
+			on: getConfig("lyrics-plus:provider:local:on"),
+			desc: `Provide lyrics from cache/local files loaded from previous Spotify sessions.`,
+			modes: [KARAOKE, SYNCED, UNSYNCED]
 		}
 	},
 	providersOrder: localStorage.getItem("lyrics-plus:services-order"),
@@ -149,7 +154,8 @@ class LyricsContainer extends react.Component {
 			versionIndex: 0,
 			versionIndex2: 0,
 			isFullscreen: false,
-			isFADMode: false
+			isFADMode: false,
+			isCached: false
 		};
 		this.currentTrackUri = "";
 		this.nextTrackUri = "";
@@ -253,6 +259,8 @@ class LyricsContainer extends react.Component {
 			return;
 		}
 
+		let isCached = this.lyricsSaved(info.uri);
+
 		if (CONFIG.visual.colorful) {
 			this.fetchColors(info.uri);
 		}
@@ -262,27 +270,29 @@ class LyricsContainer extends react.Component {
 		if (mode !== -1) {
 			if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
 				this.resetDelay();
-				this.setState({ ...CACHE[info.uri] });
+				this.setState({ ...CACHE[info.uri], isCached });
 				this.translateLyrics();
 				return;
 			}
 		} else {
 			if (CACHE[info.uri]) {
 				this.resetDelay();
-				this.setState({ ...CACHE[info.uri] });
+				this.setState({ ...CACHE[info.uri], isCached });
 				this.translateLyrics();
 				return;
 			}
 		}
 
-		this.setState({ ...emptyState, isLoading: true });
+		this.setState({ ...emptyState, isLoading: true, isCached: false });
 		const resp = await this.tryServices(info, mode);
+
+		isCached = this.lyricsSaved(resp.uri);
 
 		// In case user skips tracks too fast and multiple callbacks
 		// set wrong lyrics to current track.
 		if (resp.uri === this.currentTrackUri) {
 			this.resetDelay();
-			this.setState({ ...resp, isLoading: false });
+			this.setState({ ...resp, isLoading: false, isCached });
 		}
 
 		this.translateLyrics();
@@ -368,37 +378,16 @@ class LyricsContainer extends react.Component {
 		}
 	}
 
-	parseLocalLyrics(lyrics) {
-		// Preprocess lyrics by removing [tags] and empty lines
-		const lines = lyrics
-			.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
-			.trim()
-			.split("\n");
-		const isSynced = lines[0].match(/\[([0-9:.]+)\]/);
-		const unsynced = [];
-		const synced = isSynced ? [] : null;
+	saveLocalLyrics(uri, lyrics) {
+		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
+		localLyrics[uri] = lyrics;
+		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
+		this.setState({ isCached: true });
+	}
 
-		// TODO: support for karaoke
-		// const karaoke = [];
-		// const isKaraoke = lyrics.match(/\<([0-9:.]+)\>/);
-
-		function timestampToMiliseconds(timestamp) {
-			const [minutes, seconds] = timestamp.replace(/\[\]/, "").split(":");
-			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000;
-		}
-
-		for (const line of lines) {
-			const time = line.match(/\[([0-9:.]+)\]/);
-			const lyric = line.replace(/\[([0-9:.]+)\]/, "").trim();
-
-			if (line.trim() !== "") {
-				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMiliseconds(time[1]) });
-				unsynced.push({ text: lyric || "♪" });
-			}
-		}
-
-		this.setState({ synced, unsynced, provider: "local" });
-		CACHE[this.currentTrackUri] = { synced, unsynced, provider: "local", uri: this.currentTrackUri };
+	lyricsSaved(uri) {
+		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
+		return !!localLyrics[uri];
 	}
 
 	processLyricsFromFile(event) {
@@ -410,9 +399,31 @@ class LyricsContainer extends react.Component {
 			Spicetify.showNotification("File too large", true);
 			return;
 		}
+
 		reader.onload = e => {
-			this.parseLocalLyrics(e.target.result);
+			try {
+				const localLyrics = Utils.parseLocalLyrics(e.target.result);
+				const parsedKeys = Object.keys(localLyrics)
+					.filter(key => localLyrics[key])
+					.map(key => key[0].toUpperCase() + key.slice(1))
+					.map(key => `<strong>${key}</strong>`);
+
+				if (!parsedKeys.length) {
+					Spicetify.showNotification("Nothing to load", true);
+					return;
+				}
+
+				this.setState({ ...localLyrics, provider: "local" });
+				CACHE[this.currentTrackUri] = { ...localLyrics, provider: "local", uri: this.currentTrackUri };
+				this.saveLocalLyrics(this.currentTrackUri, localLyrics);
+
+				Spicetify.showNotification(`Loaded ${parsedKeys.join(", ")} lyrics from file`);
+			} catch (e) {
+				console.error(e);
+				Spicetify.showNotification("Failed to load lyrics", true);
+			}
 		};
+
 		reader.onerror = e => {
 			console.error(e);
 			Spicetify.showNotification("Failed to read file", true);
@@ -675,7 +686,39 @@ class LyricsContainer extends react.Component {
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						label: "Lyrics from file",
+						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics",
+						showDelay: 100
+					},
+					react.createElement(
+						"button",
+						{
+							className: "lyrics-config-button",
+							onClick: () => {
+								const { synced, unsynced, karaoke } = this.state;
+								if (!synced && !unsynced && !karaoke) {
+									Spicetify.showNotification("No lyrics to cache.", true);
+									return;
+								}
+
+								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke });
+								Spicetify.showNotification("Lyrics cached.");
+							}
+						},
+						react.createElement("svg", {
+							width: 16,
+							height: 16,
+							viewBox: "0 0 16 16",
+							fill: "currentColor",
+							dangerouslySetInnerHTML: {
+								__html: Spicetify.SVGIcons[this.state.isCached ? "downloaded" : "download"]
+							}
+						})
+					)
+				),
+				react.createElement(
+					Spicetify.ReactComponent.TooltipWrapper,
+					{
+						label: "Load lyrics from file",
 						showDelay: 100
 					},
 					react.createElement(
