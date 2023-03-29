@@ -1285,14 +1285,14 @@ Spicetify.Playbar = (function() {
     const buttonsStash = new Set();
 
     class Button {
-        constructor(label, icon, onClick, disabled = false, isEnabled = false) {
+        constructor(label, icon, onClick, disabled = false, active = false) {
             this.element = document.createElement("button");
             this.element.classList.add("main-genericButton-button");
             this.label = label;
             this.icon = icon;
             this.onClick = onClick;
             this.disabled = disabled;
-            this.isEnabled = isEnabled;
+            this.active = active;
             Array.from(sibling?.classList ?? []).forEach((className) => {
                 if (!className.startsWith("main-genericButton")) {
                     this.element.classList.add(className);
@@ -1329,15 +1329,15 @@ Spicetify.Playbar = (function() {
                 this.element.classList.remove("disabled");
             }
         }
-        set isEnabled(bool) {
-            this._isEnabled = bool;
+        set active(bool) {
+            this._active = bool;
             if (bool) {
                 this.element.classList.add("main-genericButton-buttonActive");
             } else {
                 this.element.classList.remove("main-genericButton-buttonActive");
             }
         }
-        get isEnabled() { return this._isEnabled; }
+        get active() { return this._active; }
     }
 
     (function waitForPlaybarMounted() {

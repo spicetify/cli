@@ -1047,12 +1047,12 @@ declare namespace Spicetify {
      */
     namespace Playbar {
         class Button {
-            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled?: boolean, isEnabled?: boolean);
+            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean);
             label: string;
             icon: string;
             onClick: (self: Button) => void;
             disabled: boolean;
-            isEnabled: boolean;
+            active: boolean;
             element: HTMLButtonElement;
         }
     }
