@@ -20,7 +20,7 @@ var (
 		"subtext":            "b3b3b3",
 		"main":               "121212",
 		"main-elevated":      "242424",
-		"highlight":	      "1a1a1a",
+		"highlight":          "1a1a1a",
 		"highlight-elevated": "2a2a2a",
 		"sidebar":            "000000",
 		"player":             "181818",
