@@ -101,7 +101,7 @@ func init() {
 			liveUpdate = true
 		case "-u", "--update":
 			upgradeStatus := cmd.Upgrade(version)
-			if upgradeStatus != false {
+			if !upgradeStatus {
 				ex, err := os.Executable()
 				if err != nil {
 					ex = "spicetify"
