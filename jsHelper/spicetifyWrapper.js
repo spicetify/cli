@@ -1310,7 +1310,7 @@ Spicetify.Playbar = (function() {
         get icon() { return this._icon; }
         set icon(input) {
             if (input && Spicetify.SVGIcons[input]) {
-                input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
+                input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
             }
             this._icon = input;
             this.element.innerHTML = input;
