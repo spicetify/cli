@@ -1323,19 +1323,11 @@ Spicetify.Playbar = (function() {
         set disabled(bool) {
             this._disabled = bool;
             this.element.disabled = bool;
-            if (bool) {
-                this.element.classList.add("disabled");
-            } else {
-                this.element.classList.remove("disabled");
-            }
+            this.element.classList.toggle("disabled", bool);
         }
         set active(bool) {
             this._active = bool;
-            if (bool) {
-                this.element.classList.add("main-genericButton-buttonActive");
-            } else {
-                this.element.classList.remove("main-genericButton-buttonActive");
-            }
+            this.element.classList.toggle("main-genericButton-buttonActive", bool);
         }
         get active() { return this._active; }
     }
