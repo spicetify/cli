@@ -114,10 +114,10 @@ func init() {
 				}
 
 				cmd := exec.Command(ex, cmds...)
-				utils.Scanner(cmd)
+				utils.CmdScanner(cmd)
 
 				cmd = exec.Command(ex, strings.Join(commands[:], " "))
-				utils.Scanner(cmd)
+				utils.CmdScanner(cmd)
 
 				os.Exit(0)
 			}

@@ -6,7 +6,8 @@ import (
 	"os/exec"
 )
 
-func Scanner(cmd *exec.Cmd) {
+// CmdScanner is a helper function to scan output from exec.Cmd
+func CmdScanner(cmd *exec.Cmd) {
 	stdout, _ := cmd.StdoutPipe()
 	cmd.Start()
 
