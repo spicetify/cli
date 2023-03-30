@@ -1220,7 +1220,8 @@ Object.defineProperty(Spicetify, "TippyProps", {
 
             function onUpdate(prevProps, nextProps) {
               if (prevProps.content !== nextProps.content) {
-                box.textContent = nextProps.content;
+                if (nextProps.allowHTML) box.innerHTML = nextProps.content;
+                else box.textContent = nextProps.content;
               }
             }
 
