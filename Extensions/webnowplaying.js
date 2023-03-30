@@ -18,11 +18,13 @@
 
 class WNPReduxWebSocket {
 	_ws = null;
-	cache = {};
+	cache = new Map();
 	reconnectCount = 0;
 	updateInterval = null;
 	communicationRevision = null;
 	connectionTimeout = null;
+	reconnectTimeout = null;
+	isClosed = false;
 	spicetifyInfo = {
 		Player: "Spotify Desktop",
 		State: "STOPPED",
@@ -80,26 +82,27 @@ class WNPReduxWebSocket {
 		}
 	}
 
-	close() {
-		if (this.updateInterval) clearInterval(this.updateInterval);
-		if (this._ws && this._ws.readyState === WebSocket.OPEN) {
-			this._ws.onclose = null;
-			this._ws.close();
+	close(cleanupOnly = false) {
+		if (!cleanupOnly) this.isClosed = true;
+		this.cache = new Map();
+		this.communicationRevision = null;
+		if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+		if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
+		if (this.ws) {
+			this.ws.onclose = null;
+			this.ws.close();
 		}
 	}
 
 	// Clean up old variables and retry connection
 	retry() {
-		if (this._ws && this._ws.readyState === WebSocket.OPEN) return;
-		this.cache = {};
-		this.communicationRevision = null;
-		if (this.updateInterval) clearInterval(this.updateInterval);
-		if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
-		// exponential backoff reconnect with a max of 60 seconds
-		setTimeout(() => {
+		if (this.isClosed) return;
+		this.close(true);
+		// Reconnects once per second for 30 seconds, then with a exponential backoff of (2^reconnectAttempts) up to 60 seconds
+		this.reconnectTimeout = setTimeout(() => {
 			this.init();
-			this.reconnectCount += 1;
-		}, Math.min(1000 * 2 ** this.reconnectCount, 60000));
+			this.reconnectAttempts += 1;
+		}, Math.min(1000 * (this.reconnectAttempts <= 30 ? 1 : 2 ** (this.reconnectAttempts - 30)), 60000));
 	}
 
 	send(data) {
@@ -145,7 +148,7 @@ class WNPReduxWebSocket {
 				this.communicationRevision = "legacy";
 			} else if (event.data.startsWith("ADAPTER_VERSION ")) {
 				// Any WNPRedux adapter will send 'ADAPTER_VERSION <version>;WNPRLIB_REVISION <revision>' after connecting
-				[, this.communicationRevision] = event.data.split(";")[1].split(" ");
+				this.communicationRevision = event.data.split(";")[1].split(" ")[1];
 			} else {
 				// The first message wasn't version related, so it's probably WNP for Rainmeter < 0.5.0 (legacy)
 				this.communicationRevision = "legacy";
@@ -224,9 +227,9 @@ function OnMessageLegacy(self, message) {
 }
 
 function SendUpdateLegacy(self) {
-	if (!Spicetify.Player.data && cache.state !== 0) {
+	if (!Spicetify.Player.data && cache.get("state") !== 0) {
+		cache.set("state", 0);
 		ws.send("STATE:0");
-		currState = 0;
 		return;
 	}
 
@@ -245,9 +248,9 @@ function SendUpdateLegacy(self) {
 			else if (key === "Shuffle") value = value ? 1 : 0;
 
 			// Check for null, and not just falsy, because 0 and '' are falsy
-			if (value !== null && value !== self.cache[key]) {
+			if (value !== null && value !== self.cache.get(key)) {
 				self.send(`${key.toUpperCase()}:${value}`);
-				self.cache[key] = value;
+				self.cache.set(key, value);
 			}
 		} catch (e) {
 			self.send(`Error: Error updating ${key} for ${self.spicetifyInfo.Player}`);
@@ -313,9 +316,9 @@ function OnMessageRev1(self, message) {
 }
 
 function SendUpdateRev1(self) {
-	if (!Spicetify.Player.data && cache.state !== "STOPPED") {
+	if (!Spicetify.Player.data && cache.get("state") !== "STOPPED") {
+		cache.set("state", "STOPPED");
 		ws.send("STATE STOPPED");
-		currState = "STOPPED";
 		return;
 	}
 
@@ -328,9 +331,9 @@ function SendUpdateRev1(self) {
 			// For numbers, round it to an integer
 			if (typeof value === "number") value = Math.round(value);
 			// Check for null, and not just falsy, because 0 and '' are falsy
-			if (value !== null && value !== self.cache[key]) {
+			if (value !== null && value !== self.cache.get(key)) {
 				self.send(`${key.toUpperCase()} ${value}`);
-				self.cache[key] = value;
+				self.cache.set(key, value);
 			}
 		} catch (e) {
 			self.send(`ERROR Error updating ${key} for ${self.spicetifyInfo.Player}`);
