@@ -99,7 +99,7 @@ func init() {
 			appFocus = true
 			styleFocus = true
 			liveUpdate = true
-		case "-u", "--update":
+		case "--check-update":
 			upgradeStatus := cmd.Upgrade(version)
 			if upgradeStatus {
 				ex, err := os.Executable()
