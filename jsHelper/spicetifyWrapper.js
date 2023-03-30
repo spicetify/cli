@@ -1337,6 +1337,7 @@ Spicetify.Playbar = (function() {
         constructor(label, icon, onClick, disabled = false, active = false) {
             this.element = document.createElement("button");
             this.element.classList.add("main-genericButton-button");
+            this.element.style.display = "block";
             this.icon = icon;
             this.onClick = onClick;
             this.disabled = disabled;
@@ -1388,7 +1389,7 @@ Spicetify.Playbar = (function() {
 
     (function waitForPlaybarMounted() {
         sibling = document.querySelector(".main-nowPlayingBar-right .main-genericButton-button");
-        rightContainer = sibling?.parentElement;
+        rightContainer = document.querySelector(".main-nowPlayingBar-right > div");
         if (!rightContainer) {
             setTimeout(waitForPlaybarMounted, 300);
             return;
