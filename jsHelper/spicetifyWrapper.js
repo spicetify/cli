@@ -1206,7 +1206,7 @@ Spicetify.ReactComponent = {};
 
 Object.defineProperty(Spicetify, "TippyProps", {
     value: {
-        delay: [500, 0],
+        delay: [200, 0],
         animation: true,
         render(instance) {
             const popper = document.createElement('div');

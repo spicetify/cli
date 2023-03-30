@@ -377,7 +377,7 @@ Spicetify.React.useEffect(() => {
 		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
 
 	// React Component: Tooltip Wrapper
-	utils.Replace(
+	utils.ReplaceOnce(
 		&input,
 		`(\w+)(=(?:function\([\{\w\}:,]+\)|\()\{(?:[\w. =]*(?:label|children|renderInline|showDelay)[\w:]*,?){4})`,
 		`${1}=Spicetify.ReactComponent.TooltipWrapper${2}`)
