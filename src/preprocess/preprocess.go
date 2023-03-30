@@ -504,6 +504,11 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		`(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)`,
 		`${1}=Spicetify._getStyledClassName(arguments,this)`)
 
+	utils.Replace(
+		&input,
+		`([\w$_]+)\.setDefaultProps=`,
+		`Spicetify.Tippy=${1};${0}`)
+
 	return input
 }
 

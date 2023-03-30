@@ -1204,6 +1204,47 @@ Spicetify.PopupModal = new _HTMLGenericModal();
 
 Spicetify.ReactComponent = {};
 
+Object.defineProperty(Spicetify, "TippyProps", {
+    value: {
+        delay: [500, 0],
+        animation: true,
+        render(instance) {
+            const popper = document.createElement('div');
+            const box = document.createElement('div');
+
+            popper.id = "context-menu";
+            popper.appendChild(box);
+
+            box.className = "main-contextMenu-tippy"
+            box.textContent = instance.props.content;
+
+            function onUpdate(prevProps, nextProps) {
+              if (prevProps.content !== nextProps.content) {
+                box.textContent = nextProps.content;
+              }
+            }
+
+            return { popper, onUpdate }
+        },
+        onShow(instance) {
+            instance.popper.firstChild.classList.add("main-contextMenu-tippyEnter");
+        },
+        onMount(instance) {
+            requestAnimationFrame(() => {
+                instance.popper.firstChild.classList.remove("main-contextMenu-tippyEnter");
+                instance.popper.firstChild.classList.add("main-contextMenu-tippyEnterActive");
+            });
+        },
+        onHide(instance) {
+            requestAnimationFrame(() => {
+                instance.popper.firstChild.classList.remove("main-contextMenu-tippyEnterActive");
+                instance.unmount();
+            });
+        },
+    },
+    writable: false,
+});
+
 Spicetify.Topbar = (function() {
     let leftContainer;
     const buttonsStash = new Set();
@@ -1212,17 +1253,23 @@ Spicetify.Topbar = (function() {
         constructor(label, icon, onClick, disabled = false) {
             this.element = document.createElement("button");
             this.element.classList.add("main-topBar-button");
-            this.label = label;
             this.icon = icon;
             this.onClick = onClick;
             this.disabled = disabled;
+            this.tippy = Spicetify.Tippy?.(this.element, {
+                content: label,
+                placement: "bottom",
+                ...Spicetify.TippyProps,
+            });
+            this.label = label;
             buttonsStash.add(this.element);
             leftContainer?.append(...buttonsStash);
         }
         get label() { return this._label; }
         set label(text) {
             this._label = text;
-            this.element.setAttribute("title", text);
+            if (!this.tippy) this.element.setAttribute("title", text);
+            else this.tippy.setContent(text);
         }
         get icon() { return this._icon; }
         set icon(input) {
@@ -1289,7 +1336,6 @@ Spicetify.Playbar = (function() {
         constructor(label, icon, onClick, disabled = false, active = false) {
             this.element = document.createElement("button");
             this.element.classList.add("main-genericButton-button");
-            this.label = label;
             this.icon = icon;
             this.onClick = onClick;
             this.disabled = disabled;
@@ -1299,13 +1345,19 @@ Spicetify.Playbar = (function() {
                     this.element.classList.add(className);
                 }
             });
+            this.tippy = Spicetify.Tippy?.(this.element, {
+                content: label,
+                ...Spicetify.TippyProps,
+            });
+            this.label = label;
             buttonsStash.add(this.element);
             rightContainer?.prepend(...buttonsStash);
         }
         get label() { return this._label; }
         set label(text) {
             this._label = text;
-            this.element.setAttribute("title", text);
+            if (!this.tippy) this.element.setAttribute("title", text);
+            else this.tippy.setContent(text);
         }
         get icon() { return this._icon; }
         set icon(input) {
