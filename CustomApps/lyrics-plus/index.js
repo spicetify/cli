@@ -478,7 +478,7 @@ class LyricsContainer extends react.Component {
 
 		this.viewPort = document.querySelector(".Root__main-view .os-viewport");
 
-		this.configButton = new Spicetify.Menu.Item("Lyrics Plus config", false, openConfig);
+		this.configButton = new Spicetify.Menu.Item("Lyrics Plus config", false, openConfig, "lyrics");
 		this.configButton.register();
 
 		this.onFontSizeChange = event => {
