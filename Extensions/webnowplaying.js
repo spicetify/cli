@@ -18,25 +18,27 @@
 
 class WNPReduxWebSocket {
 	_ws = null;
-	cache = {};
+	cache = new Map();
 	reconnectCount = 0;
 	updateInterval = null;
 	communicationRevision = null;
 	connectionTimeout = null;
+	reconnectTimeout = null;
+	isClosed = false;
 	spicetifyInfo = {
-		Player: "Spotify Desktop",
-		State: "STOPPED",
-		Title: "",
-		Artist: "",
-		Album: "",
-		Cover: "",
-		Duration: "0:00",
-		// Position and Volume are fetched in sendUpdate()
-		Position: "0:00",
-		Volume: 100,
-		Rating: 0,
-		Repeat: "NONE",
-		Shuffle: false
+		player: "Spotify Desktop",
+		state: "STOPPED",
+		title: "",
+		artist: "",
+		album: "",
+		cover: "",
+		duration: "0:00",
+		// position and volume are fetched in sendUpdate()
+		position: "0:00",
+		volume: 100,
+		rating: 0,
+		repeat: "NONE",
+		shuffle: false
 	};
 
 	constructor() {
@@ -47,25 +49,25 @@ class WNPReduxWebSocket {
 	updateSpicetifyInfo(data) {
 		if (!data?.track?.metadata) return;
 		const meta = data.track.metadata;
-		this.spicetifyInfo.Title = meta.title;
-		this.spicetifyInfo.Album = meta.album_title;
-		this.spicetifyInfo.Duration = timeInSecondsToString(Math.round(parseInt(meta.duration) / 1000));
-		this.spicetifyInfo.State = !data.is_paused ? "PLAYING" : "PAUSED";
-		this.spicetifyInfo.Repeat = data.options.repeating_track ? "ONE" : data.options.repeating_context ? "ALL" : "NONE";
-		this.spicetifyInfo.Shuffle = data.options.shuffling_context;
-		this.spicetifyInfo.Artist = meta.artist_name;
+		this.spicetifyInfo.title = meta.title;
+		this.spicetifyInfo.album = meta.album_title;
+		this.spicetifyInfo.duration = timeInSecondsToString(Math.round(parseInt(meta.duration) / 1000));
+		this.spicetifyInfo.state = !data.is_paused ? "PLAYING" : "PAUSED";
+		this.spicetifyInfo.repeat = data.options.repeating_track ? "ONE" : data.options.repeating_context ? "ALL" : "NONE";
+		this.spicetifyInfo.shuffle = data.options.shuffling_context;
+		this.spicetifyInfo.artist = meta.artist_name;
 		let artistCount = 1;
 		while (meta["artist_name:" + artistCount]) {
-			this.spicetifyInfo.Artist += ", " + meta["artist_name:" + artistCount];
+			this.spicetifyInfo.artist += ", " + meta["artist_name:" + artistCount];
 			artistCount++;
 		}
-		if (!this.spicetifyInfo.Artist) this.spicetifyInfo.Artist = meta.album_title; // Podcast
+		if (!this.spicetifyInfo.artist) this.spicetifyInfo.artist = meta.album_title; // Podcast
 
-		Spicetify.Platform.LibraryAPI.contains(data.track.uri).then(([added]) => (this.spicetifyInfo.Rating = added ? 5 : 0));
+		Spicetify.Platform.LibraryAPI.contains(data.track.uri).then(([added]) => (this.spicetifyInfo.rating = added ? 5 : 0));
 
 		const cover = meta.image_xlarge_url;
-		if (cover?.indexOf("localfile") === -1) this.spicetifyInfo.Cover = "https://i.scdn.co/image/" + cover.substring(cover.lastIndexOf(":") + 1);
-		else this.spicetifyInfo.Cover = "";
+		if (cover?.indexOf("localfile") === -1) this.spicetifyInfo.cover = "https://i.scdn.co/image/" + cover.substring(cover.lastIndexOf(":") + 1);
+		else this.spicetifyInfo.cover = "";
 	}
 
 	init() {
@@ -80,26 +82,27 @@ class WNPReduxWebSocket {
 		}
 	}
 
-	close() {
-		if (this.updateInterval) clearInterval(this.updateInterval);
-		if (this._ws && this._ws.readyState === WebSocket.OPEN) {
-			this._ws.onclose = null;
-			this._ws.close();
+	close(cleanupOnly = false) {
+		if (!cleanupOnly) this.isClosed = true;
+		this.cache = new Map();
+		this.communicationRevision = null;
+		if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+		if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
+		if (this.ws) {
+			this.ws.onclose = null;
+			this.ws.close();
 		}
 	}
 
 	// Clean up old variables and retry connection
 	retry() {
-		if (this._ws && this._ws.readyState === WebSocket.OPEN) return;
-		this.cache = {};
-		this.communicationRevision = null;
-		if (this.updateInterval) clearInterval(this.updateInterval);
-		if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
-		// exponential backoff reconnect with a max of 60 seconds
-		setTimeout(() => {
+		if (this.isClosed) return;
+		this.close(true);
+		// Reconnects once per second for 30 seconds, then with a exponential backoff of (2^reconnectAttempts) up to 60 seconds
+		this.reconnectTimeout = setTimeout(() => {
 			this.init();
-			this.reconnectCount += 1;
-		}, Math.min(1000 * 2 ** this.reconnectCount, 60000));
+			this.reconnectAttempts += 1;
+		}, Math.min(1000 * (this.reconnectAttempts <= 30 ? 1 : 2 ** (this.reconnectAttempts - 30)), 60000));
 	}
 
 	send(data) {
@@ -145,7 +148,7 @@ class WNPReduxWebSocket {
 				this.communicationRevision = "legacy";
 			} else if (event.data.startsWith("ADAPTER_VERSION ")) {
 				// Any WNPRedux adapter will send 'ADAPTER_VERSION <version>;WNPRLIB_REVISION <revision>' after connecting
-				[, this.communicationRevision] = event.data.split(";")[1].split(" ");
+				this.communicationRevision = event.data.split(";")[1].split(" ")[1];
 			} else {
 				// The first message wasn't version related, so it's probably WNP for Rainmeter < 0.5.0 (legacy)
 				this.communicationRevision = "legacy";
@@ -173,7 +176,7 @@ function OnMessageLegacy(self, message) {
 		switch (type) {
 			case "PLAYPAUSE": {
 				Spicetify.Player.togglePlay();
-				self.spicetifyInfo.State = self.spicetifyInfo.State === "PLAYING" ? "PAUSED" : "PLAYING";
+				self.spicetifyInfo.state = self.spicetifyInfo.state === "PLAYING" ? "PAUSED" : "PLAYING";
 				break;
 			}
 			case "NEXT":
@@ -193,45 +196,45 @@ function OnMessageLegacy(self, message) {
 				break;
 			case "REPEAT": {
 				Spicetify.Player.toggleRepeat();
-				self.spicetifyInfo.Repeat = self.spicetifyInfo.Repeat === "NONE" ? "ALL" : self.spicetifyInfo.Repeat === "ALL" ? "ONE" : "NONE";
+				self.spicetifyInfo.repeat = self.spicetifyInfo.repeat === "NONE" ? "ALL" : self.spicetifyInfo.repeat === "ALL" ? "ONE" : "NONE";
 				break;
 			}
 			case "SHUFFLE": {
 				Spicetify.Player.toggleShuffle();
-				self.spicetifyInfo.Shuffle = !self.spicetifyInfo.Shuffle;
+				self.spicetifyInfo.shuffle = !self.spicetifyInfo.shuffle;
 				break;
 			}
 			case "TOGGLETHUMBSUP": {
 				Spicetify.Player.toggleHeart();
-				self.spicetifyInfo.Rating = self.spicetifyInfo.Rating === 5 ? 0 : 5;
+				self.spicetifyInfo.rating = self.spicetifyInfo.rating === 5 ? 0 : 5;
 				break;
 			}
 			// Spotify doesn't have a negative rating
 			// case 'TOGGLETHUMBSDOWN': break
 			case "RATING": {
 				const rating = parseInt(data);
-				const isLiked = storage.RATING > 3;
+				const isLiked = self.spicetifyInfo.rating > 3;
 				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
 				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();
-				self.spicetifyInfo.Rating = rating;
+				self.spicetifyInfo.rating = rating;
 				break;
 			}
 		}
 	} catch (e) {
-		self.send(`Error:Error sending event to ${self.spicetifyInfo.Player}`);
+		self.send(`Error:Error sending event to ${self.spicetifyInfo.player}`);
 		self.send(`ErrorD:${e}`);
 	}
 }
 
 function SendUpdateLegacy(self) {
-	if (!Spicetify.Player.data && cache.state !== 0) {
+	if (!Spicetify.Player.data && cache.get("state") !== 0) {
+		cache.set("state", 0);
 		ws.send("STATE:0");
-		currState = 0;
 		return;
 	}
 
-	self.spicetifyInfo.Position = timeInSecondsToString(Math.round(Spicetify.Player.getProgress() / 1000));
-	self.spicetifyInfo.Volume = Math.round(Spicetify.Player.getVolume() * 100);
+	self.spicetifyInfo.position = timeInSecondsToString(Math.round(Spicetify.Player.getProgress() / 1000));
+	self.spicetifyInfo.volume = Math.round(Spicetify.Player.getVolume() * 100);
 
 	Object.keys(self.spicetifyInfo).forEach(key => {
 		try {
@@ -240,17 +243,17 @@ function SendUpdateLegacy(self) {
 			if (typeof value === "number") value = Math.round(value);
 
 			// Conversion to legacy values
-			if (key === "State") value = value === "PLAYING" ? 1 : value === "PAUSED" ? 2 : 0;
-			else if (key === "Repeat") value = value === "ALL" ? 2 : value === "ONE" ? 1 : 0;
-			else if (key === "Shuffle") value = value ? 1 : 0;
+			if (key === "state") value = value === "PLAYING" ? 1 : value === "PAUSED" ? 2 : 0;
+			else if (key === "repeat") value = value === "ALL" ? 2 : value === "ONE" ? 1 : 0;
+			else if (key === "shuffle") value = value ? 1 : 0;
 
 			// Check for null, and not just falsy, because 0 and '' are falsy
-			if (value !== null && value !== self.cache[key]) {
+			if (value !== null && value !== self.cache.get(key)) {
 				self.send(`${key.toUpperCase()}:${value}`);
-				self.cache[key] = value;
+				self.cache.set(key, value);
 			}
 		} catch (e) {
-			self.send(`Error: Error updating ${key} for ${self.spicetifyInfo.Player}`);
+			self.send(`Error: Error updating ${key} for ${self.spicetifyInfo.player}`);
 			self.send(`ErrorD:${e}`);
 		}
 	});
@@ -264,7 +267,7 @@ function OnMessageRev1(self, message) {
 		switch (type) {
 			case "TOGGLE_PLAYING": {
 				Spicetify.Player.togglePlay();
-				self.spicetifyInfo.State = self.spicetifyInfo.State === "PLAYING" ? "PAUSED" : "PLAYING";
+				self.spicetifyInfo.state = self.spicetifyInfo.state === "PLAYING" ? "PAUSED" : "PLAYING";
 				break;
 			}
 			case "NEXT":
@@ -283,44 +286,44 @@ function OnMessageRev1(self, message) {
 				break;
 			case "TOGGLE_REPEAT": {
 				Spicetify.Player.toggleRepeat();
-				self.spicetifyInfo.Repeat = self.spicetifyInfo.Repeat === "NONE" ? "ALL" : self.spicetifyInfo.Repeat === "ALL" ? "ONE" : "NONE";
+				self.spicetifyInfo.repeat = self.spicetifyInfo.repeat === "NONE" ? "ALL" : self.spicetifyInfo.repeat === "ALL" ? "ONE" : "NONE";
 				break;
 			}
 			case "TOGGLE_SHUFFLE": {
 				Spicetify.Player.toggleShuffle();
-				self.spicetifyInfo.Shuffle = !self.spicetifyInfo.Shuffle;
+				self.spicetifyInfo.shuffle = !self.spicetifyInfo.shuffle;
 				break;
 			}
 			case "TOGGLE_THUMBS_UP": {
 				Spicetify.Player.toggleHeart();
-				self.spicetifyInfo.Rating = self.spicetifyInfo.Rating === 5 ? 0 : 5;
+				self.spicetifyInfo.rating = self.spicetifyInfo.rating === 5 ? 0 : 5;
 				break;
 			}
 			// Spotify doesn't have a negative rating
 			// case 'TOGGLE_THUMBS_DOWN': break
 			case "SET_RATING":
 				const rating = parseInt(data);
-				const isLiked = storage.RATING > 3;
+				const isLiked = self.spicetifyInfo.rating > 3;
 				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
 				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();
-				self.spicetifyInfo.Rating = rating;
+				self.spicetifyInfo.rating = rating;
 				break;
 		}
 	} catch (e) {
-		self.send(`ERROR Error sending event to ${self.spicetifyInfo.Player}`);
+		self.send(`ERROR Error sending event to ${self.spicetifyInfo.player}`);
 		self.send(`ERRORDEBUG ${e}`);
 	}
 }
 
 function SendUpdateRev1(self) {
-	if (!Spicetify.Player.data && cache.state !== "STOPPED") {
+	if (!Spicetify.Player.data && cache.get("state") !== "STOPPED") {
+		cache.set("state", "STOPPED");
 		ws.send("STATE STOPPED");
-		currState = "STOPPED";
 		return;
 	}
 
-	self.spicetifyInfo.Position = timeInSecondsToString(Math.round(Spicetify.Player.getProgress() / 1000));
-	self.spicetifyInfo.Volume = Math.round(Spicetify.Player.getVolume() * 100);
+	self.spicetifyInfo.position = timeInSecondsToString(Math.round(Spicetify.Player.getProgress() / 1000));
+	self.spicetifyInfo.volume = Math.round(Spicetify.Player.getVolume() * 100);
 
 	Object.keys(self.spicetifyInfo).forEach(key => {
 		try {
@@ -328,12 +331,12 @@ function SendUpdateRev1(self) {
 			// For numbers, round it to an integer
 			if (typeof value === "number") value = Math.round(value);
 			// Check for null, and not just falsy, because 0 and '' are falsy
-			if (value !== null && value !== self.cache[key]) {
+			if (value !== null && value !== self.cache.get(key)) {
 				self.send(`${key.toUpperCase()} ${value}`);
-				self.cache[key] = value;
+				self.cache.set(key, value);
 			}
 		} catch (e) {
-			self.send(`ERROR Error updating ${key} for ${self.spicetifyInfo.Player}`);
+			self.send(`ERROR Error updating ${key} for ${self.spicetifyInfo.player}`);
 			self.send(`ERRORDEBUG ${e}`);
 		}
 	});
