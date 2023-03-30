@@ -213,7 +213,7 @@ function OnMessageLegacy(self, message) {
 			// case 'TOGGLETHUMBSDOWN': break
 			case "RATING": {
 				const rating = parseInt(data);
-				const isLiked = storage.RATING > 3;
+				const isLiked = self.spicetifyInfo.Rating > 3;
 				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
 				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();
 				self.spicetifyInfo.Rating = rating;
@@ -303,7 +303,7 @@ function OnMessageRev1(self, message) {
 			// case 'TOGGLE_THUMBS_DOWN': break
 			case "SET_RATING":
 				const rating = parseInt(data);
-				const isLiked = storage.RATING > 3;
+				const isLiked = self.spicetifyInfo.Rating > 3;
 				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
 				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();
 				self.spicetifyInfo.Rating = rating;
