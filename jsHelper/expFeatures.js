@@ -1,26 +1,20 @@
 (function () {
 	let overrideList,
-		newFeatures = [],
+		prevSessionOverrideList = [],
 		hooksPatched = false,
 		featureMap = {};
 
 	try {
 		overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
 		if (!overrideList || overrideList !== Object(overrideList)) throw "";
+		prevSessionOverrideList = Object.keys(overrideList);
 	} catch {
 		overrideList = {};
-	}
-
-	try {
-		remoteConfig = JSON.parse(localStorage.getItem("spicetify-remote-config"));
-		if (!remoteConfig || remoteConfig !== Object(remoteConfig)) throw "";
-	} catch {
-		remoteConfig = {};
+		prevSessionOverrideList = [];
 	}
 
 	Spicetify.expFeatureOverride = function (feature) {
 		hooksPatched = true;
-		newFeatures.push(feature.name);
 
 		switch (feature.type) {
 			case "enum":
@@ -35,16 +29,6 @@
 				}
 				feature.default = overrideList[feature.name].value;
 				break;
-		}
-
-		if (remoteConfig[feature.name] !== undefined && overrideList[feature.name]) {
-			feature.default = remoteConfig[feature.name];
-			overrideList[feature.name].value = remoteConfig[feature.name];
-		}
-
-		// Internal stuff may changes after updates, filter if so
-		if (overrideList[feature.name] && typeof overrideList[feature.name].value !== typeof feature.default) {
-			newFeatures = newFeatures.filter(f => f !== feature.name);
 		}
 
 		localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
@@ -154,12 +138,10 @@
 			return;
 		}
 
-		localStorage.removeItem("spicetify-remote-config");
-
-		const { setOverrides, remoteConfiguration } = Spicetify.RemoteConfigResolver.value;
+		const { setOverrides, localConfiguration, remoteConfiguration } = Spicetify.RemoteConfigResolver.value;
 
 		Object.keys(overrideList).forEach(key => {
-			if (newFeatures.length > 0 && !newFeatures.includes(key)) {
+			if (!localConfiguration.values.has(key)) {
 				delete overrideList[key];
 				console.warn(`[spicetify-exp-features] Removed ${key} from override list`);
 				localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
@@ -261,14 +243,7 @@
                         </div>`;
 			const resetButton = resetRow.querySelector("button.reset");
 			resetButton.onclick = () => {
-				const defaultRemoteConfig = remoteConfiguration.values;
-				featureMap = {};
-
 				localStorage.removeItem("spicetify-exp-features");
-				defaultRemoteConfig.forEach((value, name) => {
-					featureMap[name] = value;
-				});
-				localStorage.setItem("spicetify-remote-config", JSON.stringify(featureMap));
 				window.location.reload();
 			};
 
@@ -278,6 +253,12 @@
 		content.appendChild(searchBar());
 
 		Object.keys(overrideList).forEach(name => {
+			// If features are not stored in the previous session, use the remote value
+			if (!prevSessionOverrideList.includes(name) && remoteConfiguration.values.has(name)) {
+				overrideList[name].value = remoteConfiguration.values.get(name);
+				console.log(name, remoteConfiguration.values.get(name), overrideList[name]);
+			}
+
 			const feature = overrideList[name];
 
 			if (!overrideList[name]?.description) return;
