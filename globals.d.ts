@@ -1048,7 +1048,7 @@ declare namespace Spicetify {
      */
     namespace Playbar {
         class Button {
-            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean);
+            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
             label: string;
             icon: string;
             onClick: (self: Button) => void;
@@ -1056,6 +1056,8 @@ declare namespace Spicetify {
             active: boolean;
             element: HTMLButtonElement;
             tippy: any;
+            register: () => void;
+            deregister: () => void;
         }
     }
 

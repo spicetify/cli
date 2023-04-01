@@ -1334,7 +1334,7 @@ Spicetify.Playbar = (function() {
     const buttonsStash = new Set();
 
     class Button {
-        constructor(label, icon, onClick, disabled = false, active = false) {
+        constructor(label, icon, onClick, disabled = false, active = false, registerOnCreate = true) {
             this.element = document.createElement("button");
             this.element.classList.add("main-genericButton-button");
             this.element.style.display = "block";
@@ -1352,8 +1352,7 @@ Spicetify.Playbar = (function() {
                 ...Spicetify.TippyProps,
             });
             this.label = label;
-            buttonsStash.add(this.element);
-            rightContainer?.prepend(...buttonsStash);
+            registerOnCreate && this.register();
         }
         get label() { return this._label; }
         set label(text) {
@@ -1385,6 +1384,14 @@ Spicetify.Playbar = (function() {
             this.element.classList.toggle("main-genericButton-buttonActive", bool);
         }
         get active() { return this._active; }
+        register() {
+            buttonsStash.add(this.element);
+            rightContainer?.prepend(...buttonsStash);
+        }
+        deregister() {
+            buttonsStash.delete(this.element);
+            this.element.remove();
+        }
     }
 
     (function waitForPlaybarMounted() {
