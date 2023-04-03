@@ -396,6 +396,7 @@ div.lyrics-tabBar-headerItemLink {
 }
 
 .lyrics-versionSelector {
+	max-width: 500px;
 	border-radius: 4px;
 	display: inline-block;
 	position: relative;
@@ -662,7 +663,6 @@ button.switch.small {
 }
 .split .lyrics-versionSelector select {
 	width: 100%;
-	max-width: 100%;
 }
 
 @media (min-width: 1024px) {
