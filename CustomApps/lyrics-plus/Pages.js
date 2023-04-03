@@ -560,7 +560,6 @@ const GeniusPage = react.memo(
 		);
 
 		let mainContainer = [lyricsEl1];
-		//remove "&& false" below to restore the split display
 		const shouldSplit = versions.length > 1 && isSplitted;
 
 		if (shouldSplit) {
