@@ -331,6 +331,13 @@ Spicetify._getStyledClassName = (args, component) => {
     const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", ""];
     const excludedPrefix = ["aria-"];
 
+
+    const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
+
+    for (const key of childrenProps) {
+        if (element[key]) className += `-${key}`;
+    }
+
     const booleanKeys = Object.keys(element).filter(key => typeof element[key] === "boolean" && element[key]);
 
     for (const key of booleanKeys) {
