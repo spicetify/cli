@@ -649,3 +649,38 @@ button.switch.small {
 .lyrics-lyricsContainer-UnsyncedLyricsPage .split > div {
 	flex: 50%;
 }
+.lyrics-lyricsContainer-UnsyncedLyricsPage .split > div > div {
+	margin-left: 0;
+	margin-right: 0;
+}
+.split .lyrics-lyricsContainer-LyricsLine {
+	padding-left: 50px;
+	padding-right: 50px;
+}
+.split .lyrics-versionSelector {
+	width: calc(100% - 100px);
+}
+.split .lyrics-versionSelector select {
+	width: 100%;
+	max-width: 100%;
+}
+
+@media (min-width: 1024px) {
+	.split .lyrics-lyricsContainer-LyricsLine {
+		padding-left: 75px;
+		padding-right: 75px;
+	}
+	.split .lyrics-versionSelector {
+		width: calc(100% - 150px);
+	}
+}
+
+@media (min-width: 1280px) {
+	.split .lyrics-lyricsContainer-LyricsLine {
+		padding-left: 100px;
+		padding-right: 100px;
+	}
+	.split .lyrics-versionSelector {
+		width: calc(100% - 200px);
+	}
+}
