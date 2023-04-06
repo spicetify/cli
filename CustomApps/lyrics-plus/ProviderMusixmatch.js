@@ -57,7 +57,6 @@ const ProviderMusixmatch = (function () {
 
 		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
 
-
 		const params = {
 			subtitle_length: meta.track.track_length,
 			commontrack_id: meta.track.commontrack_id,
@@ -78,7 +77,7 @@ const ProviderMusixmatch = (function () {
 
 		result = result.message.body;
 
-		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map((e) => {
+		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map(e => {
 			const words = e.l.map((f, i, a) => {
 				let time;
 				if (a[i + 1]?.o) {
@@ -93,7 +92,7 @@ const ProviderMusixmatch = (function () {
 				};
 			});
 			return {
-				startTime: (e.ts * 1000),
+				startTime: e.ts * 1000,
 				text: words
 			};
 		});
