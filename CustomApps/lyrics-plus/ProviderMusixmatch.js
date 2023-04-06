@@ -83,6 +83,7 @@ const ProviderMusixmatch = (function () {
 			const words = line.l;
 
 			const text = words.map((word, index, words) => {
+				const wordText = word.c;
 				const wordStartTime = word.o * 1000;
 				const nextWordStartTime = words[index + 1]?.o || null;
 
@@ -95,7 +96,7 @@ const ProviderMusixmatch = (function () {
 				}
 
 				return {
-					word: word.c,
+					word: wordText,
 					time
 				};
 			});
