@@ -87,13 +87,7 @@ const ProviderMusixmatch = (function () {
 				const wordStartTime = word.o * 1000;
 				const nextWordStartTime = words[index + 1]?.o || null;
 
-				let time;
-
-				if (nextWordStartTime) {
-					time = nextWordStartTime - wordStartTime;
-				} else {
-					time = endTime - (wordStartTime + startTime);
-				}
+				const time = nextWordStartTime ? nextWordStartTime - wordStartTime : endTime - (wordStartTime + startTime);
 
 				return {
 					word: wordText,
