@@ -97,7 +97,6 @@ const ProviderMusixmatch = (function () {
 				text: words
 			};
 		});
-		console.log({parsedKaraoke});
 
 		return parsedKaraoke;
 	}
