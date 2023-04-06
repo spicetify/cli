@@ -696,12 +696,12 @@ class LyricsContainer extends react.Component {
 							onClick: () => {
 								const { synced, unsynced, karaoke } = this.state;
 								if (!synced && !unsynced && !karaoke) {
-									Spicetify.showNotification("No lyrics to cache.", true);
+									Spicetify.showNotification("No lyrics to cache", true);
 									return;
 								}
 
 								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke });
-								Spicetify.showNotification("Lyrics cached.");
+								Spicetify.showNotification("Lyrics cached");
 							}
 						},
 						react.createElement("svg", {
