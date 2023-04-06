@@ -77,23 +77,31 @@ const ProviderMusixmatch = (function () {
 
 		result = result.message.body;
 
-		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map(e => {
-			const words = e.l.map((f, i, a) => {
+		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map(line => {
+			const startTime = line.ts * 1000;
+			const endTime = line.te * 1000;
+			const words = line.l;
+
+			const text = words.map((word, index, words) => {
+				const wordStartTime = word.o * 1000;
+				const nextWordStartTime = words[index + 1]?.o || null;
+
 				let time;
-				if (a[i + 1]?.o) {
-					time = a[i + 1]?.o - f.o;
+
+				if (nextWordStartTime) {
+					time = nextWordStartTime - wordStartTime;
 				} else {
-					time = e.te - (f.o + e.ts);
+					time = endTime - (wordStartTime + startTime);
 				}
-				time = Math.floor(time * 1000);
+
 				return {
-					word: f.c,
+					word: word.c,
 					time
 				};
 			});
 			return {
-				startTime: e.ts * 1000,
-				text: words
+				startTime,
+				text
 			};
 		});
 
