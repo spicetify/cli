@@ -45,6 +45,63 @@ const ProviderMusixmatch = (function () {
 		return body;
 	}
 
+	async function getKaraoke(body) {
+		const meta = body?.["matcher.track.get"]?.message?.body;
+		if (!meta) {
+			return null;
+		}
+
+		if (!meta.track.has_richsync || meta.track.instrumental) {
+			return null;
+		}
+
+		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
+
+
+		const params = {
+			subtitle_length: meta.track.track_length,
+			commontrack_id: meta.track.commontrack_id,
+			usertoken: CONFIG.providers.musixmatch.token
+		};
+
+		const finalURL =
+			baseURL +
+			Object.keys(params)
+				.map(key => key + "=" + encodeURIComponent(params[key]))
+				.join("&");
+
+		let result = await CosmosAsync.get(finalURL, null, headers);
+
+		if (result.message.header.status_code != 200) {
+			return null;
+		}
+
+		result = result.message.body;
+
+		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map((e) => {
+			const words = e.l.map((f, i, a) => {
+				let time;
+				if (a[i + 1]?.o) {
+					time = a[i + 1]?.o - f.o;
+				} else {
+					time = e.te - (f.o + e.ts);
+				}
+				time = Math.floor(time * 1000);
+				return {
+					word: f.c,
+					time
+				};
+			});
+			return {
+				startTime: (e.ts * 1000),
+				text: words
+			};
+		});
+		console.log({parsedKaraoke});
+
+		return parsedKaraoke;
+	}
+
 	function getSynced(body) {
 		const meta = body?.["matcher.track.get"]?.message?.body;
 		if (!meta) {
@@ -95,5 +152,5 @@ const ProviderMusixmatch = (function () {
 		return null;
 	}
 
-	return { findLyrics, getSynced, getUnsynced };
+	return { findLyrics, getKaraoke, getSynced, getUnsynced };
 })();

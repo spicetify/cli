@@ -67,7 +67,7 @@ const CONFIG = {
 			on: getConfig("lyrics-plus:provider:musixmatch:on"),
 			desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://spicetify.app/docs/faq#sometimes-popup-lyrics-andor-lyrics-plus-seem-to-not-work">Spicetify Docs</a>.`,
 			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
-			modes: [SYNCED, UNSYNCED]
+			modes: [KARAOKE, SYNCED, UNSYNCED]
 		},
 		spotify: {
 			on: getConfig("lyrics-plus:provider:spotify:on"),
@@ -696,12 +696,12 @@ class LyricsContainer extends react.Component {
 							onClick: () => {
 								const { synced, unsynced, karaoke } = this.state;
 								if (!synced && !unsynced && !karaoke) {
-									Spicetify.showNotification("No lyrics to cache", true);
+									Spicetify.showNotification("No lyrics to cache.", true);
 									return;
 								}
 
 								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke });
-								Spicetify.showNotification("Lyrics cached");
+								Spicetify.showNotification("Lyrics cached.");
 							}
 						},
 						react.createElement("svg", {
