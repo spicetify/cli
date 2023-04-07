@@ -113,7 +113,9 @@ const Spicetify = {
             "expFeatureOverride",
             "createInternalMap",
             "RemoteConfigResolver",
-            "Playbar"
+            "Playbar",
+            "Tippy",
+            "_getStyledClassName"
         ];
 
         const PLAYER_METHOD = [
