@@ -1063,9 +1063,7 @@ declare namespace Spicetify {
     /**
      * SVG icons
      */
-    const SVGIcons: {
-        [key: Icon]: string;
-    }
+    const SVGIcons: Record<Icon, string>;
 
     /**
      * Return font styling used by Spotify.
