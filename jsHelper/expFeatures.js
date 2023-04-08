@@ -1,6 +1,7 @@
 (function () {
 	let overrideList,
 		prevSessionOverrideList = [],
+		newFeatures = [],
 		hooksPatched = false,
 		featureMap = {};
 
@@ -15,6 +16,7 @@
 
 	Spicetify.expFeatureOverride = function (feature) {
 		hooksPatched = true;
+		newFeatures.push(feature.name);
 
 		switch (feature.type) {
 			case "enum":
@@ -138,10 +140,10 @@
 			return;
 		}
 
-		const { setOverrides, localConfiguration, remoteConfiguration } = Spicetify.RemoteConfigResolver.value;
+		const { setOverrides, remoteConfiguration } = Spicetify.RemoteConfigResolver.value;
 
 		Object.keys(overrideList).forEach(key => {
-			if (!localConfiguration.values.has(key)) {
+			if (!newFeatures.includes(key)) {
 				delete overrideList[key];
 				console.warn(`[spicetify-exp-features] Removed ${key} from override list`);
 				localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
