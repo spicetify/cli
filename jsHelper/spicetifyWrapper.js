@@ -1424,7 +1424,7 @@ Spicetify.Playbar = (function() {
 })();
 
 (function waitForHistoryAPI() {
-    const main = document.querySelector(".main-view-container__scroll-node-child");
+    const main = document.querySelector(".main-view-container__scroll-node-child > main");
     if (!main || !Spicetify.Platform?.History) {
         setTimeout(waitForHistoryAPI, 300);
         return;
