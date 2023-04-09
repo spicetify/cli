@@ -298,7 +298,7 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$\.]+[\w$\.()=!]+.)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
+	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$_\.&!=]+[\w$_\.()=!]+.)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
 		splitted := strings.Split(found[1], ",")
@@ -377,7 +377,7 @@ Spicetify.React.useEffect(() => {
 		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
 
 	// React Component: Tooltip Wrapper
-	utils.Replace(
+	utils.ReplaceOnce(
 		&input,
 		`(\w+)(=(?:function\([\{\w\}:,]+\)|\()\{(?:[\w. =]*(?:label|children|renderInline|showDelay)[\w:]*,?){4})`,
 		`${1}=Spicetify.ReactComponent.TooltipWrapper${2}`)
@@ -503,6 +503,11 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		&input,
 		`(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)`,
 		`${1}=Spicetify._getStyledClassName(arguments,this)`)
+
+	utils.Replace(
+		&input,
+		`([\w$_]+)\.setDefaultProps=`,
+		`Spicetify.Tippy=${1};${0}`)
 
 	return input
 }

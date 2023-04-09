@@ -62,6 +62,11 @@ const Providers = {
 			return result;
 		}
 
+		const karaoke = await ProviderMusixmatch.getKaraoke(list);
+		if (karaoke) {
+			result.karaoke = karaoke;
+			result.copyright = list["track.lyrics.get"].message?.body?.lyrics?.lyrics_copyright?.trim();
+		}
 		const synced = ProviderMusixmatch.getSynced(list);
 		if (synced) {
 			result.synced = synced;

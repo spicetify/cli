@@ -9,7 +9,9 @@
 	let appItems;
 	let list;
 	let hiddenList;
+
 	let isYLX;
+	let YLXSidebarState = 0;
 
 	// Store sidebar buttons
 	let buttons = [];
@@ -50,7 +52,7 @@
 		ordered = [...toStick, ...toShow, ...toHide];
 	}
 
-	function writeStorage(isYLX = false) {
+	function writeStorage() {
 		const array = ordered.map(a => [a[0].dataset.id, a[1]]);
 
 		if (isYLX) return localStorage.setItem("spicetify-sidebar-config:ylx", JSON.stringify(array));
@@ -111,6 +113,11 @@ color: var(--spice-button-disabled);
 			appendItems();
 		}
 
+		if (isYLX) {
+			YLXSidebarState = Spicetify.Platform.LocalStorageAPI.getItem("ylx-sidebar-state");
+			if (YLXSidebarState === 1) document.querySelector(".main-yourLibraryX-collapseButton > button")?.click();
+		}
+
 		document.documentElement.style.setProperty("--nav-bar-width", "280px");
 
 		hiddenList.classList.remove("hidden-visually");
@@ -141,22 +148,35 @@ color: var(--spice-button-disabled);
 		}
 	}
 
-	function removeInteraction(isYLX) {
+	function removeInteraction() {
 		hiddenList.classList.add("hidden-visually");
 		container.remove();
 		ordered.forEach(a => (a[0].onmouseover = undefined));
-		document.documentElement.style.setProperty("--nav-bar-width", Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width") + "px");
-		writeStorage(isYLX);
+		if (isYLX) {
+			if (YLXSidebarState === 1) document.querySelector(".main-yourLibraryX-collapseButton > button")?.click();
+			else
+				document.documentElement.style.setProperty(
+					"--nav-bar-width",
+					Spicetify.Platform.LocalStorageAPI.getItem(YLXSidebarState === 2 ? "ylx-expanded-state-nav-bar-width" : "ylx-default-state-nav-bar-width") +
+						"px"
+				);
+		} else document.documentElement.style.setProperty("--nav-bar-width", Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width") + "px");
+		writeStorage();
 	}
 
-	const sidebarConfigItem = new Spicetify.Menu.Item("Sidebar config", false, self => {
-		self.isEnabled = !self.isEnabled;
-		if (self.isEnabled) {
-			injectInteraction();
-		} else {
-			removeInteraction(isYLX);
-		}
-	});
+	const sidebarConfigItem = new Spicetify.Menu.Item(
+		"Sidebar config",
+		false,
+		self => {
+			self.isEnabled = !self.isEnabled;
+			if (self.isEnabled) {
+				injectInteraction();
+			} else {
+				removeInteraction();
+			}
+		},
+		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="16px" height="16px" fill="currentcolor"><path d="M44.7,11L36,19.6c0,0-2.6,0-5.2-2.6s-2.6-5.2-2.6-5.2l8.7-8.7c-4.9-1.2-10.8,0.4-14.4,4c-5.4,5.4-0.6,12.3-2,13.7C12.9,28.7,5.1,34.7,4.9,35c-2.3,2.3-2.4,6-0.2,8.2c2.2,2.2,5.9,2.1,8.2-0.2c0.3-0.3,6.7-8.4,14.2-15.9c1.4-1.4,8,3.7,13.6-1.8C44.2,21.7,45.9,15.9,44.7,11z M9.4,41.1c-1.4,0-2.5-1.1-2.5-2.5C6.9,37.1,8,36,9.4,36c1.4,0,2.5,1.1,2.5,2.5C11.9,39.9,10.8,41.1,9.4,41.1z"/></svg>`
+	);
 
 	function finishInit() {
 		if (initialized) return;

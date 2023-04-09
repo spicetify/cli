@@ -1,4 +1,7 @@
 declare namespace Spicetify {
+    type Icon = "album" | "artist" | "block" | "brightness" | "car" | "chart-down" | "chart-up" | "check" | "check-alt-fill" | "chevron-left" | "chevron-right" | "chromecast-disconnected" | "clock" | "collaborative" | "computer" | "copy" | "download" | "downloaded" | "edit" | "enhance" | "exclamation-circle" | "external-link" | "facebook" | "follow" | "fullscreen" | "gamepad" | "grid-view" | "heart" | "heart-active" | "instagram" | "laptop" | "library" | "list-view" | "location" | "locked" | "locked-active" | "lyrics" | "menu" | "minimize" | "minus" | "more" | "new-spotify-connect" | "offline" | "pause" | "phone" | "play" | "playlist" | "playlist-folder" | "plus-alt" | "plus2px" | "podcasts" | "projector" | "queue" | "repeat" | "repeat-once" | "search" | "search-active" | "shuffle" | "skip-back" | "skip-back15" | "skip-forward" | "skip-forward15" | "soundbetter" | "speaker" | "spotify" | "subtitles" | "tablet" | "ticket" | "twitter" | "visualizer" | "voice" | "volume" | "volume-off" | "volume-one-wave" | "volume-two-wave" | "watch" | "x";
+    type Variant = "bass" | "forte" | "brio" | "altoBrio" | "alto" | "canon" | "celloCanon" | "cello" | "ballad" | "balladBold" | "viola" | "violaBold" | "mesto" | "mestoBold" | "metronome" | "finale" | "finaleBold" | "minuet" | "minuetBold";
+    type SemanticColor = "textBase" | "textSubdued" | "textBrightAccent" | "textNegative" | "textWarning" | "textPositive" | "textAnnouncement" | "essentialBase" | "essentialSubdued" | "essentialBrightAccent" | "essentialNegative" | "essentialWarning" | "essentialPositive" | "essentialAnnouncement" | "decorativeBase" | "decorativeSubdued" | "backgroundBase" | "backgroundHighlight" | "backgroundPress" | "backgroundElevatedBase" | "backgroundElevatedHighlight" | "backgroundElevatedPress" | "backgroundTintedBase" | "backgroundTintedHighlight" | "backgroundTintedPress" | "backgroundUnsafeForSmallTextBase" | "backgroundUnsafeForSmallTextHighlight" | "backgroundUnsafeForSmallTextPress";
     type Metadata = Partial<Record<string, string>>;
     type ContextTrack = {
         uri: string;
@@ -247,9 +250,9 @@ declare namespace Spicetify {
         function toggleShuffle(): void;
     }
     /**
-     * Adds a track/album or array of tracks/albums to prioritized queue.
+     * Adds a track or array of tracks to prioritized queue.
      */
-    function addToQueue(uri: string | string[]): Promise<void>;
+    function addToQueue(uri: ContextTrack[]): Promise<void>;
     /**
      * @deprecated
      */
@@ -365,7 +368,6 @@ declare namespace Spicetify {
         /**
          * Create a single toggle.
          */
-        type Icon = "album" | "artist" | "block" | "brightness" | "car" | "chart-down" | "chart-up" | "check" | "check-alt-fill" | "chevron-left" | "chevron-right" | "chromecast-disconnected" | "clock" | "collaborative" | "computer" | "copy" | "download" | "downloaded" | "edit" | "enhance" | "exclamation-circle" | "external-link" | "facebook" | "follow" | "fullscreen" | "gamepad" | "grid-view" | "heart" | "heart-active" | "instagram" | "laptop" | "library" | "list-view" | "location" | "locked" | "locked-active" | "lyrics" | "menu" | "minimize" | "minus" | "more" | "new-spotify-connect" | "offline" | "pause" | "phone" | "play" | "playlist" | "playlist-folder" | "plus-alt" | "plus2px" | "podcasts" | "projector" | "queue" | "repeat" | "repeat-once" | "search" | "search-active" | "shuffle" | "skip-back" | "skip-back15" | "skip-forward" | "skip-forward15" | "soundbetter" | "speaker" | "spotify" | "subtitles" | "tablet" | "ticket" | "twitter" | "visualizer" | "voice" | "volume" | "volume-off" | "volume-one-wave" | "volume-two-wave" | "watch" | "x";
         class Item {
             constructor(name: string, isEnabled: boolean, onClick: (self: Item) => void, icon?: Icon | string);
             name: string;
@@ -449,9 +451,9 @@ declare namespace Spicetify {
         track: any;
     };
     /**
-     * Remove a track/album or array of tracks/albums from current queue.
+     * Remove a track or array of tracks from current queue.
      */
-    function removeFromQueue(uri: string | string[]): Promise<void>;
+    function removeFromQueue(uri: ContextTrack[]): Promise<void>;
     /**
      * Display a bubble of notification. Useful for a visual feedback.
      * @param message Message to display. Can use inline HTML for styling.
@@ -477,7 +479,7 @@ declare namespace Spicetify {
         public query?: string;
         public country?: string;
         public global?: boolean;
-        public context?: string | null;
+        public context?: string | typeof URI | null;
         public anchor?: string;
         public play?: any;
         public toplist?: any;
@@ -686,7 +688,6 @@ declare namespace Spicetify {
      * Create custom menu item and prepend to right click context menu
      */
     namespace ContextMenu {
-        type Icon = "album" | "artist" | "block" | "brightness" | "car" | "chart-down" | "chart-up" | "check" | "check-alt-fill" | "chevron-left" | "chevron-right" | "chromecast-disconnected" | "clock" | "collaborative" | "computer" | "copy" | "download" | "downloaded" | "edit" | "enhance" | "exclamation-circle" | "external-link" | "facebook" | "follow" | "fullscreen" | "gamepad" | "grid-view" | "heart" | "heart-active" | "instagram" | "laptop" | "library" | "list-view" | "location" | "locked" | "locked-active" | "lyrics" | "menu" | "minimize" | "minus" | "more" | "new-spotify-connect" | "offline" | "pause" | "phone" | "play" | "playlist" | "playlist-folder" | "plus-alt" | "plus2px" | "podcasts" | "projector" | "queue" | "repeat" | "repeat-once" | "search" | "search-active" | "shuffle" | "skip-back" | "skip-back15" | "skip-forward" | "skip-forward15" | "soundbetter" | "speaker" | "spotify" | "subtitles" | "tablet" | "ticket" | "twitter" | "visualizer" | "voice" | "volume" | "volume-off" | "volume-one-wave" | "volume-two-wave" | "watch" | "x";
         type OnClickCallback = (uris: string[], uids?: string[], contextUri?: string) => void;
         type ShouldAddCallback = (uris: string[], uids?: string[], contextUri?: string) => boolean;
 
@@ -910,7 +911,7 @@ declare namespace Spicetify {
              * Matches color variables used in xpui
              * @default Inherit from parent
              */
-            semanticColor?: 'textBase' | 'textSubdued' | 'textBrightAccent' | 'textNegative' | 'textWarning' | 'textPositive' | 'textAnnouncement' | 'essentialBase' | 'essentialSubdued' | 'essentialBrightAccent' | 'essentialNegative' | 'essentialWarning' | 'essentialPositive' | 'essentialAnnouncement' | 'decorativeBase' | 'decorativeSubdued' | 'backgroundBase' | 'backgroundHighlight' | 'backgroundPress' | 'backgroundElevatedBase' | 'backgroundElevatedHighlight' | 'backgroundElevatedPress' | 'backgroundTintedBase' | 'backgroundTintedHighlight' | 'backgroundTintedPress' | 'backgroundUnsafeForSmallTextBase' | 'backgroundUnsafeForSmallTextHighlight' | 'backgroundUnsafeForSmallTextPress';
+            semanticColor?: SemanticColor;
             /**
              * Icon title
              * @default ''
@@ -946,12 +947,12 @@ declare namespace Spicetify {
              * Matches color variables used in xpui
              * @default Inherit from parent
              */
-            semanticColor?: 'textBase' | 'textSubdued' | 'textBrightAccent' | 'textNegative' | 'textWarning' | 'textPositive' | 'textAnnouncement' | 'essentialBase' | 'essentialSubdued' | 'essentialBrightAccent' | 'essentialNegative' | 'essentialWarning' | 'essentialPositive' | 'essentialAnnouncement' | 'decorativeBase' | 'decorativeSubdued' | 'backgroundBase' | 'backgroundHighlight' | 'backgroundPress' | 'backgroundElevatedBase' | 'backgroundElevatedHighlight' | 'backgroundElevatedPress' | 'backgroundTintedBase' | 'backgroundTintedHighlight' | 'backgroundTintedPress' | 'backgroundUnsafeForSmallTextBase' | 'backgroundUnsafeForSmallTextHighlight' | 'backgroundUnsafeForSmallTextPress';
+            semanticColor?: SemanticColor;
             /**
              * Text style variant
              * @default 'viola'
              */
-            variant?: 'bass' | 'forte' | 'brio' | 'altoBrio' | 'alto' | 'canon' | 'celloCanon' | 'cello' | 'ballad' | 'balladBold' | 'viola' | 'violaBold' | 'mesto' | 'mestoBold' | 'metronome' | 'finale' | 'finaleBold' | 'minuet' | 'minuetBold';
+            variant?: Variant;
             /**
              * Bottom padding size
              */
@@ -959,7 +960,7 @@ declare namespace Spicetify {
             /**
              * Font weight
              */
-            weight?: 'book' | 'bold' | 'black';
+            weight?: "book" | "bold" | "black";
         }
         /**
          * Generic context menu provider
@@ -1033,12 +1034,13 @@ declare namespace Spicetify {
      */
     namespace Topbar {
         class Button {
-            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled?: boolean);
+            constructor(label: string, icon: Icon | string, onClick: (self: Button) => void, disabled?: boolean);
             label: string;
             icon: string;
             onClick: (self: Button) => void;
             disabled: boolean;
             element: HTMLButtonElement;
+            tippy: any;
         }
     }
 
@@ -1047,29 +1049,30 @@ declare namespace Spicetify {
      */
     namespace Playbar {
         class Button {
-            constructor(label: string, icon: string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean);
+            constructor(label: string, icon: Icon | string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
             label: string;
             icon: string;
             onClick: (self: Button) => void;
             disabled: boolean;
             active: boolean;
             element: HTMLButtonElement;
+            tippy: any;
+            register: () => void;
+            deregister: () => void;
         }
     }
 
     /**
      * SVG icons
      */
-    namespace SVGIcons {
-        const check: string;
-    }
+    const SVGIcons: Record<Icon, string>;
 
     /**
      * Return font styling used by Spotify.
      * @param font Name of the font.
      * Can match any of the fonts listed in `Spicetify._fontStyle` or returns a generic style otherwise.
      */
-    function getFontStyle(font: string): string;
+    function getFontStyle(font: Variant): string;
 
     /**
      * A filtered copy of user's `config-xpui` file.
@@ -1081,4 +1084,14 @@ declare namespace Spicetify {
         const extensions: string[];
         const custom_apps: string[];
     }
+
+    /**
+     * Tippy.js instance used by Spotify
+     */
+    const Tippy: any;
+    /**
+     * Spicetify's predefined props for Tippy.js
+     * Used to mimic Spotify's tooltip behavior
+     */
+    const TippyProps: any;
 }

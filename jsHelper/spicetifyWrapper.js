@@ -113,7 +113,9 @@ const Spicetify = {
             "expFeatureOverride",
             "createInternalMap",
             "RemoteConfigResolver",
-            "Playbar"
+            "Playbar",
+            "Tippy",
+            "_getStyledClassName"
         ];
 
         const PLAYER_METHOD = [
@@ -330,6 +332,13 @@ Spicetify._getStyledClassName = (args, component) => {
 
     const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", ""];
     const excludedPrefix = ["aria-"];
+
+
+    const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
+
+    for (const key of childrenProps) {
+        if (element[key]) className += `-${key}`;
+    }
 
     const booleanKeys = Object.keys(element).filter(key => typeof element[key] === "boolean" && element[key]);
 
@@ -1204,6 +1213,48 @@ Spicetify.PopupModal = new _HTMLGenericModal();
 
 Spicetify.ReactComponent = {};
 
+Object.defineProperty(Spicetify, "TippyProps", {
+    value: {
+        delay: [200, 0],
+        animation: true,
+        render(instance) {
+            const popper = document.createElement('div');
+            const box = document.createElement('div');
+
+            popper.id = "context-menu";
+            popper.appendChild(box);
+
+            box.className = "main-contextMenu-tippy"
+            box.textContent = instance.props.content;
+
+            function onUpdate(prevProps, nextProps) {
+              if (prevProps.content !== nextProps.content) {
+                if (nextProps.allowHTML) box.innerHTML = nextProps.content;
+                else box.textContent = nextProps.content;
+              }
+            }
+
+            return { popper, onUpdate }
+        },
+        onShow(instance) {
+            instance.popper.firstChild.classList.add("main-contextMenu-tippyEnter");
+        },
+        onMount(instance) {
+            requestAnimationFrame(() => {
+                instance.popper.firstChild.classList.remove("main-contextMenu-tippyEnter");
+                instance.popper.firstChild.classList.add("main-contextMenu-tippyEnterActive");
+            });
+        },
+        onHide(instance) {
+            requestAnimationFrame(() => {
+                instance.popper.firstChild.classList.remove("main-contextMenu-tippyEnterActive");
+                instance.unmount();
+            });
+        },
+    },
+    writable: false,
+});
+
 Spicetify.Topbar = (function() {
     let leftContainer;
     const buttonsStash = new Set();
@@ -1212,17 +1263,23 @@ Spicetify.Topbar = (function() {
         constructor(label, icon, onClick, disabled = false) {
             this.element = document.createElement("button");
             this.element.classList.add("main-topBar-button");
-            this.label = label;
             this.icon = icon;
             this.onClick = onClick;
             this.disabled = disabled;
+            this.tippy = Spicetify.Tippy?.(this.element, {
+                content: label,
+                placement: "bottom",
+                ...Spicetify.TippyProps,
+            });
+            this.label = label;
             buttonsStash.add(this.element);
             leftContainer?.append(...buttonsStash);
         }
         get label() { return this._label; }
         set label(text) {
             this._label = text;
-            this.element.setAttribute("title", text);
+            if (!this.tippy) this.element.setAttribute("title", text);
+            else this.tippy.setContent(text);
         }
         get icon() { return this._icon; }
         set icon(input) {
@@ -1286,10 +1343,10 @@ Spicetify.Playbar = (function() {
     const buttonsStash = new Set();
 
     class Button {
-        constructor(label, icon, onClick, disabled = false, active = false) {
+        constructor(label, icon, onClick, disabled = false, active = false, registerOnCreate = true) {
             this.element = document.createElement("button");
             this.element.classList.add("main-genericButton-button");
-            this.label = label;
+            this.element.style.display = "block";
             this.icon = icon;
             this.onClick = onClick;
             this.disabled = disabled;
@@ -1299,13 +1356,18 @@ Spicetify.Playbar = (function() {
                     this.element.classList.add(className);
                 }
             });
-            buttonsStash.add(this.element);
-            rightContainer?.prepend(...buttonsStash);
+            this.tippy = Spicetify.Tippy?.(this.element, {
+                content: label,
+                ...Spicetify.TippyProps,
+            });
+            this.label = label;
+            registerOnCreate && this.register();
         }
         get label() { return this._label; }
         set label(text) {
             this._label = text;
-            this.element.setAttribute("title", text);
+            if (!this.tippy) this.element.setAttribute("title", text);
+            else this.tippy.setContent(text);
         }
         get icon() { return this._icon; }
         set icon(input) {
@@ -1331,11 +1393,19 @@ Spicetify.Playbar = (function() {
             this.element.classList.toggle("main-genericButton-buttonActive", bool);
         }
         get active() { return this._active; }
+        register() {
+            buttonsStash.add(this.element);
+            rightContainer?.prepend(...buttonsStash);
+        }
+        deregister() {
+            buttonsStash.delete(this.element);
+            this.element.remove();
+        }
     }
 
     (function waitForPlaybarMounted() {
         sibling = document.querySelector(".main-nowPlayingBar-right .main-genericButton-button");
-        rightContainer = sibling?.parentElement;
+        rightContainer = document.querySelector(".main-nowPlayingBar-right > div");
         if (!rightContainer) {
             setTimeout(waitForPlaybarMounted, 300);
             return;
@@ -1354,7 +1424,7 @@ Spicetify.Playbar = (function() {
 })();
 
 (function waitForHistoryAPI() {
-    const main = document.querySelector(".main-view-container__scroll-node-child");
+    const main = document.querySelector(".main-view-container__scroll-node-child > main");
     if (!main || !Spicetify.Platform?.History) {
         setTimeout(waitForHistoryAPI, 300);
         return;
