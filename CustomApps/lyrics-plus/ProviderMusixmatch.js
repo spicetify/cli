@@ -85,9 +85,9 @@ const ProviderMusixmatch = (function () {
 			const text = words.map((word, index, words) => {
 				const wordText = word.c;
 				const wordStartTime = word.o * 1000;
-				const nextWordStartTime = words[index + 1]?.o || null;
+				const nextWordStartTime = words[index + 1]?.o * 1000;
 
-				const time = nextWordStartTime ? nextWordStartTime - wordStartTime : endTime - (wordStartTime + startTime);
+				const time = !isNaN(nextWordStartTime) ? nextWordStartTime - wordStartTime : endTime - (wordStartTime + startTime);
 
 				return {
 					word: wordText,
