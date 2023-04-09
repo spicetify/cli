@@ -148,22 +148,19 @@
     </div>
     ${
 			isPlayable
-				? `<div class="ButtonInner-md-iconOnly"><button class="main-playButton-PlayButton main-playButton-primary" style="--size:48px;"><svg role="img" height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg></button></div>`
+				? `<div class="ButtonInner-md-iconOnly"><button class="main-playButton-PlayButton main-playButton-primary" data-tippy-content="Play" style="--size:48px;"><svg role="img" height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg></button></div>`
 				: ""
 		}
-    <button class="bookmark-controls" title="${REMOVE_TEXT}"><svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${
+    <button class="bookmark-controls" data-tippy-content="${REMOVE_TEXT}"><svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${
 				Spicetify.SVGIcons.x
 			}</svg></button>
 </div>
 `;
 
+			Spicetify.Tippy(this.querySelectorAll("[data-tippy-content]"), Spicetify.TippyProps);
 			if (isPlayable) {
 				/** @type {HTMLButtonElement} */
 				const playButton = this.querySelector("button.main-playButton-PlayButton");
-				Spicetify.Tippy(playButton, {
-					content: "Play",
-					...Spicetify.TippyProps,
-				});
 				playButton.onclick = event => {
 					onPlayClick(info);
 					event.stopPropagation();
