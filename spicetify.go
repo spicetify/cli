@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -173,7 +174,12 @@ func main() {
 	case "path":
 		commands = commands[1:]
 		path, err := (func() (string, error) {
-			if extensionFocus {
+			if styleFocus {
+				if len(commands) == 0 {
+					return cmd.ThemeAllAssetsPath()
+				}
+				return cmd.ThemeAssetPath(commands[0])
+			} else if extensionFocus {
 				if len(commands) == 0 {
 					return cmd.ExtensionAllPath()
 				}
@@ -184,10 +190,21 @@ func main() {
 				}
 				return cmd.AppPath(commands[0])
 			} else {
-				if len(commands) == 0 {
-					return cmd.ThemeAllAssetsPath()
+				if len(flags) != 0 && (flags[0] != "-e" ||
+					flags[0] != "-c" ||
+					flags[0] != "-a" ||
+					flags[0] != "-s") {
+					return "", errors.New("Invalid Flag\nAvailable Flags: -e, -c, -a, -s")
 				}
-				return cmd.ThemeAssetPath(commands[0])
+
+				if len(commands) == 0 && len(flags) == 0 {
+					return utils.GetExecutableDir(), nil
+				} else if commands[0] == "all" {
+					return cmd.AllPaths()
+				} else if commands[0] == "userdata" {
+					return utils.GetSpicetifyFolder(), nil
+				}
+				return "", errors.New("Invalid Option\nAvailable Options: all, userdata")
 			}
 		})()
 
@@ -324,26 +341,32 @@ watch               Enter watch mode.
 restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
-path                Print path of color, css, extension file or
-                    custom app directory and quit.
-                    1. Print all theme's assets:
+path                Prints path of Spotify's executable, userdata, and more.
+                    1. Print executable path:
                     spicetify path
-                    2. Print theme's color.ini path:
-                    spicetify path color
-                    3. Print theme's user.css path:
-                    spicetify path css
-                    4. Print theme's theme.js path:
-                    spicetify path js
-                    5. Print theme's assets path:
-                    spicetify path assets
-                    6. Print all extensions path:
-                    spicetify -e path
-                    7. Print extension <name> path:
-                    spicetify -e path <name>
-                    8. Print all custom apps path:
-                    spicetify -a path
-                    9. Print custom app <name> path:
-                    spicetify -a path <name>
+
+                    2. Print userdata path:
+                    spicetify path userdata
+
+                    3. Print all paths:
+                    spicetify path all
+
+                    4. Toggle focus with flags:
+                    spicetify path <flag> <option>
+	
+                    Available Flags and Options:
+                    "-e" (for extensions),
+                    options: root, extension name, blank for all.
+					
+                    "-a" (for custom apps),
+                    options: root, app name, blank for all.
+					
+                    "-s" (for the active theme)
+                    options: root, folder, color, css, js, assets, blank for all.
+					
+                    "-c" (for config.ini)
+                    options: N/A.
+
 
 config              1. Print all config fields and values:
                     spicetify config

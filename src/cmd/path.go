@@ -12,11 +12,15 @@ import (
 func ThemeAssetPath(kind string) (string, error) {
 	InitSetting()
 
-	if len(themeFolder) == 0 {
+	if kind == "root" {
+		return filepath.Join(utils.GetExecutableDir(), "Themes"), nil
+	} else if len(themeFolder) == 0 {
 		return "", errors.New(`Config "current_theme" is blank`)
 	}
 
-	if kind == "color" {
+	if kind == "folder" {
+		return themeFolder, nil
+	} else if kind == "color" {
 		color := filepath.Join(themeFolder, "color.ini")
 		return color, nil
 	} else if kind == "css" {
@@ -30,7 +34,7 @@ func ThemeAssetPath(kind string) (string, error) {
 		return assets, nil
 	}
 
-	return "", errors.New(`Unrecognized theme assets kind. Only "color", "css", "js" or "assets" is valid`)
+	return "", errors.New(`Unrecognized theme assets kind. Only "root", "folder", "color", "css", "js" or "assets" is valid`)
 }
 
 // ThemeAllAssetsPath returns paths of all theme's assets
@@ -42,6 +46,8 @@ func ThemeAllAssetsPath() (string, error) {
 	}
 
 	results := []string{
+		filepath.Join(utils.GetExecutableDir(), "Themes"),
+		themeFolder,
 		filepath.Join(themeFolder, "color.ini"),
 		filepath.Join(themeFolder, "user.css"),
 		filepath.Join(themeFolder, "theme.js"),
@@ -52,6 +58,9 @@ func ThemeAllAssetsPath() (string, error) {
 
 // ExtensionPath return path of extension file
 func ExtensionPath(name string) (string, error) {
+	if name == "root" {
+		return filepath.Join(utils.GetExecutableDir(), "Extensions"), nil
+	}
 	return utils.GetExtensionPath(name)
 }
 
@@ -72,6 +81,9 @@ func ExtensionAllPath() (string, error) {
 
 // AppPath return path of app directory
 func AppPath(name string) (string, error) {
+	if name == "root" {
+		return filepath.Join(utils.GetExecutableDir(), "CustomApps"), nil
+	}
 	return utils.GetCustomAppPath(name)
 }
 
@@ -88,4 +100,12 @@ func AppAllPath() (string, error) {
 	}
 
 	return strings.Join(results, "\n"), nil
+}
+
+func AllPaths() (string, error) {
+	theme, _ := ThemeAllAssetsPath()
+	ext, _ := ExtensionAllPath()
+	app, _ := AppAllPath()
+
+	return strings.Join([]string{theme, ext, app}, "\n"), nil
 }
