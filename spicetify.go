@@ -317,7 +317,7 @@ watch               Enter watch mode.
                     To update on change, use with any combination of the following flags:
 						  "-e" (for extensions),
 						  "-a" (for custom apps),
-						  "-s" (for the active theme; color.ini, user.js, user.css, and assets)
+						  "-s" (for the active theme; color.ini, theme.js, user.css, and assets)
 						  "-l" (for extensions, custom apps, and active theme)
 
 
@@ -332,15 +332,17 @@ path                Print path of color, css, extension file or
                     spicetify path color
                     3. Print theme's user.css path:
                     spicetify path css
-                    4. Print theme's assets path:
+					4. Print theme's theme.js path:
+					spicetify path js
+                    5. Print theme's assets path:
                     spicetify path assets
-                    5. Print all extensions path:
+                    6. Print all extensions path:
                     spicetify -e path
-                    6. Print extension <name> path:
+                    7. Print extension <name> path:
                     spicetify -e path <name>
-                    7. Print all custom apps path:
+                    8. Print all custom apps path:
                     spicetify -a path
-                    8. Print custom app <name> path:
+                    9. Print custom app <name> path:
                     spicetify -a path <name>
 
 config              1. Print all config fields and values:
@@ -396,7 +398,7 @@ upgrade             Upgrade spicetify latest version
                     like clear backup, restore will proceed without prompting
                     permission.
 
--s, --style         Use with "watch" command to auto-reload Spotify when changes are made to the active theme (color.ini, user.css, user.js, assets).
+-s, --style         Use with "watch" command to auto-reload Spotify when changes are made to the active theme (color.ini, user.css, theme.js, assets).
 
 -e, --extension     Use with "update", "watch" or "path" command to
                     focus on extensions. Use with "watch" command to auto-reload Spotify when changes are made to extensions.
@@ -439,7 +441,7 @@ inject_css <0 | 1>
     Whether custom css from user.css in theme folder is applied
 
 inject_theme_js <0 | 1>
-	Whether custom js from user.js in theme folder is applied
+	Whether custom js from theme.js in theme folder is applied
 
 replace_colors <0 | 1>
     Whether custom colors is applied

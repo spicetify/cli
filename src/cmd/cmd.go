@@ -171,7 +171,7 @@ func InitSetting() {
 		_, err := os.Stat(jsPath)
 		injectJS = err == nil
 		if err != nil {
-			utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/user.js"))
+			utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/theme.js"))
 		}
 	}
 

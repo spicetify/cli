@@ -45,7 +45,7 @@ func Watch(liveUpdate bool) {
 	}
 
 	if injectJS {
-		jsPath := filepath.Join(themeFolder, "user.js")
+		jsPath := filepath.Join(themeFolder, "theme.js")
 		pathArr := []string{jsPath}
 
 		if _, err := os.Stat(jsPath); err == nil {

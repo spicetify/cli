@@ -8,7 +8,7 @@ import (
 	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
-// ThemeAssetPath returns path of theme assets color.ini and user.css
+// ThemeAssetPath returns path of theme; assets, color.ini, theme.js and user.css
 func ThemeAssetPath(kind string) (string, error) {
 	InitSetting()
 
@@ -23,7 +23,7 @@ func ThemeAssetPath(kind string) (string, error) {
 		css := filepath.Join(themeFolder, "user.css")
 		return css, nil
 	} else if kind == "js" {
-		js := filepath.Join(themeFolder, "user.js")
+		js := filepath.Join(themeFolder, "theme.js")
 		return js, nil
 	} else if kind == "assets" {
 		assets := filepath.Join(themeFolder, "assets")
@@ -44,7 +44,7 @@ func ThemeAllAssetsPath() (string, error) {
 	results := []string{
 		filepath.Join(themeFolder, "color.ini"),
 		filepath.Join(themeFolder, "user.css"),
-		filepath.Join(themeFolder, "user.js"),
+		filepath.Join(themeFolder, "theme.js"),
 		filepath.Join(themeFolder, "assets")}
 
 	return strings.Join(results, "\n"), nil

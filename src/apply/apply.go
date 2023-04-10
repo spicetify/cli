@@ -97,7 +97,7 @@ func htmlMod(htmlPath string, flags Flag) {
 	helperHTML := "\n"
 
 	if flags.InjectThemeJS {
-		extensionsHTML += `<script defer src="extensions/user.js"></script>` + "\n"
+		extensionsHTML += `<script defer src="extensions/theme.js"></script>` + "\n"
 	}
 
 	if flags.SidebarConfig {
