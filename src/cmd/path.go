@@ -22,12 +22,15 @@ func ThemeAssetPath(kind string) (string, error) {
 	} else if kind == "css" {
 		css := filepath.Join(themeFolder, "user.css")
 		return css, nil
+	} else if kind == "js" {
+		js := filepath.Join(themeFolder, "user.js")
+		return js, nil
 	} else if kind == "assets" {
 		assets := filepath.Join(themeFolder, "assets")
 		return assets, nil
 	}
 
-	return "", errors.New(`Unrecognized theme assets kind. Only "color", "css" or "assets" is valid`)
+	return "", errors.New(`Unrecognized theme assets kind. Only "color", "css", "js" or "assets" is valid`)
 }
 
 // ThemeAllAssetsPath returns paths of all theme's assets
@@ -41,6 +44,7 @@ func ThemeAllAssetsPath() (string, error) {
 	results := []string{
 		filepath.Join(themeFolder, "color.ini"),
 		filepath.Join(themeFolder, "user.css"),
+		filepath.Join(themeFolder, "user.js"),
 		filepath.Join(themeFolder, "assets")}
 
 	return strings.Join(results, "\n"), nil

@@ -54,6 +54,14 @@ func Apply(spicetifyVersion string) {
 	updateCSS()
 	utils.PrintGreen("OK")
 
+	if injectJS {
+		utils.PrintBold(`Transferring user.js:`)
+		pushThemeExtension()
+		utils.PrintGreen("OK")
+	} else {
+		utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/user.js"))
+	}
+
 	if overwriteAssets {
 		utils.PrintBold(`Overwriting custom assets:`)
 		updateAssets()
@@ -73,6 +81,7 @@ func Apply(spicetifyVersion string) {
 	apply.AdditionalOptions(appDestPath, apply.Flag{
 		CurrentTheme:  settingSection.Key("current_theme").MustString(""),
 		ColorScheme:   settingSection.Key("color_scheme").MustString(""),
+		InjectThemeJS: injectJS,
 		Extension:     extensionList,
 		CustomApp:     customAppsList,
 		SidebarConfig: featureSection.Key("sidebar_config").MustBool(false),
@@ -110,7 +119,7 @@ func Apply(spicetifyVersion string) {
 	}
 }
 
-// UpdateTheme updates user.css and overwrites custom assets
+// UpdateTheme updates user.css + user.js and overwrites custom assets
 func UpdateTheme() {
 	checkStates()
 	InitSetting()
@@ -122,6 +131,11 @@ func UpdateTheme() {
 
 	updateCSS()
 	utils.PrintSuccess("Custom CSS is updated")
+
+	if injectJS {
+		pushThemeExtension()
+		utils.PrintSuccess("Custom JS is updated")
+	}
 
 	if overwriteAssets {
 		updateAssets()
@@ -224,6 +238,12 @@ func checkStates() {
 			os.Exit(1)
 		}
 	}
+}
+
+func pushThemeExtension() {
+	utils.CopyFile(
+		filepath.Join(themeFolder, "user.js"),
+		filepath.Join(appDestPath, "xpui", "extensions"))
 }
 
 func pushExtensions(destExt string, list ...string) {

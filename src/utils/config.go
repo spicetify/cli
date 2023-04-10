@@ -17,6 +17,7 @@ var (
 			"prefs_path":              "",
 			"current_theme":           "",
 			"color_scheme":            "",
+			"inject_theme_js":         "1",
 			"inject_css":              "1",
 			"replace_colors":          "1",
 			"overwrite_assets":        "0",

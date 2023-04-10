@@ -317,7 +317,7 @@ watch               Enter watch mode.
                     To update on change, use with any combination of the following flags:
 						  "-e" (for extensions),
 						  "-a" (for custom apps),
-						  "-s" (for the active theme, color.ini and user.css)
+						  "-s" (for the active theme; color.ini, user.js, user.css, and assets)
 						  "-l" (for extensions, custom apps, and active theme)
 
 
@@ -396,7 +396,7 @@ upgrade             Upgrade spicetify latest version
                     like clear backup, restore will proceed without prompting
                     permission.
 
--s, --style         Use with "watch" command to auto-reload Spotify when changes are made to the active theme (color.ini, user.css).
+-s, --style         Use with "watch" command to auto-reload Spotify when changes are made to the active theme (color.ini, user.css, user.js, assets).
 
 -e, --extension     Use with "update", "watch" or "path" command to
                     focus on extensions. Use with "watch" command to auto-reload Spotify when changes are made to extensions.
@@ -437,6 +437,9 @@ color_scheme
 
 inject_css <0 | 1>
     Whether custom css from user.css in theme folder is applied
+
+inject_theme_js <0 | 1>
+	Whether custom js from user.js in theme folder is applied
 
 replace_colors <0 | 1>
     Whether custom colors is applied
