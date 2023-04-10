@@ -44,6 +44,22 @@ func Watch(liveUpdate bool) {
 		fileList = append(fileList, cssPath)
 	}
 
+	if injectJS {
+		jsPath := filepath.Join(themeFolder, "user.js")
+		pathArr := []string{jsPath}
+
+		if _, err := os.Stat(jsPath); err == nil {
+			go utils.Watch(pathArr, func(_ string, err error) {
+				if err != nil {
+					utils.Fatal(err)
+				}
+
+				pushThemeExtension()
+				utils.PrintSuccess(utils.PrependTime("Custom JS is updated"))
+			}, autoReloadFunc)
+		}
+	}
+
 	if overwriteAssets {
 		assetPath := filepath.Join(themeFolder, "assets")
 
