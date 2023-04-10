@@ -166,14 +166,14 @@ func InitSetting() {
 		_, err := os.Stat(cssPath)
 		injectCSS = err == nil
 	}
-	
+
 	if injectJS {
 		_, err := os.Stat(jsPath)
 		injectJS = err == nil
 		if err != nil {
 			utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/user.js"))
 		}
-	} 
+	}
 
 	if overwriteAssets {
 		_, err := os.Stat(assetsPath)

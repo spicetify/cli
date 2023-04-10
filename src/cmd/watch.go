@@ -53,7 +53,7 @@ func Watch(liveUpdate bool) {
 				if err != nil {
 					utils.Fatal(err)
 				}
-				
+
 				pushThemeExtension()
 				utils.PrintSuccess(utils.PrependTime("Custom JS is updated"))
 			}, autoReloadFunc)
