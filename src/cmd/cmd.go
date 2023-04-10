@@ -155,7 +155,7 @@ func InitSetting() {
 	colorPath := filepath.Join(themeFolder, "color.ini")
 	cssPath := filepath.Join(themeFolder, "user.css")
 	assetsPath := filepath.Join(themeFolder, "assets")
-	jsPath := filepath.Join(themeFolder, "user.js")
+	jsPath := filepath.Join(themeFolder, "theme.js")
 
 	if replaceColors {
 		_, err := os.Stat(colorPath)
