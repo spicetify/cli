@@ -317,7 +317,7 @@ watch               Enter watch mode.
                     To update on change, use with any combination of the following flags:
 						  "-e" (for extensions),
 						  "-a" (for custom apps),
-						  "-s" (for the active theme; color.ini, theme.js, user.css, and assets)
+						  "-s" (for the active theme; color.ini, user.css, theme.js, and assets)
 						  "-l" (for extensions, custom apps, and active theme)
 
 
@@ -332,8 +332,8 @@ path                Print path of color, css, extension file or
                     spicetify path color
                     3. Print theme's user.css path:
                     spicetify path css
-					4. Print theme's theme.js path:
-					spicetify path js
+                    4. Print theme's theme.js path:
+                    spicetify path js
                     5. Print theme's assets path:
                     spicetify path assets
                     6. Print all extensions path:
