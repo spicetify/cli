@@ -240,7 +240,7 @@ func checkStates() {
 	}
 }
 
-func pushThemeExtension() {
+func pushThemeJS() {
 	utils.CopyFile(
 		filepath.Join(themeFolder, "theme.js"),
 		filepath.Join(appDestPath, "xpui", "extensions"))
