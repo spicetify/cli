@@ -46,8 +46,6 @@ func ThemeAllAssetsPath() (string, error) {
 	}
 
 	results := []string{
-		filepath.Join(utils.GetExecutableDir(), "Themes"),
-		themeFolder,
 		filepath.Join(themeFolder, "color.ini"),
 		filepath.Join(themeFolder, "user.css"),
 		filepath.Join(themeFolder, "theme.js"),
