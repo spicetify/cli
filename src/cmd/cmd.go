@@ -194,7 +194,7 @@ func InitSetting() {
 	sections := colorCfg.Sections()
 
 	if len(sections) < 2 {
-		utils.PrintError("No section found in " + colorPath) 
+		utils.PrintError("No section found in " + colorPath)
 		replaceColors = false
 		return
 	}
