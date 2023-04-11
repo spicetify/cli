@@ -10,7 +10,7 @@ import (
 
 // ThemeAssetPath returns path of theme; assets, color.ini, theme.js and user.css
 func ThemeAssetPath(kind string) (string, error) {
-	InitSetting()
+	InitSetting(true)
 
 	if kind == "root" {
 		return filepath.Join(utils.GetExecutableDir(), "Themes"), nil
