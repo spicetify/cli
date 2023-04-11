@@ -55,7 +55,7 @@ func Watch(liveUpdate bool) {
 				}
 
 				pushThemeJS()
-				utils.PrintSuccess(utils.PrependTime("Custom JS is updated"))
+				utils.PrintSuccess(utils.PrependTime("Theme's JS is updated"))
 			}, autoReloadFunc)
 		}
 	}
