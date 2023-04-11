@@ -56,7 +56,7 @@ func Apply(spicetifyVersion string) {
 
 	if injectJS {
 		utils.PrintBold(`Transferring theme.js:`)
-		pushThemeExtension()
+		pushThemeJS()
 		utils.PrintGreen("OK")
 	} else {
 		utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/theme.js"))
