@@ -134,7 +134,7 @@ func InitPaths() {
 }
 
 // InitSetting parses theme settings and gets color section.
-func InitSetting(silent ...bool) {
+func InitSetting() {
 	replaceColors = settingSection.Key("replace_colors").MustBool(false)
 	injectCSS = settingSection.Key("inject_css").MustBool(false)
 	injectJS = settingSection.Key("inject_theme_js").MustBool(false)
@@ -194,9 +194,7 @@ func InitSetting(silent ...bool) {
 	sections := colorCfg.Sections()
 
 	if len(sections) < 2 {
-		if silent == nil {
-			utils.PrintError("No section found in " + colorPath) 
-		}
+		utils.PrintError("No section found in " + colorPath) 
 		replaceColors = false
 		return
 	}
