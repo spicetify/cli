@@ -133,7 +133,7 @@ func UpdateTheme() {
 	utils.PrintSuccess("Custom CSS is updated")
 
 	if injectJS {
-		pushThemeExtension()
+		pushThemeJS()
 		utils.PrintSuccess("Theme's JS is updated")
 	}
 
