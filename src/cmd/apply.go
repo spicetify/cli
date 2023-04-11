@@ -134,7 +134,7 @@ func UpdateTheme() {
 
 	if injectJS {
 		pushThemeExtension()
-		utils.PrintSuccess("Custom JS is updated")
+		utils.PrintSuccess("Theme's JS is updated")
 	}
 
 	if overwriteAssets {
