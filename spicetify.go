@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -173,7 +174,12 @@ func main() {
 	case "path":
 		commands = commands[1:]
 		path, err := (func() (string, error) {
-			if extensionFocus {
+			if styleFocus {
+				if len(commands) == 0 {
+					return cmd.ThemeAllAssetsPath()
+				}
+				return cmd.ThemeAssetPath(commands[0])
+			} else if extensionFocus {
 				if len(commands) == 0 {
 					return cmd.ExtensionAllPath()
 				}
@@ -184,10 +190,21 @@ func main() {
 				}
 				return cmd.AppPath(commands[0])
 			} else {
-				if len(commands) == 0 {
-					return cmd.ThemeAllAssetsPath()
+				if len(flags) != 0 && (flags[0] != "-e" ||
+					flags[0] != "-c" ||
+					flags[0] != "-a" ||
+					flags[0] != "-s") {
+					return "", errors.New("Invalid Flag\nAvailable Flags: -e, -c, -a, -s")
 				}
-				return cmd.ThemeAssetPath(commands[0])
+
+				if len(commands) == 0 && len(flags) == 0 {
+					return utils.GetExecutableDir(), nil
+				} else if commands[0] == "all" {
+					return cmd.AllPaths()
+				} else if commands[0] == "userdata" {
+					return utils.GetSpicetifyFolder(), nil
+				}
+				return "", errors.New("Invalid Option\nAvailable Options: all, userdata")
 			}
 		})()
 
@@ -317,31 +334,39 @@ watch               Enter watch mode.
                     To update on change, use with any combination of the following flags:
 						  "-e" (for extensions),
 						  "-a" (for custom apps),
-						  "-s" (for the active theme, color.ini and user.css)
+						  "-s" (for the active theme; color.ini, user.css, theme.js, and assets)
 						  "-l" (for extensions, custom apps, and active theme)
 
 
 restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
-path                Print path of color, css, extension file or
-                    custom app directory and quit.
-                    1. Print all theme's assets:
+path                Prints path of Spotify's executable, userdata, and more.
+                    1. Print executable path:
                     spicetify path
-                    2. Print theme's color.ini path:
-                    spicetify path color
-                    3. Print theme's user.css path:
-                    spicetify path css
-                    4. Print theme's assets path:
-                    spicetify path assets
-                    5. Print all extensions path:
-                    spicetify -e path
-                    6. Print extension <name> path:
-                    spicetify -e path <name>
-                    7. Print all custom apps path:
-                    spicetify -a path
-                    8. Print custom app <name> path:
-                    spicetify -a path <name>
+
+                    2. Print userdata path:
+                    spicetify path userdata
+
+                    3. Print all paths:
+                    spicetify path all
+
+                    4. Toggle focus with flags:
+                    spicetify path <flag> <option>
+	
+                    Available Flags and Options:
+                    "-e" (for extensions),
+                    options: root, extension name, blank for all.
+					
+                    "-a" (for custom apps),
+                    options: root, app name, blank for all.
+					
+                    "-s" (for the active theme)
+                    options: root, folder, color, css, js, assets, blank for all.
+					
+                    "-c" (for config.ini)
+                    options: N/A.
+
 
 config              1. Print all config fields and values:
                     spicetify config
@@ -396,7 +421,7 @@ upgrade             Upgrade spicetify latest version
                     like clear backup, restore will proceed without prompting
                     permission.
 
--s, --style         Use with "watch" command to auto-reload Spotify when changes are made to the active theme (color.ini, user.css).
+-s, --style         Use with "watch" command to auto-reload Spotify when changes are made to the active theme (color.ini, user.css, theme.js, assets).
 
 -e, --extension     Use with "update", "watch" or "path" command to
                     focus on extensions. Use with "watch" command to auto-reload Spotify when changes are made to extensions.
@@ -437,6 +462,9 @@ color_scheme
 
 inject_css <0 | 1>
     Whether custom css from user.css in theme folder is applied
+
+inject_theme_js <0 | 1>
+	Whether custom js from theme.js in theme folder is applied
 
 replace_colors <0 | 1>
     Whether custom colors is applied

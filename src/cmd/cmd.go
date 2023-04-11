@@ -34,6 +34,7 @@ var (
 	colorCfg                *ini.File
 	colorSection            *ini.Section
 	injectCSS               bool
+	injectJS                bool
 	replaceColors           bool
 	overwriteAssets         bool
 )
@@ -136,12 +137,14 @@ func InitPaths() {
 func InitSetting() {
 	replaceColors = settingSection.Key("replace_colors").MustBool(false)
 	injectCSS = settingSection.Key("inject_css").MustBool(false)
+	injectJS = settingSection.Key("inject_theme_js").MustBool(false)
 	overwriteAssets = settingSection.Key("overwrite_assets").MustBool(false)
 
 	themeName := settingSection.Key("current_theme").String()
 
 	if len(themeName) == 0 {
 		injectCSS = false
+		injectJS = false
 		replaceColors = false
 		overwriteAssets = false
 		return
@@ -152,6 +155,7 @@ func InitSetting() {
 	colorPath := filepath.Join(themeFolder, "color.ini")
 	cssPath := filepath.Join(themeFolder, "user.css")
 	assetsPath := filepath.Join(themeFolder, "assets")
+	jsPath := filepath.Join(themeFolder, "theme.js")
 
 	if replaceColors {
 		_, err := os.Stat(colorPath)
@@ -161,6 +165,14 @@ func InitSetting() {
 	if injectCSS {
 		_, err := os.Stat(cssPath)
 		injectCSS = err == nil
+	}
+
+	if injectJS {
+		_, err := os.Stat(jsPath)
+		injectJS = err == nil
+		if err != nil {
+			utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/theme.js"))
+		}
 	}
 
 	if overwriteAssets {

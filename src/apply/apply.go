@@ -15,6 +15,7 @@ import (
 type Flag struct {
 	CurrentTheme  string
 	ColorScheme   string
+	InjectThemeJS bool
 	Extension     []string
 	CustomApp     []string
 	SidebarConfig bool
@@ -94,6 +95,10 @@ func htmlMod(htmlPath string, flags Flag) {
 
 	extensionsHTML := "\n"
 	helperHTML := "\n"
+
+	if flags.InjectThemeJS {
+		extensionsHTML += `<script defer src="extensions/theme.js"></script>` + "\n"
+	}
 
 	if flags.SidebarConfig {
 		helperHTML += `<script defer src="helper/sidebarConfig.js"></script>` + "\n"
