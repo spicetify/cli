@@ -126,7 +126,7 @@ func UpdateTheme() {
 
 	if len(themeFolder) == 0 {
 		utils.PrintWarning(`Nothing is updated: Config "current_theme" is blank.`)
-		os.Exit(1)
+		return
 	}
 
 	updateCSS()
