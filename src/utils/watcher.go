@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -54,7 +53,12 @@ func WatchRecursive(root string, callbackEach func(fileName string, err error), 
 	for {
 		finalCallback := false
 
-		filepath.WalkDir(root, func(filePath string, info fs.DirEntry, err error) error {
+		filepath.WalkDir(root, func(filePath string, info os.DirEntry, err error) error {
+			if err != nil {
+				callbackEach(filePath, err)
+				return nil
+			}
+
 			if info.IsDir() {
 				return nil
 			}
