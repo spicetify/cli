@@ -319,7 +319,7 @@ backup              Start backup and preprocessing app files.
 
 apply               Apply customization.
 
-update              By default updates theme's CSS, JS, colors and assets.
+update              By default, updates theme's CSS, JS, colors, and assets.
                     Use with flag "-e" to update extensions.
 
 restore             Restore Spotify to original state.
