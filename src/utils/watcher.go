@@ -51,12 +51,8 @@ func Watch(fileList []string, callbackEach func(fileName string, err error), cal
 func WatchRecursive(root string, callbackEach func(fileName string, err error), callbackAfter func()) {
 	var cache = map[string][]byte{}
 
-	init := true
-	totalFiles, _ := os.ReadDir(root)
-
 	for {
-		fileCount := 0
-		updatedFilesCount := 0
+		finalCallback := false
 
 		filepath.WalkDir(root, func(filePath string, info fs.DirEntry, err error) error {
 			if info.IsDir() {
@@ -69,25 +65,19 @@ func WatchRecursive(root string, callbackEach func(fileName string, err error), 
 				return nil
 			}
 
-			fileCount += 1
-
 			if !bytes.Equal(cache[filePath], curr) {
 				callbackEach(filePath, nil)
 				cache[filePath] = curr
-				updatedFilesCount += 1
-			}
-
-			if fileCount == len(totalFiles) && updatedFilesCount > 0 && callbackAfter != nil {
-				if init {
-					init = false
-					return nil
-				}
-
-				callbackAfter()
+				finalCallback = true
 			}
 
 			return nil
 		})
+
+
+		if callbackAfter != nil && finalCallback {
+			callbackAfter()
+		}
 
 		time.Sleep(INTERVAL)
 	}
