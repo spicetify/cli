@@ -3,9 +3,10 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -25,7 +26,7 @@ func Watch(fileList []string, callbackEach func(fileName string, err error), cal
 	for {
 		finalCallback := false
 		for _, v := range fileList {
-			curr, err := ioutil.ReadFile(v)
+			curr, err := os.ReadFile(v)
 			if err != nil {
 				callbackEach(v, err)
 				continue
@@ -50,31 +51,50 @@ func Watch(fileList []string, callbackEach func(fileName string, err error), cal
 func WatchRecursive(root string, callbackEach func(fileName string, err error), callbackAfter func()) {
 	var cache = map[string][]byte{}
 
-	for {
-		finalCallback := false
+	init := true
+	fileCount := 0
+	updatedFilesCount := 0
+	totalFiles, _ := os.ReadDir(root)
 
+	for {
 		filepath.WalkDir(root, func(filePath string, info fs.DirEntry, err error) error {
 			if info.IsDir() {
 				return nil
 			}
 
-			curr, err := ioutil.ReadFile(filePath)
+			curr, err := os.ReadFile(filePath)
 			if err != nil {
 				callbackEach(filePath, err)
 				return nil
 			}
 
+			fileCount += 1
+
 			if !bytes.Equal(cache[filePath], curr) {
 				callbackEach(filePath, nil)
 				cache[filePath] = curr
+				updatedFilesCount += 1
+			}
+
+			// If all files are checked and there is a change, call callbackAfter
+			if fileCount == len(totalFiles) && updatedFilesCount > 0 && callbackAfter != nil {
+				updatedFilesCount = 0
+				fileCount = 0
+
+				if init {
+					init = false
+					return nil
+				}
+
+				callbackAfter()
+			}
+
+			if fileCount == len(totalFiles) {
+				fileCount = 0
 			}
 
 			return nil
 		})
-
-		if callbackAfter != nil && finalCallback {
-			callbackAfter()
-		}
 
 		time.Sleep(INTERVAL)
 	}
@@ -98,7 +118,7 @@ func GetDebuggerPath() string {
 		return ""
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return ""
 	}
