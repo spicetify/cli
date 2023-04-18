@@ -74,7 +74,6 @@ func WatchRecursive(root string, callbackEach func(fileName string, err error), 
 			return nil
 		})
 
-
 		if callbackAfter != nil && finalCallback {
 			callbackAfter()
 		}
