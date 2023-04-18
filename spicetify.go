@@ -331,10 +331,10 @@ enable-devtools     Enable Spotify's developer tools.
 
 watch               Enter watch mode.
                     To update on change, use with any combination of the following flags:
-						  "-e" (for extensions),
-						  "-a" (for custom apps),
-						  "-s" (for the active theme; color.ini, user.css, theme.js, and assets)
-						  "-l" (for extensions, custom apps, and active theme)
+                        "-e" (for extensions),
+                        "-a" (for custom apps),
+                        "-s" (for the active theme; color.ini, user.css, theme.js, and assets)
+                        "-l" (for extensions, custom apps, and active theme)
 
 
 restart             Restart Spotify client.
