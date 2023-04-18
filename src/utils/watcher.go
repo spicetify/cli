@@ -53,12 +53,7 @@ func WatchRecursive(root string, callbackEach func(fileName string, err error), 
 	for {
 		finalCallback := false
 
-		filepath.WalkDir(root, func(filePath string, info os.DirEntry, err error) error {
-			if err != nil {
-				callbackEach(filePath, err)
-				return nil
-			}
-
+		filepath.WalkDir(root, func(filePath string, info os.DirEntry, _ error) error {
 			if info.IsDir() {
 				return nil
 			}
