@@ -3,9 +3,9 @@ package utils
 import (
 	"bytes"
 	"encoding/json"
-	"io/fs"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -25,7 +25,7 @@ func Watch(fileList []string, callbackEach func(fileName string, err error), cal
 	for {
 		finalCallback := false
 		for _, v := range fileList {
-			curr, err := ioutil.ReadFile(v)
+			curr, err := os.ReadFile(v)
 			if err != nil {
 				callbackEach(v, err)
 				continue
@@ -53,12 +53,12 @@ func WatchRecursive(root string, callbackEach func(fileName string, err error), 
 	for {
 		finalCallback := false
 
-		filepath.WalkDir(root, func(filePath string, info fs.DirEntry, err error) error {
+		filepath.WalkDir(root, func(filePath string, info os.DirEntry, _ error) error {
 			if info.IsDir() {
 				return nil
 			}
 
-			curr, err := ioutil.ReadFile(filePath)
+			curr, err := os.ReadFile(filePath)
 			if err != nil {
 				callbackEach(filePath, err)
 				return nil
@@ -67,6 +67,7 @@ func WatchRecursive(root string, callbackEach func(fileName string, err error), 
 			if !bytes.Equal(cache[filePath], curr) {
 				callbackEach(filePath, nil)
 				cache[filePath] = curr
+				finalCallback = true
 			}
 
 			return nil
@@ -98,7 +99,7 @@ func GetDebuggerPath() string {
 		return ""
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return ""
 	}
