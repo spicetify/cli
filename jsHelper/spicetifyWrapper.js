@@ -1489,6 +1489,14 @@ Spicetify.Playbar = (function() {
                         margin-top: 1rem;
                         margin-bottom: 1rem;
                     }
+                    #spicetify-update ul {
+                        padding-left: 1rem;
+                    }
+                    #spicetify-update li {
+                        margin-top: 0.5rem;
+                        margin-bottom: 0.5rem;
+                        list-style-type: disc;
+                    }
                 </style>
                 <p> Current version: ${version} </p>
                 <p> Latest version:
@@ -1498,13 +1506,16 @@ Spicetify.Playbar = (function() {
                 </p>
                 <hr>
                 <p> Update Spicetify to receive new features and bug fixes. </p>
-                <p> Run this command in the terminal to update: </p>
-                <pre>spicetify restore backup apply --check-update</pre>
-                <p> Or update manually by downloading the latest release from
-                    <a href="${html_url}" target="_blank" rel="noopener noreferrer">
-                        GitHub
-                    </a>
-                </p>
+                <ul>
+                    <li> First, update Spicetify CLI: </li>
+                    <ul>
+                        <li> Run this command in the terminal: </li>
+                        <pre>spicetify upgrade</pre>
+                        <li> If you installed Spicetify via a package manager, update using said package manager. </li>
+                    </ul>
+                    <li> Afterwards, apply the latest changes to Spotify: </li>
+                    <pre>spicetify restore backup apply</pre>
+                </ul>
             `;
 
             (function waitForTippy() {
@@ -1513,17 +1524,19 @@ Spicetify.Playbar = (function() {
                     return;
                 }
 
-                const tippyInstance = Spicetify.Tippy(content.querySelector("pre"), {
+                const tippy = Spicetify.Tippy(content.querySelectorAll("pre"), {
                     content: "Click to copy",
                     hideOnClick: false,
                     ...Spicetify.TippyProps,
                 });
 
-                content.querySelector("pre").onclick = () => {
-                    Spicetify.Platform.ClipboardAPI.copy("spicetify restore backup apply --check-update");
-                    tippyInstance.setContent("Copied!");
-                    setTimeout(() => tippyInstance.setContent("Click to copy"), 2000);
-                };
+                tippy.forEach((instance) => {
+                    instance.reference.addEventListener("click", () => {
+                        Spicetify.Platform.ClipboardAPI.copy(instance.reference.textContent);
+                        instance.setContent("Copied!");
+                        setTimeout(() => instance.setContent("Click to copy"), 1000);
+                    });
+                });
             })();
 
             const updateModal = {
