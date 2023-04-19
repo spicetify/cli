@@ -1562,16 +1562,16 @@ Spicetify.Playbar = (function() {
                 });
             })();
 
-			function changelogs() {
-				return [...body.matchAll(/:\s(.+?)\sin\shttps/g)]
-					.map(match => {
-						const featureData = match[1].split("@");
-						const feature = featureData[0];
-						const committerID = featureData[1];
-						return `<li>${feature}<a href="https://github.com/${committerID}">${committerID}</a></li>`;
-					})
-					.join("\n");
-			}
+            function changelogs() {
+                return [...body.matchAll(/:\s(.+?)\sin\shttps/g)]
+                    .map(match => {
+                        const featureData = match[1].split("@");
+                        const feature = featureData[0];
+                        const committerID = featureData[1];
+                        return `<li>${feature}<a href="https://github.com/${committerID}">${committerID}</a></li>`;
+                    })
+                    .join("\n");
+            }
 
             const updateModal = {
                 title: "Update Spicetify",
