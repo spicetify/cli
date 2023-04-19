@@ -1490,7 +1490,7 @@ Spicetify.Playbar = (function() {
                         margin-bottom: 1rem;
                     }
                     #spicetify-update ul {
-                        padding-left: 1rem;
+                        padding-left: 1.5rem;
                     }
                     #spicetify-update li {
                         margin-top: 0.5rem;
