@@ -1454,5 +1454,95 @@ Spicetify.Playbar = (function() {
     });
 }());
 
+(async function checkForUpdate() {
+    if (!Spicetify.Config) {
+        setTimeout(checkForUpdate, 300);
+        return;
+    }
+    const { version } = Spicetify.Config;
+    // Skip checking if version is Dev or version is not set
+    if (!version) {
+        return;
+    }
+    // Fetch latest version from GitHub
+    try {
+        const res = await fetch("https://api.github.com/repos/spicetify/spicetify-cli/releases/latest");
+        const { tag_name, html_url } = await res.json();
+        const semver = tag_name.slice(1);
+
+        if (semver !== version) {
+            const content = document.createElement("div");
+            content.id = "spicetify-update";
+            content.innerHTML = `
+                <style>
+                    #spicetify-update a {
+                        text-decoration: underline;
+                    }
+                    #spicetify-update pre {
+                        cursor: pointer;
+                        font-size: 1rem;
+                        padding-top: 0.5rem;
+                        padding-bottom: 0.5rem;
+                        background-color: var(--spice-highlight);
+                        border-radius: 0.25rem;
+                    }
+                    #spicetify-update hr {
+                        margin-top: 1rem;
+                        margin-bottom: 1rem;
+                    }
+                </style>
+                <p> Current version: ${version} </p>
+                <p> Latest version:
+                    <a href="${html_url}" target="_blank" rel="noopener noreferrer">
+                        ${semver}
+                    </a>
+                </p>
+                <hr>
+                <p> Update Spicetify to receive new features and bug fixes. </p>
+                <p> Run this command in the terminal to update: </p>
+                <pre>spicetify restore backup apply --check-update</pre>
+                <p> Or update manually by downloading the latest release from
+                    <a href="${html_url}" target="_blank" rel="noopener noreferrer">
+                        GitHub
+                    </a>
+                </p>
+            `;
+
+            (function waitForTippy() {
+                if (!Spicetify.Tippy) {
+                    setTimeout(waitForTippy, 300);
+                    return;
+                }
+
+                const tippyInstance = Spicetify.Tippy(content.querySelector("pre"), {
+                    content: "Click to copy",
+                    hideOnClick: false,
+                    ...Spicetify.TippyProps,
+                });
+
+                content.querySelector("pre").onclick = () => {
+                    Spicetify.Platform.ClipboardAPI.copy("spicetify restore backup apply --check-update");
+                    tippyInstance.setContent("Copied!");
+                    setTimeout(() => tippyInstance.setContent("Click to copy"), 2000);
+                };
+            })();
+
+            const updateModal = {
+                title: "Update Spicetify",
+                content,
+                isLarge: true,
+            }
+
+            new Spicetify.Topbar.Button(
+                "Update Spicetify",
+                "<img src='https://avatars.githubusercontent.com/u/100136310?s=200&v=4' class='main-topBar-icon' style='filter: brightness(10);'/>" ,
+                () => Spicetify.PopupModal.display(updateModal),
+            );
+        }
+    } catch (err) {
+        console.err(err);
+    }
+})();
+
 // Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
 window.Spicetify = Spicetify;

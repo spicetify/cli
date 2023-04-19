@@ -19,6 +19,14 @@ func Apply(spicetifyVersion string) {
 	checkStates()
 	InitSetting()
 
+	backupSpicetifyVersion := backupSection.Key("with").MustString("")
+	if spicetifyVersion != backupSpicetifyVersion {
+		utils.PrintInfo(`Preprocessed Spotify data is outdated. Please run "spicetify restore backup apply" to receive new features and bug fixes`)
+		if !ReadAnswer("Continue applying anyway? [y/N]: ", false, true) {
+			os.Exit(1)
+		}
+	}
+
 	// Copy raw assets to Spotify Apps folder if Spotify is never applied
 	// before.
 	// extractedStock is for preventing copy raw assets 2 times when
@@ -112,11 +120,6 @@ func Apply(spicetifyVersion string) {
 	}
 
 	utils.PrintSuccess("Spotify is spiced up!")
-
-	backupSpicetifyVersion := backupSection.Key("with").MustString("")
-	if spicetifyVersion != backupSpicetifyVersion {
-		utils.PrintInfo(`Preprocessed Spotify data is outdated. Please run "spicetify restore backup apply" to receive new features and bug fixes`)
-	}
 }
 
 // UpdateTheme updates user.css + theme.js and overwrites custom assets
