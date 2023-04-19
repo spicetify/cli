@@ -1454,5 +1454,111 @@ Spicetify.Playbar = (function() {
     });
 }());
 
+(async function checkForUpdate() {
+    if (!Spicetify.Config) {
+        setTimeout(checkForUpdate, 300);
+        return;
+    }
+    const { version } = Spicetify.Config;
+    // Skip checking if version is Dev or version is not set
+    if (!version || version === "Dev") {
+        return;
+    }
+    // Fetch latest version from GitHub
+    try {
+        const res = await fetch("https://api.github.com/repos/spicetify/spicetify-cli/releases/latest");
+        const { tag_name, html_url } = await res.json();
+        const semver = tag_name.slice(1);
+
+        if (semver !== version) {
+            const content = document.createElement("div");
+            content.id = "spicetify-update";
+            content.innerHTML = `
+                <style>
+                    #spicetify-update a {
+                        text-decoration: underline;
+                    }
+                    #spicetify-update pre {
+                        cursor: pointer;
+                        font-size: 1rem;
+                        padding: 0.5rem;
+                        background-color: var(--spice-highlight-elevated);
+                        border-radius: 0.25rem;
+                    }
+                    #spicetify-update hr {
+                        margin-top: 1rem;
+                        margin-bottom: 1rem;
+                    }
+                    #spicetify-update ul,
+                    #spicetify-update ol {
+                        padding-left: 1.5rem;
+                    }
+                    #spicetify-update li {
+                        margin-top: 0.5rem;
+                        margin-bottom: 0.5rem;
+                        list-style-type: disc;
+                    }
+                    #spicetify-update ol > li {
+                        list-style-type: decimal;
+                    }
+                </style>
+                <p> Current version: ${version} </p>
+                <p> Latest version:
+                    <a href="${html_url}" target="_blank" rel="noopener noreferrer">
+                        ${semver}
+                    </a>
+                </p>
+                <hr>
+                <p>Update Spicetify to receive new features and bug fixes.</p>
+                <ol>
+                    <li>Update Spicetify CLI</li>
+                    <ul>
+                        <li>Run this command in the terminal:</li>
+                        <pre>spicetify upgrade</pre>
+                        <li> If you installed Spicetify via a package manager, update using said package manager. </li>
+                    </ul>
+                    <li>Apply latest changes to Spotify</li>
+                    <pre>spicetify restore backup apply</pre>
+                </ol>
+            `;
+
+            (function waitForTippy() {
+                if (!Spicetify.Tippy) {
+                    setTimeout(waitForTippy, 300);
+                    return;
+                }
+
+                const tippy = Spicetify.Tippy(content.querySelectorAll("pre"), {
+                    content: "Click to copy",
+                    hideOnClick: false,
+                    ...Spicetify.TippyProps,
+                });
+
+                tippy.forEach((instance) => {
+                    instance.reference.addEventListener("click", () => {
+                        Spicetify.Platform.ClipboardAPI.copy(instance.reference.textContent);
+                        instance.setContent("Copied!");
+                        setTimeout(() => instance.setContent("Click to copy"), 1000);
+                    });
+                });
+            })();
+
+            const updateModal = {
+                title: "Update Spicetify",
+                content,
+                isLarge: true,
+            }
+
+            new Spicetify.Topbar.Button(
+                "Update Spicetify",
+                "<img src='https://avatars.githubusercontent.com/u/100136310?s=200&v=4' class='main-topBar-icon' style='filter: brightness(10);'/>" ,
+                () => Spicetify.PopupModal.display(updateModal),
+            );
+        }
+    } catch (err) {
+        console.err(err);
+    }
+})();
+
 // Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
 window.Spicetify = Spicetify;
