@@ -1461,7 +1461,7 @@ Spicetify.Playbar = (function() {
     }
     const { version } = Spicetify.Config;
     // Skip checking if version is Dev or version is not set
-    if (!version) {
+    if (!version || version === "Dev") {
         return;
     }
     // Fetch latest version from GitHub
