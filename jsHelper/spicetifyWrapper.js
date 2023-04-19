@@ -1481,9 +1481,8 @@ Spicetify.Playbar = (function() {
                     #spicetify-update pre {
                         cursor: pointer;
                         font-size: 1rem;
-                        padding-top: 0.5rem;
-                        padding-bottom: 0.5rem;
-                        background-color: var(--spice-highlight);
+                        padding: 0.5rem;
+                        background-color: var(--spice-highlight-elevated);
                         border-radius: 0.25rem;
                     }
                     #spicetify-update hr {
