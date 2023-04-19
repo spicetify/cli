@@ -1467,7 +1467,7 @@ Spicetify.Playbar = (function() {
     // Fetch latest version from GitHub
     try {
         const res = await fetch("https://api.github.com/repos/spicetify/spicetify-cli/releases/latest");
-        const { tag_name, html_url } = await res.json();
+        const { tag_name, html_url, body } = await res.json();
         const semver = tag_name.slice(1);
 
         if (semver !== version) {
@@ -1476,6 +1476,7 @@ Spicetify.Playbar = (function() {
             content.innerHTML = `
                 <style>
                     #spicetify-update a {
+                        color: var(--spice-button);
                         text-decoration: underline;
                     }
                     #spicetify-update pre {
@@ -1486,6 +1487,7 @@ Spicetify.Playbar = (function() {
                         border-radius: 0.25rem;
                     }
                     #spicetify-update hr {
+                        border-color: var(--spice-subtext);
                         margin-top: 1rem;
                         margin-bottom: 1rem;
                     }
@@ -1501,7 +1503,12 @@ Spicetify.Playbar = (function() {
                     #spicetify-update ol > li {
                         list-style-type: decimal;
                     }
+                    .spicetify-update-space {
+                        margin-bottom: 25px;
+                    }
                 </style>
+                <p>Update Spicetify to receive new features and bug fixes.</p>
+                <div class="spicetify-update-space"></div>
                 <p> Current version: ${version} </p>
                 <p> Latest version:
                     <a href="${html_url}" target="_blank" rel="noopener noreferrer">
@@ -1509,15 +1516,27 @@ Spicetify.Playbar = (function() {
                     </a>
                 </p>
                 <hr>
-                <p>Update Spicetify to receive new features and bug fixes.</p>
-                <ol>
-                    <li>Update Spicetify CLI</li>
+                <div class="spicetify-update-space"></div>
+                <h3>What's Changed</h3>
+                <details>
+                    <summary>
+                        See change logs
+                    </summary>
                     <ul>
-                        <li>Run this command in the terminal:</li>
-                        <pre>spicetify upgrade</pre>
-                        <li> If you installed Spicetify via a package manager, update using said package manager. </li>
+                        ${changelogs()}
                     </ul>
-                    <li>Apply latest changes to Spotify</li>
+                </details>
+                <hr>
+                <div class="spicetify-update-space"></div>
+                <h3>How to update Spicetify?</h3>
+                <p>Run these command in the terminal:</p>
+                <div class="spicetify-update-space"></div>
+                <ol>
+                    <li>To update Spicetify</li>
+                    <pre>spicetify upgrade</pre>
+                    <div class="spicetify-update-space"></div>
+                    <p>If you installed Spicetify via a package manager, update using said package manager.</p>
+                    <li>To apply the update</li>
                     <pre>spicetify restore backup apply</pre>
                 </ol>
             `;
@@ -1543,15 +1562,26 @@ Spicetify.Playbar = (function() {
                 });
             })();
 
+			function changelogs() {
+				return [...body.matchAll(/:\s(.+?)\sin\shttps/g)]
+					.map(match => {
+						const featureData = match[1].split("@");
+						const feature = featureData[0];
+						const committerID = featureData[1];
+						return `<li>${feature}<a href="https://github.com/${committerID}">${committerID}</a></li>`;
+					})
+					.join("\n");
+			}
+
             const updateModal = {
                 title: "Update Spicetify",
                 content,
                 isLarge: true,
-            }
+            };
 
             new Spicetify.Topbar.Button(
                 "Update Spicetify",
-                "<img src='https://avatars.githubusercontent.com/u/100136310?s=200&v=4' class='main-topBar-icon' style='filter: brightness(10);'/>" ,
+                "<img src='https://avatars.githubusercontent.com/u/100136310?s=200&v=4' class='main-topBar-icon' style='filter: brightness(10);'/>",
                 () => Spicetify.PopupModal.display(updateModal),
             );
         }
