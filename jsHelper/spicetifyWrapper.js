@@ -1489,13 +1489,17 @@ Spicetify.Playbar = (function() {
                         margin-top: 1rem;
                         margin-bottom: 1rem;
                     }
-                    #spicetify-update ul {
+                    #spicetify-update ul,
+                    #spicetify-update ol {
                         padding-left: 1.5rem;
                     }
                     #spicetify-update li {
                         margin-top: 0.5rem;
                         margin-bottom: 0.5rem;
                         list-style-type: disc;
+                    }
+                    #spicetify-update ol > li {
+                        list-style-type: decimal;
                     }
                 </style>
                 <p> Current version: ${version} </p>
@@ -1505,17 +1509,17 @@ Spicetify.Playbar = (function() {
                     </a>
                 </p>
                 <hr>
-                <p> Update Spicetify to receive new features and bug fixes. </p>
-                <ul>
-                    <li> First, update Spicetify CLI: </li>
+                <p>Update Spicetify to receive new features and bug fixes.</p>
+                <ol>
+                    <li>Update Spicetify CLI</li>
                     <ul>
-                        <li> Run this command in the terminal: </li>
+                        <li>Run this command in the terminal:</li>
                         <pre>spicetify upgrade</pre>
                         <li> If you installed Spicetify via a package manager, update using said package manager. </li>
                     </ul>
-                    <li> Afterwards, apply the latest changes to Spotify: </li>
+                    <li>Apply latest changes to Spotify</li>
                     <pre>spicetify restore backup apply</pre>
-                </ul>
+                </ol>
             `;
 
             (function waitForTippy() {
