@@ -319,7 +319,7 @@ backup              Start backup and preprocessing app files.
 
 apply               Apply customization.
 
-update              On default, update theme CSS and colors.
+update              By default, updates theme's CSS, JS, colors, and assets.
                     Use with flag "-e" to update extensions.
 
 restore             Restore Spotify to original state.
@@ -330,12 +330,11 @@ enable-devtools     Enable Spotify's developer tools.
                     Press Ctrl + Shift + I (Windows/Linux) or Cmd + Option + I (macOS) in the Spotify client to start using.
 
 watch               Enter watch mode.
-                    On default, update CSS on color.ini or user.css's changes.
                     To update on change, use with any combination of the following flags:
-						  "-e" (for extensions),
-						  "-a" (for custom apps),
-						  "-s" (for the active theme; color.ini, user.css, theme.js, and assets)
-						  "-l" (for extensions, custom apps, and active theme)
+                        "-e" (for extensions),
+                        "-a" (for custom apps),
+                        "-s" (for the active theme; color.ini, user.css, theme.js, and assets)
+                        "-l" (for extensions, custom apps, and active theme)
 
 
 restart             Restart Spotify client.
@@ -359,7 +358,7 @@ path                Prints path of Spotify's executable, userdata, and more.
                     options: root, extension name, blank for all.
 					
                     "-a" (for custom apps),
-                    options: root, app name, blank for all.
+                    options: root, <app-name>, blank for all.
 					
                     "-s" (for the active theme)
                     options: root, folder, color, css, js, assets, blank for all.
@@ -407,10 +406,10 @@ color               1. Print all color fields and values.
                     <value> can be in hex or decimal (rrr,ggg,bbb) format.
 
                     Example usage:
-                    - Change main_bg to ff0000
-                    spicetify color main_bg ff0000
-                    - Change slider_bg to 00ff00 and pressing_fg to 0000ff
-                    spicetify color slider_bg 00ff00 pressing_fg 0000ff
+                    - Change main to ff0000
+                    spicetify color main ff0000
+                    - Change sidebar to 00ff00 and button to 0000ff
+                    spicetify color sidebar 00ff00 button 0000ff
 
 config-dir          Shows config directory in file viewer
 
