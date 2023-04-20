@@ -1469,6 +1469,14 @@ Spicetify.Playbar = (function() {
         const res = await fetch("https://api.github.com/repos/spicetify/spicetify-cli/releases/latest");
         const { tag_name, html_url, body } = await res.json();
         const semver = tag_name.slice(1);
+        const changelog = [...body.matchAll(/\r\n\*\s(.+?)\sin\shttps/g)]
+        .map(match => {
+            const featureData = match[1].split("@");
+            const feature = featureData[0];
+            const committerID = featureData[1];
+            return `<li>${feature}<a href="https://github.com/${committerID}">${committerID}</a></li>`;
+        })
+        .join("\n")
 
         if (semver !== version) {
             const content = document.createElement("div");
@@ -1476,7 +1484,6 @@ Spicetify.Playbar = (function() {
             content.innerHTML = `
                 <style>
                     #spicetify-update a {
-                        color: var(--spice-button);
                         text-decoration: underline;
                     }
                     #spicetify-update pre {
@@ -1520,23 +1527,23 @@ Spicetify.Playbar = (function() {
                 <h3>What's Changed</h3>
                 <details>
                     <summary>
-                        See change logs
+                        See changelog
                     </summary>
                     <ul>
-                        ${changelogs()}
+                        ${changelog}
                     </ul>
                 </details>
                 <hr>
                 <div class="spicetify-update-space"></div>
-                <h3>How to update Spicetify?</h3>
-                <p>Run these command in the terminal:</p>
+                <h3>Guide</h3>
+                <p>Run these commands in the terminal:</p>
                 <div class="spicetify-update-space"></div>
                 <ol>
-                    <li>To update Spicetify</li>
+                    <li>Update Spicetify CLI</li>
                     <pre>spicetify upgrade</pre>
                     <div class="spicetify-update-space"></div>
                     <p>If you installed Spicetify via a package manager, update using said package manager.</p>
-                    <li>To apply the update</li>
+                    <li>Apply changes to Spotify</li>
                     <pre>spicetify restore backup apply</pre>
                 </ol>
             `;
@@ -1561,17 +1568,6 @@ Spicetify.Playbar = (function() {
                     });
                 });
             })();
-
-            function changelogs() {
-                return [...body.matchAll(/:\s(.+?)\sin\shttps/g)]
-                    .map(match => {
-                        const featureData = match[1].split("@");
-                        const feature = featureData[0];
-                        const committerID = featureData[1];
-                        return `<li>${feature}<a href="https://github.com/${committerID}">${committerID}</a></li>`;
-                    })
-                    .join("\n");
-            }
 
             const updateModal = {
                 title: "Update Spicetify",
