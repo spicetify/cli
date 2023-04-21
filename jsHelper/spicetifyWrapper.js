@@ -1517,8 +1517,7 @@ Spicetify.Playbar = (function() {
                         margin-bottom: 8px;
                     }
                 </style>
-                <p>Update Spicetify to receive new features and bug fixes.</p>
-                <div class="spicetify-update-space"></div>
+                <p class="spicetify-update-space">Update Spicetify to receive new features and bug fixes.</p>
                 <p> Current version: ${version} </p>
                 <p> Latest version:
                     <a href="${html_url}" target="_blank" rel="noopener noreferrer">
@@ -1540,10 +1539,8 @@ Spicetify.Playbar = (function() {
                 <p>Run these commands in the terminal:</p>
                 <ol>
                     <li>Update Spicetify CLI</li>
-                    <pre>spicetify upgrade</pre>
-                    <div class="spicetify-update-little-space"></div>
-                    <p>If you installed Spicetify via a package manager, update using said package manager.</p>
-                    <div class="spicetify-update-space"></div>
+                    <pre class="spicetify-update-little-space">spicetify upgrade</pre>
+                    <p class="spicetify-update-space">If you installed Spicetify via a package manager, update using said package manager.</p>
                     <li>Apply changes to Spotify</li>
                     <pre>spicetify restore backup apply</pre>
                 </ol>
