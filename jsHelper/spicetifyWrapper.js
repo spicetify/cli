@@ -315,9 +315,11 @@ Spicetify.LocalStorage = {
 };
 
 Spicetify._getStyledClassName = (args, component) => {
-    const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "iconSize", "position", "paddingBottom", "data-encore-id"];
+    const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "iconSize", "position", "data-encore-id"];
+    const customKeys = ["padding", "blocksize"];
+
     const element = Array.from(args).find(
-		e => e?.children || e?.dangerouslySetInnerHTML || typeof e?.className !== "undefined" || includedKeys.some(key => typeof e?.[key] !== "undefined")
+		e => e?.children || e?.dangerouslySetInnerHTML || typeof e?.className !== "undefined" || includedKeys.some(key => typeof e?.[key] !== "undefined") || customKeys.some(key => Object.keys(e).some(k => k.toLowerCase().includes(key)))
 	);
 
     if (!element) return;
@@ -333,7 +335,6 @@ Spicetify._getStyledClassName = (args, component) => {
     const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", ""];
     const excludedPrefix = ["aria-"];
 
-
     const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
 
     for (const key of childrenProps) {
@@ -346,6 +347,12 @@ Spicetify._getStyledClassName = (args, component) => {
         if (excludedKeys.includes(key)) continue;
         if (excludedPrefix.some(prefix => key.startsWith(prefix))) continue;
         className += `-${key}`;
+    }
+
+    const customEntries = Object.entries(element).filter(([key, value]) => customKeys.some(k => key.toLowerCase().includes(k)) && typeof value === "string" && value.length);
+
+    for (const [key, value] of customEntries) {
+        className += `-${key}_${value.replace(/[^a-z0-9]/gi, "_")}`;
     }
 
     return className;
