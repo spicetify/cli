@@ -187,7 +187,7 @@ class LyricsContainer extends react.Component {
 		let prominent = 0;
 		try {
 			const colors = await CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
-			prominent = colors.entries[0].color_swatches[4].color;
+			prominent = colors.entries[0].color_swatches.find(color => color.preset === "PROMINENT").color;
 		} catch {
 			prominent = 8747370;
 		}
