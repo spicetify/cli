@@ -536,7 +536,6 @@ function openConfig() {
 			],
 			onChange: (name, value) => {
 				CONFIG.visual[name] = value;
-				console.log(CONFIG.visual, APP_NAME, name, value);
 				localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 				lyricContainerUpdate && lyricContainerUpdate();
 			}
