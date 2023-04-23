@@ -1094,4 +1094,10 @@ declare namespace Spicetify {
      * Used to mimic Spotify's tooltip behavior
      */
     const TippyProps: any;
+
+    /** Change client's default title.
+     * This has no effect when the player is active.
+     * @param title New title.
+     */
+    function setAppTitle(title: string): Promise<{ cancel: () => void }>;
 }
