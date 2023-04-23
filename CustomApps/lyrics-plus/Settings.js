@@ -432,6 +432,15 @@ function openConfig() {
 		react.createElement(OptionList, {
 			items: [
 				{
+					desc: "Global delay",
+					info: "Offset (in ms) across all tracks, useful in accounting for wireless delay.",
+					key: "global-delay",
+					type: ConfigAdjust,
+					min: -10000,
+					max: 10000,
+					step: 250
+				},
+				{
 					desc: "Font size",
 					info: "(or Ctrl + Mouse scroll in main app)",
 					key: "font-size",
