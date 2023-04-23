@@ -1109,11 +1109,11 @@ declare namespace Spicetify {
         /**
          * Reset app title to default
          */
-        function reset(): void;
+        function reset(): Promise<void>;
         /**
          * Get current app title
          * @return Current app title
          */
-        function get(): string;
+        function get(): Promise<string>;
     }
 }
