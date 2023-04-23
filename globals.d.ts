@@ -1099,7 +1099,7 @@ declare namespace Spicetify {
      * This has no effect when the player is active.
      * @param title New title.
      * @return Object containing method to cancel forcing app title.
-     * If an instance of this function is called prior, it will automatically be canceled and overwritten.
+     * If an instance of this function is called prior, it will automatically be overwritten.
      */
     function setAppTitle(title: string): Promise<{ cancel: () => void }>;
 }
