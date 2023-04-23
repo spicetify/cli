@@ -56,7 +56,7 @@ const CONFIG = {
 		["synced-compact"]: getConfig("lyrics-plus:visual:synced-compact"),
 		["dual-genius"]: getConfig("lyrics-plus:visual:dual-genius"),
 		["global-delay"]: Number(localStorage.getItem("lyrics-plus:visual:global-delay")) || 0,
-		["track-delay"]: 0
+		delay: 0
 	},
 	providers: {
 		netease: {
@@ -344,7 +344,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	resetDelay() {
-		CONFIG.visual["track-delay"] = Number(localStorage.getItem(`lyrics-track-delay:${Spicetify.Player.data.track.uri}`)) || 0;
+		CONFIG.visual.delay = Number(localStorage.getItem(`lyrics-delay:${Spicetify.Player.data.track.uri}`)) || 0;
 	}
 
 	async onVersionChange(items, index) {
