@@ -196,7 +196,7 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 						},
 						{
 							desc: "Track delay",
-							key: "track-delay",
+							key: "delay",
 							type: ConfigAdjust,
 							min: -10000,
 							max: 10000,
@@ -220,7 +220,7 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 						CONFIG.visual[name] = value;
 						console.log(CONFIG.visual, APP_NAME, name, value);
 						localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
-						name === "track-delay" && localStorage.setItem(`lyrics-track-delay:${Spicetify.Player.data.track.uri}`, value);
+						name === "delay" && localStorage.setItem(`lyrics-delay:${Spicetify.Player.data.track.uri}`, value);
 						lyricContainerUpdate && lyricContainerUpdate();
 					}
 				})
