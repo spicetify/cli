@@ -195,7 +195,7 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 							step: fontSizeLimit.step
 						},
 						{
-							desc: "Delay",
+							desc: "Track delay",
 							key: "delay",
 							type: ConfigAdjust,
 							min: -10000,

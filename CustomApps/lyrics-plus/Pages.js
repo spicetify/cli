@@ -84,8 +84,9 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 
 	useTrackPosition(() => {
 		const newPos = Spicetify.Player.getProgress();
+		const delay = CONFIG.visual["global-delay"] + CONFIG.visual.delay;
 		if (newPos != position) {
-			setPosition(newPos + CONFIG.visual.delay);
+			setPosition(newPos + delay);
 		}
 	});
 
@@ -352,7 +353,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 
 	useTrackPosition(() => {
 		if (!Player.data.is_paused) {
-			setPosition(Spicetify.Player.getProgress() + CONFIG.visual.delay);
+			setPosition(Spicetify.Player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay);
 		}
 	});
 

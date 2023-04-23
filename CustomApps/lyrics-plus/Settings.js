@@ -432,6 +432,15 @@ function openConfig() {
 		react.createElement(OptionList, {
 			items: [
 				{
+					desc: "Global delay",
+					info: "Offset (in ms) across all tracks.",
+					key: "global-delay",
+					type: ConfigAdjust,
+					min: -10000,
+					max: 10000,
+					step: 250
+				},
+				{
 					desc: "Font size",
 					info: "(or Ctrl + Mouse scroll in main app)",
 					key: "font-size",
@@ -527,7 +536,6 @@ function openConfig() {
 			],
 			onChange: (name, value) => {
 				CONFIG.visual[name] = value;
-				console.log(CONFIG.visual, APP_NAME, name, value);
 				localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 				lyricContainerUpdate && lyricContainerUpdate();
 			}
