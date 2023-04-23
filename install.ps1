@@ -155,10 +155,10 @@ if ($PSVersionTable.PSVersion.Major -ge $PSMinVersion) {
     
   Write-Log -Texts "spicetify-cli was installed successfully." -Emphasized $false
   Write-Done
-  Write-Log -Texts "Run ", "spicetify --help", " to get started.`n" -Emphasized $false
+  Write-Log -Texts "Run ", "spicetify --help", " to get started.`n" -Emphasized $false, $true, $false
 }
 else {
-  Write-Log -Texts "`nYour Powershell version is lesser than ", "$PSMinVersion" -Emphasized $false
-  Write-Log -Texts "`nPlease, update your Powershell downloading the ", "'Windows Management Framework'", " greater than ", "$PSMinVersion" -Emphasized $false
+  Write-Log -Texts "`nYour Powershell version is lesser than ", "$PSMinVersion" -Emphasized $false, $true
+  Write-Log -Texts "`nPlease, update your Powershell downloading the ", "'Windows Management Framework'", " greater than ", "$PSMinVersion" -Emphasized $false, $true, $false, $true
 }
 #endregion Main
