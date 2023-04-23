@@ -433,7 +433,7 @@ function openConfig() {
 			items: [
 				{
 					desc: "Global delay",
-					info: "Offset (in ms) across all tracks, useful in accounting for wireless delay.",
+					info: "Offset (in ms) across all tracks.",
 					key: "global-delay",
 					type: ConfigAdjust,
 					min: -10000,
