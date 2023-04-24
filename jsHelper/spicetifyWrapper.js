@@ -616,6 +616,43 @@ Spicetify.SVGIcons = {
     "x": "<path d=\"M14.354 2.353l-.708-.707L8 7.293 2.353 1.646l-.707.707L7.293 8l-5.647 5.646.707.708L8 8.707l5.646 5.647.708-.708L8.707 8z\"/>"
 };
 
+(async function waitUserAPI() {
+    if (!Spicetify.Platform?.UserAPI?._product_state) {
+        setTimeout(waitUserAPI, 1000);
+        return;
+    }
+
+    let subRequest;
+    const initialValue = await Spicetify.Platform.UserAPI._product_state.getValues();
+    const initialName = initialValue.pairs.name;
+
+    Spicetify.AppTitle = {
+        set: async (name) => {
+            if (subRequest) subRequest.cancel();
+            await Spicetify.Platform.UserAPI._product_state.putValues({ pairs: { name }});
+            subRequest = Spicetify.Platform.UserAPI._product_state.subValues({ keys: ["name"] }, ({ pairs }) => {
+                if (pairs.name !== name) {
+                    Spicetify.Platform.UserAPI._product_state.putValues({ pairs: { name }}); // Restore name
+                }
+            });
+            return subRequest;
+        },
+        get: async () => {
+            const value = await Spicetify.Platform.UserAPI._product_state.getValues();
+            return value.pairs.name;
+        },
+        reset: async () => {
+            if (subRequest) subRequest.cancel();
+            await Spicetify.Platform.UserAPI._product_state.putValues({ pairs: { name: initialName }});
+        },
+        sub: (callback) => {
+            return Spicetify.Platform.UserAPI._product_state.subValues({ keys: ["name"] }, ({ pairs }) => {
+                callback(pairs.name);
+            });
+        }
+    }
+})();
+
 (function appendAllFontStyle() {
     if (!Spicetify._fontStyle) {
         setTimeout(appendAllFontStyle, 1000);
