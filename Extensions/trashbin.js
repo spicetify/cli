@@ -315,15 +315,20 @@
 			const file = e.target.files[0];
 			const reader = new FileReader();
 			reader.onload = e => {
-				const data = JSON.parse(e.target.result);
-				if (data instanceof SyntaxError) {
-					Spicetify.showNotification("File Import Failed!", true);
-				} else {
+				try {
+					const data = JSON.parse(e.target.result);
 					trashSongList = data.songs;
 					trashArtistList = data.artists;
 					putDataLocal();
 					Spicetify.showNotification("File Import Successful!");
+				} catch (e) {
+					Spicetify.showNotification("File Import Failed!", true);
+					console.error(e);
 				}
+			};
+			reader.onerror = () => {
+				Spicetify.showNotification("File Read Failed!", true);
+				console.error(reader.error);
 			};
 			reader.readAsText(file);
 		};
