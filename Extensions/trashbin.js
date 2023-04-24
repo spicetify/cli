@@ -63,10 +63,10 @@
 		header.innerText = "Local Storage";
 		content.appendChild(header);
 
-		content.appendChild(createButton("Export", "Copy json containing all items in trashbin to clipboard.", exportTracks));
-		content.appendChild(createButton("Import", "Add batches of songs to trashbin via json file.", importTracks));
+		content.appendChild(createButton("Export", "Copy all items in trashbin to clipboard, manually save to a .json file.", exportItems));
+		content.appendChild(createButton("Import", "Overwrite all items in trashbin via .json file.", importItems));
 		content.appendChild(
-			createButton("Clear ", "Clear all items from trashbin (Cannot be reverted).", () => {
+			createButton("Clear ", "Clear all items from trashbin (cannot be reverted).", () => {
 				trashSongList = {};
 				trashArtistList = {};
 				putDataLocal();
@@ -298,7 +298,7 @@
 		Spicetify.LocalStorage.set("TrashArtistList", JSON.stringify(trashArtistList));
 	}
 
-	function exportTracks() {
+	function exportItems() {
 		const data = {
 			songs: trashSongList,
 			artists: trashArtistList
@@ -307,7 +307,7 @@
 		Spicetify.showNotification("Copied to clipboard");
 	}
 
-	function importTracks() {
+	function importItems() {
 		const input = document.createElement("input");
 		input.type = "file";
 		input.accept = ".json";
