@@ -1115,5 +1115,11 @@ declare namespace Spicetify {
          * @return Current app title
          */
         function get(): string;
+        /**
+         * Subscribe to title changes
+         * @param callback Callback to call when title changes
+         * @return Object with method to unsubscribe
+         */
+        function sub(callback: (title: string) => void): { clear: () => void };
     }
 }

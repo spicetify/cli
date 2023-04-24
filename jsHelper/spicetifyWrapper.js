@@ -630,7 +630,7 @@ Spicetify.SVGIcons = {
         set: async (name) => {
             if (subRequest) subRequest.cancel();
             await Spicetify.Platform.UserAPI._product_state.putValues({ pairs: { name }});
-            subRequest = await Spicetify.Platform.UserAPI._product_state.subValues({ keys: ["name"] }, ({ pairs }) => {
+            subRequest = Spicetify.Platform.UserAPI._product_state.subValues({ keys: ["name"] }, ({ pairs }) => {
                 if (pairs.name !== name) {
                     Spicetify.Platform.UserAPI._product_state.putValues({ pairs: { name }}); // Restore name
                 }
@@ -644,6 +644,11 @@ Spicetify.SVGIcons = {
         reset: async () => {
             if (subRequest) subRequest.cancel();
             await Spicetify.Platform.UserAPI._product_state.putValues({ pairs: { name: initialName }});
+        },
+        sub: (callback) => {
+            return Spicetify.Platform.UserAPI._product_state.subValues({ keys: ["name"] }, ({ pairs }) => {
+                callback(pairs.name);
+            });
         }
     }
 })();
