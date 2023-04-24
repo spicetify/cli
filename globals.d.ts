@@ -1111,12 +1111,13 @@ declare namespace Spicetify {
          */
         function reset(): Promise<void>;
         /**
-         * Get current app title
-         * @return Current app title
+         * Get current default app title
+         * @return Current default app title
          */
         function get(): Promise<string>;
         /**
-         * Subscribe to title changes
+         * Subscribe to title changes.
+         * This event is not fired when the player changes app title.
          * @param callback Callback to call when title changes
          * @return Object with method to unsubscribe
          */
