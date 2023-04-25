@@ -48,8 +48,10 @@ const CONFIG = {
 		["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
 		["translation-mode:japanese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:japanese") || "furigana",
 		["translation-mode:chinese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:chinese") || "cn",
+		["translation-mode:korean"]: localStorage.getItem("lyrics-plus:visual:translation-mode:korean") || "hangul",
 		["translate"]: getConfig("lyrics-plus:visual:translate", false),
 		["ja-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
+		["kr-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:kr-detect-threshold") || "40",
 		["hans-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
 		["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
 		["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
@@ -106,6 +108,7 @@ CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
 CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
 CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
 CONFIG.visual["ja-detect-threshold"] = parseInt(CONFIG.visual["ja-detect-threshold"]);
+CONFIG.visual["kr-detect-threshold"] = parseInt(CONFIG.visual["kr-detect-threshold"]);
 CONFIG.visual["hans-detect-threshold"] = parseInt(CONFIG.visual["hans-detect-threshold"]);
 
 const CACHE = {};
@@ -136,6 +139,8 @@ class LyricsContainer extends react.Component {
 			romaji: null,
 			furigana: null,
 			hiragana: null,
+			hangul: null,
+			romaja: null,
 			katakana: null,
 			cn: null,
 			hk: null,
@@ -249,6 +254,8 @@ class LyricsContainer extends react.Component {
 			this.state.romaji =
 			this.state.hiragana =
 			this.state.katakana =
+			this.state.hangul =
+			this.state.romaja =
 			this.state.cn =
 			this.state.hk =
 			this.state.tw =
@@ -328,6 +335,18 @@ class LyricsContainer extends react.Component {
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
+
+		[
+			["hangul", "hangul"],
+			["romaja", "romaja"]
+		].map(params => {
+			if (language !== "kr") return;
+			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
+				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
+				lyricContainerUpdate && lyricContainerUpdate();
+			});
+		});
+
 		[
 			["cn", "hk"],
 			["cn", "tw"],
