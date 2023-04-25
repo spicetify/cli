@@ -527,7 +527,7 @@ function openConfig() {
 				{
 					desc: "Text convertion: korean detection (Advanced)",
 					info: "Checks if whenever Hangul is dominant in lyrics. If the result passes the threshold, it's most likely Korean, and vice versa. This setting is in percentage.",
-					key: "kr-detect-threshold",
+					key: "ko-detect-threshold",
 					type: ConfigAdjust,
 					min: thresholdSizeLimit.min,
 					max: thresholdSizeLimit.max,

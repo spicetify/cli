@@ -98,8 +98,8 @@ class Utils {
 			return "ja";
 		}
 
-		if (((hangulPercentage - (kanaPercentage + simpPercentage + tradPercentage) + 1) / 2) * 100 >= CONFIG.visual["kr-detect-threshold"]) {
-			return "kr";
+		if (((hangulPercentage - (kanaPercentage + simpPercentage + tradPercentage) + 1) / 2) * 100 >= CONFIG.visual["ko-detect-threshold"]) {
+			return "ko";
 		}
 
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";
