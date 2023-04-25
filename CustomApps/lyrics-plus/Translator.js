@@ -97,7 +97,7 @@ class Translator {
 		if (target == "hangul") {
 			return text;
 		} else {
-			return Aromanize.hangulToLatin(text);
+			return Aromanize.hangulToLatin(text, "rr-translit");
 		}
 	}
 
