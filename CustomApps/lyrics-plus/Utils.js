@@ -68,7 +68,6 @@ class Utils {
 
 		const cjkMatch = rawLyrics.match(new RegExp(kanaRegex.source + "|" + /\p{Unified_Ideograph}/gu.source + "|" + hangulRegex.source, "gu"));
 		let kanaCount = 0;
-		let hangulCount = 0;
 		let tradCount = 0;
 		let simpCount = 0;
 
@@ -79,7 +78,7 @@ class Utils {
 				kanaCount++;
 			}
 			if (character.match(hangulRegex)) {
-				hangulCount++;
+				return "ko"
 			}
 			if (character.match(simpRegex)) {
 				simpCount++;
@@ -90,16 +89,11 @@ class Utils {
 		}
 
 		const kanaPercentage = kanaCount / cjkMatch.length;
-		const hangulPercentage = hangulCount / cjkMatch.length;
 		const simpPercentage = simpCount / cjkMatch.length;
 		const tradPercentage = tradCount / cjkMatch.length;
 
-		if (((kanaPercentage - (hangulPercentage + simpPercentage + tradPercentage) + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"]) {
+		if (((kanaPercentage - (simpPercentage + tradPercentage) + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"]) {
 			return "ja";
-		}
-
-		if (((hangulPercentage - (kanaPercentage + simpPercentage + tradPercentage) + 1) / 2) * 100 >= CONFIG.visual["ko-detect-threshold"]) {
-			return "ko";
 		}
 
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";

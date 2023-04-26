@@ -90,11 +90,11 @@ class Translator {
 
 	async convertToRomaja(text, target) {
 		if (!this.finished) {
-			setTimeout(this.convertToRomaja.bind(this), 100, text, mode);
+			setTimeout(this.convertToRomaja.bind(this), 100, text, target);
 			return;
 		}
 
-		if (target == "hangul") {
+		if (target === "hangul") {
 			return text;
 		} else {
 			return Aromanize.hangulToLatin(text, "rr-translit");

@@ -51,7 +51,6 @@ const CONFIG = {
 		["translation-mode:chinese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:chinese") || "cn",
 		["translate"]: getConfig("lyrics-plus:visual:translate", false),
 		["ja-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
-		["ko-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:ko-detect-threshold") || "40",
 		["hans-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
 		["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
 		["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
@@ -108,7 +107,6 @@ CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
 CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
 CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
 CONFIG.visual["ja-detect-threshold"] = parseInt(CONFIG.visual["ja-detect-threshold"]);
-CONFIG.visual["ko-detect-threshold"] = parseInt(CONFIG.visual["ko-detect-threshold"]);
 CONFIG.visual["hans-detect-threshold"] = parseInt(CONFIG.visual["hans-detect-threshold"]);
 
 const CACHE = {};
@@ -339,7 +337,7 @@ class LyricsContainer extends react.Component {
 		[
 			["hangul", "hangul"],
 			["romaja", "romaja"]
-		].map(params => {
+		].forEach(params => {
 			if (language !== "ko") return;
 			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
