@@ -78,7 +78,7 @@ class Utils {
 				kanaCount++;
 			}
 			if (character.match(hangulRegex)) {
-				return "ko"
+				return "ko";
 			}
 			if (character.match(simpRegex)) {
 				simpCount++;
