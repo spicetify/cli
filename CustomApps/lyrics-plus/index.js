@@ -474,7 +474,7 @@ class LyricsContainer extends react.Component {
 				return;
 			}
 			this.nextTrackUri = nextInfo.uri;
-			await this.fetchLyrics(queue.current, this.state.explicitMode);
+			this.fetchLyrics(queue.current, this.state.explicitMode);
 			this.viewPort.scrollTo(0, 0);
 			// Fetch next track
 			this.tryServices(nextInfo, this.state.explicitMode);
