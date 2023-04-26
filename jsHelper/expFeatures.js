@@ -37,9 +37,9 @@
 		return feature;
 	};
 
-	let content = document.createElement("div");
+	const content = document.createElement("div");
 	content.classList.add("spicetify-exp-features");
-	let style = document.createElement("style");
+	const style = document.createElement("style");
 	style.innerHTML = `
 .spicetify-exp-features .col {
     padding: 0;
@@ -203,61 +203,54 @@
 			return container;
 		}
 
-		function searchBar() {
-			const container = document.createElement("div");
-			container.classList.add("setting-row");
-			container.id = "search";
-			container.innerHTML = `
+
+		const searchBar = document.createElement("div");
+		searchBar.classList.add("setting-row");
+		searchBar.id = "search";
+		searchBar.innerHTML = `
 <div class="col action">
 <div class="search-container">
 <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
-    ${Spicetify.SVGIcons.search}
+${Spicetify.SVGIcons.search}
 </svg>
 <input type="text" class="search" placeholder="Search for a feature">
 </div>
 </div>`;
-			const search = container.querySelector("input.search");
+		const search = searchBar.querySelector("input.search");
 
-			search.oninput = () => {
-				const query = search.value.toLowerCase();
-				const rows = content.querySelectorAll(".setting-row");
-				rows.forEach(row => {
-					if (row.id === "search" || row.id === "reset") return;
-					if (row.textContent.trim().toLowerCase().includes(query) || row.id.toLowerCase().includes(query)) {
-						row.style.display = "flex";
-					} else {
-						row.style.display = "none";
-					}
-				});
-			};
+		search.oninput = () => {
+			const query = search.value.toLowerCase();
+			const rows = content.querySelectorAll(".setting-row");
+			rows.forEach(row => {
+				if (row.id === "search" || row.id === "reset") return;
+				if (row.textContent.trim().toLowerCase().includes(query) || row.id.toLowerCase().includes(query)) {
+					row.style.display = "flex";
+				} else {
+					row.style.display = "none";
+				}
+			});
+		};
 
-			return container;
-		}
+		const resetButton = document.createElement("div");
+		resetButton.classList.add("setting-row");
+		resetButton.id = "reset";
+		resetButton.innerHTML += `
+					<label class="col description">Clear all cached features and preferences</label>
+					<div class="col action">
+						<button class="reset">Reset</button>
+					</div>`;
+		const resetBtn = resetButton.querySelector("button.reset");
+		resetBtn.onclick = () => {
+			localStorage.removeItem("spicetify-exp-features");
+			window.location.reload();
+		};
 
-		function resetButton() {
-			const resetRow = document.createElement("div");
-			resetRow.classList.add("setting-row");
-			resetRow.id = "reset";
-			resetRow.innerHTML += `
-                        <label class="col description">Clear all cached features and preferences</label>
-                        <div class="col action">
-                            <button class="reset">Reset</button>
-                        </div>`;
-			const resetButton = resetRow.querySelector("button.reset");
-			resetButton.onclick = () => {
-				localStorage.removeItem("spicetify-exp-features");
-				window.location.reload();
-			};
-
-			return resetRow;
-		}
-
-		content.appendChild(searchBar());
+		content.appendChild(searchBar);
 
 		Object.keys(overrideList).forEach(name => {
 			// If features are not stored in the previous session, use the remote value
 			if (!prevSessionOverrideList.includes(name) && remoteConfiguration.values.has(name)) {
-				overrideList[name].value = remoteConfiguration.values.get(name);
+				changeValue(name, remoteConfiguration.values.get(name));
 				console.log(name, remoteConfiguration.values.get(name), overrideList[name]);
 			}
 
@@ -272,7 +265,7 @@
 			featureMap[name] = feature.value;
 		});
 
-		content.appendChild(resetButton());
+		content.appendChild(resetButton);
 
 		setOverrides(Spicetify.createInternalMap(featureMap));
 	})();
