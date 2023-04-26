@@ -74,11 +74,11 @@ class Utils {
 		if (!cjkMatch) return;
 
 		for (const character of cjkMatch) {
-			if (character.match(kanaRegex)) {
-				kanaCount++;
-			}
 			if (character.match(hangulRegex)) {
 				return "ko";
+			}
+			if (character.match(kanaRegex)) {
+				kanaCount++;
 			}
 			if (character.match(simpRegex)) {
 				simpCount++;
