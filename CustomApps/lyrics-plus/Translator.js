@@ -94,11 +94,8 @@ class Translator {
 			return;
 		}
 
-		if (target === "hangul") {
-			return text;
-		} else {
-			return Aromanize.hangulToLatin(text, "rr-translit");
-		}
+		if (target === "hangul") return text;
+		return Aromanize.hangulToLatin(text, "rr-translit");
 	}
 
 	async convertChinese(text, from, target) {
