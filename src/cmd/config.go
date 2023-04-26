@@ -163,7 +163,7 @@ func stringType(section *ini.Section, field, value string) {
 	if err != nil {
 		utils.Fatal(err)
 	}
-	if len(strings.TrimSpace(value)) == 0 {
+	if len(strings.TrimSpace(value)) == 0 || value[len(value)-1] == '-' {
 		value = ""
 	}
 	key.SetValue(value)
