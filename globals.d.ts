@@ -1094,4 +1094,33 @@ declare namespace Spicetify {
      * Used to mimic Spotify's tooltip behavior
      */
     const TippyProps: any;
+
+    /**
+     * Interface for interacting with Spotify client's app title
+     */
+    namespace AppTitle {
+        /**
+         * Set default app title. This has no effect if the player is running.
+         * Will override any previous forced title.
+         * @param title Title to set
+         * @return Promise that resolves to a function to cancel forced title. This doesn't reset the title.
+         */
+        function set(title: string): Promise<{ clear: () => void }>;
+        /**
+         * Reset app title to default
+         */
+        function reset(): Promise<void>;
+        /**
+         * Get current default app title
+         * @return Current default app title
+         */
+        function get(): Promise<string>;
+        /**
+         * Subscribe to title changes.
+         * This event is not fired when the player changes app title.
+         * @param callback Callback to call when title changes
+         * @return Object with method to unsubscribe
+         */
+        function sub(callback: (title: string) => void): { clear: () => void };
+    }
 }
