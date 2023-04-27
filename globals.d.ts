@@ -962,7 +962,7 @@ declare namespace Spicetify {
              */
             weight?: "book" | "bold" | "black";
         }
-        type ConfimDialogProps = {
+        type ConfirmDialogProps = {
             /**
              * Boolean to determine if the dialog should be opened
              * @default true
@@ -1084,7 +1084,9 @@ declare namespace Spicetify {
          * Component to render Spotify-style confirm dialog
          *
          * Props:
-         * @see Spicetify.ReactComponent.ConfimDialogProps
+         * @see Spicetify.ReactComponent.ConfirmDialogProps
+         */
+        const ConfirmDialog: any;
     }
 
     /**
