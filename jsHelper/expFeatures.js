@@ -203,7 +203,6 @@
 			return container;
 		}
 
-
 		const searchBar = document.createElement("div");
 		searchBar.classList.add("setting-row");
 		searchBar.id = "search";
