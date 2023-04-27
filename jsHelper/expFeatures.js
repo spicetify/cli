@@ -223,11 +223,7 @@ ${Spicetify.SVGIcons.search}
 			const rows = content.querySelectorAll(".setting-row");
 			rows.forEach(row => {
 				if (row.id === "search" || row.id === "reset") return;
-				if (row.textContent.trim().toLowerCase().includes(query) || row.id.toLowerCase().includes(query)) {
-					row.style.display = "flex";
-				} else {
-					row.style.display = "none";
-				}
+				row.style.display = row.textContent.trim().toLowerCase().includes(query) || row.id.toLowerCase().includes(query) ? "flex" : "none"
 			});
 		};
 
