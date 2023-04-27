@@ -385,7 +385,7 @@ Spicetify.React.useEffect(() => {
 	// React Component: Confirm Dialog
 	utils.Replace(
 		&input,
-		`function ?([\w$_]+)\(\{(?:(?:onClose|isOpen|onOutside|titleText)[:!\w(){}=>]*,){3,}`,
+		`function ?([\w$_]+)\(\{(?:(?:onClose|isOpen|onOutside|titleText)[:!\w$_(){}=>]*,){3,}`,
 		`Spicetify.ReactComponent.ConfirmDialog=${1};${0}`)
 
 	// Locale
