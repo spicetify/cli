@@ -687,8 +687,7 @@ class LyricsContainer extends react.Component {
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics",
-						showDelay: 100
+						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics"
 					},
 					react.createElement(
 						"button",
@@ -719,8 +718,7 @@ class LyricsContainer extends react.Component {
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						label: "Load lyrics from file",
-						showDelay: 100
+						label: "Load lyrics from file"
 					},
 					react.createElement(
 						"button",
