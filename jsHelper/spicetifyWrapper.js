@@ -167,7 +167,8 @@ const Spicetify = {
             "PlaylistMenu",
             "TooltipWrapper",
             "TextComponent",
-            "IconComponent"
+            "IconComponent",
+            "ConfirmDialog",
         ]
 
         let count = SPICETIFY_METHOD.length;

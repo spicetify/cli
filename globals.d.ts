@@ -962,6 +962,59 @@ declare namespace Spicetify {
              */
             weight?: "book" | "bold" | "black";
         }
+        type ConfirmDialogProps = {
+            /**
+             * Boolean to determine if the dialog should be opened
+             * @default true
+             */
+            isOpen?: boolean;
+            /**
+             * Whether to allow inline HTML in component text
+             * @default false
+             */
+            allowHTML?: boolean;
+            /**
+             * Dialog title. Can be inline HTML if `allowHTML` is true
+             */
+            titleText: string;
+            /**
+             * Dialog description. Can be inline HTML if `allowHTML` is true
+             */
+            descriptionText?: string;
+            /**
+             * Confirm button text
+             */
+            confirmText?: string;
+            /**
+             * Cancel button text
+             */
+            cancelText?: string;
+            /**
+             * Confirm button aria-label
+             */
+            confirmLabel?: string;
+            /**
+             * Function to run when confirm button is clicked
+             * The dialog does not close automatically, a handler must be included.
+             * @param {React.MouseEvent<HTMLButtonElement>} event
+             */
+            onConfirm?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+            /**
+             * Function to run when cancel button is clicked.
+             * The dialog does not close automatically, a handler must be included.
+             * @param {React.MouseEvent<HTMLButtonElement>} event
+             * @default () => {}
+             */
+            onClose?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+            /**
+             * Function to run when dialog is clicked outside of.
+             * By default, this will run `onClose`.
+             * A handler must be included to close the dialog.
+             * @param {React.MouseEvent<HTMLButtonElement>} event
+             * @default () => {}
+             */
+            onOutside?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+        }
         /**
          * Generic context menu provider
          *
@@ -1027,6 +1080,13 @@ declare namespace Spicetify {
          * @see Spicetify.ReactComponent.TextComponentProps
          */
         const TextComponent: any;
+        /**
+         * Component to render Spotify-style confirm dialog
+         *
+         * Props:
+         * @see Spicetify.ReactComponent.ConfirmDialogProps
+         */
+        const ConfirmDialog: any;
     }
 
     /**

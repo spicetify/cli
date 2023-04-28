@@ -382,6 +382,12 @@ Spicetify.React.useEffect(() => {
 		`(\w+)(=(?:function\([\{\w\}:,]+\)|\()\{(?:[\w. =]*(?:label|children|renderInline|showDelay)[\w:]*,?){4})`,
 		`${1}=Spicetify.ReactComponent.TooltipWrapper${2}`)
 
+	// React Component: Confirm Dialog
+	utils.Replace(
+		&input,
+		`function ?([\w$_]+)\(\{(?:(?:onClose|isOpen|onOutside|titleText)[:!\w$_(){}=>]*,){3,}`,
+		`Spicetify.ReactComponent.ConfirmDialog=${1};${0}`)
+
 	// Locale
 	utils.Replace(
 		&input,
