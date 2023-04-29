@@ -231,7 +231,13 @@ class LyricsContainer extends react.Component {
 			if (!service.on) continue;
 			if (mode !== -1 && !service.modes.includes(mode)) continue;
 
-			const data = await Providers[id](trackInfo);
+			let data;
+			try {
+				data = await Providers[id](trackInfo);
+			} catch (e) {
+				console.error(e);
+				continue;
+			}
 
 			if (data.error) continue;
 			if (mode === -1) {
@@ -264,8 +270,9 @@ class LyricsContainer extends react.Component {
 			return finalData;
 		}
 
-		CACHE[trackInfo.uri] = { ...finalData, uri: trackInfo.uri };
-		return finalData;
+		const empty = { ...finalData, uri: trackInfo.uri };
+		CACHE[trackInfo.uri] = empty;
+		return empty;
 	}
 
 	async fetchLyrics(track, mode = -1) {
