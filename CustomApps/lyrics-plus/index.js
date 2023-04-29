@@ -257,7 +257,7 @@ class LyricsContainer extends react.Component {
 
 			if (data.provider !== "local" && finalData.provider && finalData.provider !== data.provider) {
 				const styledMode = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
-				finalData.copyright = `${styledMode} lyrics provided by ${data.provider}` + (finalData.copyright ? "\n" + finalData.copyright : "");
+				finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n${finalData.copyright || ""}`.trim();
 			}
 
 			for (const key in data) {
