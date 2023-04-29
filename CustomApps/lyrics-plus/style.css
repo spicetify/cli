@@ -636,6 +636,7 @@ button.switch.small {
 	gap: 8px;
 	justify-content: center;
 	padding: 12px;
+	height: 40px;
 	width: 40px;
 }
 
