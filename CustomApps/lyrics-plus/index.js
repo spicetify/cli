@@ -225,40 +225,48 @@ class LyricsContainer extends react.Component {
 
 	async tryServices(trackInfo, mode = -1) {
 		const currentMode = CONFIG.modes[mode] || "";
-		let unsynclyrics;
-		let finalData;
+		let finalData = {};
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
 			if (mode !== -1 && !service.modes.includes(mode)) continue;
 
 			const data = await Providers[id](trackInfo);
-			if (!data.error && (data.karaoke || data.synced || data.genius)) {
+			if (!data.error && (data.karaoke || data.synced || data.genius || data.unsynced)) {
 				// Continue fetching if current service doesn't have required mode
 				if (mode !== -1 && !data[currentMode]) {
-					finalData = data;
-					continue;
-				} else if (mode !== -1 && data[currentMode]) {
-					function styleString(string) {
-						return string.charAt(0).toUpperCase() + string.slice(1);
+					for (const key in data) {
+						if (data[key] && !finalData[key]) {
+							finalData[key] = data[key];
+						}
 					}
 
-					finalData.copyright = `${styleString(currentMode)} lyrics provided by ${styleString(id)}\n` + (finalData.copyright || "");
-					finalData[currentMode] = data[currentMode];
+					if (CONFIG.providersOrder.indexOf(id) === CONFIG.providersOrder.length - 1) {
+						CACHE[data.uri] = finalData;
+						return finalData;
+					}
+
+					continue;
+				} else if (mode !== -1 && data[currentMode]) {
+					if (data.provider !== "local" && finalData.provider && finalData.provider !== data.provider) {
+						const styledMode = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+						finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n` + (finalData.copyright || "");
+					}
+
+					for (const key in data) {
+						if (data[key] && !finalData[key]) {
+							finalData[key] = data[key];
+						}
+					}
 				} else {
 					finalData = data;
 				}
 
 				CACHE[data.uri] = finalData;
 				return finalData;
-			} else if (!data.error && data.unsynced) {
-				unsynclyrics = data;
 			}
 		}
-		if (unsynclyrics) {
-			CACHE[unsynclyrics.uri] = unsynclyrics;
-			return unsynclyrics;
-		}
+
 		const empty = { ...emptyState, uri: trackInfo.uri };
 		CACHE[trackInfo.uri] = empty;
 		return empty;
