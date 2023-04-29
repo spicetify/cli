@@ -165,7 +165,6 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 
 				const paddingLine = (animationIndex < 0 && -animationIndex > CONFIG.visual["lines-before"]) || animationIndex > CONFIG.visual["lines-after"];
 				if (paddingLine) {
-					console.log(text, animationIndex, CONFIG.visual["lines-before"], CONFIG.visual["lines-after"]);
 					className += " lyrics-lyricsContainer-LyricsLine-paddingLine";
 				}
 
