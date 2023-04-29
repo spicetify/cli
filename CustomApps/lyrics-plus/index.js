@@ -188,18 +188,18 @@ class LyricsContainer extends react.Component {
 	}
 
 	async fetchColors(uri) {
-		let prominent = 0;
+		let vibrant = 0;
 		try {
 			const colors = await CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
-			prominent = colors.entries[0].color_swatches.find(color => color.preset === "PROMINENT").color;
+			vibrant = colors.entries[0].color_swatches.find(color => color.preset === "VIBRANT_NON_ALARMING").color;
 		} catch {
-			prominent = 8747370;
+			vibrant = 8747370;
 		}
 
 		this.setState({
 			colors: {
-				background: Utils.convertIntToRGB(prominent),
-				inactive: Utils.convertIntToRGB(prominent, 3)
+				background: Utils.convertIntToRGB(vibrant),
+				inactive: Utils.convertIntToRGB(vibrant, 3)
 			}
 		});
 	}
@@ -224,7 +224,9 @@ class LyricsContainer extends react.Component {
 	}
 
 	async tryServices(trackInfo, mode = -1) {
+		const currentMode = CONFIG.modes[mode] || "";
 		let unsynclyrics;
+		let finalData;
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
@@ -232,8 +234,23 @@ class LyricsContainer extends react.Component {
 
 			const data = await Providers[id](trackInfo);
 			if (!data.error && (data.karaoke || data.synced || data.genius)) {
-				CACHE[data.uri] = data;
-				return data;
+				// Continue fetching if current service doesn't have required mode
+				if (mode !== -1 && !data[currentMode]) {
+					finalData = data;
+					continue;
+				} else if (mode !== -1 && data[currentMode]) {
+					function styleString(string) {
+						return string.charAt(0).toUpperCase() + string.slice(1);
+					}
+
+					finalData.copyright = `${styleString(currentMode)} lyrics provided by ${styleString(id)}` + (data.copyright || "");
+					finalData[currentMode] = data[currentMode];
+				} else {
+					finalData = data;
+				}
+
+				CACHE[data.uri] = finalData;
+				return finalData;
 			} else if (!data.error && data.unsynced) {
 				unsynclyrics = data;
 			}
