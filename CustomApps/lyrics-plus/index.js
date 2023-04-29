@@ -225,7 +225,7 @@ class LyricsContainer extends react.Component {
 
 	async tryServices(trackInfo, mode = -1) {
 		const currentMode = CONFIG.modes[mode] || "";
-		let finalData = trackInfo.uri in CACHE ? CACHE[trackInfo.uri] : emptyState;
+		let finalData = CACHE[trackInfo.uri] ?? emptyState;
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
