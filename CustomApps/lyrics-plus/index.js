@@ -225,7 +225,7 @@ class LyricsContainer extends react.Component {
 
 	async tryServices(trackInfo, mode = -1) {
 		const currentMode = CONFIG.modes[mode] || "";
-		let finalData = {};
+		let finalData = trackInfo.uri in CACHE ? CACHE[trackInfo.uri] : emptyState;
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
@@ -250,7 +250,7 @@ class LyricsContainer extends react.Component {
 				} else if (mode !== -1 && data[currentMode]) {
 					if (data.provider !== "local" && finalData.provider && finalData.provider !== data.provider) {
 						const styledMode = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
-						finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n` + (finalData.copyright || "");
+						finalData.copyright = `${styledMode} lyrics provided by ${data.provider}` + (finalData.copyright ? "\n" + finalData.copyright : "");
 					}
 
 					for (const key in data) {
