@@ -243,7 +243,7 @@ class LyricsContainer extends react.Component {
 						return string.charAt(0).toUpperCase() + string.slice(1);
 					}
 
-					finalData.copyright = `${styleString(currentMode)} lyrics provided by ${styleString(id)}` + (data.copyright || "");
+					finalData.copyright = `${styleString(currentMode)} lyrics provided by ${styleString(id)}\n` + (finalData.copyright || "");
 					finalData[currentMode] = data[currentMode];
 				} else {
 					finalData = data;
