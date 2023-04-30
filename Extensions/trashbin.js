@@ -303,19 +303,8 @@
 			songs: trashSongList,
 			artists: trashArtistList
 		};
-
-		navigator.clipboard.writeText(JSON.stringify(data))
-      .catch(() => {
-        const tempElement =document.createElement("textarea");
-        tempElement.value =JSON.stringify(data);
-        
-        document.body.append(tempElement);
-        tempElement.select();
-        document.execCommand("copy");
-        
-        tempElement.remove();
-      })
-      .finally(() => Spicetify.showNotification("Copied to clipboard"));
+		await Spicetify.Platform.ClipboardAPI.copy(JSON.stringify(data));
+		Spicetify.showNotification("Copied to clipboard"));
 	}
 
 	function importItems() {
