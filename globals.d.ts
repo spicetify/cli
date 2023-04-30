@@ -1189,8 +1189,9 @@ declare namespace Spicetify {
      */
     namespace GraphQL {
         /**
-         * Possible types of entities
-         * This list is dynamic and may change in the future
+         * Possible types of entities.
+         *
+         * This list is dynamic and may change in the future.
          */
         type Query = "decorateItemsForEnhance" | "imageURLAndSize" | "imageSources" | "audioItems" | "creator" | "extractedColors" | "extractedColorsAndImageSources" | "fetchExtractedColorAndImageForAlbumEntity" | "fetchExtractedColorAndImageForArtistEntity" | "fetchExtractedColorAndImageForEpisodeEntity" | "fetchExtractedColorAndImageForPlaylistEntity" | "fetchExtractedColorAndImageForPodcastEntity" | "fetchExtractedColorAndImageForTrackEntity" | "fetchExtractedColorForAlbumEntity" | "fetchExtractedColorForArtistEntity" | "fetchExtractedColorForEpisodeEntity" | "fetchExtractedColorForPlaylistEntity" | "fetchExtractedColorForPodcastEntity" | "fetchExtractedColorForTrackEntity" | "getAlbumNameAndTracks" | "getEpisodeName" | "getTrackName" | "queryAlbumTrackUris" | "queryTrackArtists" | "decorateContextEpisodesOrChapters" | "decorateContextTracks" | "fetchTracksForRadioStation" | "decoratePlaylists" | "addToLibrary" | "removeFromLibrary" | "pinLibraryItem" | "unpinLibraryItem" | "fetchLibraryAlbums" | "areAlbumsInLibrary" | "fetchLibraryArtists" | "areArtistsInLibrary" | "fetchLibraryTracks" | "areTracksInLibrary" | "fetchLibraryShows" | "areShowsInLibrary" | "fetchLibraryAudiobooks" | "fetchLibraryEpisodes" | "areEpisodesInLibrary" | "libraryV2" | "playlistUser" | "FetchPlaylistMetadata" | "playlistContentsItemTrackArtist" | "playlistContentsItemTrackAlbum" | "playlistContentsItemTrack" | "playlistContentsItemLocalTrack" | "playlistContentsItemEpisodeShow" | "playlistContentsItemEpisode" | "playlistContentsItemResponse" | "playlistContentsItem" | "FetchPlaylistContents" | "fetchPlaylist" | "fetchPlaylistMetadata" | "fetchPlaylistContents" | "addToPlaylist" | "removeFromPlaylist" | "moveItemsInPlaylist" | "fetchEntitiesForRecentlyPlayed" | "queryShowAccessInfo" | "episodeTrailerUri" | "podcastEpisode" | "podcastMetadataV2" | "minimalAudiobook" | "audiobookChapter" | "audiobookMetadataV2" | "queryShowMetadataV2" | "queryBookChapters" | "getEpisodeOrChapter" | "queryPodcastEpisodes" | "fetchExtractedColors" | "queryFullscreenMode" | "queryNpvEpisode" | "queryNpvArtist" | "albumTrack" | "getAlbum" | "queryAlbumTracks" | "queryArtistOverview" | "queryArtistAppearsOn" | "discographyAlbum" | "albumMetadataReleases" | "albumMetadata" | "queryArtistDiscographyAlbums" | "queryArtistDiscographySingles" | "queryArtistDiscographyCompilations" | "queryArtistDiscographyAll" | "queryArtistDiscographyOverview" | "artistPlaylist" | "queryArtistPlaylists" | "queryArtistDiscoveredOn" | "queryArtistFeaturing" | "queryArtistRelated" | "queryArtistMinimal" | "searchModalResults" | "queryWhatsNewFeed" | "whatsNewFeedNewItems" | "SetItemsStateInWhatsNewFeed" | "browseImageURLAndSize" | "browseImageSources" | "browseAlbum" | "browseArtist" | "browseEpisode" | "browseChapter" | "browsePlaylist" | "browsePodcast" | "browseAudiobook" | "browseTrack" | "browseUser" | "browseMerch" | "browseArtistConcerts" | "browseContent" | "browseSectionContainer" | "browseClientFeature" | "browseItem" | "browseAll";
         /**
@@ -1198,7 +1199,7 @@ declare namespace Spicetify {
          */
         const Definitions: Record<Query | string, any>;
         /**
-         * Send a GraphQL query to Spotify.
+         * Sends a GraphQL query to Spotify.
          * @description A preinitialized version of `Spicetify.GraphQL.Handler` using current context.
          * @param query Query to send
          * @param variables Variables to use
@@ -1207,11 +1208,11 @@ declare namespace Spicetify {
         function Request(query: typeof Definitions[Query | string], variables?: Record<string, any>): Promise<any>;
         /**
          * Context for GraphQL queries.
-         * Use this to set context for the handler and initialze it
+         * @description Used to set context for the handler and initialze it.
          */
         const Context: Record<string | any>;
         /**
-         * Handler for GraphQL queries
+         * Handler for GraphQL queries.
          * @param context Context to use
          * @return Function to handle GraphQL queries
          */
