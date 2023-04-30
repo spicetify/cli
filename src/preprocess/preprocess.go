@@ -400,6 +400,18 @@ Spicetify.React.useEffect(() => {
 		`document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null`,
 		``)
 
+	// GraphQL handler
+	utils.Replace(
+		&input,
+		`(function ([\w$]+)\(([\w$])\)\{)(return [\w$&.,={}()[\]?!=>:; ]+"subscription")`,
+		`Spicetify.GraphQL.Handler=${2};${1}Spicetify.GraphQL.Context??=${3};${4}`)
+
+	// GraphQL definitions
+	utils.Replace(
+		&input,
+		`((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
+		`${1}Spicetify.GraphQL.Definitions[${3}]=${2}`)
+
 	return input
 }
 
