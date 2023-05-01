@@ -111,7 +111,7 @@ const ProviderNetease = (function () {
 
 	function getSynced(list) {
 		const lyricStr = list?.lrc?.lyric;
-		let nolyr;
+		let nolyr = false;
 
 		if (!lyricStr) {
 			return null;
@@ -175,7 +175,7 @@ const ProviderNetease = (function () {
 
 	function getUnsynced(list) {
 		const lyricStr = list?.lrc?.lyric;
-		let nolyr;
+		let nolyr = false;
 
 		if (!lyricStr) {
 			return null;
