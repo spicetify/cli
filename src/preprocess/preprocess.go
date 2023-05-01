@@ -382,6 +382,12 @@ Spicetify.React.useEffect(() => {
 		`(\w+)(=(?:function\([\{\w\}:,]+\)|\()\{(?:[\w. =]*(?:label|children|renderInline|showDelay)[\w:]*,?){4})`,
 		`${1}=Spicetify.ReactComponent.TooltipWrapper${2}`)
 
+	// React Component: Confirm Dialog
+	utils.Replace(
+		&input,
+		`function ?([\w$_]+)\(\{(?:(?:onClose|isOpen|onOutside|titleText)[:!\w$_(){}=>]*,){3,}`,
+		`Spicetify.ReactComponent.ConfirmDialog=${1};${0}`)
+
 	// Locale
 	utils.Replace(
 		&input,
@@ -393,6 +399,18 @@ Spicetify.React.useEffect(() => {
 		&input,
 		`document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null`,
 		``)
+
+	// GraphQL handler
+	utils.Replace(
+		&input,
+		`(function ([\w$]+)\(([\w$])\)\{)(return [\w$&.,={}()[\]?!=>:; ]+"subscription")`,
+		`Spicetify.GraphQL.Handler=${2};${1}Spicetify.GraphQL.Context??=${3};${4}`)
+
+	// GraphQL definitions
+	utils.Replace(
+		&input,
+		`((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
+		`${1}Spicetify.GraphQL.Definitions[${3}]=${2}`)
 
 	return input
 }

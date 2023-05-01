@@ -962,6 +962,59 @@ declare namespace Spicetify {
              */
             weight?: "book" | "bold" | "black";
         }
+        type ConfirmDialogProps = {
+            /**
+             * Boolean to determine if the dialog should be opened
+             * @default true
+             */
+            isOpen?: boolean;
+            /**
+             * Whether to allow inline HTML in component text
+             * @default false
+             */
+            allowHTML?: boolean;
+            /**
+             * Dialog title. Can be inline HTML if `allowHTML` is true
+             */
+            titleText: string;
+            /**
+             * Dialog description. Can be inline HTML if `allowHTML` is true
+             */
+            descriptionText?: string;
+            /**
+             * Confirm button text
+             */
+            confirmText?: string;
+            /**
+             * Cancel button text
+             */
+            cancelText?: string;
+            /**
+             * Confirm button aria-label
+             */
+            confirmLabel?: string;
+            /**
+             * Function to run when confirm button is clicked
+             * The dialog does not close automatically, a handler must be included.
+             * @param {React.MouseEvent<HTMLButtonElement>} event
+             */
+            onConfirm?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+            /**
+             * Function to run when cancel button is clicked.
+             * The dialog does not close automatically, a handler must be included.
+             * @param {React.MouseEvent<HTMLButtonElement>} event
+             * @default () => {}
+             */
+            onClose?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+            /**
+             * Function to run when dialog is clicked outside of.
+             * By default, this will run `onClose`.
+             * A handler must be included to close the dialog.
+             * @param {React.MouseEvent<HTMLButtonElement>} event
+             * @default () => {}
+             */
+            onOutside?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+        }
         /**
          * Generic context menu provider
          *
@@ -1027,6 +1080,13 @@ declare namespace Spicetify {
          * @see Spicetify.ReactComponent.TextComponentProps
          */
         const TextComponent: any;
+        /**
+         * Component to render Spotify-style confirm dialog
+         *
+         * Props:
+         * @see Spicetify.ReactComponent.ConfirmDialogProps
+         */
+        const ConfirmDialog: any;
     }
 
     /**
@@ -1122,5 +1182,40 @@ declare namespace Spicetify {
          * @return Object with method to unsubscribe
          */
         function sub(callback: (title: string) => void): { clear: () => void };
+    }
+
+    /**
+     * Spicetify's QraphQL wrapper for Spotify's GraphQL API endpoints
+     */
+    namespace GraphQL {
+        /**
+         * Possible types of entities.
+         *
+         * This list is dynamic and may change in the future.
+         */
+        type Query = "decorateItemsForEnhance" | "imageURLAndSize" | "imageSources" | "audioItems" | "creator" | "extractedColors" | "extractedColorsAndImageSources" | "fetchExtractedColorAndImageForAlbumEntity" | "fetchExtractedColorAndImageForArtistEntity" | "fetchExtractedColorAndImageForEpisodeEntity" | "fetchExtractedColorAndImageForPlaylistEntity" | "fetchExtractedColorAndImageForPodcastEntity" | "fetchExtractedColorAndImageForTrackEntity" | "fetchExtractedColorForAlbumEntity" | "fetchExtractedColorForArtistEntity" | "fetchExtractedColorForEpisodeEntity" | "fetchExtractedColorForPlaylistEntity" | "fetchExtractedColorForPodcastEntity" | "fetchExtractedColorForTrackEntity" | "getAlbumNameAndTracks" | "getEpisodeName" | "getTrackName" | "queryAlbumTrackUris" | "queryTrackArtists" | "decorateContextEpisodesOrChapters" | "decorateContextTracks" | "fetchTracksForRadioStation" | "decoratePlaylists" | "addToLibrary" | "removeFromLibrary" | "pinLibraryItem" | "unpinLibraryItem" | "fetchLibraryAlbums" | "areAlbumsInLibrary" | "fetchLibraryArtists" | "areArtistsInLibrary" | "fetchLibraryTracks" | "areTracksInLibrary" | "fetchLibraryShows" | "areShowsInLibrary" | "fetchLibraryAudiobooks" | "fetchLibraryEpisodes" | "areEpisodesInLibrary" | "libraryV2" | "playlistUser" | "FetchPlaylistMetadata" | "playlistContentsItemTrackArtist" | "playlistContentsItemTrackAlbum" | "playlistContentsItemTrack" | "playlistContentsItemLocalTrack" | "playlistContentsItemEpisodeShow" | "playlistContentsItemEpisode" | "playlistContentsItemResponse" | "playlistContentsItem" | "FetchPlaylistContents" | "fetchPlaylist" | "fetchPlaylistMetadata" | "fetchPlaylistContents" | "addToPlaylist" | "removeFromPlaylist" | "moveItemsInPlaylist" | "fetchEntitiesForRecentlyPlayed" | "queryShowAccessInfo" | "episodeTrailerUri" | "podcastEpisode" | "podcastMetadataV2" | "minimalAudiobook" | "audiobookChapter" | "audiobookMetadataV2" | "queryShowMetadataV2" | "queryBookChapters" | "getEpisodeOrChapter" | "queryPodcastEpisodes" | "fetchExtractedColors" | "queryFullscreenMode" | "queryNpvEpisode" | "queryNpvArtist" | "albumTrack" | "getAlbum" | "queryAlbumTracks" | "queryArtistOverview" | "queryArtistAppearsOn" | "discographyAlbum" | "albumMetadataReleases" | "albumMetadata" | "queryArtistDiscographyAlbums" | "queryArtistDiscographySingles" | "queryArtistDiscographyCompilations" | "queryArtistDiscographyAll" | "queryArtistDiscographyOverview" | "artistPlaylist" | "queryArtistPlaylists" | "queryArtistDiscoveredOn" | "queryArtistFeaturing" | "queryArtistRelated" | "queryArtistMinimal" | "searchModalResults" | "queryWhatsNewFeed" | "whatsNewFeedNewItems" | "SetItemsStateInWhatsNewFeed" | "browseImageURLAndSize" | "browseImageSources" | "browseAlbum" | "browseArtist" | "browseEpisode" | "browseChapter" | "browsePlaylist" | "browsePodcast" | "browseAudiobook" | "browseTrack" | "browseUser" | "browseMerch" | "browseArtistConcerts" | "browseContent" | "browseSectionContainer" | "browseClientFeature" | "browseItem" | "browseAll";
+        /**
+         * GraphQL query definitions.
+         */
+        const Definitions: Record<Query | string, any>;
+        /**
+         * Sends a GraphQL query to Spotify.
+         * @description A preinitialized version of `Spicetify.GraphQL.Handler` using current context.
+         * @param query Query to send
+         * @param variables Variables to use
+         * @return Promise that resolves to the response
+         */
+        function Request(query: typeof Definitions[Query | string], variables?: Record<string, any>): Promise<any>;
+        /**
+         * Context for GraphQL queries.
+         * @description Used to set context for the handler and initialze it.
+         */
+        const Context: Record<string | any>;
+        /**
+         * Handler for GraphQL queries.
+         * @param context Context to use
+         * @return Function to handle GraphQL queries
+         */
+        function Handler(context: Record<string | any>): (query: string, variables?: Record<string, any>) => Promise<any>;
     }
 }

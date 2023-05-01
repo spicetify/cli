@@ -167,7 +167,8 @@ const Spicetify = {
             "PlaylistMenu",
             "TooltipWrapper",
             "TextComponent",
-            "IconComponent"
+            "IconComponent",
+            "ConfirmDialog",
         ]
 
         let count = SPICETIFY_METHOD.length;
@@ -214,6 +215,13 @@ const Spicetify = {
                 console.log(`Spicetify.ReactComponent method ${key} exists but is not in the method list. Consider adding it.`)
             }
         })
+    },
+    GraphQL: {
+        get Request() {
+            if (!Spicetify.GraphQL.Handler || !Spicetify.GraphQL.Context) return null;
+            return Spicetify.GraphQL.Handler(Spicetify.GraphQL.Context);
+        },
+        Definitions: {}
     }
 };
 

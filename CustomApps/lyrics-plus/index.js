@@ -47,6 +47,7 @@ const CONFIG = {
 		["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
 		["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
 		["translation-mode:japanese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:japanese") || "furigana",
+		["translation-mode:korean"]: localStorage.getItem("lyrics-plus:visual:translation-mode:korean") || "hangul",
 		["translation-mode:chinese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:chinese") || "cn",
 		["translate"]: getConfig("lyrics-plus:visual:translate", false),
 		["ja-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
@@ -136,6 +137,8 @@ class LyricsContainer extends react.Component {
 			romaji: null,
 			furigana: null,
 			hiragana: null,
+			hangul: null,
+			romaja: null,
 			katakana: null,
 			cn: null,
 			hk: null,
@@ -249,6 +252,8 @@ class LyricsContainer extends react.Component {
 			this.state.romaji =
 			this.state.hiragana =
 			this.state.katakana =
+			this.state.hangul =
+			this.state.romaja =
 			this.state.cn =
 			this.state.hk =
 			this.state.tw =
@@ -321,20 +326,32 @@ class LyricsContainer extends react.Component {
 			["hiragana", "furigana", "furigana"],
 			["hiragana", "normal", "hiragana"],
 			["katakana", "normal", "katakana"]
-		].map(params => {
+		].forEach(params => {
 			if (language !== "ja") return;
 			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[2] });
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
+
+		[
+			["hangul", "hangul"],
+			["romaja", "romaja"]
+		].forEach(params => {
+			if (language !== "ko") return;
+			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
+				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
+				lyricContainerUpdate && lyricContainerUpdate();
+			});
+		});
+
 		[
 			["cn", "hk"],
 			["cn", "tw"],
 			["t", "cn"],
 			["t", "hk"],
 			["t", "tw"]
-		].map(params => {
+		].forEach(params => {
 			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) return;
 			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
@@ -457,7 +474,7 @@ class LyricsContainer extends react.Component {
 				return;
 			}
 			this.nextTrackUri = nextInfo.uri;
-			await this.fetchLyrics(queue.current, this.state.explicitMode);
+			this.fetchLyrics(queue.current, this.state.explicitMode);
 			this.viewPort.scrollTo(0, 0);
 			// Fetch next track
 			this.tryServices(nextInfo, this.state.explicitMode);
@@ -687,8 +704,7 @@ class LyricsContainer extends react.Component {
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics",
-						showDelay: 100
+						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics"
 					},
 					react.createElement(
 						"button",
@@ -719,8 +735,7 @@ class LyricsContainer extends react.Component {
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						label: "Load lyrics from file",
-						showDelay: 100
+						label: "Load lyrics from file"
 					},
 					react.createElement(
 						"button",
