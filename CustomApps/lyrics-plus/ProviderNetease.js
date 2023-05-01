@@ -121,7 +121,7 @@ const ProviderNetease = (function () {
 		const lyrics = lines
 			.map(line => {
 				const { time, text } = parseTimestamp(line);
-				if (text === "纯音乐, 请欣赏") nolyr = true;
+				if (text === "纯音乐, 请欣赏") noLyrics = true;
 				if (!time || !text) return null;
 
 				const [key, value] = time.split(":") || [];
