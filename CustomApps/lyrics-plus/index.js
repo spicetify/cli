@@ -239,7 +239,7 @@ class LyricsContainer extends react.Component {
 				continue;
 			}
 
-			if (data.error) continue;
+			if (data.error || (!data.karaoke && !data.synced && !data.unsynced && !data.genius)) continue;
 			if (mode === -1) {
 				finalData = data;
 				CACHE[data.uri] = finalData;
