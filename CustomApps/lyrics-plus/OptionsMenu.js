@@ -92,7 +92,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 	let translator = new Translator();
 
 	let sourceOptions = {
-		default: "Default"
+		default: "No translation"
 	};
 	const languageOptions = {
 		off: "Off",
@@ -131,7 +131,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 	if (hasNeteaseTranslation) {
 		sourceOptions = {
 			...sourceOptions,
-			neteaseTranslation: "Netease"
+			neteaseTranslation: "Chinese (Netease)"
 		};
 	}
 
