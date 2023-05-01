@@ -175,7 +175,7 @@ const ProviderNetease = (function () {
 
 	function getUnsynced(list) {
 		const lyricStr = list?.lrc?.lyric;
-		let nolyr = false;
+		let noLyrics = false;
 
 		if (!lyricStr) {
 			return null;
