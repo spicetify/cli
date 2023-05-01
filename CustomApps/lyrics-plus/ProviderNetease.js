@@ -136,7 +136,7 @@ const ProviderNetease = (function () {
 			})
 			.filter(a => a);
 
-		if (!lyrics.length || nolyr) {
+		if (!lyrics.length || noLyrics) {
 			return null;
 		}
 		return lyrics;
