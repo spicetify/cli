@@ -91,11 +91,20 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 
 	let translator = new Translator();
 
-	let menuOptions = null;
+	let sourceOptions = {
+		default: "Default"
+	};
+	const languageOptions = {
+		off: "Off",
+		chinese: "Chinese",
+		japanese: "Japanese",
+		korean: "Korean"
+	};
+	let modeOptions = {};
 
 	switch (friendlyLanguage) {
 		case "japanese": {
-			menuOptions = {
+			modeOptions = {
 				furigana: "Furigana",
 				romaji: "Romaji",
 				hiragana: "Hiragana",
@@ -104,14 +113,14 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 			break;
 		}
 		case "korean": {
-			menuOptions = {
+			modeOptions = {
 				hangul: "Hangul",
 				romaja: "Romaja"
 			};
 			break;
 		}
 		case "chinese": {
-			menuOptions = {
+			modeOptions = {
 				cn: "Simplified Chinese",
 				hk: "Traditional Chinese (Hong Kong)",
 				tw: "Traditional Chinese (Taiwan)"
@@ -120,8 +129,8 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 		}
 	}
 	if (hasNeteaseTranslation) {
-		menuOptions = {
-			...menuOptions,
+		sourceOptions = {
+			...sourceOptions,
 			neteaseTranslation: "Netease"
 		};
 	}
@@ -146,10 +155,24 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 						react.createElement(OptionList, {
 							items: [
 								{
+									desc: "Translated Lyrics Source",
+									key: `translate:translated-lyrics-source`,
+									type: ConfigSelection,
+									options: sourceOptions,
+									renderInline: true
+								},
+								{
+									desc: "Detect Language Override",
+									key: `translate:detect-language-override`,
+									type: ConfigSelection,
+									options: languageOptions,
+									renderInline: true
+								},
+								{
 									desc: "Mode",
 									key: `translation-mode:${friendlyLanguage}`,
 									type: ConfigSelection,
-									options: menuOptions,
+									options: modeOptions,
 									renderInline: true
 								},
 								{
@@ -167,6 +190,9 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 								lyricContainerUpdate && lyricContainerUpdate();
 								CONFIG.visual[name] && Spicetify.showNotification("Translating...", false, 5000);
 								translator.injectExternals();
+								if (name == "translate:translated-lyrics-source" || name == "translate:detect-language-override") {
+									location.reload(); // TODO: Reload lyrics instead of reload page
+								}
 							}
 						})
 					),
