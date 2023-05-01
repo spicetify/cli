@@ -646,10 +646,10 @@ class LyricsContainer extends react.Component {
 		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
 		const language = () => {
 			if (!this.state.synced || !this.state.unsynced) return;
-			if ([CONFIG.visual["translate:force-language"]] == "off") {
+			if ([CONFIG.visual["translate:detect-language-override"]] == "off") {
 				return Utils.detectLanguage(this.lyricsSource(this.state.synced || this.state.unsynced));
 			}
-			return CONFIG.visual["translate:force-language"];
+			return CONFIG.visual["translate:detect-language-override"];
 		};
 		console.log(language());
 		const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
