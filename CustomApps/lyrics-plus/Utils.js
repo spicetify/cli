@@ -70,13 +70,13 @@ class Utils {
 
 		if (!cjkMatch) return;
 
-		if (cjkMatch.filter(glypth => hangulRegex.test(glypth))) {
+		if (cjkMatch.filter(glyph => hangulRegex.test(glyph))) {
 			return "ko";
 		}
 
-		const kanaCount = cjkMatch.filter(glypth => kanaRegex.test(glypth)).length;
-		const simpCount = cjkMatch.filter(glypth => simpRegex.test(glypth)).length;
-		const tradCount = cjkMatch.filter(glypth => tradRegex.test(glypth)).length;
+		const kanaCount = cjkMatch.filter(glyph => kanaRegex.test(glyph)).length;
+		const simpCount = cjkMatch.filter(glyph => simpRegex.test(glyph)).length;
+		const tradCount = cjkMatch.filter(glyph => tradRegex.test(glyph)).length;
 
 		const kanaPercentage = kanaCount / cjkMatch.length;
 		const simpPercentage = simpCount / cjkMatch.length;
