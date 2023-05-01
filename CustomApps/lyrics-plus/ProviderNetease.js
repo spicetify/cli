@@ -17,8 +17,8 @@ const ProviderNetease = (function () {
 		}
 
 		const album = Utils.capitalize(info.album);
-		let itemId = items.findIndex(val => Utils.capitalize(val.album.name) === album);
-		if (itemId === -1) itemId = 0;
+		let itemId = items.findIndex(val => Utils.capitalize(val.album.name) === album || (info.duration+500 > val.duration && info.duration-500 < val.duration));
+		if (itemId === -1) throw "Cannot find track";
 
 		return await CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
 	}
@@ -111,7 +111,7 @@ const ProviderNetease = (function () {
 
 	function getSynced(list) {
 		const lyricStr = list?.lrc?.lyric;
-		let isInstrumental = false;
+		let nolyr;
 
 		if (!lyricStr) {
 			return null;
@@ -121,9 +121,7 @@ const ProviderNetease = (function () {
 		const lyrics = lines
 			.map(line => {
 				const { time, text } = parseTimestamp(line);
-				if (text === "纯音乐, 请欣赏") {
-					isInstrumental = true;
-				}
+				if (text === "纯音乐, 请欣赏") nolyr = true;
 				if (!time || !text) return null;
 
 				const [key, value] = time.split(":") || [];
@@ -138,11 +136,8 @@ const ProviderNetease = (function () {
 			})
 			.filter(a => a);
 
-		if (!lyrics.length) {
+		if (!lyrics.length || nolyr) {
 			return null;
-		}
-		if (isInstrumental) {
-			return [{ startTime: "0000", text: "♪ Instrumental ♪" }];
 		}
 		return lyrics;
 	}
@@ -180,7 +175,7 @@ const ProviderNetease = (function () {
 
 	function getUnsynced(list) {
 		const lyricStr = list?.lrc?.lyric;
-		let isInstrumental = false;
+		let nolyr;
 
 		if (!lyricStr) {
 			return null;
@@ -190,22 +185,15 @@ const ProviderNetease = (function () {
 		const lyrics = lines
 			.map(line => {
 				const parsed = parseTimestamp(line);
-				if (parsed.text === "纯音乐, 请欣赏") {
-					isInstrumental = true;
-				}
+				if (parsed.text === "纯音乐, 请欣赏") nolyr = true;
 				if (!parsed.text || containCredits(parsed.text)) return null;
 				return parsed;
 			})
 			.filter(a => a);
 
-		if (!lyrics.length) {
+		if (!lyrics.length || nolyr) {
 			return null;
 		}
-
-		if (isInstrumental) {
-			return [{ text: "♪ Instrumental ♪" }];
-		}
-
 		return lyrics;
 	}
 
