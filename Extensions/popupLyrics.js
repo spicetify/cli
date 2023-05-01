@@ -195,7 +195,7 @@ function PopupLyrics() {
 			const otherInfoRegexp = new RegExp(`^(${otherInfoKeys.join("|")}).*(:|：)`, "i");
 
 			const lines = lyricStr.split(/\r?\n/).map(line => line.trim());
-			let nolyr = false;
+			let noLyrics = false;
 			const lyrics = lines
 				.map(line => {
 					// ["[ar:Beyond]"]
