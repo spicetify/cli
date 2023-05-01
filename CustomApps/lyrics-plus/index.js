@@ -342,8 +342,11 @@ class LyricsContainer extends react.Component {
 	}
 
 	lyricsSource(state) {
-		if (this.state.neteaseTranslation !== null && CONFIG.visual["translation-source"] == "neteaseTranslation") {
-			return this.state.neteaseTranslation;
+		switch (CONFIG.visual["translate:translated-lyrics-source"]) {
+			case 'neteaseTranslation': {
+				if (this.state.neteaseTranslation !== null) return this.state.neteaseTranslation;
+				break;
+			}
 		}
 		return state;
 	}
