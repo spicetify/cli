@@ -238,7 +238,7 @@ function PopupLyrics() {
 				})
 				.filter(a => a);
 				
-			if (nolyr) {
+			if (noLyrics) {
 				return { error: "No lyrics" };
 			}
 			if (!lyrics.length) {
