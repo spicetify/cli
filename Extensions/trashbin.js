@@ -303,7 +303,7 @@
 			songs: trashSongList,
 			artists: trashArtistList
 		};
-		await Spicetify.Platform.ClipboardAPI.copy(JSON.stringify(data));
+		Spicetify.Platform.ClipboardAPI.copy(JSON.stringify(data));
 		Spicetify.showNotification("Copied to clipboard");
 	}
 
