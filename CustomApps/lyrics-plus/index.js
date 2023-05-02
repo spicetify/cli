@@ -190,8 +190,15 @@ class LyricsContainer extends react.Component {
 	async fetchColors(uri) {
 		let vibrant = 0;
 		try {
-			const colors = await CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
-			vibrant = colors.entries[0].color_swatches.find(color => color.preset === "VIBRANT_NON_ALARMING").color;
+			try {
+				const { fetchExtractedColorForTrackEntity } = Spicetify.GraphQL.Definitions;
+				const { data } = await Spicetify.GraphQL.Request(fetchExtractedColorForTrackEntity, { uri });
+				const { hex } = data.trackUnion.albumOfTrack.coverArt.extractedColors.colorDark;
+				vibrant = parseInt(hex.replace("#", ""), 16);
+			} catch {
+				const colors = await CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
+				vibrant = colors.entries[0].color_swatches.find(color => color.preset === "VIBRANT_NON_ALARMING").color;
+			}
 		} catch {
 			vibrant = 8747370;
 		}
