@@ -213,7 +213,9 @@ function PopupLyrics() {
 						text = matchResult.splice(textIndex, 1)[0];
 						text = LyricUtils.capitalize(LyricUtils.normalize(text, false));
 					}
-					if (text === "纯音乐, 请欣赏") noLyrics = true;
+					if (text === "纯音乐, 请欣赏") {
+						noLyrics = true;
+					}
 					return matchResult.map(slice => {
 						const result = {};
 						const matchResult = slice.match(/[^\[\]]+/g);
