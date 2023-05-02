@@ -4,8 +4,7 @@
 		newFeatures = [],
 		hooksPatched = false,
 		featureMap = {},
-		isFallback = false,
-		waitAttempts = 0;
+		isFallback = false;
 
 	try {
 		overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));
@@ -161,25 +160,22 @@
 			return;
 		}
 
-		const remoteConfiguration = Spicetify.RemoteConfigResolver?.value.remoteConfiguration || Spicetify.Platform?.RemoteConfiguration;
+		let remoteConfiguration = Spicetify.RemoteConfigResolver?.value.remoteConfiguration || Spicetify.Platform?.RemoteConfiguration;
 		let setOverrides = () => {};
 
-		if (!Spicetify.RemoteConfigResolver) {
-			waitAttempts++;
-			// Wait apprx 10 seconds
-			if (waitAttempts < 20) {
-				notice.innerText = `Waiting for Spotify to finish loading... (${waitAttempts + 1}/20 attempts)`;
-				setTimeout(waitForRemoteConfigResolver, 500);
+		(function waitForResolver() {
+			if (!Spicetify.RemoteConfigResolver) {
+				isFallback = true;
+				notice.innerText = "⚠️ Using fallback mode. Some features may not work.";
+				setTimeout(waitForResolver, 500);
 				return;
+			} else {
+				isFallback = false;
+				notice.remove();
+				remoteConfiguration = Spicetify.RemoteConfigResolver.value.remoteConfiguration;
+				setOverrides = Spicetify.RemoteConfigResolver.value.setOverrides;
 			}
-
-			isFallback = true;
-			notice.innerText = "⚠️ Using fallback mode. Some features may not work.";
-		} else {
-			isFallback = false;
-			notice.remove();
-			setOverrides = Spicetify.RemoteConfigResolver.value.setOverrides;
-		}
+		})();
 
 		Object.keys(overrideList).forEach(key => {
 			if (!newFeatures.includes(key)) {
@@ -193,7 +189,6 @@
 			overrideList[name].value = value;
 			localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
 
-			if (isFallback) return;
 			featureMap[name] = value;
 			setOverrides(Spicetify.createInternalMap?.(featureMap));
 		}
