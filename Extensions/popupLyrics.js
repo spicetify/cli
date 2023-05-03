@@ -176,7 +176,7 @@ function PopupLyrics() {
 
 			const album = LyricUtils.capitalize(info.album);
 			let itemId = items.findIndex(
-				val => LyricUtils.capitalize(val.album.name) === album || (info.duration + 1000 > val.duration && info.duration - 1000 < val.duration)
+				val => LyricUtils.capitalize(val.album.name) === album || Math.abs(info.duration - val.duration) < 1000
 			);
 			if (itemId === -1) return { error: "Cannot find track" };
 
