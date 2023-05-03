@@ -188,18 +188,25 @@ class LyricsContainer extends react.Component {
 	}
 
 	async fetchColors(uri) {
-		let prominent = 0;
+		let vibrant = 0;
 		try {
-			const colors = await CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
-			prominent = colors.entries[0].color_swatches.find(color => color.preset === "PROMINENT").color;
+			try {
+				const { fetchExtractedColorForTrackEntity } = Spicetify.GraphQL.Definitions;
+				const { data } = await Spicetify.GraphQL.Request(fetchExtractedColorForTrackEntity, { uri });
+				const { hex } = data.trackUnion.albumOfTrack.coverArt.extractedColors.colorDark;
+				vibrant = parseInt(hex.replace("#", ""), 16);
+			} catch {
+				const colors = await CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
+				vibrant = colors.entries[0].color_swatches.find(color => color.preset === "VIBRANT_NON_ALARMING").color;
+			}
 		} catch {
-			prominent = 8747370;
+			vibrant = 8747370;
 		}
 
 		this.setState({
 			colors: {
-				background: Utils.convertIntToRGB(prominent),
-				inactive: Utils.convertIntToRGB(prominent, 3)
+				background: Utils.convertIntToRGB(vibrant),
+				inactive: Utils.convertIntToRGB(vibrant, 3)
 			}
 		});
 	}
@@ -224,25 +231,53 @@ class LyricsContainer extends react.Component {
 	}
 
 	async tryServices(trackInfo, mode = -1) {
-		let unsynclyrics;
+		const currentMode = CONFIG.modes[mode] || "";
+		let finalData = CACHE[trackInfo.uri] ?? emptyState;
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
 			if (mode !== -1 && !service.modes.includes(mode)) continue;
 
-			const data = await Providers[id](trackInfo);
-			if (!data.error && (data.karaoke || data.synced || data.genius)) {
-				CACHE[data.uri] = data;
-				return data;
-			} else if (!data.error && data.unsynced) {
-				unsynclyrics = data;
+			let data;
+			try {
+				data = await Providers[id](trackInfo);
+			} catch (e) {
+				console.error(e);
+				continue;
 			}
+
+			if (data.error || (!data.karaoke && !data.synced && !data.unsynced && !data.genius)) continue;
+			if (mode === -1) {
+				finalData = data;
+				CACHE[data.uri] = finalData;
+				return finalData;
+			}
+
+			if (!data[currentMode]) {
+				for (const key in data) {
+					if (data[key] && !finalData[key]) {
+						finalData[key] = data[key];
+					}
+				}
+				continue;
+			}
+
+			if (data.provider !== "local" && finalData.provider && finalData.provider !== data.provider) {
+				const styledMode = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+				finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n${finalData.copyright || ""}`.trim();
+			}
+
+			for (const key in data) {
+				if (data[key] && !finalData[key]) {
+					finalData[key] = data[key];
+				}
+			}
+
+			CACHE[data.uri] = finalData;
+			return finalData;
 		}
-		if (unsynclyrics) {
-			CACHE[unsynclyrics.uri] = unsynclyrics;
-			return unsynclyrics;
-		}
-		const empty = { ...emptyState, uri: trackInfo.uri };
+
+		const empty = { ...finalData, uri: trackInfo.uri };
 		CACHE[trackInfo.uri] = empty;
 		return empty;
 	}
@@ -701,37 +736,38 @@ class LyricsContainer extends react.Component {
 					hasNeteaseTranslation
 				}),
 				react.createElement(AdjustmentsMenu, { mode }),
-				react.createElement(
-					Spicetify.ReactComponent.TooltipWrapper,
-					{
-						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics"
-					},
+				mode !== GENIUS &&
 					react.createElement(
-						"button",
+						Spicetify.ReactComponent.TooltipWrapper,
 						{
-							className: "lyrics-config-button",
-							onClick: () => {
-								const { synced, unsynced, karaoke } = this.state;
-								if (!synced && !unsynced && !karaoke) {
-									Spicetify.showNotification("No lyrics to cache", true);
-									return;
-								}
-
-								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke });
-								Spicetify.showNotification("Lyrics cached");
-							}
+							label: this.state.isCached ? "Lyrics cached" : "Cache lyrics"
 						},
-						react.createElement("svg", {
-							width: 16,
-							height: 16,
-							viewBox: "0 0 16 16",
-							fill: "currentColor",
-							dangerouslySetInnerHTML: {
-								__html: Spicetify.SVGIcons[this.state.isCached ? "downloaded" : "download"]
-							}
-						})
-					)
-				),
+						react.createElement(
+							"button",
+							{
+								className: "lyrics-config-button",
+								onClick: () => {
+									const { synced, unsynced, karaoke } = this.state;
+									if (!synced && !unsynced && !karaoke) {
+										Spicetify.showNotification("No lyrics to cache", true);
+										return;
+									}
+
+									this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke });
+									Spicetify.showNotification("Lyrics cached");
+								}
+							},
+							react.createElement("svg", {
+								width: 16,
+								height: 16,
+								viewBox: "0 0 16 16",
+								fill: "currentColor",
+								dangerouslySetInnerHTML: {
+									__html: Spicetify.SVGIcons[this.state.isCached ? "downloaded" : "download"]
+								}
+							})
+						)
+					),
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{

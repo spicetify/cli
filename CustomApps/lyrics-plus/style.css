@@ -171,8 +171,7 @@
 	filter: none !important;
 }
 
-.lyrics-lyricsContainer-SyncedLyrics > :first-child,
-.lyrics-lyricsContainer-SyncedLyrics > :last-child {
+.lyrics-lyricsContainer-SyncedLyrics > .lyrics-lyricsContainer-LyricsLine-paddingLine {
 	opacity: 0;
 	pointer-events: none;
 }
