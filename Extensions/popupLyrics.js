@@ -65,8 +65,8 @@ function PopupLyrics() {
 		static removeExtraInfo(s) {
 			return (
 				s
-					.replace(/-\s+(feat|with).*/i, "")
-					.replace(/(\(|\[)(feat|with)\.?\s+.*(\)|\])$/i, "")
+					.replace(/-\s+(feat|with|prod).*/i, "")
+					.replace(/(\(|\[)(feat|with|prod)\.?\s+.*(\)|\])$/i, "")
 					.replace(/\s-\s.*/, "")
 					.trim() || s
 			);
@@ -219,11 +219,12 @@ function PopupLyrics() {
 						const matchResult = slice.match(/[^\[\]]+/g);
 						const [key, value] = matchResult[0].split(":") || [];
 						const [min, sec] = [parseFloat(key), parseFloat(value)];
-						if (!isNaN(min) && !otherInfoRegexp.test(text)) {
+						if (!isNaN(min) && !isNaN(sec) && !otherInfoRegexp.test(text)) {
 							result.startTime = min * 60 + sec;
 							result.text = text || "♪";
+							return result;
 						}
-						return result;
+						return;
 					});
 				})
 				.flat()
