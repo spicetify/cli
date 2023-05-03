@@ -17,7 +17,9 @@ const ProviderNetease = (function () {
 		}
 
 		const album = Utils.capitalize(info.album);
-		let itemId = items.findIndex(val => Utils.capitalize(val.album.name) === album || (info.duration+1000 > val.duration && info.duration-1000 < val.duration));
+		let itemId = items.findIndex(
+			val => Utils.capitalize(val.album.name) === album || (info.duration + 1000 > val.duration && info.duration - 1000 < val.duration)
+		);
 		if (itemId === -1) throw "Cannot find track";
 
 		return await CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);

@@ -175,7 +175,9 @@ function PopupLyrics() {
 			}
 
 			const album = LyricUtils.capitalize(info.album);
-			let itemId = items.findIndex(val => LyricUtils.capitalize(val.album.name) === album || (info.duration+1000 > val.duration && info.duration-1000 < val.duration));
+			let itemId = items.findIndex(
+				val => LyricUtils.capitalize(val.album.name) === album || (info.duration + 1000 > val.duration && info.duration - 1000 < val.duration)
+			);
 			if (itemId === -1) return { error: "Cannot find track" };
 
 			const meta = await CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
@@ -237,7 +239,7 @@ function PopupLyrics() {
 					return a.startTime - b.startTime;
 				})
 				.filter(a => a);
-				
+
 			if (noLyrics) {
 				return { error: "No lyrics" };
 			}
