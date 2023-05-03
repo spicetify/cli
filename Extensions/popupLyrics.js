@@ -175,8 +175,8 @@ function PopupLyrics() {
 			}
 
 			const album = LyricUtils.capitalize(info.album);
-			let itemId = items.findIndex(val => LyricUtils.capitalize(val.album.name) === album);
-			if (itemId === -1) itemId = 0;
+			let itemId = items.findIndex(val => LyricUtils.capitalize(val.album.name) === album || Math.abs(info.duration - val.duration) < 1000);
+			if (itemId === -1) return { error: "Cannot find track" };
 
 			const meta = await CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
 			let lyricStr = meta.lrc;
@@ -195,6 +195,7 @@ function PopupLyrics() {
 			const otherInfoRegexp = new RegExp(`^(${otherInfoKeys.join("|")}).*(:|：)`, "i");
 
 			const lines = lyricStr.split(/\r?\n/).map(line => line.trim());
+			let noLyrics = false;
 			const lyrics = lines
 				.map(line => {
 					// ["[ar:Beyond]"]
@@ -203,7 +204,7 @@ function PopupLyrics() {
 					// ["永远高唱我歌"]
 					// ["[03:10]", "[03:10]", "永远高唱我歌"]
 					const matchResult = line.match(/(\[.*?\])|([^\[\]]+)/g) || [line];
-					if (!matchResult.length) {
+					if (!matchResult.length || matchResult.length === 1) {
 						return;
 					}
 					const textIndex = matchResult.findIndex(slice => !slice.endsWith("]"));
@@ -212,6 +213,7 @@ function PopupLyrics() {
 						text = matchResult.splice(textIndex, 1)[0];
 						text = LyricUtils.capitalize(LyricUtils.normalize(text, false));
 					}
+					if (text === "纯音乐, 请欣赏") noLyrics = true;
 					return matchResult.map(slice => {
 						const result = {};
 						const matchResult = slice.match(/[^\[\]]+/g);
@@ -234,16 +236,11 @@ function PopupLyrics() {
 					}
 					return a.startTime - b.startTime;
 				})
-				.filter(({ text }, index, arr) => {
-					if (index) {
-						const prevEle = arr[index - 1];
-						if (prevEle.text === text && text === "") {
-							return false;
-						}
-					}
-					return true;
-				});
+				.filter(a => a);
 
+			if (noLyrics) {
+				return { error: "No lyrics" };
+			}
 			if (!lyrics.length) {
 				return { error: "No synced lyrics" };
 			}
