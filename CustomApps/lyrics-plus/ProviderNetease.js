@@ -18,7 +18,7 @@ const ProviderNetease = (function () {
 
 		const album = Utils.capitalize(info.album);
 		let itemId = items.findIndex(
-			val => Utils.capitalize(val.album.name) === album || (info.duration + 1000 > val.duration && info.duration - 1000 < val.duration)
+			val => Utils.capitalize(val.album.name) === album || Math.abs(info.duration - val.duration) < 1000
 		);
 		if (itemId === -1) throw "Cannot find track";
 
