@@ -487,27 +487,18 @@ class LyricsContainer extends react.Component {
 	}
 
 	componentDidMount() {
-		this.onQueueChange = async queue => {
-			queue = queue.data;
+		this.onQueueChange = async ({ data: queue }) => {
 			this.state.explicitMode = this.state.lockMode;
 			this.currentTrackUri = queue.current.uri;
-
-			let nextTrack;
-			if (queue.queued.length) {
-				nextTrack = queue.queued[0];
-			} else {
-				nextTrack = queue.nextUp[0];
-			}
-
-			const nextInfo = this.infoFromTrack(nextTrack);
-			if (!nextInfo) {
-				this.fetchLyrics(queue.current, this.state.explicitMode);
-				return;
-			}
-			this.nextTrackUri = nextInfo.uri;
 			this.fetchLyrics(queue.current, this.state.explicitMode);
 			this.viewPort.scrollTo(0, 0);
+
 			// Fetch next track
+			const nextTrack = queue.queued?.[0] || queue.nextUp?.[0];
+			const nextInfo = this.infoFromTrack(nextTrack);
+			// Debounce next track fetch
+			if (!nextInfo || nextInfo.uri === this.nextTrackUri) return;
+			this.nextTrackUri = nextInfo.uri;
 			this.tryServices(nextInfo, this.state.explicitMode);
 		};
 
