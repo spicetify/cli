@@ -278,7 +278,7 @@ class LyricsContainer extends react.Component {
 		}
 
 		CACHE[trackInfo.uri] = finalData;
-		return empty;
+		return finalData;
 	}
 
 	async fetchLyrics(track, mode = -1) {
