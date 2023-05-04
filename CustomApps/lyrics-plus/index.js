@@ -255,7 +255,7 @@ class LyricsContainer extends react.Component {
 
 			if (!data[currentMode]) {
 				for (const key in data) {
-					if ((CONFIG.modes.includes(key) || key === "genius2") && data[key] && !finalData[key]) {
+					if (data[key] && !finalData[key]) {
 						finalData[key] = data[key];
 					}
 				}
@@ -268,7 +268,7 @@ class LyricsContainer extends react.Component {
 			}
 
 			for (const key in data) {
-				if ((CONFIG.modes.includes(key) || key === "genius2") && data[key] && !finalData[key]) {
+				if (data[key] && !finalData[key]) {
 					finalData[key] = data[key];
 				}
 			}
