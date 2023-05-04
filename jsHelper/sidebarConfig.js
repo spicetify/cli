@@ -213,7 +213,8 @@ color: var(--spice-button-disabled);
 		playlistItems.prepend(list, hiddenList);
 
 		for (const ele of appItems.children) {
-			ele.dataset.id = ele.querySelector("a").pathname;
+			if (ele.classList.contains("GlueDropTarget") && !ele.querySelector("a")) ele.dataset.id = "/add";
+			else ele.dataset.id = ele.querySelector("a").pathname;
 			buttons.push(ele);
 		}
 
@@ -258,7 +259,7 @@ color: var(--spice-button-disabled);
 		const YLXAppItems = document.querySelector(".main-yourLibraryX-navItems");
 		const libraryItems = document.querySelector(".main-yourLibraryX-library");
 
-		if (!YLXAppItems || !libraryItems) {
+		if (!YLXAppItems || !libraryItems?.querySelector("ul")) {
 			setTimeout(InitSidebarXConfig, 300);
 			return;
 		}
