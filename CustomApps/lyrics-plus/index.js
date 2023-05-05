@@ -36,6 +36,7 @@ const KARAOKE = 0,
 
 const CONFIG = {
 	visual: {
+		["playbar-button"]: getConfig("lyrics-plus:visual:playbar-button", false),
 		colorful: getConfig("lyrics-plus:visual:colorful"),
 		noise: getConfig("lyrics-plus:visual:noise"),
 		["background-color"]: localStorage.getItem("lyrics-plus:visual:background-color") || "var(--spice-main)",
@@ -589,6 +590,14 @@ class LyricsContainer extends react.Component {
 				"--lyrics-highlight-background": CONFIG.visual["highlight-color"],
 				"--lyrics-background-noise": CONFIG.visual.noise ? "var(--background-noise)" : "unset"
 			};
+		}
+
+		const snippetExists = document.head.getElementsByClassName("lyrics-plus:visual:playbar-button").length == 1 ? true : false;
+		if (CONFIG.visual["playbar-button"] && !snippetExists) {
+			setPlaybarButton();
+		}
+		if (!CONFIG.visual["playbar-button"] && snippetExists) {
+			location.reload();
 		}
 
 		this.styleVariables = {
