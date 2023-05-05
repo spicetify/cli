@@ -187,10 +187,10 @@ function PopupLyrics() {
 			lyricStr = lyricStr.lyric;
 
 			const otherInfoKeys = [
-				"作?\\s*词|作?\\s*曲|编\\s*曲?|监\\s*制?",
+				"\\s?作?\\s*词|\\s?作?\\s*曲|\\s?编\\s*曲?|\\s?监\\s*制?",
 				".*编写|.*和音|.*和声|.*合声|.*提琴|.*录|.*工程|.*工作室|.*设计|.*剪辑|.*制作|.*发行|.*出品|.*后期|.*混音|.*缩混",
 				"原唱|翻唱|题字|文案|海报|古筝|二胡|钢琴|吉他|贝斯|笛子|鼓|弦乐",
-				"lrc|publish|vocal|guitar|program|produce|write"
+				"lrc|publish|vocal|guitar|program|produce|write|mix"
 			];
 			const otherInfoRegexp = new RegExp(`^(${otherInfoKeys.join("|")}).*(:|：)`, "i");
 
