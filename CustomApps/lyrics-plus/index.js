@@ -232,7 +232,7 @@ class LyricsContainer extends react.Component {
 
 	async tryServices(trackInfo, mode = -1) {
 		const currentMode = CONFIG.modes[mode] || "";
-		let finalData = { ...emptyState, copyright: null, uri: trackInfo.uri };
+		let finalData = { ...emptyState, uri: trackInfo.uri };
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
@@ -255,7 +255,7 @@ class LyricsContainer extends react.Component {
 
 			if (!data[currentMode]) {
 				for (const key in data) {
-					if (data[key] && !finalData[key]) {
+					if (!finalData[key]) {
 						finalData[key] = data[key];
 					}
 				}
@@ -268,7 +268,7 @@ class LyricsContainer extends react.Component {
 			}
 
 			for (const key in data) {
-				if (data[key] && !finalData[key]) {
+				if (!finalData[key]) {
 					finalData[key] = data[key];
 				}
 			}
