@@ -273,7 +273,6 @@ class LyricsContainer extends react.Component {
 				}
 			}
 
-			console.log(data, finalData);
 			CACHE[data.uri] = finalData;
 			return finalData;
 		}
