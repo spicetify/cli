@@ -232,7 +232,7 @@ class LyricsContainer extends react.Component {
 
 	async tryServices(trackInfo, mode = -1) {
 		const currentMode = CONFIG.modes[mode] || "";
-		let finalData = { ...emptyState, uri: trackInfo.uri };
+		let finalData = { ...emptyState, copyright: null, uri: trackInfo.uri };
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
@@ -273,6 +273,7 @@ class LyricsContainer extends react.Component {
 				}
 			}
 
+			console.log(data, finalData);
 			CACHE[data.uri] = finalData;
 			return finalData;
 		}
