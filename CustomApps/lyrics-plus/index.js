@@ -262,15 +262,15 @@ class LyricsContainer extends react.Component {
 				continue;
 			}
 
-			if (data.provider !== "local" && finalData.provider && finalData.provider !== data.provider) {
-				const styledMode = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
-				finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n${finalData.copyright || ""}`.trim();
-			}
-
 			for (const key in data) {
 				if (!finalData[key]) {
 					finalData[key] = data[key];
 				}
+			}
+
+			if (data.provider !== "local" && finalData.provider && finalData.provider !== data.provider) {
+				const styledMode = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+				finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n${finalData.copyright || ""}`.trim();
 			}
 
 			CACHE[data.uri] = finalData;
