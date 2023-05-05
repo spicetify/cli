@@ -213,8 +213,7 @@ color: var(--spice-button-disabled);
 		playlistItems.prepend(list, hiddenList);
 
 		for (const ele of appItems.children) {
-			if (ele.classList.contains("GlueDropTarget") && !ele.querySelector("a")) ele.dataset.id = "/add";
-			else ele.dataset.id = ele.querySelector("a").pathname;
+			ele.dataset.id = ele.querySelector("a")?.pathname ?? "/add";
 			buttons.push(ele);
 		}
 
