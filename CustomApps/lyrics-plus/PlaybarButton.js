@@ -1,4 +1,4 @@
-(async function PlaybarButton() {
+(function PlaybarButton() {
 	if (!Spicetify.Platform) {
 		setTimeout(PlaybarButton, 300);
 		return;
