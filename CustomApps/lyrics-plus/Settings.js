@@ -434,7 +434,7 @@ function openConfig() {
 				{
 					desc: "Playbar button",
 					key: "playbar-button",
-					info: "Replace Spotify's lyrics button for one that opens lyrics-plus.",
+					info: "Replace Spotify's lyrics button with Lyrics Plus.",
 					type: ConfigSlider
 				},
 				{
