@@ -78,5 +78,6 @@
 		"Utils.js",
 		"Settings.js",
 		"Translator.js"
-	]
+	],
+	"subfiles_extension": ["PlaybarButton.js"]
 }

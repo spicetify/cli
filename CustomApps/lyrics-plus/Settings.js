@@ -432,6 +432,12 @@ function openConfig() {
 		react.createElement(OptionList, {
 			items: [
 				{
+					desc: "Playbar button",
+					key: "playbar-button",
+					info: "Replace Spotify's lyrics button with Lyrics Plus.",
+					type: ConfigSlider
+				},
+				{
 					desc: "Global delay",
 					info: "Offset (in ms) across all tracks.",
 					key: "global-delay",
@@ -538,6 +544,15 @@ function openConfig() {
 				CONFIG.visual[name] = value;
 				localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 				lyricContainerUpdate && lyricContainerUpdate();
+
+				const configChange = new CustomEvent("lyrics-plus", {
+					detail: {
+						type: "config",
+						name: name,
+						value: value
+					}
+				});
+				window.dispatchEvent(configChange);
 			}
 		}),
 		react.createElement("h2", null, "Providers"),

@@ -36,6 +36,7 @@ const KARAOKE = 0,
 
 const CONFIG = {
 	visual: {
+		["playbar-button"]: getConfig("lyrics-plus:visual:playbar-button", false),
 		colorful: getConfig("lyrics-plus:visual:colorful"),
 		noise: getConfig("lyrics-plus:visual:noise"),
 		["background-color"]: localStorage.getItem("lyrics-plus:visual:background-color") || "var(--spice-main)",
