@@ -146,7 +146,7 @@ function PopupLyrics() {
 					const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
 
 					const lyrics = JSON.parse(subtitle.subtitle_body).map(line => ({
-						text: line.text || "⋯",
+						text: line.text || "♪",
 						startTime: line.time.total
 					}));
 					return { lyrics };
