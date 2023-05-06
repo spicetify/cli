@@ -36,7 +36,7 @@
 		}
 	});
 
-	if (Spicetify.Platform.History.location.pathname === "/lyrics-plus") button.active = true;
+	button.active = Spicetify.Platform.History.location.pathname === "/lyrics-plus";
 	Spicetify.Platform.History.listen(location => (button.active = location.pathname === "/lyrics-plus"));
 
 	function setPlaybarButton() {
