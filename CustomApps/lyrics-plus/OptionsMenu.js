@@ -165,7 +165,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 								CONFIG.visual[name] = value;
 								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 								lyricContainerUpdate && lyricContainerUpdate();
-								CONFIG.visual[name] ? Spicetify.showNotification("Translating...", false, 500) : null;
+								CONFIG.visual[name] && Spicetify.showNotification("Translating...", false, 5000);
 								translator.injectExternals();
 							}
 						})

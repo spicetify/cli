@@ -232,7 +232,7 @@ class LyricsContainer extends react.Component {
 
 	async tryServices(trackInfo, mode = -1) {
 		const currentMode = CONFIG.modes[mode] || "";
-		let finalData = CACHE[trackInfo.uri] ?? emptyState;
+		let finalData = { ...emptyState, uri: trackInfo.uri };
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
@@ -255,11 +255,17 @@ class LyricsContainer extends react.Component {
 
 			if (!data[currentMode]) {
 				for (const key in data) {
-					if (data[key] && !finalData[key]) {
+					if (!finalData[key]) {
 						finalData[key] = data[key];
 					}
 				}
 				continue;
+			}
+
+			for (const key in data) {
+				if (!finalData[key]) {
+					finalData[key] = data[key];
+				}
 			}
 
 			if (data.provider !== "local" && finalData.provider && finalData.provider !== data.provider) {
@@ -267,19 +273,12 @@ class LyricsContainer extends react.Component {
 				finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n${finalData.copyright || ""}`.trim();
 			}
 
-			for (const key in data) {
-				if (data[key] && !finalData[key]) {
-					finalData[key] = data[key];
-				}
-			}
-
 			CACHE[data.uri] = finalData;
 			return finalData;
 		}
 
-		const empty = { ...finalData, uri: trackInfo.uri };
-		CACHE[trackInfo.uri] = empty;
-		return empty;
+		CACHE[trackInfo.uri] = finalData;
+		return finalData;
 	}
 
 	async fetchLyrics(track, mode = -1) {
@@ -487,31 +486,18 @@ class LyricsContainer extends react.Component {
 	}
 
 	componentDidMount() {
-		this.onQueueChange = async queue => {
-			queue = queue.data;
+		this.onQueueChange = async ({ data: queue }) => {
 			this.state.explicitMode = this.state.lockMode;
 			this.currentTrackUri = queue.current.uri;
-
-			let nextTrack;
-			if (queue.queued.length) {
-				nextTrack = queue.queued[0];
-			} else {
-				nextTrack = queue.nextUp[0];
-			}
-
-			const nextInfo = this.infoFromTrack(nextTrack);
-			if (!nextInfo) {
-				this.fetchLyrics(queue.current, this.state.explicitMode);
-				return;
-			}
-			// Debounce queue change emitter
-			if (nextInfo.uri === this.nextTrackUri) {
-				return;
-			}
-			this.nextTrackUri = nextInfo.uri;
 			this.fetchLyrics(queue.current, this.state.explicitMode);
 			this.viewPort.scrollTo(0, 0);
+
 			// Fetch next track
+			const nextTrack = queue.queued?.[0] || queue.nextUp?.[0];
+			const nextInfo = this.infoFromTrack(nextTrack);
+			// Debounce next track fetch
+			if (!nextInfo || nextInfo.uri === this.nextTrackUri) return;
+			this.nextTrackUri = nextInfo.uri;
 			this.tryServices(nextInfo, this.state.explicitMode);
 		};
 
