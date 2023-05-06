@@ -18,7 +18,7 @@
 	);
 
 	const style = document.createElement("style");
-	const css = `
+	style.innerHTML = `
 		.main-nowPlayingBar-lyricsButton { 
 			display: none !important; 
 		}
@@ -26,7 +26,6 @@
 			display: none;
 		}
 	`;
-	style.innerHTML = css;
 	style.classList.add("lyrics-plus:visual:playbar-button");
 
 	if (Spicetify.LocalStorage.get("lyrics-plus:visual:playbar-button") === "true") setPlaybarButton();
