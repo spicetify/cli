@@ -592,14 +592,6 @@ class LyricsContainer extends react.Component {
 			};
 		}
 
-		const snippetExists = document.head.getElementsByClassName("lyrics-plus:visual:playbar-button").length == 1 ? true : false;
-		if (CONFIG.visual["playbar-button"] && !snippetExists) {
-			setPlaybarButton();
-		}
-		if (!CONFIG.visual["playbar-button"] && snippetExists) {
-			location.reload();
-		}
-
 		this.styleVariables = {
 			...this.styleVariables,
 			"--lyrics-align-text": CONFIG.visual.alignment,
