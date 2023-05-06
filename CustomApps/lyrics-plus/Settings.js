@@ -544,16 +544,16 @@ function openConfig() {
 				CONFIG.visual[name] = value;
 				localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 				lyricContainerUpdate && lyricContainerUpdate();
-			
+
 				const configChange = new CustomEvent("lyrics-plus", {
-				  detail: {
-					type: "config",
-					name: name,
-					value: value,
-				  }
+					detail: {
+						type: "config",
+						name: name,
+						value: value
+					}
 				});
 				window.dispatchEvent(configChange);
-			  }			  
+			}
 		}),
 		react.createElement("h2", null, "Providers"),
 		react.createElement(ServiceList, {
