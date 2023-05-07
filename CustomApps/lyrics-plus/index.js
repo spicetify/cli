@@ -55,6 +55,7 @@ const CONFIG = {
 		["translate"]: getConfig("lyrics-plus:visual:translate", false),
 		["ja-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
 		["hans-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
+		["hanzi-detect-threshold"]: localStorage.getItem("lyrics-plus:visual:hanzi-detect-threshold") || "40",
 		["fade-blur"]: getConfig("lyrics-plus:visual:fade-blur"),
 		["fullscreen-key"]: localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
 		["synced-compact"]: getConfig("lyrics-plus:visual:synced-compact"),
@@ -111,6 +112,7 @@ CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
 CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
 CONFIG.visual["ja-detect-threshold"] = parseInt(CONFIG.visual["ja-detect-threshold"]);
 CONFIG.visual["hans-detect-threshold"] = parseInt(CONFIG.visual["hans-detect-threshold"]);
+CONFIG.visual["hanzi-detect-threshold"] = parseInt(CONFIG.visual["hanzi-detect-threshold"]);
 
 const CACHE = {};
 
@@ -343,7 +345,7 @@ class LyricsContainer extends react.Component {
 
 	lyricsSource(state) {
 		switch (CONFIG.visual["translate:translated-lyrics-source"]) {
-			case 'neteaseTranslation': {
+			case "neteaseTranslation": {
 				if (this.state.neteaseTranslation !== null) return this.state.neteaseTranslation;
 				break;
 			}
@@ -357,7 +359,7 @@ class LyricsContainer extends react.Component {
 			return;
 		}
 
-		const lyricsToTranslate = this.state.synced ?? this.state.unsynced;
+		const lyricsToTranslate = this.lyricsSource(this.state.synced ?? this.state.unsynced);
 
 		if (!lyricsToTranslate) return;
 
