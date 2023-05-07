@@ -155,7 +155,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 						react.createElement(OptionList, {
 							items: [
 								{
-									desc: "Translated Lyrics Source",
+									desc: "Translated Lyrics Provider",
 									key: `translate:translated-lyrics-source`,
 									type: ConfigSelection,
 									options: sourceOptions,
