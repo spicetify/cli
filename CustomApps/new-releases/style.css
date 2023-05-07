@@ -137,6 +137,9 @@ option {
 	inline-size: 32px;
 	block-size: 32px;
 	border-radius: calc(var(--card-container-border-radius) + 2px);
+	position: absolute !important;
+	top: 10px;
+	right: 10px;
 }
 
 .main-card-closeButton {

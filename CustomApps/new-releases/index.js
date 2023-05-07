@@ -40,7 +40,14 @@ const CONFIG = {
 	relative: getConfig("new-releases:relative", false)
 };
 
-let dismissed = [JSON.parse(Spicetify.LocalStorage.get("new-releases:dismissed")) || null].flat();
+let dismissed;
+try {
+	dismissed = JSON.parse(Spicetify.LocalStorage.get("new-releases:dismissed"));
+	if (!Array.isArray(dismissed)) throw "";
+} catch {
+	dismissed = [];
+}
+
 let gridList = [];
 let lastScroll = 0;
 
@@ -103,7 +110,7 @@ class Grid extends react.Component {
 	}
 
 	removeCards(id) {
-		dismissed = dismissed[0] === null ? [id] : dismissed.concat(id);
+		dismissed.push(id);
 		Spicetify.LocalStorage.set("new-releases:dismissed", JSON.stringify(dismissed));
 		this.reload(true);
 	}
@@ -138,9 +145,7 @@ class Grid extends react.Component {
 		}
 
 		for (const track of items) {
-			if (dismissed.includes(track.uri)) {
-				continue;
-			}
+			if (dismissed.includes(track.uri)) continue;
 
 			track.visual = CONFIG.visual;
 			let dateStr;
@@ -315,9 +320,7 @@ var count = (function () {
 
 async function fetchTracks(silent) {
 	let artistList = await getArtistList();
-	if (!silent) {
-		Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
-	}
+	if (!silent) Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
 	const requests = artistList.map(async obj => {
 		const artist = obj.artistMetadata;
