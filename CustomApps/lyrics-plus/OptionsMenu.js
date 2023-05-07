@@ -131,7 +131,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 	if (hasNeteaseTranslation) {
 		sourceOptions = {
 			...sourceOptions,
-			neteaseTranslation: "Chinese (Netease)"
+			neteaseTranslation: "Netease (Chinese)"
 		};
 	}
 
