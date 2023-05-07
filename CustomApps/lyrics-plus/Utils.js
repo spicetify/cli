@@ -57,6 +57,8 @@ class Utils {
 
 	static detectLanguage(lyrics) {
 		// Should return IETF BCP 47 language tags.
+		// This should detect the song's main language.
+		// Remember there is a possibility of a song referencing something in another language and the lyrics show it in that native language!
 		const rawLyrics = lyrics.map(line => line.text).join(" ");
 
 		const kanaRegex = /[\u3001-\u3003]|[\u3005\u3007]|[\u301d-\u301f]|[\u3021-\u3035]|[\u3038-\u303a]|[\u3040-\u30ff]|[\uff66-\uff9f]/gu;
@@ -70,20 +72,20 @@ class Utils {
 
 		if (!cjkMatch) return;
 
-		if (cjkMatch.filter(glyph => hangulRegex.test(glyph))) {
-			return "ko";
-		}
-
 		const kanaCount = cjkMatch.filter(glyph => kanaRegex.test(glyph)).length;
 		const simpCount = cjkMatch.filter(glyph => simpRegex.test(glyph)).length;
 		const tradCount = cjkMatch.filter(glyph => tradRegex.test(glyph)).length;
+		const hangulCount = cjkMatch.filter(glyph => hangulRegex.test(glyph)).length;
 
 		const kanaPercentage = kanaCount / cjkMatch.length;
+		const hangulPercentage = hangulCount / cjkMatch.length;
 		const simpPercentage = simpCount / cjkMatch.length;
 		const tradPercentage = tradCount / cjkMatch.length;
 
-		if (((kanaPercentage - (1 - kanaPercentage) + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"]) {
-			return "ja";
+		const nonChinesePercentage = kanaPercentage + hangulPercentage;
+
+		if (((nonChinesePercentage - (1 - nonChinesePercentage) + 1) / 2) * 100 >= CONFIG.visual["hanzi-detect-threshold"]) {
+			return ((kanaPercentage - hangulPercentage + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"] ? "ja" : "ko";
 		}
 
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";

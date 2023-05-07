@@ -92,7 +92,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 	let translator = new Translator();
 
 	let sourceOptions = {
-		default: "No translation"
+		none: "None"
 	};
 	const languageOptions = {
 		off: "Off",
@@ -169,7 +169,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 									renderInline: true
 								},
 								{
-									desc: "Mode",
+									desc: "Text Display Mode",
 									key: `translation-mode:${friendlyLanguage}`,
 									type: ConfigSelection,
 									options: modeOptions,
@@ -190,9 +190,8 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 								lyricContainerUpdate && lyricContainerUpdate();
 								CONFIG.visual[name] && Spicetify.showNotification("Translating...", false, 5000);
 								translator.injectExternals();
-								if (name == "translate:translated-lyrics-source" || name == "translate:detect-language-override") {
-									location.reload(); // TODO: Reload lyrics instead of reload page
-								}
+								// run the translate function after user changes translate lyrics source
+								// update the dropdowns
 							}
 						})
 					),
