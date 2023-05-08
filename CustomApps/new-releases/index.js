@@ -83,6 +83,8 @@ class Grid extends react.Component {
 	updatePostsVisual() {
 		gridList = [];
 		for (const date of dateList) {
+			if (separatedByDate[date].every(card => dismissed.includes(card.props.uri))) continue;
+
 			gridList.push(
 				react.createElement(
 					"div",
@@ -174,6 +176,8 @@ class Grid extends react.Component {
 		}
 
 		for (const date of dateList) {
+			if (separatedByDate[date].every(card => dismissed.includes(card.props.uri))) continue;
+
 			gridList.push(
 				react.createElement(
 					"div",
