@@ -41,8 +41,8 @@ class Utils {
 	static removeSongFeat(s) {
 		return (
 			s
-				.replace(/-\s+(feat|with).*/i, "")
-				.replace(/(\(|\[)(feat|with)\.?\s+.*(\)|\])$/i, "")
+				.replace(/-\s+(feat|with|prod).*/i, "")
+				.replace(/(\(|\[)(feat|with|prod)\.?\s+.*(\)|\])$/i, "")
 				.trim() || s
 		);
 	}

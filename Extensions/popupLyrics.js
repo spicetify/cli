@@ -65,8 +65,8 @@ function PopupLyrics() {
 		static removeExtraInfo(s) {
 			return (
 				s
-					.replace(/-\s+(feat|with).*/i, "")
-					.replace(/(\(|\[)(feat|with)\.?\s+.*(\)|\])$/i, "")
+					.replace(/-\s+(feat|with|prod).*/i, "")
+					.replace(/(\(|\[)(feat|with|prod)\.?\s+.*(\)|\])$/i, "")
 					.replace(/\s-\s.*/, "")
 					.trim() || s
 			);
@@ -146,7 +146,7 @@ function PopupLyrics() {
 					const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
 
 					const lyrics = JSON.parse(subtitle.subtitle_body).map(line => ({
-						text: line.text || "⋯",
+						text: line.text || "♪",
 						startTime: line.time.total
 					}));
 					return { lyrics };
@@ -187,10 +187,10 @@ function PopupLyrics() {
 			lyricStr = lyricStr.lyric;
 
 			const otherInfoKeys = [
-				"作?\\s*词|作?\\s*曲|编\\s*曲?|监\\s*制?",
+				"\\s?作?\\s*词|\\s?作?\\s*曲|\\s?编\\s*曲?|\\s?监\\s*制?",
 				".*编写|.*和音|.*和声|.*合声|.*提琴|.*录|.*工程|.*工作室|.*设计|.*剪辑|.*制作|.*发行|.*出品|.*后期|.*混音|.*缩混",
 				"原唱|翻唱|题字|文案|海报|古筝|二胡|钢琴|吉他|贝斯|笛子|鼓|弦乐",
-				"lrc|publish|vocal|guitar|program|produce|write"
+				"lrc|publish|vocal|guitar|program|produce|write|mix"
 			];
 			const otherInfoRegexp = new RegExp(`^(${otherInfoKeys.join("|")}).*(:|：)`, "i");
 
@@ -219,11 +219,12 @@ function PopupLyrics() {
 						const matchResult = slice.match(/[^\[\]]+/g);
 						const [key, value] = matchResult[0].split(":") || [];
 						const [min, sec] = [parseFloat(key), parseFloat(value)];
-						if (!isNaN(min) && !otherInfoRegexp.test(text)) {
+						if (!isNaN(min) && !isNaN(sec) && !otherInfoRegexp.test(text)) {
 							result.startTime = min * 60 + sec;
 							result.text = text || "♪";
+							return result;
 						}
-						return result;
+						return;
 					});
 				})
 				.flat()
