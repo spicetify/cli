@@ -11,13 +11,13 @@ import (
 	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
-func Upgrade(currentVersion string) {
+func Upgrade(currentVersion string) bool {
 	utils.PrintBold("Fetch latest release info:")
 	tagName, err := utils.FetchLatestTag()
 	if err != nil {
 		utils.PrintError("Cannot fetch latest release info")
 		utils.PrintError(err.Error())
-		return
+		return false
 	}
 	utils.PrintGreen("OK")
 
@@ -25,7 +25,7 @@ func Upgrade(currentVersion string) {
 	utils.PrintInfo("Latest release: " + tagName)
 	if currentVersion == tagName {
 		utils.PrintSuccess("Already up-to-date.")
-		return
+		return false
 	}
 
 	var assetURL string = "https://github.com/spicetify/spicetify-cli/releases/download/v" + tagName + "/spicetify-" + tagName
@@ -105,6 +105,7 @@ func Upgrade(currentVersion string) {
 	utils.PrintGreen("OK")
 	utils.PrintSuccess("spicetify is up-to-date.")
 	utils.PrintInfo(`Please run "spicetify restore backup apply" to receive new features and bug fixes`)
+	return true
 }
 
 func permissionError(err error) {

@@ -84,8 +84,9 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 
 	useTrackPosition(() => {
 		const newPos = Spicetify.Player.getProgress();
+		const delay = CONFIG.visual["global-delay"] + CONFIG.visual.delay;
 		if (newPos != position) {
-			setPosition(newPos + CONFIG.visual.delay);
+			setPosition(newPos + delay);
 		}
 	});
 
@@ -160,6 +161,11 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 					animationIndex = i - activeLineIndex;
 				} else {
 					animationIndex = i - CONFIG.visual["lines-before"] - 1;
+				}
+
+				const paddingLine = (animationIndex < 0 && -animationIndex > CONFIG.visual["lines-before"]) || animationIndex > CONFIG.visual["lines-after"];
+				if (paddingLine) {
+					className += " lyrics-lyricsContainer-LyricsLine-paddingLine";
 				}
 
 				return react.createElement(
@@ -352,7 +358,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 
 	useTrackPosition(() => {
 		if (!Player.data.is_paused) {
-			setPosition(Spicetify.Player.getProgress() + CONFIG.visual.delay);
+			setPosition(Spicetify.Player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay);
 		}
 	});
 
@@ -560,8 +566,7 @@ const GeniusPage = react.memo(
 		);
 
 		let mainContainer = [lyricsEl1];
-		//remove "&& false" below to restore the split display
-		const shouldSplit = versions.length > 1 && isSplitted && false;
+		const shouldSplit = versions.length > 1 && isSplitted;
 
 		if (shouldSplit) {
 			const lyricsEl2 = react.createElement(

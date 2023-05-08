@@ -19,6 +19,14 @@ func Apply(spicetifyVersion string) {
 	checkStates()
 	InitSetting()
 
+	backupSpicetifyVersion := backupSection.Key("with").MustString("")
+	if spicetifyVersion != backupSpicetifyVersion {
+		utils.PrintInfo(`Preprocessed Spotify data is outdated. Please run "spicetify restore backup apply" to receive new features and bug fixes`)
+		if !ReadAnswer("Continue applying anyway? [y/N]: ", false, true) {
+			os.Exit(1)
+		}
+	}
+
 	// Copy raw assets to Spotify Apps folder if Spotify is never applied
 	// before.
 	// extractedStock is for preventing copy raw assets 2 times when
@@ -54,6 +62,14 @@ func Apply(spicetifyVersion string) {
 	updateCSS()
 	utils.PrintGreen("OK")
 
+	if injectJS {
+		utils.PrintBold(`Transferring theme.js:`)
+		pushThemeJS()
+		utils.PrintGreen("OK")
+	} else {
+		utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/theme.js"))
+	}
+
 	if overwriteAssets {
 		utils.PrintBold(`Overwriting custom assets:`)
 		updateAssets()
@@ -73,6 +89,7 @@ func Apply(spicetifyVersion string) {
 	apply.AdditionalOptions(appDestPath, apply.Flag{
 		CurrentTheme:  settingSection.Key("current_theme").MustString(""),
 		ColorScheme:   settingSection.Key("color_scheme").MustString(""),
+		InjectThemeJS: injectJS,
 		Extension:     extensionList,
 		CustomApp:     customAppsList,
 		SidebarConfig: featureSection.Key("sidebar_config").MustBool(false),
@@ -103,25 +120,25 @@ func Apply(spicetifyVersion string) {
 	}
 
 	utils.PrintSuccess("Spotify is spiced up!")
-
-	backupSpicetifyVersion := backupSection.Key("with").MustString("")
-	if spicetifyVersion != backupSpicetifyVersion {
-		utils.PrintInfo(`Preprocessed Spotify data is outdated. Please run "spicetify restore backup apply" to receive new features and bug fixes`)
-	}
 }
 
-// UpdateTheme updates user.css and overwrites custom assets
+// UpdateTheme updates user.css + theme.js and overwrites custom assets
 func UpdateTheme() {
 	checkStates()
 	InitSetting()
 
 	if len(themeFolder) == 0 {
 		utils.PrintWarning(`Nothing is updated: Config "current_theme" is blank.`)
-		os.Exit(1)
+		return
 	}
 
 	updateCSS()
 	utils.PrintSuccess("Custom CSS is updated")
+
+	if injectJS {
+		pushThemeJS()
+		utils.PrintSuccess("Theme's JS is updated")
+	}
 
 	if overwriteAssets {
 		updateAssets()
@@ -224,6 +241,12 @@ func checkStates() {
 			os.Exit(1)
 		}
 	}
+}
+
+func pushThemeJS() {
+	utils.CopyFile(
+		filepath.Join(themeFolder, "theme.js"),
+		filepath.Join(appDestPath, "xpui", "extensions"))
 }
 
 func pushExtensions(destExt string, list ...string) {

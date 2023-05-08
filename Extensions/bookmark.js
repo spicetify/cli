@@ -119,6 +119,11 @@
 				uri.type === URI.Type.PLAYLIST;
 
 			this.innerHTML = `
+<style>
+.bookmark-card .ButtonInner-md-iconOnly:hover {
+	transform: scale(1.06);
+}
+</style>
 <div class="bookmark-card">
     ${
 			info.imageUrl
@@ -143,15 +148,16 @@
     </div>
     ${
 			isPlayable
-				? `<button class="main-playButton-PlayButton main-playButton-primary" aria-label="Play" title="Play" style="--size:48px;"><svg role="img" height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg></button>`
+				? `<div class="ButtonInner-md-iconOnly"><button class="main-playButton-PlayButton main-playButton-primary" data-tippy-content="Play" style="--size:48px;"><svg role="img" height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg></button></div>`
 				: ""
 		}
-    <button class="bookmark-controls" title="${REMOVE_TEXT}"><svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${
+    <button class="bookmark-controls" data-tippy-content="${REMOVE_TEXT}"><svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${
 				Spicetify.SVGIcons.x
 			}</svg></button>
 </div>
 `;
 
+			Spicetify.Tippy(this.querySelectorAll("[data-tippy-content]"), Spicetify.TippyProps);
 			if (isPlayable) {
 				/** @type {HTMLButtonElement} */
 				const playButton = this.querySelector("button.main-playButton-PlayButton");
@@ -218,9 +224,15 @@
 	async function storeThisPage() {
 		let title;
 		let description;
+		let contextUri;
 
 		const context = Spicetify.Platform.History.location.pathname;
-		const contextUri = Spicetify.URI.fromString(context);
+		try {
+			contextUri = Spicetify.URI.fromString(context);
+		} catch (e) {
+			Spicetify.showNotification("Cannot bookmark this page", true);
+			return;
+		}
 		const uri = contextUri.toURI();
 
 		let titleElem =
@@ -423,7 +435,7 @@
 	 * Handle Link click event when item context is a playlist
 	 */
 	async function onLinkClick(info) {
-		if (info?.context?.startsWith("/")) {
+		if (info.context?.startsWith("/")) {
 			Spicetify.Platform.History.push(info.context);
 			return;
 		}
@@ -437,7 +449,7 @@
 		if (info.time) {
 			options.seekTo = info.time;
 		}
-		if (info?.context?.startsWith("/")) {
+		if (info.context?.startsWith("/")) {
 			uri = URI.fromString(info.context).toURI();
 			options.skipTo = {};
 			options.skipTo.uid = info.context.split("?uid=", 2)[1];

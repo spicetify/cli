@@ -1,4 +1,4 @@
-# Copyright 2022 Spicetify. GPL license.
+# Copyright 2023 Spicetify. GPL license.
 # Edited from project Denoland install script (https://github.com/denoland/deno_install)
 param (
   [string] $version
@@ -7,146 +7,158 @@ param (
 $PSMinVersion = 3
 
 if ($v) {
-    $version = $v
+  $version = $v
 }
 
-# Function to log output to file.
-Function Log {
-  Param([String] $ActionText, [String[]] $Texts, [Boolean[]] $Emphasized, [Boolean] $NewLine)
-  if (-not (Test-Path $log_file_dir)) {
-    New-Item -Path $log_file_dir -ItemType File -Force | Out-Null
+#region Functions
+function Write-Emphasized {
+  param (
+    [Parameter(Mandatory)]
+    [string] $Text
+  )
+    
+  Write-Host -Object $Text -NoNewline -ForegroundColor "Cyan"
+}
+
+function Write-Log {
+  param (
+    [string] $ActionText,
+    [string[]] $Texts,
+    [boolean[]] $Emphasized
+  )
+
+  if (-not (Test-Path -Path $logFileDir)) {
+    New-Item -Path $logFileDir -ItemType File -Force | Out-Null
   }
-  if (-not ([String]::IsNullOrEmpty($ActionText))) {
+
+  if (-not ($ActionText)) {
     $FormattedActionText = "{0, -15}" -f $ActionText
-    Write-Part $FormattedActionText
+    Write-Host -Object $FormattedActionText -NoNewline
   }
-  $LogText = $FormattedActionText
-  for ($i=0; $i -lt $Texts.Length -AND $Texts.Length -eq $Emphasized.Length; $i++) {
+    
+  $logText = $FormattedActionText
+    
+  for ($i = 0; $i -lt $Texts.Length -and $Texts.Length -eq $Emphasized.Length; $i++) {
     if ($Emphasized.Get($i)) {
-      Write-Emphasized $Texts.Get($i)
-    } else {
-      Write-Part $Texts.Get($i)
+      Write-Host -Object $Texts.Get($i) -NoNewline
     }
-    $LogText = $LogText + $Texts.Get($i)
+    else {
+      Write-Host -Object $Texts.Get($i) -NoNewline
+    }
+    $logText = $LogText + $Texts.Get($i)
   }
-  $LogText = "[{0}] {1}" -f (Get-Date -f "HH:mm:ss yyyy-MM-dd"), $LogText
-  Add-content $log_file_dir -value $LogText -NoNewline
-}
-
-# Helper functions for pretty terminal output.
-function Write-Part ([String] $Text) {
-  Write-Host $Text -Nonewline
-}
-
-function Write-Emphasized ([string] $Text) {
-  Write-Host $Text -NoNewLine -ForegroundColor "Cyan"
+  $logText = "[{0}] {1}" -f (Get-Date -Format "HH:mm:ss yyyy-MM-dd"), $LogText
+  Add-Content -Path $logFileDir -Value $LogText -NoNewline
 }
 
 function Write-Done {
-  Write-Host " > " -NoNewline
-  Write-Host "OK" -ForegroundColor "Green"
-  Add-Content $log_file_dir -value " > OK"
+  Write-Host -Object " > " -NoNewline
+  Write-Host -Object "OK" -ForegroundColor "Green"
+  Add-Content -Path $logFileDir -Value " > OK"
 }
 
-function RemoveOldPath {
-  $oldsp_dir = "${HOME}\spicetify-cli"
-  $isinpath = $paths -contains $oldsp_dir -or $paths -contains "${oldsp_dir}\"
-  if ($isinpath) {
-    Log "REMOVING" -Texts $oldsp_dir, " from Path" -Emphasized $true, $false
-
-    $replacedpath = $path.replace(";$oldsp_dir", "")
-    [Environment]::SetEnvironmentVariable("PATH", $replacedpath, $user)
-    $env:PATH = $env:PATH.replace(";$oldsp_dir","")
+function Remove-OldPath {
+  $spicetifyOldDir = "${HOME}\spicetify-cli"
+  $_isInPath = $paths -contains $spicetifyOldDir -or $paths -contains "${spicetifyOldDir}\"
+    
+  if ($_isInPath) {
+    Write-Log -ActionText "REMOVING" -Texts $spicetifyOldDir, " from Path" -Emphasized $true, $false
+    $replacedPath = $path.replace(";$spicetifyOldDir", "")
+    [Environment]::SetEnvironmentVariable("PATH", $replacedPath, $user)
+    $env:PATH = $env:PATH.replace(";$spicetifyOldDir", "")
     Write-Done
   }
 }
 
-function MigrateCfgFolder {
-  $oldsp_dircontent = "${HOME}\spicetify-cli\*"
-  $oldsp_dir = "${HOME}\spicetify-cli"
-  if (Test-Path -Path $oldsp_dir) {
-    Log "MIGRATING" -Texts $oldsp_dir, " into", $sp_dir -Emphasized $true, $false, $true
-    Copy-item -Force -Recurse $oldsp_dircontent -Destination $sp_dir
+function Move-ConfigFolder {
+  $spicetifyOldDirContent = "${HOME}\spicetify-cli\*"
+  $spicetifyOldDir = "${HOME}\spicetify-cli"
+  if (Test-Path -Path $spicetifyOldDir) {
+    Write-Log -ActionText "MIGRATING" -Texts $spicetifyOldDir, " into", $spicetifyDir -Emphasized $true, $false, $true
+    Copy-Item -Path $spicetifyOldDirContent -Destination $spicetifyDir -Force -Recurse
     Write-Done
-    Log "REMOVING" -Texts $oldsp_dir -Emphasized $true
-    Remove-Item -LiteralPath $oldsp_dir -Force -Recurse
+    Write-Log -ActionText "REMOVING" -Texts $spicetifyOldDir -Emphasized $true
+    Remove-Item -LiteralPath $spicetifyOldDir -Force -Recurse
     Write-Done
   }
 }
+#endregion Functions
 
-if ($PSVersionTable.PSVersion.Major -gt $PSMinVersion) {
+#region Main
+if ($PSVersionTable.PSVersion.Major -ge $PSMinVersion) {
   $ErrorActionPreference = "Stop"
-
+    
   # Enable TLS 1.2 since it is required for connections to GitHub.
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
+    
   # Create %localappdata%\spicetify directory if it doesn't already exist
-  $sp_dir = "$env:LOCALAPPDATA\spicetify"
-  $log_file_dir = "$sp_dir\install.log"
-
-  if (-not (Test-Path $sp_dir)) {
-    Log "MAKING FOLDER" -Texts $sp_dir -Emphasized $true
+  $spicetifyDir = "$env:LOCALAPPDATA\spicetify"
+  $logFileDir = "$spicetifyDir\install.log"
+    
+  if (-not (Test-Path -Path $spicetifyDir)) {
+    Write-Log -ActionText "MAKING FOLDER" -Texts $spicetifyDir -Emphasized $true
     Write-Done
   }
-
+    
   if (-not $version) {
     # Determine latest Spicetify release via GitHub API.
-    $latest_release_uri =
-    "https://api.github.com/repos/spicetify/spicetify-cli/releases/latest"
-    Log "DOWNLOADING" -Texts $latest_release_uri -Emphasized $true
-    $latest_release_json = Invoke-WebRequest -Uri $latest_release_uri -UseBasicParsing
+    $latestReleaseUri = "https://api.github.com/repos/spicetify/spicetify-cli/releases/latest"
+    Write-Log -ActionText "DOWNLOADING" -Texts $latestReleaseUri -Emphasized $true
+    $latestReleaseJson = Invoke-WebRequest -Uri $latestReleaseUri -UseBasicParsing
     Write-Done
-
-    $version = ($latest_release_json | ConvertFrom-Json).tag_name -replace "v", ""
+    $version = ($latestReleaseJson | ConvertFrom-Json).tag_name -replace "v", ""
   }
-
+    
   # Migrate old spicetify folder to new location.
-  MigrateCfgFolder
-
+  Move-ConfigFolder
+    
   # Download release.
   $architecture = if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64") { "x64" } else { "x32" }
-  $zip_file = "${sp_dir}\spicetify-${version}-windows-${architecture}.zip"
-  $download_uri = "https://github.com/spicetify/spicetify-cli/releases/download/" +
+  $zipFile = "${spicetifyDir}\spicetify-${version}-windows-${architecture}.zip"
+  $downloadUri = "https://github.com/spicetify/spicetify-cli/releases/download/" +
   "v${version}/spicetify-${version}-windows-${architecture}.zip"
-  Log "DOWNLOADING" -Texts $download_uri -Emphasized $true
-  Invoke-WebRequest -Uri $download_uri -UseBasicParsing -OutFile $zip_file
+  Write-Log -ActionText "DOWNLOADING" -Texts $downloadUri -Emphasized $true
+  Invoke-WebRequest -Uri $downloadUri -UseBasicParsing -OutFile $zipFile
   Write-Done
-
+    
   # Extract spicetify.exe and assets from .zip file.
-  Log "EXTRACTING" -Texts $zip_file, " into ", ${sp_dir} -Emphasized $true, $false, $true
+  Write-Log -ActionText "EXTRACTING" -Texts $zipFile, " into ", ${spicetifyDir} -Emphasized $true, $false, $true
   # Using -Force to overwrite spicetify.exe and assets if it already exists
-  Expand-Archive -Path $zip_file -DestinationPath $sp_dir -Force
+  Expand-Archive -Path $zipFile -DestinationPath $spicetifyDir -Force
   Write-Done
-
+    
   # Remove .zip file.
-  Log "REMOVING" -Texts $zip_file -Emphasized $true
-  Remove-Item -Path $zip_file
+  Write-Log -ActionText "REMOVING" -Texts $zipFile -Emphasized $true
+  Remove-Item -Path $zipFile
   Write-Done
-
+    
   # Get Path environment variable for the current user.
   $user = [EnvironmentVariableTarget]::User
   $path = [Environment]::GetEnvironmentVariable("PATH", $user)
-
+    
   # Check whether spicetify dir is in the Path.
   $paths = $path -split ";"
-
+    
   # Remove old spicetify folder from Path.
-  RemoveOldPath
-  $is_in_path = $paths -contains $sp_dir -or $paths -contains "${sp_dir}\"
-
+  Remove-OldPath
+  $isInPath = $paths -contains $spicetifyDir -or $paths -contains "${spicetifyDir}\"
+    
   # Add Spicetify dir to PATH if it hasn't been added already.
-  if (-not $is_in_path) {
-    Log "ADDING" -Texts $sp_dir, " to the ", "PATH", " environment variable..." -Emphasized $true, $false, $true, $false
-    [Environment]::SetEnvironmentVariable("PATH", "${path};${sp_dir}", $user)
+  if (-not $isInPath) {
+    Write-Log -ActionText "ADDING" -Texts $spicetifyDir, " to the ", "PATH", " environment variable..." -Emphasized $true, $false, $true, $false
+    [Environment]::SetEnvironmentVariable("PATH", "${path};${spicetifyDir}", $user)
     # Add Spicetify to the PATH variable of the current terminal session
     # so `spicetify` can be used immediately without restarting the terminal.
-    $env:PATH += ";${sp_dir}"
+    $env:PATH += ";${spicetifyDir}"
     Write-Done
   }
-
-  Log -Texts "spicetify-cli was installed successfully." -Emphasized $false; Write-Done
-  Log -Texts "Run ", "spicetify --help", " to get started.`n" -Emphasized $false, $true, $false
-} else {
-  Log -Texts "`nYour Powershell version is lesser than ", "$PSMinVersion" -Emphasized $false, $true
-  Log -Texts "`nPlease, update your Powershell downloading the ", "'Windows Management Framework'", " greater than ", "$PSMinVersion" -Emphasized $false, $true, $false, $true
+    
+  Write-Log -Texts "spicetify-cli was installed successfully." -Emphasized $false
+  Write-Done
+  Write-Log -Texts "Run ", "spicetify --help", " to get started.`n" -Emphasized $false, $true, $false
 }
+else {
+  Write-Log -Texts "`nYour Powershell version is lesser than ", "$PSMinVersion" -Emphasized $false, $true
+  Write-Log -Texts "`nPlease, update your Powershell downloading the ", "'Windows Management Framework'", " greater than ", "$PSMinVersion" -Emphasized $false, $true, $false, $true
+}
+#endregion Main

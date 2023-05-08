@@ -8,8 +8,6 @@ const ProviderMusixmatch = (function () {
 		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
 
 		const durr = info.duration / 1000;
-		const tokens = CONFIG.providers.musixmatch.token.split("|");
-		const usertoken = tokens[Math.floor(Math.random() * tokens.length)];
 
 		const params = {
 			q_album: info.album,
@@ -19,7 +17,7 @@ const ProviderMusixmatch = (function () {
 			track_spotify_id: info.uri,
 			q_duration: durr,
 			f_subtitle_length: Math.floor(durr),
-			usertoken
+			usertoken: CONFIG.providers.musixmatch.token
 		};
 
 		const finalURL =
@@ -47,6 +45,64 @@ const ProviderMusixmatch = (function () {
 		return body;
 	}
 
+	async function getKaraoke(body) {
+		const meta = body?.["matcher.track.get"]?.message?.body;
+		if (!meta) {
+			return null;
+		}
+
+		if (!meta.track.has_richsync || meta.track.instrumental) {
+			return null;
+		}
+
+		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
+
+		const params = {
+			subtitle_length: meta.track.track_length,
+			commontrack_id: meta.track.commontrack_id,
+			usertoken: CONFIG.providers.musixmatch.token
+		};
+
+		const finalURL =
+			baseURL +
+			Object.keys(params)
+				.map(key => key + "=" + encodeURIComponent(params[key]))
+				.join("&");
+
+		let result = await CosmosAsync.get(finalURL, null, headers);
+
+		if (result.message.header.status_code != 200) {
+			return null;
+		}
+
+		result = result.message.body;
+
+		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map(line => {
+			const startTime = line.ts * 1000;
+			const endTime = line.te * 1000;
+			const words = line.l;
+
+			const text = words.map((word, index, words) => {
+				const wordText = word.c;
+				const wordStartTime = word.o * 1000;
+				const nextWordStartTime = words[index + 1]?.o * 1000;
+
+				const time = !isNaN(nextWordStartTime) ? nextWordStartTime - wordStartTime : endTime - (wordStartTime + startTime);
+
+				return {
+					word: wordText,
+					time
+				};
+			});
+			return {
+				startTime,
+				text
+			};
+		});
+
+		return parsedKaraoke;
+	}
+
 	function getSynced(body) {
 		const meta = body?.["matcher.track.get"]?.message?.body;
 		if (!meta) {
@@ -60,7 +116,7 @@ const ProviderMusixmatch = (function () {
 		if (isInstrumental) {
 			return [{ text: "♪ Instrumental ♪", startTime: "0000" }];
 		} else if (hasSynced) {
-			const subtitle = body["track.subtitles.get"]?.message?.body.subtitle_list?.[0]?.subtitle;
+			const subtitle = body["track.subtitles.get"]?.message?.body?.subtitle_list?.[0]?.subtitle;
 			if (!subtitle) {
 				return null;
 			}
@@ -97,5 +153,5 @@ const ProviderMusixmatch = (function () {
 		return null;
 	}
 
-	return { findLyrics, getSynced, getUnsynced };
+	return { findLyrics, getKaraoke, getSynced, getUnsynced };
 })();

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spicetify/spicetify-cli/src/utils"
@@ -14,6 +15,7 @@ import (
 type Flag struct {
 	CurrentTheme  string
 	ColorScheme   string
+	InjectThemeJS bool
 	Extension     []string
 	CustomApp     []string
 	SidebarConfig bool
@@ -29,7 +31,7 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		filepath.Join(appsFolderPath, "xpui", "index.html"):             htmlMod,
 		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertCustomApp,
 		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):         insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "xpui-routes-home.js"):    insertHomeConfig,
+		filepath.Join(appsFolderPath, "xpui", "home-v2.js"):             insertHomeConfig,
 		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): insertVersionInfo,
 	}
 
@@ -93,6 +95,10 @@ func htmlMod(htmlPath string, flags Flag) {
 
 	extensionsHTML := "\n"
 	helperHTML := "\n"
+
+	if flags.InjectThemeJS {
+		extensionsHTML += `<script defer src="extensions/theme.js"></script>` + "\n"
+	}
 
 	if flags.SidebarConfig {
 		helperHTML += `<script defer src="helper/sidebarConfig.js"></script>` + "\n"
@@ -276,6 +282,11 @@ func insertCustomApp(jsPath string, flags Flag) {
 			`(?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
 			`Spicetify._sidebarItemToClone=${0}`)
 
+		utils.Replace(
+			&content,
+			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\("li",{className:[-\w".${}()?!:, ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()?!:, ]+,(\w+:[-\w".${}()?!&: ]+,)*children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,\{to:"/search"`,
+			`Spicetify._sidebarXItemToClone=${0}`)
+
 		utils.ReplaceOnce(
 			&content,
 			`\d+:1,\d+:1,\d+:1`,
@@ -291,6 +302,21 @@ func insertCustomApp(jsPath string, flags Flag) {
 			sidebarItemMatch,
 			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
 			1)
+
+		sidebarXIsCollapsed := regexp.MustCompile(`\w+ ?\{isCollapsed:([\w$_.]+)\}`).FindStringSubmatch
+
+		sidebarXItemMatch := utils.SeekToCloseParen(
+			content,
+			`\("li",{className:[-\w".${}()?!:, ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()?!:, ]+,(\w+:[-\w".${}()?!&: ]+,)*children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,\{to:"/search"`,
+			'(', ')')
+
+		if len(sidebarXIsCollapsed(content)) > 1 {
+			content = strings.Replace(
+				content,
+				sidebarXItemMatch,
+				sidebarXItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],"+sidebarXIsCollapsed(content)[1]+")",
+				1)
+		}
 
 		if flags.SidebarConfig {
 			utils.ReplaceOnce(
@@ -318,12 +344,8 @@ func insertHomeConfig(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		utils.ReplaceOnce(
 			&content,
-			`(const \w+=null==\w+\?void 0\:)(\w+\.content\.items)`,
-			`${1}SpicetifyHomeConfig.arrange(${2})`)
-		utils.ReplaceOnce(
-			&content,
-			`;(\(0,\w+\.useEffect\))`,
-			`;${1}(()=>{SpicetifyHomeConfig.addToMenu();return SpicetifyHomeConfig.removeMenu;},[])${0}`)
+			`([\w$_\.]+\.sections\.items)(\.map)`,
+			`SpicetifyHomeConfig.arrange(${1})${2}`)
 		return content
 	})
 }

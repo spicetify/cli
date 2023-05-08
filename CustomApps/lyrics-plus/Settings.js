@@ -37,6 +37,35 @@ const SwapButton = ({ icon, disabled, onClick }) => {
 	);
 };
 
+const CacheButton = () => {
+	let lyrics = {};
+	try {
+		const localLyrics = JSON.parse(localStorage.getItem("lyrics-plus:local-lyrics"));
+		if (!localLyrics || typeof localLyrics !== "object") {
+			throw "";
+		}
+		lyrics = localLyrics;
+	} catch {
+		lyrics = {};
+	}
+
+	const [count, setCount] = useState(Object.keys(lyrics).length);
+	const text = !!count ? "Clear cached lyrics" : "No cached lyrics";
+
+	return react.createElement(
+		"button",
+		{
+			className: "btn",
+			onClick: () => {
+				localStorage.removeItem("lyrics-plus:local-lyrics");
+				setCount(0);
+			},
+			disabled: !count
+		},
+		text
+	);
+};
+
 const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
 	const [active, setActive] = useState(defaultValue);
 
@@ -300,6 +329,7 @@ const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false
 				{
 					className: "col action"
 				},
+				item.name === "local" && react.createElement(CacheButton),
 				react.createElement(SwapButton, {
 					icon: Spicetify.SVGIcons["chart-up"],
 					onClick: () => onSwap(item.name, -1),
@@ -402,6 +432,21 @@ function openConfig() {
 		react.createElement(OptionList, {
 			items: [
 				{
+					desc: "Playbar button",
+					key: "playbar-button",
+					info: "Replace Spotify's lyrics button with Lyrics Plus.",
+					type: ConfigSlider
+				},
+				{
+					desc: "Global delay",
+					info: "Offset (in ms) across all tracks.",
+					key: "global-delay",
+					type: ConfigAdjust,
+					min: -10000,
+					max: 10000,
+					step: 250
+				},
+				{
 					desc: "Font size",
 					info: "(or Ctrl + Mouse scroll in main app)",
 					key: "font-size",
@@ -475,13 +520,39 @@ function openConfig() {
 					key: "highlight-color",
 					type: ConfigInput,
 					when: () => !CONFIG.visual["colorful"]
+				},
+				{
+					desc: "Text convertion: Chinese-Japanese Detection threshold (Advanced)",
+					info: "Checks if whenever Hanzi/Kanji or Kana is dominant in lyrics. If the result passes the threshold, it's most likely Japanese, and vice versa. This setting is in percentage.",
+					key: "ja-detect-threshold",
+					type: ConfigAdjust,
+					min: thresholdSizeLimit.min,
+					max: thresholdSizeLimit.max,
+					step: thresholdSizeLimit.step
+				},
+				{
+					desc: "Text convertion: Traditional-Simplified Detection threshold (Advanced)",
+					info: "Checks if whenever Traditional or Simplified is dominant in lyrics. If the result passes the threshold, it's most likely Simplified, and vice versa. This setting is in percentage.",
+					key: "hans-detect-threshold",
+					type: ConfigAdjust,
+					min: thresholdSizeLimit.min,
+					max: thresholdSizeLimit.max,
+					step: thresholdSizeLimit.step
 				}
 			],
 			onChange: (name, value) => {
 				CONFIG.visual[name] = value;
-				console.log(CONFIG.visual, APP_NAME, name, value);
 				localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 				lyricContainerUpdate && lyricContainerUpdate();
+
+				const configChange = new CustomEvent("lyrics-plus", {
+					detail: {
+						type: "config",
+						name: name,
+						value: value
+					}
+				});
+				window.dispatchEvent(configChange);
 			}
 		}),
 		react.createElement("h2", null, "Providers"),

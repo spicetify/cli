@@ -9,8 +9,10 @@ SpicetifyHomeConfig = {};
 	let list;
 	// Store sections' statuses
 	const statusDic = {};
+	let mounted = false;
 
 	SpicetifyHomeConfig.arrange = function (sections) {
+		mounted = true;
 		if (list) {
 			return list;
 		}
@@ -18,20 +20,20 @@ SpicetifyHomeConfig = {};
 		const lowList = (localStorage.getItem("spicetify-home-config:low") || "").split(",");
 		let stickSections = [];
 		let lowSections = [];
-		for (const id of stickList) {
-			const index = sections.findIndex(a => a?.id === id);
+		for (const uri of stickList) {
+			const index = sections.findIndex(a => a?.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
-				statusDic[item.id] = STICKY;
+				statusDic[item.uri] = STICKY;
 				stickSections.push(item);
 				sections[index] = undefined;
 			}
 		}
-		for (const id of lowList) {
-			const index = sections.findIndex(a => a?.id === id);
+		for (const uri of lowList) {
+			const index = sections.findIndex(a => a?.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
-				statusDic[item.id] = LOWERED;
+				statusDic[item.uri] = LOWERED;
 				lowSections.push(item);
 				sections[index] = undefined;
 			}
@@ -80,25 +82,25 @@ SpicetifyHomeConfig = {};
 	function injectInteraction() {
 		const main = document.querySelector(".main-home-content");
 		elem = [...main.querySelectorAll("section")];
-		elem.forEach((item, index) => (item.dataset.id = list[index].id));
+		elem.forEach((item, index) => (item.dataset.uri = list[index].uri));
 
 		function appendItems() {
 			const stick = [],
 				low = [],
 				normal = [];
 			for (const el of elem) {
-				if (statusDic[el.dataset.id] === STICKY) stick.push(el);
-				else if (statusDic[el.dataset.id] === LOWERED) low.push(el);
+				if (statusDic[el.dataset.uri] === STICKY) stick.push(el);
+				else if (statusDic[el.dataset.uri] === LOWERED) low.push(el);
 				else normal.push(el);
 			}
 
 			localStorage.setItem(
 				"spicetify-home-config:stick",
-				stick.map(a => a.dataset.id)
+				stick.map(a => a.dataset.uri)
 			);
 			localStorage.setItem(
 				"spicetify-home-config:low",
-				low.map(a => a.dataset.id)
+				low.map(a => a.dataset.uri)
 			);
 
 			elem = [...stick, ...normal, ...low];
@@ -118,24 +120,24 @@ SpicetifyHomeConfig = {};
 
 		function onChangeStatus(item, status) {
 			container.remove();
-			const isToggle = statusDic[item.dataset.id] === status;
-			statusDic[item.dataset.id] = isToggle ? NORMAL : status;
+			const isToggle = statusDic[item.dataset.uri] === status;
+			statusDic[item.dataset.uri] = isToggle ? NORMAL : status;
 			appendItems();
 		}
 
 		elem.forEach(el => {
 			el.onmouseover = () => {
-				const status = statusDic[el.dataset.id];
+				const status = statusDic[el.dataset.uri];
 				const index = elem.findIndex(a => a === el);
 
-				if (!status || index === 0 || status !== statusDic[elem[index - 1]?.dataset.id]) {
+				if (!status || index === 0 || status !== statusDic[elem[index - 1]?.dataset.uri]) {
 					up.disabled = true;
 				} else {
 					up.disabled = false;
 					up.onclick = () => onSwap(el, -1);
 				}
 
-				if (!status || index === elem.length - 1 || status !== statusDic[elem[index + 1]?.dataset.id]) {
+				if (!status || index === elem.length - 1 || status !== statusDic[elem[index + 1]?.dataset.uri]) {
 					down.disabled = true;
 				} else {
 					down.disabled = false;
@@ -170,4 +172,23 @@ SpicetifyHomeConfig = {};
 		menu.isEnabled = false;
 		menu.deregister();
 	};
+
+	(function waitForHistoryAPI() {
+		if (!Spicetify.Platform?.History || !mounted) {
+			setTimeout(waitForHistoryAPI, 100);
+			return;
+		}
+		// Init
+		if (Spicetify.Platform.History.location.pathname === "/") {
+			SpicetifyHomeConfig.addToMenu();
+		}
+
+		Spicetify.Platform.History.listen(({ pathname }) => {
+			if (pathname === "/") {
+				SpicetifyHomeConfig.addToMenu();
+			} else {
+				SpicetifyHomeConfig.removeMenu();
+			}
+		});
+	})();
 })();

@@ -186,6 +186,10 @@ func colorVariableReplace(content string) string {
 	utils.Replace(&content, "#282828", "var(--spice-card)")
 
 	utils.Replace(&content, "#121212", "var(--spice-main)")
+	utils.Replace(&content, "#242424", "var(--spice-main-elevated)")
+
+	utils.Replace(&content, "#1a1a1a", "var(--spice-highlight)")
+	utils.Replace(&content, "#2a2a2a", "var(--spice-highlight-elevated)")
 
 	utils.Replace(&content, "#000", "var(--spice-sidebar)")
 	utils.Replace(&content, "#000000", "var(--spice-sidebar)")
@@ -294,7 +298,7 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$\.]+[\w$\.()=!]+.)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
+	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$_\.&!=]+[\w$_\.()=!]+.)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
 	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
 	for _, found := range allAPIPromises {
 		splitted := strings.Split(found[1], ",")
@@ -339,13 +343,13 @@ Spicetify.React.useEffect(() => {
 	// React Component: Context Menu - Menu
 	utils.Replace(
 		&input,
-		`=(?:function\(\w\)\{\w+ \w=\w.children,\w=\w.onClose,\w=\w.getInitialFocusElement|\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+\}\))`,
+		`=(?:function\(\w\)\{\w+ \w=\w.children,\w=\w.onClose,\w=\w.getInitialFocusElement|\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+)`,
 		`=Spicetify.ReactComponent.Menu${0}`)
 
 	// React Component: Context Menu - Menu Item
 	utils.Replace(
 		&input,
-		`=(?:function\(\w+\)|\(|[\w\=\>]*)?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:children|icon|disabled)[:\w]*,){3,}`,
+		`=(?:function\(\w+\)|\(|[\w\=\>]*)?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:children|icon|divider|disabled)[:\w]*,){3,}`,
 		`=Spicetify.ReactComponent.MenuItem${0}`)
 
 	// React Component: Album Context Menu items
@@ -373,10 +377,16 @@ Spicetify.React.useEffect(() => {
 		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
 
 	// React Component: Tooltip Wrapper
-	utils.Replace(
+	utils.ReplaceOnce(
 		&input,
 		`(\w+)(=(?:function\([\{\w\}:,]+\)|\()\{(?:[\w. =]*(?:label|children|renderInline|showDelay)[\w:]*,?){4})`,
 		`${1}=Spicetify.ReactComponent.TooltipWrapper${2}`)
+
+	// React Component: Confirm Dialog
+	utils.Replace(
+		&input,
+		`function ?([\w$_]+)\(\{(?:(?:onClose|isOpen|onOutside|titleText)[:!\w$_(){}=>]*,){3,}`,
+		`Spicetify.ReactComponent.ConfirmDialog=${1};${0}`)
 
 	// Locale
 	utils.Replace(
@@ -390,6 +400,18 @@ Spicetify.React.useEffect(() => {
 		`document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null`,
 		``)
 
+	// GraphQL handler
+	utils.Replace(
+		&input,
+		`(function ([\w$]+)\(([\w$])\)\{)(return [\w$&.,={}()[\]?!=>:; ]+"subscription")`,
+		`Spicetify.GraphQL.Handler=${2};${1}Spicetify.GraphQL.Context??=${3};${4}`)
+
+	// GraphQL definitions
+	utils.Replace(
+		&input,
+		`((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
+		`${1}Spicetify.GraphQL.Definitions[${3}]=${2}`)
+
 	return input
 }
 
@@ -402,6 +424,27 @@ func exposeAPIs_vendor(input string) string {
 
 	// URI after 1.2.4
 	if !strings.Contains(input, "Spicetify.URI") {
+		URIObj := regexp.MustCompile(`(?:class ([\w$_]+)\{constructor|([\w$_]+)=function\(\)\{function ?[\w$_]+)\([\w$.,={}]+\)\{[\w !?:=.,>&(){}[\];]*this\.hasBase62Id`).FindStringSubmatch(input)
+
+		if len(URIObj) != 0 {
+			URI := utils.SeekToCloseParen(
+				input,
+				`\{(?:constructor|function ?[\w$_]+)\([\w$.,={}]+\)\{[\w !?:=.,>&(){}[\];]*this\.hasBase62Id`,
+				'{', '}')
+
+			if URIObj[1] == "" {
+				URIObj[1] = URIObj[2]
+				// Class is a self-invoking function
+				URI = URI + "()"
+			}
+
+			input = strings.Replace(
+				input,
+				URI,
+				URI+";Object.assign("+URIObj[1]+",Spicetify.URI);Object.defineProperty(Spicetify,\"URI\",{get:()=>"+URIObj[1]+"});",
+				1)
+		}
+
 		utils.Replace(
 			&input,
 			`([\w$_]+)(=\{AD:"ad")`,
@@ -410,6 +453,11 @@ func exposeAPIs_vendor(input string) string {
 		utils.Replace(
 			&input,
 			`function ([\w_$]+)\([\w,]+\)\{[\w&?!,;(){}= .]+[\w_$]\.allowedTypes`,
+			`Spicetify.URI.from=${1};${0}`)
+
+		utils.Replace(
+			&input,
+			`function ([\w$_]+)\([\w$_,]+\)\{if\("string"!==?typeof [\w$_]+\)throw new TypeError\("Argument \x60uri\x60 must be a string`,
 			`Spicetify.URI.fromString=${1};${0}`)
 	}
 
@@ -467,6 +515,17 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		&input,
 		`=(?:\(\w\)=>|function\(\w\)\{)\w+ ?\w=\w\.iconSize`,
 		`=Spicetify.ReactComponent.IconComponent${0}`)
+
+	// Mapping styled-components classes
+	utils.Replace(
+		&input,
+		`(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)`,
+		`${1}=Spicetify._getStyledClassName(arguments,this)`)
+
+	utils.Replace(
+		&input,
+		`([\w$_]+)\.setDefaultProps=`,
+		`Spicetify.Tippy=${1};${0}`)
 
 	return input
 }

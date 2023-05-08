@@ -44,6 +44,22 @@ func Watch(liveUpdate bool) {
 		fileList = append(fileList, cssPath)
 	}
 
+	if injectJS {
+		jsPath := filepath.Join(themeFolder, "theme.js")
+		pathArr := []string{jsPath}
+
+		if _, err := os.Stat(jsPath); err == nil {
+			go utils.Watch(pathArr, func(_ string, err error) {
+				if err != nil {
+					utils.Fatal(err)
+				}
+
+				pushThemeJS()
+				utils.PrintSuccess(utils.PrependTime("Theme's JS is updated"))
+			}, autoReloadFunc)
+		}
+	}
+
 	if overwriteAssets {
 		assetPath := filepath.Join(themeFolder, "assets")
 
@@ -203,7 +219,7 @@ func isValidForWatching() bool {
 
 func startDebugger() {
 	if len(utils.GetDebuggerPath()) == 0 {
-		EvalSpotifyRestart(true, "--remote-debugging-port=9222")
+		EvalSpotifyRestart(true, "--remote-debugging-port=9222", "--remote-allow-origins=*")
 		utils.PrintInfo("Spotify is restarted with debugger on. Waiting...")
 		for len(utils.GetDebuggerPath()) == 0 {
 			// Wait until debugger is up
