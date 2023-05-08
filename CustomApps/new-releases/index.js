@@ -109,8 +109,18 @@ class Grid extends react.Component {
 		this.setState({ cards: [...gridList] });
 	}
 
-	removeCards(id) {
-		dismissed.push(id);
+	removeCards(id, type) {
+		switch (type) {
+			case "reset":
+				dismissed = [];
+				break;
+			case "undo":
+				dismissed.pop();
+				break;
+			default:
+				dismissed.push(id);
+				break;
+		}
 		Spicetify.LocalStorage.set("new-releases:dismissed", JSON.stringify(dismissed));
 		this.reload(true);
 	}
@@ -241,6 +251,10 @@ class Grid extends react.Component {
 					react.createElement(ButtonText, {
 						text: Spicetify.Locale.get("playlist.extender.refresh"),
 						onClick: this.reload.bind(this)
+					}),
+					react.createElement(ButtonText, {
+						text: "undo", // no locale for this
+						onClick: this.removeCards.bind(this, null, "undo")
 					})
 				)
 			),
