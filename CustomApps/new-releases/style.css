@@ -125,3 +125,39 @@ option {
 .new-releases-header + .main-gridContainer-gridContainer .main-card-card .main-playButton-PlayButton span:hover {
 	transform: scale(1.04);
 }
+
+.main-card-closeButton {
+	border: none;
+	-webkit-tap-highlight-color: transparent;
+	background-color: rgba(var(--spice-rgb-shadow), 0.7);
+	color: var(--spice-sidebar);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 32px;
+	block-size: 32px;
+	border-radius: calc(var(--card-container-border-radius) + 2px);
+	position: absolute !important;
+	top: 10px;
+	right: 10px;
+}
+
+.main-card-closeButton {
+	visibility: hidden;
+	opacity: 0;
+	transition: visibility 0s, opacity 0.3s ease;
+}
+
+.main-card-closeButton:active {
+	transform: scale(0.96);
+}
+.main-card-closeButton:hover {
+	background-color: rgba(var(--spice-rgb-shadow), 1);
+	transition: background-color 0s, opacity 1s ease;
+}
+
+.main-card-card:hover .main-card-closeButton {
+	visibility: visible;
+	opacity: 1;
+	transition: visibility 0s, opacity 0.3s ease;
+}

@@ -269,7 +269,30 @@ function openConfig() {
 				}
 				localStorage.setItem(`${APP_NAME}:${name}`, value);
 			}
-		})
+		}),
+		react.createElement(
+			"div",
+			{
+				className: "setting-row"
+			},
+			react.createElement(
+				"label",
+				{
+					className: "col description"
+				},
+				"Dismissed releases"
+			),
+			react.createElement(
+				"div",
+				{
+					className: "col action"
+				},
+				react.createElement(ButtonText, {
+					text: Spicetify.Locale.get("equalizer.reset"),
+					onClick: removeCards.bind(this, null, "reset")
+				})
+			)
+		)
 	);
 
 	Spicetify.PopupModal.display({
