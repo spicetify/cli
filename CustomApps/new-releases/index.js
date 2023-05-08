@@ -193,7 +193,7 @@ class Grid extends react.Component {
 							"--grid-gap": "24px"
 						}
 					},
-					separatedByDate[date]
+					separatedByDate[date].filter(card => !dismissed.includes(card.props.uri))
 				)
 			);
 		}
