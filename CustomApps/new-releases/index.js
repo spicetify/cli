@@ -102,7 +102,7 @@ class Grid extends react.Component {
 							"--grid-gap": "24px"
 						}
 					},
-					separatedByDate[date].map(card => react.createElement(Card, card.props))
+					separatedByDate[date].map(card => !dismissed.includes(card.props.uri) && react.createElement(Card, card.props))
 				)
 			);
 		}
@@ -112,9 +112,12 @@ class Grid extends react.Component {
 	removeCards(id, type) {
 		switch (type) {
 			case "reset":
+				Spicetify.showNotification("Reset dismissed releases");
 				dismissed = [];
 				break;
 			case "undo":
+				if (!dismissed[0]) Spicetify.showNotification("Nothing to undo", true);
+				else Spicetify.showNotification("Undone last dismiss");
 				dismissed.pop();
 				break;
 			default:
@@ -122,10 +125,10 @@ class Grid extends react.Component {
 				break;
 		}
 		Spicetify.LocalStorage.set("new-releases:dismissed", JSON.stringify(dismissed));
-		this.reload(true);
+		this.updatePostsVisual();
 	}
 
-	async reload(silent) {
+	async reload() {
 		gridList = [];
 		separatedByDate = {};
 		dateList = [];
@@ -137,7 +140,7 @@ class Grid extends react.Component {
 		this.setState({ rest: false });
 		let items = [];
 		if (CONFIG.music) {
-			let tracks = await fetchTracks(silent);
+			let tracks = await fetchTracks();
 			items.push(...tracks.flat());
 		}
 		if (CONFIG.podcast) {
@@ -155,8 +158,6 @@ class Grid extends react.Component {
 		}
 
 		for (const track of items) {
-			if (dismissed.includes(track.uri)) continue;
-
 			track.visual = CONFIG.visual;
 			let dateStr;
 			if (CONFIG.relative) {
@@ -332,9 +333,9 @@ var count = (function () {
 	};
 })();
 
-async function fetchTracks(silent) {
+async function fetchTracks() {
 	let artistList = await getArtistList();
-	if (!silent) Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
+	Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
 	const requests = artistList.map(async obj => {
 		const artist = obj.artistMetadata;
