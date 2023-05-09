@@ -367,7 +367,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 			const albumDate = new Date(albumInfo.release_date);
 			const recentDate = new Date();
 			recentDate.setMonth(recentDate.getMonth() - 6);
-			return albumDate.toLocaleString("default", albumDate > recentDate ? { year: "numeric", month: "short" } : { year: "numeric" });
+			return albumDate.toLocaleString("default", albumDate > recentDate ? { year: "numeric", month: "short", day: "numeric" } : { year: "numeric" });
 		}
 
 		async fetchInfo() {
