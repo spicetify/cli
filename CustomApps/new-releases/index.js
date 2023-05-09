@@ -40,10 +40,19 @@ const CONFIG = {
 	relative: getConfig("new-releases:relative", false)
 };
 
+let dismissed;
+try {
+	dismissed = JSON.parse(Spicetify.LocalStorage.get("new-releases:dismissed"));
+	if (!Array.isArray(dismissed)) throw "";
+} catch {
+	dismissed = [];
+}
+
 let gridList = [];
 let lastScroll = 0;
 
 let gridUpdatePostsVisual;
+let removeCards;
 
 let today = new Date();
 CONFIG.range = parseInt(CONFIG.range) || 30;
@@ -74,6 +83,8 @@ class Grid extends react.Component {
 	updatePostsVisual() {
 		gridList = [];
 		for (const date of dateList) {
+			if (separatedByDate[date].every(card => dismissed.includes(card.props.uri))) continue;
+
 			gridList.push(
 				react.createElement(
 					"div",
@@ -93,11 +104,30 @@ class Grid extends react.Component {
 							"--grid-gap": "24px"
 						}
 					},
-					separatedByDate[date].map(card => react.createElement(Card, card.props))
+					separatedByDate[date].map(card => !dismissed.includes(card.props.uri) && react.createElement(Card, card.props))
 				)
 			);
 		}
 		this.setState({ cards: [...gridList] });
+	}
+
+	removeCards(id, type) {
+		switch (type) {
+			case "reset":
+				Spicetify.showNotification("Reset dismissed releases");
+				dismissed = [];
+				break;
+			case "undo":
+				if (!dismissed[0]) Spicetify.showNotification("Nothing to undo", true);
+				else Spicetify.showNotification("Undone last dismiss");
+				dismissed.pop();
+				break;
+			default:
+				dismissed.push(id);
+				break;
+		}
+		Spicetify.LocalStorage.set("new-releases:dismissed", JSON.stringify(dismissed));
+		this.updatePostsVisual();
 	}
 
 	async reload() {
@@ -146,6 +176,8 @@ class Grid extends react.Component {
 		}
 
 		for (const date of dateList) {
+			if (separatedByDate[date].every(card => dismissed.includes(card.props.uri))) continue;
+
 			gridList.push(
 				react.createElement(
 					"div",
@@ -165,7 +197,7 @@ class Grid extends react.Component {
 							"--grid-gap": "24px"
 						}
 					},
-					separatedByDate[date]
+					separatedByDate[date].filter(card => !dismissed.includes(card.props.uri))
 				)
 			);
 		}
@@ -175,6 +207,7 @@ class Grid extends react.Component {
 
 	async componentDidMount() {
 		gridUpdatePostsVisual = this.updatePostsVisual.bind(this);
+		removeCards = this.removeCards.bind(this);
 
 		this.configButton = new Spicetify.Menu.Item(
 			"New Releases config",
@@ -223,6 +256,10 @@ class Grid extends react.Component {
 					react.createElement(ButtonText, {
 						text: Spicetify.Locale.get("playlist.extender.refresh"),
 						onClick: this.reload.bind(this)
+					}),
+					react.createElement(ButtonText, {
+						text: "undo", // no locale for this
+						onClick: this.removeCards.bind(this, null, "undo")
 					})
 				)
 			),
