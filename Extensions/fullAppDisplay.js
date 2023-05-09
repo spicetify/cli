@@ -365,9 +365,11 @@ body.video-full-screen.video-full-screen--hide-ui {
 			const albumInfo = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/albums/${id}`);
 
 			const albumDate = new Date(albumInfo.release_date);
-			const recentDate = new Date();
-			recentDate.setMonth(recentDate.getMonth() - 6);
-			return albumDate.toLocaleString("default", albumDate > recentDate ? { year: "numeric", month: "short", day: "numeric" } : { year: "numeric" });
+			return albumDate.toLocaleString("default", {
+				year: "numeric",
+				month: "short",
+				day: "numeric"
+			});
 		}
 
 		async fetchInfo() {
