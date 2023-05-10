@@ -1403,11 +1403,7 @@ Spicetify.Playbar = (function() {
             this.onClick = onClick;
             this.disabled = disabled;
             this.active = active;
-            Array.from(sibling?.classList ?? []).forEach((className) => {
-                if (!className.startsWith("main-genericButton")) {
-                    this.element.classList.add(className);
-                }
-            });
+            addClassname(this.element);
             this.tippy = Spicetify.Tippy?.(this.element, {
                 content: label,
                 ...Spicetify.TippyProps,
@@ -1447,7 +1443,7 @@ Spicetify.Playbar = (function() {
         get active() { return this._active; }
         register() {
             buttonsStash.add(this.element);
-            rightContainer?.prepend(...buttonsStash);
+            rightContainer?.prepend(this.element);
         }
         deregister() {
             buttonsStash.delete(this.element);
@@ -1456,21 +1452,25 @@ Spicetify.Playbar = (function() {
     }
 
     (function waitForPlaybarMounted() {
-        sibling = document.querySelector(".main-nowPlayingBar-right .main-genericButton-button");
         rightContainer = document.querySelector(".main-nowPlayingBar-right > div");
         if (!rightContainer) {
             setTimeout(waitForPlaybarMounted, 300);
             return;
         }
-        Array.from(sibling?.classList ?? []).forEach((className) => {
-            if (!className.startsWith("main-genericButton")) {
-                buttonsStash.forEach((button) => {
-                    button.classList.add(className);
-                });
-            }
-        });
+        buttonsStash.forEach((button) => addClassname(button));
         rightContainer.prepend(...buttonsStash);
     })();
+
+    function addClassname(element) {
+        sibling = document.querySelector(".main-nowPlayingBar-right .main-genericButton-button");
+        if (!sibling) {
+            setTimeout(addClassname, 300, element);
+            return;
+        }
+        Array.from(sibling.classList).forEach((className) => {
+            if (!className.startsWith("main-genericButton")) element.classList.add(className);
+        });
+    }
 
     return { Button };
 })();
