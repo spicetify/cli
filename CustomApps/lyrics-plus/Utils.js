@@ -81,7 +81,7 @@ class Utils {
 		const tradPercentage = tradCount / cjkMatch.length;
 
 		if (cjkMatch.filter(glyph => hangulRegex.test(glyph))) {
-			return "ko"
+			return "ko";
 		}
 
 		if (((kanaPercentage - (1 - kanaPercentage) + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"]) {

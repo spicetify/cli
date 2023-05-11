@@ -602,8 +602,8 @@ class LyricsContainer extends react.Component {
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		console.log(this.state)
-		console.log(prevState)
+		console.log(this.state);
+		console.log(prevState);
 		if (CONFIG.visual["translate:translated-lyrics-source"] !== "none" && this.state !== prevState) {
 			this.translateLyrics();
 		}
