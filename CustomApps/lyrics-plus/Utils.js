@@ -80,7 +80,7 @@ class Utils {
 		const simpPercentage = simpCount / cjkMatch.length;
 		const tradPercentage = tradCount / cjkMatch.length;
 
-		if (cjkMatch.filter(glyph => hangulRegex.test(glyph))) {
+		if (cjkMatch.filter(glyph => hangulRegex.test(glyph)).length !== 0) {
 			return "ko";
 		}
 

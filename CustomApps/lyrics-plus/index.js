@@ -661,7 +661,7 @@ class LyricsContainer extends react.Component {
 		};
 		console.log(language());
 		const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
-		const friendlyLanguage = language() && languageDisplayNames.of(language.split("-")[0]).toLowerCase();
+		const friendlyLanguage = language() && languageDisplayNames.of(language()?.split("-")[0]).toLowerCase();
 		const showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == SYNCED || mode == UNSYNCED);
 		const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
 
