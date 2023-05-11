@@ -84,8 +84,12 @@ class Utils {
 
 		const nonChinesePercentage = kanaPercentage + hangulPercentage;
 
+		if (cjkMatch.filter(glyph => hangulRegex.test(glyph))) {
+			return "ko"
+		}
+
 		if (((nonChinesePercentage - (1 - nonChinesePercentage) + 1) / 2) * 100 >= CONFIG.visual["hanzi-detect-threshold"]) {
-			return ((kanaPercentage - hangulPercentage + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"] ? "ja" : "ko";
+			return "ja";
 		}
 
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";
