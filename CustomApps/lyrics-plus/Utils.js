@@ -75,20 +75,16 @@ class Utils {
 		const kanaCount = cjkMatch.filter(glyph => kanaRegex.test(glyph)).length;
 		const simpCount = cjkMatch.filter(glyph => simpRegex.test(glyph)).length;
 		const tradCount = cjkMatch.filter(glyph => tradRegex.test(glyph)).length;
-		const hangulCount = cjkMatch.filter(glyph => hangulRegex.test(glyph)).length;
 
 		const kanaPercentage = kanaCount / cjkMatch.length;
-		const hangulPercentage = hangulCount / cjkMatch.length;
 		const simpPercentage = simpCount / cjkMatch.length;
 		const tradPercentage = tradCount / cjkMatch.length;
-
-		const nonChinesePercentage = kanaPercentage + hangulPercentage;
 
 		if (cjkMatch.filter(glyph => hangulRegex.test(glyph))) {
 			return "ko"
 		}
 
-		if (((nonChinesePercentage - (1 - nonChinesePercentage) + 1) / 2) * 100 >= CONFIG.visual["hanzi-detect-threshold"]) {
+		if (((kanaPercentage - (1 - kanaPercentage) + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"]) {
 			return "ja";
 		}
 

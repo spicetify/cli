@@ -522,16 +522,7 @@ function openConfig() {
 					when: () => !CONFIG.visual["colorful"]
 				},
 				{
-					desc: "Text convertion: Chinese Detection threshold (Advanced)",
-					info: "Checks if whenever Chinese Glyphs are dominant in lyrics. If the result passes the threshold, it's most likely Chinese, and vice versa. This setting is in percentage.",
-					key: "hanzi-detect-threshold",
-					type: ConfigAdjust,
-					min: thresholdSizeLimit.min,
-					max: thresholdSizeLimit.max,
-					step: thresholdSizeLimit.step
-				},
-				{
-					desc: "Text convertion: Japanese-Korean Detection threshold (Advanced)",
+					desc: "Text convertion: Japanese Detection threshold (Advanced)",
 					info: "Checks if whenever Kana is dominant in lyrics. If the result passes the threshold, it's most likely Japanese, and vice versa. This setting is in percentage.",
 					key: "ja-detect-threshold",
 					type: ConfigAdjust,
