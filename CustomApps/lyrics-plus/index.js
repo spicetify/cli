@@ -47,7 +47,7 @@ const CONFIG = {
 		["lines-before"]: localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
 		["lines-after"]: localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
 		["font-size"]: localStorage.getItem("lyrics-plus:visual:font-size") || "32",
-		["translate:translated-lyrics-source"]: localStorage.getItem("lyrics-plus:visual:translate:translated-lyrics-source") || "default",
+		["translate:translated-lyrics-source"]: localStorage.getItem("lyrics-plus:visual:translate:translated-lyrics-source") || "none",
 		["translate:detect-language-override"]: localStorage.getItem("lyrics-plus:visual:translate:detect-language-override") || "off",
 		["translation-mode:japanese"]: localStorage.getItem("lyrics-plus:visual:translation-mode:japanese") || "furigana",
 		["translation-mode:korean"]: localStorage.getItem("lyrics-plus:visual:translation-mode:korean") || "hangul",
@@ -601,6 +601,14 @@ class LyricsContainer extends react.Component {
 
 		this.mousetrap.reset();
 		this.mousetrap.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
+	}
+
+	componentDidUpdate(prevProps, prevState) {
+		console.log(this.state)
+		console.log(prevState)
+		if (CONFIG.visual["translate:translated-lyrics-source"] !== "none" && this.state !== prevState) {
+			this.translateLyrics();
+		}
 	}
 
 	render() {
