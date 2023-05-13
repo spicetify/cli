@@ -112,31 +112,31 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 	}
 
 	switch (friendlyLanguage) {
-			case "japanese": {
-				modeOptions = {
-					furigana: "Furigana",
-					romaji: "Romaji",
-					hiragana: "Hiragana",
-					katakana: "Katakana"
-				};
-				break;
-			}
-			case "korean": {
-				modeOptions = {
-					hangul: "Hangul",
-					romaja: "Romaja"
-				};
-				break;
-			}
-			case "chinese": {
-				modeOptions = {
-					cn: "Simplified Chinese",
-					hk: "Traditional Chinese (Hong Kong)",
-					tw: "Traditional Chinese (Taiwan)"
-				};
-				break;
-			}
+		case "japanese": {
+			modeOptions = {
+				furigana: "Furigana",
+				romaji: "Romaji",
+				hiragana: "Hiragana",
+				katakana: "Katakana"
+			};
+			break;
 		}
+		case "korean": {
+			modeOptions = {
+				hangul: "Hangul",
+				romaja: "Romaja"
+			};
+			break;
+		}
+		case "chinese": {
+			modeOptions = {
+				cn: "Simplified Chinese",
+				hk: "Traditional Chinese (Hong Kong)",
+				tw: "Traditional Chinese (Taiwan)"
+			};
+			break;
+		}
+	}
 
 	return react.createElement(
 		Spicetify.ReactComponent.TooltipWrapper,
