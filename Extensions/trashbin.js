@@ -74,7 +74,9 @@
 			createButton("Clear ", "Clear all items from trashbin (cannot be reverted).", () => {
 				trashSongList = {};
 				trashArtistList = {};
+				setWidgetState(false);
 				putDataLocal();
+				Spicetify.showNotification("Trashbin cleared!");
 			})
 		);
 	}
@@ -181,18 +183,19 @@
 	const widget = new Spicetify.Playbar.Widget(
 		THROW_TEXT,
 		trashbinIcon,
-		() => {
+		self => {
 			const uri = Spicetify.Player.data.track.uri;
 			const uriObj = Spicetify.URI.fromString(uri);
 			const type = uriObj.type;
 
 			if (!trashSongList[uri]) {
 				trashSongList[uri] = true;
-				if (shouldSkipCurrentTrack(uri, type)) {
-					Spicetify.Player.next();
-				}
+				if (shouldSkipCurrentTrack(uri, type)) Spicetify.Player.next();
+				Spicetify.showNotification("Song added to trashbin");
 			} else {
 				delete trashSongList[uri];
+				setWidgetState(false);
+				Spicetify.showNotification("Song removed from trashbin");
 			}
 
 			putDataLocal();
@@ -210,7 +213,7 @@
 
 	putDataLocal();
 	refreshEventListeners(trashbinStatus);
-	widget.label = trashSongList[Spicetify.Player.data.track.uri] ? UNTHROW_TEXT : THROW_TEXT;
+	setWidgetState(trashSongList[Spicetify.Player.data.track.uri]);
 
 	function refreshEventListeners(state) {
 		if (state) {
@@ -224,12 +227,17 @@
 		}
 	}
 
+	function setWidgetState(state) {
+		widget.active = !!state;
+		widget.label = state ? UNTHROW_TEXT : THROW_TEXT;
+	}
+
 	function watchChange() {
 		const data = Spicetify.Player.data || Spicetify.Queue;
 		if (!data) return;
 
 		const isBanned = trashSongList[data.track.uri];
-		widget.label = isBanned ? UNTHROW_TEXT : THROW_TEXT;
+		setWidgetState(isBanned);
 
 		if (userHitBack) {
 			userHitBack = false;
