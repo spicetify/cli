@@ -131,7 +131,7 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 	if (hasNeteaseTranslation) {
 		sourceOptions = {
 			...sourceOptions,
-			neteaseTranslation: "Netease"
+			neteaseTranslation: "Chinese (Netease)"
 		};
 	}
 
@@ -155,21 +155,21 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 						react.createElement(OptionList, {
 							items: [
 								{
-									desc: "Translated Lyrics Provider",
+									desc: "Translation Provider",
 									key: `translate:translated-lyrics-source`,
 									type: ConfigSelection,
 									options: sourceOptions,
 									renderInline: true
 								},
 								{
-									desc: "Detect Language Override",
+									desc: "Language Override",
 									key: `translate:detect-language-override`,
 									type: ConfigSelection,
 									options: languageOptions,
 									renderInline: true
 								},
 								{
-									desc: "Text Display Mode",
+									desc: "Display Mode",
 									key: `translation-mode:${friendlyLanguage}`,
 									type: ConfigSelection,
 									options: modeOptions,
@@ -255,13 +255,13 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 									min: -10000,
 									max: 10000,
 									step: 250,
-									when: () => mode === SYNCED || mode === KARAOKE
+									when: () => mode === Modes.SYNCED || mode === Modes.KARAOKE
 								},
 								{
 									desc: "Compact",
 									key: "synced-compact",
 									type: ConfigSlider,
-									when: () => mode === SYNCED || mode === KARAOKE
+									when: () => mode === Modes.SYNCED || mode === Modes.KARAOKE
 								},
 								{
 									desc: "Dual panel",

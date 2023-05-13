@@ -29,10 +29,14 @@ function getConfig(name, defaultVal = true) {
 const APP_NAME = "lyrics-plus";
 
 // Modes enum
-const KARAOKE = 0,
-	SYNCED = 1,
-	UNSYNCED = 2,
-	GENIUS = 3;
+const Modes = {
+	KARAOKE: 0,
+	SYNCED: 1,
+	UNSYNCED: 2,
+	GENIUS: 3
+};
+
+const getKeyByValue = (obj, value) => Object.keys(obj).find(key => obj[key] === value);
 
 const CONFIG = {
 	visual: {
@@ -66,28 +70,28 @@ const CONFIG = {
 		netease: {
 			on: getConfig("lyrics-plus:provider:netease:on"),
 			desc: `Crowdsourced lyrics provider ran by Chinese developers and users.`,
-			modes: [KARAOKE, SYNCED, UNSYNCED]
+			modes: [Modes.KARAOKE, Modes.SYNCED, Modes.UNSYNCED]
 		},
 		musixmatch: {
 			on: getConfig("lyrics-plus:provider:musixmatch:on"),
 			desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://spicetify.app/docs/faq#sometimes-popup-lyrics-andor-lyrics-plus-seem-to-not-work">Spicetify Docs</a>.`,
 			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
-			modes: [KARAOKE, SYNCED, UNSYNCED]
+			modes: [Modes.KARAOKE, Modes.SYNCED, Modes.UNSYNCED]
 		},
 		spotify: {
 			on: getConfig("lyrics-plus:provider:spotify:on"),
 			desc: `Lyrics sourced from official Spotify API.`,
-			modes: [SYNCED, UNSYNCED]
+			modes: [Modes.SYNCED, Modes.UNSYNCED]
 		},
 		genius: {
 			on: getConfig("lyrics-plus:provider:genius:on"),
 			desc: `Provide unsynced lyrics with insights from artists themselves.`,
-			modes: [GENIUS]
+			modes: [Modes.GENIUS]
 		},
 		local: {
 			on: getConfig("lyrics-plus:provider:local:on"),
 			desc: `Provide lyrics from cache/local files loaded from previous Spotify sessions.`,
-			modes: [KARAOKE, SYNCED, UNSYNCED]
+			modes: [Modes.KARAOKE, Modes.SYNCED, Modes.UNSYNCED]
 		}
 	},
 	providersOrder: localStorage.getItem("lyrics-plus:services-order"),
@@ -119,7 +123,8 @@ const emptyState = {
 	synced: null,
 	unsynced: null,
 	genius: null,
-	genius2: null
+	genius2: null,
+	currentLyrics: null
 };
 
 let lyricContainerUpdate;
@@ -137,6 +142,7 @@ class LyricsContainer extends react.Component {
 			unsynced: null,
 			genius: null,
 			genius2: null,
+			currentLyrics: null,
 			romaji: null,
 			furigana: null,
 			hiragana: null,
@@ -341,14 +347,18 @@ class LyricsContainer extends react.Component {
 		this.translateLyrics();
 	}
 
-	lyricsSource(state) {
+	lyricsSource(mode) {
+		const lyricsState = this.state[getKeyByValue(Modes, mode).toLowerCase()];
+		console.log(lyricsState);
+		if (!lyricsState) return undefined;
+		this.state.currentLyrics = lyricsState;
 		switch (CONFIG.visual["translate:translated-lyrics-source"]) {
 			case "neteaseTranslation": {
-				if (this.state.neteaseTranslation !== null) return this.state.neteaseTranslation;
+				if (this.state.neteaseTranslation !== null) this.state.currentLyrics = this.state.neteaseTranslation;
 				break;
 			}
 		}
-		return state;
+		console.log(this.state.currentLyrics);
 	}
 
 	async translateLyrics() {
@@ -357,7 +367,7 @@ class LyricsContainer extends react.Component {
 			return;
 		}
 
-		const lyricsToTranslate = this.lyricsSource(this.state.synced ?? this.state.unsynced);
+		const lyricsToTranslate = this.state.currentLyrics;
 
 		if (!lyricsToTranslate) return;
 
@@ -412,7 +422,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	async onVersionChange(items, index) {
-		if (this.state.mode === GENIUS) {
+		if (this.state.mode === Modes.GENIUS) {
 			this.setState({
 				...emptyLine,
 				genius2: this.state.genius2,
@@ -428,7 +438,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	async onVersionChange2(items, index) {
-		if (this.state.mode === GENIUS) {
+		if (this.state.mode === Modes.GENIUS) {
 			this.setState({
 				...emptyLine,
 				genius: this.state.genius,
@@ -602,9 +612,28 @@ class LyricsContainer extends react.Component {
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		console.log(this.state);
-		console.log(prevState);
-		if (CONFIG.visual["translate:translated-lyrics-source"] !== "none" && this.state !== prevState) {
+		if (!this.state.currentLyrics) return;
+		const language = Utils.detectLanguage(this.state.currentLyrics);
+		let isTranslated = false;
+		switch (language) {
+			case "zh-hans":
+			case "zh-hant": {
+				if (this.state.cn || this.state.hk || this.state.tw) {
+					isTranslated = true;
+				}
+			}
+			case "ja": {
+				if (this.state.furigana || this.state.katakana || this.state.hiragana) {
+					isTranslated = true;
+				}
+			}
+			case "ko": {
+				if (this.state.romaja || this.state.romaji) {
+					isTranslated = true;
+				}
+			}
+		}
+		if (isTranslated === false) {
 			this.translateLyrics();
 		}
 	}
@@ -641,34 +670,36 @@ class LyricsContainer extends react.Component {
 		} else {
 			// Auto switch
 			if (this.state.karaoke) {
-				mode = KARAOKE;
+				mode = Modes.KARAOKE;
 			} else if (this.state.synced) {
-				mode = SYNCED;
+				mode = Modes.SYNCED;
 			} else if (this.state.unsynced) {
-				mode = UNSYNCED;
+				mode = Modes.UNSYNCED;
 			} else if (this.state.genius) {
-				mode = GENIUS;
+				mode = Modes.GENIUS;
 			}
 		}
 
 		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
+		this.lyricsSource(mode);
+		console.log(this.state.currentLyrics);
 		const language = () => {
-			if (!this.state.synced || !this.state.unsynced) return;
+			if (!this.state.currentLyrics) return;
 			if ([CONFIG.visual["translate:detect-language-override"]] == "off") {
-				return Utils.detectLanguage(this.lyricsSource(this.state.synced || this.state.unsynced));
+				return Utils.detectLanguage(this.state.currentLyrics);
 			}
 			return CONFIG.visual["translate:detect-language-override"];
 		};
 		console.log(language());
 		const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
 		const friendlyLanguage = language() && languageDisplayNames.of(language()?.split("-")[0]).toLowerCase();
-		const showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == SYNCED || mode == UNSYNCED);
+		const showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == Modes.SYNCED || mode == Modes.UNSYNCED);
 		const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
 
 		let activeItem;
 
 		if (mode !== -1) {
-			if (mode === KARAOKE && this.state.karaoke) {
+			if (mode === Modes.KARAOKE && this.state.karaoke) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					isKara: true,
 					trackUri: this.state.uri,
@@ -676,21 +707,21 @@ class LyricsContainer extends react.Component {
 					provider: this.state.provider,
 					copyright: this.state.copyright
 				});
-			} else if (mode === SYNCED && this.state.synced) {
+			} else if (mode === Modes.SYNCED && this.state.synced) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					trackUri: this.state.uri,
-					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.lyricsSource(this.state.synced),
+					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright
 				});
-			} else if (mode === UNSYNCED && this.state.unsynced) {
+			} else if (mode === Modes.UNSYNCED && this.state.unsynced) {
 				activeItem = react.createElement(UnsyncedLyricsPage, {
 					trackUri: this.state.uri,
-					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.lyricsSource(this.state.unsynced),
+					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright
 				});
-			} else if (mode === GENIUS && this.state.genius) {
+			} else if (mode === Modes.GENIUS && this.state.genius) {
 				activeItem = react.createElement(GeniusPage, {
 					isSplitted: CONFIG.visual["dual-genius"],
 					trackUri: this.state.uri,
@@ -750,7 +781,7 @@ class LyricsContainer extends react.Component {
 					hasNeteaseTranslation
 				}),
 				react.createElement(AdjustmentsMenu, { mode }),
-				mode !== GENIUS &&
+				mode !== Modes.GENIUS &&
 					react.createElement(
 						Spicetify.ReactComponent.TooltipWrapper,
 						{
