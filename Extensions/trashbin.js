@@ -209,7 +209,7 @@
 	let trashSongList = initValue("TrashSongList", {});
 	let trashArtistList = initValue("TrashArtistList", {});
 	let userHitBack = false;
-	let eventListener;
+	const eventListener = () => (userHitBack = true);
 
 	putDataLocal();
 	refreshEventListeners(trashbinStatus);
@@ -217,7 +217,7 @@
 
 	function refreshEventListeners(state) {
 		if (state) {
-			eventListener = skipBackBtn.addEventListener("click", () => (userHitBack = true));
+			skipBackBtn.addEventListener("click", eventListener);
 			Spicetify.Player.addEventListener("songchange", watchChange);
 			widget.register();
 		} else {
