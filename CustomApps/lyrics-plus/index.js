@@ -350,13 +350,7 @@ class LyricsContainer extends react.Component {
 	lyricsSource(mode) {
 		const lyricsState = this.state[getKeyByValue(Modes, mode).toLowerCase()];
 		if (!lyricsState) return undefined;
-		this.state.currentLyrics = lyricsState;
-		switch (CONFIG.visual["translate:translated-lyrics-source"]) {
-			case "neteaseTranslation": {
-				if (this.state.neteaseTranslation !== null) this.state.currentLyrics = this.state.neteaseTranslation;
-				break;
-			}
-		}
+		if (this.state[CONFIG.visual["translate:translated-lyrics-source"]]) {this.state.currentLyrics = this.state[CONFIG.visual["translate:translated-lyrics-source"]]} else {this.state.currentLyrics = lyricsState};
 	}
 
 	async translateLyrics() {
@@ -619,16 +613,19 @@ class LyricsContainer extends react.Component {
 				if (this.state.cn || this.state.hk || this.state.tw) {
 					isTranslated = true;
 				}
+				break;
 			}
 			case "ja": {
-				if (this.state.furigana || this.state.katakana || this.state.hiragana) {
+				if (this.state.furigana || this.state.katakana || this.state.hiragana || this.state.romaji) {
 					isTranslated = true;
 				}
+				break;
 			}
 			case "ko": {
-				if (this.state.romaja || this.state.romaji) {
+				if (this.state.hangul || this.state.romaja) {
 					isTranslated = true;
 				}
+				break;
 			}
 		}
 		if (isTranslated === false) {
