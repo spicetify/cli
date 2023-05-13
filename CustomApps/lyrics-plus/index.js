@@ -358,7 +358,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	provideLanguageCode(lyrics) {
-		if ([CONFIG.visual["translate:detect-language-override"]] !== "off") {
+		if (CONFIG.visual["translate:detect-language-override"] !== "off") {
 			return CONFIG.visual["translate:detect-language-override"];
 		}
 		return Utils.detectLanguage(lyrics);
