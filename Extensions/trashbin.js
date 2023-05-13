@@ -323,7 +323,7 @@
 	 * @returns {boolean}
 	 */
 	function shouldAddContextMenu(uris) {
-		if (uris.length > 1) {
+		if (uris.length > 1 || !initValue("trashbin-enabled", true)) {
 			return false;
 		}
 
