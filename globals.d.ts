@@ -1135,15 +1135,15 @@ declare namespace Spicetify {
         }
 
         /**
-         * Create a button next to track info
+         * Create a widget next to track info
          * @constructor You can pass props as individual instances or an object with the following properties:
-         * @param label Button label.
-         * @param icon Button icon
-         * @param onClick Callback to call when button is clicked
-         * @param disabled Whether the button is disabled
-         * @param active Whether the button is active
-         * @param registerOnCreate Whether to register the button on creation
-         * @return Button instance
+         * @param label Widget label.
+         * @param icon Widget icon
+         * @param onClick Callback to call when Widget is clicked
+         * @param disabled Whether the Widget is disabled
+         * @param active Whether the Widget is active
+         * @param registerOnCreate Whether to register the Widget on creation
+         * @return Widget instance
          */
         class Widget {
             constructor(label: string | Props, icon: Icon | string, onClick: (self: Widget) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
