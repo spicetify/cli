@@ -97,9 +97,10 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 
 	const languageOptions = {
 		off: "Off",
-		chinese: "Chinese",
-		japanese: "Japanese",
-		korean: "Korean"
+		"zh-hans": "Chinese (Simplified)",
+		"zh-hant": "Chinese (Traditional)",
+		ja: "Japanese",
+		ko: "Korean"
 	};
 
 	let modeOptions = {};

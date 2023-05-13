@@ -357,6 +357,13 @@ class LyricsContainer extends react.Component {
 		}
 	}
 
+	provideLanguageCode(lyrics) {
+		if ([CONFIG.visual["translate:detect-language-override"]] !== "off") {
+			return CONFIG.visual["translate:detect-language-override"];
+		}
+		return Utils.detectLanguage(lyrics);
+	}
+
 	async translateLyrics() {
 		if (!this.translator || !this.translator.finished) {
 			setTimeout(this.translateLyrics.bind(this), 100);
@@ -367,7 +374,7 @@ class LyricsContainer extends react.Component {
 
 		if (!lyricsToTranslate) return;
 
-		const language = Utils.detectLanguage(lyricsToTranslate);
+		const language = this.provideLanguageCode(lyricsToTranslate);
 
 		if (!language) return;
 
@@ -607,10 +614,13 @@ class LyricsContainer extends react.Component {
 		this.mousetrap.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
 	}
 
-	componentDidUpdate(prevProps, prevState) {
+	componentDidUpdate() {
 		if (!this.state.currentLyrics) return;
-		const language = Utils.detectLanguage(this.state.currentLyrics);
+
+		const language = this.provideLanguageCode(this.state.currentLyrics);
+
 		let isTranslated = false;
+
 		switch (language) {
 			case "zh-hans":
 			case "zh-hant": {
@@ -679,23 +689,19 @@ class LyricsContainer extends react.Component {
 			}
 		}
 
-		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
-		this.lyricsSource(mode);
-		const language = () => {
-			if (!this.state.currentLyrics) return;
-			if ([CONFIG.visual["translate:detect-language-override"]] == "off") {
-				return Utils.detectLanguage(this.state.currentLyrics);
-			}
-			return CONFIG.visual["translate:detect-language-override"];
-		};
-		const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
-		const friendlyLanguage = language() && languageDisplayNames.of(language()?.split("-")[0]).toLowerCase();
-		const showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == Modes.SYNCED || mode == Modes.UNSYNCED);
-		const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
-
 		let activeItem;
+		let showTranslationButton;
+		let friendlyLanguage;
+		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
 
 		if (mode !== -1) {
+			this.lyricsSource(mode);
+			if (!this.state.currentLyrics) return;
+			const language = this.provideLanguageCode(this.state.currentLyrics);
+			const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
+			friendlyLanguage = language && languageDisplayNames.of(language?.split("-")[0])?.toLowerCase();
+			showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == Modes.SYNCED || mode == Modes.UNSYNCED);
+			const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
 			if (mode === Modes.KARAOKE && this.state.karaoke) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					isKara: true,
