@@ -58,7 +58,9 @@
 
 		content.appendChild(createSlider("trashbin-enabled", "Enabled", trashbinStatus, refreshEventListeners));
 		content.appendChild(
-			createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, state => (state && initValue("trashbin-enabled", true) ? widget.register() : widget.deregister()))
+			createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, state =>
+				state && initValue("trashbin-enabled", true) ? widget.register() : widget.deregister()
+			)
 		);
 
 		// Local Storage
