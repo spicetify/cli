@@ -94,46 +94,49 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 	let sourceOptions = {
 		none: "None"
 	};
+
 	const languageOptions = {
 		off: "Off",
 		chinese: "Chinese",
 		japanese: "Japanese",
 		korean: "Korean"
 	};
+
 	let modeOptions = {};
 
-	switch (friendlyLanguage) {
-		case "japanese": {
-			modeOptions = {
-				furigana: "Furigana",
-				romaji: "Romaji",
-				hiragana: "Hiragana",
-				katakana: "Katakana"
-			};
-			break;
-		}
-		case "korean": {
-			modeOptions = {
-				hangul: "Hangul",
-				romaja: "Romaja"
-			};
-			break;
-		}
-		case "chinese": {
-			modeOptions = {
-				cn: "Simplified Chinese",
-				hk: "Traditional Chinese (Hong Kong)",
-				tw: "Traditional Chinese (Taiwan)"
-			};
-			break;
-		}
-	}
 	if (hasNeteaseTranslation) {
 		sourceOptions = {
 			...sourceOptions,
 			neteaseTranslation: "Chinese (Netease)"
 		};
 	}
+
+	switch (friendlyLanguage) {
+			case "japanese": {
+				modeOptions = {
+					furigana: "Furigana",
+					romaji: "Romaji",
+					hiragana: "Hiragana",
+					katakana: "Katakana"
+				};
+				break;
+			}
+			case "korean": {
+				modeOptions = {
+					hangul: "Hangul",
+					romaja: "Romaja"
+				};
+				break;
+			}
+			case "chinese": {
+				modeOptions = {
+					cn: "Simplified Chinese",
+					hk: "Traditional Chinese (Hong Kong)",
+					tw: "Traditional Chinese (Taiwan)"
+				};
+				break;
+			}
+		}
 
 	return react.createElement(
 		Spicetify.ReactComponent.TooltipWrapper,
@@ -190,8 +193,6 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 								lyricContainerUpdate && lyricContainerUpdate();
 								CONFIG.visual[name] && Spicetify.showNotification("Translating...", false, 5000);
 								translator.injectExternals();
-								// run the translate function after user changes translate lyrics source
-								// update the dropdowns
 							}
 						})
 					),
@@ -267,7 +268,7 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 									desc: "Dual panel",
 									key: "dual-genius",
 									type: ConfigSlider,
-									when: () => mode === GENIUS
+									when: () => mode === Modes.GENIUS
 								}
 							],
 							onChange: (name, value) => {
