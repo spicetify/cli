@@ -1108,11 +1108,48 @@ declare namespace Spicetify {
      * Add button in player controls
      */
     namespace Playbar {
+        type Props = { label: string, icon: Icon | string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean };
+
+        /**
+         * Create a button on the right side of the playbar
+         * @constructor You can pass props as individual instances or an object with the following properties:
+         * @param label Button label.
+         * @param icon Button icon
+         * @param onClick Callback to call when button is clicked
+         * @param disabled Whether the button is disabled
+         * @param active Whether the button is active
+         * @param registerOnCreate Whether to register the button on creation
+         * @return Button instance
+         */
         class Button {
-            constructor(label: string, icon: Icon | string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
+            constructor(label: string | Props, icon: Icon | string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
             label: string;
             icon: string;
             onClick: (self: Button) => void;
+            disabled: boolean;
+            active: boolean;
+            element: HTMLButtonElement;
+            tippy: any;
+            register: () => void;
+            deregister: () => void;
+        }
+
+        /**
+         * Create a button next to track info
+         * @constructor You can pass props as individual instances or an object with the following properties:
+         * @param label Button label.
+         * @param icon Button icon
+         * @param onClick Callback to call when button is clicked
+         * @param disabled Whether the button is disabled
+         * @param active Whether the button is active
+         * @param registerOnCreate Whether to register the button on creation
+         * @return Button instance
+         */
+        class Widget {
+            constructor(label: string | Props, icon: Icon | string, onClick: (self: Widget) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
+            label: string;
+            icon: string;
+            onClick: (self: Widget) => void;
             disabled: boolean;
             active: boolean;
             element: HTMLButtonElement;

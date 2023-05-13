@@ -12,14 +12,14 @@
 				? Spicetify.Platform.History.push("/lyrics-plus")
 				: Spicetify.Platform.History.goBack(),
 		false,
-		false,
-		false
+		Spicetify.Platform.History.location.pathname === "/lyrics-plus",
+		Spicetify.LocalStorage.get("lyrics-plus:visual:playbar-button") === "true"
 	);
 
 	const style = document.createElement("style");
 	style.innerHTML = `
-		.main-nowPlayingBar-lyricsButton { 
-			display: none !important; 
+		.main-nowPlayingBar-lyricsButton {
+			display: none !important;
 		}
 		li[data-id="/lyrics-plus"] {
 			display: none;
@@ -27,12 +27,10 @@
 	`;
 	style.classList.add("lyrics-plus:visual:playbar-button");
 
-	if (Spicetify.LocalStorage.get("lyrics-plus:visual:playbar-button") === "true") setPlaybarButton();
 	window.addEventListener("lyrics-plus", event => {
 		if (event.detail?.name === "playbar-button") event.detail.value ? setPlaybarButton() : removePlaybarButton();
 	});
 
-	button.active = Spicetify.Platform.History.location.pathname === "/lyrics-plus";
 	Spicetify.Platform.History.listen(location => (button.active = location.pathname === "/lyrics-plus"));
 
 	function setPlaybarButton() {

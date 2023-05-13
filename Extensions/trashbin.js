@@ -57,6 +57,9 @@
 		content.appendChild(header);
 
 		content.appendChild(createSlider("trashbin-enabled", "Enabled", trashbinStatus, refreshEventListeners));
+		content.appendChild(
+			createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, state => (state ? widget.register() : widget.deregister()))
+		);
 
 		// Local Storage
 		header = document.createElement("h2");
@@ -118,34 +121,45 @@
 		  color: rgba(var(--spice-rgb-text), .3);
 		}
 		button.reset {
-			line-height: 1.5rem;
-			font-weight: 700;
-			border: 0;
-			-moz-user-select: none;
-			background-color: var(--spice-text);
-			color: var(--spice-main);
-			font-size: inherit;
-			padding-block: 12px;
-			padding-inline: 32px;
-		}
-		button.reset:active {
-			background-color: var(--spice-subtext);
-			box-shadow: none;
-			transform: scale(1);
+		  font-weight: 700;
+		  font-size: medium;
+		  background-color: transparent;
+		  border-radius: 500px;
+		  transition-duration: 33ms;
+		  transition-property: background-color, border-color, color, box-shadow, filter, transform;
+		  padding-inline: 15px;
+		  border: 1px solid #727272;
+		  color: var(--spice-text);
+		  min-block-size: 32px;
+		  cursor: pointer;
 		}
 		button.reset:hover {
 		  transform: scale(1.04);
+		  border-color: var(--spice-text);
 		}`;
 		content.appendChild(style);
 	}
 
+	function initValue(item, defaultValue) {
+		try {
+			const value = JSON.parse(Spicetify.LocalStorage.get(item));
+			return value ?? defaultValue;
+		} catch {
+			return defaultValue;
+		}
+	}
+
 	// Settings Variables - Initial Values
-	const trashbinStatus = JSON.parse(Spicetify.LocalStorage.get("trashbin-enabled")) ?? true;
+	const trashbinStatus = initValue("trashbin-enabled", true);
+	const enableWidget = initValue("TrashbinWidgetIcon", true);
 
 	// Settings Menu Initialization
 	const content = document.createElement("div");
 	styleSettings();
 	settingsContent();
+
+	const trashbinIcon =
+		'<svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="currentcolor"><path d="M3 6v18h18v-18h-18zm5 14c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm5 0c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm5 0c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm4-18v2h-20v-2h5.711c.9 0 1.631-1.099 1.631-2h5.315c0 .901.73 2 1.631 2h5.712z"/></svg>';
 
 	new Spicetify.Menu.Item(
 		"Trashbin",
@@ -156,29 +170,27 @@
 				content
 			});
 		},
-		'<svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="currentcolor"><path d="M3 6v18h18v-18h-18zm5 14c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm5 0c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm5 0c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm4-18v2h-20v-2h5.711c.9 0 1.631-1.099 1.631-2h5.315c0 .901.73 2 1.631 2h5.712z"/></svg>'
+		trashbinIcon
 	).register();
 
 	// LocalStorage Setup
-	let trashSongList = {};
-	let trashArtistList = {};
+	let trashSongList = initValue("TrashSongList", {});
+	let trashArtistList = initValue("TrashArtistList", {});
 	let userHitBack = false;
+	let eventListener;
 
-	const THROW_TEXT = "Place In Trashbin";
-	const UNTHROW_TEXT = "Remove From Trashbin";
-
-	trashSongList = JSON.parse(Spicetify.LocalStorage.get("TrashSongList")) || {};
-	trashArtistList = JSON.parse(Spicetify.LocalStorage.get("TrashArtistList")) || {};
+	const THROW_TEXT = "Place in Trashbin";
+	const UNTHROW_TEXT = "Remove from Trashbin";
 
 	putDataLocal();
 	refreshEventListeners(trashbinStatus);
 
 	function refreshEventListeners(state) {
 		if (state) {
-			skipBackBtn.addEventListener("click", () => (userHitBack = true));
+			eventListener = skipBackBtn.addEventListener("click", () => (userHitBack = true));
 			Spicetify.Player.addEventListener("songchange", watchChange);
 		} else {
-			skipBackBtn.removeEventListener("click", () => (userHitBack = true));
+			skipBackBtn.removeEventListener("click", eventListener);
 			Spicetify.Player.removeEventListener("songchange", watchChange);
 		}
 	}
@@ -290,8 +302,20 @@
 		return false;
 	}
 
-	const cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu);
+	const cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu, trashbinIcon);
 	cntxMenu.register();
+
+	const widget = new Spicetify.Playbar.Widget({
+		label: THROW_TEXT,
+		icon: trashbinIcon,
+		onClick: () => {
+			const uri = Spicetify.Player.data.track.uri;
+			trashSongList[uri] = true;
+			Spicetify.Player.next();
+			putDataLocal();
+		},
+		registerOnCreate: enableWidget
+	});
 
 	function putDataLocal() {
 		Spicetify.LocalStorage.set("TrashSongList", JSON.stringify(trashSongList));
