@@ -350,7 +350,11 @@ class LyricsContainer extends react.Component {
 	lyricsSource(mode) {
 		const lyricsState = this.state[getKeyByValue(Modes, mode).toLowerCase()];
 		if (!lyricsState) return undefined;
-		if (this.state[CONFIG.visual["translate:translated-lyrics-source"]]) {this.state.currentLyrics = this.state[CONFIG.visual["translate:translated-lyrics-source"]]} else {this.state.currentLyrics = lyricsState};
+		if (this.state[CONFIG.visual["translate:translated-lyrics-source"]]) {
+			this.state.currentLyrics = this.state[CONFIG.visual["translate:translated-lyrics-source"]];
+		} else {
+			this.state.currentLyrics = lyricsState;
+		}
 	}
 
 	async translateLyrics() {
