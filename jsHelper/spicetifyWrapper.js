@@ -1395,10 +1395,6 @@ Spicetify.Playbar = (function() {
 
     class Button {
         constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
-            // Allow passing props as object or as individual arguments
-            if (typeof label === "object")
-                ({ label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true } = label);
-
             this.element = document.createElement("button");
             this.element.classList.add("main-genericButton-button");
             this.element.style.display = "block";
@@ -1480,10 +1476,6 @@ Spicetify.Playbar = (function() {
 
     class Widget {
         constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
-            // Allow passing props as object or as individual arguments
-            if (typeof label === "object")
-                ({ label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true } = label);
-
             this.element = document.createElement("button");
             this.element.classList.add("main-addButton-button");
             this.icon = icon;

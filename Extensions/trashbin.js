@@ -178,17 +178,29 @@
 		trashbinIcon
 	).register();
 
-	const widget = new Spicetify.Playbar.Widget({
-		label: THROW_TEXT,
-		icon: trashbinIcon,
-		onClick: () => {
+	const widget = new Spicetify.Playbar.Widget(
+		THROW_TEXT,
+		trashbinIcon,
+		() => {
 			const uri = Spicetify.Player.data.track.uri;
-			trashSongList[uri] = true;
-			Spicetify.Player.next();
+			const uriObj = Spicetify.URI.fromString(uri);
+			const type = uriObj.type;
+
+			if (!trashSongList[uri]) {
+				trashSongList[uri] = true;
+				if (shouldSkipCurrentTrack(uri, type)) {
+					Spicetify.Player.next();
+				}
+			} else {
+				delete trashSongList[uri];
+			}
+
 			putDataLocal();
 		},
-		registerOnCreate: enableWidget
-	});
+		false,
+		false,
+		enableWidget
+	);
 
 	// LocalStorage Setup
 	let trashSongList = initValue("TrashSongList", {});
@@ -198,6 +210,7 @@
 
 	putDataLocal();
 	refreshEventListeners(trashbinStatus);
+	widget.label = trashSongList[Spicetify.Player.data.track.uri] ? UNTHROW_TEXT : THROW_TEXT;
 
 	function refreshEventListeners(state) {
 		if (state) {
@@ -216,6 +229,7 @@
 		if (!data) return;
 
 		const isBanned = trashSongList[data.track.uri];
+		widget.label = isBanned ? UNTHROW_TEXT : THROW_TEXT;
 
 		if (userHitBack) {
 			userHitBack = false;

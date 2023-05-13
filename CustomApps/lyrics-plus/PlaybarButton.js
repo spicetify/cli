@@ -13,7 +13,7 @@
 				: Spicetify.Platform.History.goBack(),
 		false,
 		Spicetify.Platform.History.location.pathname === "/lyrics-plus",
-		Spicetify.LocalStorage.get("lyrics-plus:visual:playbar-button") === "true"
+		false
 	);
 
 	const style = document.createElement("style");
