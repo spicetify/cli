@@ -1227,7 +1227,7 @@ declare namespace Spicetify {
          * @param label Label to be displayed when dragging
          * @param contextUri Context URI of the element from which the drag originated (e.g. Playlist URI)
          * @param sectionIndex Index of the section in which the drag originated
-         * @param dropOriginUri URI of the desired drop element
+         * @param dropOriginUri URI of the desired drop target. Leave empty to allow drop anywhere
          * @return Function to handle drag event. Should be passed to `onDragStart` prop of the element
          *
          */
