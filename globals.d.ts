@@ -1222,7 +1222,7 @@ declare namespace Spicetify {
     namespace ReactHook {
         /**
          * React Hook to create interactive drag-and-drop element
-         * @description Used if you want to create a draggable element that can be dropped into Spotify's components (e.g. Playlist, Folder, Sidebar, Queue)
+         * @description Used to create a draggable element that can be dropped into Spotify's components (e.g. Playlist, Folder, Sidebar, Queue)
          * @param uris List of URIs to be dragged
          * @param label Label to be displayed when dragging
          * @param contextUri Context URI of the element from which the drag originated (e.g. Playlist URI)
@@ -1237,12 +1237,6 @@ declare namespace Spicetify {
             contextUri?: string,
             sectionIndex?: number,
             dropOriginUri?: string
-        ): (
-            event: React.DragEvent,
-            uris?: string[],
-            label?: string,
-            contextUri?: string,
-            sectionIndex?: number
-        ) => void;
+        ): (event: React.DragEvent, uris?: string[], label?: string, contextUri?: string, sectionIndex?: number) => void;
     }
 }
