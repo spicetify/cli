@@ -358,7 +358,6 @@ class LyricsContainer extends react.Component {
 	}
 
 	provideLanguageCode(lyrics) {
-		if (!lyrics) return;
 		if (CONFIG.visual["translate:detect-language-override"] !== "off") {
 			return CONFIG.visual["translate:detect-language-override"];
 		}
@@ -375,7 +374,7 @@ class LyricsContainer extends react.Component {
 
 		if (!lyricsToTranslate) return;
 
-		const language = this.provideLanguageCode(lyricsToTranslate);
+		const language = lyricsToTranslate && this.provideLanguageCode(lyricsToTranslate);
 
 		if (!language) return;
 
@@ -616,9 +615,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	componentDidUpdate() {
-		if (!this.state.currentLyrics) return;
-
-		const language = this.provideLanguageCode(this.state.currentLyrics);
+		const language = this.state.currentLyrics && this.provideLanguageCode(this.state.currentLyrics);
 
 		let isTranslated = false;
 
@@ -697,7 +694,7 @@ class LyricsContainer extends react.Component {
 
 		if (mode !== -1) {
 			this.lyricsSource(mode);
-			const language = this.provideLanguageCode(this.state.currentLyrics);
+			const language = this.state.currentLyrics && this.provideLanguageCode(this.state.currentLyrics);
 			const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
 			friendlyLanguage = language && languageDisplayNames.of(language?.split("-")[0])?.toLowerCase();
 			showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == Modes.SYNCED || mode == Modes.UNSYNCED);
