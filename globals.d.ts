@@ -1225,9 +1225,9 @@ declare namespace Spicetify {
          * @description Used if you want to create a draggable element that can be dropped into Spotify's components (e.g. Playlist, Folder, Sidebar, Queue)
          * @param uris List of URIs to be dragged
          * @param label Label to be displayed when dragging
-         * @param contextUri Context URI of the element from which the drag originated
+         * @param contextUri Context URI of the element from which the drag originated (e.g. Playlist URI)
          * @param sectionIndex Index of the section in which the drag originated
-         * @param dropOriginUri URI of the element from which the drag originated
+         * @param dropOriginUri URI of the desired drop element
          * @return Function to handle drag event. Should be passed to `onDragStart` prop of the element
          *
          */
