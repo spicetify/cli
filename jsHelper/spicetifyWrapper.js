@@ -241,8 +241,7 @@ const Spicetify = {
     },
     GraphQL: {
         get Request() {
-            if (!Spicetify.GraphQL.Handler || !Spicetify.GraphQL.Context) return null;
-            return Spicetify.GraphQL.Handler(Spicetify.GraphQL.Context);
+            return Spicetify.Platform?.GraphQLLoader || Spicetify.GraphQL.Handler?.(Spicetify.GraphQL.Context);
         },
         Definitions: {}
     },
