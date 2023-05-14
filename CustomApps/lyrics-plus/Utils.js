@@ -84,7 +84,7 @@ class Utils {
 			return "ko";
 		}
 
-		if (((kanaPercentage - (1 - kanaPercentage) + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"]) {
+		if (((kanaPercentage - (simpPercentage + tradPercentage) + 1) / 2) * 100 >= CONFIG.visual["ja-detect-threshold"]) {
 			return "ja";
 		}
 

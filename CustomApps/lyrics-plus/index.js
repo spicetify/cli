@@ -349,7 +349,7 @@ class LyricsContainer extends react.Component {
 
 	lyricsSource(mode) {
 		const lyricsState = this.state[getKeyByValue(Modes, mode).toLowerCase()];
-		if (!lyricsState) return undefined;
+		if (!lyricsState) return;
 		if (this.state[CONFIG.visual["translate:translated-lyrics-source"]]) {
 			this.state.currentLyrics = this.state[CONFIG.visual["translate:translated-lyrics-source"]];
 		} else {
@@ -358,6 +358,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	provideLanguageCode(lyrics) {
+		if (!lyrics) return;
 		if (CONFIG.visual["translate:detect-language-override"] !== "off") {
 			return CONFIG.visual["translate:detect-language-override"];
 		}
@@ -696,7 +697,6 @@ class LyricsContainer extends react.Component {
 
 		if (mode !== -1) {
 			this.lyricsSource(mode);
-			if (!this.state.currentLyrics) return;
 			const language = this.provideLanguageCode(this.state.currentLyrics);
 			const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
 			friendlyLanguage = language && languageDisplayNames.of(language?.split("-")[0])?.toLowerCase();
