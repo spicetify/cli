@@ -115,7 +115,11 @@ const Spicetify = {
             "RemoteConfigResolver",
             "Playbar",
             "Tippy",
-            "_getStyledClassName"
+            "_getStyledClassName",
+            "GraphQL",
+            "ReactHook",
+            "_sidebarItemXToClone",
+            "AppTitle"
         ];
 
         const PLAYER_METHOD = [
@@ -171,6 +175,10 @@ const Spicetify = {
             "ConfirmDialog",
         ]
 
+        const REACT_HOOK = [
+            "DragHandler"
+        ]
+
         let count = SPICETIFY_METHOD.length;
         SPICETIFY_METHOD.forEach((method) => {
             if (Spicetify[method] === undefined || Spicetify[method] === null) {
@@ -198,6 +206,15 @@ const Spicetify = {
         })
         console.log(`${count}/${REACT_COMPONENT.length} Spicetify.ReactComponent methods and objects are OK.`)
 
+        count = REACT_HOOK.length;
+        REACT_HOOK.forEach((method) => {
+            if (Spicetify.ReactHook[method] === undefined || Spicetify.ReactHook[method] === null) {
+                console.error(`Spicetify.ReactHook.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`)
+                count--;
+            }
+        })
+        console.log(`${count}/${REACT_HOOK.length} Spicetify.ReactHook methods and objects are OK.`)
+
         Object.keys(Spicetify).forEach(key => {
             if(!SPICETIFY_METHOD.includes(key)) {
                 console.log(`Spicetify method ${key} exists but is not in the method list. Consider adding it.`)
@@ -215,6 +232,12 @@ const Spicetify = {
                 console.log(`Spicetify.ReactComponent method ${key} exists but is not in the method list. Consider adding it.`)
             }
         })
+
+        Object.keys(Spicetify.ReactHook).forEach(key => {
+            if(!REACT_HOOK.includes(key)) {
+                console.log(`Spicetify.ReactHook method ${key} exists but is not in the method list. Consider adding it.`)
+            }
+        })
     },
     GraphQL: {
         get Request() {
@@ -222,7 +245,10 @@ const Spicetify = {
             return Spicetify.GraphQL.Handler(Spicetify.GraphQL.Context);
         },
         Definitions: {}
-    }
+    },
+    ReactComponent: {},
+    ReactHook: {},
+    URI: {},
 };
 
 // Wait for Spicetify.Player.origin._state before adding following APIs
@@ -275,7 +301,6 @@ Spicetify.getAudioData = async (uri) => {
     return await Spicetify.CosmosAsync.get(`wg://audio-attributes/v1/audio-analysis/${uriObj.getBase62Id?.() ?? uriObj.id}?format=json`);
 }
 
-if (!Spicetify.URI) Spicetify.URI = {};
 (function appendValidationFunc() {
     if (!Spicetify.URI.Type) {
         setTimeout(appendValidationFunc, 10);
@@ -1262,8 +1287,6 @@ class _HTMLGenericModal extends HTMLElement {
 }
 customElements.define("generic-modal", _HTMLGenericModal);
 Spicetify.PopupModal = new _HTMLGenericModal();
-
-Spicetify.ReactComponent = {};
 
 Object.defineProperty(Spicetify, "TippyProps", {
     value: {
