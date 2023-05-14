@@ -96,12 +96,11 @@ class Grid extends react.Component {
 				react.createElement(
 					"div",
 					{
-						className: "main-gridContainer-gridContainer main-gridContainer-fixedWidth",
+						className: "main-gridContainer-gridContainer ",
 						style: {
-							"--minimumColumnWidth": "180px",
-							"--column-width": "minmax(var(--minimumColumnWidth),1fr)",
+							"--min-container-width": "180px",
 							"--column-count": "auto-fill",
-							"--grid-gap": "24px"
+							"--grid-gap": "18px"
 						}
 					},
 					separatedByDate[date].map(card => !dismissed.includes(card.props.uri) && react.createElement(Card, card.props))
@@ -189,12 +188,11 @@ class Grid extends react.Component {
 				react.createElement(
 					"div",
 					{
-						className: "main-gridContainer-gridContainer main-gridContainer-fixedWidth",
+						className: "main-gridContainer-gridContainer",
 						style: {
-							"--minimumColumnWidth": "180px",
-							"--column-width": "minmax(var(--minimumColumnWidth),1fr)",
+							"--min-container-width": "180px",
 							"--column-count": "auto-fill",
-							"--grid-gap": "24px"
+							"--grid-gap": "18px"
 						}
 					},
 					separatedByDate[date].filter(card => !dismissed.includes(card.props.uri))

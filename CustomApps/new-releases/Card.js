@@ -138,17 +138,17 @@ class Card extends react.Component {
 									react.createElement(
 										"svg",
 										{
-											width: "18",
-											height: "18",
-											viewBox: "0 0 32 32",
-											xmlns: "http://www.w3.org/2000/svg",
-											className: "main-card-closeButton-svg"
-										},
-										react.createElement("path", {
-											d: "M31.098 29.794L16.955 15.65 31.097 1.51 29.683.093 15.54 14.237 1.4.094-.016 1.508 14.126 15.65-.016 29.795l1.414 1.414L15.54 17.065l14.144 14.143",
-											fill: "var(--spice-text)",
-											fillRule: "evenodd"
-										})
+											width: "16",
+										height: "16",
+										viewBox: "0 0 16 16",
+										xmlns: "http://www.w3.org/2000/svg",
+										className: "main-card-closeButton-svg"
+									},
+									react.createElement("path", {
+										d: "M1.47 1.47a.75.75 0 0 1 1.06 0L8 6.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L9.06 8l5.47 5.47a.75.75 0 1 1-1.06 1.06L8 9.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L6.94 8 1.47 2.53a.75.75 0 0 1 0-1.06z",
+										fill: "var(--spice-text)",
+										fillRule: "evenodd"
+									})
 									)
 								)
 							)
