@@ -132,7 +132,7 @@ body.video-full-screen.video-full-screen--hide-ui {
     color: currentColor;
     padding: 0 5px;
 }
-#fad-artist svg, #fad-album svg {
+#fad-artist svg, #fad-album svg, #fad-release-date svg {
     display: inline-block;
 }
 ::-webkit-scrollbar {
@@ -161,11 +161,11 @@ body.video-full-screen.video-full-screen--hide-ui {
     font-size: 87px;
     font-weight: var(--glue-font-weight-black);
 }
-#fad-artist, #fad-album {
+#fad-artist, #fad-album, #fad-release-date {
     font-size: 54px;
     font-weight: var(--glue-font-weight-medium);
 }
-#fad-artist svg, #fad-album svg {
+#fad-artist svg, #fad-album svg, #fad-release-date svg {
     margin-right: 5px;
 }
 #fad-status {
@@ -203,11 +203,11 @@ body.video-full-screen.video-full-screen--hide-ui {
     font-size: 54px;
     font-weight: var(--glue-font-weight-black);
 }
-#fad-artist, #fad-album {
+#fad-artist, #fad-album, #fad-release-date {
     font-size: 33px;
     font-weight: var(--glue-font-weight-medium);
 }
-#fad-artist svg, #fad-album svg {
+#fad-artist svg, #fad-album svg, #fad-release-date svg {
     width: 25px;
     height: 25px;
     margin-right: 5px;
@@ -351,6 +351,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 				title: "",
 				artist: "",
 				album: "",
+				releaseDate: "",
 				cover: "",
 				heart: Spicetify.Player.getHeart()
 			};
@@ -398,20 +399,24 @@ body.video-full-screen.video-full-screen--hide-ui {
 				artistName = meta.artist_name;
 			}
 
-			// prepare album
-			let albumText = meta.album_title || "";
-			if (CONFIG.showAlbum) {
+			// prepare release date
+			let releaseDate;
+			if (CONFIG.showReleaseDate) {
 				const albumURI = meta.album_uri;
 				if (albumURI?.startsWith("spotify:album:")) {
-					albumText += " • " + (await this.getAlbumDate(albumURI));
+					releaseDate = await this.getAlbumDate(albumURI);
 				}
 			}
+
+			// prepare album
+			let albumText = meta.album_title || "";
 
 			if (meta.image_xlarge_url === this.currTrackImg.src) {
 				this.setState({
 					title: rawTitle || "",
 					artist: artistName || "",
-					album: albumText || ""
+					album: albumText || "",
+					releaseDate: releaseDate || ""
 				});
 				return;
 			}
@@ -428,6 +433,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 					title: rawTitle || "",
 					artist: artistName || "",
 					album: albumText || "",
+					releaseDate: releaseDate || "",
 					cover: bgImage
 				});
 			};
@@ -612,6 +618,12 @@ body.video-full-screen.video-full-screen--hide-ui {
 									text: this.state.album,
 									icon: Spicetify.SVGIcons.album
 								}),
+							CONFIG.showReleaseDate &&
+								react.createElement(SubInfo, {
+									id: "fad-release-date",
+									text: this.state.releaseDate,
+									icon: Spicetify.SVGIcons.clock
+								}),
 							react.createElement(
 								"div",
 								{
@@ -743,7 +755,10 @@ body.video-full-screen.video-full-screen--hide-ui {
 							func();
 						}
 					},
-					react.createElement(DisplayIcon, { icon: Spicetify.SVGIcons.check, size: 16 })
+					react.createElement(DisplayIcon, {
+						icon: Spicetify.SVGIcons.check,
+						size: 16
+					})
 				)
 			)
 		);
@@ -803,15 +818,56 @@ button.switch[disabled] {
 				},
 				disabled: !checkLyricsPlus()
 			}),
-			react.createElement(ConfigItem, { name: "Enable progress bar", field: "enableProgress", func: updateVisual }),
-			react.createElement(ConfigItem, { name: "Enable controls", field: "enableControl", func: updateVisual }),
-			react.createElement(ConfigItem, { name: "Trim title", field: "trimTitle", func: updateVisual }),
-			react.createElement(ConfigItem, { name: "Show album", field: "showAlbum", func: updateVisual }),
-			react.createElement(ConfigItem, { name: "Show all artists", field: "showAllArtists", func: updateVisual }),
-			react.createElement(ConfigItem, { name: "Show icons", field: "icons", func: updateVisual }),
-			react.createElement(ConfigItem, { name: "Vertical mode", field: "vertical", func: updateStyle }),
-			react.createElement(ConfigItem, { name: "Enable fullscreen", field: "enableFullscreen", func: toggleFullscreen }),
-			react.createElement(ConfigItem, { name: "Enable song change animation", field: "enableFade", func: updateVisual })
+			react.createElement(ConfigItem, {
+				name: "Enable progress bar",
+				field: "enableProgress",
+				func: updateVisual
+			}),
+			react.createElement(ConfigItem, {
+				name: "Enable controls",
+				field: "enableControl",
+				func: updateVisual
+			}),
+			react.createElement(ConfigItem, {
+				name: "Trim title",
+				field: "trimTitle",
+				func: updateVisual
+			}),
+			react.createElement(ConfigItem, {
+				name: "Show album",
+				field: "showAlbum",
+				func: updateVisual
+			}),
+			react.createElement(ConfigItem, {
+				name: "Show all artists",
+				field: "showAllArtists",
+				func: updateVisual
+			}),
+			react.createElement(ConfigItem, {
+				name: "Show release date",
+				field: "showReleaseDate",
+				func: updateVisual
+			}),
+			react.createElement(ConfigItem, {
+				name: "Show icons",
+				field: "icons",
+				func: updateVisual
+			}),
+			react.createElement(ConfigItem, {
+				name: "Vertical mode",
+				field: "vertical",
+				func: updateStyle
+			}),
+			react.createElement(ConfigItem, {
+				name: "Enable fullscreen",
+				field: "enableFullscreen",
+				func: toggleFullscreen
+			}),
+			react.createElement(ConfigItem, {
+				name: "Enable song change animation",
+				field: "enableFade",
+				func: updateVisual
+			})
 		);
 		Spicetify.PopupModal.display({
 			title: "Full App Display",
