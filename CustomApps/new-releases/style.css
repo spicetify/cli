@@ -127,37 +127,46 @@ option {
 }
 
 .main-card-closeButton {
-	border: none;
-	-webkit-tap-highlight-color: transparent;
-	background-color: rgba(var(--spice-rgb-shadow), 0.7);
-	color: var(--spice-sidebar);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	inline-size: 32px;
-	block-size: 32px;
-	border-radius: calc(var(--card-container-border-radius) + 2px);
 	position: absolute !important;
-	top: 10px;
-	right: 10px;
-}
-
-.main-card-closeButton {
+	top: 8px;
+	right: 8px;
+	-webkit-box-align: center;
+	-ms-flex-align: center;
+	-webkit-box-pack: center;
+	-ms-flex-pack: center;
+	align-items: center;
+	background-color: rgba(var(--spice-rgb-shadow), 0.7);
+	border: 0;
+	border-radius: 500px;
+	color: var(--spice-sidebar);
+	display: -webkit-box;
+	display: -ms-flexbox;
+	display: flex;
+	height: 28px;
+	justify-content: center;
+	-webkit-transform: scale(1);
+	transform: scale(1);
+	-webkit-transform-origin: center;
+	transform-origin: center;
+	width: 28px;
 	visibility: hidden;
 	opacity: 0;
 	transition: visibility 0s, opacity 0.3s ease;
 }
 
 .main-card-closeButton:active {
-	transform: scale(0.96);
+	transform: scale(1) !important;
 }
 .main-card-closeButton:hover {
-	background-color: rgba(var(--spice-rgb-shadow), 1);
-	transition: background-color 0s, opacity 1s ease;
+	transform: scale(1.1);
 }
 
 .main-card-card:hover .main-card-closeButton {
 	visibility: visible;
 	opacity: 1;
 	transition: visibility 0s, opacity 0.3s ease;
+}
+
+.new-releases-header + .main-gridContainer-gridContainer {
+	grid-template-columns: repeat(var(--column-count), minmax(var(--min-container-width), 1fr)) !important;
 }
