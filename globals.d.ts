@@ -1210,12 +1210,27 @@ declare namespace Spicetify {
          * Context for GraphQL queries.
          * @description Used to set context for the handler and initialze it.
          */
-        const Context: Record<string | any>;
+        const Context: Record<string, any>;
         /**
          * Handler for GraphQL queries.
          * @param context Context to use
          * @return Function to handle GraphQL queries
          */
-        function Handler(context: Record<string | any>): (query: string, variables?: Record<string, any>) => Promise<any>;
+        function Handler(context: Record<string, any>): (query: string, variables?: Record<string, any>) => Promise<any>;
+    }
+
+    namespace ReactHook {
+        /**
+         * React Hook to create interactive drag-and-drop element
+         * @description Used if you want to create a draggable element that can be dropped into Spotify's components (e.g. Playlist, Folder, Sidebar, Queue)
+         * @param uris List of URIs to be dragged
+         * @param label Label to be displayed when dragging
+         * @param contextUri Context URI of the element from which the drag originated
+         * @param sectionIndex Index of the section in which the drag originated
+         * @param dropOriginUri URI of the element from which the drag originated
+         * @return Function to handle drag event. Should be passed to `onDragStart` prop of the element
+         *
+         */
+        function DragHandler(uris?: string[], label?: string, contextUri?: string, sectionIndex?: number, dropOriginUri?: string): (event: React.DragEvent) => void;
     }
 }
