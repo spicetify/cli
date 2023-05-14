@@ -1228,9 +1228,21 @@ declare namespace Spicetify {
          * @param contextUri Context URI of the element from which the drag originated (e.g. Playlist URI)
          * @param sectionIndex Index of the section in which the drag originated
          * @param dropOriginUri URI of the desired drop target. Leave empty to allow drop anywhere
-         * @return Function to handle drag event. Should be passed to `onDragStart` prop of the element
+         * @return Function to handle drag event. Should be passed to `onDragStart` prop of the element. All parameters passed onto the hook will be passed onto the handler unless declared otherwise.
          *
          */
-        function DragHandler(uris?: string[], label?: string, contextUri?: string, sectionIndex?: number, dropOriginUri?: string): (event: React.DragEvent) => void;
+        function DragHandler(
+            uris?: string[],
+            label?: string,
+            contextUri?: string,
+            sectionIndex?: number,
+            dropOriginUri?: string
+        ): (
+            event: React.DragEvent,
+            uris?: string[],
+            label?: string,
+            contextUri?: string,
+            sectionIndex?: number
+        ) => void;
     }
 }
