@@ -1108,11 +1108,30 @@ declare namespace Spicetify {
      * Add button in player controls
      */
     namespace Playbar {
+        /**
+         * Create a button on the right side of the playbar
+         */
         class Button {
-            constructor(label: string, icon: Icon | string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
+            constructor(label: string, icon: Icon | string, onClick?: (self: Button) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
             label: string;
             icon: string;
             onClick: (self: Button) => void;
+            disabled: boolean;
+            active: boolean;
+            element: HTMLButtonElement;
+            tippy: any;
+            register: () => void;
+            deregister: () => void;
+        }
+
+        /**
+         * Create a widget next to track info
+         */
+        class Widget {
+            constructor(label: string, icon: Icon | string, onClick?: (self: Widget) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
+            label: string;
+            icon: string;
+            onClick: (self: Widget) => void;
             disabled: boolean;
             active: boolean;
             element: HTMLButtonElement;
