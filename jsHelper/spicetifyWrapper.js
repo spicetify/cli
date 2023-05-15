@@ -243,7 +243,16 @@ const Spicetify = {
         get Request() {
             return Spicetify.Platform?.GraphQLLoader || Spicetify.GraphQL.Handler?.(Spicetify.GraphQL.Context);
         },
-        Definitions: {}
+        Definitions: {},
+        get QueryDefinitions() {
+            return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.some(def => def.kind === "OperationDefinition" && def.operation === "query")));
+        },
+        get MutationDefinitions() {
+            return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.some(def => def.kind === "OperationDefinition" && def.operation === "mutation")));
+        },
+        get ResponseDefinitions() {
+            return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.every(def => def.kind !== "OperationDefinition")));
+        },
     },
     ReactComponent: {},
     ReactHook: {},
@@ -1342,7 +1351,6 @@ Spicetify.Topbar = (function() {
             this.disabled = disabled;
             this.tippy = Spicetify.Tippy?.(this.element, {
                 content: label,
-                placement: "bottom",
                 ...Spicetify.TippyProps,
             });
             this.label = label;
@@ -1417,7 +1425,7 @@ Spicetify.Playbar = (function() {
     const buttonsStash = new Set();
 
     class Button {
-        constructor(label, icon, onClick, disabled = false, active = false, registerOnCreate = true) {
+        constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
             this.element = document.createElement("button");
             this.element.classList.add("main-genericButton-button");
             this.element.style.display = "block";
@@ -1494,7 +1502,92 @@ Spicetify.Playbar = (function() {
         });
     }
 
-    return { Button };
+    const widgetStash = new Set();
+    let nowPlayingWidget;
+
+    class Widget {
+        constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
+            this.element = document.createElement("button");
+            this.element.classList.add("main-addButton-button");
+            this.icon = icon;
+            this.onClick = onClick;
+            this.disabled = disabled;
+            this.active = active;
+            this.tippy = Spicetify.Tippy?.(this.element, {
+                content: label,
+                ...Spicetify.TippyProps,
+            });
+            this.label = label;
+            registerOnCreate && this.register();
+        }
+        get label() { return this._label; }
+        set label(text) {
+            this._label = text;
+            if (!this.tippy) this.element.setAttribute("title", text);
+            else this.tippy.setContent(text);
+        }
+        get icon() { return this._icon; }
+        set icon(input) {
+            if (input && Spicetify.SVGIcons[input]) {
+                input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
+            }
+            this._icon = input;
+            this.element.innerHTML = input;
+        }
+        get onClick() { return this._onClick; }
+        set onClick(func) {
+            this._onClick = func;
+            this.element.onclick = () => this._onClick(this);
+        }
+        get disabled() { return this._disabled; }
+        set disabled(bool) {
+            this._disabled = bool;
+            this.element.disabled = bool;
+            this.element.classList.toggle("main-addButton-disabled", bool);
+        }
+        set active(bool) {
+            this._active = bool;
+            this.element.classList.toggle("main-addButton-active", bool);
+        }
+        get active() { return this._active; }
+        register() {
+            widgetStash.add(this.element);
+            nowPlayingWidget?.append(this.element);
+        }
+        deregister() {
+            widgetStash.delete(this.element);
+            this.element.remove();
+        }
+    }
+
+    function waitForWidgetMounted() {
+        nowPlayingWidget = document.querySelector(".main-nowPlayingWidget-nowPlaying");
+        if (!nowPlayingWidget) {
+            setTimeout(waitForWidgetMounted, 300);
+            return;
+        }
+        nowPlayingWidget.append(...widgetStash);
+    };
+
+    (function attachObserver() {
+        const leftPlayer = document.querySelector(".main-nowPlayingBar-left");
+        if (!leftPlayer) {
+            setTimeout(attachObserver, 300);
+            return;
+        }
+        waitForWidgetMounted();
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.removedNodes.length > 0) {
+                    nowPlayingWidget = null;
+                    waitForWidgetMounted();
+                }
+            });
+        });
+        observer.observe(leftPlayer, {childList: true});
+    })();
+
+    return { Button, Widget };
 })();
 
 (function waitForHistoryAPI() {

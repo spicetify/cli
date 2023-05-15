@@ -57,6 +57,11 @@
 		content.appendChild(header);
 
 		content.appendChild(createSlider("trashbin-enabled", "Enabled", trashbinStatus, refreshEventListeners));
+		content.appendChild(
+			createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, state =>
+				state && initValue("trashbin-enabled", true) ? widget.register() : widget.deregister()
+			)
+		);
 
 		// Local Storage
 		header = document.createElement("h2");
@@ -69,7 +74,9 @@
 			createButton("Clear ", "Clear all items from trashbin (cannot be reverted).", () => {
 				trashSongList = {};
 				trashArtistList = {};
+				setWidgetState(false);
 				putDataLocal();
+				Spicetify.showNotification("Trashbin cleared!");
 			})
 		);
 	}
@@ -118,34 +125,48 @@
 		  color: rgba(var(--spice-rgb-text), .3);
 		}
 		button.reset {
-			line-height: 1.5rem;
-			font-weight: 700;
-			border: 0;
-			-moz-user-select: none;
-			background-color: var(--spice-text);
-			color: var(--spice-main);
-			font-size: inherit;
-			padding-block: 12px;
-			padding-inline: 32px;
-		}
-		button.reset:active {
-			background-color: var(--spice-subtext);
-			box-shadow: none;
-			transform: scale(1);
+		  font-weight: 700;
+		  font-size: medium;
+		  background-color: transparent;
+		  border-radius: 500px;
+		  transition-duration: 33ms;
+		  transition-property: background-color, border-color, color, box-shadow, filter, transform;
+		  padding-inline: 15px;
+		  border: 1px solid #727272;
+		  color: var(--spice-text);
+		  min-block-size: 32px;
+		  cursor: pointer;
 		}
 		button.reset:hover {
 		  transform: scale(1.04);
+		  border-color: var(--spice-text);
 		}`;
 		content.appendChild(style);
 	}
 
+	function initValue(item, defaultValue) {
+		try {
+			const value = JSON.parse(Spicetify.LocalStorage.get(item));
+			return value ?? defaultValue;
+		} catch {
+			return defaultValue;
+		}
+	}
+
 	// Settings Variables - Initial Values
-	const trashbinStatus = JSON.parse(Spicetify.LocalStorage.get("trashbin-enabled")) ?? true;
+	const trashbinStatus = initValue("trashbin-enabled", true);
+	const enableWidget = initValue("TrashbinWidgetIcon", true);
 
 	// Settings Menu Initialization
 	const content = document.createElement("div");
 	styleSettings();
 	settingsContent();
+
+	const trashbinIcon =
+		'<svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="currentcolor"><path d="M3 6v18h18v-18h-18zm5 14c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm5 0c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm5 0c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm4-18v2h-20v-2h5.711c.9 0 1.631-1.099 1.631-2h5.315c0 .901.73 2 1.631 2h5.712z"/></svg>';
+
+	const THROW_TEXT = "Place in Trashbin";
+	const UNTHROW_TEXT = "Remove from Trashbin";
 
 	new Spicetify.Menu.Item(
 		"Trashbin",
@@ -156,31 +177,59 @@
 				content
 			});
 		},
-		'<svg xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 24 24" fill="currentcolor"><path d="M3 6v18h18v-18h-18zm5 14c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm5 0c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm5 0c0 .552-.448 1-1 1s-1-.448-1-1v-10c0-.552.448-1 1-1s1 .448 1 1v10zm4-18v2h-20v-2h5.711c.9 0 1.631-1.099 1.631-2h5.315c0 .901.73 2 1.631 2h5.712z"/></svg>'
+		trashbinIcon
 	).register();
 
+	const widget = new Spicetify.Playbar.Widget(
+		THROW_TEXT,
+		trashbinIcon,
+		self => {
+			const uri = Spicetify.Player.data.track.uri;
+			const uriObj = Spicetify.URI.fromString(uri);
+			const type = uriObj.type;
+
+			if (!trashSongList[uri]) {
+				trashSongList[uri] = true;
+				if (shouldSkipCurrentTrack(uri, type)) Spicetify.Player.next();
+				Spicetify.showNotification("Song added to trashbin");
+			} else {
+				delete trashSongList[uri];
+				setWidgetState(false);
+				Spicetify.showNotification("Song removed from trashbin");
+			}
+
+			putDataLocal();
+		},
+		false,
+		false,
+		enableWidget
+	);
+
 	// LocalStorage Setup
-	let trashSongList = {};
-	let trashArtistList = {};
+	let trashSongList = initValue("TrashSongList", {});
+	let trashArtistList = initValue("TrashArtistList", {});
 	let userHitBack = false;
-
-	const THROW_TEXT = "Place In Trashbin";
-	const UNTHROW_TEXT = "Remove From Trashbin";
-
-	trashSongList = JSON.parse(Spicetify.LocalStorage.get("TrashSongList")) || {};
-	trashArtistList = JSON.parse(Spicetify.LocalStorage.get("TrashArtistList")) || {};
+	const eventListener = () => (userHitBack = true);
 
 	putDataLocal();
 	refreshEventListeners(trashbinStatus);
+	setWidgetState(trashSongList[Spicetify.Player.data.track.uri]);
 
 	function refreshEventListeners(state) {
 		if (state) {
-			skipBackBtn.addEventListener("click", () => (userHitBack = true));
+			skipBackBtn.addEventListener("click", eventListener);
 			Spicetify.Player.addEventListener("songchange", watchChange);
+			widget.register();
 		} else {
-			skipBackBtn.removeEventListener("click", () => (userHitBack = true));
+			skipBackBtn.removeEventListener("click", eventListener);
 			Spicetify.Player.removeEventListener("songchange", watchChange);
+			widget.deregister();
 		}
+	}
+
+	function setWidgetState(state) {
+		widget.active = !!state;
+		widget.label = state ? UNTHROW_TEXT : THROW_TEXT;
 	}
 
 	function watchChange() {
@@ -188,6 +237,7 @@
 		if (!data) return;
 
 		const isBanned = trashSongList[data.track.uri];
+		setWidgetState(isBanned);
 
 		if (userHitBack) {
 			userHitBack = false;
@@ -255,11 +305,13 @@
 
 		if (!list[uri]) {
 			list[uri] = true;
-			if (shouldSkipCurrentTrack(uri, type)) {
-				Spicetify.Player.next();
-			}
+			if (shouldSkipCurrentTrack(uri, type)) Spicetify.Player.next();
+			Spicetify.Player.data?.track.uri === uri && setWidgetState(true);
+			Spicetify.showNotification(type === Spicetify.URI.Type.TRACK ? "Song added to trashbin" : "Artist added to trashbin");
 		} else {
 			delete list[uri];
+			Spicetify.Player.data?.track.uri === uri && setWidgetState(false);
+			Spicetify.showNotification(type === Spicetify.URI.Type.TRACK ? "Song removed from trashbin" : "Artist removed from trashbin");
 		}
 
 		putDataLocal();
@@ -271,7 +323,7 @@
 	 * @returns {boolean}
 	 */
 	function shouldAddContextMenu(uris) {
-		if (uris.length > 1) {
+		if (uris.length > 1 || !initValue("trashbin-enabled", true)) {
 			return false;
 		}
 
@@ -290,7 +342,7 @@
 		return false;
 	}
 
-	const cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu);
+	const cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu, trashbinIcon);
 	cntxMenu.register();
 
 	function putDataLocal() {

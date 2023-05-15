@@ -1108,11 +1108,30 @@ declare namespace Spicetify {
      * Add button in player controls
      */
     namespace Playbar {
+        /**
+         * Create a button on the right side of the playbar
+         */
         class Button {
-            constructor(label: string, icon: Icon | string, onClick: (self: Button) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
+            constructor(label: string, icon: Icon | string, onClick?: (self: Button) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
             label: string;
             icon: string;
             onClick: (self: Button) => void;
+            disabled: boolean;
+            active: boolean;
+            element: HTMLButtonElement;
+            tippy: any;
+            register: () => void;
+            deregister: () => void;
+        }
+
+        /**
+         * Create a widget next to track info
+         */
+        class Widget {
+            constructor(label: string, icon: Icon | string, onClick?: (self: Widget) => void, disabled?: boolean, active?: boolean, registerOnCreate?: boolean);
+            label: string;
+            icon: string;
+            onClick: (self: Widget) => void;
             disabled: boolean;
             active: boolean;
             element: HTMLButtonElement;
@@ -1195,9 +1214,21 @@ declare namespace Spicetify {
          */
         type Query = "decorateItemsForEnhance" | "imageURLAndSize" | "imageSources" | "audioItems" | "creator" | "extractedColors" | "extractedColorsAndImageSources" | "fetchExtractedColorAndImageForAlbumEntity" | "fetchExtractedColorAndImageForArtistEntity" | "fetchExtractedColorAndImageForEpisodeEntity" | "fetchExtractedColorAndImageForPlaylistEntity" | "fetchExtractedColorAndImageForPodcastEntity" | "fetchExtractedColorAndImageForTrackEntity" | "fetchExtractedColorForAlbumEntity" | "fetchExtractedColorForArtistEntity" | "fetchExtractedColorForEpisodeEntity" | "fetchExtractedColorForPlaylistEntity" | "fetchExtractedColorForPodcastEntity" | "fetchExtractedColorForTrackEntity" | "getAlbumNameAndTracks" | "getEpisodeName" | "getTrackName" | "queryAlbumTrackUris" | "queryTrackArtists" | "decorateContextEpisodesOrChapters" | "decorateContextTracks" | "fetchTracksForRadioStation" | "decoratePlaylists" | "addToLibrary" | "removeFromLibrary" | "pinLibraryItem" | "unpinLibraryItem" | "fetchLibraryAlbums" | "areAlbumsInLibrary" | "fetchLibraryArtists" | "areArtistsInLibrary" | "fetchLibraryTracks" | "areTracksInLibrary" | "fetchLibraryShows" | "areShowsInLibrary" | "fetchLibraryAudiobooks" | "fetchLibraryEpisodes" | "areEpisodesInLibrary" | "libraryV2" | "playlistUser" | "FetchPlaylistMetadata" | "playlistContentsItemTrackArtist" | "playlistContentsItemTrackAlbum" | "playlistContentsItemTrack" | "playlistContentsItemLocalTrack" | "playlistContentsItemEpisodeShow" | "playlistContentsItemEpisode" | "playlistContentsItemResponse" | "playlistContentsItem" | "FetchPlaylistContents" | "fetchPlaylist" | "fetchPlaylistMetadata" | "fetchPlaylistContents" | "addToPlaylist" | "removeFromPlaylist" | "moveItemsInPlaylist" | "fetchEntitiesForRecentlyPlayed" | "queryShowAccessInfo" | "episodeTrailerUri" | "podcastEpisode" | "podcastMetadataV2" | "minimalAudiobook" | "audiobookChapter" | "audiobookMetadataV2" | "queryShowMetadataV2" | "queryBookChapters" | "getEpisodeOrChapter" | "queryPodcastEpisodes" | "fetchExtractedColors" | "queryFullscreenMode" | "queryNpvEpisode" | "queryNpvArtist" | "albumTrack" | "getAlbum" | "queryAlbumTracks" | "queryArtistOverview" | "queryArtistAppearsOn" | "discographyAlbum" | "albumMetadataReleases" | "albumMetadata" | "queryArtistDiscographyAlbums" | "queryArtistDiscographySingles" | "queryArtistDiscographyCompilations" | "queryArtistDiscographyAll" | "queryArtistDiscographyOverview" | "artistPlaylist" | "queryArtistPlaylists" | "queryArtistDiscoveredOn" | "queryArtistFeaturing" | "queryArtistRelated" | "queryArtistMinimal" | "searchModalResults" | "queryWhatsNewFeed" | "whatsNewFeedNewItems" | "SetItemsStateInWhatsNewFeed" | "browseImageURLAndSize" | "browseImageSources" | "browseAlbum" | "browseArtist" | "browseEpisode" | "browseChapter" | "browsePlaylist" | "browsePodcast" | "browseAudiobook" | "browseTrack" | "browseUser" | "browseMerch" | "browseArtistConcerts" | "browseContent" | "browseSectionContainer" | "browseClientFeature" | "browseItem" | "browseAll";
         /**
-         * GraphQL query definitions.
+         * Collection of GraphQL definitions.
          */
         const Definitions: Record<Query | string, any>;
+        /**
+         * GraphQL query definitions. Subset of `Definitions` that are used as query requests.
+         */
+        const QueryDefinitions: Record<Query | string, any>;
+        /**
+         * GraphQL mutation definitions. Subset of `Definitions` that are used as mutation requests.
+         */
+        const MutationDefinitions: Record<Query | string, any>;
+        /**
+         * GraphQL response definitions. Subset of `Definitions` that are used as response types.
+         */
+        const ResponseDefinitions: Record<Query | string, any>;
         /**
          * Sends a GraphQL query to Spotify.
          * @description A preinitialized version of `Spicetify.GraphQL.Handler` using current context.
