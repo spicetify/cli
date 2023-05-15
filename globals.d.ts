@@ -1249,4 +1249,25 @@ declare namespace Spicetify {
          */
         function Handler(context: Record<string, any>): (query: string, variables?: Record<string, any>) => Promise<any>;
     }
+
+    namespace ReactHook {
+        /**
+         * React Hook to create interactive drag-and-drop element
+         * @description Used to create a draggable element that can be dropped into Spotify's components (e.g. Playlist, Folder, Sidebar, Queue)
+         * @param uris List of URIs to be dragged
+         * @param label Label to be displayed when dragging
+         * @param contextUri Context URI of the element from which the drag originated (e.g. Playlist URI)
+         * @param sectionIndex Index of the section in which the drag originated
+         * @param dropOriginUri URI of the desired drop target. Leave empty to allow drop anywhere
+         * @return Function to handle drag event. Should be passed to `onDragStart` prop of the element. All parameters passed onto the hook will be passed onto the handler unless declared otherwise.
+         *
+         */
+        function DragHandler(
+            uris?: string[],
+            label?: string,
+            contextUri?: string,
+            sectionIndex?: number,
+            dropOriginUri?: string
+        ): (event: React.DragEvent, uris?: string[], label?: string, contextUri?: string, sectionIndex?: number) => void;
+    }
 }
