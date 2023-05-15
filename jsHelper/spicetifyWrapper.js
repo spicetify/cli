@@ -218,10 +218,18 @@ const Spicetify = {
     },
     GraphQL: {
         get Request() {
-            if (!Spicetify.GraphQL.Handler || !Spicetify.GraphQL.Context) return null;
-            return Spicetify.GraphQL.Handler(Spicetify.GraphQL.Context);
+            return Spicetify.Platform?.GraphQLLoader || Spicetify.GraphQL.Handler?.(Spicetify.GraphQL.Context);
         },
-        Definitions: {}
+        Definitions: {},
+        get QueryDefinitions() {
+            return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.some(def => def.kind === "OperationDefinition" && def.operation === "query")));
+        },
+        get MutationDefinitions() {
+            return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.some(def => def.kind === "OperationDefinition" && def.operation === "mutation")));
+        },
+        get ResponseDefinitions() {
+            return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.every(def => def.kind !== "OperationDefinition")));
+        },
     }
 };
 
