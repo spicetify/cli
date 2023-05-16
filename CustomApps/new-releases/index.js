@@ -103,7 +103,9 @@ class Grid extends react.Component {
 							"--grid-gap": "18px"
 						}
 					},
-					separatedByDate[date].map(card => !dismissed.includes(card.props.uri) && react.createElement(Card, card.props))
+					separatedByDate[date]
+						.filter(card => !dismissed.includes(card.props.uri))
+						.map(card => react.createElement(Card, { ...card.props, key: card.props.uri }))
 				)
 			);
 		}
@@ -171,7 +173,7 @@ class Grid extends react.Component {
 				dateList.push(dateStr);
 				separatedByDate[dateStr] = [];
 			}
-			separatedByDate[dateStr].push(react.createElement(Card, track));
+			separatedByDate[dateStr].push(react.createElement(Card, { ...track, key: track.uri }));
 		}
 
 		for (const date of dateList) {
