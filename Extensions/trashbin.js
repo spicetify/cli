@@ -213,7 +213,10 @@
 
 	putDataLocal();
 	refreshEventListeners(trashbinStatus);
-	setWidgetState(trashSongList[Spicetify.Player.data.track.uri]);
+	setWidgetState(
+		trashSongList[Spicetify.Player.data.track.uri],
+		Spicetify.URI.fromString(Spicetify.Player.data.track.uri).type !== Spicetify.URI.Type.TRACK
+	);
 
 	function refreshEventListeners(state) {
 		if (state) {
@@ -227,7 +230,8 @@
 		}
 	}
 
-	function setWidgetState(state) {
+	function setWidgetState(state, hidden = false) {
+		hidden ? widget.deregister() : widget.register();
 		widget.active = !!state;
 		widget.label = state ? UNTHROW_TEXT : THROW_TEXT;
 	}
@@ -236,8 +240,7 @@
 		const data = Spicetify.Player.data || Spicetify.Queue;
 		if (!data) return;
 
-		const isBanned = trashSongList[data.track.uri];
-		setWidgetState(isBanned);
+		setWidgetState(trashSongList[data.track.uri], Spicetify.URI.fromString(data.track.uri).type !== Spicetify.URI.Type.TRACK);
 
 		if (userHitBack) {
 			userHitBack = false;
