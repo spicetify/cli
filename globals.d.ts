@@ -474,6 +474,7 @@ declare namespace Spicetify {
         public args?: any;
         public category?: string;
         public username?: string;
+        public track?: string;
         public artist?: string;
         public album?: string;
         public query?: string;
