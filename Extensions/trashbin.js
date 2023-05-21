@@ -58,9 +58,9 @@
 
 		content.appendChild(createSlider("trashbin-enabled", "Enabled", trashbinStatus, refreshEventListeners));
 		content.appendChild(
-			createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, state =>
-				state && initValue("trashbin-enabled", true) ? widget.register() : widget.deregister()
-			)
+			createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, state => {
+				enableWidget = state && trashbinStatus ? widget.register() : widget.deregister();
+			})
 		);
 
 		// Local Storage
@@ -154,8 +154,8 @@
 	}
 
 	// Settings Variables - Initial Values
-	const trashbinStatus = initValue("trashbin-enabled", true);
-	const enableWidget = initValue("TrashbinWidgetIcon", true);
+	let trashbinStatus = initValue("trashbin-enabled", true);
+	let enableWidget = initValue("TrashbinWidgetIcon", true);
 
 	// Settings Menu Initialization
 	const content = document.createElement("div");
@@ -219,10 +219,11 @@
 	);
 
 	function refreshEventListeners(state) {
+		trashbinStatus = state;
 		if (state) {
 			skipBackBtn.addEventListener("click", eventListener);
 			Spicetify.Player.addEventListener("songchange", watchChange);
-			widget.register();
+			enableWidget && initValuewidget.register();
 		} else {
 			skipBackBtn.removeEventListener("click", eventListener);
 			Spicetify.Player.removeEventListener("songchange", watchChange);
@@ -231,7 +232,7 @@
 	}
 
 	function setWidgetState(state, hidden = false) {
-		hidden ? widget.deregister() : widget.register();
+		hidden ? widget.deregister() : enableWidget && widget.register();
 		widget.active = !!state;
 		widget.label = state ? UNTHROW_TEXT : THROW_TEXT;
 	}
@@ -326,7 +327,7 @@
 	 * @returns {boolean}
 	 */
 	function shouldAddContextMenu(uris) {
-		if (uris.length > 1 || !initValue("trashbin-enabled", true)) {
+		if (uris.length > 1 || !trashbinStatus) {
 			return false;
 		}
 
