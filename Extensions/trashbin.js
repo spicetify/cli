@@ -59,7 +59,8 @@
 		content.appendChild(createSlider("trashbin-enabled", "Enabled", trashbinStatus, refreshEventListeners));
 		content.appendChild(
 			createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, state => {
-				enableWidget = state && trashbinStatus ? widget.register() : widget.deregister();
+				enableWidget = state;
+				state && trashbinStatus ? widget.register() : widget.deregister();
 			})
 		);
 
@@ -223,7 +224,7 @@
 		if (state) {
 			skipBackBtn.addEventListener("click", eventListener);
 			Spicetify.Player.addEventListener("songchange", watchChange);
-			enableWidget && initValuewidget.register();
+			enableWidget && widget.register();
 		} else {
 			skipBackBtn.removeEventListener("click", eventListener);
 			Spicetify.Player.removeEventListener("songchange", watchChange);
