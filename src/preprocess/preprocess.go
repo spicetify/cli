@@ -418,6 +418,36 @@ Spicetify.React.useEffect(() => {
 		`((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
 		`${1}Spicetify.GraphQL.Definitions[${3}]=${2}`)
 
+	// PanelAPI patch
+	utils.Replace(
+		&input,
+		`(switch\(([\w$])\)\{(?:case [\w$.]+(?:BuddyFeed|WhatsNewFeed|Puffin|NowPlayingView):return [\w$.]+(?:BuddyFeed|WhatsNewFeed|Puffin|NowPlayingView);)+)default:`,
+		`${1}default:return ${2};`)
+
+	// Panel content patch
+	utils.Replace(
+		&input,
+		`((?:case [\w$.]+(?:BuddyFeed|WhatsNewFeed|Puffin|NowPlayingView):return ?[\w$?]*(?:(\(0,[\w$]+\.jsx\))\([\w(){},.:]+)?[\w:]*;)+default:)return`,
+		`${1}return Spicetify.Panel.handler();`)
+
+	// React Component: Panel Skeleton
+	utils.Replace(
+		&input,
+		`([\w$]+)=(\(\{(?:(?:label|itemUri|className|style|children):\w,?){4,})`,
+		`${1}=Spicetify.ReactComponent.PanelSkeleton=${2}`)
+
+	// React Component: Panel Content
+	utils.Replace(
+		&input,
+		`([\w$]+)=([\w$]+\.forwardRef[\w(){}=>.,:]+scrollBarContainer)`,
+		`${1}=Spicetify.ReactComponent.PanelContent=${2}`)
+
+	// React Component: Panel Header
+	utils.Replace(
+		&input,
+		`([\w$]+)=(\(\{(?:(?:link|title|panel|isAdvert|actions|onClose|className):\w,?){3})`,
+		`${1}=Spicetify.ReactComponent.PanelHeader=${2}`)
+
 	return input
 }
 

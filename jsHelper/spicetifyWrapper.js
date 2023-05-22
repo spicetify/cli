@@ -257,6 +257,50 @@ const Spicetify = {
     ReactComponent: {},
     ReactHook: {},
     URI: {},
+    Panel: {
+        panelContent: new Map(),
+        reservedPanelIds: {
+            0: "Disabled",
+            1: "BuddyFeed",
+            2: "NowPlayingView",
+            3: "WhatsNewFeed",
+            4: "Puffin"
+        },
+        handler: () => {
+            const currentPanel = Spicetify.Panel.currentPanel;
+            return Spicetify.Panel.panelContent.has(currentPanel) ? Spicetify.Panel.panelContent.get(currentPanel) : null;
+        },
+        get currentPanel() {
+            return Spicetify.Platform.PanelAPI.getLastCachedPanelState();
+        },
+        setPanel: (id) => Spicetify.Platform.PanelAPI.setPanelState(id),
+        subscribe: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
+        registerPanel: ({ id, label, panelClassname, wrapperClassname, headerClassname, headerLink, children }) => {
+            if (typeof id !== "number") throw new Error("Panel ID must be a number");
+            if (Spicetify.Panel.reservedPanelIds[id]) throw new Error(`Panel ID ${id} is reserved for "${reservedPanelIds[id]}"`);
+
+            Spicetify.Panel.panelContent.set(id, Spicetify.React.createElement(
+                Spicetify.ReactComponent.PanelSkeleton,
+                {
+                  label,
+                  className: "Root__right-sidebar" + (panelClassname ? ` ${panelClassname}` : ""),
+                },
+                Spicetify.React.createElement(
+                  Spicetify.ReactComponent.PanelContent,
+                  {
+                    className: wrapperClassname,
+                  },
+                  Spicetify.React.createElement(Spicetify.ReactComponent.PanelHeader, {
+                    title: label,
+                    panel: id,
+                    link: headerLink,
+                    className: headerClassname,
+                  }),
+                  Spicetify.React.createElement(children)
+                )
+              ));
+        },
+    }
 };
 
 // Wait for Spicetify.Player.origin._state before adding following APIs
@@ -1753,6 +1797,55 @@ Spicetify.Playbar = (function() {
         console.error(err);
     }
 })();
+
+(function test() {
+    if (!Spicetify.Platform || !Spicetify.React) {
+        setTimeout(test, 300);
+        return;
+    }
+
+    function panelContent() {
+        return Spicetify.React.createElement(
+            "div",
+            { className: "clock" },
+            Spicetify.React.createElement(
+                "div",
+                { className: "clock__time" },
+                Spicetify.React.createElement(
+                    "span",
+                    { className: "clock__time__hours" },
+                    new Date().toLocaleTimeString([], { hour: "2-digit", hour12: false })
+                ),
+                Spicetify.React.createElement(
+                    "span",
+                    { className: "clock__time__minutes" },
+                    new Date().toLocaleTimeString([], { minute: "2-digit" })
+                )
+            ),
+            Spicetify.React.createElement(
+                "div",
+                { className: "clock__date" },
+                new Date().toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" })
+            )
+        );
+    }
+
+    Spicetify.Panel.registerPanel({
+        id: 6,
+        label: "Clock",
+        children: panelContent,
+    });
+
+    const button = new Spicetify.Playbar.Button("Clock", "clock", (self) => {
+        if (!self.active) {
+          Spicetify.Platform.PanelAPI.setPanelState(6);
+          self.active = true;
+        } else {
+          Spicetify.Platform.PanelAPI.setPanelState(0);
+            self.active = false;
+        }
+      });
+})()
 
 // Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
 window.Spicetify = Spicetify;
