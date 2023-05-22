@@ -296,7 +296,7 @@ const Spicetify = {
                     link: headerLink,
                     className: headerClassname,
                   }),
-                  Spicetify.React.createElement(children)
+                  children
                 )
               ));
         },
