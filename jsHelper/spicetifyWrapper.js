@@ -1798,54 +1798,5 @@ Spicetify.Playbar = (function() {
     }
 })();
 
-(function test() {
-    if (!Spicetify.Platform || !Spicetify.React) {
-        setTimeout(test, 300);
-        return;
-    }
-
-    function panelContent() {
-        return Spicetify.React.createElement(
-            "div",
-            { className: "clock" },
-            Spicetify.React.createElement(
-                "div",
-                { className: "clock__time" },
-                Spicetify.React.createElement(
-                    "span",
-                    { className: "clock__time__hours" },
-                    new Date().toLocaleTimeString([], { hour: "2-digit", hour12: false })
-                ),
-                Spicetify.React.createElement(
-                    "span",
-                    { className: "clock__time__minutes" },
-                    new Date().toLocaleTimeString([], { minute: "2-digit" })
-                )
-            ),
-            Spicetify.React.createElement(
-                "div",
-                { className: "clock__date" },
-                new Date().toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" })
-            )
-        );
-    }
-
-    Spicetify.Panel.registerPanel({
-        id: 6,
-        label: "Clock",
-        children: panelContent,
-    });
-
-    const button = new Spicetify.Playbar.Button("Clock", "clock", (self) => {
-        if (!self.active) {
-          Spicetify.Platform.PanelAPI.setPanelState(6);
-          self.active = true;
-        } else {
-          Spicetify.Platform.PanelAPI.setPanelState(0);
-            self.active = false;
-        }
-      });
-})()
-
 // Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
 window.Spicetify = Spicetify;
