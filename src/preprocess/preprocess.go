@@ -422,13 +422,19 @@ Spicetify.React.useEffect(() => {
 	utils.Replace(
 		&input,
 		`(switch\(([\w$])\)\{(?:case [\w$.]+(?:BuddyFeed|WhatsNewFeed|Puffin|NowPlayingView):return [\w$.]+(?:BuddyFeed|WhatsNewFeed|Puffin|NowPlayingView);)+)default:`,
-		`${1}default:return ${2};`)
+		`${1}default:return Spicetify.Panel.contentMap?.has(${2})?${2}:0;`)
 
 	// Panel content patch
 	utils.Replace(
 		&input,
 		`((?:case [\w$.]+(?:BuddyFeed|WhatsNewFeed|Puffin|NowPlayingView):return ?[\w$?]*(?:(\(0,[\w$]+\.jsx\))\([\w(){},.:]+)?[\w:]*;)+default:)return`,
-		`${1}return Spicetify.Panel.handler();`)
+		`${1}return Spicetify.Panel.render();`)
+
+	// Reserved panels
+	utils.Replace(
+		&input,
+		`,([\w$]+)\[[\w$]+\.BuddyFeed`,
+		`,Spicetify.Panel.reservedPanelIds=${1}${0}`)
 
 	// React Component: Panel Skeleton
 	utils.Replace(

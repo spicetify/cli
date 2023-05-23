@@ -258,48 +258,10 @@ const Spicetify = {
     ReactHook: {},
     URI: {},
     Panel: {
-        panelContent: new Map(),
-        reservedPanelIds: {
-            0: "Disabled",
-            1: "BuddyFeed",
-            2: "NowPlayingView",
-            3: "WhatsNewFeed",
-            4: "Puffin"
+        render: () => {
+            return null;
         },
-        handler: () => {
-            const currentPanel = Spicetify.Panel.currentPanel;
-            return Spicetify.Panel.panelContent.has(currentPanel) ? Spicetify.Panel.panelContent.get(currentPanel) : null;
-        },
-        get currentPanel() {
-            return Spicetify.Platform.PanelAPI.getLastCachedPanelState();
-        },
-        setPanel: (id) => Spicetify.Platform.PanelAPI.setPanelState(id),
-        subscribe: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
-        registerPanel: ({ id, label, panelClassname, wrapperClassname, headerClassname, headerLink, children }) => {
-            if (typeof id !== "number") throw new Error("Panel ID must be a number");
-            if (Spicetify.Panel.reservedPanelIds[id]) throw new Error(`Panel ID ${id} is reserved for "${reservedPanelIds[id]}"`);
-
-            Spicetify.Panel.panelContent.set(id, Spicetify.React.createElement(
-                Spicetify.ReactComponent.PanelSkeleton,
-                {
-                  label,
-                  className: "Root__right-sidebar" + (panelClassname ? ` ${panelClassname}` : ""),
-                },
-                Spicetify.React.createElement(
-                  Spicetify.ReactComponent.PanelContent,
-                  {
-                    className: wrapperClassname,
-                  },
-                  Spicetify.React.createElement(Spicetify.ReactComponent.PanelHeader, {
-                    title: label,
-                    panel: id,
-                    link: headerLink,
-                    className: headerClassname,
-                  }),
-                  children
-                )
-              ));
-        },
+        contentMap: new Map(),
     }
 };
 
@@ -1634,6 +1596,100 @@ Spicetify.Playbar = (function() {
     })();
 
     return { Button, Widget };
+})();
+
+(function waitForPanelAPI() {
+    if (!Spicetify.Platform?.PanelAPI || !Spicetify.React || !Spicetify.Panel.reservedPanelIds) {
+        setTimeout(waitForPanelAPI, 300);
+        return;
+    }
+
+    const contentMap = new Map(
+        Object.entries(Spicetify.Panel.reservedPanelIds)
+            .filter(([key]) => !isNaN(parseInt(key)))
+            .map(([key, value]) => [parseInt(key), value])
+    )
+
+    Spicetify.Panel = {
+        reservedPanelIds: Spicetify.Panel.reservedPanelIds,
+        Components: {
+            PanelSkeleton: Spicetify.ReactComponent.PanelSkeleton,
+            PanelContent: Spicetify.ReactComponent.PanelContent,
+            PanelHeader: Spicetify.ReactComponent.PanelHeader,
+        },
+        get contentMap() { return contentMap; },
+        render: () => {
+            const { currentPanel } = Spicetify.Panel;
+            return !Spicetify.Panel.reservedPanelIds[currentPanel] && contentMap.get(Spicetify.Panel.currentPanel) || null;
+        },
+        get currentPanel() {
+            return Spicetify.Platform.PanelAPI.getLastCachedPanelState();
+        },
+        setPanel: (id) => Spicetify.Platform.PanelAPI.setPanelState(id),
+        subPanelState: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
+        registerPanel: ({ label, panelClassname, wrapperClassname, headerClassname, headerLink, children }) => {
+            if (!Spicetify.React.isValidElement(children)) throw new Error("Children must be a valid React element");
+
+            const id = [...contentMap.keys()].sort((a, b) => a - b).pop() + 1;
+            const content = Spicetify.React.createElement(
+                    Spicetify.ReactComponent.PanelSkeleton,
+                    {
+                        label,
+                        className: "Root__right-sidebar" + (panelClassname ? ` ${panelClassname}` : ""),
+                    },
+                    Spicetify.React.createElement(
+                        Spicetify.ReactComponent.PanelContent,
+                        {
+                            className: wrapperClassname,
+                        },
+                        Spicetify.React.createElement(Spicetify.ReactComponent.PanelHeader, {
+                            title: label,
+                            panel: id,
+                            link: headerLink,
+                            className: headerClassname,
+                        }),
+                        children
+                    )
+                )
+
+            contentMap.set(id, content);
+
+            let isActive = Spicetify.Panel.currentPanel === id;
+
+            return {
+                id,
+                toggle: () => {
+                    const { currentPanel } = Spicetify.Panel;
+                    Spicetify.Panel.setPanel(currentPanel === id ? 0 : id);
+                },
+                onStateChange: (callback) => {
+                    Spicetify.Panel.subPanelState((panel) => {
+                        const activeState = panel === id;
+                        if (activeState !== isActive) {
+                            isActive = activeState;
+                            callback(isActive);
+                        }
+                    });
+                },
+                get isActive() { return Spicetify.Panel.currentPanel === id; },
+            };
+        },
+    };
+
+    (async function renderPanelOnDemand() {
+        const { currentPanel } = Spicetify.Panel;
+        if (currentPanel === 0) return;
+
+        if (!currentPanel) {
+            setTimeout(renderPanelOnDemand, 300);
+            return;
+        }
+
+        if (!document.querySelector("aside")) {
+            await Spicetify.Panel.setPanel(0);
+            Spicetify.Panel.setPanel(currentPanel);
+        }
+    })();
 })();
 
 (function waitForHistoryAPI() {
