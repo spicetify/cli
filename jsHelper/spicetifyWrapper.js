@@ -258,10 +258,7 @@ const Spicetify = {
     ReactHook: {},
     URI: {},
     Panel: {
-        render: () => {
-            return null;
-        },
-        contentMap: new Map(),
+        render: () => null,
     }
 };
 
@@ -1599,7 +1596,7 @@ Spicetify.Playbar = (function() {
 })();
 
 (function waitForPanelAPI() {
-    if (!Spicetify.Platform?.PanelAPI || !Spicetify.React || !Spicetify.Panel.reservedPanelIds) {
+    if (!Spicetify.Platform?.PanelAPI?.prefs || !Spicetify.React || !Spicetify.Panel.reservedPanelIds) {
         setTimeout(waitForPanelAPI, 300);
         return;
     }
@@ -1611,7 +1608,7 @@ Spicetify.Playbar = (function() {
     )
 
     Spicetify.Panel = {
-        reservedPanelIds: Spicetify.Panel.reservedPanelIds,
+        ...Spicetify.Panel,
         Components: {
             PanelSkeleton: Spicetify.ReactComponent.PanelSkeleton,
             PanelContent: Spicetify.ReactComponent.PanelContent,
@@ -1627,7 +1624,7 @@ Spicetify.Playbar = (function() {
         },
         setPanel: (id) => Spicetify.Platform.PanelAPI.setPanelState(id),
         subPanelState: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
-        registerPanel: ({ label, panelClassname, wrapperClassname, headerClassname, headerLink, children }) => {
+        registerPanel: ({ label, panelClassname, wrapperClassname, headerClassname, headerVariant, headerSemanticColor, headerLink, children }) => {
             if (!Spicetify.React.isValidElement(children)) throw new Error("Children must be a valid React element");
 
             const id = [...contentMap.keys()].sort((a, b) => a - b).pop() + 1;
@@ -1647,6 +1644,8 @@ Spicetify.Playbar = (function() {
                             panel: id,
                             link: headerLink,
                             className: headerClassname,
+                            titleVariant: headerVariant,
+                            titleSemanticColor: headerSemanticColor,
                         }),
                         children
                     )
@@ -1676,18 +1675,19 @@ Spicetify.Playbar = (function() {
         },
     };
 
-    (async function renderPanelOnDemand() {
+    // Render is sometimes ran before the wrapper is initialized, so we need to refresh it
+    (async function renderOnDemand() {
         const { currentPanel } = Spicetify.Panel;
-        if (currentPanel === 0) return;
-
-        if (!currentPanel) {
-            setTimeout(renderPanelOnDemand, 300);
+        if (typeof currentPanel !== "number") {
+            setTimeout(renderOnDemand, 300);
             return;
         }
-
-        if (!document.querySelector("aside")) {
+        const cachedPanelState = await Spicetify.Platform.PanelAPI.prefs.get({ key:"ui.right_panel_content" });
+        const cachedPanelId = parseInt(cachedPanelState.entries["ui.right_panel_content"].number);
+        if (!Spicetify.Panel.reservedPanelIds[cachedPanelId] && currentPanel !== cachedPanelId) {
+            console.log("[Spicetify] Restoring panel state", new Date().toLocaleTimeString());
             await Spicetify.Panel.setPanel(0);
-            Spicetify.Panel.setPanel(currentPanel);
+            Spicetify.Panel.setPanel(cachedPanelId);
         }
     })();
 })();
