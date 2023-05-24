@@ -2375,5 +2375,14 @@
     "AnelgzgI75Dckf_LHUiK": "search-modal-entityImage",
     "u9KYiVXeDRQDGlTDH6rM": "playlist-playlist-noBooklistSupportContainer",
     "iqDYHLUedgX8y1eM1zep": "x-carousel-button",
-    "ge8K7iQqLE77g0FDGfDn": "x-carousel-carousel"
+    "ge8K7iQqLE77g0FDGfDn": "x-carousel-carousel",
+    "IebnAuNOhIG5mDVNJQ5M": "main-noConnection-isError",
+    "N3juGUCH1EhEzmffNHAp": "main-noConnection-isNotice",
+    "g_OLJCea3ISA_OEZXMld": "main-topBarStatusIndicator-enter",
+    "eUtkhxZmvSKe4G9vJbvG": "main-topBarStatusIndicator-enterActive",
+    "y0CwI5JkA0h0OyLFf53Q": "main-topBarStatusIndicator-exitActive",
+    "JbIx9RVHwxVXRbXAJaeN": "main-topBarStatusIndicator-notMinimized",
+    "FannkPV_e2vWawF9QgVA": "main-topBarStatusIndicator-tooltipEnter",
+    "CtNz_OQHOZ5Z0mJMHjzw": "main-topBarStatusIndicator-tooltipEnterActive",
+    "rSvmoStBWe2Cft5bw9ya": "main-topBarStatusIndicator-tooltipIsError",
 }
