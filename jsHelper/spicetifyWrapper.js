@@ -257,9 +257,6 @@ const Spicetify = {
     ReactComponent: {},
     ReactHook: {},
     URI: {},
-    Panel: {
-        render: () => null,
-    }
 };
 
 // Wait for Spicetify.Player.origin._state before adding following APIs
@@ -1596,31 +1593,39 @@ Spicetify.Playbar = (function() {
 })();
 
 (function waitForPanelAPI() {
-    if (!Spicetify.Platform?.PanelAPI?.prefs || !Spicetify.React || !Spicetify.Panel.reservedPanelIds) {
+    if (!Spicetify.Platform?.PanelAPI || !Spicetify.React || !Spicetify._reservedPanelIds) {
         setTimeout(waitForPanelAPI, 300);
         return;
     }
 
+    // Workaround for older versions
+    let currentPanelId = 0, fallback = false;
+    if (!Spicetify.Platform.PanelAPI.getLastCachedPanelState) {
+        fallback = true;
+        Spicetify.Platform.PanelAPI.subscribeToPanelState((panelId) => {
+            currentPanelId = panelId
+        });
+    }
+
     const contentMap = new Map(
-        Object.entries(Spicetify.Panel.reservedPanelIds)
-            .filter(([key]) => !isNaN(parseInt(key)))
-            .map(([key, value]) => [parseInt(key), value])
+        Object.entries(Spicetify._reservedPanelIds).map(([key, value]) => !isNaN(parseInt(key)) && [parseInt(key), value]).filter(Boolean)
     )
 
     Spicetify.Panel = {
-        ...Spicetify.Panel,
+        reservedPanelIds: Spicetify._reservedPanelIds,
         Components: {
             PanelSkeleton: Spicetify.ReactComponent.PanelSkeleton,
             PanelContent: Spicetify.ReactComponent.PanelContent,
             PanelHeader: Spicetify.ReactComponent.PanelHeader,
         },
-        get contentMap() { return contentMap; },
+        hasPanel: (id) => contentMap.has(id),
+        getPanel: (id) => contentMap.get(id),
         render: () => {
-            const { currentPanel } = Spicetify.Panel;
+            const currentPanel = fallback ? currentPanelId : Spicetify.Panel.currentPanel;
             return !Spicetify.Panel.reservedPanelIds[currentPanel] && contentMap.get(Spicetify.Panel.currentPanel) || null;
         },
         get currentPanel() {
-            return Spicetify.Platform.PanelAPI.getLastCachedPanelState();
+            return Spicetify.Platform.PanelAPI.getLastCachedPanelState?.() ?? currentPanelId
         },
         setPanel: (id) => Spicetify.Platform.PanelAPI.setPanelState(id),
         subPanelState: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
@@ -1659,6 +1664,7 @@ Spicetify.Playbar = (function() {
                 id,
                 toggle: () => {
                     const { currentPanel } = Spicetify.Panel;
+                    currentPanelId = currentPanel === id ? 0 : id;
                     Spicetify.Panel.setPanel(currentPanel === id ? 0 : id);
                 },
                 onStateChange: (callback) => {
@@ -1682,11 +1688,12 @@ Spicetify.Playbar = (function() {
             setTimeout(renderOnDemand, 300);
             return;
         }
+
         const cachedPanelState = await Spicetify.Platform.PanelAPI.prefs.get({ key:"ui.right_panel_content" });
         const cachedPanelId = parseInt(cachedPanelState.entries["ui.right_panel_content"].number);
         if (!Spicetify.Panel.reservedPanelIds[cachedPanelId] && currentPanel !== cachedPanelId) {
-            console.log("[Spicetify] Restoring panel state", new Date().toLocaleTimeString());
             await Spicetify.Panel.setPanel(0);
+            currentPanelId = cachedPanelId;
             Spicetify.Panel.setPanel(cachedPanelId);
         }
     })();
