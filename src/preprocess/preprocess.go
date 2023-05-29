@@ -418,6 +418,42 @@ Spicetify.React.useEffect(() => {
 		`((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
 		`${1}Spicetify.GraphQL.Definitions[${3}]=${2}`)
 
+	// Panel API patch
+	utils.Replace(
+		&input,
+		`(switch\(([\w$])\)\{case [\w$.]+BuddyFeed:return [\w$.]+BuddyFeed;(?:case [\w$.]+:return [\w$.]+;)*)default:`,
+		`${1}default:return Spicetify.Panel?.hasPanel?.(${2})?${2}:0;`)
+
+	// Panel component patch
+	utils.Replace(
+		&input,
+		`(case [\w$.]+BuddyFeed:return ?[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:case [\w$.]+:return ?[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;)*)default:`,
+		`${1}default:return Spicetify.Panel?.render()??null;`)
+
+	// Reserved panels
+	utils.Replace(
+		&input,
+		`,([\w$]+)\[[\w$]+\.BuddyFeed`,
+		`,Spicetify._reservedPanelIds=${1}${0}`)
+
+	// React Component: Panel Skeleton
+	utils.Replace(
+		&input,
+		`([\w$]+)=(\(\{(?:(?:label|itemUri|className|style|children):\w,?){4,})`,
+		`${1}=Spicetify.ReactComponent.PanelSkeleton=${2}`)
+
+	// React Component: Panel Content
+	utils.Replace(
+		&input,
+		`([\w$]+)=([\w$(){}=>.,:]+scrollBarContainer)`,
+		`${1}=Spicetify.ReactComponent.PanelContent=${2}`)
+
+	// React Component: Panel Header
+	utils.Replace(
+		&input,
+		`([\w$]+)=(\(\{(?:(?:link|title|panel|isAdvert|actions|onClose|className):[\w$=!]+,?){3,})`,
+		`${1}=Spicetify.ReactComponent.PanelHeader=${2}`)
+
 	return input
 }
 

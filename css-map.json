@@ -2390,7 +2390,7 @@
     "jEMA2gVoLgPQqAFrPhFw": "Root__main-view",
     "lPapCDz3v_LipgXwe8gi": "Root__top-container--right-sidebar-hidden",
     "UalNRoO1omHtEEniypS5": "main-downloadClient-container",
-    "OTfMDdomT5S7B5dbYTT8": "Root__nav-right-sidebar",
+    "OTfMDdomT5S7B5dbYTT8": "Root__right-sidebar",
     "mMjg1Gizg9kYk8ILoTdp": "Root__main-view-overlay",
     "UnLGG6p932k7WyjkB9Vo": "desktopmodals-aboutSpotifyModal-container",
     "GSFvITwD84dS2JA62Mtj": "desktopmodals-aboutSpotifyModal-closeButton",
@@ -2419,5 +2419,6 @@
     "l35q2le3C8eAxw1TKELD": "x-settings-wordBreakAll",
     "V4Bh2Ch7KvYUdn2s9ZdX": "x-settings-hidden",
     "EvQHNTBhaU3rGCRRlAWj": "artist-artistDiscography-topBar",
-    "QplCuuGSoV4updqTSLq9": "artist-artistDiscography-topBarScrolled"
+    "QplCuuGSoV4updqTSLq9": "artist-artistDiscography-topBarScrolled",
+    "GGx57b6ZwGgzUeTpynUw": "main-collectionLinkButton-iconWrapper"
 }

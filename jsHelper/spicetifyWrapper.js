@@ -118,8 +118,10 @@ const Spicetify = {
             "_getStyledClassName",
             "GraphQL",
             "ReactHook",
-            "_sidebarItemXToClone",
-            "AppTitle"
+            "_sidebarXItemToClone",
+            "AppTitle",
+            "_reservedPanelIds",
+            "Panel"
         ];
 
         const PLAYER_METHOD = [
@@ -173,6 +175,9 @@ const Spicetify = {
             "TextComponent",
             "IconComponent",
             "ConfirmDialog",
+            "PanelContent",
+            "PanelSkeleton",
+            "PanelHeader"
         ]
 
         const REACT_HOOK = [
@@ -1595,6 +1600,124 @@ Spicetify.Playbar = (function() {
     })();
 
     return { Button, Widget };
+})();
+
+(function waitForPanelAPI() {
+    if (!Spicetify.Platform?.PanelAPI || !Spicetify.React || !Spicetify._reservedPanelIds) {
+        setTimeout(waitForPanelAPI, 300);
+        return;
+    }
+
+    // Workaround for older versions
+    let currentPanelId = 0, fallback = false;
+    if (!Spicetify.Platform.PanelAPI.getLastCachedPanelState) {
+        fallback = true;
+        Spicetify.Platform.PanelAPI.subscribeToPanelState((panelId) => {
+            currentPanelId = panelId
+        });
+    }
+
+    const contentMap = new Map(
+        Object.entries(Spicetify._reservedPanelIds).map(([key, value]) => !isNaN(parseInt(key)) && [parseInt(key), value]).filter(Boolean)
+    )
+
+    Spicetify.Panel = {
+        reservedPanelIds: Spicetify._reservedPanelIds,
+        Components: {
+            PanelSkeleton: Spicetify.ReactComponent.PanelSkeleton,
+            PanelContent: Spicetify.ReactComponent.PanelContent,
+            PanelHeader: Spicetify.ReactComponent.PanelHeader,
+        },
+        hasPanel: (id) => contentMap.has(id),
+        getPanel: (id) => contentMap.get(id),
+        render: () => {
+            const { currentPanel } = Spicetify.Panel;
+            return !Spicetify.Panel.reservedPanelIds[currentPanel] && contentMap.get(Spicetify.Panel.currentPanel) || null;
+        },
+        get currentPanel() {
+            return fallback ? currentPanelId : Spicetify.Platform.PanelAPI.getLastCachedPanelState();
+        },
+        setPanel: async (id) => {
+            currentPanelId = id;
+            await Spicetify.Platform.PanelAPI.setPanelState(id)
+        },
+        subPanelState: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
+        registerPanel: ({ label, children, isCustom = false, style, wrapperClassname, headerClassname, headerVariant, headerSemanticColor, headerLink, headerActions, headerOnClose, headerPreventDefaultClose, headerOnBack }) => {
+            const id = [...contentMap.keys()].sort((a, b) => a - b).pop() + 1;
+            const content = isCustom
+                ? children
+                : Spicetify.React.createElement(
+                    Spicetify.ReactComponent.PanelSkeleton ?? "aside",
+                    {
+                        label,
+                        // Backwards compatibility, no longer needed in Spotify 1.2.12
+                        className: "Root__right-sidebar",
+                        style,
+                    },
+                    Spicetify.React.createElement(
+                        Spicetify.ReactComponent.PanelContent ?? "div",
+                        {
+                            className: wrapperClassname,
+                        },
+                        Spicetify.React.createElement(Spicetify.ReactComponent.PanelHeader ?? "div", {
+                            title: label,
+                            panel: id,
+                            link: headerLink,
+                            actions: headerActions,
+                            onClose: headerOnClose,
+                            onBack: headerOnBack,
+                            preventDefaultClose: headerPreventDefaultClose,
+                            className: headerClassname,
+                            titleVariant: headerVariant,
+                            titleSemanticColor: headerSemanticColor,
+                        }),
+                        children
+                    )
+                )
+
+            contentMap.set(id, content);
+
+            let isActive = Spicetify.Panel.currentPanel === id;
+
+            return {
+                id,
+                toggle: async () => {
+                    const { currentPanel } = Spicetify.Panel;
+                    currentPanelId = currentPanel === id ? 0 : id;
+                    await Spicetify.Panel.setPanel(currentPanel === id ? 0 : id);
+                },
+                onStateChange: (callback) => {
+                    Spicetify.Panel.subPanelState((panel) => {
+                        const activeState = panel === id;
+                        if (activeState !== isActive) {
+                            isActive = activeState;
+                            callback(isActive);
+                        }
+                    });
+                },
+                get isActive() { return Spicetify.Panel.currentPanel === id; },
+            };
+        },
+    };
+
+    // Render is sometimes ran before the wrapper is initialized, so we need to refresh it
+    (async function renderOnDemand() {
+        const { currentPanel } = Spicetify.Panel;
+        if (typeof currentPanel !== "number") {
+            setTimeout(renderOnDemand, 300);
+            return;
+        }
+
+        const cachedPanelState = await Spicetify.Platform.PanelAPI.prefs.get({ key: "ui.right_panel_content" });
+        const cachedPanelId = parseInt(cachedPanelState.entries["ui.right_panel_content"].number);
+        if (!Spicetify.Panel.reservedPanelIds[cachedPanelId] && currentPanel !== cachedPanelId) {
+            currentPanelId = 0;
+            await Spicetify.Panel.setPanel(0);
+
+            currentPanelId = cachedPanelId;
+            Spicetify.Panel.setPanel(cachedPanelId);
+        }
+    })();
 })();
 
 (function waitForHistoryAPI() {

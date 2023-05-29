@@ -1005,7 +1005,6 @@ declare namespace Spicetify {
              * Function to run when cancel button is clicked.
              * The dialog does not close automatically, a handler must be included.
              * @param {React.MouseEvent<HTMLButtonElement>} event
-             * @default () => {}
              */
             onClose?: (event: React.MouseEvent<HTMLButtonElement>) => void;
             /**
@@ -1013,9 +1012,90 @@ declare namespace Spicetify {
              * By default, this will run `onClose`.
              * A handler must be included to close the dialog.
              * @param {React.MouseEvent<HTMLButtonElement>} event
-             * @default () => {}
              */
             onOutside?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+        }
+        type PanelSkeletonProps = {
+            /**
+             * Aria label for the panel. Does not set the panel header content.
+             */
+            label?: string;
+            /**
+             * Item URI of the panel. Used as reference for Spotify's internal Event Factory.
+             */
+            itemUri?: string;
+            /**
+             * Additional class name to apply to the panel.
+             * @deprecated Spotify `1.2.12`
+             */
+            className?: string;
+            /**
+             * Additional styles to apply to the panel.
+             */
+            style?: React.CSSProperties;
+            /**
+             * Children to render inside the panel.
+             */
+            children?: React.ReactNode;
+        }
+        type PanelContentProps = {
+            /**
+             * Additional class name to apply to the panel.
+             */
+            className?: string;
+            /**
+             * Children to render inside the panel.
+             */
+            children?: React.ReactNode;
+        }
+        type PanelHeaderProps = {
+            /**
+             * Href for the header link.
+             * Can be either a URI for a path within the app, or a URL for an external link.
+             */
+            link?: string;
+            /**
+             * Title of the header.
+             */
+            title?: string;
+            /**
+             * Panel ID. Used to toggle panel open/closed state.
+             */
+            panel: number;
+            /**
+             * Whether or not the panel contains advertisements.
+             * @default false
+             */
+            isAdvert?: boolean;
+            /**
+             * Actions to render in the header.
+             */
+            actions?: React.ReactNode | React.ReactNode[];
+            /**
+             * Function to call when clicking on the close button.
+             * Called before the panel is closed.
+             */
+            onClose?: () => void;
+            /**
+             * Prevent the panel from closing when clicking on the header close button.
+             * @default false
+             */
+            preventDefaultClose?: boolean;
+            /**
+             * Function to call when clicking on the header back button.
+             * If not provided, the back button will not be rendered.
+             */
+            onBack?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+            /**
+             * Font variant for the header title.
+             * @default "balladBold"
+             */
+            titleVariant?: Variant;
+            /**
+             * Semantic color name for the header title.
+             * @default "textBase"
+             */
+            titleSemanticColor?: SemanticColor;
         }
         /**
          * Generic context menu provider
@@ -1089,6 +1169,27 @@ declare namespace Spicetify {
          * @see Spicetify.ReactComponent.ConfirmDialogProps
          */
         const ConfirmDialog: any;
+        /**
+         * Component to render Spotify-style panel skeleton
+         *
+         * Props:
+         * @see Spicetify.ReactComponent.PanelSkeletonProps
+         */
+        const PanelSkeleton: any;
+        /**
+         * Component to render Spotify-style panel content
+         *
+         * Props:
+         * @see Spicetify.ReactComponent.PanelContentProps
+         */
+        const PanelContent: any;
+        /**
+         * Component to render Spotify-style panel header
+         *
+         * Props:
+         * @see Spicetify.ReactComponent.PanelHeaderProps
+         */
+        const PanelHeader: any;
     }
 
     /**
@@ -1271,5 +1372,178 @@ declare namespace Spicetify {
             sectionIndex?: number,
             dropOriginUri?: string
         ): (event: React.DragEvent, uris?: string[], label?: string, contextUri?: string, sectionIndex?: number) => void;
+    }
+
+    /**
+     * An API wrapper to interact with Spotify's Panel/right sidebar.
+     */
+    namespace Panel {
+        /**
+         * Properties that are used by the `registerPanel` function.
+         */
+        type PanelProps = {
+            /**
+             * Label of the Panel.
+             */
+            label?: string;
+            /**
+             * Children to render inside the Panel.
+             * Must be a React Component.
+             */
+            children: React.ReactNode;
+            /**
+             * Determine if the children passed is a custom Panel.
+             * If true, the children will be rendered as is.
+             * Note: All passed props except `children` will be ignored if enabled.
+             *
+             * @default false
+             */
+            isCustom?: boolean;
+            /**
+             * Inline styles to apply to the Panel skeleton.
+             */
+            style?: React.CSSProperties;
+            /**
+             * Additional class name to apply to the Panel content wrapper.
+             */
+            wrapperClassname?: string;
+            /**
+             * Additional class name to apply to the Panel header.
+             */
+            headerClassname?: string;
+            /**
+             * Font variant for the Panel header title.
+             * @default "balladBold"
+             */
+            headerVariant?: Variant;
+            /**
+             * Semantic color name for the Panel header title.
+             * @default "textBase"
+             */
+            headerSemanticColor?: SemanticColor;
+            /**
+             * Href for the header link.
+             * Can be either a URI for a path within the app, or a URL for an external link.
+             */
+            headerLink?: string;
+            /**
+             * Additional actions to render in the header.
+             * Will be rendered next to the close button.
+             */
+            headerActions?: React.ReactNode | React.ReactNode[];
+            /**
+             * Function to call when clicking on the header close button.
+             * Called before the panel is closed.
+             */
+            headerOnClose?: () => void;
+            /**
+             * Prevent the panel from closing when clicking on the header close button.
+             * @default false
+             */
+            headerPreventDefaultClose?: boolean;
+            /**
+             * Function to call when clicking on the header back button.
+             * If not provided, the back button will not be rendered.
+             * @param event Event object
+             */
+            headerOnBack?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+        };
+
+        /**
+         * An object of reserved panel IDs used by Spotify.
+         */
+        const reservedPanelIds: Record<string | number, string | number>;
+        /**
+         * Collection of React Components used by Spotify in the Panel.
+         */
+        const Components: {
+            /**
+             * React Component for the Panel's skeleton.
+             *
+             * Props:
+             * @see Spicetify.ReactComponent.PanelSkeletonProps
+             */
+            PanelSkeleton: any;
+            /**
+             * React Component for the Panel's content.
+             *
+             * Props:
+             * @see Spicetify.ReactComponent.PanelContentProps
+             */
+            PanelContent: any;
+            /**
+             * React Component for the Panel's header.
+             *
+             * Props:
+             * @see Spicetify.ReactComponent.PanelHeaderProps
+             */
+            PanelHeader: any;
+        }
+        /**
+         * Check whether or not a Panel with the provided ID is registered.
+         * @param id Panel ID to check
+         * @return Whether or not a Panel with the provided ID is registered
+         */
+        function hasPanel(id: number): boolean;
+        /**
+         * Get the Panel with the provided ID.
+         * @param id Panel ID to get
+         * @return Panel with the provided ID
+         */
+        function getPanel(id: number): React.ReactNode | undefined;
+        /**
+         * Set the Panel with the provided ID.
+         * If the ID is not registered, it will be set to `0`.
+         * @param id Panel ID to set
+         */
+        function setPanel(id: number): Promise<void>;
+        /**
+         * Subscribe to Panel changes.
+         * @param callback Callback to call when Panel changes
+         */
+        function subPanelState(callback: (id: number) => void): void;
+        /**
+         * Register a new Panel.
+         * An ID will be automatically assigned to the Panel.
+         *
+         * To make it easier and convenient for developers to use the Panel API, this method by default wraps the children passed into a Panel skeleton and content wrapper.
+         *
+         * If you wish to customize the Panel, you can pass `isCustom` as `true` to disable the default wrapper.
+         *
+         * @param props Properties of the Panel
+         * @return Methods and properties of the Panel
+         */
+        function registerPanel(props: PanelProps): {
+            /**
+             * Assigned ID of the Panel.
+             */
+            id: number;
+            /**
+             * Function to toggle the Panel open/closed state.
+             */
+            toggle: () => Promise<void>;
+            /**
+             * Method to subscribe to the related Panel state.
+             * Only fires when the related Panel open/closed state changes.
+             */
+            onStateChange: (callback: (isActive: boolean) => void) => void;
+            /**
+             * Boolean to determine if the Panel is open.
+             */
+            isActive: boolean;
+        };
+        /**
+         * Function to render a Panel of the current ID.
+         * If the ID is not registered or is reserved by Spotify, the function will return `null`.
+         *
+         * Used as a hook for Spotify internal component.
+         * @return Panel of the current ID
+         */
+        function render(): React.ReactNode | null;
+        /**
+         * ID of the current Panel.
+         * @return ID of the current Panel
+         */
+        const currentPanel: number;
     }
 }
