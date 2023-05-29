@@ -118,7 +118,7 @@ const Spicetify = {
             "_getStyledClassName",
             "GraphQL",
             "ReactHook",
-            "_sidebarItemXToClone",
+            "_sidebarXItemToClone",
             "AppTitle"
         ];
 
@@ -173,6 +173,9 @@ const Spicetify = {
             "TextComponent",
             "IconComponent",
             "ConfirmDialog",
+            "PanelContent",
+            "PanelSkeleton",
+            "PanelHeader"
         ]
 
         const REACT_HOOK = [
@@ -1629,25 +1632,31 @@ Spicetify.Playbar = (function() {
         },
         setPanel: (id) => Spicetify.Platform.PanelAPI.setPanelState(id),
         subPanelState: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
-        registerPanel: ({ label, panelClassname, wrapperClassname, headerClassname, headerVariant, headerSemanticColor, headerLink, children }) => {
-            if (!Spicetify.React.isValidElement(children)) throw new Error("Children must be a valid React element");
-
+        registerPanel: ({ label, children, isCustom = false, style, wrapperClassname, headerClassname, headerVariant, headerSemanticColor, headerLink, headerActions, headerOnClose, headerPreventDefaultClose, headerOnBack }) => {
             const id = [...contentMap.keys()].sort((a, b) => a - b).pop() + 1;
-            const content = Spicetify.React.createElement(
-                    Spicetify.ReactComponent.PanelSkeleton,
+            const content = isCustom
+                ? children
+                : Spicetify.React.createElement(
+                    Spicetify.ReactComponent.PanelSkeleton ?? "aside",
                     {
                         label,
-                        className: "Root__right-sidebar" + (panelClassname ? ` ${panelClassname}` : ""),
+                        // Backwards compatibility, no longer needed in Spotify 1.2.12
+                        className: "Root__right-sidebar",
+                        style,
                     },
                     Spicetify.React.createElement(
-                        Spicetify.ReactComponent.PanelContent,
+                        Spicetify.ReactComponent.PanelContent ?? "div",
                         {
                             className: wrapperClassname,
                         },
-                        Spicetify.React.createElement(Spicetify.ReactComponent.PanelHeader, {
+                        Spicetify.React.createElement(Spicetify.ReactComponent.PanelHeader ?? "div", {
                             title: label,
                             panel: id,
                             link: headerLink,
+                            actions: headerActions,
+                            onClose: headerOnClose,
+                            onBack: headerOnBack,
+                            preventDefaultClose: headerPreventDefaultClose,
                             className: headerClassname,
                             titleVariant: headerVariant,
                             titleSemanticColor: headerSemanticColor,
@@ -1662,10 +1671,10 @@ Spicetify.Playbar = (function() {
 
             return {
                 id,
-                toggle: () => {
+                toggle: async () => {
                     const { currentPanel } = Spicetify.Panel;
                     currentPanelId = currentPanel === id ? 0 : id;
-                    Spicetify.Panel.setPanel(currentPanel === id ? 0 : id);
+                    await Spicetify.Panel.setPanel(currentPanel === id ? 0 : id);
                 },
                 onStateChange: (callback) => {
                     Spicetify.Panel.subPanelState((panel) => {
