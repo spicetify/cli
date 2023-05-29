@@ -306,14 +306,14 @@ color: var(--spice-button-disabled);
 	new MutationObserver(mutations => {
 		for (const mutation of mutations) {
 			if (mutation.attributeName === "class") {
-				if (mutation.target.classList.contains("hasYLXSidebar")) {
+				if (mutation.target.classList.contains("hasYLXSidebar") || !!mutation.target.querySelector(".main-yourLibraryX-entryPoints")) {
 					InitSidebarXConfig();
 				} else {
 					InitSidebarConfig();
 				}
 			}
 		}
-	}).observe(sidebar, { attributes: true, attributeFilter: ["class"] });
+	}).observe(sidebar, { childList: true, attributes: true, attributeFilter: ["class"] });
 
 	const customButtonStyle = document.createElement("style");
 	customButtonStyle.innerHTML = `
@@ -331,11 +331,11 @@ background: var(--spice-card);
 .main-rootlist-rootlist {
 margin-top: 0;
 }
-.Root__nav-bar:not(.hasYLXSidebar) #spicetify-show-list >* {
+.Root__nav-bar :not(.main-yourLibraryX-entryPoints) > #spicetify-show-list >* {
 padding: 0 24px 0 8px;
 }
-.hasYLXSidebar #spicetify-show-list,
-.hasYLXSidebar #spicetify-hidden-list {
+.main-yourLibraryX-entryPoints #spicetify-show-list,
+.main-yourLibraryX-entryPoints #spicetify-hidden-list {
 padding: 0 12px;
 }
 `;

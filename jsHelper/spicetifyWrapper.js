@@ -325,7 +325,12 @@ Spicetify.getAudioData = async (uri) => {
             .map((word) => word[0].toUpperCase() + word.slice(1))
             .join("");
         Spicetify.URI[`is${funcName}`] = (uri) => {
-            const uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
+            let uriObj;
+            try {
+                uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
+            } catch {
+                return false;
+            }
             if (!uriObj) return false;
             return uriObj.type === Spicetify.URI.Type[type];
         };

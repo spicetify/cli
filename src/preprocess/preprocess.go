@@ -492,7 +492,7 @@ func exposeAPIs_vendor(input string) string {
 			`([\w$_]+)(=\{AD:"ad")`,
 			`${1}=Spicetify.URI.Type${2}`)
 
-		utils.Replace(
+		utils.ReplaceOnce(
 			&input,
 			`function ([\w_$]+)\([\w,]+\)\{[\w&?!,;(){}= .]+[\w_$]\.allowedTypes`,
 			`Spicetify.URI.from=${1};${0}`)
