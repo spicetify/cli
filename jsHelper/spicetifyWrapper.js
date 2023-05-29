@@ -119,7 +119,9 @@ const Spicetify = {
             "GraphQL",
             "ReactHook",
             "_sidebarXItemToClone",
-            "AppTitle"
+            "AppTitle",
+            "_reservedPanelIds",
+            "Panel"
         ];
 
         const PLAYER_METHOD = [
