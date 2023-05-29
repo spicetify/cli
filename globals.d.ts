@@ -1521,11 +1521,11 @@ declare namespace Spicetify {
              * Method to subscribe to the related Panel state.
              * Only fires when the related Panel open/closed state changes.
              */
-            onStateChange: (callback: (isOpen: boolean) => void) => void;
+            onStateChange: (callback: (isActive: boolean) => void) => void;
             /**
              * Boolean to determine if the Panel is open.
              */
-            isOpen: boolean;
+            isActive: boolean;
         };
         /**
          * Function to render a Panel of the current ID.
