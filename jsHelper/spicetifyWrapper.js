@@ -1629,13 +1629,16 @@ Spicetify.Playbar = (function() {
         hasPanel: (id) => contentMap.has(id),
         getPanel: (id) => contentMap.get(id),
         render: () => {
-            const currentPanel = fallback ? currentPanelId : Spicetify.Panel.currentPanel;
+            const { currentPanel } = Spicetify.Panel;
             return !Spicetify.Panel.reservedPanelIds[currentPanel] && contentMap.get(Spicetify.Panel.currentPanel) || null;
         },
         get currentPanel() {
             return fallback ? currentPanelId : Spicetify.Platform.PanelAPI.getLastCachedPanelState();
         },
-        setPanel: (id) => Spicetify.Platform.PanelAPI.setPanelState(id),
+        setPanel: async (id) => {
+            currentPanelId = id;
+            await Spicetify.Platform.PanelAPI.setPanelState(id)
+        },
         subPanelState: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
         registerPanel: ({ label, children, isCustom = false, style, wrapperClassname, headerClassname, headerVariant, headerSemanticColor, headerLink, headerActions, headerOnClose, headerPreventDefaultClose, headerOnBack }) => {
             const id = [...contentMap.keys()].sort((a, b) => a - b).pop() + 1;
@@ -1706,7 +1709,9 @@ Spicetify.Playbar = (function() {
         const cachedPanelState = await Spicetify.Platform.PanelAPI.prefs.get({ key:"ui.right_panel_content" });
         const cachedPanelId = parseInt(cachedPanelState.entries["ui.right_panel_content"].number);
         if (!Spicetify.Panel.reservedPanelIds[cachedPanelId] && currentPanel !== cachedPanelId) {
+            currentPanelId = 0;
             await Spicetify.Panel.setPanel(0);
+
             currentPanelId = cachedPanelId;
             Spicetify.Panel.setPanel(cachedPanelId);
         }
