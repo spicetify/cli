@@ -1633,8 +1633,7 @@ Spicetify.Playbar = (function() {
             return !Spicetify.Panel.reservedPanelIds[currentPanel] && contentMap.get(Spicetify.Panel.currentPanel) || null;
         },
         get currentPanel() {
-            if (Spicetify.Platform.PanelAPI.getLastCachedPanelState) return Spicetify.Platform.PanelAPI.getLastCachedPanelState();
-            return currentPanelId;
+            return fallback ? currentPanelId : Spicetify.Platform.PanelAPI.getLastCachedPanelState();
         },
         setPanel: (id) => Spicetify.Platform.PanelAPI.setPanelState(id),
         subPanelState: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
