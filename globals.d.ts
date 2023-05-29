@@ -1505,6 +1505,11 @@ declare namespace Spicetify {
         /**
          * Register a new Panel.
          * An ID will be automatically assigned to the Panel.
+         *
+         * To make it easier and convenient for developers to use the Panel API, this method by default wraps the children passed into a Panel skeleton and content wrapper.
+         *
+         * If you wish to customize the Panel, you can pass `isCustom` as `true` to disable the default wrapper.
+         *
          * @param props Properties of the Panel
          * @return Methods and properties of the Panel
          */
