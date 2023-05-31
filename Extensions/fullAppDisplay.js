@@ -681,7 +681,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 		const fad = document.getElementById("full-app-display");
 
 		if (!fad) {
-			setTimeout(toggleCursor, 300);
+			setTimeout(toggleCursor, 300, showCursor);
 			return;
 		}
 
@@ -711,6 +711,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 		if (CONFIG.enableFullscreen || document.webkitIsFullScreen) {
 			document.exitFullscreen();
 		}
+		toggleCursor(true);
 		document.body.classList.remove(...classes);
 		reactDOM.unmountComponentAtNode(container);
 		style.remove();
