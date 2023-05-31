@@ -427,8 +427,8 @@ Spicetify.React.useEffect(() => {
 	// Panel component patch
 	utils.Replace(
 		&input,
-		`(case [\w$.]+BuddyFeed:return ?[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:case [\w$.]+:return ?[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;)*)default:`,
-		`${1}default:return Spicetify.Panel?.render()??null;`)
+		`(case [\w$.]+BuddyFeed:return ?[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:case [\w$.]+:return ?[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;)*)default:return ?([ \w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;?)`,
+		`${1}default:return Spicetify.Panel?.render()??${2}`)
 
 	// Reserved panels
 	utils.Replace(
