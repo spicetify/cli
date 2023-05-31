@@ -27,6 +27,9 @@
     left: 0;
     top: 0;
 }
+#full-app-display.hide-cursor {
+	cursor: none;
+}
 #fad-header {
     position: fixed;
     width: 100%;
@@ -654,11 +657,43 @@ body.video-full-screen.video-full-screen--hide-ui {
 	container.id = "fad-main";
 	let lastApp;
 
+	let cursorTimeout;
+	const eventListener = () => {
+		const fad = document.getElementById("full-app-display");
+		fad.classList.remove("hide-cursor");
+		clearTimeout(cursorTimeout);
+		cursorTimeout = setTimeout(() => {
+			fad.classList.add("hide-cursor");
+		}, 2000);
+	};
+
 	async function toggleFullscreen() {
 		if (CONFIG.enableFullscreen) {
 			await document.documentElement.requestFullscreen();
+			toggleCursor(false);
 		} else if (document.webkitIsFullScreen) {
 			await document.exitFullscreen();
+			toggleCursor(true);
+		}
+	}
+
+	function toggleCursor(showCursor = true) {
+		const fad = document.getElementById("full-app-display");
+
+		if (!fad) {
+			setTimeout(toggleCursor, 300);
+			return;
+		}
+
+		if (showCursor) {
+			fad.classList.remove("hide-cursor");
+			document.removeEventListener("mousemove", eventListener);
+			clearTimeout(cursorTimeout);
+		} else {
+			cursorTimeout = setTimeout(() => {
+				fad.classList.add("hide-cursor");
+			}, 2000);
+			document.addEventListener("mousemove", eventListener);
 		}
 	}
 
