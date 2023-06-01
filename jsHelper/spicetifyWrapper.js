@@ -1318,7 +1318,7 @@ Object.defineProperty(Spicetify, "TippyProps", {
             popper.appendChild(box);
 
             box.className = "main-contextMenu-tippy"
-            box.textContent = instance.props.content;
+            box[instance.props.allowHTML ? 'innerHTML' : 'textContent'] = instance.props.content;
 
             function onUpdate(prevProps, nextProps) {
               if (prevProps.content !== nextProps.content) {
