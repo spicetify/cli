@@ -225,6 +225,7 @@
 			skipBackBtn.addEventListener("click", eventListener);
 			Spicetify.Player.addEventListener("songchange", watchChange);
 			enableWidget && widget.register();
+			watchChange();
 		} else {
 			skipBackBtn.removeEventListener("click", eventListener);
 			Spicetify.Player.removeEventListener("songchange", watchChange);
@@ -242,7 +243,8 @@
 		const data = Spicetify.Player.data || Spicetify.Queue;
 		if (!data) return;
 
-		setWidgetState(trashSongList[data.track.uri], Spicetify.URI.fromString(data.track.uri).type !== Spicetify.URI.Type.TRACK);
+		const isBanned = trashSongList[data.track.uri];
+		setWidgetState(isBanned, Spicetify.URI.fromString(data.track.uri).type !== Spicetify.URI.Type.TRACK);
 
 		if (userHitBack) {
 			userHitBack = false;
