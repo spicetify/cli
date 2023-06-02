@@ -225,6 +225,7 @@
 			skipBackBtn.addEventListener("click", eventListener);
 			Spicetify.Player.addEventListener("songchange", watchChange);
 			enableWidget && widget.register();
+			watchChange();
 		} else {
 			skipBackBtn.removeEventListener("click", eventListener);
 			Spicetify.Player.removeEventListener("songchange", watchChange);
