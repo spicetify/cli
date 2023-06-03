@@ -280,8 +280,7 @@ declare namespace Spicetify {
             body: any;
             headers: Headers;
             status: number;
-            uri: string;
-            isSuccessStatus(status: number): boolean;
+            uri?: string;
         }
 
         function head(url: string, headers?: Headers): Promise<Headers>;
@@ -1315,7 +1314,7 @@ declare namespace Spicetify {
          *
          * This list is dynamic and may change in the future.
          */
-        type Query = "decorateItemsForEnhance" | "imageURLAndSize" | "imageSources" | "audioItems" | "creator" | "extractedColors" | "extractedColorsAndImageSources" | "fetchExtractedColorAndImageForAlbumEntity" | "fetchExtractedColorAndImageForArtistEntity" | "fetchExtractedColorAndImageForEpisodeEntity" | "fetchExtractedColorAndImageForPlaylistEntity" | "fetchExtractedColorAndImageForPodcastEntity" | "fetchExtractedColorAndImageForTrackEntity" | "fetchExtractedColorForAlbumEntity" | "fetchExtractedColorForArtistEntity" | "fetchExtractedColorForEpisodeEntity" | "fetchExtractedColorForPlaylistEntity" | "fetchExtractedColorForPodcastEntity" | "fetchExtractedColorForTrackEntity" | "getAlbumNameAndTracks" | "getEpisodeName" | "getTrackName" | "queryAlbumTrackUris" | "queryTrackArtists" | "decorateContextEpisodesOrChapters" | "decorateContextTracks" | "fetchTracksForRadioStation" | "decoratePlaylists" | "addToLibrary" | "removeFromLibrary" | "pinLibraryItem" | "unpinLibraryItem" | "fetchLibraryAlbums" | "areAlbumsInLibrary" | "fetchLibraryArtists" | "areArtistsInLibrary" | "fetchLibraryTracks" | "areTracksInLibrary" | "fetchLibraryShows" | "areShowsInLibrary" | "fetchLibraryAudiobooks" | "fetchLibraryEpisodes" | "areEpisodesInLibrary" | "libraryV2" | "playlistUser" | "FetchPlaylistMetadata" | "playlistContentsItemTrackArtist" | "playlistContentsItemTrackAlbum" | "playlistContentsItemTrack" | "playlistContentsItemLocalTrack" | "playlistContentsItemEpisodeShow" | "playlistContentsItemEpisode" | "playlistContentsItemResponse" | "playlistContentsItem" | "FetchPlaylistContents" | "fetchPlaylist" | "fetchPlaylistMetadata" | "fetchPlaylistContents" | "addToPlaylist" | "removeFromPlaylist" | "moveItemsInPlaylist" | "fetchEntitiesForRecentlyPlayed" | "queryShowAccessInfo" | "episodeTrailerUri" | "podcastEpisode" | "podcastMetadataV2" | "minimalAudiobook" | "audiobookChapter" | "audiobookMetadataV2" | "queryShowMetadataV2" | "queryBookChapters" | "getEpisodeOrChapter" | "queryPodcastEpisodes" | "fetchExtractedColors" | "queryFullscreenMode" | "queryNpvEpisode" | "queryNpvArtist" | "albumTrack" | "getAlbum" | "queryAlbumTracks" | "queryArtistOverview" | "queryArtistAppearsOn" | "discographyAlbum" | "albumMetadataReleases" | "albumMetadata" | "queryArtistDiscographyAlbums" | "queryArtistDiscographySingles" | "queryArtistDiscographyCompilations" | "queryArtistDiscographyAll" | "queryArtistDiscographyOverview" | "artistPlaylist" | "queryArtistPlaylists" | "queryArtistDiscoveredOn" | "queryArtistFeaturing" | "queryArtistRelated" | "queryArtistMinimal" | "searchModalResults" | "queryWhatsNewFeed" | "whatsNewFeedNewItems" | "SetItemsStateInWhatsNewFeed" | "browseImageURLAndSize" | "browseImageSources" | "browseAlbum" | "browseArtist" | "browseEpisode" | "browseChapter" | "browsePlaylist" | "browsePodcast" | "browseAudiobook" | "browseTrack" | "browseUser" | "browseMerch" | "browseArtistConcerts" | "browseContent" | "browseSectionContainer" | "browseClientFeature" | "browseItem" | "browseAll";
+        type Query = "decorateItemsForEnhance" | "imageURLAndSize" | "imageSources" | "audioItems" | "creator" | "extractedColors" | "extractedColorsAndImageSources" | "fetchExtractedColorAndImageForAlbumEntity" | "fetchExtractedColorAndImageForArtistEntity" | "fetchExtractedColorAndImageForEpisodeEntity" | "fetchExtractedColorAndImageForPlaylistEntity" | "fetchExtractedColorAndImageForPodcastEntity" | "fetchExtractedColorAndImageForTrackEntity" | "fetchExtractedColorForAlbumEntity" | "fetchExtractedColorForArtistEntity" | "fetchExtractedColorForEpisodeEntity" | "fetchExtractedColorForPlaylistEntity" | "fetchExtractedColorForPodcastEntity" | "fetchExtractedColorForTrackEntity" | "getAlbumNameAndTracks" | "getEpisodeName" | "getTrackName" | "queryAlbumTrackUris" | "queryTrackArtists" | "decorateContextEpisodesOrChapters" | "decorateContextTracks" | "fetchTracksForRadioStation" | "decoratePlaylists" | "playlistUser" | "FetchPlaylistMetadata" | "playlistContentsItemTrackArtist" | "playlistContentsItemTrackAlbum" | "playlistContentsItemTrack" | "playlistContentsItemLocalTrack" | "playlistContentsItemEpisodeShow" | "playlistContentsItemEpisode" | "playlistContentsItemResponse" | "playlistContentsItem" | "FetchPlaylistContents" | "episodeTrailerUri" | "podcastEpisode" | "podcastMetadataV2" | "minimalAudiobook" | "audiobookChapter" | "audiobookMetadataV2" | "fetchExtractedColors" | "queryFullscreenMode" | "queryNpvEpisode" | "queryNpvArtist" | "albumTrack" | "getAlbum" | "queryAlbumTracks" | "queryArtistOverview" | "queryArtistAppearsOn" | "discographyAlbum" | "albumMetadataReleases" | "albumMetadata" | "queryArtistDiscographyAlbums" | "queryArtistDiscographySingles" | "queryArtistDiscographyCompilations" | "queryArtistDiscographyAll" | "queryArtistDiscographyOverview" | "artistPlaylist" | "queryArtistPlaylists" | "queryArtistDiscoveredOn" | "queryArtistFeaturing" | "queryArtistRelated" | "queryArtistMinimal" | "searchModalResults" | "queryWhatsNewFeed" | "whatsNewFeedNewItems" | "SetItemsStateInWhatsNewFeed" | "browseImageURLAndSize" | "browseImageSources" | "browseAlbum" | "browseArtist" | "browseEpisode" | "browseChapter" | "browsePlaylist" | "browsePodcast" | "browseAudiobook" | "browseTrack" | "browseUser" | "browseMerch" | "browseArtistConcerts" | "browseContent" | "browseSectionContainer" | "browseClientFeature" | "browseItem" | "browseAll" | "browsePage";
         /**
          * Collection of GraphQL definitions.
          */
@@ -1337,9 +1336,10 @@ declare namespace Spicetify {
          * @description A preinitialized version of `Spicetify.GraphQL.Handler` using current context.
          * @param query Query to send
          * @param variables Variables to use
+         * @param context Context to use
          * @return Promise that resolves to the response
          */
-        function Request(query: typeof Definitions[Query | string], variables?: Record<string, any>): Promise<any>;
+        function Request(query: typeof Definitions[Query | string], variables?: Record<string, any>, context?: Record<string, any>): Promise<any>;
         /**
          * Context for GraphQL queries.
          * @description Used to set context for the handler and initialze it.
@@ -1350,7 +1350,7 @@ declare namespace Spicetify {
          * @param context Context to use
          * @return Function to handle GraphQL queries
          */
-        function Handler(context: Record<string, any>): (query: string, variables?: Record<string, any>) => Promise<any>;
+        function Handler(context: Record<string, any>): (query: typeof Definitions[Query | string], variables?: Record<string, any>, context?: Record<string, any>) => Promise<any>;
     }
 
     namespace ReactHook {
