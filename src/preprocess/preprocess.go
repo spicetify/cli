@@ -200,6 +200,7 @@ func colorVariableReplace(content string) string {
 	utils.Replace(&content, "#f8f8f8", " var(--spice-text)")
 
 	utils.Replace(&content, "#b3b3b3", "var(--spice-subtext)")
+	utils.Replace(&content, "#a7a7a7", "var(--spice-subtext)")
 
 	utils.Replace(&content, "#1db954", "var(--spice-button)")
 	utils.Replace(&content, "#1877f2", "var(--spice-button)")
@@ -355,19 +356,19 @@ Spicetify.React.useEffect(() => {
 	// React Component: Album Context Menu items
 	utils.Replace(
 		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"album")`,
+		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!?=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"album")`,
 		`${1}=Spicetify.ReactComponent.AlbumMenu${2}`)
 
 	// React Component: Show Context Menu items
 	utils.Replace(
 		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"show")`,
+		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!?=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"show")`,
 		`${1}=Spicetify.ReactComponent.PodcastShowMenu${2}`)
 
 	// React Component: Artist Context Menu items
 	utils.Replace(
 		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"artist")`,
+		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!?=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"artist")`,
 		`${1}=Spicetify.ReactComponent.ArtistMenu${2}`)
 
 	// React Component: Playlist Context Menu items
@@ -385,13 +386,19 @@ Spicetify.React.useEffect(() => {
 	// React Component: Confirm Dialog
 	utils.Replace(
 		&input,
-		`function ?([\w$_]+)\(\{(?:(?:onClose|isOpen|onOutside|titleText)[:!\w$_(){}=>]*,){3,}`,
+		`function ?([\w$_]+)(?:\(|\([\w$,]+\))\{[\w$., =(){}?:]*(?:[\w$. =]*(?:onClose|isOpen|onOutside|titleText)[?:|!\w$_(){}=> ]*,){2,}`,
 		`Spicetify.ReactComponent.ConfirmDialog=${1};${0}`)
 
 	// React Hook: Drag Handler
 	utils.Replace(
 		&input,
 		`([\w$]+=)((?:function)?\((?:[\w$](?:=[\[\]"\w]+)?,?)+\)(?:=>)?[\w:,=".,{}|()=>;]+"data-dragging-type")`,
+		`${1}Spicetify.ReactHook.DragHandler=${2}`)
+
+	// React Hook: Drag Handler - Fallback case
+	utils.Replace(
+		&input,
+		`([\w$]+=)((?:function)?\(\)(?:=>)?\{(?:[\w$= ]+arguments)[\w:,=".,{}!?|[\]()=>&; ]+"data-dragging-type")`,
 		`${1}Spicetify.ReactHook.DragHandler=${2}`)
 
 	// Locale
@@ -439,19 +446,19 @@ Spicetify.React.useEffect(() => {
 	// React Component: Panel Skeleton
 	utils.Replace(
 		&input,
-		`([\w$]+)=(\(\{(?:(?:label|itemUri|className|style|children):\w,?){4,})`,
+		`([\w$]+)=((\(|function\([\w$,]+\))\{[\w$., ]*(?:[\w$.=]*(?:label|itemUri|className|style|children)(:\w)?,?){4,})`,
 		`${1}=Spicetify.ReactComponent.PanelSkeleton=${2}`)
 
 	// React Component: Panel Content
 	utils.Replace(
 		&input,
-		`([\w$]+)=([\w$(){}=>.,:]+scrollBarContainer)`,
+		`([\w$]+)=((?:[\w$]+\.forwardRef|function|\()[\w$(){}=>.,:; ]+scrollBarContainer)`,
 		`${1}=Spicetify.ReactComponent.PanelContent=${2}`)
 
 	// React Component: Panel Header
 	utils.Replace(
 		&input,
-		`([\w$]+)=(\(\{(?:(?:link|title|panel|isAdvert|actions|onClose|className):[\w$=!]+,?){3,})`,
+		`([\w$]+)=((?:\(|function\([\w$,]+\))\{[\w$., ]*(?:[\w$.=]*(?:link|title|panel|isAdvert|actions|onClose|className)[\w:$=!]*,?){3,})`,
 		`${1}=Spicetify.ReactComponent.PanelHeader=${2}`)
 
 	return input
