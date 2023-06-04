@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/spicetify/spicetify-cli/src/utils"
@@ -297,25 +296,31 @@ func insertCustomApp(jsPath string, flags Flag) {
 			`\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
 			'(', ')')
 
-		content = strings.Replace(
-			content,
-			sidebarItemMatch,
-			sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
-			1)
-
-		sidebarXIsCollapsed := regexp.MustCompile(`\w+ ?\{isCollapsed:([\w$_.]+)\}`).FindStringSubmatch
+		// Prevent breaking on future Spotify update
+		if sidebarItemMatch != "" {
+			content = strings.Replace(
+				content,
+				sidebarItemMatch,
+				sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
+				1)
+		} else {
+			utils.PrintWarning("Sidebar item not found, ignoring")
+		}
 
 		sidebarXItemMatch := utils.SeekToCloseParen(
 			content,
 			`\("li",{className:[-\w".${}()?!:, ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()?!:, ]+,(\w+:[-\w".${}()?!&: ]+,)*children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,\{to:"/search"`,
 			'(', ')')
 
-		if len(sidebarXIsCollapsed(content)) > 1 {
+		// Prevent breaking on future Spotify update
+		if sidebarXItemMatch != "" {
 			content = strings.Replace(
 				content,
 				sidebarXItemMatch,
-				sidebarXItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],"+sidebarXIsCollapsed(content)[1]+")",
+				sidebarXItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],true)",
 				1)
+		} else {
+			utils.PrintWarning("Sidebar X item not found, ignoring")
 		}
 
 		if flags.SidebarConfig {

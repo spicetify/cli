@@ -1115,7 +1115,7 @@ Spicetify.ContextMenu = (function () {
     return { Item, SubMenu, _addItems };
 })();
 
-Spicetify._cloneSidebarItem = function (list, sidebarIsCollapsed) {
+Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 	function findChild(parent, key, value) {
 		if (!parent.props) {
             return null;
@@ -1148,7 +1148,9 @@ Spicetify._cloneSidebarItem = function (list, sidebarIsCollapsed) {
 
 	const React = Spicetify.React;
 	const reactObjs = [];
-	for (const app of list) {
+    const sidebarIsCollapsed = Spicetify.Platform?.LocalStorageAPI?.getItem?.("ylx-sidebar-state") === 1;
+	
+    for (const app of list) {
 		let manifest;
 		try {
 			var request = new XMLHttpRequest();
@@ -1172,7 +1174,7 @@ Spicetify._cloneSidebarItem = function (list, sidebarIsCollapsed) {
 		const appLink = "/" + app;
 		let obj, link;
 
-		if (typeof sidebarIsCollapsed === "boolean") {
+		if (isLibX) {
 			link = findChild(Spicetify._sidebarXItemToClone, "className", "main-yourLibraryX-navLink");
 			obj = React.cloneElement(
 				Spicetify._sidebarXItemToClone,
