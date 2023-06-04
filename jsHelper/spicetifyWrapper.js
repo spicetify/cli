@@ -1148,9 +1148,9 @@ Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 
 	const React = Spicetify.React;
 	const reactObjs = [];
-    const sidebarIsCollapsed = Spicetify.Platform?.LocalStorageAPI?.getItem?.("ylx-sidebar-state") === 1;
+	const sidebarIsCollapsed = Spicetify.Platform?.LocalStorageAPI?.getItem?.("ylx-sidebar-state") === 1;
 	
-    for (const app of list) {
+	for (const app of list) {
 		let manifest;
 		try {
 			var request = new XMLHttpRequest();
