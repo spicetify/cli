@@ -344,6 +344,36 @@ func pushApps(list ...string) {
 				}
 				pushExtensions(app, subfilePath)
 			}
+			for _, assetFile := range manifestJson.Assets {
+				assetsList, err := filepath.Glob(filepath.Join(customAppPath, assetFile))
+				if err != nil {
+					utils.PrintError(err.Error())
+					continue
+				}
+				for _, assetPath := range assetsList {
+					assetName, err := filepath.Rel(customAppPath, assetPath)
+					if err != nil {
+						utils.PrintError(err.Error())
+						continue
+					}
+					stat, err := os.Stat(assetPath)
+					if err != nil {
+						utils.PrintError(err.Error())
+						continue
+					}
+					if stat.IsDir() {
+						dest := filepath.Join(appDestPath, "xpui", "assets", app, assetName)
+						err = utils.Copy(assetPath, dest, true, []string{})
+					} else {
+						dest := filepath.Join(appDestPath, "xpui", "assets", app, filepath.Dir(assetName))
+						err = utils.CopyFile(assetPath, dest)
+					}
+					if err != nil {
+						utils.PrintError(err.Error())
+						continue
+					}
+				}
+			}
 		}
 
 		jsTemplate := fmt.Sprintf(
