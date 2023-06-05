@@ -293,6 +293,7 @@ func SeekToCloseParen(content string, regexpTerm string, leftChar, rightChar byt
 type AppManifest struct {
 	Files          []string `json:"subfiles"`
 	ExtensionFiles []string `json:"subfiles_extension"`
+	Assets         []string `json:"assets"`
 }
 
 func GetAppManifest(app string) (AppManifest, string, error) {
