@@ -344,10 +344,15 @@ func pushApps(list ...string) {
 				}
 				pushExtensions(app, subfilePath)
 			}
-			for _, assetFile := range manifestJson.Assets {
-				assetsList, err := filepath.Glob(filepath.Join(customAppPath, assetFile))
+			for _, assetExpr := range manifestJson.Assets {
+				assetsList, err := filepath.Glob(filepath.Join(customAppPath, assetExpr))
 				if err != nil {
 					utils.PrintError(err.Error())
+					continue
+				}
+				if len(assetsList) == 0 {
+					message := fmt.Sprintf("Custom App '%s': no assets found for expression \"%s\"", app, assetExpr)
+					utils.PrintWarning(message)
 					continue
 				}
 				for _, assetPath := range assetsList {
