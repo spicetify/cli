@@ -656,16 +656,8 @@ body.video-full-screen.video-full-screen--hide-ui {
 	const container = document.createElement("div");
 	container.id = "fad-main";
 	let lastApp;
-
 	let cursorTimeout;
-	const eventListener = () => {
-		const fad = document.getElementById("full-app-display");
-		fad.classList.remove("hide-cursor");
-		clearTimeout(cursorTimeout);
-		cursorTimeout = setTimeout(() => {
-			fad.classList.add("hide-cursor");
-		}, 2000);
-	};
+	let fad;
 
 	async function toggleFullscreen() {
 		if (CONFIG.enableFullscreen) {
@@ -677,22 +669,33 @@ body.video-full-screen.video-full-screen--hide-ui {
 		}
 	}
 
-	function toggleCursor(showCursor = true) {
-		const fad = document.getElementById("full-app-display");
+	function eventListener() {
+		showCursor();
+		cursorTimeout = setTimeout(hideCursor, 2000);
+	}
+
+	function showCursor() {
+		fad.classList.remove("hide-cursor");
+		clearTimeout(cursorTimeout);
+	}
+
+	function hideCursor() {
+		fad.classList.add("hide-cursor");
+	}
+
+	function toggleCursor(show = true) {
+		fad = document.getElementById("full-app-display");
 
 		if (!fad) {
-			setTimeout(toggleCursor, 300, showCursor);
+			setTimeout(toggleCursor, 300, show);
 			return;
 		}
 
-		if (showCursor) {
-			fad.classList.remove("hide-cursor");
+		if (show) {
 			document.removeEventListener("mousemove", eventListener);
-			clearTimeout(cursorTimeout);
+			showCursor();
 		} else {
-			cursorTimeout = setTimeout(() => {
-				fad.classList.add("hide-cursor");
-			}, 2000);
+			cursorTimeout = setTimeout(hideCursor, 2000);
 			document.addEventListener("mousemove", eventListener);
 		}
 	}
