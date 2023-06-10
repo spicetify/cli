@@ -55,12 +55,12 @@
 }
 
 .lyrics-lyricsContainer-LyricsContainer {
-    display: grid;
-    grid-template-rows: 1fr;
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    top: 0;
+	display: grid;
+	grid-template-rows: 1fr;
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	top: 0;
 }
 
 .lyrics-lyricsContainer-Loading {
