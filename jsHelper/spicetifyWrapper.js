@@ -674,16 +674,14 @@ Spicetify.SVGIcons = {
     }
 
     let subRequest;
-    const initialValue = await Spicetify.Platform.UserAPI._product_state.getValues();
-    const initialName = initialValue.pairs.name;
 
     Spicetify.AppTitle = {
         set: async (name) => {
             if (subRequest) subRequest.cancel();
-            await Spicetify.Platform.UserAPI._product_state.putValues({ pairs: { name }});
+            await Spicetify.Platform.UserAPI._product_state.putOverridesValues({ pairs: {name} });
             subRequest = Spicetify.Platform.UserAPI._product_state.subValues({ keys: ["name"] }, ({ pairs }) => {
                 if (pairs.name !== name) {
-                    Spicetify.Platform.UserAPI._product_state.putValues({ pairs: { name }}); // Restore name
+                    Spicetify.Platform.UserAPI._product_state.putOverridesValues({ pairs: { name }}); // Restore name
                 }
             });
             return subRequest;
@@ -694,7 +692,7 @@ Spicetify.SVGIcons = {
         },
         reset: async () => {
             if (subRequest) subRequest.cancel();
-            await Spicetify.Platform.UserAPI._product_state.putValues({ pairs: { name: initialName }});
+            await Spicetify.Platform.UserAPI._product_state.delOverridesValues({ keys: ["name"] })
         },
         sub: (callback) => {
             return Spicetify.Platform.UserAPI._product_state.subValues({ keys: ["name"] }, ({ pairs }) => {
