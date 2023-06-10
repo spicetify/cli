@@ -57,10 +57,10 @@
 .lyrics-lyricsContainer-LyricsContainer {
     display: grid;
     grid-template-rows: 1fr;
-    height: 100%;
-	width: 100%;
-    margin-top: -64px;
     position: absolute;
+    height: 100%;
+    width: 100%;
+    top: 0;
 }
 
 .lyrics-lyricsContainer-Loading {
