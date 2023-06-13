@@ -1642,7 +1642,8 @@ Spicetify.Playbar = (function() {
 
         render() {
           if (this.state.hasError) {
-            return null;
+            // `false` not `null`, so it won’t render beyond the null coalescing operator.
+            return false;
           }
 
           return this.props.children;
