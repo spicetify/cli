@@ -1350,22 +1350,32 @@ Object.defineProperty(Spicetify, "TippyProps", {
 
 Spicetify.Topbar = (function() {
     let leftContainer;
-    const buttonsStash = new Set();
+    let rightContainer;
+    const leftButtonsStash = new Set();
+    const rightButtonsStash = new Set();
 
     class Button {
-        constructor(label, icon, onClick, disabled = false) {
+        constructor(label, icon, onClick, disabled = false, isRight = false) {
             this.element = document.createElement("button");
-            this.element.classList.add("main-topBar-button");
+            this.label = label;
             this.icon = icon;
             this.onClick = onClick;
             this.disabled = disabled;
+            this.isRight = isRight;
             this.tippy = Spicetify.Tippy?.(this.element, {
                 content: label,
                 ...Spicetify.TippyProps,
             });
-            this.label = label;
-            buttonsStash.add(this.element);
-            leftContainer?.append(...buttonsStash);
+
+            if (isRight) {
+                this.element.classList.add('encore-over-media-set', 'main-topBar-buddyFeed');
+                rightButtonsStash.add(this.element);
+                rightContainer?.after(this.element);
+            } else {
+                this.element.classList.add('main-topBar-button');
+                leftButtonsStash.add(this.element);
+                leftContainer?.append(this.element)
+            }
         }
         get label() { return this._label; }
         set label(text) {
@@ -1390,21 +1400,20 @@ Spicetify.Topbar = (function() {
         set disabled(bool) {
             this._disabled = bool;
             this.element.disabled = bool;
-            if (bool) {
-                this.element.classList.add("disabled");
-            } else {
-                this.element.classList.remove("disabled");
-            }
+            this.element.classList.toggle("disabled", bool);
         }
     }
 
     function waitForTopbarMounted() {
         leftContainer = document.querySelector(".main-topBar-historyButtons");
-        if (!leftContainer) {
+        rightContainer = document.querySelector(".main-noConnection");
+        if (!leftContainer || !rightContainer) {
             setTimeout(waitForTopbarMounted, 300);
             return;
         }
-        leftContainer.append(...buttonsStash);
+
+        leftContainer.append(...leftButtonsStash);
+        rightContainer.after(...rightButtonsStash);
     };
 
     waitForTopbarMounted();
@@ -1419,6 +1428,7 @@ Spicetify.Topbar = (function() {
             mutations.forEach((mutation) => {
                 if (mutation.removedNodes.length > 0) {
                     leftContainer = null;
+                    rightContainer = null;
                     waitForTopbarMounted();
                 }
             });
