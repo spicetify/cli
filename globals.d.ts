@@ -1389,6 +1389,7 @@ declare namespace Spicetify {
             /**
              * Children to render inside the Panel.
              * Must be a React Component.
+             * Will be passed a `panel` prop with the Panel ID.
              */
             children: React.ReactNode;
             /**
