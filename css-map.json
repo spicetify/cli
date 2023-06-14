@@ -2449,5 +2449,19 @@
     "DjnRJuC2FcNrQ6Q6DerZ": "main-nowPlayingView-artistBioText",
     "wpJvLvrrnyP0_C7hLkqg": "main-nowPlayingView-merch",
     "qbOrWcMUhSri1nPkZLQA": "main-nowPlayingView-queue",
-    "JG5J9NWJkaUO9fiKECMA": "Root__now-playing-bar"
+    "JG5J9NWJkaUO9fiKECMA": "Root__now-playing-bar",
+    "IAyWaeDamLJLjxuPeVKw": "main-topBar-buddyFeed",
+    "W0bXxvPV_DhyzwdJWRuU": "main-topBar-buddyFeedActive",
+    "CE17OcVsW2svuK7ebBcx": "main-topBar-buddyFeedIcon",
+    "I4p8r1UNjIGk9yv3H2Ms": "main-topBar-whatsNewFeed",
+    "t794tYAiOJib_IAmmdqq": "main-topBar-whatsNewFeedActive",
+    "t93PZphItuM19kPhX7tC": "main-topBar-whatsNewFeedIcon",
+    "RJGA3d0jzObTXwoMUH4p": "main-topBar-whatsNewFeedNotification",
+    "dmF7or26BvPJs5kQtYVH": "main-topBar-whatsNewFeedNotificationTitle",
+    "kwTbLplLLsW6T_LrtR7_": "main-topBar-whatsNewFeedNotificationDot",
+    "Fxnb0xe6bL7I7W8V0p6C": "main-userWidget-boxCondensed",
+    "RfdRTSGwulyQdDepLUTT": "main-userWidget-showDisplayName",
+    "VdLuku6YQT4tNLT6ojlD": "main-userWidget-unableToUpdate",
+    "YqPjzOfhtzbCf_QD3P1f": "main-userWidget-setupPlan",
+    "pEG0W4wkbkrOYURhz82H": "main-userWidget-hasAvatar"
 }
