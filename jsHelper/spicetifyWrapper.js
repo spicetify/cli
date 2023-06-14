@@ -1411,7 +1411,6 @@ Spicetify.Topbar = (function() {
             setTimeout(waitForTopbarMounted, 300);
             return;
         }
-
         leftContainer.append(...leftButtonsStash);
         rightContainer.after(...rightButtonsStash);
     };
