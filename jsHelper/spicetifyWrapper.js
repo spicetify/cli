@@ -1682,7 +1682,7 @@ Spicetify.Playbar = (function() {
         subPanelState: (callback) => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
         registerPanel: ({ label, children, isCustom = false, style, wrapperClassname, headerClassname, headerVariant, headerSemanticColor, headerLink, headerActions, headerOnClose, headerPreventDefaultClose, headerOnBack }) => {
             const id = [...contentMap.keys()].sort((a, b) => a - b).pop() + 1;
-            const Content = isCustom
+            const content = isCustom
                 ? children
                 : Spicetify.React.createElement(
                     Spicetify.ReactComponent.PanelSkeleton,
