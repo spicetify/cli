@@ -1654,7 +1654,8 @@ Spicetify.Playbar = (function() {
             return false;
           }
 
-          return this.props.children;
+          // Pass the `panel` prop with the current panel ID to the children
+          return Spicetify.React.cloneElement(this.props.children, { panel: this.props.id });
         }
     }
 
@@ -1684,7 +1685,7 @@ Spicetify.Playbar = (function() {
             const content = isCustom
                 ? children
                 : Spicetify.React.createElement(
-                    Spicetify.ReactComponent.PanelSkeleton ?? "aside",
+                    Spicetify.ReactComponent.PanelSkeleton,
                     {
                         label,
                         // Backwards compatibility, no longer needed in Spotify 1.2.12
@@ -1692,11 +1693,11 @@ Spicetify.Playbar = (function() {
                         style,
                     },
                     Spicetify.React.createElement(
-                        Spicetify.ReactComponent.PanelContent ?? "div",
+                        Spicetify.ReactComponent.PanelContent,
                         {
                             className: wrapperClassname,
                         },
-                        Spicetify.React.createElement(Spicetify.ReactComponent.PanelHeader ?? "div", {
+                        Spicetify.React.createElement(Spicetify.ReactComponent.PanelHeader, {
                             title: label,
                             panel: id,
                             link: headerLink,
@@ -1708,7 +1709,7 @@ Spicetify.Playbar = (function() {
                             titleVariant: headerVariant,
                             titleSemanticColor: headerSemanticColor,
                         }),
-                        children
+                        Spicetify.React.cloneElement(children, { panel: id })
                     )
                 )
 
