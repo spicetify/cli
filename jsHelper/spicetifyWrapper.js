@@ -1713,7 +1713,7 @@ Spicetify.Playbar = (function() {
                     )
                 )
 
-            contentMap.set(id, Spicetify.React.createElement(ErrorBoundary, { id }, Content));
+            contentMap.set(id, Spicetify.React.createElement(ErrorBoundary, { id }, content));
 
             let isActive = Spicetify.Panel.currentPanel === id;
 
