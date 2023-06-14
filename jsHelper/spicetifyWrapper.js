@@ -1357,7 +1357,6 @@ Spicetify.Topbar = (function() {
     class Button {
         constructor(label, icon, onClick, disabled = false, isRight = false) {
             this.element = document.createElement("button");
-            this.label = label;
             this.icon = icon;
             this.onClick = onClick;
             this.disabled = disabled;
@@ -1366,6 +1365,7 @@ Spicetify.Topbar = (function() {
                 content: label,
                 ...Spicetify.TippyProps,
             });
+            this.label = label;
 
             if (isRight) {
                 this.element.classList.add('encore-over-media-set', 'main-topBar-buddyFeed');
