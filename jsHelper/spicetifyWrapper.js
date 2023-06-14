@@ -1360,7 +1360,6 @@ Spicetify.Topbar = (function() {
             this.icon = icon;
             this.onClick = onClick;
             this.disabled = disabled;
-            this.isRight = isRight;
             this.tippy = Spicetify.Tippy?.(this.element, {
                 content: label,
                 ...Spicetify.TippyProps,
