@@ -1147,7 +1147,7 @@ Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 	const React = Spicetify.React;
 	const reactObjs = [];
 	const sidebarIsCollapsed = Spicetify.Platform?.LocalStorageAPI?.getItem?.("ylx-sidebar-state") === 1;
-	
+
 	for (const app of list) {
 		let manifest;
 		try {
@@ -1621,6 +1621,35 @@ Spicetify.Playbar = (function() {
         Object.entries(Spicetify._reservedPanelIds).map(([key, value]) => !isNaN(parseInt(key)) && [parseInt(key), value]).filter(Boolean)
     )
 
+    // https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary
+    class ErrorBoundary extends Spicetify.React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { hasError: false };
+        }
+
+        static getDerivedStateFromError(error) {
+          // Update state so the next render will show the fallback UI.
+          return { hasError: true };
+        }
+
+        componentDidCatch(error, info) {
+          Spicetify.showNotification(`Something went wrong in panel ID "${this.props.id}", check Console for error log`, true);
+          console.error(error);
+          console.error(`Error stack in panel ID "${this.props.id}": ${info.componentStack}`);
+          Spicetify.Panel.setPanel(Spicetify.Panel.reservedPanelIds.Disabled);
+        }
+
+        render() {
+          if (this.state.hasError) {
+            // `false` not `null`, so it won’t render beyond the null coalescing operator.
+            return false;
+          }
+
+          return this.props.children;
+        }
+    }
+
     Spicetify.Panel = {
         reservedPanelIds: Spicetify._reservedPanelIds,
         Components: {
@@ -1675,7 +1704,7 @@ Spicetify.Playbar = (function() {
                     )
                 )
 
-            contentMap.set(id, content);
+            contentMap.set(id, Spicetify.React.createElement(ErrorBoundary, { id }, content));
 
             let isActive = Spicetify.Panel.currentPanel === id;
 
