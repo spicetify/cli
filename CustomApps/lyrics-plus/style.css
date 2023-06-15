@@ -93,7 +93,7 @@
 	/* 2 padding blocks & 1 line height & Provider block */
 	height: calc(50vh - 90px - 8px - var(--lyrics-font-size));
 }
-.lyrics-lyricsContainer-UnsyncedLyricsPage:has(.lyrics-lyricsContainer-LyricsLine:nth-child(3)) .lyrics-lyricsContainer-LyricsUnsyncedPadding {
+.lyrics-lyricsContainer-UnsyncedLyricsPage:has(.lyrics-lyricsContainer-LyricsLine:nth-child(4)) .lyrics-lyricsContainer-LyricsUnsyncedPadding {
 	height: 10vh;
 }
 
