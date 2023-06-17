@@ -57,9 +57,10 @@
 .lyrics-lyricsContainer-LyricsContainer {
 	display: grid;
 	grid-template-rows: 1fr;
-	height: calc(100vh - 91px);
-	margin-bottom: -32px;
-	margin-top: -64px;
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	top: 0;
 }
 
 .lyrics-lyricsContainer-Loading {
@@ -89,7 +90,11 @@
 
 .lyrics-lyricsContainer-LyricsUnsyncedPadding {
 	display: flex;
-	height: 25vh;
+	/* 2 padding blocks & 1 line height & Provider block */
+	height: calc(50vh - 91px - 8px - var(--lyrics-font-size));
+}
+.lyrics-lyricsContainer-UnsyncedLyricsPage:has(.lyrics-lyricsContainer-LyricsLine:nth-child(4)) .lyrics-lyricsContainer-LyricsUnsyncedPadding {
+	height: 10vh;
 }
 
 .lyrics-lyricsContainer-SyncedLyricsPage {
