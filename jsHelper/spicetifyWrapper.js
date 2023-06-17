@@ -124,6 +124,7 @@ const Spicetify = {
             "_reservedPanelIds",
             "Panel",
             "ReactFlipToolkit",
+            "classnames",
         ];
 
         const PLAYER_METHOD = [
