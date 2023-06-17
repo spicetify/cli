@@ -9,7 +9,7 @@
 
     // classnames
     // https://github.com/JedWatson/classnames/
-    Spicetify.classnames = modules.filter(module => typeof module === "function").filter(module => module.toString().includes('"string"')).find(module => module.toString().includes("[native code]"));
+    Spicetify.classnames = modules.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]"));
 })();
 
 const Spicetify = {
