@@ -1,16 +1,3 @@
-(function hotloadWebpackModules() {
-    if (!window?.webpackChunkopen) {
-        setTimeout(hotloadWebpackModules, 10);
-        return;
-    }
-    // Force all webpack modules to load
-    const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
-    const modules = Object.keys(require.m).map(id => require(id));
-
-    // classnames
-    // https://github.com/JedWatson/classnames/
-    Spicetify.classnames = modules.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]"));
-})();
 
 const Spicetify = {
     get CosmosAsync() {return Spicetify.Player.origin?._cosmos},
@@ -279,6 +266,20 @@ const Spicetify = {
     ReactFlipToolkit: {},
     URI: {},
 };
+
+(function hotloadWebpackModules() {
+    if (!window?.webpackChunkopen) {
+        setTimeout(hotloadWebpackModules, 50);
+        return;
+    }
+    // Force all webpack modules to load
+    const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
+    const modules = Object.keys(require.m).map(id => require(id));
+
+    // classnames
+    // https://github.com/JedWatson/classnames/
+    Spicetify.classnames = modules.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]"));
+})();
 
 // Wait for Spicetify.Player.origin._state before adding following APIs
 (function waitOrigins() {
