@@ -261,6 +261,7 @@ const Spicetify = {
     },
     ReactComponent: {},
     ReactHook: {},
+    ReactFlipToolkit: {},
     URI: {},
 };
 

@@ -571,10 +571,27 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		`(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)`,
 		`${1}=Spicetify._getStyledClassName(arguments,this)`)
 
+	// Tippy
 	utils.Replace(
 		&input,
 		`([\w$_]+)\.setDefaultProps=`,
 		`Spicetify.Tippy=${1};${0}`)
+
+	// Flipper components
+	utils.Replace(
+		&input,
+		`(\w+ [\w$]+)=([\w$=(){}[\].,;!" ]+"Each Flipped component must wrap a single child")`,
+		`${1}=Spicetify.ReactFlipToolkit.Flipped=${2}`)
+
+	utils.Replace(
+		&input,
+		`([\w$]+)\.getSnapshotBeforeUpdate=`,
+		`Spicetify.ReactFlipToolkit.Flipper=${1},${0}`)
+
+	utils.Replace(
+		&input,
+		`([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})`,
+		`${1}=Spicetify.ReactFlipToolkit.Spring=${2}`)
 
 	return input
 }

@@ -1547,4 +1547,12 @@ declare namespace Spicetify {
          */
         const currentPanel: number;
     }
+
+    // React Flip Toolkit used by Spotify
+    // https://github.com/aholachek/react-flip-toolkit
+    namespace ReactFlipToolkit {
+        const Flipper: any;
+        const Flipped: any;
+        const Spring: any;
+    }
 }
