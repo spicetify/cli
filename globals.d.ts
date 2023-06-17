@@ -1555,4 +1555,8 @@ declare namespace Spicetify {
         const Flipped: any;
         const Spring: any;
     }
+
+    // classnames
+    // https://github.com/JedWatson/classnames
+    function classnames(...args: any[]): string;
 }

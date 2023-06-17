@@ -5,7 +5,11 @@
     }
     // Force all webpack modules to load
     const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
-    Object.keys(require.m).map(id => require(id));
+    const modules = Object.keys(require.m).map(id => require(id));
+
+    // classnames
+    // https://github.com/JedWatson/classnames/
+    Spicetify.classnames = modules.filter(module => typeof module === "function").filter(module => module.toString().includes('"string"')).find(module => module.toString().includes("[native code]"));
 })();
 
 const Spicetify = {
