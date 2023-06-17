@@ -303,8 +303,6 @@ func insertCustomApp(jsPath string, flags Flag) {
 				sidebarItemMatch,
 				sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
 				1)
-		} else {
-			utils.PrintWarning("Sidebar item not found, ignoring")
 		}
 
 		sidebarXItemMatch := utils.SeekToCloseParen(
