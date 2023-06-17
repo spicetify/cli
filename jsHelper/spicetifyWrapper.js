@@ -121,7 +121,8 @@ const Spicetify = {
             "_sidebarXItemToClone",
             "AppTitle",
             "_reservedPanelIds",
-            "Panel"
+            "Panel",
+            "ReactFlipToolkit",
         ];
 
         const PLAYER_METHOD = [
