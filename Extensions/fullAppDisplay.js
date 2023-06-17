@@ -27,6 +27,9 @@
     left: 0;
     top: 0;
 }
+#full-app-display.hide-cursor {
+	cursor: none;
+}
 #fad-header {
     position: fixed;
     width: 100%;
@@ -653,12 +656,47 @@ body.video-full-screen.video-full-screen--hide-ui {
 	const container = document.createElement("div");
 	container.id = "fad-main";
 	let lastApp;
+	let cursorTimeout;
+	let fad;
 
 	async function toggleFullscreen() {
 		if (CONFIG.enableFullscreen) {
 			await document.documentElement.requestFullscreen();
+			toggleCursor(false);
 		} else if (document.webkitIsFullScreen) {
 			await document.exitFullscreen();
+			toggleCursor(true);
+		}
+	}
+
+	function eventListener() {
+		showCursor();
+		cursorTimeout = setTimeout(hideCursor, 2000);
+	}
+
+	function showCursor() {
+		fad.classList.remove("hide-cursor");
+		clearTimeout(cursorTimeout);
+	}
+
+	function hideCursor() {
+		fad.classList.add("hide-cursor");
+	}
+
+	function toggleCursor(show = true) {
+		fad = document.getElementById("full-app-display");
+
+		if (!fad) {
+			setTimeout(toggleCursor, 300, show);
+			return;
+		}
+
+		if (show) {
+			document.removeEventListener("mousemove", eventListener);
+			showCursor();
+		} else {
+			cursorTimeout = setTimeout(hideCursor, 2000);
+			document.addEventListener("mousemove", eventListener);
 		}
 	}
 
@@ -676,6 +714,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 		if (CONFIG.enableFullscreen || document.webkitIsFullScreen) {
 			document.exitFullscreen();
 		}
+		toggleCursor(true);
 		document.body.classList.remove(...classes);
 		reactDOM.unmountComponentAtNode(container);
 		style.remove();
