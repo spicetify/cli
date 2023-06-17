@@ -1556,7 +1556,7 @@ declare namespace Spicetify {
     namespace ReactFlipToolkit {
         const Flipper: any;
         const Flipped: any;
-        const Spring: any;
+        const spring: any;
     }
 
     /**

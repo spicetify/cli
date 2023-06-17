@@ -591,7 +591,7 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 	utils.Replace(
 		&input,
 		`([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})`,
-		`${1}=Spicetify.ReactFlipToolkit.Spring=${2}`)
+		`${1}=Spicetify.ReactFlipToolkit.spring=${2}`)
 
 	return input
 }
