@@ -585,8 +585,8 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 
 	utils.Replace(
 		&input,
-		`([\w$]+)\.getSnapshotBeforeUpdate=`,
-		`Spicetify.ReactFlipToolkit.Flipper=${1},${0}`)
+		`([\w$]+=([\w$]+)\.prototype;)(return ?[\w$]+\.getSnapshotBeforeUpdate)`,
+		`${1}Spicetify.ReactFlipToolkit.Flipper=${2};${3}`)
 
 	utils.Replace(
 		&input,
