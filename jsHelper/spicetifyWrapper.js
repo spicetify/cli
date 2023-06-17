@@ -1,3 +1,4 @@
+
 const Spicetify = {
     get CosmosAsync() {return Spicetify.Player.origin?._cosmos},
     get Queue() {return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue},
@@ -121,7 +122,9 @@ const Spicetify = {
             "_sidebarXItemToClone",
             "AppTitle",
             "_reservedPanelIds",
-            "Panel"
+            "Panel",
+            "ReactFlipToolkit",
+            "classnames",
         ];
 
         const PLAYER_METHOD = [
@@ -261,8 +264,23 @@ const Spicetify = {
     },
     ReactComponent: {},
     ReactHook: {},
+    ReactFlipToolkit: {},
     URI: {},
 };
+
+(function hotloadWebpackModules() {
+    if (!window?.webpackChunkopen) {
+        setTimeout(hotloadWebpackModules, 50);
+        return;
+    }
+    // Force all webpack modules to load
+    const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
+    const modules = Object.keys(require.m).map(id => require(id));
+
+    // classnames
+    // https://github.com/JedWatson/classnames/
+    Spicetify.classnames = modules.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]"));
+})();
 
 // Wait for Spicetify.Player.origin._state before adding following APIs
 (function waitOrigins() {

@@ -1547,4 +1547,22 @@ declare namespace Spicetify {
          */
         const currentPanel: number;
     }
+
+    /**
+     * react-flip-toolkit
+     * @description A lightweight magic-move library for configurable layout transitions.
+     * @link https://github.com/aholachek/react-flip-toolkit
+     */
+    namespace ReactFlipToolkit {
+        const Flipper: any;
+        const Flipped: any;
+        const spring: any;
+    }
+
+    /**
+     * classnames
+     * @description A simple JavaScript utility for conditionally joining classNames together.
+     * @link https://github.com/JedWatson/classnames
+     */
+    function classnames(...args: any[]): string;
 }
