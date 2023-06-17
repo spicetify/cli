@@ -1,3 +1,13 @@
+(function hotloadWebpackModules() {
+    if (!window?.webpackChunkopen) {
+        setTimeout(hotloadWebpackModules, 10);
+        return;
+    }
+    // Force all webpack modules to load
+    const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
+    Object.keys(require.m).map(id => require(id));
+})();
+
 const Spicetify = {
     get CosmosAsync() {return Spicetify.Player.origin?._cosmos},
     get Queue() {return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue},
