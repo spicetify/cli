@@ -434,8 +434,8 @@ Spicetify.React.useEffect(() => {
 	// Panel component patch
 	utils.Replace(
 		&input,
-		`(case [\w$.]+BuddyFeed:return ?[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:case [\w$.]+:return ?[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;)*)default:return`,
-		`${1}default:return Spicetify.Panel?.render()??`)
+		`case [\w$.]+BuddyFeed:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?;(?:break;)?(?:case [\w$.]+:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:break;)?)*default:(?:return ?|[\w$]+=)`,
+		`${0} Spicetify.Panel?.render()??`)
 
 	// Reserved panels
 	utils.Replace(
