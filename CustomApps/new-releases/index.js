@@ -290,7 +290,7 @@ async function getArtistEverything(artist) {
 	const items = [];
 	const types = [
 		[CONFIG.album, releases.filter(r => r.type === "ALBUM"), Spicetify.Locale.get("album")],
-		// Appears on is not queried in GraphQL
+		// Appears on has a separate GraphQL query but does not provide enough information (release date), which requires recursively making requests for each album
 		// [CONFIG["appears-on"], releases.appears_on?.releases, Spicetify.Locale.get("artist.appears-on")],
 		[CONFIG.compilations, releases.filter(r => r.type === "COMPILATION"), Spicetify.Locale.get("compilation")],
 		[CONFIG["single-ep"], releases.filter(r => r.type === "SINGLE"), Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")]
