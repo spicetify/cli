@@ -310,7 +310,7 @@ async function getArtistEverything(artist) {
 
 async function getPodcastList() {
 	const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/shows/all?responseFormat=protobufJson");
-	return body.item;
+	return body.item ?? [];
 }
 
 async function getPodcastRelease(uri) {
