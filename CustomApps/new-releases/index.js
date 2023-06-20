@@ -273,7 +273,7 @@ async function getArtistList() {
 		policy: { list: { link: true, name: true } }
 	});
 	count(true);
-	return body.item;
+	return body.item ?? [];
 }
 
 async function getArtistEverything(artist) {
@@ -347,11 +347,6 @@ var count = (function () {
 
 async function fetchTracks() {
 	let artistList = await getArtistList();
-	if (!artistList?.length) {
-		Spicetify.showNotification("No artists to fetch releases from", true);
-		return;
-	}
-
 	Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
 	const requests = artistList.map(async obj => {
