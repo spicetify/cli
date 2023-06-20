@@ -278,13 +278,13 @@ async function getArtistList() {
 
 async function getArtistEverything(artist) {
 	const { queryArtistDiscographyAll } = Spicetify.GraphQL.Definitions;
-	const { data, error } = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
+	const { data, errors } = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
 		uri: artist.link,
 		offset: 0,
 		// Limit 100 since GraphQL has resource limit
 		limit: 100
 	});
-	if (error) throw error;
+	if (errors) throw errors;
 
 	const releases = data?.artistUnion.discography.all.items.map(r => r.releases.items).flat();
 	const items = [];
@@ -347,12 +347,17 @@ var count = (function () {
 
 async function fetchTracks() {
 	let artistList = await getArtistList();
+	if (!artistList?.length) {
+		Spicetify.showNotification("No artists to fetch releases from", true);
+		return;
+	}
+
 	Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
 	const requests = artistList.map(async obj => {
 		const artist = obj.artistMetadata;
 		return await getArtistEverything(artist).catch(err => {
-			console.debug("Could not fetch all releases - error code: " + err);
+			console.debug("Could not fetch all releases", err);
 			console.debug(`Missing releases from ${count()} artists`);
 		});
 	});
