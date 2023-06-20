@@ -244,13 +244,13 @@ function openConfig() {
 					type: ConfigSlider,
 					when: () => CONFIG["music"]
 				},
-				{
+				/* {
 					desc: Spicetify.Locale.get("artist.appears-on"),
 					key: "appears-on",
 					defaultValue: CONFIG["appears-on"],
 					type: ConfigSlider,
 					when: () => CONFIG["music"]
-				},
+				}, */
 				{
 					desc: Spicetify.Locale.get("artist.compilations"),
 					key: "compilations",

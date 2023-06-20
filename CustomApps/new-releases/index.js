@@ -33,7 +33,7 @@ const CONFIG = {
 	music: getConfig("new-releases:music", true),
 	album: getConfig("new-releases:album", true),
 	["single-ep"]: getConfig("new-releases:single-ep", true),
-	["appears-on"]: getConfig("new-releases:appears-on", false),
+	// ["appears-on"]: getConfig("new-releases:appears-on", false),
 	compilations: getConfig("new-releases:compilations", false),
 	range: localStorage.getItem("new-releases:range") || "30",
 	locale: localStorage.getItem("new-releases:locale") || navigator.language,
@@ -54,7 +54,7 @@ let lastScroll = 0;
 let gridUpdatePostsVisual;
 let removeCards;
 
-let today = new Date();
+let today = Date.now();
 CONFIG.range = parseInt(CONFIG.range) || 30;
 const DAY_DIVIDER = 24 * 3600 * 1000;
 let limitInMs = CONFIG.range * DAY_DIVIDER;
@@ -136,7 +136,7 @@ class Grid extends react.Component {
 		separatedByDate = {};
 		dateList = [];
 
-		today = new Date();
+		today = Date.now();
 		CONFIG.range = parseInt(CONFIG.range) || 30;
 		limitInMs = CONFIG.range * DAY_DIVIDER;
 
@@ -277,15 +277,23 @@ async function getArtistList() {
 }
 
 async function getArtistEverything(artist) {
-	const uid = artist.link.replace("spotify:artist:", "");
-	const body = await CosmosAsync.get(`wg://artist/v3/${uid}/desktop/entity?format=json`);
-	const releases = body?.releases;
+	const { queryArtistDiscographyAll } = Spicetify.GraphQL.Definitions;
+	const { data, error } = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
+		uri: artist.link,
+		offset: 0,
+		// Limit 100 since GraphQL has resource limit
+		limit: 100
+	});
+	if (error) throw error;
+
+	const releases = data?.artistUnion.discography.all.items.map(r => r.releases.items).flat();
 	const items = [];
 	const types = [
-		[CONFIG.album, releases.albums?.releases, Spicetify.Locale.get("album")],
-		[CONFIG["appears-on"], releases.appears_on?.releases, Spicetify.Locale.get("artist.appears-on")],
-		[CONFIG.compilations, releases.compilations?.releases, Spicetify.Locale.get("compilation")],
-		[CONFIG["single-ep"], releases.singles?.releases, Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")]
+		[CONFIG.album, releases.filter(r => r.type === "ALBUM"), Spicetify.Locale.get("album")],
+		// Appears on is not queried in GraphQL
+		// [CONFIG["appears-on"], releases.appears_on?.releases, Spicetify.Locale.get("artist.appears-on")],
+		[CONFIG.compilations, releases.filter(r => r.type === "COMPILATION"), Spicetify.Locale.get("compilation")],
+		[CONFIG["single-ep"], releases.filter(r => r.type === "SINGLE"), Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")]
 	];
 	for (const type of types) {
 		if (type[0] && type[1]) {
@@ -313,8 +321,8 @@ async function getPodcastRelease(uri) {
 }
 
 function metaFromTrack(artist, track) {
-	const time = new Date(track.year, track.month - 1, track.day);
-	if (today - time.getTime() < limitInMs) {
+	const time = Date.parse(track.date.isoString);
+	if (today - time < limitInMs) {
 		return {
 			uri: track.uri,
 			title: track.name,
@@ -322,9 +330,9 @@ function metaFromTrack(artist, track) {
 				name: artist.name,
 				uri: artist.link
 			},
-			imageURL: track.cover.uri,
+			imageURL: track.coverArt.sources.find(cover => cover.width === 640).url,
 			time,
-			trackCount: track.track_count
+			trackCount: track.tracks.totalCount
 		};
 	}
 	return null;
@@ -344,10 +352,8 @@ async function fetchTracks() {
 	const requests = artistList.map(async obj => {
 		const artist = obj.artistMetadata;
 		return await getArtistEverything(artist).catch(err => {
-			console.debug("Could not fetch all releases - error code: " + err.status);
-			if ((err.status = 500)) {
-				console.debug(`Missing releases from ${count()} artists`);
-			}
+			console.debug("Could not fetch all releases - error code: " + err);
+			console.debug(`Missing releases from ${count()} artists`);
 		});
 	});
 
