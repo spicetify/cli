@@ -631,10 +631,11 @@ declare namespace Spicetify {
         *   spotify:user:napstersean:playlist:3vxotOnOGDlZXyzJPLFnm2
         *   spotify:playlist:3vxotOnOGDlZXyzJPLFnm2
         *
-        * @param uri The uri to compare identity for.
+        * @param baseUri The first URI to compare.
+        * @param refUri The second URI to compare.
         * @return Whether they shared idenitity
         */
-        isSameIdentity(uri: any): boolean;
+        static isSameIdentity(baseUri: URI | string, refUri: URI | string): boolean;
 
         /**
          * Returns the hex representation of a Base62 encoded id.
@@ -815,66 +816,66 @@ declare namespace Spicetify {
          */
         static userToplistURI(username: string, toplist: string): URI;
 
-        static isAd(uri: any): boolean;
-        static isAlbum(uri: any): boolean;
-        static isGenre(uri: any): boolean;
-        static isQueue(uri: any): boolean;
-        static isApplication(uri: any): boolean;
-        static isArtist(uri: any): boolean;
-        static isArtistToplist(uri: any): boolean;
-        static isArtistConcerts(uri: any): boolean;
-        static isAudioFile(uri: any): boolean;
-        static isCollection(uri: any): boolean;
-        static isCollectionAlbum(uri: any): boolean;
-        static isCollectionArtist(uri: any): boolean;
-        static isCollectionMissingAlbum(uri: any): boolean;
-        static isCollectionTrackList(uri: any): boolean;
-        static isConcert(uri: any): boolean;
-        static isContextGroup(uri: any): boolean;
-        static isDailyMix(uri: any): boolean;
-        static isEmpty(uri: any): boolean;
-        static isEpisode(uri: any): boolean;
-        static isFacebook(uri: any): boolean;
-        static isFolder(uri: any): boolean;
-        static isFollowers(uri: any): boolean;
-        static isFollowing(uri: any): boolean;
-        static isImage(uri: any): boolean;
-        static isInbox(uri: any): boolean;
-        static isInterruption(uri: any): boolean;
-        static isLibrary(uri: any): boolean;
-        static isLive(uri: any): boolean;
-        static isRoom(uri: any): boolean;
-        static isExpression(uri: any): boolean;
-        static isLocal(uri: any): boolean;
-        static isLocalTrack(uri: any): boolean;
-        static isLocalAlbum(uri: any): boolean;
-        static isLocalArtist(uri: any): boolean;
-        static isMerch(uri: any): boolean;
-        static isMosaic(uri: any): boolean;
-        static isPlaylist(uri: any): boolean;
-        static isPlaylistV2(uri: any): boolean;
-        static isPrerelease(uri: any): boolean;
-        static isProfile(uri: any): boolean;
-        static isPublishedRootlist(uri: any): boolean;
-        static isRadio(uri: any): boolean;
-        static isRootlist(uri: any): boolean;
-        static isSearch(uri: any): boolean;
-        static isShow(uri: any): boolean;
-        static isSocialSession(uri: any): boolean;
-        static isSpecial(uri: any): boolean;
-        static isStarred(uri: any): boolean;
-        static isStation(uri: any): boolean;
-        static isTempPlaylist(uri: any): boolean;
-        static isToplist(uri: any): boolean;
-        static isTrack(uri: any): boolean;
-        static isTrackset(uri: any): boolean;
-        static isUserToplist(uri: any): boolean;
-        static isUserTopTracks(uri: any): boolean;
-        static isUnknown(uri: any): boolean;
-        static isMedia(uri: any): boolean;
-        static isQuestion(uri: any): boolean;
-        static isPoll(uri: any): boolean;
-        static isPlaylistV1OrV2(uri: any): boolean;
+        static isAd(uri: URI | string): boolean;
+        static isAlbum(uri: URI | string): boolean;
+        static isGenre(uri: URI | string): boolean;
+        static isQueue(uri: URI | string): boolean;
+        static isApplication(uri: URI | string): boolean;
+        static isArtist(uri: URI | string): boolean;
+        static isArtistToplist(uri: URI | string): boolean;
+        static isArtistConcerts(uri: URI | string): boolean;
+        static isAudioFile(uri: URI | string): boolean;
+        static isCollection(uri: URI | string): boolean;
+        static isCollectionAlbum(uri: URI | string): boolean;
+        static isCollectionArtist(uri: URI | string): boolean;
+        static isCollectionMissingAlbum(uri: URI | string): boolean;
+        static isCollectionTrackList(uri: URI | string): boolean;
+        static isConcert(uri: URI | string): boolean;
+        static isContextGroup(uri: URI | string): boolean;
+        static isDailyMix(uri: URI | string): boolean;
+        static isEmpty(uri: URI | string): boolean;
+        static isEpisode(uri: URI | string): boolean;
+        static isFacebook(uri: URI | string): boolean;
+        static isFolder(uri: URI | string): boolean;
+        static isFollowers(uri: URI | string): boolean;
+        static isFollowing(uri: URI | string): boolean;
+        static isImage(uri: URI | string): boolean;
+        static isInbox(uri: URI | string): boolean;
+        static isInterruption(uri: URI | string): boolean;
+        static isLibrary(uri: URI | string): boolean;
+        static isLive(uri: URI | string): boolean;
+        static isRoom(uri: URI | string): boolean;
+        static isExpression(uri: URI | string): boolean;
+        static isLocal(uri: URI | string): boolean;
+        static isLocalTrack(uri: URI | string): boolean;
+        static isLocalAlbum(uri: URI | string): boolean;
+        static isLocalArtist(uri: URI | string): boolean;
+        static isMerch(uri: URI | string): boolean;
+        static isMosaic(uri: URI | string): boolean;
+        static isPlaylist(uri: URI | string): boolean;
+        static isPlaylistV2(uri: URI | string): boolean;
+        static isPrerelease(uri: URI | string): boolean;
+        static isProfile(uri: URI | string): boolean;
+        static isPublishedRootlist(uri: URI | string): boolean;
+        static isRadio(uri: URI | string): boolean;
+        static isRootlist(uri: URI | string): boolean;
+        static isSearch(uri: URI | string): boolean;
+        static isShow(uri: URI | string): boolean;
+        static isSocialSession(uri: URI | string): boolean;
+        static isSpecial(uri: URI | string): boolean;
+        static isStarred(uri: URI | string): boolean;
+        static isStation(uri: URI | string): boolean;
+        static isTempPlaylist(uri: URI | string): boolean;
+        static isToplist(uri: URI | string): boolean;
+        static isTrack(uri: URI | string): boolean;
+        static isTrackset(uri: URI | string): boolean;
+        static isUserToplist(uri: URI | string): boolean;
+        static isUserTopTracks(uri: URI | string): boolean;
+        static isUnknown(uri: URI | string): boolean;
+        static isMedia(uri: URI | string): boolean;
+        static isQuestion(uri: URI | string): boolean;
+        static isPoll(uri: URI | string): boolean;
+        static isPlaylistV1OrV2(uri: URI | string): boolean;
     }
 
     /**
