@@ -280,6 +280,62 @@ const Spicetify = {
     // classnames
     // https://github.com/JedWatson/classnames/
     Spicetify.classnames = modules.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]"));
+
+    (function waitForURI() {
+        if (typeof Spicetify.URI !== "function") {
+            setTimeout(waitForURI, 10);
+            return;
+        }
+
+        // Ignore on versions older than 1.2.4
+        if (Spicetify.URI.Type) return;
+
+        const URIChunk = modules.filter(module => typeof module === "object").find(m => {
+            // Avoid creating 2 arrays of the same values
+            const values = Object.values(m);
+            return values.some(m => typeof m === "function") && values.some(m => m?.AD);
+        });
+        const URIModules = Object.values(URIChunk);
+
+        // URI.Type
+        Spicetify.URI.Type = URIModules.find(m => m?.AD);
+
+        // Parse functions
+        Spicetify.URI.from = URIModules.find(m => typeof m === "function" && m.toString().includes("allowedTypes"));
+        Spicetify.URI.fromString = URIModules.find(m => typeof m === "function" && m.toString().includes("Argument `uri`"));
+
+        // createURI functions
+        const createURIFunctions = URIModules.filter(m => typeof m === "function" && m.toString().match(/\([\w$]+\./));
+        for (const type of Object.keys(Spicetify.URI.Type)) {
+            const func = createURIFunctions.find(m => m.toString().match(new RegExp(`\\([\\w$]+\\.${type}\(?!_\)`)));
+            if (!func) continue;
+
+            const camelCaseType = type.toLowerCase().split("_").map((word, index) => {
+                if (index === 0) return word;
+                return word[0].toUpperCase() + word.slice(1);
+            }).join("");
+            Spicetify.URI[`${camelCaseType}URI`] = func;
+        }
+
+        // isURI functions
+        const isURIFUnctions = URIModules.filter(m => typeof m === "function" && m.toString().match(/=[\w$]+\./));
+        for (const type of Object.keys(Spicetify.URI.Type)) {
+            const func = isURIFUnctions.find(m => m.toString().match(new RegExp(`===[\\w$]+\\.${type}\(?!_\)\\}`)));
+            if (!func) continue;
+
+            const camelCaseType = type.toLowerCase().split("_").map(word => word[0].toUpperCase() + word.slice(1)).join("");
+            Spicetify.URI[`is${camelCaseType}`] = func;
+        }
+
+        Spicetify.URI.isPlaylistV1OrV2 = (uri) => Spicetify.URI.isPlaylist(uri) || Spicetify.URI.isPlaylistV2(uri);
+
+        // Conversion functions
+        Spicetify.URI.idToHex = URIModules.find(m => typeof m === "function" && m.toString().includes("22==="));
+        Spicetify.URI.hexToId = URIModules.find(m => typeof m === "function" && m.toString().includes("32==="));
+
+        // isSameIdentity
+        Spicetify.URI.isSameIdentity = URIModules.find(m => typeof m === "function" && m.toString().match(/[\w$]+\.id===[\w$]+\.id/));
+    })();
 })();
 
 // Wait for Spicetify.Player.origin._state before adding following APIs
@@ -331,36 +387,6 @@ Spicetify.getAudioData = async (uri) => {
 
     return await Spicetify.CosmosAsync.get(`wg://audio-attributes/v1/audio-analysis/${uriObj.getBase62Id?.() ?? uriObj.id}?format=json`);
 }
-
-(function appendValidationFunc() {
-    if (!Spicetify.URI.Type) {
-        setTimeout(appendValidationFunc, 10);
-        return;
-    }
-    if (Spicetify.URI.isTrack) return;
-    for (const type in Spicetify.URI.Type) {
-        const funcName = type
-            .toLowerCase()
-            .split("_")
-            .map((word) => word[0].toUpperCase() + word.slice(1))
-            .join("");
-        Spicetify.URI[`is${funcName}`] = (uri) => {
-            let uriObj;
-            try {
-                uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
-            } catch {
-                return false;
-            }
-            if (!uriObj) return false;
-            return uriObj.type === Spicetify.URI.Type[type];
-        };
-    }
-    Spicetify.URI.isPlaylistV1OrV2 = (uri) => {
-        return Spicetify.URI.isPlaylist(uri) || Spicetify.URI.isPlaylistV2(uri);
-    };
-})();
-
-
 
 Spicetify.colorExtractor = async (uri) => {
     const body = await Spicetify.CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);

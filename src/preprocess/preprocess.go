@@ -493,21 +493,6 @@ func exposeAPIs_vendor(input string) string {
 				URI+";Object.assign("+URIObj[1]+",Spicetify.URI);Object.defineProperty(Spicetify,\"URI\",{get:()=>"+URIObj[1]+"});",
 				1)
 		}
-
-		utils.Replace(
-			&input,
-			`([\w$_]+)(=\{AD:"ad")`,
-			`${1}=Spicetify.URI.Type${2}`)
-
-		utils.ReplaceOnce(
-			&input,
-			`function ([\w_$]+)\([\w,]+\)\{[\w&?!,;(){}= .]+[\w_$]\.allowedTypes`,
-			`Spicetify.URI.from=${1};${0}`)
-
-		utils.Replace(
-			&input,
-			`function ([\w$_]+)\([\w$_,]+\)\{if\("string"!==?typeof [\w$_]+\)throw new TypeError\("Argument \x60uri\x60 must be a string`,
-			`Spicetify.URI.fromString=${1};${0}`)
 	}
 
 	// Mousetrap
