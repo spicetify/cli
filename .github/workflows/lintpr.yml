@@ -15,3 +15,7 @@ jobs:
         uses: amannn/action-semantic-pull-request@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          disallowScopes: |
+            [A-Z]+
+          subjectPattern: ^(?![A-Z]).+$
