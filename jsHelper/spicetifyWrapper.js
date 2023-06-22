@@ -265,7 +265,6 @@ const Spicetify = {
     ReactComponent: {},
     ReactHook: {},
     ReactFlipToolkit: {},
-    URI: {},
 };
 
 (function hotloadWebpackModules() {
@@ -293,7 +292,7 @@ const Spicetify = {
     Spicetify.ReactHook.usePanelState = functionModules.find(m => m.toString().includes("setPanelState"));
 
     (function waitForURI() {
-        if (typeof Spicetify.URI !== "function") {
+        if (!Spicetify.URI) {
             setTimeout(waitForURI, 10);
             return;
         }

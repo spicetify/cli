@@ -478,7 +478,7 @@ func exposeAPIs_vendor(input string) string {
 			input = strings.Replace(
 				input,
 				URI,
-				URI+";Object.assign("+URIObj[1]+",Spicetify.URI);Object.defineProperty(Spicetify,\"URI\",{get:()=>"+URIObj[1]+"});",
+				URI+";Spicetify.URI="+URIObj[1]+";",
 				1)
 		}
 	}
