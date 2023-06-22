@@ -512,7 +512,6 @@ declare namespace Spicetify {
          */
         toURL(origin?: string): string;
 
-
         /**
          * Clones a given SpotifyURI instance.
          *
@@ -652,7 +651,6 @@ declare namespace Spicetify {
          * @return The base62 representation of the id.
          */
         static hexToId(hex: string): string;
-
 
         /**
          * Creates a new 'album' type URI.
