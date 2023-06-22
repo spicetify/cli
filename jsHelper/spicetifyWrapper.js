@@ -292,8 +292,12 @@ const Spicetify = {
 
         const URIChunk = modules.filter(module => typeof module === "object").find(m => {
             // Avoid creating 2 arrays of the same values
-            const values = Object.values(m);
-            return values.some(m => typeof m === "function") && values.some(m => m?.AD);
+            try {
+                const values = Object.values(m);
+                return values.some(m => typeof m === "function") && values.some(m => m?.AD);
+            } catch {
+                return false;
+            }
         });
         const URIModules = Object.values(URIChunk);
 
@@ -321,10 +325,19 @@ const Spicetify = {
         const isURIFUnctions = URIModules.filter(m => typeof m === "function" && m.toString().match(/=[\w$]+\./));
         for (const type of Object.keys(Spicetify.URI.Type)) {
             const func = isURIFUnctions.find(m => m.toString().match(new RegExp(`===[\\w$]+\\.${type}\(?!_\)\\}`)));
-            if (!func) continue;
-
             const camelCaseType = type.toLowerCase().split("_").map(word => word[0].toUpperCase() + word.slice(1)).join("");
-            Spicetify.URI[`is${camelCaseType}`] = func;
+            
+            // Fill in missing functions, only serves as placebo as they cannot be as accurate as the original functions
+            Spicetify.URI[`is${camelCaseType}`] = func ?? ((uri) => {
+                let uriObj;
+                try {
+                    uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
+                } catch {
+                    return false;
+                }
+                if (!uriObj) return false;
+                return uriObj.type === Spicetify.URI.Type[type];
+            })
         }
 
         Spicetify.URI.isPlaylistV1OrV2 = (uri) => Spicetify.URI.isPlaylist(uri) || Spicetify.URI.isPlaylistV2(uri);
