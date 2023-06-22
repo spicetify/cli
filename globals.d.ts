@@ -1564,6 +1564,13 @@ declare namespace Spicetify {
             sectionIndex?: number,
             dropOriginUri?: string
         ): (event: React.DragEvent, uris?: string[], label?: string, contextUri?: string, sectionIndex?: number) => void;
+
+        /**
+         * React Hook to use panel state
+         * @param id ID of the panel to use
+         * @return Object with methods of the panel
+         */
+        function usePanelState(id: number): { toggle: () => void, isActive: boolean };
     }
 
     /**
@@ -1757,4 +1764,11 @@ declare namespace Spicetify {
      * @link https://github.com/JedWatson/classnames
      */
     function classnames(...args: any[]): string;
+
+    /**
+     * React Query v3
+     * @description A hook for fetching, caching and updating asynchronous data in React.
+     * @link https://github.com/TanStack/query/tree/v3
+     */
+    const ReactQuery: any;
 }
