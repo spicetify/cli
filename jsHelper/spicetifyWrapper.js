@@ -276,10 +276,21 @@ const Spicetify = {
     // Force all webpack modules to load
     const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
     const modules = Object.keys(require.m).map(id => require(id));
+    const functionModules = modules.filter(module => typeof module === "object").map(module => Object.values(module)).flat().filter(module => typeof module === "function");
 
     // classnames
     // https://github.com/JedWatson/classnames/
     Spicetify.classnames = modules.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]"));
+
+    // React Query v3
+    // https://github.com/TanStack/query/tree/v3
+    Spicetify.ReactQuery = modules.find(module => module.useQuery);
+
+    // React Hook - Drag Handler
+    Spicetify.ReactHook.DragHandler = functionModules.find(m => m.toString().includes("data-dragging-uri"));
+
+    // React Hook - usePanelState
+    Spicetify.ReactHook.usePanelState = functionModules.find(m => m.toString().includes("setPanelState"));
 })();
 
 // Wait for Spicetify.Player.origin._state before adding following APIs

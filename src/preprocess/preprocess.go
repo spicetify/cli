@@ -389,18 +389,6 @@ Spicetify.React.useEffect(() => {
 		`function ?([\w$_]+)(?:\(|\([\w$,]+\))\{[\w$., =(){}?:]*(?:[\w$. =]*(?:onClose|isOpen|onOutside|titleText)[?:|!\w$_(){}=> ]*,){2,}`,
 		`Spicetify.ReactComponent.ConfirmDialog=${1};${0}`)
 
-	// React Hook: Drag Handler
-	utils.Replace(
-		&input,
-		`([\w$]+=)((?:function)?\((?:[\w$](?:=[\[\]"\w]+)?,?)+\)(?:=>)?[\w:,=".,{}|()=>;]+"data-dragging-type")`,
-		`${1}Spicetify.ReactHook.DragHandler=${2}`)
-
-	// React Hook: Drag Handler - Fallback case
-	utils.Replace(
-		&input,
-		`([\w$]+=)((?:function)?\(\)(?:=>)?\{(?:[\w$= ]+arguments)[\w:,=".,{}!?|[\]()=>&; ]+"data-dragging-type")`,
-		`${1}Spicetify.ReactHook.DragHandler=${2}`)
-
 	// Locale
 	utils.Replace(
 		&input,
