@@ -1391,6 +1391,8 @@ declare namespace Spicetify {
          * @param uri URI of the Spotify image to extract color from.
          * @param fallbackColor Fallback color to use if the image is not available. Defaults to `#535353`.
          * @param variant Variant of the color to use. Defaults to `colorRaw`.
+         * 
+         * @return Extracted color hex code.
          */
         function useExtractedColor(uri: string, fallbackColor?: string, variant?: "colorRaw" | "colorLight" | "colorDark"): string;
     }
