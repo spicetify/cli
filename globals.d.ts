@@ -1388,7 +1388,7 @@ declare namespace Spicetify {
          * 
          * @see https://tanstack.com/query/v3/docs/react/reference/QueryClientProvider
          * 
-         * @param url URL of the image to extract color from.
+         * @param url URL of the Spotify image to extract color from.
          * @param fallbackColor Fallback color to use if the image is not available. Defaults to `#535353`.
          * @param variant Variant of the color to use. Defaults to `colorRaw`.
          */
