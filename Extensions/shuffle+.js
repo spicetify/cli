@@ -322,48 +322,37 @@ async function initShufflePlus() {
 		return requestPlaylists.flat();
 	}
 
-	async function fetchAlbumTracks(uri) {
-		let res = await Spicetify.CosmosAsync.get(`wg://album/v1/album-app/album/${uri}/desktop`);
-		const items = [];
-		for (const disc of res.discs) {
-			const availables = disc.tracks.filter(track => track.playable);
-			items.push(...availables.map(track => track.uri));
-		}
-		return items;
+	async function fetchAlbumTracks(uri, includeMetadata = false) {
+		const { queryAlbumTracks } = Spicetify.GraphQL.Definitions;
+		const { data, errors } = await Spicetify.GraphQL.Request(queryAlbumTracks, { uri, offset: 0, limit: 500 });
+
+		if (errors) throw errors[0].message;
+		if (data.albumUnion.playability.playable === false) throw "Album is not playable";
+
+		return data.albumUnion.tracks.items.filter(({ track }) => track.playability.playable).map(({ track }) => (includeMetadata ? track : track.uri));
 	}
 
 	let artistFetchTypeCount = { album: 0, single: 0 };
 
-	async function scanForTracksFromAlbums(res, allCount, artistName, type) {
+	async function scanForTracksFromAlbums(res, artistName, type) {
 		let allTracks = [];
 
-		for (let albums of res) {
-			let albumsRes;
+		for (let album of res) {
+			let albumRes;
 
 			try {
-				if (albums.discs) {
-					albumsRes = albums;
-				} else {
-					albumsRes = await Spicetify.CosmosAsync.get(`wg://album/v1/album-app/album/${albums.uri}/desktop`);
-				}
-			} catch (error) {}
+				albumRes = await fetchAlbumTracks(album.uri, true);
+			} catch (error) {
+				console.error(album, error);
+				continue;
+			}
 
 			artistFetchTypeCount[type]++;
-			Spicetify.showNotification(`${artistFetchTypeCount[type]} / ${allCount} ${type}s`);
+			Spicetify.showNotification(`${artistFetchTypeCount[type]} / ${res.length} ${type}s`);
 
-			for (let disc of albumsRes.discs) {
-				for (let track of disc.tracks) {
-					let condition = true;
-					if (CONFIG.artistNameMust) {
-						let artists = track.artists.map(artist => artist.name);
-						if (!artists.includes(artistName)) {
-							condition = false;
-						}
-					}
-
-					if (track.playable && condition) {
-						allTracks.push(track.uri);
-					}
+			for (let track of albumRes) {
+				if (!CONFIG.artistNameMust || track.artists.items.some(artist => artist.profile.name === artistName)) {
+					allTracks.push(track.uri);
 				}
 			}
 		}
@@ -372,25 +361,42 @@ async function initShufflePlus() {
 	}
 
 	async function fetchArtistTracks(uri) {
-		let artistRes = await Spicetify.CosmosAsync.get(`wg://artist/v1/${uri}/desktop?format=json`);
+		const { queryArtistDiscographyAll, queryArtistOverview } = Spicetify.GraphQL.Definitions;
 
-		let artistName = artistRes.info.name;
+		const discography = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
+			uri,
+			offset: 0,
+			// Limit 100 since GraphQL has resource limit
+			limit: 100
+		});
+		const overview = await Spicetify.GraphQL.Request(queryArtistOverview, {
+			uri,
+			locale: Spicetify.Locale.getLocale(),
+			includePrerelease: false
+		});
 
-		let artistAlbums = artistRes.releases.albums;
-		let artistSingles = artistRes.releases.singles;
+		if (discography.errors) throw discography.errors[0].message;
+		if (overview.errors) throw overview.errors[0].message;
+
+		const artistName = overview.data.artistUnion.profile.name;
+		const releases = discography.data.artistUnion.discography.all.items.map(({ releases }) => releases.items).flat();
+
+		const artistAlbums = releases.filter(album => album.type == "ALBUM");
+		const artistSingles = releases.filter(album => album.type == "SINGLE" || album.type == "EP");
+
+		if (artistAlbums.length == 0 && artistSingles.length == 0) {
+			throw "Artist has no releases";
+		}
 
 		let allArtistAlbumsTracks = [];
 		let allArtistSinglesTracks = [];
 
-		let allAlbumsCount = artistAlbums.total_count;
-		let allSinglesCount = artistSingles.total_count;
-
-		if (allAlbumsCount != 0 && CONFIG.artistMode != "single") {
-			allArtistAlbumsTracks = await scanForTracksFromAlbums(artistAlbums.releases, allAlbumsCount, artistName, "album");
+		if (CONFIG.artistMode !== "single") {
+			allArtistAlbumsTracks = await scanForTracksFromAlbums(artistAlbums, artistName, "album");
 		}
 
-		if (allSinglesCount != 0 && CONFIG.artistMode != "album") {
-			allArtistSinglesTracks = await scanForTracksFromAlbums(artistSingles.releases, allSinglesCount, artistName, "single");
+		if (CONFIG.artistMode !== "album") {
+			allArtistSinglesTracks = await scanForTracksFromAlbums(artistSingles, artistName, "single");
 		}
 
 		let allArtistTracks = allArtistAlbumsTracks.concat(allArtistSinglesTracks);
@@ -415,11 +421,14 @@ async function initShufflePlus() {
 	}
 
 	async function fetchArtistTopTenTracks(uri) {
-		let artistRes = await Spicetify.CosmosAsync.get(`wg://artist/v1/${uri}/desktop?format=json`);
-
-		let topTenTracks = artistRes.top_tracks.tracks.map(track => track.uri);
-
-		return topTenTracks;
+		const { queryArtistOverview } = Spicetify.GraphQL.Definitions;
+		const { data, errors } = await Spicetify.GraphQL.Request(queryArtistOverview, {
+			uri,
+			locale: Spicetify.Locale.getLocale(),
+			includePrerelease: false
+		});
+		if (errors) throw errors[0].message;
+		return data.artistUnion.discography.topTracks.items.map(({ track }) => track.uri);
 	}
 
 	async function fetchLikedTracks() {
@@ -563,7 +572,7 @@ async function initShufflePlus() {
 						list = await fetchPlaylistTracks(uri);
 						break;
 					case Type.ALBUM:
-						list = await fetchAlbumTracks(uri);
+						list = await fetchAlbumTracks(rawUri);
 						break;
 					case Type.ARTIST + "":
 						if (CONFIG.artistMode == "likedSongArtist") {
@@ -571,10 +580,10 @@ async function initShufflePlus() {
 							break;
 						}
 						if (CONFIG.artistMode == "topTen") {
-							list = await fetchArtistTopTenTracks(uri);
+							list = await fetchArtistTopTenTracks(rawUri);
 							break;
 						}
-						list = await fetchArtistTracks(uri);
+						list = await fetchArtistTracks(rawUri);
 						break;
 					case Type.TRACK:
 					case Type.LOCAL_TRACK:
@@ -603,7 +612,7 @@ async function initShufflePlus() {
 			await Queue(shuffle(list), context, type);
 		} catch (error) {
 			Spicetify.showNotification(String(error), true);
-			console.log(error);
+			console.error(error);
 		}
 	}
 }

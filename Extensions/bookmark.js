@@ -445,28 +445,31 @@
 
 	function onPlayClick(info) {
 		let uri = info.uri;
-		const options = {};
+		let options = {};
 		if (info.time) {
 			options.seekTo = info.time;
 		}
 		if (info.context?.startsWith("/")) {
 			uri = URI.fromString(info.context).toURI();
-			options.skipTo = {};
-			options.skipTo.uid = info.context.split("?uid=", 2)[1];
-			options.skipTo.uri = info.uri;
+			if (uri !== info.uri) {
+				options.skipTo = {};
+				options.skipTo.uid = info.context.split("?uid=", 2)[1];
+				options.skipTo.uri = info.uri;
+			}
 		}
 
 		Spicetify.Player.playUri(uri, {}, options);
 	}
 
 	const fetchAlbum = async uri => {
-		const base62 = uri.split(":")[2];
-		const res = await CosmosAsync.get(`wg://album/v1/album-app/album/${base62}/desktop`);
+		const { getAlbum } = Spicetify.GraphQL.Definitions;
+		const { data } = await Spicetify.GraphQL.Request(getAlbum, { uri, locale: Spicetify.Locale.getLocale(), offset: 0, limit: 10 });
+		const res = data.albumUnion;
 		return {
 			uri,
 			title: res.name,
 			description: "Album",
-			imageUrl: res.cover.uri
+			imageUrl: res.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url
 		};
 	};
 
@@ -484,13 +487,18 @@
 	};
 
 	const fetchArtist = async uri => {
-		const base62 = uri.split(":")[2];
-		const res = await CosmosAsync.get(`wg://artist/v1/${base62}/desktop?format=json`);
+		const { queryArtistOverview } = Spicetify.GraphQL.Definitions;
+		const { data } = await Spicetify.GraphQL.Request(queryArtistOverview, {
+			uri,
+			locale: Spicetify.Locale.getLocale(),
+			includePrerelease: false
+		});
+		const res = data.artistUnion;
 		return {
 			uri,
-			title: res.info.name,
+			title: res.profile.name,
 			description: "Artist",
-			imageUrl: res.header_image.image
+			imageUrl: res.visuals.headerImage.sources[0].url
 		};
 	};
 
