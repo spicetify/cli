@@ -334,7 +334,7 @@ function metaFromTrack(artist, track) {
 				name: artist.name,
 				uri: artist.link
 			},
-			imageURL: track.coverArt.sources.find(cover => cover.width === 640).url,
+			imageURL: track.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url,
 			time,
 			trackCount: track.tracks.totalCount
 		};
