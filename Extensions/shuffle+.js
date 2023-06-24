@@ -9,10 +9,7 @@
 		setTimeout(shufflePlus, 300);
 		return;
 	}
-	await initShufflePlus();
-})();
 
-async function initShufflePlus() {
 	const { React } = Spicetify;
 	const { useState } = React;
 
@@ -49,54 +46,54 @@ async function initShufflePlus() {
 			"style",
 			null,
 			`.popup-row::after {
-                    content: "";
-                    display: table;
-                    clear: both;
-                }
-                .popup-row .col {
-                    display: flex;
-                    padding: 10px 0;
-                    align-items: center;
-                }
-                .popup-row .col.description {
-                    float: left;
-                    padding-right: 15px;
-                }
-                .popup-row .col.action {
-                    float: right;
-                    text-align: right;
-                }
-                .popup-row .div-title {
-                    color: var(--spice-text);
-                }
-                .popup-row .divider {
-                    height: 2px;
-                    border-width: 0;
-                    background-color: var(--spice-button-disabled);
-                }
-                button.checkbox {
-                    align-items: center;
-                    border: 0px;
-                    border-radius: 50%;
-                    background-color: rgba(var(--spice-rgb-shadow), 0.7);
-                    color: var(--spice-text);
-                    cursor: pointer;
-                    display: flex;
-                    margin-inline-start: 12px;
-                    padding: 8px;
-                }
-                button.checkbox.disabled {
-                    color: rgba(var(--spice-rgb-text), 0.3);
-                }
-                select {
-                    color: var(--spice-text);
-                    background: rgba(var(--spice-rgb-shadow), 0.7);
-                    border: 0;
-                    height: 32px;
-                }
-                ::-webkit-scrollbar {
-                    width: 8px;
-                }`
+						content: "";
+						display: table;
+						clear: both;
+					}
+					.popup-row .col {
+						display: flex;
+						padding: 10px 0;
+						align-items: center;
+					}
+					.popup-row .col.description {
+						float: left;
+						padding-right: 15px;
+					}
+					.popup-row .col.action {
+						float: right;
+						text-align: right;
+					}
+					.popup-row .div-title {
+						color: var(--spice-text);
+					}
+					.popup-row .divider {
+						height: 2px;
+						border-width: 0;
+						background-color: var(--spice-button-disabled);
+					}
+					button.checkbox {
+						align-items: center;
+						border: 0px;
+						border-radius: 50%;
+						background-color: rgba(var(--spice-rgb-shadow), 0.7);
+						color: var(--spice-text);
+						cursor: pointer;
+						display: flex;
+						margin-inline-start: 12px;
+						padding: 8px;
+					}
+					button.checkbox.disabled {
+						color: rgba(var(--spice-rgb-text), 0.3);
+					}
+					select {
+						color: var(--spice-text);
+						background: rgba(var(--spice-rgb-shadow), 0.7);
+						border: 0;
+						height: 32px;
+					}
+					::-webkit-scrollbar {
+						width: 8px;
+					}`
 		);
 
 		function DisplayIcon({ icon, size }) {
@@ -247,7 +244,7 @@ async function initShufflePlus() {
 	new Spicetify.ContextMenu.Item(
 		"Play with Shuffle+",
 		async uri => {
-			if (uri.length == 1) {
+			if (uri.length === 1) {
 				await fetchAndPlay(uri[0]);
 				return;
 			}
@@ -284,7 +281,7 @@ async function initShufflePlus() {
 
 	function searchFolder(rows, uri) {
 		for (const r of rows) {
-			if (r.type !== "folder" || r.rows == null) {
+			if (r.type !== "folder" || r.rows === null) {
 				continue;
 			}
 
@@ -303,7 +300,7 @@ async function initShufflePlus() {
 		});
 
 		const requestFolder = searchFolder(res.rows, uri);
-		if (requestFolder == null) {
+		if (requestFolder === null) {
 			throw "Cannot find folder";
 		}
 
@@ -381,10 +378,10 @@ async function initShufflePlus() {
 		const artistName = overview.data.artistUnion.profile.name;
 		const releases = discography.data.artistUnion.discography.all.items.map(({ releases }) => releases.items).flat();
 
-		const artistAlbums = releases.filter(album => album.type == "ALBUM");
-		const artistSingles = releases.filter(album => album.type == "SINGLE" || album.type == "EP");
+		const artistAlbums = releases.filter(album => album.type === "ALBUM");
+		const artistSingles = releases.filter(album => album.type === "SINGLE" || album.type === "EP");
 
-		if (artistAlbums.length == 0 && artistSingles.length == 0) {
+		if (artistAlbums.length === 0 && artistSingles.length === 0) {
 			throw "Artist has no releases";
 		}
 
@@ -526,19 +523,19 @@ async function initShufflePlus() {
 
 		switch (type) {
 			case Type.ARTIST:
-				if (CONFIG.artistMode == "topTen") {
+				if (CONFIG.artistMode === "topTen") {
 					Spicetify.showNotification(`Shuffled Top ${count} Songs`);
 					break;
 				}
-				if (CONFIG.artistMode == "likedSongArtist") {
+				if (CONFIG.artistMode === "likedSongArtist") {
 					Spicetify.showNotification(`Shuffled ${count} Liked Songs`);
 					break;
 				}
-				if (CONFIG.artistMode == "single") {
+				if (CONFIG.artistMode === "single") {
 					Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.single} Singles, Total of ${count} Songs`);
 					break;
 				}
-				if (CONFIG.artistMode == "album") {
+				if (CONFIG.artistMode === "album") {
 					Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.album} Albums, Total of ${count} Songs`);
 					break;
 				}
@@ -558,7 +555,7 @@ async function initShufflePlus() {
 		let type = null;
 		let uri;
 		try {
-			if (typeof rawUri == "object") {
+			if (typeof rawUri === "object") {
 				list = rawUri;
 				context = null;
 			} else {
@@ -575,11 +572,11 @@ async function initShufflePlus() {
 						list = await fetchAlbumTracks(rawUri);
 						break;
 					case Type.ARTIST + "":
-						if (CONFIG.artistMode == "likedSongArtist") {
+						if (CONFIG.artistMode === "likedSongArtist") {
 							list = await fetchArtistLikedTracks(uri);
 							break;
 						}
-						if (CONFIG.artistMode == "topTen") {
+						if (CONFIG.artistMode === "topTen") {
 							list = await fetchArtistTopTenTracks(rawUri);
 							break;
 						}
@@ -604,7 +601,7 @@ async function initShufflePlus() {
 				}
 
 				context = rawUri;
-				if (type == "folder" || type == "collection") {
+				if (type === "folder" || type === "collection") {
 					context = null;
 				}
 			}
@@ -615,4 +612,4 @@ async function initShufflePlus() {
 			console.error(error);
 		}
 	}
-}
+})();
