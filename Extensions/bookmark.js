@@ -445,7 +445,7 @@
 
 	function onPlayClick(info) {
 		let uri = info.uri;
-		let options = {};
+		const options = {};
 		if (info.time) {
 			options.seekTo = info.time;
 		}
