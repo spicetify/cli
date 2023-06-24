@@ -13,32 +13,32 @@
 	const { React } = Spicetify;
 	const { useState } = React;
 
-	async function getLocalStorageDataFromKey(key) {
+	function getLocalStorageDataFromKey(key) {
 		return Spicetify.LocalStorage.get(key);
 	}
 
-	async function setLocalStorageDataWithKey(key, value) {
+	function setLocalStorageDataWithKey(key, value) {
 		Spicetify.LocalStorage.set(key, value);
 	}
 
-	async function getConfig() {
+	function getConfig() {
 		try {
-			const parsed = JSON.parse(await getLocalStorageDataFromKey("shufflePlus:settings"));
+			const parsed = JSON.parse(getLocalStorageDataFromKey("shufflePlus:settings"));
 			if (parsed && typeof parsed === "object") {
 				return parsed;
 			}
 			throw "";
 		} catch {
-			await setLocalStorageDataWithKey("shufflePlus:settings", `{}`);
+			setLocalStorageDataWithKey("shufflePlus:settings", `{}`);
 			return { artistMode: "all", artistNameMust: false };
 		}
 	}
 
-	const CONFIG = await getConfig();
-	await saveConfig();
+	const CONFIG = getConfig();
+	saveConfig();
 
-	async function saveConfig() {
-		await setLocalStorageDataWithKey("shufflePlus:settings", JSON.stringify(CONFIG));
+	function saveConfig() {
+		setLocalStorageDataWithKey("shufflePlus:settings", JSON.stringify(CONFIG));
 	}
 
 	function settingsPage() {
@@ -124,7 +124,7 @@
 							onClick: async () => {
 								CONFIG[field] = !value;
 								setValue(!value);
-								await saveConfig();
+								saveConfig();
 								onclickFun();
 							}
 						},
@@ -150,7 +150,7 @@
 							onChange: async e => {
 								setValue(e.target.value);
 								CONFIG[field] = e.target.value;
-								await saveConfig();
+								saveConfig();
 								onclickFun();
 							}
 						},
