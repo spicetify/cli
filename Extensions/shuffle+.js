@@ -109,7 +109,7 @@
 		}
 
 		function checkBoxItem({ name, field, onclickFun = () => {} }) {
-			let [value, setValue] = useState(CONFIG[field]);
+			const [value, setValue] = useState(CONFIG[field]);
 			return React.createElement(
 				"div",
 				{ className: "popup-row" },
@@ -121,7 +121,7 @@
 						"button",
 						{
 							className: "checkbox" + (value ? "" : " disabled"),
-							onClick: async () => {
+							onClick: () => {
 								CONFIG[field] = !value;
 								setValue(!value);
 								saveConfig();
@@ -147,7 +147,7 @@
 						"select",
 						{
 							value,
-							onChange: async e => {
+							onChange: e => {
 								setValue(e.target.value);
 								CONFIG[field] = e.target.value;
 								saveConfig();
@@ -168,7 +168,7 @@
 			);
 		}
 
-		let settingsDOMContent = React.createElement(
+		const settingsDOMContent = React.createElement(
 			"div",
 			null,
 			style,
@@ -199,11 +199,11 @@
 
 	new Spicetify.Menu.Item("Shuffle+", false, settingsPage, "shuffle").register();
 
-	let { Type } = Spicetify.URI;
+	const { Type } = Spicetify.URI;
 
 	function shouldAddShufflePlus(uri) {
 		if (uri.length === 1) {
-			let uriObj = Spicetify.URI.fromString(uri[0]);
+			const uriObj = Spicetify.URI.fromString(uri[0]);
 			switch (uriObj.type) {
 				case Type.PLAYLIST:
 				case Type.PLAYLIST_V2:
@@ -220,7 +220,7 @@
 	}
 
 	function shouldAddShufflePlusLiked(uri) {
-		let uriObj = Spicetify.URI.fromString(uri[0]);
+		const uriObj = Spicetify.URI.fromString(uri[0]);
 		if (Spicetify.Platform.History.location.pathname === "/collection/tracks") {
 			switch (uriObj.type) {
 				case Type.TRACK:
@@ -231,7 +231,7 @@
 	}
 
 	function shouldAddShufflePlusLocal(uri) {
-		let uriObj = Spicetify.URI.fromString(uri[0]);
+		const uriObj = Spicetify.URI.fromString(uri[0]);
 		if (Spicetify.Platform.History.location.pathname === "/collection/local-files") {
 			switch (uriObj.type) {
 				case Type.TRACK:
@@ -239,6 +239,7 @@
 					return true;
 			}
 		}
+		return false;
 	}
 
 	new Spicetify.ContextMenu.Item(
@@ -273,7 +274,7 @@
 	).register();
 
 	async function fetchPlaylistTracks(uri) {
-		let res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/spotify:playlist:${uri}/rows`, {
+		const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/spotify:playlist:${uri}/rows`, {
 			policy: { link: true, playable: true }
 		});
 		return res.rows.filter(track => track.playable).map(track => track.link);
@@ -304,7 +305,7 @@
 			throw "Cannot find folder";
 		}
 
-		let requestPlaylists = [];
+		const requestPlaylists = [];
 		async function fetchNested(folder) {
 			if (!folder.rows) return;
 
@@ -329,12 +330,12 @@
 		return data.albumUnion.tracks.items.filter(({ track }) => track.playability.playable).map(({ track }) => (includeMetadata ? track : track.uri));
 	}
 
-	let artistFetchTypeCount = { album: 0, single: 0 };
+	const artistFetchTypeCount = { album: 0, single: 0 };
 
 	async function scanForTracksFromAlbums(res, artistName, type) {
-		let allTracks = [];
+		const allTracks = [];
 
-		for (let album of res) {
+		for (const album of res) {
 			let albumRes;
 
 			try {
@@ -347,7 +348,7 @@
 			artistFetchTypeCount[type]++;
 			Spicetify.showNotification(`${artistFetchTypeCount[type]} / ${res.length} ${type}s`);
 
-			for (let track of albumRes) {
+			for (const track of albumRes) {
 				if (!CONFIG.artistNameMust || track.artists.items.some(artist => artist.profile.name === artistName)) {
 					allTracks.push(track.uri);
 				}
@@ -396,25 +397,22 @@
 			allArtistSinglesTracks = await scanForTracksFromAlbums(artistSingles, artistName, "single");
 		}
 
-		let allArtistTracks = allArtistAlbumsTracks.concat(allArtistSinglesTracks);
+		const allArtistTracks = allArtistAlbumsTracks.concat(allArtistSinglesTracks);
 
 		return allArtistTracks;
 	}
 
 	async function fetchArtistLikedTracks(uri) {
 		//goto
-		let artistRes = await Spicetify.CosmosAsync.get(`sp://core-collection/unstable/@/list/tracks/artist/${uri}?responseFormat=protobufJson`);
+		const artistRes = await Spicetify.CosmosAsync.get(`sp://core-collection/unstable/@/list/tracks/artist/${uri}?responseFormat=protobufJson`);
 
-		let allTracks = [];
-		if (artistRes.item) {
-			allTracks = artistRes.item.map(artistTrack => {
-				if (artistTrack.trackMetadata.playable) {
-					return artistTrack.trackMetadata.link;
-				}
-			});
-		}
+		const allTracks = artistRes.item?.map(artistTrack => {
+			if (artistTrack.trackMetadata.playable) {
+				return artistTrack.trackMetadata.link;
+			}
+		});
 
-		return allTracks;
+		return allTracks ?? [];
 	}
 
 	async function fetchArtistTopTenTracks(uri) {
@@ -429,13 +427,13 @@
 	}
 
 	async function fetchLikedTracks() {
-		let res = await Spicetify.CosmosAsync.get("sp://core-collection/unstable/@/list/tracks/all?responseFormat=protobufJson");
+		const res = await Spicetify.CosmosAsync.get("sp://core-collection/unstable/@/list/tracks/all?responseFormat=protobufJson");
 
 		return res.item.filter(track => track.trackMetadata.playable).map(track => track.trackMetadata.link);
 	}
 
 	async function fetchLocalTracks() {
-		let res = await Spicetify.Platform.LocalFilesAPI.getTracks();
+		const res = await Spicetify.Platform.LocalFilesAPI.getTracks();
 
 		return res.map(track => track.uri);
 	}
@@ -477,13 +475,13 @@
 		// While there are elements in the array
 		while (counter > 0) {
 			// Pick a random index
-			let index = Math.floor(Math.random() * counter);
+			const index = Math.floor(Math.random() * counter);
 
 			// Decrease counter by 1
 			counter--;
 
 			// And swap the last element with it
-			let temp = array[counter];
+			const temp = array[counter];
 			array[counter] = array[index];
 			array[index] = temp;
 		}
@@ -492,7 +490,7 @@
 	}
 
 	async function Queue(list, context = null, type) {
-		let count = list.length;
+		const count = list.length;
 
 		list.push("spotify:delimiter");
 
@@ -550,16 +548,16 @@
 	}
 
 	async function fetchAndPlay(rawUri) {
-		let list;
-		let context;
-		let type = null;
-		let uri;
+		let list,
+			context,
+			type = null,
+			uri;
 		try {
 			if (typeof rawUri === "object") {
 				list = rawUri;
 				context = null;
 			} else {
-				let uriObj = Spicetify.URI.fromString(rawUri);
+				const uriObj = Spicetify.URI.fromString(rawUri);
 				type = uriObj.type;
 				uri = uriObj._base62Id ?? uriObj.id;
 
