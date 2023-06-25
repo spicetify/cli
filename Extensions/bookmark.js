@@ -498,7 +498,9 @@
 			uri,
 			title: res.profile.name,
 			description: "Artist",
-			imageUrl: res.visuals.headerImage.sources[0].url
+			imageUrl:
+				res.visuals.avatarImage?.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url ||
+				res.visuals.headerImage?.sources[0].url
 		};
 	};
 
