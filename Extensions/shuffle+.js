@@ -274,13 +274,9 @@
 
 	function searchFolder(rows, uri) {
 		for (const r of rows) {
-			if (r.type !== "folder" || r.rows === null) {
-				continue;
-			}
+			if (r.type !== "folder" || !r.rows) continue;
 
-			if (r.link === uri) {
-				return r;
-			}
+			if (r.link === uri) return r;
 
 			const found = searchFolder(r.rows, uri);
 			if (found) return found;
@@ -339,9 +335,7 @@
 			Spicetify.showNotification(`${artistFetchTypeCount[type]} / ${res.length} ${type}s`);
 
 			for (const track of albumRes) {
-				if (!CONFIG.artistNameMust || track.artists.items.some(artist => artist.profile.name === artistName)) {
-					allTracks.push(track.uri);
-				}
+				if (!CONFIG.artistNameMust || track.artists.items.some(artist => artist.profile.name === artistName)) allTracks.push(track.uri);
 			}
 		}
 
@@ -357,13 +351,13 @@
 			// Limit 100 since GraphQL has resource limit
 			limit: 100
 		});
+		if (discography.errors) throw discography.errors[0].message;
+
 		const overview = await Spicetify.GraphQL.Request(queryArtistOverview, {
 			uri,
 			locale: Spicetify.Locale.getLocale(),
 			includePrerelease: false
 		});
-
-		if (discography.errors) throw discography.errors[0].message;
 		if (overview.errors) throw overview.errors[0].message;
 
 		const artistName = overview.data.artistUnion.profile.name;
@@ -377,9 +371,7 @@
 		const allArtistAlbumsTracks = CONFIG.artistMode !== "single" ? await scanForTracksFromAlbums(artistAlbums, artistName, "album") : [];
 		const allArtistSinglesTracks = CONFIG.artistMode !== "album" ? await scanForTracksFromAlbums(artistSingles, artistName, "single") : [];
 
-		const allArtistTracks = allArtistAlbumsTracks.concat(allArtistSinglesTracks);
-
-		return allArtistTracks;
+		return allArtistAlbumsTracks.concat(allArtistSinglesTracks);
 	}
 
 	async function fetchArtistLikedTracks(uri) {
@@ -441,8 +433,7 @@
 
 	async function fetchShows(uri) {
 		const res = await Spicetify.CosmosAsync.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`);
-		const availables = res.items.filter(track => track.episodePlayState.isPlayable);
-		return availables.map(track => track.episodeMetadata.link);
+		return res.items.filter(track => track.episodePlayState.isPlayable).map(track => track.episodeMetadata.link);
 	}
 
 	function shuffle(array) {
@@ -462,8 +453,7 @@
 			array[counter] = array[index];
 			array[index] = temp;
 		}
-		array.filter(track => track);
-		return array;
+		return array.filter(track => track);
 	}
 
 	async function Queue(list, context = null, type) {
@@ -529,6 +519,7 @@
 			context,
 			type = null,
 			uri;
+
 		try {
 			if (typeof rawUri === "object") {
 				list = rawUri;
