@@ -91,11 +91,30 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 
 	let translator = new Translator();
 
-	let menuOptions = null;
+	let sourceOptions = {
+		none: "None"
+	};
+
+	const languageOptions = {
+		off: "Off",
+		"zh-hans": "Chinese (Simplified)",
+		"zh-hant": "Chinese (Traditional)",
+		ja: "Japanese",
+		ko: "Korean"
+	};
+
+	let modeOptions = {};
+
+	if (hasNeteaseTranslation) {
+		sourceOptions = {
+			...sourceOptions,
+			neteaseTranslation: "Chinese (Netease)"
+		};
+	}
 
 	switch (friendlyLanguage) {
 		case "japanese": {
-			menuOptions = {
+			modeOptions = {
 				furigana: "Furigana",
 				romaji: "Romaji",
 				hiragana: "Hiragana",
@@ -104,26 +123,20 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 			break;
 		}
 		case "korean": {
-			menuOptions = {
+			modeOptions = {
 				hangul: "Hangul",
 				romaja: "Romaja"
 			};
 			break;
 		}
 		case "chinese": {
-			menuOptions = {
+			modeOptions = {
 				cn: "Simplified Chinese",
 				hk: "Traditional Chinese (Hong Kong)",
 				tw: "Traditional Chinese (Taiwan)"
 			};
 			break;
 		}
-	}
-	if (hasNeteaseTranslation) {
-		menuOptions = {
-			...menuOptions,
-			neteaseTranslation: "Netease"
-		};
 	}
 
 	return react.createElement(
@@ -146,10 +159,24 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 						react.createElement(OptionList, {
 							items: [
 								{
-									desc: "Mode",
+									desc: "Translation Provider",
+									key: `translate:translated-lyrics-source`,
+									type: ConfigSelection,
+									options: sourceOptions,
+									renderInline: true
+								},
+								{
+									desc: "Language Override",
+									key: `translate:detect-language-override`,
+									type: ConfigSelection,
+									options: languageOptions,
+									renderInline: true
+								},
+								{
+									desc: "Display Mode",
 									key: `translation-mode:${friendlyLanguage}`,
 									type: ConfigSelection,
-									options: menuOptions,
+									options: modeOptions,
 									renderInline: true
 								},
 								{
