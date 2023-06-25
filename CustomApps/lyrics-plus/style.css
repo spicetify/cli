@@ -522,6 +522,10 @@ button.switch.small {
 	cursor: not-allowed;
 }
 
+.col.action select {
+	width: 150px;
+}
+
 #lyrics-fullscreen-container {
 	position: fixed;
 	width: 100vw;
