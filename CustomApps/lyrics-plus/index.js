@@ -28,13 +28,10 @@ function getConfig(name, defaultVal = true) {
 
 const APP_NAME = "lyrics-plus";
 
-// Modes enum
-const Modes = {
-	KARAOKE: 0,
-	SYNCED: 1,
-	UNSYNCED: 2,
-	GENIUS: 3
-};
+const KARAOKE = 0,
+	SYNCED = 1,
+	UNSYNCED = 2,
+	GENIUS = 3;
 
 const getKeyByValue = (obj, value) => Object.keys(obj).find(key => obj[key] === value);
 
@@ -70,28 +67,28 @@ const CONFIG = {
 		netease: {
 			on: getConfig("lyrics-plus:provider:netease:on"),
 			desc: `Crowdsourced lyrics provider ran by Chinese developers and users.`,
-			modes: [Modes.KARAOKE, Modes.SYNCED, Modes.UNSYNCED]
+			modes: [KARAOKE, SYNCED, UNSYNCED]
 		},
 		musixmatch: {
 			on: getConfig("lyrics-plus:provider:musixmatch:on"),
 			desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://spicetify.app/docs/faq#sometimes-popup-lyrics-andor-lyrics-plus-seem-to-not-work">Spicetify Docs</a>.`,
 			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
-			modes: [Modes.KARAOKE, Modes.SYNCED, Modes.UNSYNCED]
+			modes: [KARAOKE, SYNCED, UNSYNCED]
 		},
 		spotify: {
 			on: getConfig("lyrics-plus:provider:spotify:on"),
 			desc: `Lyrics sourced from official Spotify API.`,
-			modes: [Modes.SYNCED, Modes.UNSYNCED]
+			modes: [SYNCED, UNSYNCED]
 		},
 		genius: {
 			on: getConfig("lyrics-plus:provider:genius:on"),
 			desc: `Provide unsynced lyrics with insights from artists themselves.`,
-			modes: [Modes.GENIUS]
+			modes: [GENIUS]
 		},
 		local: {
 			on: getConfig("lyrics-plus:provider:local:on"),
 			desc: `Provide lyrics from cache/local files loaded from previous Spotify sessions.`,
-			modes: [Modes.KARAOKE, Modes.SYNCED, Modes.UNSYNCED]
+			modes: [KARAOKE, SYNCED, UNSYNCED]
 		}
 	},
 	providersOrder: localStorage.getItem("lyrics-plus:services-order"),
@@ -421,7 +418,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	async onVersionChange(items, index) {
-		if (this.state.mode === Modes.GENIUS) {
+		if (this.state.mode === GENIUS) {
 			this.setState({
 				...emptyLine,
 				genius2: this.state.genius2,
@@ -437,7 +434,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	async onVersionChange2(items, index) {
-		if (this.state.mode === Modes.GENIUS) {
+		if (this.state.mode === GENIUS) {
 			this.setState({
 				...emptyLine,
 				genius: this.state.genius,
@@ -673,13 +670,13 @@ class LyricsContainer extends react.Component {
 		} else {
 			// Auto switch
 			if (this.state.karaoke) {
-				mode = Modes.KARAOKE;
+				mode = KARAOKE;
 			} else if (this.state.synced) {
-				mode = Modes.SYNCED;
+				mode = SYNCED;
 			} else if (this.state.unsynced) {
-				mode = Modes.UNSYNCED;
+				mode = UNSYNCED;
 			} else if (this.state.genius) {
-				mode = Modes.GENIUS;
+				mode = GENIUS;
 			}
 		}
 
@@ -693,9 +690,9 @@ class LyricsContainer extends react.Component {
 			const language = this.state.currentLyrics && this.provideLanguageCode(this.state.currentLyrics);
 			const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
 			friendlyLanguage = language && languageDisplayNames.of(language?.split("-")[0])?.toLowerCase();
-			showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == Modes.SYNCED || mode == Modes.UNSYNCED);
+			showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == SYNCED || mode == UNSYNCED);
 			const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
-			if (mode === Modes.KARAOKE && this.state.karaoke) {
+			if (mode === KARAOKE && this.state.karaoke) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					isKara: true,
 					trackUri: this.state.uri,
@@ -703,21 +700,21 @@ class LyricsContainer extends react.Component {
 					provider: this.state.provider,
 					copyright: this.state.copyright
 				});
-			} else if (mode === Modes.SYNCED && this.state.synced) {
+			} else if (mode === SYNCED && this.state.synced) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					trackUri: this.state.uri,
 					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright
 				});
-			} else if (mode === Modes.UNSYNCED && this.state.unsynced) {
+			} else if (mode === UNSYNCED && this.state.unsynced) {
 				activeItem = react.createElement(UnsyncedLyricsPage, {
 					trackUri: this.state.uri,
 					lyrics: CONFIG.visual["translate"] && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright
 				});
-			} else if (mode === Modes.GENIUS && this.state.genius) {
+			} else if (mode === GENIUS && this.state.genius) {
 				activeItem = react.createElement(GeniusPage, {
 					isSplitted: CONFIG.visual["dual-genius"],
 					trackUri: this.state.uri,
@@ -777,7 +774,7 @@ class LyricsContainer extends react.Component {
 					hasNeteaseTranslation
 				}),
 				react.createElement(AdjustmentsMenu, { mode }),
-				mode !== Modes.GENIUS &&
+				mode !== GENIUS &&
 					react.createElement(
 						Spicetify.ReactComponent.TooltipWrapper,
 						{

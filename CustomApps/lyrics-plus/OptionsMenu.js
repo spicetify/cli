@@ -257,19 +257,19 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 									min: -10000,
 									max: 10000,
 									step: 250,
-									when: () => mode === Modes.SYNCED || mode === Modes.KARAOKE
+									when: () => mode === SYNCED || mode === KARAOKE
 								},
 								{
 									desc: "Compact",
 									key: "synced-compact",
 									type: ConfigSlider,
-									when: () => mode === Modes.SYNCED || mode === Modes.KARAOKE
+									when: () => mode === SYNCED || mode === KARAOKE
 								},
 								{
 									desc: "Dual panel",
 									key: "dual-genius",
 									type: ConfigSlider,
-									when: () => mode === Modes.GENIUS
+									when: () => mode === GENIUS
 								}
 							],
 							onChange: (name, value) => {
