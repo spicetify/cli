@@ -33,8 +33,6 @@ const KARAOKE = 0,
 	UNSYNCED = 2,
 	GENIUS = 3;
 
-const getKeyByValue = (obj, value) => Object.keys(obj).find(key => obj[key] === value);
-
 const CONFIG = {
 	visual: {
 		["playbar-button"]: getConfig("lyrics-plus:visual:playbar-button", false),
