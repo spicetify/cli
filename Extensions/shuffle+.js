@@ -13,23 +13,15 @@
 	const { React } = Spicetify;
 	const { useState } = React;
 
-	function getLocalStorageDataFromKey(key) {
-		return Spicetify.LocalStorage.get(key);
-	}
-
-	function setLocalStorageDataWithKey(key, value) {
-		Spicetify.LocalStorage.set(key, value);
-	}
-
 	function getConfig() {
 		try {
-			const parsed = JSON.parse(getLocalStorageDataFromKey("shufflePlus:settings"));
+			const parsed = JSON.parse(Spicetify.LocalStorage.get("shufflePlus:settings"));
 			if (parsed && typeof parsed === "object") {
 				return parsed;
 			}
 			throw "";
 		} catch {
-			setLocalStorageDataWithKey("shufflePlus:settings", `{}`);
+			Spicetify.LocalStorage.set("shufflePlus:settings", `{}`);
 			return { artistMode: "all", artistNameMust: false };
 		}
 	}
@@ -38,7 +30,7 @@
 	saveConfig();
 
 	function saveConfig() {
-		setLocalStorageDataWithKey("shufflePlus:settings", JSON.stringify(CONFIG));
+		Spicetify.LocalStorage.set("shufflePlus:settings", JSON.stringify(CONFIG));
 	}
 
 	function settingsPage() {
@@ -46,54 +38,54 @@
 			"style",
 			null,
 			`.popup-row::after {
-						content: "";
-						display: table;
-						clear: both;
-					}
-					.popup-row .col {
-						display: flex;
-						padding: 10px 0;
-						align-items: center;
-					}
-					.popup-row .col.description {
-						float: left;
-						padding-right: 15px;
-					}
-					.popup-row .col.action {
-						float: right;
-						text-align: right;
-					}
-					.popup-row .div-title {
-						color: var(--spice-text);
-					}
-					.popup-row .divider {
-						height: 2px;
-						border-width: 0;
-						background-color: var(--spice-button-disabled);
-					}
-					button.checkbox {
-						align-items: center;
-						border: 0px;
-						border-radius: 50%;
-						background-color: rgba(var(--spice-rgb-shadow), 0.7);
-						color: var(--spice-text);
-						cursor: pointer;
-						display: flex;
-						margin-inline-start: 12px;
-						padding: 8px;
-					}
-					button.checkbox.disabled {
-						color: rgba(var(--spice-rgb-text), 0.3);
-					}
-					select {
-						color: var(--spice-text);
-						background: rgba(var(--spice-rgb-shadow), 0.7);
-						border: 0;
-						height: 32px;
-					}
-					::-webkit-scrollbar {
-						width: 8px;
-					}`
+				content: "";
+				display: table;
+				clear: both;
+			}
+			.popup-row .col {
+				display: flex;
+				padding: 10px 0;
+				align-items: center;
+			}
+			.popup-row .col.description {
+				float: left;
+				padding-right: 15px;
+			}
+			.popup-row .col.action {
+				float: right;
+				text-align: right;
+			}
+			.popup-row .div-title {
+				color: var(--spice-text);
+			}
+			.popup-row .divider {
+				height: 2px;
+				border-width: 0;
+				background-color: var(--spice-button-disabled);
+			}
+			button.checkbox {
+				align-items: center;
+				border: 0px;
+				border-radius: 50%;
+				background-color: rgba(var(--spice-rgb-shadow), 0.7);
+				color: var(--spice-text);
+				cursor: pointer;
+				display: flex;
+				margin-inline-start: 12px;
+				padding: 8px;
+			}
+			button.checkbox.disabled {
+				color: rgba(var(--spice-rgb-text), 0.3);
+			}
+			select {
+				color: var(--spice-text);
+				background: rgba(var(--spice-rgb-shadow), 0.7);
+				border: 0;
+				height: 32px;
+			}
+			::-webkit-scrollbar {
+				width: 8px;
+			}`
 		);
 
 		function DisplayIcon({ icon, size }) {
@@ -301,9 +293,7 @@
 		});
 
 		const requestFolder = searchFolder(res.rows, uri);
-		if (requestFolder === null) {
-			throw "Cannot find folder";
-		}
+		if (!requestFolder) throw "Cannot find folder";
 
 		const requestPlaylists = [];
 		async function fetchNested(folder) {
@@ -382,20 +372,10 @@
 		const artistAlbums = releases.filter(album => album.type === "ALBUM");
 		const artistSingles = releases.filter(album => album.type === "SINGLE" || album.type === "EP");
 
-		if (artistAlbums.length === 0 && artistSingles.length === 0) {
-			throw "Artist has no releases";
-		}
+		if (artistAlbums.length === 0 && artistSingles.length === 0) throw "Artist has no releases";
 
-		let allArtistAlbumsTracks = [];
-		let allArtistSinglesTracks = [];
-
-		if (CONFIG.artistMode !== "single") {
-			allArtistAlbumsTracks = await scanForTracksFromAlbums(artistAlbums, artistName, "album");
-		}
-
-		if (CONFIG.artistMode !== "album") {
-			allArtistSinglesTracks = await scanForTracksFromAlbums(artistSingles, artistName, "single");
-		}
+		const allArtistAlbumsTracks = CONFIG.artistMode !== "single" ? await scanForTracksFromAlbums(artistAlbums, artistName, "album") : [];
+		const allArtistSinglesTracks = CONFIG.artistMode !== "album" ? await scanForTracksFromAlbums(artistSingles, artistName, "single") : [];
 
 		const allArtistTracks = allArtistAlbumsTracks.concat(allArtistSinglesTracks);
 
@@ -403,13 +383,10 @@
 	}
 
 	async function fetchArtistLikedTracks(uri) {
-		//goto
 		const artistRes = await Spicetify.CosmosAsync.get(`sp://core-collection/unstable/@/list/tracks/artist/${uri}?responseFormat=protobufJson`);
 
 		const allTracks = artistRes.item?.map(artistTrack => {
-			if (artistTrack.trackMetadata.playable) {
-				return artistTrack.trackMetadata.link;
-			}
+			if (artistTrack.trackMetadata.playable) return artistTrack.trackMetadata.link;
 		});
 
 		return allTracks ?? [];
