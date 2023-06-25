@@ -522,7 +522,8 @@ button.switch.small {
 	cursor: not-allowed;
 }
 
-.col.action .main-dropDown-dropDown, #lyrics-plus-config-container .col.action input {
+.col.action .main-dropDown-dropDown,
+#lyrics-plus-config-container .col.action input {
 	width: 150px;
 }
 
