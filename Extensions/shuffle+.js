@@ -9,39 +9,28 @@
 		setTimeout(shufflePlus, 300);
 		return;
 	}
-	await initShufflePlus();
-})();
 
-async function initShufflePlus() {
 	const { React } = Spicetify;
 	const { useState } = React;
 
-	async function getLocalStorageDataFromKey(key) {
-		return Spicetify.LocalStorage.get(key);
-	}
-
-	async function setLocalStorageDataWithKey(key, value) {
-		Spicetify.LocalStorage.set(key, value);
-	}
-
-	async function getConfig() {
+	function getConfig() {
 		try {
-			const parsed = JSON.parse(await getLocalStorageDataFromKey("shufflePlus:settings"));
+			const parsed = JSON.parse(Spicetify.LocalStorage.get("shufflePlus:settings"));
 			if (parsed && typeof parsed === "object") {
 				return parsed;
 			}
 			throw "";
 		} catch {
-			await setLocalStorageDataWithKey("shufflePlus:settings", `{}`);
+			Spicetify.LocalStorage.set("shufflePlus:settings", `{}`);
 			return { artistMode: "all", artistNameMust: false };
 		}
 	}
 
-	const CONFIG = await getConfig();
-	await saveConfig();
+	const CONFIG = getConfig();
+	saveConfig();
 
-	async function saveConfig() {
-		await setLocalStorageDataWithKey("shufflePlus:settings", JSON.stringify(CONFIG));
+	function saveConfig() {
+		Spicetify.LocalStorage.set("shufflePlus:settings", JSON.stringify(CONFIG));
 	}
 
 	function settingsPage() {
@@ -49,54 +38,54 @@ async function initShufflePlus() {
 			"style",
 			null,
 			`.popup-row::after {
-                    content: "";
-                    display: table;
-                    clear: both;
-                }
-                .popup-row .col {
-                    display: flex;
-                    padding: 10px 0;
-                    align-items: center;
-                }
-                .popup-row .col.description {
-                    float: left;
-                    padding-right: 15px;
-                }
-                .popup-row .col.action {
-                    float: right;
-                    text-align: right;
-                }
-                .popup-row .div-title {
-                    color: var(--spice-text);
-                }
-                .popup-row .divider {
-                    height: 2px;
-                    border-width: 0;
-                    background-color: var(--spice-button-disabled);
-                }
-                button.checkbox {
-                    align-items: center;
-                    border: 0px;
-                    border-radius: 50%;
-                    background-color: rgba(var(--spice-rgb-shadow), 0.7);
-                    color: var(--spice-text);
-                    cursor: pointer;
-                    display: flex;
-                    margin-inline-start: 12px;
-                    padding: 8px;
-                }
-                button.checkbox.disabled {
-                    color: rgba(var(--spice-rgb-text), 0.3);
-                }
-                select {
-                    color: var(--spice-text);
-                    background: rgba(var(--spice-rgb-shadow), 0.7);
-                    border: 0;
-                    height: 32px;
-                }
-                ::-webkit-scrollbar {
-                    width: 8px;
-                }`
+				content: "";
+				display: table;
+				clear: both;
+			}
+			.popup-row .col {
+				display: flex;
+				padding: 10px 0;
+				align-items: center;
+			}
+			.popup-row .col.description {
+				float: left;
+				padding-right: 15px;
+			}
+			.popup-row .col.action {
+				float: right;
+				text-align: right;
+			}
+			.popup-row .div-title {
+				color: var(--spice-text);
+			}
+			.popup-row .divider {
+				height: 2px;
+				border-width: 0;
+				background-color: var(--spice-button-disabled);
+			}
+			button.checkbox {
+				align-items: center;
+				border: 0px;
+				border-radius: 50%;
+				background-color: rgba(var(--spice-rgb-shadow), 0.7);
+				color: var(--spice-text);
+				cursor: pointer;
+				display: flex;
+				margin-inline-start: 12px;
+				padding: 8px;
+			}
+			button.checkbox.disabled {
+				color: rgba(var(--spice-rgb-text), 0.3);
+			}
+			select {
+				color: var(--spice-text);
+				background: rgba(var(--spice-rgb-shadow), 0.7);
+				border: 0;
+				height: 32px;
+			}
+			::-webkit-scrollbar {
+				width: 8px;
+			}`
 		);
 
 		function DisplayIcon({ icon, size }) {
@@ -112,7 +101,7 @@ async function initShufflePlus() {
 		}
 
 		function checkBoxItem({ name, field, onclickFun = () => {} }) {
-			let [value, setValue] = useState(CONFIG[field]);
+			const [value, setValue] = useState(CONFIG[field]);
 			return React.createElement(
 				"div",
 				{ className: "popup-row" },
@@ -124,10 +113,10 @@ async function initShufflePlus() {
 						"button",
 						{
 							className: "checkbox" + (value ? "" : " disabled"),
-							onClick: async () => {
+							onClick: () => {
 								CONFIG[field] = !value;
 								setValue(!value);
-								await saveConfig();
+								saveConfig();
 								onclickFun();
 							}
 						},
@@ -150,10 +139,10 @@ async function initShufflePlus() {
 						"select",
 						{
 							value,
-							onChange: async e => {
+							onChange: e => {
 								setValue(e.target.value);
 								CONFIG[field] = e.target.value;
-								await saveConfig();
+								saveConfig();
 								onclickFun();
 							}
 						},
@@ -171,7 +160,7 @@ async function initShufflePlus() {
 			);
 		}
 
-		let settingsDOMContent = React.createElement(
+		const settingsDOMContent = React.createElement(
 			"div",
 			null,
 			style,
@@ -202,11 +191,11 @@ async function initShufflePlus() {
 
 	new Spicetify.Menu.Item("Shuffle+", false, settingsPage, "shuffle").register();
 
-	let { Type } = Spicetify.URI;
+	const { Type } = Spicetify.URI;
 
 	function shouldAddShufflePlus(uri) {
 		if (uri.length === 1) {
-			let uriObj = Spicetify.URI.fromString(uri[0]);
+			const uriObj = Spicetify.URI.fromString(uri[0]);
 			switch (uriObj.type) {
 				case Type.PLAYLIST:
 				case Type.PLAYLIST_V2:
@@ -223,7 +212,7 @@ async function initShufflePlus() {
 	}
 
 	function shouldAddShufflePlusLiked(uri) {
-		let uriObj = Spicetify.URI.fromString(uri[0]);
+		const uriObj = Spicetify.URI.fromString(uri[0]);
 		if (Spicetify.Platform.History.location.pathname === "/collection/tracks") {
 			switch (uriObj.type) {
 				case Type.TRACK:
@@ -234,7 +223,7 @@ async function initShufflePlus() {
 	}
 
 	function shouldAddShufflePlusLocal(uri) {
-		let uriObj = Spicetify.URI.fromString(uri[0]);
+		const uriObj = Spicetify.URI.fromString(uri[0]);
 		if (Spicetify.Platform.History.location.pathname === "/collection/local-files") {
 			switch (uriObj.type) {
 				case Type.TRACK:
@@ -242,12 +231,13 @@ async function initShufflePlus() {
 					return true;
 			}
 		}
+		return false;
 	}
 
 	new Spicetify.ContextMenu.Item(
 		"Play with Shuffle+",
 		async uri => {
-			if (uri.length == 1) {
+			if (uri.length === 1) {
 				await fetchAndPlay(uri[0]);
 				return;
 			}
@@ -276,7 +266,7 @@ async function initShufflePlus() {
 	).register();
 
 	async function fetchPlaylistTracks(uri) {
-		let res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/spotify:playlist:${uri}/rows`, {
+		const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/spotify:playlist:${uri}/rows`, {
 			policy: { link: true, playable: true }
 		});
 		return res.rows.filter(track => track.playable).map(track => track.link);
@@ -284,13 +274,9 @@ async function initShufflePlus() {
 
 	function searchFolder(rows, uri) {
 		for (const r of rows) {
-			if (r.type !== "folder" || r.rows == null) {
-				continue;
-			}
+			if (r.type !== "folder" || !r.rows) continue;
 
-			if (r.link === uri) {
-				return r;
-			}
+			if (r.link === uri) return r;
 
 			const found = searchFolder(r.rows, uri);
 			if (found) return found;
@@ -303,11 +289,9 @@ async function initShufflePlus() {
 		});
 
 		const requestFolder = searchFolder(res.rows, uri);
-		if (requestFolder == null) {
-			throw "Cannot find folder";
-		}
+		if (!requestFolder) throw "Cannot find folder";
 
-		let requestPlaylists = [];
+		const requestPlaylists = [];
 		async function fetchNested(folder) {
 			if (!folder.rows) return;
 
@@ -322,49 +306,36 @@ async function initShufflePlus() {
 		return requestPlaylists.flat();
 	}
 
-	async function fetchAlbumTracks(uri) {
-		let res = await Spicetify.CosmosAsync.get(`wg://album/v1/album-app/album/${uri}/desktop`);
-		const items = [];
-		for (const disc of res.discs) {
-			const availables = disc.tracks.filter(track => track.playable);
-			items.push(...availables.map(track => track.uri));
-		}
-		return items;
+	async function fetchAlbumTracks(uri, includeMetadata = false) {
+		const { queryAlbumTracks } = Spicetify.GraphQL.Definitions;
+		const { data, errors } = await Spicetify.GraphQL.Request(queryAlbumTracks, { uri, offset: 0, limit: 500 });
+
+		if (errors) throw errors[0].message;
+		if (data.albumUnion.playability.playable === false) throw "Album is not playable";
+
+		return data.albumUnion.tracks.items.filter(({ track }) => track.playability.playable).map(({ track }) => (includeMetadata ? track : track.uri));
 	}
 
-	let artistFetchTypeCount = { album: 0, single: 0 };
+	const artistFetchTypeCount = { album: 0, single: 0 };
 
-	async function scanForTracksFromAlbums(res, allCount, artistName, type) {
-		let allTracks = [];
+	async function scanForTracksFromAlbums(res, artistName, type) {
+		const allTracks = [];
 
-		for (let albums of res) {
-			let albumsRes;
+		for (const album of res) {
+			let albumRes;
 
 			try {
-				if (albums.discs) {
-					albumsRes = albums;
-				} else {
-					albumsRes = await Spicetify.CosmosAsync.get(`wg://album/v1/album-app/album/${albums.uri}/desktop`);
-				}
-			} catch (error) {}
+				albumRes = await fetchAlbumTracks(album.uri, true);
+			} catch (error) {
+				console.error(album, error);
+				continue;
+			}
 
 			artistFetchTypeCount[type]++;
-			Spicetify.showNotification(`${artistFetchTypeCount[type]} / ${allCount} ${type}s`);
+			Spicetify.showNotification(`${artistFetchTypeCount[type]} / ${res.length} ${type}s`);
 
-			for (let disc of albumsRes.discs) {
-				for (let track of disc.tracks) {
-					let condition = true;
-					if (CONFIG.artistNameMust) {
-						let artists = track.artists.map(artist => artist.name);
-						if (!artists.includes(artistName)) {
-							condition = false;
-						}
-					}
-
-					if (track.playable && condition) {
-						allTracks.push(track.uri);
-					}
-				}
+			for (const track of albumRes) {
+				if (!CONFIG.artistNameMust || track.artists.items.some(artist => artist.profile.name === artistName)) allTracks.push(track.uri);
 			}
 		}
 
@@ -372,64 +343,66 @@ async function initShufflePlus() {
 	}
 
 	async function fetchArtistTracks(uri) {
-		let artistRes = await Spicetify.CosmosAsync.get(`wg://artist/v1/${uri}/desktop?format=json`);
+		const { queryArtistDiscographyAll, queryArtistOverview } = Spicetify.GraphQL.Definitions;
 
-		let artistName = artistRes.info.name;
+		const discography = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
+			uri,
+			offset: 0,
+			// Limit 100 since GraphQL has resource limit
+			limit: 100
+		});
+		if (discography.errors) throw discography.errors[0].message;
 
-		let artistAlbums = artistRes.releases.albums;
-		let artistSingles = artistRes.releases.singles;
+		const overview = await Spicetify.GraphQL.Request(queryArtistOverview, {
+			uri,
+			locale: Spicetify.Locale.getLocale(),
+			includePrerelease: false
+		});
+		if (overview.errors) throw overview.errors[0].message;
 
-		let allArtistAlbumsTracks = [];
-		let allArtistSinglesTracks = [];
+		const artistName = overview.data.artistUnion.profile.name;
+		const releases = discography.data.artistUnion.discography.all.items.map(({ releases }) => releases.items).flat();
 
-		let allAlbumsCount = artistAlbums.total_count;
-		let allSinglesCount = artistSingles.total_count;
+		const artistAlbums = releases.filter(album => album.type === "ALBUM");
+		const artistSingles = releases.filter(album => album.type === "SINGLE" || album.type === "EP");
 
-		if (allAlbumsCount != 0 && CONFIG.artistMode != "single") {
-			allArtistAlbumsTracks = await scanForTracksFromAlbums(artistAlbums.releases, allAlbumsCount, artistName, "album");
-		}
+		if (artistAlbums.length === 0 && artistSingles.length === 0) throw "Artist has no releases";
 
-		if (allSinglesCount != 0 && CONFIG.artistMode != "album") {
-			allArtistSinglesTracks = await scanForTracksFromAlbums(artistSingles.releases, allSinglesCount, artistName, "single");
-		}
+		const allArtistAlbumsTracks = CONFIG.artistMode !== "single" ? await scanForTracksFromAlbums(artistAlbums, artistName, "album") : [];
+		const allArtistSinglesTracks = CONFIG.artistMode !== "album" ? await scanForTracksFromAlbums(artistSingles, artistName, "single") : [];
 
-		let allArtistTracks = allArtistAlbumsTracks.concat(allArtistSinglesTracks);
-
-		return allArtistTracks;
+		return allArtistAlbumsTracks.concat(allArtistSinglesTracks);
 	}
 
 	async function fetchArtistLikedTracks(uri) {
-		//goto
-		let artistRes = await Spicetify.CosmosAsync.get(`sp://core-collection/unstable/@/list/tracks/artist/${uri}?responseFormat=protobufJson`);
+		const artistRes = await Spicetify.CosmosAsync.get(`sp://core-collection/unstable/@/list/tracks/artist/${uri}?responseFormat=protobufJson`);
 
-		let allTracks = [];
-		if (artistRes.item) {
-			allTracks = artistRes.item.map(artistTrack => {
-				if (artistTrack.trackMetadata.playable) {
-					return artistTrack.trackMetadata.link;
-				}
-			});
-		}
+		const allTracks = artistRes.item?.map(artistTrack => {
+			if (artistTrack.trackMetadata.playable) return artistTrack.trackMetadata.link;
+		});
 
-		return allTracks;
+		return allTracks ?? [];
 	}
 
 	async function fetchArtistTopTenTracks(uri) {
-		let artistRes = await Spicetify.CosmosAsync.get(`wg://artist/v1/${uri}/desktop?format=json`);
-
-		let topTenTracks = artistRes.top_tracks.tracks.map(track => track.uri);
-
-		return topTenTracks;
+		const { queryArtistOverview } = Spicetify.GraphQL.Definitions;
+		const { data, errors } = await Spicetify.GraphQL.Request(queryArtistOverview, {
+			uri,
+			locale: Spicetify.Locale.getLocale(),
+			includePrerelease: false
+		});
+		if (errors) throw errors[0].message;
+		return data.artistUnion.discography.topTracks.items.map(({ track }) => track.uri);
 	}
 
 	async function fetchLikedTracks() {
-		let res = await Spicetify.CosmosAsync.get("sp://core-collection/unstable/@/list/tracks/all?responseFormat=protobufJson");
+		const res = await Spicetify.CosmosAsync.get("sp://core-collection/unstable/@/list/tracks/all?responseFormat=protobufJson");
 
 		return res.item.filter(track => track.trackMetadata.playable).map(track => track.trackMetadata.link);
 	}
 
 	async function fetchLocalTracks() {
-		let res = await Spicetify.Platform.LocalFilesAPI.getTracks();
+		const res = await Spicetify.Platform.LocalFilesAPI.getTracks();
 
 		return res.map(track => track.uri);
 	}
@@ -460,8 +433,7 @@ async function initShufflePlus() {
 
 	async function fetchShows(uri) {
 		const res = await Spicetify.CosmosAsync.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`);
-		const availables = res.items.filter(track => track.episodePlayState.isPlayable);
-		return availables.map(track => track.episodeMetadata.link);
+		return res.items.filter(track => track.episodePlayState.isPlayable).map(track => track.episodeMetadata.link);
 	}
 
 	function shuffle(array) {
@@ -471,22 +443,21 @@ async function initShufflePlus() {
 		// While there are elements in the array
 		while (counter > 0) {
 			// Pick a random index
-			let index = Math.floor(Math.random() * counter);
+			const index = Math.floor(Math.random() * counter);
 
 			// Decrease counter by 1
 			counter--;
 
 			// And swap the last element with it
-			let temp = array[counter];
+			const temp = array[counter];
 			array[counter] = array[index];
 			array[index] = temp;
 		}
-		array.filter(track => track);
-		return array;
+		return array.filter(track => track);
 	}
 
 	async function Queue(list, context = null, type) {
-		let count = list.length;
+		const count = list.length;
 
 		list.push("spotify:delimiter");
 
@@ -517,19 +488,19 @@ async function initShufflePlus() {
 
 		switch (type) {
 			case Type.ARTIST:
-				if (CONFIG.artistMode == "topTen") {
+				if (CONFIG.artistMode === "topTen") {
 					Spicetify.showNotification(`Shuffled Top ${count} Songs`);
 					break;
 				}
-				if (CONFIG.artistMode == "likedSongArtist") {
+				if (CONFIG.artistMode === "likedSongArtist") {
 					Spicetify.showNotification(`Shuffled ${count} Liked Songs`);
 					break;
 				}
-				if (CONFIG.artistMode == "single") {
+				if (CONFIG.artistMode === "single") {
 					Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.single} Singles, Total of ${count} Songs`);
 					break;
 				}
-				if (CONFIG.artistMode == "album") {
+				if (CONFIG.artistMode === "album") {
 					Spicetify.showNotification(`Shuffled ${artistFetchTypeCount.album} Albums, Total of ${count} Songs`);
 					break;
 				}
@@ -544,16 +515,17 @@ async function initShufflePlus() {
 	}
 
 	async function fetchAndPlay(rawUri) {
-		let list;
-		let context;
-		let type = null;
-		let uri;
+		let list,
+			context,
+			type = null,
+			uri;
+
 		try {
-			if (typeof rawUri == "object") {
+			if (typeof rawUri === "object") {
 				list = rawUri;
 				context = null;
 			} else {
-				let uriObj = Spicetify.URI.fromString(rawUri);
+				const uriObj = Spicetify.URI.fromString(rawUri);
 				type = uriObj.type;
 				uri = uriObj._base62Id ?? uriObj.id;
 
@@ -563,18 +535,18 @@ async function initShufflePlus() {
 						list = await fetchPlaylistTracks(uri);
 						break;
 					case Type.ALBUM:
-						list = await fetchAlbumTracks(uri);
+						list = await fetchAlbumTracks(rawUri);
 						break;
 					case Type.ARTIST + "":
-						if (CONFIG.artistMode == "likedSongArtist") {
+						if (CONFIG.artistMode === "likedSongArtist") {
 							list = await fetchArtistLikedTracks(uri);
 							break;
 						}
-						if (CONFIG.artistMode == "topTen") {
-							list = await fetchArtistTopTenTracks(uri);
+						if (CONFIG.artistMode === "topTen") {
+							list = await fetchArtistTopTenTracks(rawUri);
 							break;
 						}
-						list = await fetchArtistTracks(uri);
+						list = await fetchArtistTracks(rawUri);
 						break;
 					case Type.TRACK:
 					case Type.LOCAL_TRACK:
@@ -595,7 +567,7 @@ async function initShufflePlus() {
 				}
 
 				context = rawUri;
-				if (type == "folder" || type == "collection") {
+				if (type === "folder" || type === "collection") {
 					context = null;
 				}
 			}
@@ -603,7 +575,7 @@ async function initShufflePlus() {
 			await Queue(shuffle(list), context, type);
 		} catch (error) {
 			Spicetify.showNotification(String(error), true);
-			console.log(error);
+			console.error(error);
 		}
 	}
-}
+})();

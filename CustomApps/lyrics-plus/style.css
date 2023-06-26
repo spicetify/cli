@@ -522,6 +522,11 @@ button.switch.small {
 	cursor: not-allowed;
 }
 
+.col.action .main-dropDown-dropDown,
+#lyrics-plus-config-container .col.action input {
+	width: 150px;
+}
+
 #lyrics-fullscreen-container {
 	position: fixed;
 	width: 100vw;
