@@ -101,7 +101,7 @@
 	display: grid;
 	grid-area: 1/1/-1/-1;
 	grid-template-rows: 1fr 30px;
-	overflow: hidden;
+	overflow-y: hidden;
 	text-align: var(--lyrics-align-text);
 	user-select: text;
 }
