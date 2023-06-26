@@ -56,6 +56,7 @@ class Utils {
 	}
 
 	static detectLanguage(lyrics) {
+		if (!Array.isArray(lyrics)) return;
 		// Should return IETF BCP 47 language tags.
 		// This should detect the song's main language.
 		// Remember there is a possibility of a song referencing something in another language and the lyrics show it in that native language!
