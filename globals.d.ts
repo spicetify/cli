@@ -512,7 +512,6 @@ declare namespace Spicetify {
          */
         toURL(origin?: string): string;
 
-
         /**
          * Clones a given SpotifyURI instance.
          *
@@ -623,66 +622,260 @@ declare namespace Spicetify {
          */
         static from(value: any): URI | null;
 
-        static isAd(uri: any): boolean;
-        static isAlbum(uri: any): boolean;
-        static isGenre(uri: any): boolean;
-        static isQueue(uri: any): boolean;
-        static isApplication(uri: any): boolean;
-        static isArtist(uri: any): boolean;
-        static isArtistToplist(uri: any): boolean;
-        static isArtistConcerts(uri: any): boolean;
-        static isAudioFile(uri: any): boolean;
-        static isCollection(uri: any): boolean;
-        static isCollectionAlbum(uri: any): boolean;
-        static isCollectionArtist(uri: any): boolean;
-        static isCollectionMissingAlbum(uri: any): boolean;
-        static isCollectionTrackList(uri: any): boolean;
-        static isConcert(uri: any): boolean;
-        static isContextGroup(uri: any): boolean;
-        static isDailyMix(uri: any): boolean;
-        static isEmpty(uri: any): boolean;
-        static isEpisode(uri: any): boolean;
-        static isFacebook(uri: any): boolean;
-        static isFolder(uri: any): boolean;
-        static isFollowers(uri: any): boolean;
-        static isFollowing(uri: any): boolean;
-        static isImage(uri: any): boolean;
-        static isInbox(uri: any): boolean;
-        static isInterruption(uri: any): boolean;
-        static isLibrary(uri: any): boolean;
-        static isLive(uri: any): boolean;
-        static isRoom(uri: any): boolean;
-        static isExpression(uri: any): boolean;
-        static isLocal(uri: any): boolean;
-        static isLocalTrack(uri: any): boolean;
-        static isLocalAlbum(uri: any): boolean;
-        static isLocalArtist(uri: any): boolean;
-        static isMerch(uri: any): boolean;
-        static isMosaic(uri: any): boolean;
-        static isPlaylist(uri: any): boolean;
-        static isPlaylistV2(uri: any): boolean;
-        static isPrerelease(uri: any): boolean;
-        static isProfile(uri: any): boolean;
-        static isPublishedRootlist(uri: any): boolean;
-        static isRadio(uri: any): boolean;
-        static isRootlist(uri: any): boolean;
-        static isSearch(uri: any): boolean;
-        static isShow(uri: any): boolean;
-        static isSocialSession(uri: any): boolean;
-        static isSpecial(uri: any): boolean;
-        static isStarred(uri: any): boolean;
-        static isStation(uri: any): boolean;
-        static isTempPlaylist(uri: any): boolean;
-        static isToplist(uri: any): boolean;
-        static isTrack(uri: any): boolean;
-        static isTrackset(uri: any): boolean;
-        static isUserToplist(uri: any): boolean;
-        static isUserTopTracks(uri: any): boolean;
-        static isUnknown(uri: any): boolean;
-        static isMedia(uri: any): boolean;
-        static isQuestion(uri: any): boolean;
-        static isPoll(uri: any): boolean;
-        static isPlaylistV1OrV2(uri: any): boolean;
+        /**
+        * Checks whether two URI:s refer to the same thing even though they might
+        * not necessarily be equal.
+        *
+        * These two Playlist URIs, for example, refer to the same playlist:
+        *
+        *   spotify:user:napstersean:playlist:3vxotOnOGDlZXyzJPLFnm2
+        *   spotify:playlist:3vxotOnOGDlZXyzJPLFnm2
+        *
+        * @param baseUri The first URI to compare.
+        * @param refUri The second URI to compare.
+        * @return Whether they shared idenitity
+        */
+        static isSameIdentity(baseUri: URI | string, refUri: URI | string): boolean;
+
+        /**
+         * Returns the hex representation of a Base62 encoded id.
+         *
+         * @param id The base62 encoded id.
+         * @return The hex representation of the base62 id.
+         */
+        static idToHex(id: string): string;
+
+        /**
+         * Returns the base62 representation of a hex encoded id.
+         *
+         * @param hex The hex encoded id.
+         * @return The base62 representation of the id.
+         */
+        static hexToId(hex: string): string;
+
+        /**
+         * Creates a new 'album' type URI.
+         *
+         * @param id The id of the album.
+         * @param disc The disc number of the album.
+         * @return The album URI.
+         */
+        static albumURI(id: string, disc: number): URI;
+
+        /**
+         * Creates a new 'application' type URI.
+         *
+         * @param id The id of the application.
+         * @param args An array containing the arguments to the app.
+         * @return The application URI.
+         */
+        static applicationURI(id: string, args: string[]): URI;
+
+        /**
+         * Creates a new 'artist' type URI.
+         *
+         * @param id The id of the artist.
+         * @return The artist URI.
+         */
+        static artistURI(id: string): URI;
+
+        /**
+         * Creates a new 'collection' type URI.
+         *
+         * @param username The non-canonical username of the rootlist owner.
+         * @param category The category of the collection.
+         * @return The collection URI.
+         */
+        static collectionURI(username: string, category: string): URI;
+
+        /**
+         * Creates a new 'collection-album' type URI.
+         *
+         * @param username The non-canonical username of the rootlist owner.
+         * @param id The id of the album.
+         * @return The collection album URI.
+         */
+        static collectionAlbumURI(username: string, id: string): URI;
+
+        /**
+         * Creates a new 'collection-artist' type URI.
+         *
+         * @param username The non-canonical username of the rootlist owner.
+         * @param id The id of the artist.
+         * @return The collection artist URI.
+         */
+        static collectionAlbumURI(username: string, id: string): URI;
+
+        /**
+         * Creates a new 'concert' type URI.
+         * 
+         * @param id The id of the concert.
+         * @return The concert URI.
+         */
+        static concertURI(id: string): URI;
+
+        /**
+         * Creates a new 'episode' type URI.
+         * 
+         * @param id The id of the episode.
+         * @return The episode URI.
+         */
+        static episodeURI(id: string): URI;
+
+        /**
+         * Creates a new 'folder' type URI.
+         * 
+         * @param id The id of the folder.
+         * @return The folder URI.
+         */
+        static folderURI(id: string): URI;
+
+        /**
+         * Creates a new 'local-album' type URI.
+         * 
+         * @param artist The artist of the album.
+         * @param album The name of the album.
+         * @return The local album URI.
+         */
+        static localAlbumURI(artist: string, album: string): URI;
+
+        /**
+         * Creates a new 'local-artist' type URI.
+         * 
+         * @param artist The name of the artist.
+         * @return The local artist URI.
+         */
+        static localArtistURI(artist: string): URI;
+
+        /**
+         * Creates a new 'playlist-v2' type URI.
+         *
+         * @param id The id of the playlist.
+         * @return The playlist URI.
+         */
+        static playlistV2URI(id: string): URI;
+
+        /**
+         * Creates a new 'prerelease' type URI.
+         * 
+         * @param id The id of the prerelease.
+         * @return The prerelease URI.
+         */
+        static prereleaseURI(id: string): URI;
+
+        /**
+         * Creates a new 'profile' type URI.
+         *
+         * @param username The non-canonical username of the rootlist owner.
+         * @param args A list of arguments.
+         * @return The profile URI.
+         */
+        static profileURI(username: string, args: string[]): URI;
+
+        /**
+         * Creates a new 'search' type URI.
+         *
+         * @param query The unencoded search query.
+         * @return The search URI
+         */
+        static searchURI(query: string): URI;
+
+        /**
+         * Creates a new 'show' type URI.
+         *
+         * @param id The id of the show.
+         * @return The show URI.
+         */
+        static showURI(id: string): URI;
+
+        /**
+         * Creates a new 'station' type URI.
+         *
+         * @param args An array of arguments for the station.
+         * @return The station URI.
+         */
+        static stationURI(args: string[]): URI;
+
+        /**
+         * Creates a new 'track' type URI.
+         *
+         * @param id The id of the track.
+         * @param anchor The point in the track formatted as mm:ss
+         * @param context An optional context URI
+         * @param play Toggles autoplay
+         * @return The track URI.
+         */
+        static trackURI(id: string, anchor: string, context?: string, play: boolean): URI;
+
+        /**
+         * Creates a new 'user-toplist' type URI.
+         *
+         * @param username The non-canonical username of the toplist owner.
+         * @param toplist The toplist type.
+         * @return The user-toplist URI.
+         */
+        static userToplistURI(username: string, toplist: string): URI;
+
+        static isAd(uri: URI | string): boolean;
+        static isAlbum(uri: URI | string): boolean;
+        static isGenre(uri: URI | string): boolean;
+        static isQueue(uri: URI | string): boolean;
+        static isApplication(uri: URI | string): boolean;
+        static isArtist(uri: URI | string): boolean;
+        static isArtistToplist(uri: URI | string): boolean;
+        static isArtistConcerts(uri: URI | string): boolean;
+        static isAudioFile(uri: URI | string): boolean;
+        static isCollection(uri: URI | string): boolean;
+        static isCollectionAlbum(uri: URI | string): boolean;
+        static isCollectionArtist(uri: URI | string): boolean;
+        static isCollectionMissingAlbum(uri: URI | string): boolean;
+        static isCollectionTrackList(uri: URI | string): boolean;
+        static isConcert(uri: URI | string): boolean;
+        static isContextGroup(uri: URI | string): boolean;
+        static isDailyMix(uri: URI | string): boolean;
+        static isEmpty(uri: URI | string): boolean;
+        static isEpisode(uri: URI | string): boolean;
+        static isFacebook(uri: URI | string): boolean;
+        static isFolder(uri: URI | string): boolean;
+        static isFollowers(uri: URI | string): boolean;
+        static isFollowing(uri: URI | string): boolean;
+        static isImage(uri: URI | string): boolean;
+        static isInbox(uri: URI | string): boolean;
+        static isInterruption(uri: URI | string): boolean;
+        static isLibrary(uri: URI | string): boolean;
+        static isLive(uri: URI | string): boolean;
+        static isRoom(uri: URI | string): boolean;
+        static isExpression(uri: URI | string): boolean;
+        static isLocal(uri: URI | string): boolean;
+        static isLocalTrack(uri: URI | string): boolean;
+        static isLocalAlbum(uri: URI | string): boolean;
+        static isLocalArtist(uri: URI | string): boolean;
+        static isMerch(uri: URI | string): boolean;
+        static isMosaic(uri: URI | string): boolean;
+        static isPlaylist(uri: URI | string): boolean;
+        static isPlaylistV2(uri: URI | string): boolean;
+        static isPrerelease(uri: URI | string): boolean;
+        static isProfile(uri: URI | string): boolean;
+        static isPublishedRootlist(uri: URI | string): boolean;
+        static isRadio(uri: URI | string): boolean;
+        static isRootlist(uri: URI | string): boolean;
+        static isSearch(uri: URI | string): boolean;
+        static isShow(uri: URI | string): boolean;
+        static isSocialSession(uri: URI | string): boolean;
+        static isSpecial(uri: URI | string): boolean;
+        static isStarred(uri: URI | string): boolean;
+        static isStation(uri: URI | string): boolean;
+        static isTempPlaylist(uri: URI | string): boolean;
+        static isToplist(uri: URI | string): boolean;
+        static isTrack(uri: URI | string): boolean;
+        static isTrackset(uri: URI | string): boolean;
+        static isUserToplist(uri: URI | string): boolean;
+        static isUserTopTracks(uri: URI | string): boolean;
+        static isUnknown(uri: URI | string): boolean;
+        static isMedia(uri: URI | string): boolean;
+        static isQuestion(uri: URI | string): boolean;
+        static isPoll(uri: URI | string): boolean;
+        static isPlaylistV1OrV2(uri: URI | string): boolean;
     }
 
     /**
