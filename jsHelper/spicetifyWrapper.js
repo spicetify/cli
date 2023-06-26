@@ -103,7 +103,8 @@ const Spicetify = {
             "ReactComponent",
             "PopupModal",
             "_cloneSidebarItem",
-            "_sidebarItemToClone",
+            // Deprecated since Spotify 1.2.14
+            // "_sidebarItemToClone",
             "SVGIcons",
             "colorExtractor",
             "test",
@@ -125,6 +126,7 @@ const Spicetify = {
             "Panel",
             "ReactFlipToolkit",
             "classnames",
+            "ReactQuery",
         ];
 
         const PLAYER_METHOD = [
@@ -184,7 +186,9 @@ const Spicetify = {
         ]
 
         const REACT_HOOK = [
-            "DragHandler"
+            "DragHandler",
+            "usePanelState",
+            "useExtractedColor",
         ]
 
         let count = SPICETIFY_METHOD.length;
@@ -290,6 +294,9 @@ const Spicetify = {
 
     // React Hook - usePanelState
     Spicetify.ReactHook.usePanelState = functionModules.find(m => m.toString().includes("setPanelState"));
+    
+    // React Hook - useExtractedColor
+    Spicetify.ReactHook.useExtractedColor = functionModules.find(m => m.toString().includes("extracted-color"));
 
     (function waitForURI() {
         if (!Spicetify.URI) {
