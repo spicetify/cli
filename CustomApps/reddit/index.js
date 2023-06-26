@@ -315,7 +315,7 @@ async function fetchPlaylist(post) {
 			uri: post.uri,
 			title: metadata.name,
 			subtitle: post.title,
-			imageURL: "https://i.scdn.co/image/" + metadata.picture.split(":")[2],
+			imageURL: metadata.picture,
 			upvotes: post.upvotes,
 			followersCount: metadata.followers
 		};
@@ -325,15 +325,18 @@ async function fetchPlaylist(post) {
 }
 
 async function fetchAlbum(post) {
-	const arg = post.uri.split(":")[2];
+	const { getAlbum } = Spicetify.GraphQL.Definitions;
+
 	try {
-		const metadata = await Spicetify.CosmosAsync.get(`wg://album/v1/album-app/album/${arg}/desktop`);
+		const { data } = await Spicetify.GraphQL.Request(getAlbum, { uri: post.uri, locale: Spicetify.Locale.getLocale(), offset: 0, limit: 10 });
+		const metadata = data.albumUnion;
+
 		return {
 			type: typesLocale.album,
 			uri: post.uri,
 			title: metadata.name,
-			subtitle: metadata.artists,
-			imageURL: metadata.cover.uri,
+			subtitle: metadata.artists.items.map(artist => artist.profile.name).join(", "),
+			imageURL: metadata.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url,
 			upvotes: post.upvotes
 		};
 	} catch {

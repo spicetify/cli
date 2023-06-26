@@ -136,6 +136,7 @@ const ConfigSelection = ({ name, defaultValue, options, onChange = () => {} }) =
 			react.createElement(
 				"select",
 				{
+					className: "main-dropDown-dropDown",
 					value,
 					onChange: setValueCallback
 				},

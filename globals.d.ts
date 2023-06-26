@@ -459,7 +459,7 @@ declare namespace Spicetify {
      * @param isError If true, bubble will be red. Defaults to false.
      * @param msTimeout Time in milliseconds to display the bubble. Defaults to Spotify's value.
      */
-    function showNotification(text: string, isError?: boolean, msTimeout?: number): void;
+    function showNotification(message: React.ReactNode, isError?: boolean, msTimeout?: number): void;
     /**
      * Set of APIs method to parse and validate URIs.
      */
