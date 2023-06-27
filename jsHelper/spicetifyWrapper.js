@@ -279,7 +279,11 @@ const Spicetify = {
     // Force all webpack modules to load
     const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
     const modules = Object.keys(require.m).map(id => require(id));
-    const functionModules = modules.filter(module => typeof module === "object").map(module => Object.values(module)).flat().filter(module => typeof module === "function");
+    const functionModules = modules.filter(module => typeof module === "object").map(module => {
+        try {
+            return Object.values(module);
+        } catch {}
+    }).flat().filter(module => typeof module === "function");
 
     // classnames
     // https://github.com/JedWatson/classnames/
