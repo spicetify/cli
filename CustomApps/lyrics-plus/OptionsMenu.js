@@ -86,10 +86,8 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 	);
 });
 
-const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, hasNeteaseTranslation }) => {
-	if (!showTranslationButton) return null;
-
-	let translator = new Translator();
+const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
+	const translator = new Translator();
 
 	let sourceOptions = {
 		none: "None"
@@ -105,7 +103,14 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 
 	let modeOptions = {};
 
-	if (hasNeteaseTranslation) {
+	if (hasTranslation.musixmatch) {
+		sourceOptions = {
+			...sourceOptions,
+			musixmatchTranslation: "English (Musixmatch)"
+		};
+	}
+
+	if (hasTranslation.netease) {
 		sourceOptions = {
 			...sourceOptions,
 			neteaseTranslation: "Chinese (Netease)"
@@ -191,9 +196,9 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 							onChange: (name, value) => {
 								CONFIG.visual[name] = value;
 								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
-								lyricContainerUpdate && lyricContainerUpdate();
+								lyricContainerUpdate?.();
 								CONFIG.visual[name] && Spicetify.showNotification("Translating...", false, 5000);
-								translator.injectExternals();
+								translator.injectExternals(friendlyLanguage);
 							}
 						})
 					),

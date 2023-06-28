@@ -26,11 +26,19 @@ class Translator {
 		}
 	}
 
-	injectExternals() {
-		this.includeExternal(kuroshiroPath);
-		this.includeExternal(kuromojiPath);
-		this.includeExternal(aromanize);
-		this.includeExternal(openCCPath);
+	injectExternals(lang) {
+		switch (lang) {
+			case "japanese":
+				this.includeExternal(kuroshiroPath);
+				this.includeExternal(kuromojiPath);
+				break;
+			case "korean":
+				this.includeExternal(aromanize);
+				break;
+			case "chinese":
+				this.includeExternal(openCCPath);
+				break;
+		}
 	}
 
 	/**

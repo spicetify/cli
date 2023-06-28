@@ -147,6 +147,7 @@ class LyricsContainer extends react.Component {
 			cn: null,
 			hk: null,
 			tw: null,
+			musixmatchTranslation: null,
 			neteaseTranslation: null,
 			uri: "",
 			provider: "",
@@ -295,6 +296,7 @@ class LyricsContainer extends react.Component {
 			this.state.cn =
 			this.state.hk =
 			this.state.tw =
+			this.state.musixmatchTranslation =
 			this.state.neteaseTranslation =
 				null;
 		const info = this.infoFromTrack(track);
@@ -349,9 +351,12 @@ class LyricsContainer extends react.Component {
 	}
 
 	provideLanguageCode(lyrics) {
+		if (!lyrics) return;
+
 		if (CONFIG.visual["translate:detect-language-override"] !== "off") {
 			return CONFIG.visual["translate:detect-language-override"];
 		}
+
 		return Utils.detectLanguage(lyrics);
 	}
 
@@ -365,7 +370,7 @@ class LyricsContainer extends react.Component {
 
 		if (!lyricsToTranslate) return;
 
-		const language = lyricsToTranslate && this.provideLanguageCode(lyricsToTranslate);
+		const language = this.provideLanguageCode(lyricsToTranslate);
 
 		if (!language) return;
 
@@ -606,34 +611,27 @@ class LyricsContainer extends react.Component {
 	}
 
 	componentDidUpdate() {
-		const language = this.state.currentLyrics && this.provideLanguageCode(this.state.currentLyrics);
+		const language = this.provideLanguageCode(this.state.currentLyrics);
 
 		let isTranslated = false;
 
 		switch (language) {
 			case "zh-hans":
 			case "zh-hant": {
-				if (this.state.cn || this.state.hk || this.state.tw) {
-					isTranslated = true;
-				}
+				isTranslated = !!(this.state.cn || this.state.hk || this.state.tw);
 				break;
 			}
 			case "ja": {
-				if (this.state.furigana || this.state.katakana || this.state.hiragana || this.state.romaji) {
-					isTranslated = true;
-				}
+				isTranslated = !!(this.state.romaji || this.state.furigana || this.state.hiragana || this.state.katakana);
 				break;
 			}
 			case "ko": {
-				if (this.state.hangul || this.state.romaja) {
-					isTranslated = true;
-				}
+				isTranslated = !!(this.state.hangul || this.state.romaja);
 				break;
 			}
 		}
-		if (isTranslated === false) {
-			this.translateLyrics();
-		}
+
+		!isTranslated && this.translateLyrics();
 	}
 
 	render() {
@@ -681,15 +679,16 @@ class LyricsContainer extends react.Component {
 		let activeItem;
 		let showTranslationButton;
 		let friendlyLanguage;
-		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
+
+		const hasTranslation = this.state.neteaseTranslation !== null || this.state.musixmatchTranslation !== null;
 
 		if (mode !== -1) {
 			this.lyricsSource(mode);
-			const language = this.state.currentLyrics && this.provideLanguageCode(this.state.currentLyrics);
-			const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
-			friendlyLanguage = language && languageDisplayNames.of(language?.split("-")[0])?.toLowerCase();
-			showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == SYNCED || mode == UNSYNCED);
+			const language = this.provideLanguageCode(this.state.currentLyrics);
+			friendlyLanguage = new Intl.DisplayNames(["en"], { type: "language" }).of(language?.split("-")[0] || "")?.toLowerCase();
+			showTranslationButton = (friendlyLanguage || hasTranslation) && (mode === SYNCED || mode === UNSYNCED);
 			const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
+
 			if (mode === KARAOKE && this.state.karaoke) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					isKara: true,
@@ -766,11 +765,14 @@ class LyricsContainer extends react.Component {
 				{
 					className: "lyrics-config-button-container"
 				},
-				react.createElement(TranslationMenu, {
-					showTranslationButton,
-					friendlyLanguage,
-					hasNeteaseTranslation
-				}),
+				showTranslationButton &&
+					react.createElement(TranslationMenu, {
+						friendlyLanguage,
+						hasTranslation: {
+							musixmatch: this.state.musixmatchTranslation !== null,
+							netease: this.state.neteaseTranslation !== null
+						}
+					}),
 				react.createElement(AdjustmentsMenu, { mode }),
 				mode !== GENIUS &&
 					react.createElement(

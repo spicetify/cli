@@ -47,6 +47,7 @@ const Providers = {
 			karaoke: null,
 			synced: null,
 			unsynced: null,
+			musixmatchTranslation: null,
 			provider: "Musixmatch",
 			copyright: null
 		};
@@ -76,6 +77,14 @@ const Providers = {
 		if (unsynced) {
 			result.unsynced = unsynced;
 			result.copyright = list["track.lyrics.get"].message?.body?.lyrics?.lyrics_copyright?.trim();
+		}
+		const translation = await ProviderMusixmatch.getTranslation(list);
+		if ((synced || unsynced) && translation) {
+			const baseLyrics = synced ?? unsynced;
+			result.musixmatchTranslation = baseLyrics.map(line => ({
+				...line,
+				text: translation.find(t => t.matchedLine === line.text)?.translation ?? line.text
+			}));
 		}
 
 		return result;
