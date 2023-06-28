@@ -230,4 +230,11 @@ class Utils {
 
 		return { synced, unsynced, karaoke };
 	}
+
+	static revisedRandId() {
+		return Math.random()
+			.toString(36)
+			.replace(/[^a-z]+/g, "")
+			.slice(2, 10);
+	}
 }
