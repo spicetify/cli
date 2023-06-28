@@ -72,7 +72,7 @@ const RefreshTokenButton = ({ setTokenCallback }) => {
 
 	useEffect(() => {
 		if (buttonText === "Refreshing token...") {
-			Spicetify.CosmosAsync.get(`https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0&t=${Utils.revisedRandId()}`, null, {
+			Spicetify.CosmosAsync.get(`https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0`, null, {
 				authority: "apic-desktop.musixmatch.com"
 			})
 				.then(({ message: response }) => {
