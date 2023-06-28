@@ -5,6 +5,12 @@ const openCCPath = "https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.m
 
 const dictPath = "https:/cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict";
 
+const langEnum = {
+	japanese: [kuromojiPath, kuroshiroPath],
+	korean: [openCCPath],
+	chinese: [openCCPath]
+};
+
 class Translator {
 	constructor() {
 		this.includeExternal(kuroshiroPath);
@@ -12,6 +18,7 @@ class Translator {
 		this.includeExternal(aromanize);
 		this.includeExternal(openCCPath);
 
+		this.applyKuromojiFix();
 		this.createTranslator();
 
 		this.finished = false;
@@ -26,11 +33,10 @@ class Translator {
 		}
 	}
 
-	injectExternals() {
-		this.includeExternal(kuroshiroPath);
-		this.includeExternal(kuromojiPath);
-		this.includeExternal(aromanize);
-		this.includeExternal(openCCPath);
+	injectExternals(lang) {
+		langEnum[lang].forEach(url => {
+			this.includeExternal(url);
+		});
 	}
 
 	/**
@@ -66,8 +72,6 @@ class Translator {
 		this.Aromanize = Aromanize;
 
 		this.OpenCC = OpenCC;
-
-		this.applyKuromojiFix();
 
 		this.kuroshiro.init(new KuromojiAnalyzer({ dictPath: dictPath })).then(
 			function () {

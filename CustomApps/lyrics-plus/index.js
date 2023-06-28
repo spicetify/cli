@@ -370,8 +370,7 @@ class LyricsContainer extends react.Component {
 			return;
 		}
 
-		let lyricText = "";
-		for (let lyric of lyricsToTranslate) lyricText += lyric.text + "\n";
+		const lyricText = this.state.currentLyrics.map(lyric => lyric.text).join("\n");
 
 		[
 			["romaji", "spaced", "romaji"],
@@ -381,7 +380,7 @@ class LyricsContainer extends react.Component {
 		].forEach(params => {
 			if (language !== "ja") return;
 			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
-				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[2] });
+				Utils.processTranslatedLyrics(result, this.state.currentLyrics, { state: this.state, stateName: params[2] });
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -392,7 +391,7 @@ class LyricsContainer extends react.Component {
 		].forEach(params => {
 			if (language !== "ko") return;
 			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
-				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
+				Utils.processTranslatedLyrics(result, this.state.currentLyrics, { state: this.state, stateName: params[1] });
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -406,7 +405,7 @@ class LyricsContainer extends react.Component {
 		].forEach(params => {
 			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) return;
 			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
-				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
+				Utils.processTranslatedLyrics(result, this.state.currentLyrics, { state: this.state, stateName: params[1] });
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
