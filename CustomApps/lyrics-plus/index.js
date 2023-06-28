@@ -361,13 +361,9 @@ class LyricsContainer extends react.Component {
 	}
 
 	async translateLyrics() {
-		const lyricsToTranslate = this.state.currentLyrics;
+		const language = this.provideLanguageCode(this.state.currentLyrics);
 
-		if (!lyricsToTranslate) return;
-
-		const language = this.provideLanguageCode(lyricsToTranslate);
-
-		if (!language) return;
+		if (!language || !CONFIG.visual.translate) return;
 
 		if (!this.translator || !this.translator.finished) {
 			setTimeout(this.translateLyrics.bind(this), 100);
