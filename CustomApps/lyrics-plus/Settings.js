@@ -77,8 +77,7 @@ const RefreshTokenButton = ({ setTokenCallback }) => {
 			})
 				.then(({ message: response }) => {
 					if (response.header.status_code === 200 && response.body.user_token) {
-						const token = response.body.user_token;
-						setTokenCallback(token);
+						setTokenCallback(response.body.user_token);
 						setButtonText("Token refreshed");
 					} else if (response.header.status_code === 401) {
 						setButtonText("Too many attempts");
@@ -101,7 +100,7 @@ const RefreshTokenButton = ({ setTokenCallback }) => {
 			onClick: () => {
 				setButtonText("Refreshing token...");
 			},
-			disabled: buttonText === "Refreshing token..." || buttonText === "Token refreshed" || buttonText === "Too many attempts"
+			disabled: buttonText !== "Refresh token"
 		},
 		buttonText
 	);
