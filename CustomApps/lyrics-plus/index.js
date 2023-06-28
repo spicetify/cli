@@ -361,11 +361,6 @@ class LyricsContainer extends react.Component {
 	}
 
 	async translateLyrics() {
-		if (!this.translator || !this.translator.finished) {
-			setTimeout(this.translateLyrics.bind(this), 100);
-			return;
-		}
-
 		const lyricsToTranslate = this.state.currentLyrics;
 
 		if (!lyricsToTranslate) return;
@@ -373,6 +368,11 @@ class LyricsContainer extends react.Component {
 		const language = this.provideLanguageCode(lyricsToTranslate);
 
 		if (!language) return;
+
+		if (!this.translator || !this.translator.finished) {
+			setTimeout(this.translateLyrics.bind(this), 100);
+			return;
+		}
 
 		let lyricText = "";
 		for (let lyric of lyricsToTranslate) lyricText += lyric.text + "\n";
