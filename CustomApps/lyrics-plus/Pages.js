@@ -561,6 +561,13 @@ const GeniusPage = react.memo(
 				ref: c => (container = c),
 				dangerouslySetInnerHTML: {
 					__html: lyrics
+				},
+				onContextMenu: event => {
+					event.preventDefault();
+					const copylyrics = lyrics.replace(/<br>/g, "\n");
+					Spicetify.Platform.ClipboardAPI.copy(copylyrics)
+						.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
+						.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
 				}
 			})
 		);
