@@ -9,6 +9,7 @@ import (
 	"runtime"
 
 	"github.com/spicetify/spicetify-cli/src/utils"
+	backupstatus "github.com/spicetify/spicetify-cli/src/status/backup"
 )
 
 func Upgrade(currentVersion string) bool {
@@ -104,7 +105,13 @@ func Upgrade(currentVersion string) bool {
 	utils.CheckExistAndDelete(exeOld)
 	utils.PrintGreen("OK")
 	utils.PrintSuccess("spicetify is up-to-date.")
-	utils.PrintInfo(`Please run "spicetify restore backup apply" to receive new features and bug fixes`)
+	backupVersion := backupSection.Key("version").MustString("")
+	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
+	if backStat.IsOutdated() {
+		utils.PrintInfo(`Please run "spicetify backup apply" to receive new features and bug fixes`)
+	} else {
+		utils.PrintInfo(`Please run "spicetify restore backup apply" to receive new features and bug fixes`)
+	}
 	return true
 }
 
