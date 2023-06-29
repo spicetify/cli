@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/spicetify/spicetify-cli/src/utils"
 	backupstatus "github.com/spicetify/spicetify-cli/src/status/backup"
+	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
 func Upgrade(currentVersion string) bool {
