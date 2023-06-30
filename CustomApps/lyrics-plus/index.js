@@ -456,7 +456,7 @@ class LyricsContainer extends react.Component {
 			});
 			lyrics.genius = null;
 		}
-		
+
 		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
 		localLyrics[uri] = lyrics;
 		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
