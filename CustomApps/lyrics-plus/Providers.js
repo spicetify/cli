@@ -83,7 +83,8 @@ const Providers = {
 			const baseLyrics = synced ?? unsynced;
 			result.musixmatchTranslation = baseLyrics.map(line => ({
 				...line,
-				text: translation.find(t => t.matchedLine === line.text)?.translation ?? line.text
+				text: translation.find(t => t.matchedLine === line.text)?.translation ?? line.text,
+				originalText: line.text
 			}));
 		}
 

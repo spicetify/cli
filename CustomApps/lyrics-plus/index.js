@@ -278,6 +278,13 @@ class LyricsContainer extends react.Component {
 				finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n${finalData.copyright || ""}`.trim();
 			}
 
+			if (finalData.musixmatchTranslation && typeof finalData.musixmatchTranslation[0].startTime === "undefined" && finalData.synced) {
+				finalData.musixmatchTranslation = finalData.synced.map(line => ({
+					...line,
+					text: finalData.musixmatchTranslation.find(l => Utils.processLyrics(l.originalText) === Utils.processLyrics(line.text))?.text ?? line.text
+				}));
+			}
+
 			CACHE[data.uri] = finalData;
 			return finalData;
 		}
