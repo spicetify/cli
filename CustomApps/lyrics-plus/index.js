@@ -175,6 +175,7 @@ class LyricsContainer extends react.Component {
 		this.mousetrap = new Spicetify.Mousetrap();
 		this.containerRef = react.createRef(null);
 		this.translator = new Translator(CONFIG.visual["translate:detect-language-override"]);
+		this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
 	}
 
 	infoFromTrack(track) {
@@ -367,11 +368,11 @@ class LyricsContainer extends react.Component {
 
 	async translateLyrics() {
 		const lyrics = this.state.currentLyrics;
-		const language = this.provideLanguageCode(lyrics);
+		const language = this.provideLanguageCode(lyrics)?.slice(0, 2);
 
 		if (!CONFIG.visual.translate || !language || typeof lyrics?.[0].text !== "string") return;
 
-		if (!this.translator?.finished[language.slice(0, 2)]) {
+		if (!this.translator?.finished[language]) {
 			this.translator.injectExternals(language);
 			this.translator.createTranslator(language);
 			setTimeout(this.translateLyrics.bind(this), 100);
@@ -614,6 +615,11 @@ class LyricsContainer extends react.Component {
 	}
 
 	componentDidUpdate() {
+		if (this.translationProvider !== CONFIG.visual["translate:translated-lyrics-source"]) {
+			this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
+			this.translateLyrics();
+		}
+
 		const language = this.provideLanguageCode(this.state.currentLyrics);
 
 		let isTranslated = false;
