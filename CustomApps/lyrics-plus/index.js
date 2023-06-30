@@ -175,7 +175,10 @@ class LyricsContainer extends react.Component {
 		this.mousetrap = new Spicetify.Mousetrap();
 		this.containerRef = react.createRef(null);
 		this.translator = new Translator(CONFIG.visual["translate:detect-language-override"]);
+		// Cache last state
 		this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
+		this.languageOverride = CONFIG.visual["translate:detect-language-override"];
+		this.translate = CONFIG.visual.translate;
 	}
 
 	infoFromTrack(track) {
@@ -615,9 +618,19 @@ class LyricsContainer extends react.Component {
 	}
 
 	componentDidUpdate() {
-		if (this.translationProvider !== CONFIG.visual["translate:translated-lyrics-source"]) {
+		// Apparently if any of these values are changed, the cached translation will not be updated, hence the need to retranslate
+		if (
+			this.translationProvider !== CONFIG.visual["translate:translated-lyrics-source"] ||
+			this.languageOverride !== CONFIG.visual["translate:detect-language-override"] ||
+			this.translate !== CONFIG.visual.translate
+		) {
 			this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
+			this.languageOverride = CONFIG.visual["translate:detect-language-override"];
+			this.translate = CONFIG.visual.translate;
+
 			this.translateLyrics();
+
+			return;
 		}
 
 		const language = this.provideLanguageCode(this.state.currentLyrics);
