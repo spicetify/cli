@@ -448,6 +448,15 @@ class LyricsContainer extends react.Component {
 	}
 
 	saveLocalLyrics(uri, lyrics) {
+		if (lyrics.genius) {
+			lyrics.unsynced = lyrics.genius.split("<br>").map(lyc => {
+				return {
+					text: lyc.replace(/<[^>]*>/g, "")
+				};
+			});
+			lyrics.genius = null;
+		}
+		
 		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
 		localLyrics[uri] = lyrics;
 		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
@@ -772,38 +781,37 @@ class LyricsContainer extends react.Component {
 					hasNeteaseTranslation
 				}),
 				react.createElement(AdjustmentsMenu, { mode }),
-				mode !== GENIUS &&
+				react.createElement(
+					Spicetify.ReactComponent.TooltipWrapper,
+					{
+						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics"
+					},
 					react.createElement(
-						Spicetify.ReactComponent.TooltipWrapper,
+						"button",
 						{
-							label: this.state.isCached ? "Lyrics cached" : "Cache lyrics"
-						},
-						react.createElement(
-							"button",
-							{
-								className: "lyrics-config-button",
-								onClick: () => {
-									const { synced, unsynced, karaoke } = this.state;
-									if (!synced && !unsynced && !karaoke) {
-										Spicetify.showNotification("No lyrics to cache", true);
-										return;
-									}
+							className: "lyrics-config-button",
+							onClick: () => {
+								const { synced, unsynced, karaoke, genius } = this.state;
+								if (!synced && !unsynced && !karaoke && !genius) {
+									Spicetify.showNotification("No lyrics to cache", true);
+									return;
+								}
 
-									this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke });
-									Spicetify.showNotification("Lyrics cached");
-								}
-							},
-							react.createElement("svg", {
-								width: 16,
-								height: 16,
-								viewBox: "0 0 16 16",
-								fill: "currentColor",
-								dangerouslySetInnerHTML: {
-									__html: Spicetify.SVGIcons[this.state.isCached ? "downloaded" : "download"]
-								}
-							})
-						)
-					),
+								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke, genius });
+								Spicetify.showNotification("Lyrics cached");
+							}
+						},
+						react.createElement("svg", {
+							width: 16,
+							height: 16,
+							viewBox: "0 0 16 16",
+							fill: "currentColor",
+							dangerouslySetInnerHTML: {
+								__html: Spicetify.SVGIcons[this.state.isCached ? "downloaded" : "download"]
+							}
+						})
+					)
+				),
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
