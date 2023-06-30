@@ -116,6 +116,8 @@ const ConfigSelection = ({ name, defaultValue, options, onChange = () => {} }) =
 		[value]
 	);
 
+	if (!Object.keys(options).length) return null;
+
 	return react.createElement(
 		"div",
 		{

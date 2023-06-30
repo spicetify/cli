@@ -174,7 +174,7 @@ class LyricsContainer extends react.Component {
 		this.fullscreenContainer.id = "lyrics-fullscreen-container";
 		this.mousetrap = new Spicetify.Mousetrap();
 		this.containerRef = react.createRef(null);
-		this.translator = new Translator();
+		this.translator = new Translator(CONFIG.visual["translate:detect-language-override"]);
 	}
 
 	infoFromTrack(track) {
@@ -353,24 +353,25 @@ class LyricsContainer extends react.Component {
 	provideLanguageCode(lyrics) {
 		if (!lyrics) return;
 
-		if (CONFIG.visual["translate:detect-language-override"] !== "off") {
-			return CONFIG.visual["translate:detect-language-override"];
-		}
+		if (CONFIG.visual["translate:detect-language-override"] !== "off") return CONFIG.visual["translate:detect-language-override"];
 
 		return Utils.detectLanguage(lyrics);
 	}
 
 	async translateLyrics() {
-		const language = this.provideLanguageCode(this.state.currentLyrics);
+		const lyrics = this.state.currentLyrics;
+		const language = this.provideLanguageCode(lyrics);
 
-		if (!language || !CONFIG.visual.translate) return;
+		if (!CONFIG.visual.translate || !language || typeof lyrics?.[0].text !== "string") return;
 
-		if (!this.translator || !this.translator.finished) {
+		if (!this.translator?.finished[language.slice(0, 2)]) {
+			this.translator.injectExternals(language);
+			this.translator.createTranslator(language);
 			setTimeout(this.translateLyrics.bind(this), 100);
 			return;
 		}
 
-		const lyricText = this.state.currentLyrics.map(lyric => lyric.text).join("\n");
+		const lyricText = lyrics.map(lyric => lyric.text).join("\n");
 
 		[
 			["romaji", "spaced", "romaji"],
@@ -380,7 +381,7 @@ class LyricsContainer extends react.Component {
 		].forEach(params => {
 			if (language !== "ja") return;
 			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
-				Utils.processTranslatedLyrics(result, this.state.currentLyrics, { state: this.state, stateName: params[2] });
+				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[2] });
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -391,7 +392,7 @@ class LyricsContainer extends react.Component {
 		].forEach(params => {
 			if (language !== "ko") return;
 			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
-				Utils.processTranslatedLyrics(result, this.state.currentLyrics, { state: this.state, stateName: params[1] });
+				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -405,7 +406,7 @@ class LyricsContainer extends react.Component {
 		].forEach(params => {
 			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) return;
 			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
-				Utils.processTranslatedLyrics(result, this.state.currentLyrics, { state: this.state, stateName: params[1] });
+				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -680,7 +681,7 @@ class LyricsContainer extends react.Component {
 		if (mode !== -1) {
 			this.lyricsSource(mode);
 			const language = this.provideLanguageCode(this.state.currentLyrics);
-			friendlyLanguage = new Intl.DisplayNames(["en"], { type: "language" }).of(language?.split("-")[0] || "")?.toLowerCase();
+			friendlyLanguage = language && new Intl.DisplayNames(["en"], { type: "language" }).of(language.split("-")[0])?.toLowerCase();
 			showTranslationButton = (friendlyLanguage || hasTranslation) && (mode === SYNCED || mode === UNSYNCED);
 			const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
 

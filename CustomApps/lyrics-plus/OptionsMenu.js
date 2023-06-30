@@ -87,8 +87,6 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 });
 
 const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
-	const translator = new Translator();
-
 	let sourceOptions = {
 		none: "None"
 	};
@@ -198,7 +196,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 								lyricContainerUpdate?.();
 								CONFIG.visual[name] && Spicetify.showNotification("Translating...", false, 5000);
-								translator.injectExternals(friendlyLanguage);
 							}
 						})
 					),
