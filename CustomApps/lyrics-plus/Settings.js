@@ -400,6 +400,7 @@ const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {}, 
 
 const OptionList = ({ items, onChange }) => {
 	const [itemList, setItemList] = useState(items);
+	const [, forceUpdate] = useState();
 
 	useEffect(() => {
 		const eventListener = event => {
@@ -426,7 +427,7 @@ const OptionList = ({ items, onChange }) => {
 				defaultValue: CONFIG.visual[item.key],
 				onChange: value => {
 					onChangeItem(item.key, value);
-					setItemList([...itemList]);
+					forceUpdate({});
 				}
 			}),
 			item.info &&
