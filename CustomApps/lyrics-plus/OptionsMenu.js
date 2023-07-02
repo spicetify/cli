@@ -206,6 +206,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 						{},
 						react.createElement("h3", null, " Conversions"),
 						react.createElement(OptionList, {
+							type: "translation-menu",
 							items,
 							onChange: (name, value) => {
 								CONFIG.visual[name] = value;

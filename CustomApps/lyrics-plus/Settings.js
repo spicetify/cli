@@ -398,16 +398,19 @@ const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {}, 
 	});
 };
 
-const OptionList = ({ items, onChange }) => {
+const OptionList = ({ type, items, onChange }) => {
 	const [itemList, setItemList] = useState(items);
 	const [, forceUpdate] = useState();
 
 	useEffect(() => {
+		if (!type) return;
+
 		const eventListener = event => {
-			if (event.detail.type !== "translation-menu") return;
+			if (event.detail?.type !== type) return;
 			setItemList(event.detail.items);
 		};
 		document.addEventListener("lyrics-plus", eventListener);
+
 		return () => document.removeEventListener("lyrics-plus", eventListener);
 	}, []);
 
