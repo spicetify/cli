@@ -142,6 +142,52 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 		}
 	}
 
+	const items = useMemo(() => {
+		return [
+			{
+				desc: "Translation Provider",
+				key: `translate:translated-lyrics-source`,
+				type: ConfigSelection,
+				options: sourceOptions,
+				renderInline: true
+			},
+			{
+				desc: "Language Override",
+				key: `translate:detect-language-override`,
+				type: ConfigSelection,
+				options: languageOptions,
+				renderInline: true
+			},
+			{
+				desc: "Display Mode",
+				key: `translation-mode:${friendlyLanguage}`,
+				type: ConfigSelection,
+				options: modeOptions,
+				renderInline: true
+			},
+			{
+				desc: "Convert",
+				key: "translate",
+				type: ConfigSlider,
+				trigger: "click",
+				action: "toggle",
+				renderInline: true
+			}
+		];
+	}, [friendlyLanguage]);
+
+	useEffect(() => {
+		// Currently opened Context Menu does not receive prop changes
+		// If we were to use keys the Context Menu would close on re-render
+		const event = new CustomEvent("lyrics-plus", {
+			detail: {
+				type: "translation-menu",
+				items
+			}
+		});
+		document.dispatchEvent(event);
+	}, [friendlyLanguage]);
+
 	return react.createElement(
 		Spicetify.ReactComponent.TooltipWrapper,
 		{
@@ -160,37 +206,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 						{},
 						react.createElement("h3", null, " Conversions"),
 						react.createElement(OptionList, {
-							items: [
-								{
-									desc: "Translation Provider",
-									key: `translate:translated-lyrics-source`,
-									type: ConfigSelection,
-									options: sourceOptions,
-									renderInline: true
-								},
-								{
-									desc: "Language Override",
-									key: `translate:detect-language-override`,
-									type: ConfigSelection,
-									options: languageOptions,
-									renderInline: true
-								},
-								{
-									desc: "Display Mode",
-									key: `translation-mode:${friendlyLanguage}`,
-									type: ConfigSelection,
-									options: modeOptions,
-									renderInline: true
-								},
-								{
-									desc: "Convert",
-									key: "translate",
-									type: ConfigSlider,
-									trigger: "click",
-									action: "toggle",
-									renderInline: true
-								}
-							],
+							items,
 							onChange: (name, value) => {
 								CONFIG.visual[name] = value;
 								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
@@ -256,8 +272,8 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 									desc: "Track delay",
 									key: "delay",
 									type: ConfigAdjust,
-									min: -10000,
-									max: 10000,
+									min: -Infinity,
+									max: Infinity,
 									step: 250,
 									when: () => mode === SYNCED || mode === KARAOKE
 								},

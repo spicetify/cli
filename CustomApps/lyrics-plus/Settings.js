@@ -113,8 +113,12 @@ const ConfigSelection = ({ name, defaultValue, options, onChange = () => {} }) =
 			setValue(value);
 			onChange(value);
 		},
-		[value]
+		[value, options]
 	);
+
+	useEffect(() => {
+		setValue(defaultValue);
+	}, [defaultValue]);
 
 	if (!Object.keys(options).length) return null;
 
@@ -395,8 +399,18 @@ const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {}, 
 };
 
 const OptionList = ({ items, onChange }) => {
-	const [_, setItems] = useState(items);
-	return items.map(item => {
+	const [item, setItem] = useState(items);
+
+	useEffect(() => {
+		const eventListener = event => {
+			if (event.detail.type !== "translation-menu") return;
+			setItem(event.detail.items);
+		};
+		document.addEventListener("lyrics-plus", eventListener);
+		return () => document.removeEventListener("lyrics-plus", eventListener);
+	}, []);
+
+	return item.map(item => {
 		if (!item || (item.when && !item.when())) {
 			return;
 		}
@@ -412,7 +426,7 @@ const OptionList = ({ items, onChange }) => {
 				defaultValue: CONFIG.visual[item.key],
 				onChange: value => {
 					onChangeItem(item.key, value);
-					setItems([...items]);
+					setItem([...item]);
 				}
 			}),
 			item.info &&
