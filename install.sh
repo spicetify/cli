@@ -4,6 +4,22 @@
 
 set -e
 
+while getopts ":r" arg; do
+	case "${arg}" in
+		"r") override_root=1 ;;
+	esac
+done
+
+is_root() {
+	[ "${EUID:-$(id -u)}" -eq 0 ];
+}
+
+if is_root && [ "${override_root:-0}" -eq 0 ]; then
+	echo "The script was ran as root. Script will now exit"
+	echo "You can override this behavior by passing `-r` or `--root` flag to this script"
+	exit
+fi
+
 # wipe existing log
 > install.log
 
