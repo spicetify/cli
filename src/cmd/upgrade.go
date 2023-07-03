@@ -112,7 +112,6 @@ func Upgrade(currentVersion string) bool {
 	if !backStat.IsOutdated() {
 		cmd = append(cmd[:1], append([]string{"restore"}, cmd[1:]...)...)
 	}
-	
 	utils.PrintInfo(`Please run "` + strings.Join(cmd, " ") + `" to receive new features and bug fixes`)
 	return true
 }
