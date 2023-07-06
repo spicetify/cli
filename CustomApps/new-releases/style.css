@@ -151,7 +151,9 @@ option {
 	width: 28px;
 	visibility: hidden;
 	opacity: 0;
-	transition: visibility 0s, opacity 0.3s ease;
+	transition:
+		visibility 0s,
+		opacity 0.3s ease;
 }
 
 .main-card-closeButton:active {
@@ -164,7 +166,9 @@ option {
 .main-card-card:hover .main-card-closeButton {
 	visibility: visible;
 	opacity: 1;
-	transition: visibility 0s, opacity 0.3s ease;
+	transition:
+		visibility 0s,
+		opacity 0.3s ease;
 }
 
 .new-releases-header + .main-gridContainer-gridContainer {
