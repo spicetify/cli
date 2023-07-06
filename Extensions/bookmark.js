@@ -152,8 +152,8 @@
 				: ""
 		}
     <button class="bookmark-controls" data-tippy-content="${REMOVE_TEXT}"><svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${
-				Spicetify.SVGIcons.x
-			}</svg></button>
+			Spicetify.SVGIcons.x
+		}</svg></button>
 </div>
 `;
 

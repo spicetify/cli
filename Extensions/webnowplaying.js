@@ -99,10 +99,13 @@ class WNPReduxWebSocket {
 		if (this.isClosed) return;
 		this.close(true);
 		// Reconnects once per second for 30 seconds, then with a exponential backoff of (2^reconnectAttempts) up to 60 seconds
-		this.reconnectTimeout = setTimeout(() => {
-			this.init();
-			this.reconnectAttempts += 1;
-		}, Math.min(1000 * (this.reconnectAttempts <= 30 ? 1 : 2 ** (this.reconnectAttempts - 30)), 60000));
+		this.reconnectTimeout = setTimeout(
+			() => {
+				this.init();
+				this.reconnectAttempts += 1;
+			},
+			Math.min(1000 * (this.reconnectAttempts <= 30 ? 1 : 2 ** (this.reconnectAttempts - 30)), 60000)
+		);
 	}
 
 	send(data) {
