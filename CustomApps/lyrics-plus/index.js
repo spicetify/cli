@@ -369,8 +369,9 @@ class LyricsContainer extends react.Component {
 		return Utils.detectLanguage(lyrics);
 	}
 
-	async translateLyrics() {
+	async translateLyrics(silent = true) {
 		function showNotification(timeout) {
+			if (silent) return;
 			Spicetify.showNotification("Translating...", false, timeout);
 		}
 
@@ -383,12 +384,12 @@ class LyricsContainer extends react.Component {
 			this.translator.injectExternals(language);
 			this.translator.createTranslator(language);
 			showNotification(500);
-			setTimeout(this.translateLyrics.bind(this), 100);
+			setTimeout(this.translateLyrics.bind(this), 100, false);
 			return;
 		}
 
 		// Seemingly long delay so it can be cleared later for accurate timing
-		showNotification(50000);
+		showNotification(10000);
 		const lyricText = lyrics.map(lyric => lyric.text).join("\n");
 
 		[
@@ -400,7 +401,7 @@ class LyricsContainer extends react.Component {
 			if (language !== "ja") return;
 			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[2] });
-				showNotification(10);
+				showNotification(200);
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -412,7 +413,7 @@ class LyricsContainer extends react.Component {
 			if (language !== "ko") return;
 			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
-				showNotification(10);
+				showNotification(200);
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -427,7 +428,7 @@ class LyricsContainer extends react.Component {
 			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) return;
 			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
-				showNotification(10);
+				showNotification(200);
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -638,7 +639,7 @@ class LyricsContainer extends react.Component {
 			this.languageOverride = CONFIG.visual["translate:detect-language-override"];
 			this.translate = CONFIG.visual.translate;
 
-			this.translateLyrics();
+			this.translateLyrics(false);
 
 			return;
 		}
