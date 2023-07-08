@@ -370,6 +370,10 @@ class LyricsContainer extends react.Component {
 	}
 
 	async translateLyrics() {
+		function showNotification(timeout) {
+			Spicetify.showNotification("Translating...", false, timeout);
+		}
+
 		const lyrics = this.state.currentLyrics;
 		const language = this.provideLanguageCode(lyrics);
 
@@ -378,10 +382,13 @@ class LyricsContainer extends react.Component {
 		if (!this.translator?.finished[language.slice(0, 2)]) {
 			this.translator.injectExternals(language);
 			this.translator.createTranslator(language);
+			showNotification(500);
 			setTimeout(this.translateLyrics.bind(this), 100);
 			return;
 		}
 
+		// Seemingly long delay so it can be cleared later for accurate timing
+		showNotification(50000);
 		const lyricText = lyrics.map(lyric => lyric.text).join("\n");
 
 		[
@@ -393,6 +400,7 @@ class LyricsContainer extends react.Component {
 			if (language !== "ja") return;
 			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[2] });
+				showNotification(10);
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -404,6 +412,7 @@ class LyricsContainer extends react.Component {
 			if (language !== "ko") return;
 			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
+				showNotification(10);
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -418,6 +427,7 @@ class LyricsContainer extends react.Component {
 			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) return;
 			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
+				showNotification(10);
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});

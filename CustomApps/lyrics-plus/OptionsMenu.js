@@ -87,62 +87,62 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 });
 
 const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
-	let sourceOptions = {
-		none: "None"
-	};
-
-	const languageOptions = {
-		off: "Off",
-		"zh-hans": "Chinese (Simplified)",
-		"zh-hant": "Chinese (Traditional)",
-		ja: "Japanese",
-		ko: "Korean"
-	};
-
-	let modeOptions = {};
-
-	if (hasTranslation.musixmatch) {
-		sourceOptions = {
-			...sourceOptions,
-			musixmatchTranslation: "English (Musixmatch)"
-		};
-	}
-
-	if (hasTranslation.netease) {
-		sourceOptions = {
-			...sourceOptions,
-			neteaseTranslation: "Chinese (Netease)"
-		};
-	}
-
-	switch (friendlyLanguage) {
-		case "japanese": {
-			modeOptions = {
-				furigana: "Furigana",
-				romaji: "Romaji",
-				hiragana: "Hiragana",
-				katakana: "Katakana"
-			};
-			break;
-		}
-		case "korean": {
-			modeOptions = {
-				hangul: "Hangul",
-				romaja: "Romaja"
-			};
-			break;
-		}
-		case "chinese": {
-			modeOptions = {
-				cn: "Simplified Chinese",
-				hk: "Traditional Chinese (Hong Kong)",
-				tw: "Traditional Chinese (Taiwan)"
-			};
-			break;
-		}
-	}
-
 	const items = useMemo(() => {
+		let sourceOptions = {
+			none: "None"
+		};
+
+		const languageOptions = {
+			off: "Off",
+			"zh-hans": "Chinese (Simplified)",
+			"zh-hant": "Chinese (Traditional)",
+			ja: "Japanese",
+			ko: "Korean"
+		};
+
+		let modeOptions = {};
+
+		if (hasTranslation.musixmatch) {
+			sourceOptions = {
+				...sourceOptions,
+				musixmatchTranslation: "English (Musixmatch)"
+			};
+		}
+
+		if (hasTranslation.netease) {
+			sourceOptions = {
+				...sourceOptions,
+				neteaseTranslation: "Chinese (Netease)"
+			};
+		}
+
+		switch (friendlyLanguage) {
+			case "japanese": {
+				modeOptions = {
+					furigana: "Furigana",
+					romaji: "Romaji",
+					hiragana: "Hiragana",
+					katakana: "Katakana"
+				};
+				break;
+			}
+			case "korean": {
+				modeOptions = {
+					hangul: "Hangul",
+					romaja: "Romaja"
+				};
+				break;
+			}
+			case "chinese": {
+				modeOptions = {
+					cn: "Simplified Chinese",
+					hk: "Traditional Chinese (Hong Kong)",
+					tw: "Traditional Chinese (Taiwan)"
+				};
+				break;
+			}
+		}
+
 		return [
 			{
 				desc: "Translation Provider",
@@ -212,7 +212,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 								CONFIG.visual[name] = value;
 								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 								lyricContainerUpdate?.();
-								CONFIG.visual[name] && Spicetify.showNotification("Translating...", false, 5000);
 							}
 						})
 					),
