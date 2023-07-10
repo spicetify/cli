@@ -293,14 +293,22 @@ const Spicetify = {
     // https://github.com/TanStack/query/tree/v3
     Spicetify.ReactQuery = modules.find(module => module.useQuery);
 
-    // React Hook - Drag Handler
-    Spicetify.ReactHook.DragHandler = functionModules.find(m => m.toString().includes("data-dragging-uri"));
+    Spicetify.ReactHook = {
+        DragHandler: functionModules.find(m => m.toString().includes("data-dragging-uri")),
+        usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
+        useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color")),
+    };
 
-    // React Hook - usePanelState
-    Spicetify.ReactHook.usePanelState = functionModules.find(m => m.toString().includes("setPanelState"));
-    
-    // React Hook - useExtractedColor
-    Spicetify.ReactHook.useExtractedColor = functionModules.find(m => m.toString().includes("extracted-color"));
+    Spicetify.ReactComponent = {
+        ...Spicetify.ReactComponent,
+        Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
+        RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
+    };
+
+    function wrapProvider(component) {
+        if (!component) return null;
+        return (props) => Spicetify.React.createElement(Spicetify.ReactComponent.RemoteConfigProvider, { configuration: Spicetify.Platform.RemoteConfiguration }, Spicetify.React.createElement(component, props));
+    }
 
     (function waitForURI() {
         if (!Spicetify.URI) {

@@ -1289,6 +1289,69 @@ declare namespace Spicetify {
              */
             titleSemanticColor?: SemanticColor;
         }
+        type SliderProps = {
+            /**
+             * Label for the slider.
+             */
+            labelText?: string;
+            /**
+             * The current value of the slider.
+             */
+            value: number;
+            /**
+             * The minimum value of the slider.
+             */
+            min: number;
+            /**
+             * The maximum value of the slider.
+             */
+            max: number;
+            /**
+             * The step value of the slider.
+             */
+            step: number;
+            /**
+             * Whether or not the slider is disabled/can be interacted with.
+             * @default true
+             */
+            isInteractive?: boolean;
+            /**
+             * Whether or not the active style of the slider should be shown.
+             * This is equivalent to the slider being focused/hovered.
+             * @default false
+             */
+            forceActiveStyles?: boolean;
+            /**
+             * Callback function that is called when the slider starts being dragged.
+             *
+             * @param {number} value The current value of the slider in percent.
+             */
+            onDragStart: (value: number) => void;
+            /**
+             * Callback function that is called when the slider is being dragged.
+             *
+             * @param {number} value The current value of the slider in percent.
+             */
+            onDragMove: (value: number) => void;
+            /**
+             * Callback function that is called when the slider stops being dragged.
+             *
+             * @param {number} value The current value of the slider in percent.
+             */
+            onDragEnd: (value: number) => void;
+            /**
+             * Callback function that is called when the slider incremented a step.
+             *
+             * @deprecated May or my not actually works in current version. Use `onDrag` props instead.
+             */
+            onStepForward?: () => void;
+            /**
+             * Callback function that is called when the slider decremented a step.
+             *
+             * @deprecated May or my not actually works in current version. Use `onDrag` props instead.
+             */
+            onStepBackward?: () => void;
+        }
         /**
          * Generic context menu provider
          *
@@ -1382,6 +1445,15 @@ declare namespace Spicetify {
          * @see Spicetify.ReactComponent.PanelHeaderProps
          */
         const PanelHeader: any;
+        /**
+         * Component to render Spotify slider
+         *
+         * Used in progress bar, volume slider, crossfade settings, etc.
+         *
+         * Props:
+         * @see Spicetify.ReactComponent.SliderProps
+         */
+        const Slider: any;
     }
 
     /**
