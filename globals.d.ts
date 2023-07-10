@@ -1342,13 +1342,13 @@ declare namespace Spicetify {
             /**
              * Callback function that is called when the slider incremented a step.
              *
-             * @deprecated May or my not actually works in current version. Use `onDrag` props instead.
+             * @deprecated Use `onDrag` props instead.
              */
             onStepForward?: () => void;
             /**
              * Callback function that is called when the slider decremented a step.
              *
-             * @deprecated May or my not actually works in current version. Use `onDrag` props instead.
+             * @deprecated Use `onDrag` props instead.
              */
             onStepBackward?: () => void;
         }
