@@ -39,6 +39,7 @@ const SwapButton = ({ icon, disabled, onClick }) => {
 
 const CacheButton = () => {
 	let lyrics = {};
+
 	try {
 		const localLyrics = JSON.parse(localStorage.getItem("lyrics-plus:local-lyrics"));
 		if (!localLyrics || typeof localLyrics !== "object") {
@@ -63,6 +64,45 @@ const CacheButton = () => {
 			disabled: !count
 		},
 		text
+	);
+};
+
+const RefreshTokenButton = ({ setTokenCallback }) => {
+	const [buttonText, setButtonText] = useState("Refresh token");
+
+	useEffect(() => {
+		if (buttonText === "Refreshing token...") {
+			Spicetify.CosmosAsync.get(`https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0`, null, {
+				authority: "apic-desktop.musixmatch.com"
+			})
+				.then(({ message: response }) => {
+					if (response.header.status_code === 200 && response.body.user_token) {
+						setTokenCallback(response.body.user_token);
+						setButtonText("Token refreshed");
+					} else if (response.header.status_code === 401) {
+						setButtonText("Too many attempts");
+					} else {
+						setButtonText("Failed to refresh token");
+						console.error("Failed to refresh token", response);
+					}
+				})
+				.catch(error => {
+					setButtonText("Failed to refresh token");
+					console.error("Failed to refresh token", error);
+				});
+		}
+	}, [buttonText]);
+
+	return react.createElement(
+		"button",
+		{
+			className: "btn",
+			onClick: () => {
+				setButtonText("Refreshing token...");
+			},
+			disabled: buttonText !== "Refresh token"
+		},
+		buttonText
 	);
 };
 
@@ -291,15 +331,25 @@ const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }) => {
 	);
 };
 
+const ServiceAction = ({ item, setTokenCallback }) => {
+	switch (item.name) {
+		case "local":
+			return react.createElement(CacheButton);
+		case "musixmatch":
+			return react.createElement(RefreshTokenButton, { setTokenCallback });
+		default:
+			return null;
+	}
+};
+
 const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false, onTokenChange = null }) => {
 	const [token, setToken] = useState(item.token);
 	const [active, setActive] = useState(item.on);
 
 	const setTokenCallback = useCallback(
-		event => {
-			const value = event.target.value;
-			setToken(value);
-			onTokenChange(item.name, value);
+		token => {
+			setToken(token);
+			onTokenChange(item.name, token);
 		},
 		[item.token]
 	);
@@ -330,7 +380,10 @@ const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false
 				{
 					className: "col action"
 				},
-				item.name === "local" && react.createElement(CacheButton),
+				react.createElement(ServiceAction, {
+					item,
+					setTokenCallback
+				}),
 				react.createElement(SwapButton, {
 					icon: Spicetify.SVGIcons["chart-up"],
 					onClick: () => onSwap(item.name, -1),
@@ -357,7 +410,7 @@ const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false
 			react.createElement("input", {
 				placeholder: `Place your ${item.name} token here`,
 				value: token,
-				onChange: setTokenCallback
+				onChange: event => setTokenCallback(event.target.value)
 			})
 	);
 };
