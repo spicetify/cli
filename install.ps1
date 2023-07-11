@@ -86,6 +86,13 @@ function Move-ConfigFolder {
 
 #region Main
 if ($PSVersionTable.PSVersion.Major -ge $PSMinVersion) {
+  if ([bool]([Security.Principal.WindowsIdentity]::GetCurrent().Groups -contains 'S-1-5-32-544')) {
+    Write-Log -ActionText "The script was ran as Administrator."
+    Write-Log -Texts "Please run the installer as a normal user to avoid issues with Spicetify."
+    Write-Log -Texts "Exiting..." | Out-Null
+    throw "The script was run as Administrator"
+  }
+
   $ErrorActionPreference = "Stop"
     
   # Enable TLS 1.2 since it is required for connections to GitHub.
