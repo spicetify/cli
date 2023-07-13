@@ -69,7 +69,6 @@ func ParseConfig(configPath string) Config {
 			content: getDefaultConfig(),
 		}
 		defaultConfig.Write()
-		PrintSuccess("Default config-xpui.ini generated.")
 		return defaultConfig
 	}
 
