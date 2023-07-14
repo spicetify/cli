@@ -284,7 +284,7 @@
 	margin-left: 8px;
 }
 
-option {
+#lyrics-plus-config-container option {
 	background-color: var(--spice-button);
 }
 
@@ -433,27 +433,32 @@ div.lyrics-tabBar-headerItemLink {
 }
 
 /** Setting menu */
-.setting-row::after {
+.lyrics-tooltip-wrapper .setting-row::after,
+#lyrics-plus-config-container .setting-row::after {
 	content: "";
 	display: table;
 	clear: both;
 }
-.setting-row .col {
+.lyrics-tooltip-wrapper .setting-row .col,
+#lyrics-plus-config-container .setting-row .col {
 	padding: 16px 0 4px;
 	align-items: center;
 }
-.setting-row .col.description {
+.lyrics-tooltip-wrapper .setting-row .col.description,
+#lyrics-plus-config-container .setting-row .col.description {
 	float: left;
 	padding-right: 15px;
 	cursor: default;
 }
-.setting-row .col.action {
+.lyrics-tooltip-wrapper .setting-row .col.action,
+#lyrics-plus-config-container .setting-row .col.action {
 	float: right;
 	display: flex;
 	justify-content: flex-end;
 	align-items: center;
 }
-button.switch {
+.lyrics-tooltip-wrapper button.switch,
+#lyrics-plus-config-container button.switch {
 	align-items: center;
 	border: 0px;
 	border-radius: 50%;
@@ -465,16 +470,20 @@ button.switch {
 	width: 32px;
 	height: 32px;
 }
-button.switch.disabled,
-button.switch[disabled] {
+.lyrics-tooltip-wrapper button.switch.disabled,
+.lyrics-tooltip-wrapper button.switch[disabled],
+#lyrics-plus-config-container button.switch.disabled,
+#lyrics-plus-config-container button.switch[disabled] {
 	color: rgba(var(--spice-rgb-text), 0.3);
 }
-button.switch.small {
+.lyrics-tooltip-wrapper button.switch.small,
+#lyrics-plus-config-container button.switch.small {
 	width: 22px;
 	height: 22px;
 	padding: 3px;
 }
 
+.lyrics-tooltip-wrapper input,
 #lyrics-plus-config-container input {
 	width: 100%;
 	margin-top: 10px;
@@ -485,18 +494,20 @@ button.switch.small {
 	background-color: initial;
 	border-bottom: 1px solid var(--spice-text);
 }
-.col.action .adjust-value {
+.lyrics-tooltip-wrapper .col.action .adjust-value,
+#lyrics-plus-config-container .col.action .adjust-value {
 	margin-inline-start: 12px;
 	min-width: 22px;
 	text-align: center;
 }
 
-.col.action span {
+.lyrics-tooltip-wrapper .col.action span,
+#lyrics-plus-config-container .col.action span {
 	font-size: 14px;
 	opacity: 0.8;
 }
-
-.col.action .btn {
+.lyrics-tooltip-wrapper .col.action .btn,
+#lyrics-plus-config-container .col.action .btn {
 	font-weight: 700;
 	background-color: transparent;
 	border-radius: 500px;
@@ -509,17 +520,20 @@ button.switch.small {
 	cursor: pointer;
 }
 
-.col.action .btn:hover {
+.lyrics-tooltip-wrapper .col.action .btn:hover,
+#lyrics-plus-config-container .col.action .btn:hover {
 	transform: scale(1.04);
 	border-color: var(--spice-text);
 }
 
-.col.action .btn:disabled {
+.lyrics-tooltip-wrapper .col.action .btn:disabled,
+#lyrics-plus-config-container .col.action .btn:disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
-
-.col.action .main-dropDown-dropDown,
+.lyrics-tooltip-wrapper .col.action .main-dropDown-dropDown,
+.lyrics-tooltip-wrapper .col.action input,
+#lyrics-plus-config-container .col.action .main-dropDown-dropDown,
 #lyrics-plus-config-container .col.action input {
 	width: 150px;
 }
