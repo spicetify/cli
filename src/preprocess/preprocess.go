@@ -294,6 +294,12 @@ func exposeAPIs_main(input string) string {
 		`(\w+=\(\w+,(\w+)\.lazy\)\(?\((?:\(\)=>|function\(\)\{return )\w+\.\w+\((?:\d+)?\)\.then\(\w+\.bind\(\w+,\w+\)\)\}?\)\)?),`,
 		`${1};Spicetify.React=${2};var `)
 
+	// Color class
+	utils.Replace(
+		&input,
+		`(class (\w+)\{constructor\([\w$.,={}]+\)\{this\.rgb[\w !?:=.,>&(){}[\];]*?this\.hsl[\w !?:=.,>&(){}[\];]*?this\.hsv[\w !?:=.,>&(){}[\];]*?this\.a[\w !?:=.,>&(){}[\];]*?\})(.*?case ([\w\.]+)\.HEX:.*?static parse\([\w !?:=.,>&(){}[\];]*?\}\})`,
+		`${1}static CSSColorFormat=${4};${3};Spicetify.Color=${2};`)
+
 	utils.Replace(
 		&input,
 		`"data-testid":`,

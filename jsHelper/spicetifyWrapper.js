@@ -127,6 +127,7 @@ const Spicetify = {
             "ReactFlipToolkit",
             "classnames",
             "ReactQuery",
+            "Color",
         ];
 
         const PLAYER_METHOD = [

@@ -74,6 +74,52 @@ declare namespace Spicetify {
         session_id: string;
         queue_revision: string;
     };
+    interface hsl {
+        h: number;
+        s: number;
+        l: number;
+    };
+    interface hsv {
+        h: number;
+        s: number;
+        v: number;
+    };
+    interface rgb {
+        r: number;
+        g: number;
+        b: number;
+    };
+    type CSSColors = "HEX" | "HEXA" | "HSL" | "HSLA" | "RGB" | "RGBA";
+    /**
+     * Spotify's internal color class
+     */
+    class Color {
+        constructor(rgb: rgb, hsl: hsl, hsv: hsv, alpha?: number);
+
+        static BLACK: Color;
+        static WHITE: Color;
+        static CSSColorFormat: Record<CSSColors, number> & Record<number, CSSColors>;
+
+        a: number;
+        hsl: hsl;
+        hsv: hsv;
+        rgb: rgb;
+
+        static fromCSS(cssColor: string, alpha?: number): Color;
+        static fromHSL(hsl: hsl, alpha?: number): Color;
+        static fromHSV(hsv: hsv, alpha?: number): Color;
+        static fromRGB(rgb: rgb, alpha?: number): Color;
+        static fromHEX(hex: rgb, alpha?: number): Color;
+
+        /**
+         * Change the contrast of the color against another so that
+         * the contrast between them is at least `strength`.
+         */
+        contrastAdjust(against: Color, strength?: number): Color;
+        stringify(): string;
+        toCSS(colorFormat: number): string;
+        toString(): string;
+    }
     namespace Player {
         /**
          * Register a listener `type` on Spicetify.Player.
