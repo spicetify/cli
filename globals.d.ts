@@ -363,6 +363,20 @@ declare namespace Spicetify {
      */
     function getAudioData(uri?: string): Promise<any>;
     /**
+     * Fetch extracted colors from an image. Can be a URL, or a URI string to an image. Works for both local and remote images.
+     * @param uri Either a Spotify URI to an image, or a URL that represents one.
+     */
+    function imageColorExtractor(imageURL: string): Promise<{
+        colorRaw: Color;
+        colorLight: Color;
+        colorDark: Color;
+    }>;
+    function imageColorExtractor(imageURL: string[]): Promise<{
+        colorRaw: Color;
+        colorLight: Color;
+        colorDark: Color;
+    }[]>;
+    /**
      * Set of APIs method to register, deregister hotkeys/shortcuts
      */
     namespace Keyboard {

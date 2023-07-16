@@ -128,6 +128,7 @@ const Spicetify = {
             "classnames",
             "ReactQuery",
             "Color",
+            "imageColorExtractor"
         ];
 
         const PLAYER_METHOD = [
@@ -299,6 +300,16 @@ const Spicetify = {
         usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
         useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color")),
     };
+
+    // Image color extractor
+    const graphQLColorQueryFactory = functionModules.find(m => m.toString().includes("GraphQL subscriptions are not supported!"));
+    const imageColorExtractorFetcher = functionModules.find(m => m.toString().includes("extractColors"));
+
+    Spicetify.imageColorExtractor = graphQLColorQueryFactory && imageColorExtractorFetcher ? (imageURL) => {
+        return imageColorExtractorFetcher(graphQLColorQueryFactory(imageURL), imageURL).then(
+            (data) => Array.isArray(imageURL) ? data : data[0]
+        )
+    } : undefined;
 
     Spicetify.ReactComponent = {
         ...Spicetify.ReactComponent,
