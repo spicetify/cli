@@ -296,7 +296,7 @@ const Spicetify = {
     Spicetify.ReactHook = {
         DragHandler: functionModules.find(m => m.toString().includes("data-dragging-uri")),
         usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
-        useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color")),
+        useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color") || || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))),
     };
 
     Spicetify.ReactComponent = {
