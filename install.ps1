@@ -101,7 +101,7 @@ if ($PSVersionTable.PSVersion.Major -ge $PSMinVersion) {
   if ($isAdmin) {
     Write-Log -ActionText "WARNING" -Texts "The script was ran as Administrator which isn't recommended`n" -Emphasized $false
     $Host.UI.RawUI.Flushinputbuffer()
-    $choice = $Host.UI.PromptForChoice('', 'To avoid any issues, do you want to abort the installation process?', ('&Yes', '&No'), 0)
+    $choice = $Host.UI.PromptForChoice("", "Do you want to abort the installation process to avoid any issues?", ("&Yes", "&No"), 0)
     if ($choice -eq 0) {
       Write-Log -ActionText "WARNING" -Texts "Exiting the script..." -Emphasized $false
       exit
