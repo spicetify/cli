@@ -127,6 +127,8 @@ const Spicetify = {
             "ReactFlipToolkit",
             "classnames",
             "ReactQuery",
+            "Color",
+            "extractColorPreset",
         ];
 
         const PLAYER_METHOD = [
@@ -278,20 +280,21 @@ const Spicetify = {
     }
     // Force all webpack modules to load
     const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
-    const modules = Object.keys(require.m).map(id => require(id));
-    const functionModules = modules.filter(module => typeof module === "object").map(module => {
+    const cache = Object.keys(require.m).map(id => require(id));
+    const modules = cache.filter(module => typeof module === "object").map(module => {
         try {
             return Object.values(module);
         } catch {}
-    }).flat().filter(module => typeof module === "function");
+    }).flat();
+    const functionModules = modules.filter(module => typeof module === "function");
 
     // classnames
     // https://github.com/JedWatson/classnames/
-    Spicetify.classnames = modules.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]"));
+    Spicetify.classnames = cache.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]"));
 
     // React Query v3
     // https://github.com/TanStack/query/tree/v3
-    Spicetify.ReactQuery = modules.find(module => module.useQuery);
+    Spicetify.ReactQuery = cache.find(module => module.useQuery);
 
     Spicetify.ReactHook = {
         DragHandler: functionModules.find(m => m.toString().includes("data-dragging-uri")),
@@ -304,6 +307,38 @@ const Spicetify = {
         Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
         RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
     };
+
+    Spicetify.Color = functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb"));
+    if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
+
+    // Image color extractor
+    (async function bindColorExtractor() {
+        if (!Spicetify.GraphQL.Request) {
+            setTimeout(bindColorExtractor, 10);
+            return;
+        }
+        let imageAnalysis = functionModules.find(m => m.toString().match(/\![\w$]+\.isFallback/g));
+        const fallbackPreset = modules.find(m => m?.colorDark) || {};
+
+        // Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features
+        if (!imageAnalysis) {
+            let chunk = Object.entries(require.m).find(([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/[\w$]+\.extractColor/g));
+            if (!chunk) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                chunk = Object.entries(require.m).find(([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/[\w$]+\.extractColor/g));
+            }
+            imageAnalysis = Object.values(require(chunk[0])).find(m => typeof m === "function");
+        }
+
+        Spicetify.extractColorPreset = async (image) => {
+            const analysis = await imageAnalysis(Spicetify.GraphQL.Request, image);
+            for (const result of analysis) {
+                if (!("isFallback" in result)) result.isFallback = Object.entries(fallbackPreset).every(([key, value]) => result[key] === value);
+            }
+
+            return analysis;
+        }
+    })();
 
     function wrapProvider(component) {
         if (!component) return null;
@@ -319,7 +354,7 @@ const Spicetify = {
         // Ignore on versions older than 1.2.4
         if (Spicetify.URI.Type) return;
 
-        const URIChunk = modules.filter(module => typeof module === "object").find(m => {
+        const URIChunk = cache.filter(module => typeof module === "object").find(m => {
             // Avoid creating 2 arrays of the same values
             try {
                 const values = Object.values(m);
@@ -355,7 +390,7 @@ const Spicetify = {
         for (const type of Object.keys(Spicetify.URI.Type)) {
             const func = isURIFUnctions.find(m => m.toString().match(new RegExp(`===[\\w$]+\\.${type}\(?!_\)\\}`)));
             const camelCaseType = type.toLowerCase().split("_").map(word => word[0].toUpperCase() + word.slice(1)).join("");
-            
+
             // Fill in missing functions, only serves as placebo as they cannot be as accurate as the original functions
             Spicetify.URI[`is${camelCaseType}`] = func ?? ((uri) => {
                 let uriObj;
