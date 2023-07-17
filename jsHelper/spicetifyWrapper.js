@@ -318,7 +318,7 @@ const Spicetify = {
             return;
         }
         let imageAnalysis = functionModules.find(m => m.toString().match(/\![\w$]+\.isFallback/g));
-        const fallbackPreset = modules.find(m => m?.colorDark) || {};
+        const fallbackPreset = modules.find(m => m?.colorDark);
 
         // Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features
         if (!imageAnalysis) {
@@ -333,7 +333,7 @@ const Spicetify = {
         Spicetify.extractColorPreset = async (image) => {
             const analysis = await imageAnalysis(Spicetify.GraphQL.Request, image);
             for (const result of analysis) {
-                if (!("isFallback" in result)) result.isFallback = Object.entries(fallbackPreset).every(([key, value]) => result[key] === value);
+                if ("isFallback" in result === false) result.isFallback = fallbackPreset === result;
             }
 
             return analysis;
