@@ -336,22 +336,11 @@ Spicetify.React.useEffect(() => {
 }, []);`)
 
 	// React Component: Context Menu and Right Click Menu
+	// TODO: replace with webpack module
 	utils.Replace(
 		&input,
 		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),(?:[\w(){},\.]+,[\w{}]+,)?\{[.,\w+]*action:"open",trigger:"right-click"\}\)\)?)(?:\}(\}))?`,
 		`=Spicetify.ReactComponent.RightClickMenu=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
-
-	// React Component: Context Menu - Menu
-	utils.Replace(
-		&input,
-		`=(?:function\(\w\)\{\w+ \w=\w.children,\w=\w.onClose,\w=\w.getInitialFocusElement|\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+)`,
-		`=Spicetify.ReactComponent.Menu${0}`)
-
-	// React Component: Context Menu - Menu Item
-	utils.Replace(
-		&input,
-		`=(?:function\(\w+\)|\(|[\w\=\>]*)?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:children|icon|divider|disabled)[:\w]*,){3,}`,
-		`=Spicetify.ReactComponent.MenuItem${0}`)
 
 	// React Component: Album Context Menu items
 	utils.Replace(
@@ -394,12 +383,6 @@ Spicetify.React.useEffect(() => {
 		&input,
 		`document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null`,
 		``)
-
-	// GraphQL handler
-	utils.Replace(
-		&input,
-		`(function ([\w$]+)\(([\w$])\)\{)(return [\w$&.,={}()[\]?!=>:; ]+"subscription")`,
-		`Spicetify.GraphQL.Handler=${2};${1}Spicetify.GraphQL.Context??=${3};${4}`)
 
 	// GraphQL definitions
 	utils.Replace(

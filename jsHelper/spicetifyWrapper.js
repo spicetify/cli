@@ -304,10 +304,15 @@ const Spicetify = {
 
     Spicetify.ReactComponent = {
         ...Spicetify.ReactComponent,
-        ConfirmDialog: functionModules.find(m => m.toString().includes("isOpen") && m.toString().includes("allowHTML")),
+        ConfirmDialog: functionModules.find(m => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc")),
+        Menu: functionModules.find(m => m.toString().includes("getInitialFocusElement")),
+        MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
         Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
         RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
+        RightClickMenu: functionModules.find(m => m.toString().includes('action:"open",trigger:"right-click"'))
     };
+
+    Spicetify.GraphQL.Context = functionModules.find(m => m.toString().includes("subscription") && m.toString().includes("mutation"));
 
     Spicetify.Color = functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb"));
     if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
