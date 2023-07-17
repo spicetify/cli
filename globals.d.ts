@@ -1907,12 +1907,14 @@ declare namespace Spicetify {
          * Convert CSS representation to Color
          * @param cssColor CSS representation of the color. Must not contain spaces.
          * @param alpha Alpha value of the color. Defaults to 1.
+         * @return Color object
+         * @throws {Error} If the CSS color is invalid or unsupported
          */
         static fromCSS(cssColor: string, alpha?: number): Color;
         static fromHSL(hsl: hsl, alpha?: number): Color;
         static fromHSV(hsv: hsv, alpha?: number): Color;
         static fromRGB(rgb: rgb, alpha?: number): Color;
-        static fromHEX(hex: rgb, alpha?: number): Color;
+        static fromHex(hex: string, alpha?: number): Color;
 
         /**
          * Change the contrast of the color against another so that
