@@ -1860,4 +1860,83 @@ declare namespace Spicetify {
      * @link https://github.com/TanStack/query/tree/v3
      */
     const ReactQuery: any;
+
+    /**
+     * Analyse and extract color presets from an image. Works for any valid image URL/URI.
+     * @param image Spotify URI to an image, or an image URL.
+     */
+    function extractColorPresets(image: string | string[]): Promise<{
+        colorRaw: Color;
+        colorLight: Color;
+        colorDark: Color;
+        isFallback: boolean;
+    }[]>;
+
+    interface hsl {
+        h: number;
+        s: number;
+        l: number;
+    };
+    interface hsv {
+        h: number;
+        s: number;
+        v: number;
+    };
+    interface rgb {
+        r: number;
+        g: number;
+        b: number;
+    };
+    type CSSColors = "HEX" | "HEXA" | "HSL" | "HSLA" | "RGB" | "RGBA";
+    /**
+     * Spotify's internal color class
+     */
+    class Color {
+        constructor(rgb: rgb, hsl: hsl, hsv: hsv, alpha?: number);
+
+        static BLACK: Color;
+        static WHITE: Color;
+        static CSSFormat: Record<CSSColors, number> & Record<number, CSSColors>;
+
+        a: number;
+        hsl: hsl;
+        hsv: hsv;
+        rgb: rgb;
+
+        /**
+         * Convert CSS representation to Color
+         * @param cssColor CSS representation of the color. Must not contain spaces.
+         * @param alpha Alpha value of the color. Defaults to 1.
+         * @return Color object
+         * @throws {Error} If the CSS color is invalid or unsupported
+         */
+        static fromCSS(cssColor: string, alpha?: number): Color;
+        static fromHSL(hsl: hsl, alpha?: number): Color;
+        static fromHSV(hsv: hsv, alpha?: number): Color;
+        static fromRGB(rgb: rgb, alpha?: number): Color;
+        static fromHex(hex: string, alpha?: number): Color;
+
+        /**
+         * Change the contrast of the color against another so that
+         * the contrast between them is at least `strength`.
+         */
+        contrastAdjust(against: Color, strength?: number): Color;
+
+        /**
+         * Stringify JSON result
+         */
+        stringify(): string;
+
+        /**
+         * Convert to CSS representation
+         * @param colorFormat CSS color format to convert to
+         * @return CSS representation of the color
+         */
+        toCSS(colorFormat: number): string;
+
+        /**
+         * Return RGBA representation of the color
+         */
+        toString(): string;
+    }
 }
