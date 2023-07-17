@@ -147,6 +147,7 @@ class LyricsContainer extends react.Component {
 			cn: null,
 			hk: null,
 			tw: null,
+			musixmatchTranslation: null,
 			neteaseTranslation: null,
 			uri: "",
 			provider: "",
@@ -173,7 +174,11 @@ class LyricsContainer extends react.Component {
 		this.fullscreenContainer.id = "lyrics-fullscreen-container";
 		this.mousetrap = new Spicetify.Mousetrap();
 		this.containerRef = react.createRef(null);
-		this.translator = new Translator();
+		this.translator = new Translator(CONFIG.visual["translate:detect-language-override"]);
+		// Cache last state
+		this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
+		this.languageOverride = CONFIG.visual["translate:detect-language-override"];
+		this.translate = CONFIG.visual.translate;
 	}
 
 	infoFromTrack(track) {
@@ -277,6 +282,13 @@ class LyricsContainer extends react.Component {
 				finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n${finalData.copyright || ""}`.trim();
 			}
 
+			if (finalData.musixmatchTranslation && typeof finalData.musixmatchTranslation[0].startTime === "undefined" && finalData.synced) {
+				finalData.musixmatchTranslation = finalData.synced.map(line => ({
+					...line,
+					text: finalData.musixmatchTranslation.find(l => Utils.processLyrics(l.originalText) === Utils.processLyrics(line.text))?.text ?? line.text
+				}));
+			}
+
 			CACHE[data.uri] = finalData;
 			return finalData;
 		}
@@ -295,6 +307,7 @@ class LyricsContainer extends react.Component {
 			this.state.cn =
 			this.state.hk =
 			this.state.tw =
+			this.state.musixmatchTranslation =
 			this.state.neteaseTranslation =
 				null;
 		const info = this.infoFromTrack(track);
@@ -349,28 +362,35 @@ class LyricsContainer extends react.Component {
 	}
 
 	provideLanguageCode(lyrics) {
-		if (CONFIG.visual["translate:detect-language-override"] !== "off") {
-			return CONFIG.visual["translate:detect-language-override"];
-		}
+		if (!lyrics) return;
+
+		if (CONFIG.visual["translate:detect-language-override"] !== "off") return CONFIG.visual["translate:detect-language-override"];
+
 		return Utils.detectLanguage(lyrics);
 	}
 
-	async translateLyrics() {
-		if (!this.translator || !this.translator.finished) {
-			setTimeout(this.translateLyrics.bind(this), 100);
+	async translateLyrics(silent = true) {
+		function showNotification(timeout) {
+			if (silent) return;
+			Spicetify.showNotification("Translating...", false, timeout);
+		}
+
+		const lyrics = this.state.currentLyrics;
+		const language = this.provideLanguageCode(lyrics);
+
+		if (!CONFIG.visual.translate || !language || typeof lyrics?.[0].text !== "string") return;
+
+		if (!this.translator?.finished[language.slice(0, 2)]) {
+			this.translator.injectExternals(language);
+			this.translator.createTranslator(language);
+			showNotification(500);
+			setTimeout(this.translateLyrics.bind(this), 100, false);
 			return;
 		}
 
-		const lyricsToTranslate = this.state.currentLyrics;
-
-		if (!lyricsToTranslate) return;
-
-		const language = lyricsToTranslate && this.provideLanguageCode(lyricsToTranslate);
-
-		if (!language) return;
-
-		let lyricText = "";
-		for (let lyric of lyricsToTranslate) lyricText += lyric.text + "\n";
+		// Seemingly long delay so it can be cleared later for accurate timing
+		showNotification(10000);
+		const lyricText = lyrics.map(lyric => lyric.text).join("\n");
 
 		[
 			["romaji", "spaced", "romaji"],
@@ -380,7 +400,8 @@ class LyricsContainer extends react.Component {
 		].forEach(params => {
 			if (language !== "ja") return;
 			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
-				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[2] });
+				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[2] });
+				showNotification(200);
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -391,7 +412,8 @@ class LyricsContainer extends react.Component {
 		].forEach(params => {
 			if (language !== "ko") return;
 			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
-				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
+				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
+				showNotification(200);
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -405,7 +427,8 @@ class LyricsContainer extends react.Component {
 		].forEach(params => {
 			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) return;
 			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
-				Utils.processTranslatedLyrics(result, lyricsToTranslate, { state: this.state, stateName: params[1] });
+				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
+				showNotification(200);
 				lyricContainerUpdate && lyricContainerUpdate();
 			});
 		});
@@ -615,34 +638,42 @@ class LyricsContainer extends react.Component {
 	}
 
 	componentDidUpdate() {
-		const language = this.state.currentLyrics && this.provideLanguageCode(this.state.currentLyrics);
+		// Apparently if any of these values are changed, the cached translation will not be updated, hence the need to retranslate
+		if (
+			this.translationProvider !== CONFIG.visual["translate:translated-lyrics-source"] ||
+			this.languageOverride !== CONFIG.visual["translate:detect-language-override"] ||
+			this.translate !== CONFIG.visual.translate
+		) {
+			this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
+			this.languageOverride = CONFIG.visual["translate:detect-language-override"];
+			this.translate = CONFIG.visual.translate;
+
+			this.translateLyrics(false);
+
+			return;
+		}
+
+		const language = this.provideLanguageCode(this.state.currentLyrics);
 
 		let isTranslated = false;
 
 		switch (language) {
 			case "zh-hans":
 			case "zh-hant": {
-				if (this.state.cn || this.state.hk || this.state.tw) {
-					isTranslated = true;
-				}
+				isTranslated = !!(this.state.cn || this.state.hk || this.state.tw);
 				break;
 			}
 			case "ja": {
-				if (this.state.furigana || this.state.katakana || this.state.hiragana || this.state.romaji) {
-					isTranslated = true;
-				}
+				isTranslated = !!(this.state.romaji || this.state.furigana || this.state.hiragana || this.state.katakana);
 				break;
 			}
 			case "ko": {
-				if (this.state.hangul || this.state.romaja) {
-					isTranslated = true;
-				}
+				isTranslated = !!(this.state.hangul || this.state.romaja);
 				break;
 			}
 		}
-		if (isTranslated === false) {
-			this.translateLyrics();
-		}
+
+		!isTranslated && this.translateLyrics();
 	}
 
 	render() {
@@ -690,15 +721,16 @@ class LyricsContainer extends react.Component {
 		let activeItem;
 		let showTranslationButton;
 		let friendlyLanguage;
-		const hasNeteaseTranslation = this.state.neteaseTranslation !== null;
+
+		const hasTranslation = this.state.neteaseTranslation !== null || this.state.musixmatchTranslation !== null;
 
 		if (mode !== -1) {
 			this.lyricsSource(mode);
-			const language = this.state.currentLyrics && this.provideLanguageCode(this.state.currentLyrics);
-			const languageDisplayNames = new Intl.DisplayNames(["en"], { type: "language" });
-			friendlyLanguage = language && languageDisplayNames.of(language?.split("-")[0])?.toLowerCase();
-			showTranslationButton = (friendlyLanguage || hasNeteaseTranslation) && (mode == SYNCED || mode == UNSYNCED);
+			const language = this.provideLanguageCode(this.state.currentLyrics);
+			friendlyLanguage = language && new Intl.DisplayNames(["en"], { type: "language" }).of(language.split("-")[0])?.toLowerCase();
+			showTranslationButton = (friendlyLanguage || hasTranslation) && (mode === SYNCED || mode === UNSYNCED);
 			const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
+
 			if (mode === KARAOKE && this.state.karaoke) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					isKara: true,
@@ -775,11 +807,14 @@ class LyricsContainer extends react.Component {
 				{
 					className: "lyrics-config-button-container"
 				},
-				react.createElement(TranslationMenu, {
-					showTranslationButton,
-					friendlyLanguage,
-					hasNeteaseTranslation
-				}),
+				showTranslationButton &&
+					react.createElement(TranslationMenu, {
+						friendlyLanguage,
+						hasTranslation: {
+							musixmatch: this.state.musixmatchTranslation !== null,
+							netease: this.state.neteaseTranslation !== null
+						}
+					}),
 				react.createElement(AdjustmentsMenu, { mode }),
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,

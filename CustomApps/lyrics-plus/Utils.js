@@ -230,4 +230,10 @@ class Utils {
 
 		return { synced, unsynced, karaoke };
 	}
+
+	static processLyrics(lyrics) {
+		return lyrics
+			.replace(/　| /g, "") // Remove space
+			.replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~？！，。、《》【】「」]/g, ""); // Remove punctuation
+	}
 }

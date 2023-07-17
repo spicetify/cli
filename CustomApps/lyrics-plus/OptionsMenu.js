@@ -86,58 +86,107 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 	);
 });
 
-const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, hasNeteaseTranslation }) => {
-	if (!showTranslationButton) return null;
-
-	let translator = new Translator();
-
-	let sourceOptions = {
-		none: "None"
-	};
-
-	const languageOptions = {
-		off: "Off",
-		"zh-hans": "Chinese (Simplified)",
-		"zh-hant": "Chinese (Traditional)",
-		ja: "Japanese",
-		ko: "Korean"
-	};
-
-	let modeOptions = {};
-
-	if (hasNeteaseTranslation) {
-		sourceOptions = {
-			...sourceOptions,
-			neteaseTranslation: "Chinese (Netease)"
+const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
+	const items = useMemo(() => {
+		let sourceOptions = {
+			none: "None"
 		};
-	}
 
-	switch (friendlyLanguage) {
-		case "japanese": {
-			modeOptions = {
-				furigana: "Furigana",
-				romaji: "Romaji",
-				hiragana: "Hiragana",
-				katakana: "Katakana"
+		const languageOptions = {
+			off: "Off",
+			"zh-hans": "Chinese (Simplified)",
+			"zh-hant": "Chinese (Traditional)",
+			ja: "Japanese",
+			ko: "Korean"
+		};
+
+		let modeOptions = {};
+
+		if (hasTranslation.musixmatch) {
+			sourceOptions = {
+				...sourceOptions,
+				musixmatchTranslation: "English (Musixmatch)"
 			};
-			break;
 		}
-		case "korean": {
-			modeOptions = {
-				hangul: "Hangul",
-				romaja: "Romaja"
+
+		if (hasTranslation.netease) {
+			sourceOptions = {
+				...sourceOptions,
+				neteaseTranslation: "Chinese (Netease)"
 			};
-			break;
 		}
-		case "chinese": {
-			modeOptions = {
-				cn: "Simplified Chinese",
-				hk: "Traditional Chinese (Hong Kong)",
-				tw: "Traditional Chinese (Taiwan)"
-			};
-			break;
+
+		switch (friendlyLanguage) {
+			case "japanese": {
+				modeOptions = {
+					furigana: "Furigana",
+					romaji: "Romaji",
+					hiragana: "Hiragana",
+					katakana: "Katakana"
+				};
+				break;
+			}
+			case "korean": {
+				modeOptions = {
+					hangul: "Hangul",
+					romaja: "Romaja"
+				};
+				break;
+			}
+			case "chinese": {
+				modeOptions = {
+					cn: "Simplified Chinese",
+					hk: "Traditional Chinese (Hong Kong)",
+					tw: "Traditional Chinese (Taiwan)"
+				};
+				break;
+			}
 		}
-	}
+
+		return [
+			{
+				desc: "Translation Provider",
+				key: `translate:translated-lyrics-source`,
+				type: ConfigSelection,
+				options: sourceOptions,
+				renderInline: true
+			},
+			{
+				desc: "Language Override",
+				key: `translate:detect-language-override`,
+				type: ConfigSelection,
+				options: languageOptions,
+				renderInline: true
+			},
+			{
+				desc: "Display Mode",
+				key: `translation-mode:${friendlyLanguage}`,
+				type: ConfigSelection,
+				options: modeOptions,
+				renderInline: true
+			},
+			{
+				desc: "Convert",
+				key: "translate",
+				type: ConfigSlider,
+				trigger: "click",
+				action: "toggle",
+				renderInline: true
+			}
+		];
+	}, [friendlyLanguage]);
+
+	useEffect(() => {
+		// Currently opened Context Menu does not receive prop changes
+		// If we were to use keys the Context Menu would close on re-render
+		const event = new CustomEvent("lyrics-plus", {
+			detail: {
+				type: "translation-menu",
+				items
+			}
+		});
+		document.dispatchEvent(event);
+	}, [friendlyLanguage]);
 
 	return react.createElement(
 		Spicetify.ReactComponent.TooltipWrapper,
@@ -157,43 +206,12 @@ const TranslationMenu = react.memo(({ showTranslationButton, friendlyLanguage, h
 						{},
 						react.createElement("h3", null, " Conversions"),
 						react.createElement(OptionList, {
-							items: [
-								{
-									desc: "Translation Provider",
-									key: `translate:translated-lyrics-source`,
-									type: ConfigSelection,
-									options: sourceOptions,
-									renderInline: true
-								},
-								{
-									desc: "Language Override",
-									key: `translate:detect-language-override`,
-									type: ConfigSelection,
-									options: languageOptions,
-									renderInline: true
-								},
-								{
-									desc: "Display Mode",
-									key: `translation-mode:${friendlyLanguage}`,
-									type: ConfigSelection,
-									options: modeOptions,
-									renderInline: true
-								},
-								{
-									desc: "Convert",
-									key: "translate",
-									type: ConfigSlider,
-									trigger: "click",
-									action: "toggle",
-									renderInline: true
-								}
-							],
+							type: "translation-menu",
+							items,
 							onChange: (name, value) => {
 								CONFIG.visual[name] = value;
 								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
-								lyricContainerUpdate && lyricContainerUpdate();
-								CONFIG.visual[name] && Spicetify.showNotification("Translating...", false, 5000);
-								translator.injectExternals();
+								lyricContainerUpdate?.();
 							}
 						})
 					),
@@ -254,8 +272,8 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 									desc: "Track delay",
 									key: "delay",
 									type: ConfigAdjust,
-									min: -10000,
-									max: 10000,
+									min: -Infinity,
+									max: Infinity,
 									step: 250,
 									when: () => mode === SYNCED || mode === KARAOKE
 								},

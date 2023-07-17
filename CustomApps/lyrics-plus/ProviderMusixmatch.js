@@ -153,5 +153,33 @@ const ProviderMusixmatch = (function () {
 		return null;
 	}
 
-	return { findLyrics, getKaraoke, getSynced, getUnsynced };
+	async function getTranslation(body) {
+		const track_id = body?.["matcher.track.get"]?.message?.body?.track?.track_id;
+		if (!track_id) return null;
+
+		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/crowd.track.translations.get?translation_fields_set=minimal&selected_language=en&comment_format=text&format=json&app_id=web-desktop-app-v1.0&`;
+
+		const params = {
+			track_id,
+			usertoken: CONFIG.providers.musixmatch.token
+		};
+
+		const finalURL =
+			baseURL +
+			Object.keys(params)
+				.map(key => key + "=" + encodeURIComponent(params[key]))
+				.join("&");
+
+		let result = await CosmosAsync.get(finalURL, null, headers);
+
+		if (result.message.header.status_code != 200) return null;
+
+		result = result.message.body;
+
+		if (!result.translations_list?.length) return null;
+
+		return result.translations_list.map(({ translation }) => ({ translation: translation.description, matchedLine: translation.matched_line }));
+	}
+
+	return { findLyrics, getKaraoke, getSynced, getUnsynced, getTranslation };
 })();
