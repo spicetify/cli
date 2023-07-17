@@ -296,11 +296,12 @@ const Spicetify = {
     Spicetify.ReactHook = {
         DragHandler: functionModules.find(m => m.toString().includes("data-dragging-uri")),
         usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
-        useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color")),
+        useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))),
     };
 
     Spicetify.ReactComponent = {
         ...Spicetify.ReactComponent,
+        ConfirmDialog: functionModules.find(m => m.toString().includes("isOpen") && m.toString().includes("allowHTML")),
         Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
         RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
     };
@@ -355,7 +356,7 @@ const Spicetify = {
         for (const type of Object.keys(Spicetify.URI.Type)) {
             const func = isURIFUnctions.find(m => m.toString().match(new RegExp(`===[\\w$]+\\.${type}\(?!_\)\\}`)));
             const camelCaseType = type.toLowerCase().split("_").map(word => word[0].toUpperCase() + word.slice(1)).join("");
-            
+
             // Fill in missing functions, only serves as placebo as they cannot be as accurate as the original functions
             Spicetify.URI[`is${camelCaseType}`] = func ?? ((uri) => {
                 let uriObj;
