@@ -1,4 +1,5 @@
 window.Spicetify = {
+    get CosmosAsync() { return Spicetify.Player.origin?._cosmos },
     Player: {
         addEventListener: (type, callback) => {
             if (!(type in Spicetify.Player.eventListeners)) {
@@ -298,10 +299,7 @@ window.Spicetify = {
     }).filter(Boolean);
 
 
-    window.Spicetify = {
-        ...Spicetify,
-        get CosmosAsync() {return Spicetify.Player.origin?._cosmos},
-        get Queue() {return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue},
+    Object.assign(Spicetify, {
         Platform,
         // classnames
         // https://github.com/JedWatson/classnames/
@@ -316,7 +314,6 @@ window.Spicetify = {
             get Request() {
                 return Spicetify.Platform?.GraphQLLoader || Spicetify.GraphQL.Handler?.(Spicetify.GraphQL.Context);
             },
-            Context: functionModules.find(m => m.toString().includes("subscription") && m.toString().includes("mutation")),
             get QueryDefinitions() {
                 return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.some(def => def.kind === "OperationDefinition" && def.operation === "query")));
             },
@@ -326,6 +323,8 @@ window.Spicetify = {
             get ResponseDefinitions() {
                 return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.every(def => def.kind !== "OperationDefinition")));
             },
+            Context: functionModules.find(m => m.toString().includes("subscription") && m.toString().includes("mutation")),
+            Handler: functionModules.find(m => m.toString().includes("GraphQL subscriptions are not supported")),
         },
         ReactComponent: {
             ...Spicetify.ReactComponent,
@@ -345,25 +344,16 @@ window.Spicetify = {
         // React Query v3
         // https://github.com/TanStack/query/tree/v3
         ReactQuery: cache.find(module => module.useQuery),
-    };
+    });
+
+    Object.defineProperty(Spicetify, "Queue", {
+        get() { return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue },
+    });
+
 
     const playlistMenuChunk = Object.entries(require.m).find(([, value]) => value.toString().includes('value:"playlist"'));
     if (playlistMenuChunk) Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function");
 
-    Spicetify.ReactComponent = {
-        ...Spicetify.ReactComponent,
-        ConfirmDialog: functionModules.find(m => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc")),
-        Menu: functionModules.find(m => m.toString().includes("getInitialFocusElement")),
-        MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
-        Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
-        RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
-        RightClickMenu: functionModules.find(m => m.toString().includes('action:"open",trigger:"right-click"')),
-        ...Object.fromEntries(menus),
-    };
-
-    Spicetify.GraphQL.Context = functionModules.find(m => m.toString().includes("subscription") && m.toString().includes("mutation"));
-
-    Spicetify.Color = functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb"));
     if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
 
     // Image color extractor
@@ -393,7 +383,6 @@ window.Spicetify = {
 
             return analysis;
         }
-        console.log(Spicetify);
     })();
 
     function wrapProvider(component) {
