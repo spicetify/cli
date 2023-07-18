@@ -178,6 +178,7 @@ const Spicetify = {
             "PodcastShowMenu",
             "ArtistMenu",
             "PlaylistMenu",
+            "TrackMenu",
             "TooltipWrapper",
             "TextComponent",
             "IconComponent",
@@ -304,7 +305,7 @@ const Spicetify = {
         useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))),
     };
 
-    const knownMenuTypes = ["album", "show", "artist"];
+    const knownMenuTypes = ["album", "show", "artist", "track"];
     const menus = modules.map(m => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m?.type?.toString().match(/value:"[\w-]+"/g)]).filter(Boolean).filter(m => m[1] !== 'value:"row"').map(([module, type]) => {
         type = type.match(/value:"([\w-]+)"/)[1];
 

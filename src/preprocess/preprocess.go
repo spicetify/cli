@@ -342,12 +342,6 @@ Spicetify.React.useEffect(() => {
 		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),(?:[\w(){},\.]+,[\w{}]+,)?\{[.,\w+]*action:"open",trigger:"right-click"\}\)\)?)(?:\}(\}))?`,
 		`=Spicetify.ReactComponent.RightClickMenu=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
 
-	// React Component: Playlist Context Menu items
-	utils.Replace(
-		&input,
-		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function[\{\w\}:,()]*|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|isEnhanced|onRemoveCallback)[:\w]*,?){3,})`,
-		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
-
 	// React Component: Tooltip Wrapper
 	utils.ReplaceOnce(
 		&input,

@@ -1393,6 +1393,7 @@ declare namespace Spicetify {
         const PodcastShowMenu: any;
         const ArtistMenu: any;
         const PlaylistMenu: any;
+        const TrackMenu: any;
         /**
          * Component to display tooltip when hovering over element
          * Useful for accessibility
