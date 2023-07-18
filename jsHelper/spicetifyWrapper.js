@@ -1,7 +1,4 @@
-
-const Spicetify = {
-    get CosmosAsync() {return Spicetify.Player.origin?._cosmos},
-    get Queue() {return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue},
+window.Spicetify = {
     Player: {
         addEventListener: (type, callback) => {
             if (!(type in Spicetify.Player.eventListeners)) {
@@ -257,26 +254,14 @@ const Spicetify = {
         })
     },
     GraphQL: {
-        get Request() {
-            return Spicetify.Platform?.GraphQLLoader || Spicetify.GraphQL.Handler?.(Spicetify.GraphQL.Context);
-        },
         Definitions: {},
-        get QueryDefinitions() {
-            return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.some(def => def.kind === "OperationDefinition" && def.operation === "query")));
-        },
-        get MutationDefinitions() {
-            return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.some(def => def.kind === "OperationDefinition" && def.operation === "mutation")));
-        },
-        get ResponseDefinitions() {
-            return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.every(def => def.kind !== "OperationDefinition")));
-        },
     },
     ReactComponent: {},
     ReactHook: {},
     ReactFlipToolkit: {},
 };
 
-(function hotloadWebpackModules() {
+(async function hotloadWebpackModules() {
     if (!window?.webpackChunkopen) {
         setTimeout(hotloadWebpackModules, 50);
         return;
@@ -291,19 +276,15 @@ const Spicetify = {
     }).flat();
     const functionModules = modules.filter(module => typeof module === "function");
 
-    // classnames
-    // https://github.com/JedWatson/classnames/
-    Spicetify.classnames = cache.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]"));
+    const PlatformWorker = functionModules.find(m => m.toString().includes("getPlaybackAPI"));
+    const Platform = await PlatformWorker("Desktop");
 
-    // React Query v3
-    // https://github.com/TanStack/query/tree/v3
-    Spicetify.ReactQuery = cache.find(module => module.useQuery);
-
-    Spicetify.ReactHook = {
-        DragHandler: functionModules.find(m => m.toString().includes("data-dragging-uri")),
-        usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
-        useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))),
-    };
+    for (const key of Object.keys(Platform)) {
+        if (key.startsWith("get") && typeof Platform[key] === "function") {
+            Platform[key.slice(3)] = Platform[key]();
+            delete Platform[key];
+        }
+    }
 
     const knownMenuTypes = ["album", "show", "artist", "track"];
     const menus = modules.map(m => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m?.type?.toString().match(/value:"[\w-]+"/g)]).filter(Boolean).filter(m => m[1] !== 'value:"row"').map(([module, type]) => {
@@ -315,6 +296,56 @@ const Spicetify = {
         type = type.split("-").map(str => str[0].toUpperCase() + str.slice(1)).join("") + "Menu"
         return [type, module];
     }).filter(Boolean);
+
+
+    window.Spicetify = {
+        ...Spicetify,
+        get CosmosAsync() {return Spicetify.Player.origin?._cosmos},
+        get Queue() {return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue},
+        Platform,
+        // classnames
+        // https://github.com/JedWatson/classnames/
+        classnames: cache.filter(module => typeof module === "function").find(module => module.toString().includes('"string"') && module.toString().includes("[native code]")),
+        Color: functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
+        Player: {
+            ...Spicetify.Player,
+            get origin() { return Spicetify.Platform?.PlayerAPI },
+        },
+        GraphQL: {
+            ...Spicetify.GraphQL,
+            get Request() {
+                return Spicetify.Platform?.GraphQLLoader || Spicetify.GraphQL.Handler?.(Spicetify.GraphQL.Context);
+            },
+            Context: functionModules.find(m => m.toString().includes("subscription") && m.toString().includes("mutation")),
+            get QueryDefinitions() {
+                return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.some(def => def.kind === "OperationDefinition" && def.operation === "query")));
+            },
+            get MutationDefinitions() {
+                return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.some(def => def.kind === "OperationDefinition" && def.operation === "mutation")));
+            },
+            get ResponseDefinitions() {
+                return Object.fromEntries(Object.entries(Spicetify.GraphQL.Definitions).filter(([, value]) => value.definitions.every(def => def.kind !== "OperationDefinition")));
+            },
+        },
+        ReactComponent: {
+            ...Spicetify.ReactComponent,
+            ConfirmDialog: functionModules.find(m => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc")),
+            Menu: functionModules.find(m => m.toString().includes("getInitialFocusElement")),
+            MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
+            Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
+            RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
+            RightClickMenu: functionModules.find(m => m.toString().includes('action:"open",trigger:"right-click"')),
+            ...Object.fromEntries(menus),
+        },
+        ReactHook: {
+            DragHandler: functionModules.find(m => m.toString().includes("data-dragging-uri")),
+            usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
+            useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))),
+        },
+        // React Query v3
+        // https://github.com/TanStack/query/tree/v3
+        ReactQuery: cache.find(module => module.useQuery),
+    };
 
     const playlistMenuChunk = Object.entries(require.m).find(([, value]) => value.toString().includes('value:"playlist"'));
     if (playlistMenuChunk) Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function");
@@ -346,10 +377,10 @@ const Spicetify = {
 
         // Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features
         if (!imageAnalysis) {
-            let chunk = Object.entries(require.m).find(([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/[\w$]+\.extractColor/g));
+            let chunk = Object.entries(require.m).find(([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/.extractColor/g));
             if (!chunk) {
                 await new Promise(resolve => setTimeout(resolve, 100));
-                chunk = Object.entries(require.m).find(([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/[\w$]+\.extractColor/g));
+                chunk = Object.entries(require.m).find(([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/.extractColor/g));
             }
             imageAnalysis = Object.values(require(chunk[0])).find(m => typeof m === "function");
         }
@@ -362,6 +393,7 @@ const Spicetify = {
 
             return analysis;
         }
+        console.log(Spicetify);
     })();
 
     function wrapProvider(component) {
@@ -2064,6 +2096,3 @@ Spicetify.Playbar = (function() {
         console.error(err);
     }
 })();
-
-// Put `Spicetify` object to `window` object so apps iframe could access to it via `window.top.Spicetify`
-window.Spicetify = Spicetify;
