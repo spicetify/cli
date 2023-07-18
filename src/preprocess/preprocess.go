@@ -342,24 +342,6 @@ Spicetify.React.useEffect(() => {
 		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),(?:[\w(){},\.]+,[\w{}]+,)?\{[.,\w+]*action:"open",trigger:"right-click"\}\)\)?)(?:\}(\}))?`,
 		`=Spicetify.ReactComponent.RightClickMenu=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
 
-	// React Component: Album Context Menu items
-	utils.Replace(
-		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!?=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"album")`,
-		`${1}=Spicetify.ReactComponent.AlbumMenu${2}`)
-
-	// React Component: Show Context Menu items
-	utils.Replace(
-		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!?=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"show")`,
-		`${1}=Spicetify.ReactComponent.PodcastShowMenu${2}`)
-
-	// React Component: Artist Context Menu items
-	utils.Replace(
-		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!?=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"artist")`,
-		`${1}=Spicetify.ReactComponent.ArtistMenu${2}`)
-
 	// React Component: Playlist Context Menu items
 	utils.Replace(
 		&input,

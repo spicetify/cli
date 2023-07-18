@@ -184,7 +184,9 @@ const Spicetify = {
             "ConfirmDialog",
             "PanelContent",
             "PanelSkeleton",
-            "PanelHeader"
+            "PanelHeader",
+            "Slider",
+            "RemoteConfigProvider",
         ]
 
         const REACT_HOOK = [
@@ -302,6 +304,20 @@ const Spicetify = {
         useExtractedColor: functionModules.find(m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))),
     };
 
+    const knownMenuTypes = ["album", "show", "artist"];
+    const menus = modules.map(m => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m?.type?.toString().match(/value:"[\w-]+"/g)]).filter(Boolean).filter(m => m[1] !== 'value:"row"').map(([module, type]) => {
+        type = type.match(/value:"([\w-]+)"/)[1];
+
+        if (!knownMenuTypes.includes(type)) return;
+        else if (type === "show") type = "podcast-show";
+
+        type = type.split("-").map(str => str[0].toUpperCase() + str.slice(1)).join("") + "Menu"
+        return [type, module];
+    }).filter(Boolean);
+
+    const playlistMenuChunk = Object.entries(require.m).find(([, value]) => value.toString().includes('value:"playlist"'));
+    if (playlistMenuChunk) Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function");
+
     Spicetify.ReactComponent = {
         ...Spicetify.ReactComponent,
         ConfirmDialog: functionModules.find(m => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc")),
@@ -309,7 +325,8 @@ const Spicetify = {
         MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
         Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
         RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
-        RightClickMenu: functionModules.find(m => m.toString().includes('action:"open",trigger:"right-click"'))
+        RightClickMenu: functionModules.find(m => m.toString().includes('action:"open",trigger:"right-click"')),
+        ...Object.fromEntries(menus),
     };
 
     Spicetify.GraphQL.Context = functionModules.find(m => m.toString().includes("subscription") && m.toString().includes("mutation"));
