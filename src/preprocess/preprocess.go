@@ -314,12 +314,12 @@ Spicetify.React.useEffect(() => {
 	Spicetify.Menu._addItems(container);
 }, []);`)
 
-	// React Component: Context Menu and Right Click Menu
+	// React Component: Context Menu
 	// TODO: replace with webpack module
 	utils.Replace(
 		&input,
 		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),(?:[\w(){},\.]+,[\w{}]+,)?\{[.,\w+]*action:"open",trigger:"right-click"\}\)\)?)(?:\}(\}))?`,
-		`=Spicetify.ReactComponent.RightClickMenu=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
+		`=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
 
 	// React Component: Tooltip Wrapper
 	utils.ReplaceOnce(
