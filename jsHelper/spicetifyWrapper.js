@@ -389,12 +389,19 @@ window.Spicetify = {
 		},
 		ReactComponent: {
 			...Spicetify.ReactComponent,
+			TextComponent: modules.find(m => m?.h1 && m?.render),
 			ConfirmDialog: functionModules.find(m => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc")),
 			Menu: functionModules.find(m => m.toString().includes("getInitialFocusElement")),
 			MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
 			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
 			RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
 			RightClickMenu: functionModules.find(m => m.toString().includes('action:"open",trigger:"right-click"')),
+			TooltipWrapper: functionModules.find(m => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
+			PanelHeader: functionModules.find(m => m.toString().includes("panel") && m.toString().includes("actions")),
+			PanelContent:
+				modules.find(m => m?.render?.toString().includes("scrollBarContainer")) ||
+				functionModules.find(m => m.toString().includes("scrollBarContainer")),
+			PanelSkeleton: functionModules.find(m => m.toString().includes("itemUri") && m.toString().includes("label")),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -406,7 +413,13 @@ window.Spicetify = {
 		},
 		// React Query v3
 		// https://github.com/TanStack/query/tree/v3
-		ReactQuery: cache.find(module => module.useQuery)
+		ReactQuery: cache.find(module => module.useQuery),
+		ReactFlipToolkit: {
+			...Spicetify.ReactFlipToolkit,
+			Flipper: functionModules.find(m => m?.prototype?.getSnapshotBeforeUpdate),
+			Flipped: functionModules.find(m => m.displayName === "Flipped")
+		},
+		_reservedPanelIds: modules.find(m => m?.BuddyFeed)
 	});
 
 	Object.defineProperty(Spicetify, "Queue", {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -315,12 +315,6 @@ Spicetify.React.useEffect(() => {
 		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),(?:[\w(){},\.]+,[\w{}]+,)?\{[.,\w+]*action:"open",trigger:"right-click"\}\)\)?)(?:\}(\}))?`,
 		`=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
 
-	// React Component: Tooltip Wrapper
-	utils.ReplaceOnce(
-		&input,
-		`(\w+)(=(?:function\([\{\w\}:,]+\)|\()\{(?:[\w. =]*(?:label|children|renderInline|showDelay)[\w:]*,?){4})`,
-		`${1}=Spicetify.ReactComponent.TooltipWrapper${2}`)
-
 	// Locale
 	utils.Replace(
 		&input,
@@ -350,30 +344,6 @@ Spicetify.React.useEffect(() => {
 		&input,
 		`case [\w$.]+BuddyFeed:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?;(?:break;)?(?:case [\w$.]+:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:break;)?)*default:(?:return ?|[\w$]+=)`,
 		`${0} Spicetify.Panel?.render()??`)
-
-	// Reserved panels
-	utils.Replace(
-		&input,
-		`,([\w$]+)\[[\w$]+\.BuddyFeed`,
-		`,Spicetify._reservedPanelIds=${1}${0}`)
-
-	// React Component: Panel Skeleton
-	utils.Replace(
-		&input,
-		`([\w$]+)=((\(|function\([\w$,]+\))\{[\w$., ]*(?:[\w$.=]*(?:label|itemUri|className|style|children)(:\w)?,?){4,})`,
-		`${1}=Spicetify.ReactComponent.PanelSkeleton=${2}`)
-
-	// React Component: Panel Content
-	utils.Replace(
-		&input,
-		`([\w$]+)=((?:[\w$]+\.forwardRef|function|\()[\w$(){}=>.,:; ]+scrollBarContainer)`,
-		`${1}=Spicetify.ReactComponent.PanelContent=${2}`)
-
-	// React Component: Panel Header
-	utils.Replace(
-		&input,
-		`([\w$]+)=((?:\(|function\([\w$,]+\))\{[\w$., ]*(?:[\w$.=]*(?:link|title|panel|isAdvert|actions|onClose|className)[\w:$=!]*,?){3,})`,
-		`${1}=Spicetify.ReactComponent.PanelHeader=${2}`)
 
 	return input
 }
@@ -442,11 +412,6 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 
 	utils.ReplaceOnce(
 		&input,
-		`=[\w$\.,]+\.forwardRef\(\((?:\([\w,]+\)=>|function\([\w,]+\)\{)\w\.color`,
-		`=Spicetify.ReactComponent.TextComponent${0}`)
-
-	utils.ReplaceOnce(
-		&input,
 		`=(?:\(\w\)=>|function\(\w\)\{)\w+ ?\w=\w\.iconSize`,
 		`=Spicetify.ReactComponent.IconComponent${0}`)
 
@@ -463,16 +428,6 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		`Spicetify.Tippy=${1};${0}`)
 
 	// Flipper components
-	utils.Replace(
-		&input,
-		`(\w+ [\w$]+)=([\w$=(){}[\].,;!" ]+"Each Flipped component must wrap a single child")`,
-		`${1}=Spicetify.ReactFlipToolkit.Flipped=${2}`)
-
-	utils.Replace(
-		&input,
-		`([\w$]+=([\w$]+)\.prototype;)(return ?[\w$]+\.getSnapshotBeforeUpdate)`,
-		`${1}Spicetify.ReactFlipToolkit.Flipper=${2};${3}`)
-
 	utils.Replace(
 		&input,
 		`([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})`,
@@ -498,8 +453,8 @@ func fakeZLink(dest string) {
   "BundleType": "Application"
 }
 `
-	ioutil.WriteFile(entryFile, []byte(html), 0700)
-	ioutil.WriteFile(manifestFile, []byte(manifest), 0700)
+	os.WriteFile(entryFile, []byte(html), 0700)
+	os.WriteFile(manifestFile, []byte(manifest), 0700)
 }
 
 func disableUpgradeCheck(input, appName string) string {
@@ -530,7 +485,7 @@ func readSourceMapAndGenerateCSSMap(appPath string) {
 				fileName = strings.Replace(fileName, "xpui-desktop-routes-", "desktop", 1)
 			}
 
-			raw, err := ioutil.ReadFile(path)
+			raw, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
@@ -627,7 +582,7 @@ func FetchLatestTagMatchingVersion(version string) (string, error) {
 		return "", err
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}
