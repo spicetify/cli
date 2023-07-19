@@ -314,7 +314,9 @@ window.Spicetify = {
 	const functionModules = modules.filter(module => typeof module === "function");
 
 	const PlatformWorker = functionModules.find(m => m.toString().includes("getPlaybackAPI"));
-	const Platform = await PlatformWorker("Desktop");
+	const Platform = PlatformWorker
+		? await PlatformWorker("Desktop")
+		: await Object.values(await require(Object.entries(require.m).find(m => m.toString().includes("getPlaybackAPI"))[0]))[0]("Desktop");
 
 	for (const key of Object.keys(Platform)) {
 		if (key.startsWith("get") && typeof Platform[key] === "function") {
