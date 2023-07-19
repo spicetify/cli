@@ -162,7 +162,8 @@ window.Spicetify = {
 			"classnames",
 			"ReactQuery",
 			"Color",
-			"extractColorPreset"
+			"extractColorPreset",
+			"ReactDOMServer"
 		];
 
 		const PLAYER_METHOD = [
@@ -344,6 +345,9 @@ window.Spicetify = {
 
 	Object.assign(Spicetify, {
 		Platform,
+		React: cache.find(m => m?.useMemo),
+		ReactDOM: cache.find(m => m?.createPortal),
+		ReactDOMServer: cache.find(m => m?.renderToString),
 		// classnames
 		// https://github.com/JedWatson/classnames/
 		classnames: cache

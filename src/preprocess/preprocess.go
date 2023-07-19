@@ -288,12 +288,6 @@ func exposeAPIs_main(input string) string {
 		`\w+\(\)\.createElement\(\w+,\{onChange:this\.handleSaberStateChange\}\),`,
 		"")
 
-	// React Hook
-	utils.ReplaceOnce(
-		&input,
-		`(\w+=\(\w+,(\w+)\.lazy\)\(?\((?:\(\)=>|function\(\)\{return )\w+\.\w+\((?:\d+)?\)\.then\(\w+\.bind\(\w+,\w+\)\)\}?\)\)?),`,
-		`${1};Spicetify.React=${2};var `)
-
 	utils.Replace(
 		&input,
 		`"data-testid":`,
@@ -440,20 +434,6 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		Spicetify.ContextMenu._addItems(${1}.popper);
 	}
 };0`)
-
-	// ReactDOM fallback if string doesn't match
-	match, _ := regexp.MatchString(`((\w+)\.createPortal=\w+,)`, input)
-	if match {
-		utils.ReplaceOnce(
-			&input,
-			`((\w+)\.createPortal=\w+,)`,
-			`${1}Spicetify.ReactDOM=${2},`)
-	} else {
-		utils.ReplaceOnce(
-			&input,
-			`(\w+)=(\{createPortal)`,
-			`${1}=Spicetify.ReactDOM=${2}`)
-	}
 
 	utils.ReplaceOnce(
 		&input,
