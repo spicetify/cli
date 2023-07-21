@@ -293,6 +293,21 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
+	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$_\.&!=]+[\w$_\.()=!]+.)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
+	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
+	for _, found := range allAPIPromises {
+		splitted := strings.Split(found[1], ",")
+		if len(splitted) > 6 {
+			matchMap := regexp.MustCompile(`get(\w+):(?:\(\)=>|function\(\)\{return ?)([\w$]+|\(?\{\}\)?)\}?,?`)
+			code := "Spicetify.Platform={};"
+			for _, apiFunc := range splitted {
+				matches := matchMap.FindStringSubmatch(apiFunc)
+				code += "Spicetify.Platform[\"" + fmt.Sprint(matches[1]) + "\"]=" + fmt.Sprint(matches[2]) + ";"
+			}
+			input = strings.Replace(input, found[0], code+found[0], 1)
+		}
+	}
+
 	// Profile Menu hook v1.1.56
 	utils.Replace(
 		&input,
@@ -314,12 +329,6 @@ Spicetify.React.useEffect(() => {
 		&input,
 		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),(?:[\w(){},\.]+,[\w{}]+,)?\{[.,\w+]*action:"open",trigger:"right-click"\}\)\)?)(?:\}(\}))?`,
 		`=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
-
-	// Locale
-	utils.Replace(
-		&input,
-		`this\._dictionary=\{\},`,
-		`${0}Spicetify.Locale=this,`)
 
 	// Prevent breaking popupLyrics
 	utils.Replace(
@@ -378,12 +387,6 @@ func exposeAPIs_vendor(input string) string {
 				1)
 		}
 	}
-
-	// Mousetrap
-	utils.Replace(
-		&input,
-		`,(\w+\.Mousetrap=(\w+))`,
-		`;Spicetify.Mousetrap=${2};${1}`)
 
 	// Context Menu hook
 	utils.Replace(

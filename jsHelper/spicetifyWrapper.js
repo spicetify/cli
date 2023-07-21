@@ -313,18 +313,6 @@ window.Spicetify = {
 		.flat();
 	const functionModules = modules.filter(module => typeof module === "function");
 
-	const PlatformWorker = functionModules.find(m => m.toString().includes("getPlaybackAPI"));
-	const Platform = PlatformWorker
-		? await PlatformWorker("Desktop")
-		: await Object.values(require(Object.entries(require.m).find(m => m.toString().includes("getPlaybackAPI"))[0]))[0]("Desktop");
-
-	for (const key of Object.keys(Platform)) {
-		if (key.startsWith("get") && typeof Platform[key] === "function") {
-			Platform[key.slice(3)] = Platform[key]();
-			delete Platform[key];
-		}
-	}
-
 	const knownMenuTypes = ["album", "show", "artist", "track"];
 	const menus = modules
 		.map(m => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m?.type?.toString().match(/value:"[\w-]+"/g)])
@@ -346,7 +334,6 @@ window.Spicetify = {
 		.filter(Boolean);
 
 	Object.assign(Spicetify, {
-		Platform,
 		React: cache.find(m => m?.useMemo),
 		ReactDOM: cache.find(m => m?.createPortal),
 		ReactDOMServer: cache.find(m => m?.renderToString),
@@ -421,7 +408,9 @@ window.Spicetify = {
 			Flipper: functionModules.find(m => m?.prototype?.getSnapshotBeforeUpdate),
 			Flipped: functionModules.find(m => m.displayName === "Flipped")
 		},
-		_reservedPanelIds: modules.find(m => m?.BuddyFeed)
+		_reservedPanelIds: modules.find(m => m?.BuddyFeed),
+		Mousetrap: cache.find(m => m?.addKeycodes),
+		Locale: modules.find(m => m?._dictionary)
 	});
 
 	Object.defineProperty(Spicetify, "Queue", {
