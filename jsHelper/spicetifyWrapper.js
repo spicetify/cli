@@ -384,7 +384,7 @@ window.Spicetify = {
 			MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
 			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
 			RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
-			RightClickMenu: functionModules.find(m => m.toString().includes('action:"open",trigger:"right-click"')),
+			RightClickMenu: functionModules.find(m => m.toString().includes("action") && m.toString().includes("open") && m.toString().includes("trigger") && m.toString().includes("right-click")),
 			TooltipWrapper: functionModules.find(m => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
 			PanelHeader: functionModules.find(m => m.toString().includes("panel") && m.toString().includes("actions")),
 			PanelContent:
