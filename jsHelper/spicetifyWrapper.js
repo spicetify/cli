@@ -384,7 +384,10 @@ window.Spicetify = {
 			MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
 			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
 			RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
-			RightClickMenu: functionModules.find(m => m.toString().includes("action") && m.toString().includes("open") && m.toString().includes("trigger") && m.toString().includes("right-click")),
+			RightClickMenu: functionModules.find(
+				m =>
+					m.toString().includes("action") && m.toString().includes("open") && m.toString().includes("trigger") && m.toString().includes("right-click")
+			),
 			TooltipWrapper: functionModules.find(m => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
 			PanelHeader: functionModules.find(m => m.toString().includes("panel") && m.toString().includes("actions")),
 			PanelContent:
@@ -2133,11 +2136,14 @@ Spicetify.Playbar = (function () {
 			return;
 		}
 
-        const cachedPanelState = await Spicetify.Platform.PanelAPI.prefs.get({ key: "ui.right_panel_content" });
-        const cachedPanelId = parseInt(cachedPanelState.entries["ui.right_panel_content"].number);
-        if (!Spicetify.Panel.reservedPanelIds[cachedPanelId] && (currentPanel !== cachedPanelId || !document.querySelector(".Root__right-sidebar")?.children.length)) {
-            currentPanelId = 0;
-            await Spicetify.Panel.setPanel(0);
+		const cachedPanelState = await Spicetify.Platform.PanelAPI.prefs.get({ key: "ui.right_panel_content" });
+		const cachedPanelId = parseInt(cachedPanelState.entries["ui.right_panel_content"].number);
+		if (
+			!Spicetify.Panel.reservedPanelIds[cachedPanelId] &&
+			(currentPanel !== cachedPanelId || !document.querySelector(".Root__right-sidebar")?.children.length)
+		) {
+			currentPanelId = 0;
+			await Spicetify.Panel.setPanel(0);
 
 			currentPanelId = cachedPanelId;
 			Spicetify.Panel.setPanel(cachedPanelId);
