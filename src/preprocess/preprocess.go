@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -288,12 +288,6 @@ func exposeAPIs_main(input string) string {
 		`\w+\(\)\.createElement\(\w+,\{onChange:this\.handleSaberStateChange\}\),`,
 		"")
 
-	// React Hook
-	utils.ReplaceOnce(
-		&input,
-		`(\w+=\(\w+,(\w+)\.lazy\)\(?\((?:\(\)=>|function\(\)\{return )\w+\.\w+\((?:\d+)?\)\.then\(\w+\.bind\(\w+,\w+\)\)\}?\)\)?),`,
-		`${1};Spicetify.React=${2};var `)
-
 	utils.Replace(
 		&input,
 		`"data-testid":`,
@@ -314,12 +308,6 @@ func exposeAPIs_main(input string) string {
 		}
 	}
 
-	// Player
-	utils.Replace(
-		&input,
-		`(Spicetify.Platform\["PlayerAPI"\]=)`,
-		`${1}Spicetify.Player.origin=`)
-
 	// Profile Menu hook v1.1.56
 	utils.Replace(
 		&input,
@@ -335,71 +323,18 @@ Spicetify.React.useEffect(() => {
 	Spicetify.Menu._addItems(container);
 }, []);`)
 
-	// React Component: Context Menu and Right Click Menu
+	// React Component: Context Menu
+	// TODO: replace with webpack module
 	utils.Replace(
 		&input,
 		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),(?:[\w(){},\.]+,[\w{}]+,)?\{[.,\w+]*action:"open",trigger:"right-click"\}\)\)?)(?:\}(\}))?`,
-		`=Spicetify.ReactComponent.RightClickMenu=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
-
-	// React Component: Context Menu - Menu
-	utils.Replace(
-		&input,
-		`=(?:function\(\w\)\{\w+ \w=\w.children,\w=\w.onClose,\w=\w.getInitialFocusElement|\(\{children:\w+,onClose:\w+,getInitialFocusElement:\w+)`,
-		`=Spicetify.ReactComponent.Menu${0}`)
-
-	// React Component: Context Menu - Menu Item
-	utils.Replace(
-		&input,
-		`=(?:function\(\w+\)|\(|[\w\=\>]*)?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:children|icon|divider|disabled)[:\w]*,){3,}`,
-		`=Spicetify.ReactComponent.MenuItem${0}`)
-
-	// React Component: Album Context Menu items
-	utils.Replace(
-		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!?=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"album")`,
-		`${1}=Spicetify.ReactComponent.AlbumMenu${2}`)
-
-	// React Component: Show Context Menu items
-	utils.Replace(
-		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!?=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"show")`,
-		`${1}=Spicetify.ReactComponent.PodcastShowMenu${2}`)
-
-	// React Component: Artist Context Menu items
-	utils.Replace(
-		&input,
-		`(\w+)(=\w+[()]*\.memo\(\((?:function\([{\w}=!:.,]+\)|\()?\{(?:\w+ ?[\w{}()=,:]*)?(?:[\w=.]*(?:uri|sharingInfo|onRemoveCallback)[:\w]*,?)*[\w:!?=&(){}., ]*;?(?:return ?|=>)[\w$.,()]+\([\w.]+,\{value:"artist")`,
-		`${1}=Spicetify.ReactComponent.ArtistMenu${2}`)
-
-	// React Component: Playlist Context Menu items
-	utils.Replace(
-		&input,
-		`(\w+)(=\w+[\(\)]*\.memo\(\((?:function[\{\w\}:,()]*|\()?\{(?:\w+ ?[\w\{\}\(\)=,:]*)?(?:[\w=\.]*(?:uri|isEnhanced|onRemoveCallback)[:\w]*,?){3,})`,
-		`${1}=Spicetify.ReactComponent.PlaylistMenu${2}`)
-
-	// React Component: Tooltip Wrapper
-	utils.ReplaceOnce(
-		&input,
-		`(\w+)(=(?:function\([\{\w\}:,]+\)|\()\{(?:[\w. =]*(?:label|children|renderInline|showDelay)[\w:]*,?){4})`,
-		`${1}=Spicetify.ReactComponent.TooltipWrapper${2}`)
-
-	// Locale
-	utils.Replace(
-		&input,
-		`this\._dictionary=\{\},`,
-		`${0}Spicetify.Locale=this,`)
+		`=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
 
 	// Prevent breaking popupLyrics
 	utils.Replace(
 		&input,
 		`document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null`,
 		``)
-
-	// GraphQL handler
-	utils.Replace(
-		&input,
-		`(function ([\w$]+)\(([\w$])\)\{)(return [\w$&.,={}()[\]?!=>:; ]+"subscription")`,
-		`Spicetify.GraphQL.Handler=${2};${1}Spicetify.GraphQL.Context??=${3};${4}`)
 
 	// GraphQL definitions
 	utils.Replace(
@@ -418,30 +353,6 @@ Spicetify.React.useEffect(() => {
 		&input,
 		`case [\w$.]+BuddyFeed:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?;(?:break;)?(?:case [\w$.]+:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:break;)?)*default:(?:return ?|[\w$]+=)`,
 		`${0} Spicetify.Panel?.render()??`)
-
-	// Reserved panels
-	utils.Replace(
-		&input,
-		`,([\w$]+)\[[\w$]+\.BuddyFeed`,
-		`,Spicetify._reservedPanelIds=${1}${0}`)
-
-	// React Component: Panel Skeleton
-	utils.Replace(
-		&input,
-		`([\w$]+)=((\(|function\([\w$,]+\))\{[\w$., ]*(?:[\w$.=]*(?:label|itemUri|className|style|children)(:\w)?,?){4,})`,
-		`${1}=Spicetify.ReactComponent.PanelSkeleton=${2}`)
-
-	// React Component: Panel Content
-	utils.Replace(
-		&input,
-		`([\w$]+)=((?:[\w$]+\.forwardRef|function|\()[\w$(){}=>.,:; ]+scrollBarContainer)`,
-		`${1}=Spicetify.ReactComponent.PanelContent=${2}`)
-
-	// React Component: Panel Header
-	utils.Replace(
-		&input,
-		`([\w$]+)=((?:\(|function\([\w$,]+\))\{[\w$., ]*(?:[\w$.=]*(?:link|title|panel|isAdvert|actions|onClose|className)[\w:$=!]*,?){3,})`,
-		`${1}=Spicetify.ReactComponent.PanelHeader=${2}`)
 
 	return input
 }
@@ -477,12 +388,6 @@ func exposeAPIs_vendor(input string) string {
 		}
 	}
 
-	// Mousetrap
-	utils.Replace(
-		&input,
-		`,(\w+\.Mousetrap=(\w+))`,
-		`;Spicetify.Mousetrap=${2};${1}`)
-
 	// Context Menu hook
 	utils.Replace(
 		&input,
@@ -503,29 +408,10 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 	}
 };0`)
 
-	// ReactDOM fallback if string doesn't match
-	match, _ := regexp.MatchString(`((\w+)\.createPortal=\w+,)`, input)
-	if match {
-		utils.ReplaceOnce(
-			&input,
-			`((\w+)\.createPortal=\w+,)`,
-			`${1}Spicetify.ReactDOM=${2},`)
-	} else {
-		utils.ReplaceOnce(
-			&input,
-			`(\w+)=(\{createPortal)`,
-			`${1}=Spicetify.ReactDOM=${2}`)
-	}
-
 	utils.ReplaceOnce(
 		&input,
 		`\(function\(\w+\)\{return \w+\.variant\?function\(\w+\)\{`,
 		`Spicetify._fontStyle=${0}`)
-
-	utils.ReplaceOnce(
-		&input,
-		`=[\w$\.,]+\.forwardRef\(\((?:\([\w,]+\)=>|function\([\w,]+\)\{)\w\.color`,
-		`=Spicetify.ReactComponent.TextComponent${0}`)
 
 	utils.ReplaceOnce(
 		&input,
@@ -545,16 +431,6 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		`Spicetify.Tippy=${1};${0}`)
 
 	// Flipper components
-	utils.Replace(
-		&input,
-		`(\w+ [\w$]+)=([\w$=(){}[\].,;!" ]+"Each Flipped component must wrap a single child")`,
-		`${1}=Spicetify.ReactFlipToolkit.Flipped=${2}`)
-
-	utils.Replace(
-		&input,
-		`([\w$]+=([\w$]+)\.prototype;)(return ?[\w$]+\.getSnapshotBeforeUpdate)`,
-		`${1}Spicetify.ReactFlipToolkit.Flipper=${2};${3}`)
-
 	utils.Replace(
 		&input,
 		`([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})`,
@@ -580,8 +456,8 @@ func fakeZLink(dest string) {
   "BundleType": "Application"
 }
 `
-	ioutil.WriteFile(entryFile, []byte(html), 0700)
-	ioutil.WriteFile(manifestFile, []byte(manifest), 0700)
+	os.WriteFile(entryFile, []byte(html), 0700)
+	os.WriteFile(manifestFile, []byte(manifest), 0700)
 }
 
 func disableUpgradeCheck(input, appName string) string {
@@ -612,7 +488,7 @@ func readSourceMapAndGenerateCSSMap(appPath string) {
 				fileName = strings.Replace(fileName, "xpui-desktop-routes-", "desktop", 1)
 			}
 
-			raw, err := ioutil.ReadFile(path)
+			raw, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
@@ -709,7 +585,7 @@ func FetchLatestTagMatchingVersion(version string) (string, error) {
 		return "", err
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}

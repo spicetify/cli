@@ -963,6 +963,8 @@ declare namespace Spicetify {
     const React: any;
     /** React DOM instance to render and mount components */
     const ReactDOM: any;
+    /** React DOM Server instance to render components to string */
+    const ReactDOMServer: any;
 
     /** Stock React components exposed from Spotify library */
     namespace ReactComponent {
@@ -1393,6 +1395,7 @@ declare namespace Spicetify {
         const PodcastShowMenu: any;
         const ArtistMenu: any;
         const PlaylistMenu: any;
+        const TrackMenu: any;
         /**
          * Component to display tooltip when hovering over element
          * Useful for accessibility
