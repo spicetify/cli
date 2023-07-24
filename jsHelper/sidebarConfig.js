@@ -293,6 +293,15 @@ color: var(--spice-button-disabled);
 			storage = buttons.map(el => [el.dataset.id, STICKY]);
 		}
 
+		const observer = new MutationObserver(mutations => {
+			for (const mutation of mutations) {
+				if (mutation.type === "childList" && mutation.addedNodes.length) {
+					mutation.addedNodes[0].id = "spicetify-hidden-list";
+				}
+			}
+		});
+		observer.observe(playlistList.parentElement, { childList: true });
+
 		arrangeItems(storage);
 		appendItems();
 

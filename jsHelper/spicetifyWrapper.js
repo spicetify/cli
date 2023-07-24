@@ -2133,11 +2133,11 @@ Spicetify.Playbar = (function () {
 			return;
 		}
 
-		const cachedPanelState = await Spicetify.Platform.PanelAPI.prefs.get({ key: "ui.right_panel_content" });
-		const cachedPanelId = parseInt(cachedPanelState.entries["ui.right_panel_content"].number);
-		if (!Spicetify.Panel.reservedPanelIds[cachedPanelId] && currentPanel !== cachedPanelId) {
-			currentPanelId = 0;
-			await Spicetify.Panel.setPanel(0);
+        const cachedPanelState = await Spicetify.Platform.PanelAPI.prefs.get({ key: "ui.right_panel_content" });
+        const cachedPanelId = parseInt(cachedPanelState.entries["ui.right_panel_content"].number);
+        if (!Spicetify.Panel.reservedPanelIds[cachedPanelId] && (currentPanel !== cachedPanelId || !document.querySelector(".Root__right-sidebar")?.children.length)) {
+            currentPanelId = 0;
+            await Spicetify.Panel.setPanel(0);
 
 			currentPanelId = cachedPanelId;
 			Spicetify.Panel.setPanel(cachedPanelId);
