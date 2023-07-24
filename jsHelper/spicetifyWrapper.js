@@ -422,7 +422,9 @@ window.Spicetify = {
 		}
 	});
 
-	const playlistMenuChunk = Object.entries(require.m).find(([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("onRemoveCallback"))
+	const playlistMenuChunk = Object.entries(require.m).find(
+		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("onRemoveCallback")
+	);
 	if (playlistMenuChunk) Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function");
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
@@ -433,7 +435,7 @@ window.Spicetify = {
 			setTimeout(bindColorExtractor, 10);
 			return;
 		}
-		let imageAnalysis = functionModules.find(m => m.toString().match(/\![\w$]+\.isFallback|\{extractColor/g))
+		let imageAnalysis = functionModules.find(m => m.toString().match(/\![\w$]+\.isFallback|\{extractColor/g));
 		const fallbackPreset = modules.find(m => m?.colorDark);
 
 		// Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features
