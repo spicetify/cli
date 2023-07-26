@@ -296,7 +296,7 @@ color: var(--spice-button-disabled);
 		const observer = new MutationObserver(mutations => {
 			for (const mutation of mutations) {
 				if (mutation.type === "childList" && mutation.addedNodes.length) {
-					mutation.addedNodes[0].id = "spicetify-hidden-list";
+					mutation.addedNodes[0].id = "spicetify-playlist-list";
 				}
 			}
 		});
