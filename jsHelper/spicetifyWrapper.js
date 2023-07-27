@@ -1376,7 +1376,10 @@ Spicetify.ContextMenu = (function () {
 			});
 
 			for (const child of currentItem._items) {
-				if (!child.shouldAdd(uris, uids, contextUri)) {
+				try {
+					if (!child.shouldAdd(uris, uids, contextUri)) continue;
+				} catch (e) {
+					console.error(e);
 					continue;
 				}
 
@@ -1438,7 +1441,10 @@ Spicetify.ContextMenu = (function () {
 
 		const elemList = [];
 		for (const item of itemList) {
-			if (!item.shouldAdd(uris, uids, contextUri)) {
+			try {
+				if (!item.shouldAdd(uris, uids, contextUri)) continue;
+			} catch (e) {
+				console.error(e);
 				continue;
 			}
 
