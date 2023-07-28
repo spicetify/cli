@@ -1961,6 +1961,10 @@ declare namespace Spicetify {
         const _locale: string;
         const _urlLocale: string;
         /**
+         * Collection of supported locales
+         */
+        const _supportedLocales: Record<string, string>;
+        /**
          * Dictionary of localized strings
          */
         const _dictionary: Record<string, string | { one: string, other: string }>;
