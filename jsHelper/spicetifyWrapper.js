@@ -2053,7 +2053,7 @@ Spicetify.Playbar = (function () {
 				refreshTimeout = setTimeout(() => {
 					Spicetify.Panel.setPanel(id);
 					init = false;
-				}, 1000);
+				}, 100);
 			}
 			return contentMap.has(id);
 		},
