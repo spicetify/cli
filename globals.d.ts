@@ -2009,7 +2009,7 @@ declare namespace Spicetify {
          * @param children React children to pass the string into
          * @return Localized string or React Fragment of the children
          */
-        function getString(key: string, ...children: React.ReactNode[]): string | React.ReactNode;
+        function get(key: string, ...children: React.ReactNode[]): string | React.ReactNode;
         /**
          * Get date time format of the passed options.
          * 
