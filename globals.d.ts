@@ -1868,7 +1868,7 @@ declare namespace Spicetify {
      * Analyse and extract color presets from an image. Works for any valid image URL/URI.
      * @param image Spotify URI to an image, or an image URL.
      */
-    function extractColorPresets(image: string | string[]): Promise<{
+    function extractColorPreset(image: string | string[]): Promise<{
         colorRaw: Color;
         colorLight: Color;
         colorDark: Color;
