@@ -1216,11 +1216,14 @@ declare namespace Spicetify {
             label?: string;
             /**
              * Item URI of the panel. Used as reference for Spotify's internal Event Factory.
+             * 
+             * @deprecated Since Spotify `1.2.17`
              */
             itemUri?: string;
             /**
              * Additional class name to apply to the panel.
-             * @deprecated Spotify `1.2.12`
+             * 
+             * @deprecated Since Spotify `1.2.12`
              */
             className?: string;
             /**
