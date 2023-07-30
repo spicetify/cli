@@ -393,8 +393,7 @@ window.Spicetify = {
 			PanelContent:
 				modules.find(m => m?.render?.toString().includes("scrollBarContainer")) ||
 				functionModules.find(m => m.toString().includes("scrollBarContainer")),
-			// As of Spotify v1.2.17, the panel skeleton is managed by the panel component itself, thus it is no longer needed to be hooked
-			PanelSkeleton: functionModules.find(m => m.toString().includes("label") && m.toString().includes("aside")) || (({ children }) => children),
+			PanelSkeleton: functionModules.find(m => m.toString().includes("label") && m.toString().includes("aside")) || modules.find(m => m?.render?.toString().includes('"section"')),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
