@@ -1751,6 +1751,9 @@ declare namespace Spicetify {
         const Components: {
             /**
              * React Component for the Panel's skeleton.
+             * 
+             * @deprecated As of Spotify v1.2.17, the panel skeleton is managed by the panel component itself, thus it is no longer needed to be hooked.
+             * It is still recommended to use this component if you intend to make your extension backwards compatible.
              *
              * Props:
              * @see Spicetify.ReactComponent.PanelSkeletonProps
