@@ -2018,7 +2018,11 @@ Spicetify.Playbar = (function () {
 		}
 
 		componentDidCatch(error, info) {
-			Spicetify.showNotification(`Something went wrong in panel ID "${this.props.id}", check Console for error log`, true);
+			const extension = Spicetify.Config.extensions.find(ext => error.stack.includes(ext));
+			Spicetify.showNotification(
+				`Something went wrong in panel ID "${this.props.id}" ${extension ? `of "${extension}"` : ""}, check Console for error log`,
+				true
+			);
 			console.error(error);
 			console.error(`Error stack in panel ID "${this.props.id}": ${info.componentStack}`);
 			Spicetify.Panel.setPanel(Spicetify.Panel.reservedPanelIds.Disabled);
