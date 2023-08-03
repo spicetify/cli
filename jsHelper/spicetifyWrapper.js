@@ -2012,13 +2012,16 @@ Spicetify.Playbar = (function () {
 			this.state = { hasError: false };
 		}
 
-		static getDerivedStateFromError(error) {
+		static getDerivedStateFromError() {
 			// Update state so the next render will show the fallback UI.
 			return { hasError: true };
 		}
 
 		componentDidCatch(error, info) {
-			const extension = Spicetify.Config.extensions.find(ext => error.stack.includes(ext));
+			const extension =
+				Spicetify.Config.extensions.find(ext => error.stack.includes(ext)) ||
+				Spicetify.Config.custom_apps.find(app => error.stack.includes(`spicetify-routes-${app}`));
+
 			Spicetify.showNotification(
 				`Something went wrong in panel ID "${this.props.id}" ${extension ? `of "${extension}"` : ""}, check Console for error log`,
 				true
