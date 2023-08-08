@@ -10,18 +10,34 @@
 		return;
 	}
 
-	// Default keybinds
+	// Variables / Conditions
 	const vim = new VimBind();
 	const SCROLL_STEP = 25;
+
+	/**
+	 * Binds a keyboard shortcut using Mousetrap.
+	 * @param {string} key - The Mousetrap keybind.
+	 * @param {boolean | undefined} staticCondition - A static condition.
+	 * @param {(event: KeyboardEvent) => void} callback - Callback function for the event.
+	 */
 	const binds = {
+		// Rotate through sidebar items using Ctrl+Tab and Ctrl+Shift+Tab
 		"ctrl+tab": { callback: rotateSidebar(1) },
 		"ctrl+shift+tab": { callback: rotateSidebar(-1) },
+
+		// Focus on the app content using Shift+PageUp and Shift+PageDown
 		"shift+pageup": { callback: focusOnApp },
 		"shift+pagedown": { callback: focusOnApp },
+
+		// Scroll actions using 'j' and 'k' keys
 		j: createScrollCallback(SCROLL_STEP),
 		k: createScrollCallback(-SCROLL_STEP),
+
+		// Scroll to the top ('g') or bottom ('Shift+g') of the page
 		g: scrollToPosition(0),
 		"shift+g": scrollToPosition(1),
+
+		// Activate Vim mode and set cancel key to 'ESCAPE'
 		f: {
 			callback: event => {
 				vim.activate(event);
