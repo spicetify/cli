@@ -12,7 +12,6 @@
 
 	// Default keybinds
 	const vim = new VimBind();
-	vim.setCancelKey("ESCAPE");
 	const SCROLL_STEP = 25;
 	const binds = {
 		// Ctrl + Tab and Ctrl + Shift + Tab to switch sidebar items
@@ -77,6 +76,7 @@
 		f: {
 			callback: event => {
 				vim.activate(event);
+				vim.setCancelKey("ESCAPE");
 			}
 		}
 	};
