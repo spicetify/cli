@@ -49,7 +49,6 @@
 		if (typeof staticCondition === "undefined" || staticCondition) {
 			Spicetify.Mousetrap.bind(key, event => {
 				if (!vim.isActive) {
-					console.log(callback)
 					callback(event);
 				}
 			});
