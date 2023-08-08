@@ -14,65 +14,14 @@
 	const vim = new VimBind();
 	const SCROLL_STEP = 25;
 	const binds = {
-		// Ctrl + Tab and Ctrl + Shift + Tab to switch sidebar items
-		"ctrl+tab": {
-			callback: () => {
-				rotateSidebar(1);
-			}
-		},
-		"ctrl+shift+tab": {
-			callback: () => {
-				rotateSidebar(-1);
-			}
-		},
-		// PageUp, PageDown to focus on iframe app before scrolling
-		"shift+pageup": {
-			callback: focusOnApp
-		},
-		"shift+pagedown": {
-			callback: focusOnApp
-		},
-		// J and K to vertically scroll app
-		j: {
-			callback: () => {
-				const app = focusOnApp();
-				if (app) {
-					const scrollInterval = setInterval(() => {
-						app.scrollTop += SCROLL_STEP;
-					}, 10);
-					document.addEventListener("keyup", () => {
-						clearInterval(scrollInterval);
-					});
-				}
-			}
-		},
-		k: {
-			callback: () => {
-				const app = focusOnApp();
-				if (app) {
-					const scrollInterval = setInterval(() => {
-						app.scrollTop -= SCROLL_STEP;
-					}, 10);
-					document.addEventListener("keyup", () => {
-						clearInterval(scrollInterval);
-					});
-				}
-			}
-		},
-		// G and Shift + G to scroll to top and to bottom
-		g: {
-			callback: () => {
-				const app = focusOnApp();
-				app.scroll(0, 0);
-			}
-		},
-		"shift+g": {
-			callback: () => {
-				const app = focusOnApp();
-				app.scroll(0, app.scrollHeight);
-			}
-		},
-		// F to activate Link Follow function
+		"ctrl+tab": { callback: rotateSidebar(1) },
+		"ctrl+shift+tab": { callback: rotateSidebar(-1) },
+		"shift+pageup": { callback: focusOnApp },
+		"shift+pagedown": { callback: focusOnApp },
+		j: createScrollCallback(SCROLL_STEP),
+		k: createScrollCallback(-SCROLL_STEP),
+		g: scrollToPosition(0),
+		"shift+g": scrollToPosition(1),
 		f: {
 			callback: event => {
 				vim.activate(event);
@@ -93,6 +42,27 @@
 	// Functions
 	function focusOnApp() {
 		return document.querySelector(".Root__main-view .os-viewport");
+	}
+
+	function createScrollCallback(step) {
+		return () => {
+			const app = focusOnApp();
+			if (app) {
+				const scrollInterval = setInterval(() => {
+					app.scrollTop += step;
+				}, 10);
+				document.addEventListener("keyup", () => {
+					clearInterval(scrollInterval);
+				});
+			}
+		};
+	}
+
+	function scrollToPosition(position) {
+		return () => {
+			const app = focusOnApp();
+			app.scroll(0, position === 0 ? 0 : app.scrollHeight);
+		};
 	}
 
 	/**
