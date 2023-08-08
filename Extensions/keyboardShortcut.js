@@ -22,20 +22,20 @@
 	 */
 	const binds = {
 		// Rotate through sidebar items using Ctrl+Tab and Ctrl+Shift+Tab
-		"ctrl+tab": { callback: rotateSidebar(1) },
-		"ctrl+shift+tab": { callback: rotateSidebar(-1) },
+		"ctrl+tab": { callback: () => rotateSidebar(1) },
+		"ctrl+shift+tab": { callback: () => rotateSidebar(-1) },
 
 		// Focus on the app content using Shift+PageUp and Shift+PageDown
 		"shift+pageup": { callback: focusOnApp },
 		"shift+pagedown": { callback: focusOnApp },
 
 		// Scroll actions using 'j' and 'k' keys
-		j: createScrollCallback(SCROLL_STEP),
-		k: createScrollCallback(-SCROLL_STEP),
+		j: { callback: createScrollCallback(SCROLL_STEP) },
+		k: { callback: createScrollCallback(-SCROLL_STEP) },
 
 		// Scroll to the top ('g') or bottom ('Shift+g') of the page
-		g: scrollToPosition(0),
-		"shift+g": scrollToPosition(1),
+		g: { callback: scrollToPosition(0) },
+		"shift+g": { callback: scrollToPosition(1) },
 
 		// Activate Vim mode and set cancel key to 'ESCAPE'
 		f: {
@@ -49,6 +49,7 @@
 		if (typeof staticCondition === "undefined" || staticCondition) {
 			Spicetify.Mousetrap.bind(key, event => {
 				if (!vim.isActive) {
+					console.log(callback)
 					callback(event);
 				}
 			});
