@@ -63,7 +63,6 @@
 		// G and Shift + G to scroll to top and to bottom
 		g: {
 			callback: () => {
-				console.log(vim.isActive);
 				const app = focusOnApp();
 				app.scroll(0, 0);
 			}
