@@ -1216,11 +1216,14 @@ declare namespace Spicetify {
             label?: string;
             /**
              * Item URI of the panel. Used as reference for Spotify's internal Event Factory.
+             * 
+             * @deprecated Since Spotify `1.2.17`
              */
             itemUri?: string;
             /**
              * Additional class name to apply to the panel.
-             * @deprecated Spotify `1.2.12`
+             * 
+             * @deprecated Since Spotify `1.2.12`
              */
             className?: string;
             /**
@@ -1868,7 +1871,7 @@ declare namespace Spicetify {
      * Analyse and extract color presets from an image. Works for any valid image URL/URI.
      * @param image Spotify URI to an image, or an image URL.
      */
-    function extractColorPresets(image: string | string[]): Promise<{
+    function extractColorPreset(image: string | string[]): Promise<{
         colorRaw: Color;
         colorLight: Color;
         colorDark: Color;

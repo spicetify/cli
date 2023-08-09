@@ -2503,5 +2503,14 @@
     "_yUo81yeoON6wNqCV_ud": "artist-artistOverview-artistSidesBlock",
     "N3mpQyWevHz7lrgLkOBM": "artist-artistAbout-artistSides",
     "TxASgfgEtA4JmUkhkNUN": "artist-artistAbout-artistSidesBlock",
-    "muTn937T_T9l0xqjlN8A": "main-nowPlayingView-artistBioTextContent"
+    "muTn937T_T9l0xqjlN8A": "main-nowPlayingView-artistBioTextContent",
+    "gWUxbU2cIHAajHxsVLMZ": "main-buddyFeed-section",
+    "WjW1oRtpaNrY37daDP6Y": "main-buddyFeed-sectionFadeEnter",
+    "T27BYdtZ9ugE_X_JpP1A": "main-buddyFeed-sectionFadeExit",
+    "C3bqciZSM7rPG_L3ohdC": "main-buddyFeed-sectionFadeEnterActive",
+    "RLdiPAZ3grZgi7lfHjXA": "main-buddyFeed-sectionFadeExitActive",
+    "lD5bMttyrRNzsKch6ysa": "main-entityHeader-newEntityHeaders",
+    "k9LEjzjnGgVaEm3BvhAb": "main-entityHeader-largeHeader",
+    "_osiFNXU9Cy1X0CYaU9Z": "main-entityHeader-imageContainerNew",
+    "zjsGbrMpvbdA1HJ4rpfi": "main-entityHeader-smallMadeForIcon"
 }

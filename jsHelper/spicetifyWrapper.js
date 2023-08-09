@@ -393,7 +393,7 @@ window.Spicetify = {
 			PanelContent:
 				modules.find(m => m?.render?.toString().includes("scrollBarContainer")) ||
 				functionModules.find(m => m.toString().includes("scrollBarContainer")),
-			PanelSkeleton: functionModules.find(m => m.toString().includes("label") && m.toString().includes("aside")),
+			PanelSkeleton: functionModules.find(m => m.toString().includes("label") && m.toString().includes("aside")) || modules.find(m => m?.render?.toString().includes('"section"')),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
