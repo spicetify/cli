@@ -1999,7 +1999,10 @@ Spicetify.Playbar = (function () {
 
 	// Workaround for older versions
 	let currentPanelId = 0,
-		fallback = false;
+		fallback = false,
+		refreshTimeout,
+		init = true;
+
 	if (!Spicetify.Platform.PanelAPI.getLastCachedPanelState) {
 		fallback = true;
 		Spicetify.Platform.PanelAPI.subscribeToPanelState(panelId => {
@@ -2050,7 +2053,18 @@ Spicetify.Playbar = (function () {
 			PanelContent: Spicetify.ReactComponent.PanelContent,
 			PanelHeader: Spicetify.ReactComponent.PanelHeader
 		},
-		hasPanel: id => contentMap.has(id),
+		hasPanel: (id, _internal) => {
+			// Render is sometimes ran before the wrapper is initialized, so we need to refresh it
+			// For some reason it doesn't trigger listeners
+			if (_internal && init) {
+				clearTimeout(refreshTimeout);
+				refreshTimeout = setTimeout(() => {
+					Spicetify.Panel.setPanel(id);
+					init = false;
+				}, 100);
+			}
+			return contentMap.has(id);
+		},
 		getPanel: id => contentMap.get(id),
 		render: () => {
 			const { currentPanel } = Spicetify.Panel;
@@ -2138,27 +2152,8 @@ Spicetify.Playbar = (function () {
 		}
 	};
 
-	// Render is sometimes ran before the wrapper is initialized, so we need to refresh it
-	(async function renderOnDemand() {
-		const { currentPanel } = Spicetify.Panel;
-		if (typeof currentPanel !== "number") {
-			setTimeout(renderOnDemand, 300);
-			return;
-		}
-
-		const cachedPanelState = await Spicetify.Platform.PanelAPI.prefs.get({ key: "ui.right_panel_content" });
-		const cachedPanelId = parseInt(cachedPanelState.entries["ui.right_panel_content"].number);
-		if (
-			!Spicetify.Panel.reservedPanelIds[cachedPanelId] &&
-			(currentPanel !== cachedPanelId || !document.querySelector(".Root__right-sidebar")?.children.length)
-		) {
-			currentPanelId = 0;
-			await Spicetify.Panel.setPanel(0);
-
-			currentPanelId = cachedPanelId;
-			Spicetify.Panel.setPanel(cachedPanelId);
-		}
-	})();
+	// Eliminate false positives
+	Spicetify.Panel.subPanelState(() => clearTimeout(refreshTimeout));
 })();
 
 (function waitForHistoryAPI() {

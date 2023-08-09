@@ -346,7 +346,7 @@ Spicetify.React.useEffect(() => {
 	utils.Replace(
 		&input,
 		`(switch\(([\w$])\)\{case [\w$.]+BuddyFeed:return [\w$.]+BuddyFeed;(?:case [\w$.]+:return [\w$.]+;)*)default:`,
-		`${1}default:return Spicetify.Panel?.hasPanel?.(${2})?${2}:0;`)
+		`${1}default:return Spicetify.Panel?.hasPanel?.(${2},true)?${2}:0;`)
 
 	// Panel component patch
 	utils.Replace(
