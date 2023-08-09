@@ -416,6 +416,8 @@ window.Spicetify = {
 		Locale: modules.find(m => m?._dictionary)
 	});
 
+	if (Spicetify.Locale) Spicetify.Locale._supportedLocales = cache.find(m => typeof m?.ja === "string");
+
 	Object.defineProperty(Spicetify, "Queue", {
 		get() {
 			return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue;
