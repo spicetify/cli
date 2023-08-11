@@ -42,8 +42,10 @@ const ProviderNetease = (function () {
 			const expectedDuration = info.duration;
 			const actualDuration = song.dt;
 
-			const expectedAlbumName = Utils.normalize(info.album);
-			const actualAlbumName = Utils.normalize(song.al.name);
+			// normalized expected album name
+			const neAlbumName = Utils.normalize(info.album);
+			const expectedAlbumName = Utils.containsHanCharacter(neAlbumName) ? await Utils.toSimplifiedChinese(neAlbumName) : neAlbumName;
+			const actualAlbumName = Utils.normalize(song.al.name); // usually in Simplified Chinese
 
 			if (actualAlbumName == expectedAlbumName || Math.abs(expectedDuration - actualDuration) < 1000) {
 				return song;
