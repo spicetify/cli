@@ -292,7 +292,8 @@ window.Spicetify = {
 	},
 	ReactComponent: {},
 	ReactHook: {},
-	ReactFlipToolkit: {}
+	ReactFlipToolkit: {},
+	Webpack: {}
 };
 
 (async function hotloadWebpackModules() {
@@ -334,6 +335,12 @@ window.Spicetify = {
 		.filter(Boolean);
 
 	Object.assign(Spicetify, {
+		Webpack: {
+			chunks: webpackChunkopen,
+			require,
+			modules,
+			functionModules
+		},
 		React: cache.find(m => m?.useMemo),
 		ReactDOM: cache.find(m => m?.createPortal),
 		ReactDOMServer: cache.find(m => m?.renderToString),
