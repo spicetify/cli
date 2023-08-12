@@ -43,6 +43,44 @@ class Utils {
 		return result.replace(/\s+/g, " ").trim();
 	}
 
+	/**
+	 * Check if the specified string contains Han character.
+	 *
+	 * @param {string} s
+	 * @returns {boolean}
+	 */
+	static containsHanCharacter(s) {
+		const hanRegex = /\p{Script=Han}/u;
+		return hanRegex.test(s);
+	}
+
+	/**
+	 * Singleton Translator instance for {@link toSimplifiedChinese}.
+	 *
+	 * @type {Translator | null}
+	 */
+	static #translator = null;
+
+	/**
+	 * Convert all Han characters to Simplified Chinese.
+	 *
+	 * Choosing Simplified Chinese makes the converted result more accurate,
+	 * as the conversion from SC to TC may have multiple possibilities,
+	 * while the conversion from TC to SC usually has only one possibility.
+	 *
+	 * @param {string} s
+	 * @returns {Promise<string>}
+	 */
+	static async toSimplifiedChinese(s) {
+		// create a singleton Translator instance
+		if (!Utils.#translator) {
+			Utils.#translator = new Translator("zh");
+		}
+
+		// translate it to Simplified Chinese
+		return Utils.#translator.convertChinese(s, "tw", "cn");
+	}
+
 	static removeSongFeat(s) {
 		return (
 			s
