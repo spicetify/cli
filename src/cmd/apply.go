@@ -90,7 +90,7 @@ func Apply(spicetifyVersion string) {
 		CurrentTheme:          settingSection.Key("current_theme").MustString(""),
 		ColorScheme:           settingSection.Key("color_scheme").MustString(""),
 		InjectThemeJS:         injectJS,
-		CheckSpicetifyUpgrade: featureSection.Key("check_spicetify_upgrade").MustBool(false),
+		CheckSpicetifyUpgrade: settingSection.Key("check_spicetify_upgrade").MustBool(false),
 		Extension:             extensionList,
 		CustomApp:             customAppsList,
 		SidebarConfig:         featureSection.Key("sidebar_config").MustBool(false),

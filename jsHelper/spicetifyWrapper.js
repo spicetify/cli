@@ -2202,7 +2202,6 @@ Spicetify.Playbar = (function () {
 	const { check_spicetify_upgrade, version } = Spicetify.Config;
 	// Skip checking if upgrade check is disabled, or version is Dev/version is not set
 	if (!check_spicetify_upgrade || !version || version === "Dev") {
-		console.log(check_spicetify_upgrade)
 		return;
 	}
 	// Fetch latest version from GitHub
