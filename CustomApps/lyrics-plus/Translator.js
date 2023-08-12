@@ -98,16 +98,6 @@ class Translator {
 		}
 	}
 
-	/**
-	 * Async wrapper of `setTimeout`.
-	 *
-	 * @param {number} ms
-	 * @returns {Promise<void>}
-	 */
-	static async #sleep(ms) {
-		return new Promise(resolve => setTimeout(resolve, ms));
-	}
-
 	async romajifyText(text, target = "romaji", mode = "spaced") {
 		if (!this.finished.ja) {
 			await Translator.#sleep(100);
@@ -142,5 +132,15 @@ class Translator {
 		});
 
 		return converter(text);
+	}
+
+	/**
+	 * Async wrapper of `setTimeout`.
+	 *
+	 * @param {number} ms
+	 * @returns {Promise<void>}
+	 */
+	static async #sleep(ms) {
+		return new Promise(resolve => setTimeout(resolve, ms));
 	}
 }
