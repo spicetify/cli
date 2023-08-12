@@ -25,17 +25,17 @@
 		"ctrl+tab": { callback: () => rotateSidebar(1) },
 		"ctrl+shift+tab": { callback: () => rotateSidebar(-1) },
 
-		// Focus on the app content using Shift+PageUp and Shift+PageDown
-		"shift+pageup": { callback: focusOnApp },
-		"shift+pagedown": { callback: focusOnApp },
+		// Focus on the app content before scrolling using Shift+PageUp and Shift+PageDown
+		"shift+pageup": { callback: () => focusOnApp() },
+		"shift+pagedown": { callback: () => focusOnApp() },
 
 		// Scroll actions using 'j' and 'k' keys
-		j: { callback: createScrollCallback(SCROLL_STEP) },
-		k: { callback: createScrollCallback(-SCROLL_STEP) },
+		j: { callback: () => createScrollCallback(SCROLL_STEP) },
+		k: { callback: () => createScrollCallback(-SCROLL_STEP) },
 
 		// Scroll to the top ('g') or bottom ('Shift+g') of the page
-		g: { callback: scrollToPosition(0) },
-		"shift+g": { callback: scrollToPosition(1) },
+		g: { callback: () => scrollToPosition(0) },
+		"shift+g": { callback: () => scrollToPosition(1) },
 
 		// Activate Vim mode and set cancel key to 'ESCAPE'
 		f: {
@@ -61,24 +61,20 @@
 	}
 
 	function createScrollCallback(step) {
-		return () => {
-			const app = focusOnApp();
-			if (app) {
-				const scrollInterval = setInterval(() => {
-					app.scrollTop += step;
-				}, 10);
-				document.addEventListener("keyup", () => {
-					clearInterval(scrollInterval);
-				});
-			}
-		};
+		const app = focusOnApp();
+		if (app) {
+			const scrollInterval = setInterval(() => {
+				app.scrollTop += step;
+			}, 10);
+			document.addEventListener("keyup", () => {
+				clearInterval(scrollInterval);
+			});
+		}
 	}
 
 	function scrollToPosition(position) {
-		return () => {
-			const app = focusOnApp();
-			app.scroll(0, position === 0 ? 0 : app.scrollHeight);
-		};
+		const app = focusOnApp();
+		app.scroll(0, position === 0 ? 0 : app.scrollHeight);
 	}
 
 	/**
