@@ -63,7 +63,7 @@ class Translator {
 			case "ja":
 				if (this.kuroshiro) return;
 				if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
-					await Translator.#wait(50);
+					await Translator.#sleep(50);
 					return this.createTranslator(lang);
 				}
 
@@ -78,7 +78,7 @@ class Translator {
 			case "ko":
 				if (this.Aromanize) return;
 				if (typeof Aromanize === "undefined") {
-					await Translator.#wait(50);
+					await Translator.#sleep(50);
 					return this.createTranslator(lang);
 				}
 
@@ -88,7 +88,7 @@ class Translator {
 			case "zh":
 				if (this.OpenCC) return;
 				if (typeof OpenCC === "undefined") {
-					await Translator.#wait(50);
+					await Translator.#sleep(50);
 					return this.createTranslator(lang);
 				}
 
@@ -104,13 +104,13 @@ class Translator {
 	 * @param {number} ms
 	 * @returns {Promise<void>}
 	 */
-	static async #wait(ms) {
+	static async #sleep(ms) {
 		return new Promise(resolve => setTimeout(resolve, ms));
 	}
 
 	async romajifyText(text, target = "romaji", mode = "spaced") {
 		if (!this.finished.ja) {
-			await Translator.#wait(100);
+			await Translator.#sleep(100);
 			return this.romajifyText(text, target, mode);
 		}
 
@@ -122,7 +122,7 @@ class Translator {
 
 	async convertToRomaja(text, target) {
 		if (!this.finished.ko) {
-			await Translator.#wait(100);
+			await Translator.#sleep(100);
 			return this.convertToRomaja(text, target);
 		}
 
@@ -132,7 +132,7 @@ class Translator {
 
 	async convertChinese(text, from, target) {
 		if (!this.finished.zh) {
-			await Translator.#wait(100);
+			await Translator.#sleep(100);
 			return this.convertChinese(text, from, target);
 		}
 
