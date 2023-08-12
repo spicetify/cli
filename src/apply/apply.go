@@ -12,16 +12,17 @@ import (
 
 // Flag enables/disables additional feature
 type Flag struct {
-	CurrentTheme  string
-	ColorScheme   string
-	InjectThemeJS bool
-	Extension     []string
-	CustomApp     []string
-	SidebarConfig bool
-	HomeConfig    bool
-	ExpFeatures   bool
-	SpicetifyVer  string
-	SpotifyVer    string
+	CurrentTheme          string
+	ColorScheme           string
+	InjectThemeJS         bool
+	CheckSpicetifyUpgrade bool
+	Extension             []string
+	CustomApp             []string
+	SidebarConfig         bool
+	HomeConfig            bool
+	ExpFeatures           bool
+	SpicetifyVer          string
+	SpotifyVer            string
 }
 
 // AdditionalOptions .
@@ -122,14 +123,16 @@ func htmlMod(htmlPath string, flags Flag) {
 			customAppList += `"` + app + `",`
 		}
 
-		helperHTML += `<script>
+		helperHTML += fmt.Sprintf(`<script>
 			Spicetify.Config={};
-			Spicetify.Config["version"]="` + flags.SpicetifyVer + `";
-			Spicetify.Config["current_theme"]="` + flags.CurrentTheme + `";
-			Spicetify.Config["color_scheme"]="` + flags.ColorScheme + `";
-			Spicetify.Config["extensions"] = [` + extList + `];
-			Spicetify.Config["custom_apps"] = [` + customAppList + `];
-			</script>` + "\n"
+			Spicetify.Config["version"]="%s";
+			Spicetify.Config["current_theme"]="%s";
+			Spicetify.Config["color_scheme"]="%s";
+			Spicetify.Config["extensions"] = [%s];
+			Spicetify.Config["custom_apps"] = [%s];
+			Spicetify.Config["check_spicetify_upgrade"]=%v;
+		</script>
+		`, flags.SpicetifyVer, flags.CurrentTheme, flags.ColorScheme, extList, customAppList, flags.CheckSpicetifyUpgrade)
 	}
 
 	for _, v := range flags.Extension {
