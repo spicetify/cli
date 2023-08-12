@@ -16,8 +16,13 @@ class Utils {
 		return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
 	}
 
+	/**
+	 * @param {string} s
+	 * @param {boolean} emptySymbol
+	 * @returns {string}
+	 */
 	static normalize(s, emptySymbol = true) {
-		const result = s
+		let result = s
 			.replace(/（/g, "(")
 			.replace(/）/g, ")")
 			.replace(/【/g, "[")
@@ -33,7 +38,7 @@ class Utils {
 			.replace(/〜/g, "~")
 			.replace(/·|・/g, "•");
 		if (emptySymbol) {
-			result.replace(/-/g, " ").replace(/\//g, " ");
+			result = result.replace(/-/g, " ").replace(/\//g, " ");
 		}
 		return result.replace(/\s+/g, " ").trim();
 	}
