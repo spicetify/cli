@@ -2199,9 +2199,9 @@ Spicetify.Playbar = (function () {
 		setTimeout(checkForUpdate, 300);
 		return;
 	}
-	const { version } = Spicetify.Config;
-	// Skip checking if version is Dev or version is not set
-	if (!version || version === "Dev") {
+	const { check_spicetify_upgrade, version } = Spicetify.Config;
+	// Skip checking if upgrade check is disabled, or version is Dev/version is not set
+	if (!check_spicetify_upgrade || !version || version === "Dev") {
 		return;
 	}
 	// Fetch latest version from GitHub
