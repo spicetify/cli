@@ -2,6 +2,34 @@ declare namespace Spicetify {
     type Icon = "album" | "artist" | "block" | "brightness" | "car" | "chart-down" | "chart-up" | "check" | "check-alt-fill" | "chevron-left" | "chevron-right" | "chromecast-disconnected" | "clock" | "collaborative" | "computer" | "copy" | "download" | "downloaded" | "edit" | "enhance" | "exclamation-circle" | "external-link" | "facebook" | "follow" | "fullscreen" | "gamepad" | "grid-view" | "heart" | "heart-active" | "instagram" | "laptop" | "library" | "list-view" | "location" | "locked" | "locked-active" | "lyrics" | "menu" | "minimize" | "minus" | "more" | "new-spotify-connect" | "offline" | "pause" | "phone" | "play" | "playlist" | "playlist-folder" | "plus-alt" | "plus2px" | "podcasts" | "projector" | "queue" | "repeat" | "repeat-once" | "search" | "search-active" | "shuffle" | "skip-back" | "skip-back15" | "skip-forward" | "skip-forward15" | "soundbetter" | "speaker" | "spotify" | "subtitles" | "tablet" | "ticket" | "twitter" | "visualizer" | "voice" | "volume" | "volume-off" | "volume-one-wave" | "volume-two-wave" | "watch" | "x";
     type Variant = "bass" | "forte" | "brio" | "altoBrio" | "alto" | "canon" | "celloCanon" | "cello" | "ballad" | "balladBold" | "viola" | "violaBold" | "mesto" | "mestoBold" | "metronome" | "finale" | "finaleBold" | "minuet" | "minuetBold";
     type SemanticColor = "textBase" | "textSubdued" | "textBrightAccent" | "textNegative" | "textWarning" | "textPositive" | "textAnnouncement" | "essentialBase" | "essentialSubdued" | "essentialBrightAccent" | "essentialNegative" | "essentialWarning" | "essentialPositive" | "essentialAnnouncement" | "decorativeBase" | "decorativeSubdued" | "backgroundBase" | "backgroundHighlight" | "backgroundPress" | "backgroundElevatedBase" | "backgroundElevatedHighlight" | "backgroundElevatedPress" | "backgroundTintedBase" | "backgroundTintedHighlight" | "backgroundTintedPress" | "backgroundUnsafeForSmallTextBase" | "backgroundUnsafeForSmallTextHighlight" | "backgroundUnsafeForSmallTextPress";
+    type ColorSet = "base" | "brightAccent" | "negative" | "warning" | "positive" | "announcement" | "invertedDark" | "invertedLight" | "mutedAccent" | "overMedia";
+    type ColorSetBackgroundColors = {
+        base: string;
+        highlight: string;
+        press: string;
+    };
+    type ColorSetNamespaceColors = {
+        announcement: string;
+        base: string;
+        brightAccent: string;
+        negative: string;
+        positive: string;
+        subdued: string;
+        warning: string;
+    };
+    type ColorSetBody = {
+        background: ColorSetBackgroundColors & {
+            elevated: ColorSetBackgroundColors;
+            tinted: ColorSetBackgroundColors;
+            unsafeForSmallText: ColorSetBackgroundColors;
+        };
+        decorative: {
+            base: string;
+            subdued: string;
+        };
+        essential: ColorSetNamespaceColors
+        text: ColorSetNamespaceColors
+    };
     type Metadata = Partial<Record<string, string>>;
     type ContextTrack = {
         uri: string;
@@ -1356,6 +1384,65 @@ declare namespace Spicetify {
              * @deprecated Use `onDrag` props instead.
              */
             onStepBackward?: () => void;
+        }
+        type ButtonProps = {
+            component: any;
+            /**
+             * Color set for the button.
+             * @default "brightAccent"
+             */
+            colorSet?: ColorSet;
+            /**
+             * Size for the button.
+             * @default "md"
+             */
+            buttonSize?: "sm" | "md" | "lg";
+            /**
+             * Size for the button.
+             * @deprecated Use `buttonSize` prop instead, as it will take precedence.
+             * @default "medium"
+             */
+            size?: "small" | "medium" | "large";
+            /**
+             * Unused by Spotify. Usage unknown.
+             */
+            fullWidth?: any;
+            /**
+             * React component to render for an icon placed before children. Component, not element!
+             */
+            iconLeading?: (props: any) => any | string;
+            /**
+             * React component to render for an icon placed after children. Component, not element!
+             */
+            iconTrailing?: (props: any) => any | string;
+            /**
+             * React component to render for an icon used as button body. Component, not element!
+             */
+            iconTrailing?: (props: any) => any | string;
+            /**
+             * Additional class name to apply to the button.
+             */
+            className?: string;
+            /**
+             * Label of the element for screen readers.
+             */
+            ["aria-label"]?: string;
+            /**
+             * ID of an element that describes the button for screen readers.
+             */
+            ["aria-labelledby"]?: string;
+            /**
+             * Unsafely set the color set for the button.
+             * Values from the colorSet will be pasted into the CSS.
+             */
+            UNSAFE_colorSet?: ColorSetBody
+            onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+            onMouseEnter?: (event: MouseEvent<HTMLButtonElement>) => void;
+            onMouseLeave?: (event: MouseEvent<HTMLButtonElement>) => void;
+            onMouseDown?: (event: MouseEvent<HTMLButtonElement>) => void;
+            onMouseUp?: (event: MouseEvent<HTMLButtonElement>) => void;
+            onFocus?: (event: FocusEvent<HTMLButtonElement>) => void;
+            onBlur?: (event: FocusEvent<HTMLButtonElement>) => void;
         }
         /**
          * Generic context menu provider

@@ -222,7 +222,10 @@ window.Spicetify = {
 			"PanelSkeleton",
 			"PanelHeader",
 			"Slider",
-			"RemoteConfigProvider"
+			"RemoteConfigProvider",
+			"ButtonPrimary",
+			"ButtonSecondary",
+			"ButtonTertiary",
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
@@ -394,6 +397,9 @@ window.Spicetify = {
 				modules.find(m => m?.render?.toString().includes("scrollBarContainer")) ||
 				functionModules.find(m => m.toString().includes("scrollBarContainer")),
 			PanelSkeleton: functionModules.find(m => m.toString().includes("label") && m.toString().includes("aside")) || modules.find(m => m?.render?.toString().includes('"section"')),
+			ButtonPrimary: modules.find(m => m?.render && m?.displayName === "ButtonPrimary"),
+			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
+			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
