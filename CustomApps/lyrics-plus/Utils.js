@@ -78,7 +78,9 @@ class Utils {
 		}
 
 		// translate it to Simplified Chinese
-		return Utils.#translator.convertChinese(s, "tw", "cn");
+
+		// As Traditional Chinese differs between HK and TW, forcing to use OpenCC standard
+		return Utils.#translator.convertChinese(s, "t", "cn");
 	}
 
 	static removeSongFeat(s) {
