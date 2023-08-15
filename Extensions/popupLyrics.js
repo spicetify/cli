@@ -103,7 +103,7 @@ function PopupLyrics() {
 		 * @typedef {{
 		 * 	lrc: {
 		 * 		lyric: string,
-		 *      klyric: undefined, // unimplemented
+		 * 		klyric: undefined, // unimplemented
 		 * 	},
 		 * }} neteaseLyric
 		 */
@@ -190,9 +190,16 @@ function PopupLyrics() {
 
 		/**
 		 * Search with PyNCM api.
-		 *
+		 * 
 		 * @param {Info} info
-		 * @throw "Cannot find track"
+		 * @returns {{
+		 * 	lyrics: [
+		 * 		{
+		 * 			startTime: Number,
+		 * 			text: string,
+		 * 		}
+		 * 	],
+		 * }}
 		 */
 		static async fetchNetease(info) {
 			const searchURL = `https://pyncmd.apis.imouto.in/api/pyncm?module=cloudsearch&method=GetSearchResult&keyword=`;
