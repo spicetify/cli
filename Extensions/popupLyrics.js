@@ -190,7 +190,7 @@ function PopupLyrics() {
 
 		/**
 		 * Search with PyNCM api.
-		 * 
+		 *
 		 * @param {Info} info
 		 * @returns {{
 		 * 	lyrics: [
