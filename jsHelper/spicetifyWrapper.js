@@ -389,7 +389,7 @@ window.Spicetify = {
 					m.toString().includes("action") && m.toString().includes("open") && m.toString().includes("trigger") && m.toString().includes("right-click")
 			),
 			TooltipWrapper: functionModules.find(m => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
-			PanelHeader: functionModules.find(m => m.toString().includes("panel") && m.toString().includes("actions")),
+			PanelHeader: functionModules.find(m => m.toString().includes("title") && m.toString().includes("actions")),
 			PanelContent:
 				modules.find(m => m?.render?.toString().includes("scrollBarContainer")) ||
 				functionModules.find(m => m.toString().includes("scrollBarContainer")),
@@ -398,7 +398,7 @@ window.Spicetify = {
 		},
 		ReactHook: {
 			DragHandler: functionModules.find(m => m.toString().includes("data-dragging-uri")),
-			usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
+			usePanelState: functionModules.find(m => m.toString().includes("panelSend")),
 			useExtractedColor: functionModules.find(
 				m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
 			)
@@ -1992,7 +1992,7 @@ Spicetify.Playbar = (function () {
 })();
 
 (function waitForPanelAPI() {
-	if (!Spicetify.Platform?.PanelAPI || !Spicetify.React || !Spicetify._reservedPanelIds) {
+	if (!Spicetify.React || !Spicetify._reservedPanelIds) {
 		setTimeout(waitForPanelAPI, 300);
 		return;
 	}
@@ -2002,13 +2002,6 @@ Spicetify.Playbar = (function () {
 		fallback = false,
 		refreshTimeout,
 		init = true;
-
-	if (!Spicetify.Platform.PanelAPI.getLastCachedPanelState) {
-		fallback = true;
-		Spicetify.Platform.PanelAPI.subscribeToPanelState(panelId => {
-			currentPanelId = panelId;
-		});
-	}
 
 	const contentMap = new Map(
 		Object.entries(Spicetify._reservedPanelIds)
@@ -2078,13 +2071,13 @@ Spicetify.Playbar = (function () {
 			return (!Spicetify.Panel.reservedPanelIds[currentPanel] && contentMap.get(Spicetify.Panel.currentPanel)) || null;
 		},
 		get currentPanel() {
-			return fallback ? currentPanelId : Spicetify.Platform.PanelAPI.getLastCachedPanelState();
+			return fallback ? currentPanelId : localStorage[Object.keys(localStorage).find(x => x.includes('ui.right_sidebar_content'))]
 		},
 		setPanel: async id => {
 			currentPanelId = id;
-			await Spicetify.Platform.PanelAPI.setPanelState(id);
+			console.log("await Spicetify.Platform.PanelAPI.setPanelState(id)");
 		},
-		subPanelState: callback => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
+		subPanelState: callback => console.log("Spicetify.Platform.PanelAPI.subscribeToPanelState(callback)"),
 		registerPanel: ({
 			label,
 			children,
@@ -2199,9 +2192,9 @@ Spicetify.Playbar = (function () {
 		setTimeout(checkForUpdate, 300);
 		return;
 	}
-	const { check_spicetify_upgrade, version } = Spicetify.Config;
-	// Skip checking if upgrade check is disabled, or version is Dev/version is not set
-	if (!check_spicetify_upgrade || !version || version === "Dev") {
+	const { version } = Spicetify.Config;
+	// Skip checking if version is Dev or version is not set
+	if (!version || version === "Dev") {
 		return;
 	}
 	// Fetch latest version from GitHub
