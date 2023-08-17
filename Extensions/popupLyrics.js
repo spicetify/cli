@@ -202,8 +202,8 @@ function PopupLyrics() {
 		 * }}
 		 */
 		static async fetchNetease(info) {
-			const searchURL = `https://pyncmd.apis.imouto.in/api/pyncm?module=cloudsearch&method=GetSearchResult&keyword=`;
-			const lyricURL = `https://pyncmd.apis.imouto.in/api/pyncm?module=track&method=GetTrackLyrics&song_id=`;
+			const searchURL = "https://pyncmd.apis.imouto.in/api/pyncm?module=cloudsearch&method=GetSearchResult&keyword=";
+			const lyricURL = "https://pyncmd.apis.imouto.in/api/pyncm?module=track&method=GetTrackLyrics&song_id=";
 
 			const cleanTitle = LyricUtils.removeExtraInfo(LyricUtils.normalize(info.title));
 			const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
