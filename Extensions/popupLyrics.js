@@ -105,7 +105,7 @@ function PopupLyrics() {
 		 * 		lyric: string,
 		 * 		klyric: undefined, // unimplemented
 		 * 	},
-		 * }} neteaseLyric
+		 * }} NeteaseLyric
 		 */
 
 		static async fetchSpotify(info) {
@@ -188,19 +188,6 @@ function PopupLyrics() {
 			}
 		}
 
-		/**
-		 * Search with PyNCM api.
-		 *
-		 * @param {Info} info
-		 * @returns {{
-		 * 	lyrics: [
-		 * 		{
-		 * 			startTime: Number,
-		 * 			text: string,
-		 * 		}
-		 * 	],
-		 * }}
-		 */
 		static async fetchNetease(info) {
 			const searchURL = "https://pyncmd.apis.imouto.in/api/pyncm?module=cloudsearch&method=GetSearchResult&keyword=";
 			const lyricURL = "https://pyncmd.apis.imouto.in/api/pyncm?module=track&method=GetTrackLyrics&song_id=";
@@ -221,7 +208,7 @@ function PopupLyrics() {
 			let itemId = items.findIndex(val => LyricUtils.capitalize(val.al.name) === album || Math.abs(info.duration - val.dt) < 1000);
 			if (itemId === -1) return { error: "Cannot find track" };
 
-			/** @type {neteaseLyric} */
+			/** @type {NeteaseLyric} */
 			const meta = await CosmosAsync.get(lyricURL + items[itemId].id);
 			let lyricStr = meta.lrc;
 
