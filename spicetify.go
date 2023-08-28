@@ -113,7 +113,7 @@ func init() {
 		case "--update":
 			switch flagOption {
 			case "check":
-				cmd.CheckUpgrade(version, "info")
+				cmd.CheckUpgrade(version)
 				os.Exit(0)
 			case "upgrade":
 				upgradeStatus := cmd.Upgrade(version)
@@ -269,7 +269,7 @@ func main() {
 	}
 
 	utils.PrintBold("spicetify v" + version)
-	cmd.CheckUpgrade(version, "warning")
+	cmd.CheckUpgrade(version)
 
 	// Chainable commands
 	for _, v := range commands {
