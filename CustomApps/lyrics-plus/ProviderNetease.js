@@ -249,4 +249,4 @@
 	 }
  
 	 return { findLyrics, getKaraoke, getSynced, getUnsynced, getTranslation };
- })(); 
+ })();
