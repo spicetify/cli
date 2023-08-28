@@ -62,6 +62,9 @@ func init() {
 		}
 	}
 
+	utils.MigrateConfigFolder()
+	cmd.InitConfig(quiet)
+
 	for _, v := range flags {
 		switch v {
 		case "-c", "--config":
@@ -129,9 +132,6 @@ func init() {
 		log.SetOutput(ioutil.Discard)
 		os.Stdout = nil
 	}
-
-	utils.MigrateConfigFolder()
-	cmd.InitConfig(quiet)
 
 	if len(commands) < 1 {
 		help()
