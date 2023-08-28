@@ -219,6 +219,10 @@ func main() {
 		cmd.Upgrade(version)
 		return
 
+	case "check-update":
+		cmd.CheckUpgrade(version)
+		return
+
 	case "watch":
 		var name []string
 		if len(commands) > 1 {
