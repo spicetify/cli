@@ -6,14 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
 
 	colorable "github.com/mattn/go-colorable"
 	"github.com/spicetify/spicetify-cli/src/cmd"
-	spotifystatus "github.com/spicetify/spicetify-cli/src/status/spotify"
 	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
@@ -110,28 +108,15 @@ func init() {
 			appFocus = true
 			styleFocus = true
 			liveUpdate = true
-		case "--check-update":
-			upgradeStatus := cmd.Upgrade(version)
-			if upgradeStatus {
-				ex, err := os.Executable()
-				if err != nil {
-					ex = "spicetify"
-				}
-
-				spotStat := spotifystatus.Get(utils.FindAppPath())
-				cmds := []string{"backup", "apply"}
-				if !spotStat.IsBackupable() {
-					cmds = append([]string{"restore"}, cmds...)
-				}
-
-				cmd := exec.Command(ex, cmds...)
-				utils.CmdScanner(cmd)
-
-				cmd = exec.Command(ex, strings.Join(commands[:], " "))
-				utils.CmdScanner(cmd)
-
-				os.Exit(0)
+		case "--update":
+			switch flagOption {
+			case "check":
+				cmd.CheckUpgrade(version, "info")
+			case "upgrade":
+				cmd.Upgrade(version)
 			}
+			os.Exit(0)
+			return
 		}
 	}
 
