@@ -263,7 +263,7 @@ func main() {
 	}
 
 	utils.PrintBold("spicetify v" + version)
-	cmd.CheckUpgrade(version)
+	cmd.CheckUpgrade(version, "warning")
 
 	// Chainable commands
 	for _, v := range commands {

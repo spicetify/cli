@@ -281,7 +281,7 @@ func ReadAnswer(info string, defaultAnswer bool, quietModeAnswer bool) bool {
 }
 
 // CheckUpgrade fetches latest package version from Github API and inform user if there is new release
-func CheckUpgrade(version string) {
+func CheckUpgrade(version string, printLevel string) {
 	if !settingSection.Key("check_spicetify_upgrade").MustBool() {
 		return
 	}
@@ -299,7 +299,15 @@ func CheckUpgrade(version string) {
 	if latestTag == version {
 		utils.PrintInfo("Spicetify up-to-date")
 	} else {
-		utils.PrintWarning("New version available!")
-		utils.PrintWarning(`Run "spicetify upgrade" or using package manager to upgrade spicetify`)
+		newVersionMsg := "New version available: v" + latestTag + " (current is: v" + version + ")"
+		howToUpgradeMsg := `Run "spicetify upgrade" or using package manager to upgrade spicetify`
+
+		if printLevel == "info" {
+			utils.PrintInfo(newVersionMsg)
+			utils.PrintInfo(howToUpgradeMsg)
+		} else if printLevel == "warning" {
+			utils.PrintWarning(newVersionMsg)
+			utils.PrintWarning(howToUpgradeMsg)
+		}
 	}
 }
