@@ -299,7 +299,7 @@ func CheckUpgrade(version string) {
 	if latestTag == version {
 		utils.PrintInfo("Spicetify up-to-date")
 	} else {
-		utils.PrintWarning("New version available!")
+		utils.PrintWarning("New version available! (v" + latestTag + ")")
 		utils.PrintWarning(`Run "spicetify upgrade" or using package manager to upgrade spicetify`)
 	}
 }
