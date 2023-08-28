@@ -16,8 +16,13 @@ class Utils {
 		return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
 	}
 
+	/**
+	 * @param {string} s
+	 * @param {boolean} emptySymbol
+	 * @returns {string}
+	 */
 	static normalize(s, emptySymbol = true) {
-		const result = s
+		let result = s
 			.replace(/（/g, "(")
 			.replace(/）/g, ")")
 			.replace(/【/g, "[")
@@ -33,9 +38,47 @@ class Utils {
 			.replace(/〜/g, "~")
 			.replace(/·|・/g, "•");
 		if (emptySymbol) {
-			result.replace(/-/g, " ").replace(/\//g, " ");
+			result = result.replace(/-/g, " ").replace(/\//g, " ");
 		}
 		return result.replace(/\s+/g, " ").trim();
+	}
+
+	/**
+	 * Check if the specified string contains Han character.
+	 *
+	 * @param {string} s
+	 * @returns {boolean}
+	 */
+	static containsHanCharacter(s) {
+		const hanRegex = /\p{Script=Han}/u;
+		return hanRegex.test(s);
+	}
+
+	/**
+	 * Singleton Translator instance for {@link toSimplifiedChinese}.
+	 *
+	 * @type {Translator | null}
+	 */
+	static #translator = null;
+
+	/**
+	 * Convert all Han characters to Simplified Chinese.
+	 *
+	 * Choosing Simplified Chinese makes the converted result more accurate,
+	 * as the conversion from SC to TC may have multiple possibilities,
+	 * while the conversion from TC to SC usually has only one possibility.
+	 *
+	 * @param {string} s
+	 * @returns {Promise<string>}
+	 */
+	static async toSimplifiedChinese(s) {
+		// create a singleton Translator instance
+		if (!Utils.#translator) {
+			Utils.#translator = new Translator("zh");
+		}
+
+		// translate it to Simplified Chinese
+		return Utils.#translator.convertChinese(s, "tw", "cn");
 	}
 
 	static removeSongFeat(s) {
