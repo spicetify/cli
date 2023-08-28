@@ -430,6 +430,9 @@ upgrade             Upgrade spicetify latest version
 
 -v, --version       Print version number and quit
 
+--update=check      Check for new version
+--update=upgrade    Upgrade to latest available version
+
 When using the "watch" command, any combination of the style (-s), extension (-e), and app (-a) flags can be used (ex. "watch -s -e" or "watch -e -a").
 For config information, run "spicetify -h config".
 For more information and bug report: https://github.com/spicetify/spicetify-cli/`)
