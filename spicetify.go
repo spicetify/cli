@@ -419,6 +419,8 @@ config-dir          Shows config directory in file viewer
 
 upgrade             Upgrade spicetify latest version
 
+check-update        Checks if spicetify is up to date
+
 ` + utils.Bold("FLAGS") + `
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations
                     like clear backup, restore will proceed without prompting
