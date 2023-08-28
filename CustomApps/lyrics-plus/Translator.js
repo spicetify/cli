@@ -7,15 +7,15 @@ const dictPath = "https:/cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict";
 
 class Translator {
 	constructor(lang) {
+		this.applyKuromojiFix();
+		this.injectExternals(lang);
+		this.createTranslator(lang);
+
 		this.finished = {
 			ja: false,
 			ko: false,
 			zh: false
 		};
-
-		this.applyKuromojiFix();
-		this.injectExternals(lang);
-		this.createTranslator(lang);
 	}
 
 	includeExternal(url) {
@@ -63,8 +63,8 @@ class Translator {
 			case "ja":
 				if (this.kuroshiro) return;
 				if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
-					await Translator.#sleep(50);
-					return this.createTranslator(lang);
+					setTimeout(this.createTranslator.bind(this), 50, lang);
+					return;
 				}
 
 				this.kuroshiro = new Kuroshiro.default();
@@ -78,8 +78,8 @@ class Translator {
 			case "ko":
 				if (this.Aromanize) return;
 				if (typeof Aromanize === "undefined") {
-					await Translator.#sleep(50);
-					return this.createTranslator(lang);
+					setTimeout(this.createTranslator.bind(this), 50, lang);
+					return;
 				}
 
 				this.Aromanize = Aromanize;
@@ -88,8 +88,8 @@ class Translator {
 			case "zh":
 				if (this.OpenCC) return;
 				if (typeof OpenCC === "undefined") {
-					await Translator.#sleep(50);
-					return this.createTranslator(lang);
+					setTimeout(this.createTranslator.bind(this), 50, lang);
+					return;
 				}
 
 				this.OpenCC = OpenCC;
@@ -100,8 +100,8 @@ class Translator {
 
 	async romajifyText(text, target = "romaji", mode = "spaced") {
 		if (!this.finished.ja) {
-			await Translator.#sleep(100);
-			return this.romajifyText(text, target, mode);
+			setTimeout(this.romajifyText.bind(this), 100, text, target, mode);
+			return;
 		}
 
 		return this.kuroshiro.convert(text, {
@@ -112,8 +112,8 @@ class Translator {
 
 	async convertToRomaja(text, target) {
 		if (!this.finished.ko) {
-			await Translator.#sleep(100);
-			return this.convertToRomaja(text, target);
+			setTimeout(this.convertToRomaja.bind(this), 100, text, target);
+			return;
 		}
 
 		if (target === "hangul") return text;
@@ -122,8 +122,8 @@ class Translator {
 
 	async convertChinese(text, from, target) {
 		if (!this.finished.zh) {
-			await Translator.#sleep(100);
-			return this.convertChinese(text, from, target);
+			setTimeout(this.convertChinese.bind(this), 100, text, target);
+			return;
 		}
 
 		const converter = this.OpenCC.Converter({
@@ -132,15 +132,5 @@ class Translator {
 		});
 
 		return converter(text);
-	}
-
-	/**
-	 * Async wrapper of `setTimeout`.
-	 *
-	 * @param {number} ms
-	 * @returns {Promise<void>}
-	 */
-	static async #sleep(ms) {
-		return new Promise(resolve => setTimeout(resolve, ms));
 	}
 }

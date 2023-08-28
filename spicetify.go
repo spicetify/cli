@@ -6,12 +6,14 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"runtime"
 	"strings"
 	"sync"
 
 	colorable "github.com/mattn/go-colorable"
 	"github.com/spicetify/spicetify-cli/src/cmd"
+	spotifystatus "github.com/spicetify/spicetify-cli/src/status/spotify"
 	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
@@ -112,11 +114,30 @@ func init() {
 			switch flagOption {
 			case "check":
 				cmd.CheckUpgrade(version, "info")
+				os.Exit(0)
 			case "upgrade":
-				cmd.Upgrade(version)
+				upgradeStatus := cmd.Upgrade(version)
+				if upgradeStatus {
+					ex, err := os.Executable()
+					if err != nil {
+						ex = "spicetify"
+					}
+
+					spotStat := spotifystatus.Get(utils.FindAppPath())
+					cmds := []string{"backup", "apply"}
+					if !spotStat.IsBackupable() {
+						cmds = append([]string{"restore"}, cmds...)
+					}
+
+					cmd := exec.Command(ex, cmds...)
+					utils.CmdScanner(cmd)
+
+					cmd = exec.Command(ex, strings.Join(commands[:], " "))
+					utils.CmdScanner(cmd)
+
+					os.Exit(0)
+				}
 			}
-			os.Exit(0)
-			return
 		}
 	}
 
@@ -430,8 +451,8 @@ upgrade             Upgrade spicetify latest version
 
 -v, --version       Print version number and quit
 
---update=check      Check for new version
---update=upgrade    Upgrade to latest available version
+--update=check      Check for new version and quit
+--update=upgrade    Upgrade to latest available version (can be used with other commands)
 
 When using the "watch" command, any combination of the style (-s), extension (-e), and app (-a) flags can be used (ex. "watch -s -e" or "watch -e -a").
 For config information, run "spicetify -h config".

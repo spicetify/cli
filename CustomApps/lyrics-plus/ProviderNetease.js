@@ -1,77 +1,26 @@
-/**
- * @typedef {{
- *   result: {
- *     songs: {
- *       name: string,
- *       id: number,
- *		 dt: number,  // duration in ms
- *       al: {        // album
- * 			name: string,
- *       },
- *     }[],
- *   },
- * }} SearchResponse
- *
- * @typedef {{
- * 	title: string,
- * 	artist: string,
- * 	album: string,
- * 	duration: number,
- * }} Info
- */
-
 const ProviderNetease = (function () {
-	/**
-	 * Search with PyNCM api.
-	 *
-	 * @param {Info} info
-	 * @throw "Cannot find track"
-	 */
-	async function search(info) {
-		const searchURL = `https://pyncmd.apis.imouto.in/api/pyncm?module=cloudsearch&method=GetSearchResult&keyword=`;
+	const requestHeader = {
+		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0"
+	};
+
+	async function findLyrics(info) {
+		const searchURL = `https://music.xianqiao.wang/neteaseapiv2/search?limit=10&type=1&keywords=`;
+		const lyricURL = `https://music.xianqiao.wang/neteaseapiv2/lyric?id=`;
 
 		const cleanTitle = Utils.removeExtraInfo(Utils.removeSongFeat(Utils.normalize(info.title)));
 		const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 
-		/** @type {SearchResponse} */
-		const searchResults = await Spicetify.CosmosAsync.get(finalURL);
+		const searchResults = await CosmosAsync.get(finalURL, null, requestHeader);
 		const items = searchResults.result.songs;
-
-		// Find the best match.
-		for (const song of items) {
-			const expectedDuration = info.duration;
-			const actualDuration = song.dt;
-
-			// normalized expected album name
-			const neAlbumName = Utils.normalize(info.album);
-			const expectedAlbumName = Utils.containsHanCharacter(neAlbumName) ? await Utils.toSimplifiedChinese(neAlbumName) : neAlbumName;
-			const actualAlbumName = Utils.normalize(song.al.name); // usually in Simplified Chinese
-
-			if (actualAlbumName == expectedAlbumName || Math.abs(expectedDuration - actualDuration) < 1000) {
-				return song;
-			}
+		if (!items?.length) {
+			throw "Cannot find track";
 		}
 
-		throw "Cannot find track";
-	}
+		const album = Utils.capitalize(info.album);
+		let itemId = items.findIndex(val => Utils.capitalize(val.album.name) === album || Math.abs(info.duration - val.duration) < 1000);
+		if (itemId === -1) throw "Cannot find track";
 
-	/**
-	 * @param {Info} info
-	 *
-	 * @returns {{
-	 * 	lrc: {
-	 * 		lyric: string,
-	 *      klyric: undefined, // unimplemented
-	 * 	},
-	 * }}
-	 */
-	async function findLyrics(info) {
-		const lyricURL = `https://pyncmd.apis.imouto.in/api/pyncm?module=track&method=GetTrackLyrics&song_id=`;
-
-		const searchResponse = await search(info);
-		const songID = searchResponse.id;
-
-		return CosmosAsync.get(lyricURL + songID);
+		return await CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
 	}
 
 	const creditInfo = [
