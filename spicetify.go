@@ -23,6 +23,7 @@ var (
 
 var (
 	flags          = []string{}
+	flagOption     = ""
 	commands       = []string{}
 	quiet          = false
 	extensionFocus = false
@@ -55,7 +56,13 @@ func init() {
 					flags = append(flags, "-"+string(char))
 				}
 			} else {
-				flags = append(flags, v)
+				if strings.Contains(v, "=") {
+					split := strings.Split(v, "=")
+					flagOption = split[1]
+					flags = append(flags, split[0])
+				} else {
+					flags = append(flags, v)
+				}
 			}
 		} else {
 			commands = append(commands, v)
