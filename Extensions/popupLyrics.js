@@ -78,6 +78,36 @@ function PopupLyrics() {
 	}
 
 	class LyricProviders {
+		/** Netease PyNCM API
+		 *
+		 * @typedef {{
+		 *   result: {
+		 *     songs: {
+		 *       name: string,
+		 *       id: number,
+		 *		 dt: number,  // duration in ms
+		 *       al: {        // album
+		 * 			name: string,
+		 *       },
+		 *     }[],
+		 *   },
+		 * }} SearchResponse
+		 *
+		 * @typedef {{
+		 * 	title: string,
+		 * 	artist: string,
+		 * 	album: string,
+		 * 	duration: number,
+		 * }} Info
+		 *
+		 * @typedef {{
+		 * 	lrc: {
+		 * 		lyric: string,
+		 * 		klyric: undefined, // unimplemented
+		 * 	},
+		 * }} NeteaseLyric
+		 */
+
 		static async fetchSpotify(info) {
 			const baseURL = "wg://lyrics/v1/track/";
 			const id = info.uri.split(":")[2];
@@ -159,26 +189,27 @@ function PopupLyrics() {
 		}
 
 		static async fetchNetease(info) {
-			const searchURL = `https://music.xianqiao.wang/neteaseapiv2/search?limit=10&type=1&keywords=`;
-			const lyricURL = `https://music.xianqiao.wang/neteaseapiv2/lyric?id=`;
-			const requestHeader = {
-				"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0"
-			};
+			const searchURL = "https://pyncmd.apis.imouto.in/api/pyncm?module=cloudsearch&method=GetSearchResult&keyword=";
+			const lyricURL = "https://pyncmd.apis.imouto.in/api/pyncm?module=track&method=GetTrackLyrics&song_id=";
 
 			const cleanTitle = LyricUtils.removeExtraInfo(LyricUtils.normalize(info.title));
 			const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 
-			const searchResults = await CosmosAsync.get(finalURL, null, requestHeader);
+			/** @type {SearchResponse} */
+			const searchResults = await CosmosAsync.get(finalURL);
 			const items = searchResults.result.songs;
-			if (!items || !items.length) {
+
+			if (!items) {
 				return { error: "Cannot find track" };
 			}
 
 			const album = LyricUtils.capitalize(info.album);
-			let itemId = items.findIndex(val => LyricUtils.capitalize(val.album.name) === album || Math.abs(info.duration - val.duration) < 1000);
+
+			let itemId = items.findIndex(val => LyricUtils.capitalize(val.al.name) === album || Math.abs(info.duration - val.dt) < 1000);
 			if (itemId === -1) return { error: "Cannot find track" };
 
-			const meta = await CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
+			/** @type {NeteaseLyric} */
+			const meta = await CosmosAsync.get(lyricURL + items[itemId].id);
 			let lyricStr = meta.lrc;
 
 			if (!lyricStr || !lyricStr.lyric) {
