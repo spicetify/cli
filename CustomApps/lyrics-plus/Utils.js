@@ -77,9 +77,8 @@ class Utils {
 			Utils.#translator = new Translator("zh");
 		}
 
-		// translate it to Simplified Chinese
-
-		// As Traditional Chinese differs between HK and TW, forcing to use OpenCC standard
+		// translate to Simplified Chinese
+		// as Traditional Chinese differs between HK and TW, forcing to use OpenCC standard
 		return Utils.#translator.convertChinese(s, "t", "cn");
 	}
 
