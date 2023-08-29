@@ -28,7 +28,7 @@ const ProviderNetease = (function () {
 	 * @throw "Cannot find track"
 	 */
 	async function search(info) {
-		const searchURL = `https://pyncmd.apis.imouto.in/api/pyncm?module=cloudsearch&method=GetSearchResult&keyword=`;
+		const searchURL = "https://pyncmd.apis.imouto.in/api/pyncm?module=cloudsearch&method=GetSearchResult&keyword=";
 
 		const cleanTitle = Utils.removeExtraInfo(Utils.removeSongFeat(Utils.normalize(info.title)));
 		const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
@@ -66,7 +66,7 @@ const ProviderNetease = (function () {
 	 * }}
 	 */
 	async function findLyrics(info) {
-		const lyricURL = `https://pyncmd.apis.imouto.in/api/pyncm?module=track&method=GetTrackLyrics&song_id=`;
+		const lyricURL = "https://pyncmd.apis.imouto.in/api/pyncm?module=track&method=GetTrackLyrics&song_id=";
 
 		const searchResponse = await search(info);
 		const songID = searchResponse.id;
