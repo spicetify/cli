@@ -111,12 +111,6 @@ jobs:
             chore: {{version}} release
         env:
           COMMITTER_TOKEN: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
-
-  trigger-winget-release:
-    name: Trigger Winget Release
-    runs-on: windows-latest # Action can only run on Windows
-    needs: release
-    steps:
       - name: Update Winget package
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
