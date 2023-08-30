@@ -225,7 +225,7 @@ window.Spicetify = {
 			"RemoteConfigProvider",
 			"ButtonPrimary",
 			"ButtonSecondary",
-			"ButtonTertiary",
+			"ButtonTertiary"
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
@@ -396,7 +396,9 @@ window.Spicetify = {
 			PanelContent:
 				modules.find(m => m?.render?.toString().includes("scrollBarContainer")) ||
 				functionModules.find(m => m.toString().includes("scrollBarContainer")),
-			PanelSkeleton: functionModules.find(m => m.toString().includes("label") && m.toString().includes("aside")) || modules.find(m => m?.render?.toString().includes('"section"')),
+			PanelSkeleton:
+				functionModules.find(m => m.toString().includes("label") && m.toString().includes("aside")) ||
+				modules.find(m => m?.render?.toString().includes('"section"')),
 			ButtonPrimary: modules.find(m => m?.render && m?.displayName === "ButtonPrimary"),
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
@@ -569,21 +571,41 @@ window.Spicetify = {
 		return;
 	}
 
-	Spicetify.Player.origin._cosmos.sub("sp://player/v2/main", data => {
-		if (!data || !data.track) return;
-		const lastData = Spicetify.Player.data;
-		Spicetify.Player.data = data;
-		if (lastData?.track.uri !== data.track.uri) {
-			const event = new Event("songchange");
-			event.data = data;
-			Spicetify.Player.dispatchEvent(event);
+	function objectsAreEqual(obj1, obj2) {
+		return JSON.stringify(obj1) === JSON.stringify(obj2);
+	}
+
+	const playerState = {
+		cache: Spicetify.Player.data,
+		current: null
+	};
+
+	setInterval(() => {
+		playerState.current = Spicetify.Platform.PlayerAPI._state;
+
+		if (!objectsAreEqual(playerState.current, playerState.cache)) {
+			Spicetify.Player.data = Spicetify.Platform.PlayerAPI._state;
+
+			// compatibility
+			// TODO: remove in next few releases
+			Spicetify.Player.data["track"] = Spicetify.Player.data.item;
+			playerState.current = Spicetify.Player.data;
+
+			if (playerState.cache?.item.uri !== playerState.current.item.uri) {
+				const event = new Event("songchange");
+				event.data = playerState.current;
+				Spicetify.Player.dispatchEvent(event);
+			}
+
+			if (playerState.cache?.isPaused !== playerState.current.isPaused) {
+				const event = new Event("onplaypause");
+				event.data = playerState.current;
+				Spicetify.Player.dispatchEvent(event);
+			}
+
+			playerState.cache = playerState.current;
 		}
-		if (lastData?.is_paused !== data.is_paused) {
-			const event = new Event("onplaypause");
-			event.data = data;
-			Spicetify.Player.dispatchEvent(event);
-		}
-	});
+	}, 100);
 
 	setInterval(() => {
 		const event = new Event("onprogress");
