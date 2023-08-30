@@ -36,71 +36,136 @@ declare namespace Spicetify {
         uid?: string;
         metadata?: Metadata;
     };
-    type ProvidedTrack = ContextTrack & {
-        removed?: string[];
-        blocked?: string[];
-        provider?: string;
-    };
-    type ContextOption = {
-        contextURI?: string;
-        index?: number;
-        trackUri?: string;
-        page?: number;
-        trackUid?: string;
-        sortedBy?: string;
-        filteredBy?: string;
-        shuffleContext?: boolean;
-        repeatContext?: boolean;
-        repeatTrack?: boolean;
-        offset?: number;
-        next_page_url?: string;
-        restrictions?: Record<string, string[]>;
-        referrer?: string;
-    };
     type PlayerState = {
         timestamp: number;
-        context_uri: string;
-        context_url: string;
-        context_restrictions: Record<string, string>;
-        index?: {
-            page: number;
-            track: number;
-        };
-        track?: ProvidedTrack;
-        playback_id?: string;
-        playback_quality?: string;
-        playback_speed?: number;
-        position_as_of_timestamp: number;
+        context: PlayerContext;
+        index: PlayerIndex;
+        item: PlayerTrack;
+        shuffle: boolean;
+        repeat: number;
+        speed: number;
+        positionAsOfTimestamp: number;
         duration: number;
-        is_playing: boolean;
-        is_paused: boolean;
-        is_buffering: boolean;
-        play_origin: {
-            feature_identifier: string;
-            feature_version: string;
-            view_uri?: string;
-            external_referrer?: string;
-            referrer_identifier?: string;
-            device_identifier?: string;
+        hasContext: boolean;
+        isPaused: boolean;
+        isBuffering: boolean;
+        restrictions: Restrictions;
+        previousItems?: PlayerTrack[];
+        nextItems?: PlayerTrack[];
+        playbackQuality: PlaybackQuality;
+        playbackId: string;
+        sessionId: string;
+        signals?: any[];
+        /**
+         * @deprecated Use `item` instead. This will be removed in the future.
+         */
+        track: PlayerTrack;
+    };
+    type PlayerContext = {
+        uri: string;
+        url: string;
+        metadata: {
+            "player.arch": string;
         };
-        options: {
-            shuffling_context?: boolean;
-            repeating_context?: boolean;
-            repeating_track?: boolean;
+    };
+    type PlayerIndex = {
+        pageURI?: string | null;
+        pageIndex: number;
+        itemIndex: number;
+    };
+    type PlayerTrack = {
+        type: string;
+        uri: string;
+        uid: string;
+        name: string;
+        mediaType: string;
+        duration: {
+            milliseconds: number;
         };
-        restrictions: Record<string, string[]>;
-        suppressions: {
-            providers: string[];
-        };
-        debug: {
-            log: string[];
-        };
-        prev_tracks: ProvidedTrack[];
-        next_tracks: ProvidedTrack[];
-        context_metadata: Metadata;
-        page_metadata: Metadata;
-        session_id: string;
-        queue_revision: string;
+        album: Album;
+        artists?: ArtistsEntity[];
+        isLocal: boolean;
+        isExplicit: boolean;
+        is19PlusOnly: boolean;
+        provider: string;
+        metadata: TrackMetadata;
+        images?: ImagesEntity[];
+    };
+    type TrackMetadata = {
+        artist_uri: string;
+        entity_uri: string;
+        iteration: string;
+        title: string;
+        "collection.is_banned": string;
+        "artist_uri:1": string;
+        "collection.in_collection": string;
+        image_small_url: string;
+        "collection.can_ban": string;
+        is_explicit: string;
+        album_disc_number: string;
+        album_disc_count: string;
+        track_player: string;
+        album_title: string;
+        "collection.can_add": string;
+        image_large_url: string;
+        "actions.skipping_prev_past_track": string;
+        page_instance_id: string;
+        image_xlarge_url: string;
+        marked_for_download: string;
+        "actions.skipping_next_past_track": string;
+        context_uri: string;
+        "artist_name:1": string;
+        has_lyrics: string;
+        interaction_id: string;
+        image_url: string;
+        album_uri: string;
+        album_artist_name: string;
+        album_track_number: string;
+        artist_name: string;
+        duration: string;
+        album_track_count: string;
+        popularity: string;
+    };
+    type Album = {
+        type: string;
+        uri: string;
+        name: string;
+        images?: ImagesEntity[];
+    };
+    type ImagesEntity = {
+        url: string;
+        label: string;
+    };
+    type ArtistsEntity = {
+        type: string;
+        uri: string;
+        name: string;
+    };
+    type Restrictions = {
+        canPause: boolean;
+        canResume: boolean;
+        canSeek: boolean;
+        canSkipPrevious: boolean;
+        canSkipNext: boolean;
+        canToggleRepeatContext: boolean;
+        canToggleRepeatTrack: boolean;
+        canToggleShuffle: boolean;
+        disallowPausingReasons?: string[];
+        disallowResumingReasons?: string[];
+        disallowSeekingReasons?: string[];
+        disallowSkippingPreviousReasons?: string[];
+        disallowSkippingNextReasons?: string[];
+        disallowTogglingRepeatContextReasons?: string[];
+        disallowTogglingRepeatTrackReasons?: string[];
+        disallowTogglingShuffleReasons?: string[];
+        disallowTransferringPlaybackReasons?: string[];
+    };
+    type PlaybackQuality = {
+        bitrateLevel: number;
+        strategy: number;
+        targetBitrateLevel: number;
+        targetBitrateAvailable: boolean;
+        hifiStatus: number;
     };
     namespace Player {
         /**
@@ -736,7 +801,7 @@ declare namespace Spicetify {
 
         /**
          * Creates a new 'concert' type URI.
-         * 
+         *
          * @param id The id of the concert.
          * @return The concert URI.
          */
@@ -744,7 +809,7 @@ declare namespace Spicetify {
 
         /**
          * Creates a new 'episode' type URI.
-         * 
+         *
          * @param id The id of the episode.
          * @return The episode URI.
          */
@@ -752,7 +817,7 @@ declare namespace Spicetify {
 
         /**
          * Creates a new 'folder' type URI.
-         * 
+         *
          * @param id The id of the folder.
          * @return The folder URI.
          */
@@ -760,7 +825,7 @@ declare namespace Spicetify {
 
         /**
          * Creates a new 'local-album' type URI.
-         * 
+         *
          * @param artist The artist of the album.
          * @param album The name of the album.
          * @return The local album URI.
@@ -769,7 +834,7 @@ declare namespace Spicetify {
 
         /**
          * Creates a new 'local-artist' type URI.
-         * 
+         *
          * @param artist The name of the artist.
          * @return The local artist URI.
          */
@@ -785,7 +850,7 @@ declare namespace Spicetify {
 
         /**
          * Creates a new 'prerelease' type URI.
-         * 
+         *
          * @param id The id of the prerelease.
          * @return The prerelease URI.
          */
@@ -1244,13 +1309,13 @@ declare namespace Spicetify {
             label?: string;
             /**
              * Item URI of the panel. Used as reference for Spotify's internal Event Factory.
-             * 
+             *
              * @deprecated Since Spotify `1.2.17`
              */
             itemUri?: string;
             /**
              * Additional class name to apply to the panel.
-             * 
+             *
              * @deprecated Since Spotify `1.2.12`
              */
             className?: string;
@@ -1740,16 +1805,16 @@ declare namespace Spicetify {
 
         /**
          * React Hook to use extracted color from GraphQL
-         * 
-         * @note This is a wrapper of ReactQuery's `useQuery` hook. 
+         *
+         * @note This is a wrapper of ReactQuery's `useQuery` hook.
          * The component using this hook must be wrapped in a `QueryClientProvider` component.
-         * 
+         *
          * @see https://tanstack.com/query/v3/docs/react/reference/QueryClientProvider
-         * 
+         *
          * @param uri URI of the Spotify image to extract color from.
          * @param fallbackColor Fallback color to use if the image is not available. Defaults to `#535353`.
          * @param variant Variant of the color to use. Defaults to `colorRaw`.
-         * 
+         *
          * @return Extracted color hex code.
          */
         function useExtractedColor(uri: string, fallbackColor?: string, variant?: "colorRaw" | "colorLight" | "colorDark"): string;
@@ -2061,7 +2126,7 @@ declare namespace Spicetify {
 
         /**
          * Format date into locale string
-         * 
+         *
          * @param date Date to format
          * @param options Options to use
          * @return Localized string
@@ -2070,7 +2135,7 @@ declare namespace Spicetify {
         function formatDate(date: number | Date | undefined, options?: Intl.DateTimeFormatOptions): string;
         /**
          * Format time into relative locale string
-         * 
+         *
          * @param date Date to format
          * @param options Options to use
          * @return Localized string
@@ -2079,7 +2144,7 @@ declare namespace Spicetify {
         function formatRelativeTime(date: number | Date | undefined, options?: Intl.DateTimeFormatOptions): string;
         /**
          * Format number into locale string
-         * 
+         *
          * @param number Number to format
          * @param options Options to use
          * @return Localized string
@@ -2087,14 +2152,14 @@ declare namespace Spicetify {
         function formatNumber(number: number, options?: Intl.NumberFormatOptions): string;
         /**
          * Format number into compact locale string
-         * 
+         *
          * @param number Number to format
          * @return Localized string
          */
         function formatNumberCompact(number: number): string;
         /**
          * Get localized string
-         * 
+         *
          * @param key Key of the string
          * @param children React children to pass the string into
          * @return Localized string or React Fragment of the children
@@ -2102,79 +2167,79 @@ declare namespace Spicetify {
         function get(key: string, ...children: React.ReactNode[]): string | React.ReactNode;
         /**
          * Get date time format of the passed options.
-         * 
+         *
          * Function calls here will register to the `_dateTimeFormats` dictionary.
-         * 
+         *
          * @param options Options to use
          * @return Date time format
          */
         function getDateTimeFormat(options?: Intl.DateTimeFormatOptions): Intl.DateTimeFormat;
         /**
          * Get the current locale dictionary
-         * 
+         *
          * @return Current locale dictionary
          */
         function getDictionary(): Record<string, string | { one: string, other: string }>;
         /**
          * Get the current locale
-         * 
+         *
          * @return Current locale
          */
         function getLocale(): string;
         /**
          * Get the current locale code for Smartling
-         * 
+         *
          * @return Current locale code for Smartling
          */
         function getSmartlingLocale(): string;
         /**
          * Get the current locale code for URL
-         * 
+         *
          * @return Current locale code for URL
          */
         function getUrlLocale(): string;
         /**
          * Get the current relative time format
-         * 
+         *
          * @return Current relative time format
          */
         function getRelativeTimeFormat(): Intl.RelativeTimeFormat;
         /**
          * Get the separator for the current locale
-         * 
+         *
          * @return Separator for the current locale
          */
         function getSeparator(): string;
         /**
          * Set the current locale
-         * 
+         *
          * This will clear all previously set relative time formats and key-value pairs.
-         * 
+         *
          * @param locale Locale to set
          */
         function setLocale(locale: string): void;
         /**
          * Set the current locale code for URL
-         * 
+         *
          * @param locale Locale code for URL to set
          */
         function setUrlLocale(locale: string): void;
         /**
          * Set the dictionary for the current locale
-         * 
+         *
          * @param dictionary Dictionary to set
          */
         function setDictionary(dictionary: Record<string, string | { one: string, other: string }>): void;
         /**
          * Transform text into locale lowercase
-         * 
+         *
          * @param text Text to transform
          * @return Locale lowercase text
          */
         function toLocaleLowerCase(text: string): string;
         /**
          * Transform text into locale uppercase
-         * 
+         *
          * @param text Text to transform
          * @return Locale uppercase text
          */
