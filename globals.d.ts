@@ -190,9 +190,6 @@ declare namespace Spicetify {
 		playbackId: string;
 		sessionId: string;
 		signals?: any[];
-		/**
-		 * @deprecated Use `item` instead. This will be removed in the future.
-		 */
 		track: PlayerTrack;
 	};
 	type PlayerContext = {
