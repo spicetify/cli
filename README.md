@@ -9,22 +9,21 @@
 
 ---
 
-
 Command-line tool to customize the official Spotify client.
 Supports Windows, MacOS and Linux.
 
-<img src=".github/assets/logo.png" alt="img" align="right" width="560px" height="400px">  
+<img src=".github/assets/logo.png" alt="img" align="right" width="560px" height="400px">
 
 ### Features
+
 - Change colors whole UI
 - Inject CSS for advanced customization
 - Inject Extensions (Javascript script) to extend functionalities, manipulate UI and control player.
 - Inject Custom apps
 - Remove bloated components to improve performance
 
-
 ### Links
+
 - [Installation](https://spicetify.app/docs/getting-started)
 - [Basic Usage](https://spicetify.app/docs/getting-started#basic-usage)
 - [FAQ](https://spicetify.app/docs/faq)
-  
