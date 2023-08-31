@@ -396,9 +396,9 @@ function PopupLyrics() {
 			return;
 		}
 
-		const meta = Player.data.track.metadata;
+		const meta = Player.data.item.metadata;
 
-		if (!Spicetify.URI.isTrack(Player.data.track.uri) && !Spicetify.URI.isLocalTrack(Player.data.track.uri)) {
+		if (!Spicetify.URI.isTrack(Player.data.item.uri) && !Spicetify.URI.isLocalTrack(Player.data.item.uri)) {
 			return;
 		}
 
@@ -408,7 +408,7 @@ function PopupLyrics() {
 			album: meta.album_title,
 			artist: meta.artist_name,
 			title: meta.title,
-			uri: Player.data.track.uri
+			uri: Player.data.item.uri
 		};
 
 		for (let name of userConfigs.servicesOrder) {

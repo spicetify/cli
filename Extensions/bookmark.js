@@ -152,8 +152,8 @@
 				: ""
 		}
     <button class="bookmark-controls" data-tippy-content="${REMOVE_TEXT}"><svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${
-			Spicetify.SVGIcons.x
-		}</svg></button>
+				Spicetify.SVGIcons.x
+			}</svg></button>
 </div>
 `;
 
@@ -276,18 +276,18 @@
 
 	function getTrackMeta() {
 		const meta = {
-			title: Player.data.track.metadata.title,
-			imageUrl: Player.data.track.metadata.image_url
+			title: Player.data.item.metadata.title,
+			imageUrl: Player.data.item.metadata.image_url
 		};
-		meta.uri = Player.data.track.uri;
+		meta.uri = Player.data.item.uri;
 		if (URI.isEpisode(meta.uri)) {
-			meta.description = Player.data.track.metadata.album_title;
+			meta.description = Player.data.item.metadata.album_title;
 		} else {
-			meta.description = Player.data.track.metadata.artist_name;
+			meta.description = Player.data.item.metadata.artist_name;
 		}
 		const contextUri = URI.fromString(Spicetify.Player.data.context_uri);
 		if (contextUri && (contextUri.type === URI.Type.PLAYLIST || contextUri.type === URI.Type.PLAYLIST_V2 || contextUri.type === URI.Type.ALBUM)) {
-			meta.context = `/${contextUri.toURLPath()}?uid=${Player.data.track.uid}`;
+			meta.context = `/${contextUri.toURLPath()}?uid=${Player.data.item.uid}`;
 		}
 
 		return meta;

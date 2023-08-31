@@ -435,7 +435,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	resetDelay() {
-		CONFIG.visual.delay = Number(localStorage.getItem(`lyrics-delay:${Spicetify.Player.data.track.uri}`)) || 0;
+		CONFIG.visual.delay = Number(localStorage.getItem(`lyrics-delay:${Spicetify.Player.data.item.uri}`)) || 0;
 	}
 
 	async onVersionChange(items, index) {
@@ -552,8 +552,8 @@ class LyricsContainer extends react.Component {
 
 		if (Spicetify.Player?.data?.track) {
 			this.state.explicitMode = this.state.lockMode;
-			this.currentTrackUri = Spicetify.Player.data.track.uri;
-			this.fetchLyrics(Spicetify.Player.data.track, this.state.explicitMode);
+			this.currentTrackUri = Spicetify.Player.data.item.uri;
+			this.fetchLyrics(Spicetify.Player.data.item, this.state.explicitMode);
 		}
 
 		this.updateVisualOnConfigChange();
@@ -891,7 +891,7 @@ class LyricsContainer extends react.Component {
 						const mode = CONFIG.modes.findIndex(a => a === label);
 						if (mode !== this.state.mode) {
 							this.setState({ explicitMode: mode });
-							this.state.provider !== "local" && this.fetchLyrics(Player.data.track, mode);
+							this.state.provider !== "local" && this.fetchLyrics(Player.data.item, mode);
 						}
 					},
 					lockCallback: label => {
@@ -900,7 +900,7 @@ class LyricsContainer extends react.Component {
 							mode = -1;
 						}
 						this.setState({ explicitMode: mode, lockMode: mode });
-						this.fetchLyrics(Player.data.track, mode);
+						this.fetchLyrics(Player.data.item, mode);
 						CONFIG.locked = mode;
 						localStorage.setItem("lyrics-plus:lock-mode", mode);
 					}

@@ -629,7 +629,7 @@ window.Spicetify = {
 })();
 
 Spicetify.getAudioData = async uri => {
-	uri = uri || Spicetify.Player.data.track.uri;
+	uri = uri || Spicetify.Player.data.item.uri;
 	const uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
 	if (!uriObj || (uriObj.Type || uriObj.type) !== Spicetify.URI.Type.TRACK) {
 		throw "URI is invalid.";

@@ -378,7 +378,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 		}
 
 		async fetchInfo() {
-			const meta = Spicetify.Player.data.track.metadata;
+			const meta = Spicetify.Player.data.item.metadata;
 
 			// prepare title
 			let rawTitle = meta.title;

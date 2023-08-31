@@ -185,7 +185,7 @@
 		THROW_TEXT,
 		trashbinIcon,
 		self => {
-			const uri = Spicetify.Player.data.track.uri;
+			const uri = Spicetify.Player.data.item.uri;
 			const uriObj = Spicetify.URI.fromString(uri);
 			const type = uriObj.type;
 
@@ -215,8 +215,8 @@
 	putDataLocal();
 	refreshEventListeners(trashbinStatus);
 	setWidgetState(
-		trashSongList[Spicetify.Player.data.track.uri],
-		Spicetify.URI.fromString(Spicetify.Player.data.track.uri).type !== Spicetify.URI.Type.TRACK
+		trashSongList[Spicetify.Player.data.item.uri],
+		Spicetify.URI.fromString(Spicetify.Player.data.item.uri).type !== Spicetify.URI.Type.TRACK
 	);
 
 	function refreshEventListeners(state) {
@@ -243,8 +243,8 @@
 		const data = Spicetify.Player.data || Spicetify.Queue;
 		if (!data) return;
 
-		const isBanned = trashSongList[data.track.uri];
-		setWidgetState(isBanned, Spicetify.URI.fromString(data.track.uri).type !== Spicetify.URI.Type.TRACK);
+		const isBanned = trashSongList[data.item.uri];
+		setWidgetState(isBanned, Spicetify.URI.fromString(data.item.uri).type !== Spicetify.URI.Type.TRACK);
 
 		if (userHitBack) {
 			userHitBack = false;
@@ -257,7 +257,7 @@
 		}
 
 		let uriIndex = 0;
-		let artistUri = data.track.metadata["artist_uri"];
+		let artistUri = data.item.metadata["artist_uri"];
 
 		while (artistUri) {
 			if (trashArtistList[artistUri]) {
@@ -266,7 +266,7 @@
 			}
 
 			uriIndex++;
-			artistUri = data.track.metadata["artist_uri:" + uriIndex];
+			artistUri = data.item.metadata["artist_uri:" + uriIndex];
 		}
 	}
 
@@ -277,7 +277,7 @@
 	 * @returns {boolean}
 	 */
 	function shouldSkipCurrentTrack(uri, type) {
-		const curTrack = Spicetify.Player.data.track;
+		const curTrack = Spicetify.Player.data.item;
 		if (type === Spicetify.URI.Type.TRACK) {
 			if (uri === curTrack.uri) {
 				return true;
