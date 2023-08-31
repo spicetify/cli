@@ -592,13 +592,13 @@ window.Spicetify = {
 
 		if (playerState.cache?.item.uri !== playerState.current?.item?.uri) {
 			const event = new Event("songchange");
-			event.data = playerState.current;
+			event.data = Spicetify.Player.data;
 			Spicetify.Player.dispatchEvent(event);
 		}
 
 		if (playerState.cache?.isPaused !== playerState.current?.isPaused) {
 			const event = new Event("onplaypause");
-			event.data = playerState.current;
+			event.data = Spicetify.Player.data;
 			Spicetify.Player.dispatchEvent(event);
 		}
 
