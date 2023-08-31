@@ -58,7 +58,8 @@ const ProviderMusixmatch = (function () {
 		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
 
 		const params = {
-			subtitle_length: meta.track.track_length,
+			f_subtitle_length: meta.track.track_length,
+			q_duration: meta.track.track_length,
 			commontrack_id: meta.track.commontrack_id,
 			usertoken: CONFIG.providers.musixmatch.token
 		};
