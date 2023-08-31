@@ -19,7 +19,6 @@
 class WNPReduxWebSocket {
 	_ws = null;
 	cache = new Map();
-	playerCache = null;
 	reconnectCount = 0;
 	updateInterval = null;
 	communicationRevision = null;
@@ -45,12 +44,8 @@ class WNPReduxWebSocket {
 	constructor() {
 		this.init();
 
-		setInterval(() => {
-			if (objectsAreEqual(Spicetify.Player.data, playerCache)) return;
-
-			playerCache = Spicetify.Player.data;
-			this.updateSpicetifyInfo(playerCache);
-		}, 100);
+		Spicetify.Player.addEventListener("songchange", ({ data }) => this.updateSpicetifyInfo(data));
+		Spicetify.Player.addEventListener("onplaypause", ({ data }) => this.updateSpicetifyInfo(data));
 	}
 
 	updateSpicetifyInfo(data) {
