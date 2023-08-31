@@ -456,33 +456,22 @@
 		return array.filter(track => track);
 	}
 
-	async function Queue(list, context = null, type) {
+	async function Queue(list, type) {
 		const count = list.length;
 
 		list.push("spotify:delimiter");
 
 		await Spicetify.Platform.PlayerAPI.clearQueue();
 
-		await Spicetify.CosmosAsync.put("sp://player/v2/main/queue", {
-			queue_revision: Spicetify.Queue?.queueRevision,
-			next_tracks: list.map(uri => ({
+		Spicetify.Platform.PlayerAPI.addToQueue(
+			list.map(uri => ({
 				uri,
 				provider: "context",
 				metadata: {
 					is_queued: "false"
 				}
-			})),
-			prev_tracks: Spicetify.Queue?.prevTracks
-		});
-
-		if (context) {
-			await Spicetify.CosmosAsync.post("sp://player/v2/main/update", {
-				context: {
-					uri: context,
-					url: "context://" + context
-				}
-			});
-		}
+			}))
+		);
 
 		Spicetify.Player.next();
 

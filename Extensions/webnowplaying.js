@@ -19,6 +19,7 @@
 class WNPReduxWebSocket {
 	_ws = null;
 	cache = new Map();
+	playerCache = null;
 	reconnectCount = 0;
 	updateInterval = null;
 	communicationRevision = null;
@@ -43,18 +44,24 @@ class WNPReduxWebSocket {
 
 	constructor() {
 		this.init();
-		Spicetify.CosmosAsync.sub("sp://player/v2/main", this.updateSpicetifyInfo.bind(this));
+
+		setInterval(() => {
+			if (objectsAreEqual(Spicetify.Player.data, playerCache)) return;
+
+			playerCache = Spicetify.Player.data;
+			this.updateSpicetifyInfo(playerCache);
+		}, 100);
 	}
 
 	updateSpicetifyInfo(data) {
-		if (!data?.track?.metadata) return;
-		const meta = data.track.metadata;
+		if (!data?.item?.metadata) return;
+		const meta = data.item.metadata;
 		this.spicetifyInfo.title = meta.title;
 		this.spicetifyInfo.album = meta.album_title;
 		this.spicetifyInfo.duration = timeInSecondsToString(Math.round(parseInt(meta.duration) / 1000));
-		this.spicetifyInfo.state = !data.is_paused ? "PLAYING" : "PAUSED";
-		this.spicetifyInfo.repeat = data.options.repeating_track ? "ONE" : data.options.repeating_context ? "ALL" : "NONE";
-		this.spicetifyInfo.shuffle = data.options.shuffling_context;
+		this.spicetifyInfo.state = !data.isPaused ? "PLAYING" : "PAUSED";
+		this.spicetifyInfo.repeat = data.repeat === 2 ? "ONE" : data.repeat === 1 ? "ALL" : "NONE";
+		this.spicetifyInfo.shuffle = data.shuffle;
 		this.spicetifyInfo.artist = meta.artist_name;
 		let artistCount = 1;
 		while (meta["artist_name:" + artistCount]) {
@@ -63,7 +70,7 @@ class WNPReduxWebSocket {
 		}
 		if (!this.spicetifyInfo.artist) this.spicetifyInfo.artist = meta.album_title; // Podcast
 
-		Spicetify.Platform.LibraryAPI.contains(data.track.uri).then(([added]) => (this.spicetifyInfo.rating = added ? 5 : 0));
+		Spicetify.Platform.LibraryAPI.contains(data.item.uri).then(([added]) => (this.spicetifyInfo.rating = added ? 5 : 0));
 
 		const cover = meta.image_xlarge_url;
 		if (cover?.indexOf("localfile") === -1) this.spicetifyInfo.cover = "https://i.scdn.co/image/" + cover.substring(cover.lastIndexOf(":") + 1);
@@ -99,13 +106,10 @@ class WNPReduxWebSocket {
 		if (this.isClosed) return;
 		this.close(true);
 		// Reconnects once per second for 30 seconds, then with a exponential backoff of (2^reconnectAttempts) up to 60 seconds
-		this.reconnectTimeout = setTimeout(
-			() => {
-				this.init();
-				this.reconnectAttempts += 1;
-			},
-			Math.min(1000 * (this.reconnectAttempts <= 30 ? 1 : 2 ** (this.reconnectAttempts - 30)), 60000)
-		);
+		this.reconnectTimeout = setTimeout(() => {
+			this.init();
+			this.reconnectAttempts += 1;
+		}, Math.min(1000 * (this.reconnectAttempts <= 30 ? 1 : 2 ** (this.reconnectAttempts - 30)), 60000));
 	}
 
 	send(data) {
@@ -170,6 +174,10 @@ class WNPReduxWebSocket {
 				break;
 		}
 	}
+}
+
+function objectsAreEqual(obj1, obj2) {
+	return JSON.stringify(obj1) === JSON.stringify(obj2);
 }
 
 function OnMessageLegacy(self, message) {

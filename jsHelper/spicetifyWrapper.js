@@ -581,30 +581,28 @@ window.Spicetify = {
 	};
 
 	setInterval(() => {
+		if (objectsAreEqual(Spicetify.Platform.PlayerAPI._state, playerState.cache)) return;
+
 		playerState.current = Spicetify.Platform.PlayerAPI._state;
+		Spicetify.Player.data = playerState.current;
 
-		if (!objectsAreEqual(playerState.current, playerState.cache)) {
-			Spicetify.Player.data = Spicetify.Platform.PlayerAPI._state;
+		// compatibility
+		// TODO: remove in next few releases
+		Spicetify.Player.data["track"] = Spicetify.Player.data.item;
 
-			// compatibility
-			// TODO: remove in next few releases
-			Spicetify.Player.data["track"] = Spicetify.Player.data.item;
-			playerState.current = Spicetify.Player.data;
-
-			if (playerState.cache?.item.uri !== playerState.current.item.uri) {
-				const event = new Event("songchange");
-				event.data = playerState.current;
-				Spicetify.Player.dispatchEvent(event);
-			}
-
-			if (playerState.cache?.isPaused !== playerState.current.isPaused) {
-				const event = new Event("onplaypause");
-				event.data = playerState.current;
-				Spicetify.Player.dispatchEvent(event);
-			}
-
-			playerState.cache = playerState.current;
+		if (playerState.cache?.item.uri !== playerState.current?.item?.uri) {
+			const event = new Event("songchange");
+			event.data = playerState.current;
+			Spicetify.Player.dispatchEvent(event);
 		}
+
+		if (playerState.cache?.isPaused !== playerState.current?.isPaused) {
+			const event = new Event("onplaypause");
+			event.data = playerState.current;
+			Spicetify.Player.dispatchEvent(event);
+		}
+
+		playerState.cache = playerState.current;
 	}, 100);
 
 	setInterval(() => {
