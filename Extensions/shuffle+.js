@@ -456,7 +456,7 @@
 		return array.filter(track => track);
 	}
 
-	async function Queue(list, type) {
+	async function Queue(list, context = null, type) {
 		const count = list.length;
 
 		list.push("spotify:delimiter");
