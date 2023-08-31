@@ -581,7 +581,16 @@ window.Spicetify = {
 	};
 
 	setInterval(() => {
-		if (objectsAreEqual(Spicetify.Platform.PlayerAPI._state, playerState.cache)) return;
+		if (
+			objectsAreEqual(Spicetify.Platform.PlayerAPI._state, playerState.cache) ||
+			(!Spicetify.Platform.PlayerAPI._state.item && !Spicetify.Player.data)
+		)
+			return;
+
+		if (!Spicetify.Platform.PlayerAPI._state.item) {
+			Spicetify.Player.data = null;
+			return;
+		}
 
 		playerState.current = Spicetify.Platform.PlayerAPI._state;
 		Spicetify.Player.data = playerState.current;
