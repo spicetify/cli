@@ -261,7 +261,7 @@ class Utils {
 				if (isKaraoke) {
 					if (!lyricContent.endsWith(">")) {
 						// For some reason there are a variety of formats for karaoke lyrics, Wikipedia is also inconsisent in their examples
-						const endTime = lines[i + 1]?.match(syncedTimestamp)?.[1] || this.formatTime(Number(Spicetify.Player.data.track.metadata.duration));
+						const endTime = lines[i + 1]?.match(syncedTimestamp)?.[1] || this.formatTime(Number(Spicetify.Player.data.item.metadata.duration));
 						lyricContent += `<${endTime}>`;
 					}
 					const karaokeLine = parseKaraokeLine(lyricContent, time);

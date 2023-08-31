@@ -581,30 +581,37 @@ window.Spicetify = {
 	};
 
 	setInterval(() => {
-		playerState.current = Spicetify.Platform.PlayerAPI._state;
+		if (
+			objectsAreEqual(Spicetify.Platform.PlayerAPI._state, playerState.cache) ||
+			(!Spicetify.Platform.PlayerAPI._state.item && !Spicetify.Player.data)
+		)
+			return;
 
-		if (!objectsAreEqual(playerState.current, playerState.cache)) {
-			Spicetify.Player.data = Spicetify.Platform.PlayerAPI._state;
-
-			// compatibility
-			// TODO: remove in next few releases
-			Spicetify.Player.data["track"] = Spicetify.Player.data.item;
-			playerState.current = Spicetify.Player.data;
-
-			if (playerState.cache?.item.uri !== playerState.current.item.uri) {
-				const event = new Event("songchange");
-				event.data = playerState.current;
-				Spicetify.Player.dispatchEvent(event);
-			}
-
-			if (playerState.cache?.isPaused !== playerState.current.isPaused) {
-				const event = new Event("onplaypause");
-				event.data = playerState.current;
-				Spicetify.Player.dispatchEvent(event);
-			}
-
-			playerState.cache = playerState.current;
+		if (!Spicetify.Platform.PlayerAPI._state.item) {
+			Spicetify.Player.data = null;
+			return;
 		}
+
+		playerState.current = Spicetify.Platform.PlayerAPI._state;
+		Spicetify.Player.data = playerState.current;
+
+		// for compatibility reasons
+		// TODO: remove in the future
+		Spicetify.Player.data["track"] = Spicetify.Player.data.item;
+
+		if (playerState.cache?.item.uri !== playerState.current?.item?.uri) {
+			const event = new Event("songchange");
+			event.data = Spicetify.Player.data;
+			Spicetify.Player.dispatchEvent(event);
+		}
+
+		if (playerState.cache?.isPaused !== playerState.current?.isPaused) {
+			const event = new Event("onplaypause");
+			event.data = Spicetify.Player.data;
+			Spicetify.Player.dispatchEvent(event);
+		}
+
+		playerState.cache = playerState.current;
 	}, 100);
 
 	setInterval(() => {
@@ -622,7 +629,7 @@ window.Spicetify = {
 })();
 
 Spicetify.getAudioData = async uri => {
-	uri = uri || Spicetify.Player.data.track.uri;
+	uri = uri || Spicetify.Player.data.item.uri;
 	const uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
 	if (!uriObj || (uriObj.Type || uriObj.type) !== Spicetify.URI.Type.TRACK) {
 		throw "URI is invalid.";

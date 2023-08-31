@@ -23,7 +23,7 @@
 		const data = Spicetify.Player.data || Spicetify.Queue;
 		if (!data) return;
 
-		const isExplicit = data.track.metadata.is_explicit;
+		const isExplicit = data.item.metadata.is_explicit;
 		if (isExplicit === "true") {
 			Spicetify.Player.next();
 		}
