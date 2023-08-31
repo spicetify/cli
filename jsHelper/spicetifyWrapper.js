@@ -586,8 +586,8 @@ window.Spicetify = {
 		playerState.current = Spicetify.Platform.PlayerAPI._state;
 		Spicetify.Player.data = playerState.current;
 
-		// compatibility
-		// TODO: remove in next few releases
+		// for compatibility reasons
+		// TODO: remove in the future
 		Spicetify.Player.data["track"] = Spicetify.Player.data.item;
 
 		if (playerState.cache?.item.uri !== playerState.current?.item?.uri) {
