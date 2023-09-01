@@ -465,6 +465,11 @@
 
 		Spicetify.Platform.PlayerAPI.addToQueue(list.map(uri => ({ uri })));
 
+		if (context) {
+			const { sessionId } = Spicetify.Platform.PlayerAPI.getState();
+			Spicetify.Platform.PlayerAPI.updateContext(sessionId, { uri: context, url: "context://" + context });
+		}
+
 		Spicetify.Player.next();
 
 		switch (type) {
