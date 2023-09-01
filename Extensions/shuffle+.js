@@ -463,15 +463,7 @@
 
 		await Spicetify.Platform.PlayerAPI.clearQueue();
 
-		Spicetify.Platform.PlayerAPI.addToQueue(
-			list.map(uri => ({
-				uri,
-				provider: "context",
-				metadata: {
-					is_queued: "false"
-				}
-			}))
-		);
+		Spicetify.Platform.PlayerAPI.addToQueue(list.map(uri => ({ uri })));
 
 		Spicetify.Player.next();
 
