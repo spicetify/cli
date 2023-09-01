@@ -463,7 +463,29 @@
 
 		await Spicetify.Platform.PlayerAPI.clearQueue();
 
-		Spicetify.Platform.PlayerAPI.addToQueue(list.map(uri => ({ uri })));
+		{
+			const { _queue, _client } = Spicetify.Platform.PlayerAPI._queue;
+			const { prevTracks, queueRevision } = _queue;
+
+			const nextTracks = list.map(uri => ({
+				contextTrack: {
+					uri,
+					uid: "",
+					metadata: {
+						is_queued: "false"
+					}
+				},
+				removed: [],
+				blocked: [],
+				provider: "context"
+			}));
+
+			_client.setQueue({
+				nextTracks,
+				prevTracks,
+				queueRevision
+			});
+		}
 
 		if (context) {
 			const { sessionId } = Spicetify.Platform.PlayerAPI.getState();
