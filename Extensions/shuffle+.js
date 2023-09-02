@@ -459,14 +459,14 @@
 	async function Queue(list, context = null, type) {
 		const count = list.length;
 
+		// Delimits the end of our list, as Spotify may add new context tracks to the queue
 		list.push("spotify:delimiter");
-
-		await Spicetify.Platform.PlayerAPI.clearQueue();
 
 		{
 			const { _queue, _client } = Spicetify.Platform.PlayerAPI._queue;
 			const { prevTracks, queueRevision } = _queue;
 
+			// Format tracks with default values 
 			const nextTracks = list.map(uri => ({
 				contextTrack: {
 					uri,
@@ -480,6 +480,7 @@
 				provider: "context"
 			}));
 
+			// Lowest level setQueue method from vendor~xpui.js
 			_client.setQueue({
 				nextTracks,
 				prevTracks,
