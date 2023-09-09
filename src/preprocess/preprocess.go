@@ -232,9 +232,9 @@ func colorVariableReplace(content string) string {
 }
 
 func colorVariableReplaceForJS(content string) string {
-	utils.Replace(&content, `"#1db954"`, `getComputedStyle(document.body).getPropertyValue("--spice-button").trim()`)
-	utils.Replace(&content, `"#b3b3b3"`, `getComputedStyle(document.body).getPropertyValue("--spice-subtext").trim()`)
-	utils.Replace(&content, `"#ffffff"`, `getComputedStyle(document.body).getPropertyValue("--spice-text").trim()`)
+	utils.Replace(&content, `"#1db954"`, ` getComputedStyle(document.body).getPropertyValue("--spice-button").trim()`)
+	utils.Replace(&content, `"#b3b3b3"`, ` getComputedStyle(document.body).getPropertyValue("--spice-subtext").trim()`)
+	utils.Replace(&content, `"#ffffff"`, ` getComputedStyle(document.body).getPropertyValue("--spice-text").trim()`)
 	utils.Replace(&content, `color:"white"`, `color:"var(--spice-text)"`)
 	return content
 }
