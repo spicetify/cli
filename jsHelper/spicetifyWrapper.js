@@ -1843,7 +1843,7 @@ Spicetify.Playbar = (function () {
 			this.element = document.createElement("button");
 			this.element.classList.add("main-genericButton-button");
 			this.iconElement = document.createElement("span");
-			this.iconElement.classList.add("IconWrapper__Wrapper-sc-16usrgb-0", "Wrapper-sm-only");
+			this.iconElement.classList.add("Wrapper-sm-only");
 			this.element.appendChild(this.iconElement);
 			this.icon = icon;
 			this.onClick = onClick;
