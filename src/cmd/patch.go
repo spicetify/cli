@@ -12,7 +12,7 @@ import (
 func Patch() {
 	keys := patchSection.Keys()
 
-	re := regexp.MustCompile(`^([\w\d\-\.]+)_find_(\d+)$`)
+	re := regexp.MustCompile(`^([\w\d\-~\.]+)_find_(\d+)$`)
 	for _, key := range keys {
 		keyName := key.Name()
 		matches := re.FindStringSubmatch(keyName)
