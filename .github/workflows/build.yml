@@ -98,7 +98,7 @@ jobs:
           url: http://vps.itsmeow.dev:8079/
           method: GET
       - name: Update Homebrew tap
-        uses: mislav/bump-homebrew-formula-action@v2
+        uses: mislav/bump-homebrew-formula-action@v3
         if: "!contains(github.ref_name, '-')"
         with:
           formula-name: spicetify-cli
