@@ -1842,7 +1842,9 @@ Spicetify.Playbar = (function () {
 		constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
 			this.element = document.createElement("button");
 			this.element.classList.add("main-genericButton-button");
-			this.element.style.display = "block";
+			this.iconElement = document.createElement("span");
+			this.iconElement.classList.add("Wrapper-sm-only");
+			this.element.appendChild(this.iconElement);
 			this.icon = icon;
 			this.onClick = onClick;
 			this.disabled = disabled;
@@ -1871,7 +1873,7 @@ Spicetify.Playbar = (function () {
 				input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
 			}
 			this._icon = input;
-			this.element.innerHTML = input;
+			this.iconElement.innerHTML = input;
 		}
 		get onClick() {
 			return this._onClick;
