@@ -58,7 +58,8 @@ type Config interface {
 func ParseConfig(configPath string) Config {
 	cfg, err := ini.LoadSources(
 		ini.LoadOptions{
-			IgnoreContinuation: true,
+			IgnoreContinuation:  true,
+			IgnoreInlineComment: true,
 		},
 		configPath)
 
