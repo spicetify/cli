@@ -1033,7 +1033,7 @@ Spicetify.SVGIcons = {
 	let subRequest;
 
 	// product_state was renamed to product_state_service in Spotify 1.2.21
-	const productState = Spicetify.Platform.UserAPI._product_state || Spicetify.Platform.UserAPI._product_state_service;
+	const productState = Spicetify.Platform.UserAPI?._product_state || Spicetify.Platform.UserAPI?._product_state_service;
 
 	Spicetify.AppTitle = {
 		set: async name => {
