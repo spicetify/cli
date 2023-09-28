@@ -106,7 +106,7 @@ jobs:
           homebrew-tap: spicetify/homebrew-tap
           base-branch: main
           commit-message: |
-            chore: {{version}} release
+            feat: {{version}} release
         env:
           COMMITTER_TOKEN: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
       - name: Update Winget package
