@@ -1025,34 +1025,37 @@ Spicetify.SVGIcons = {
 };
 
 (async function waitUserAPI() {
-	if (!Spicetify.Platform?.UserAPI?._product_state) {
+	if (!Spicetify.Platform?.UserAPI) {
 		setTimeout(waitUserAPI, 1000);
 		return;
 	}
 
 	let subRequest;
 
+	// product_state was renamed to product_state_service in Spotify 1.2.21
+	const productState = Spicetify.Platform.UserAPI?._product_state || Spicetify.Platform.UserAPI?._product_state_service;
+
 	Spicetify.AppTitle = {
 		set: async name => {
 			if (subRequest) subRequest.cancel();
-			await Spicetify.Platform.UserAPI._product_state.putOverridesValues({ pairs: { name } });
-			subRequest = Spicetify.Platform.UserAPI._product_state.subValues({ keys: ["name"] }, ({ pairs }) => {
+			await productState.putOverridesValues({ pairs: { name } });
+			subRequest = productState.subValues({ keys: ["name"] }, ({ pairs }) => {
 				if (pairs.name !== name) {
-					Spicetify.Platform.UserAPI._product_state.putOverridesValues({ pairs: { name } }); // Restore name
+					productState.putOverridesValues({ pairs: { name } }); // Restore name
 				}
 			});
 			return subRequest;
 		},
 		get: async () => {
-			const value = await Spicetify.Platform.UserAPI._product_state.getValues();
+			const value = await productState.getValues();
 			return value.pairs.name;
 		},
 		reset: async () => {
 			if (subRequest) subRequest.cancel();
-			await Spicetify.Platform.UserAPI._product_state.delOverridesValues({ keys: ["name"] });
+			await productState.delOverridesValues({ keys: ["name"] });
 		},
 		sub: callback => {
-			return Spicetify.Platform.UserAPI._product_state.subValues({ keys: ["name"] }, ({ pairs }) => {
+			return productState.subValues({ keys: ["name"] }, ({ pairs }) => {
 				callback(pairs.name);
 			});
 		}
