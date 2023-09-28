@@ -98,13 +98,15 @@ jobs:
           url: http://vps.itsmeow.dev:8079/
           method: GET
       - name: Update Homebrew tap
-        uses: mislav/bump-homebrew-formula-action@v3
-        if: "!contains(github.ref, '-')"
+        uses: mislav/bump-homebrew-formula-action@v2
+        if: "!contains(github.ref_name, '-')"
         with:
           formula-name: spicetify-cli
           formula-path: spicetify-cli.rb
           homebrew-tap: spicetify/homebrew-tap
+          tag-name: ${{ github.ref_name }}
           base-branch: main
+          download-url: https://github.com/spicetify/spicetify-cli/archive/${{ github.ref_name }}.tar.gz
           commit-message: |
             feat: {{version}} release
         env:
