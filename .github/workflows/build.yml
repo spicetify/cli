@@ -99,16 +99,14 @@ jobs:
           method: GET
       - name: Update Homebrew tap
         uses: mislav/bump-homebrew-formula-action@v3
-        if: "!contains(github.ref_name, '-')"
+        if: "!contains(github.ref, '-')"
         with:
           formula-name: spicetify-cli
           formula-path: spicetify-cli.rb
           homebrew-tap: spicetify/homebrew-tap
-          tag-name: ${{ github.ref_name }}
           base-branch: main
-          download-url: https://github.com/spicetify/spicetify-cli/archive/${{ github.ref_name }}.tar.gz
           commit-message: |
-            chore: {{version}} release
+            feat: {{version}} release
         env:
           COMMITTER_TOKEN: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
       - name: Update Winget package
