@@ -127,6 +127,7 @@ option {
 }
 
 .main-card-closeButton {
+	pointer-events: all;
 	position: absolute !important;
 	top: 8px;
 	right: 8px;
