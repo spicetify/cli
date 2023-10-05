@@ -229,13 +229,13 @@ func checkStates() {
 
 		if spotStat.IsMixed() {
 			utils.PrintInfo(`Spotify client possibly just had an new update.`)
-			utils.PrintInfo(`Please run "spicetify backup apply".`)
+			utils.PrintInfo(`Please stop the process and then run "spicetify backup apply".`)
 
 		} else if spotStat.IsStock() {
-			utils.PrintInfo(`Please run "spicetify backup apply".`)
+			utils.PrintInfo(`Please stop the process and then run "spicetify backup apply".`)
 
 		} else {
-			utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
+			utils.PrintInfo(`Spotify cannot be backed up at this state. Please stop the process and then re-install Spotify then run "spicetify backup apply".`)
 		}
 
 		if !ReadAnswer("Continue anyway? [y/N] ", false, true) {
