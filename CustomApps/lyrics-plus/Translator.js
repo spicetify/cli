@@ -98,11 +98,25 @@ class Translator {
 		}
 	}
 
-	async romajifyText(text, target = "romaji", mode = "spaced") {
+	async romajifyText(text, target = "romaji", mode = "spaced", provider) {
 		if (!this.finished.ja) {
 			await Translator.#sleep(100);
 			return this.romajifyText(text, target, mode);
 		}
+
+		if (target === "romajiCutlet") {
+			const baseURL = `https://cutlet.1sal.me/api/transliterate`;
+
+			const params = {
+				uri: Spicetify.Player.data.item.uri.replace("spotify:track:", ""),
+				lyrics: text,
+				provider: provider.toLowerCase()
+			};
+	
+			let res = await CosmosAsync.post(baseURL, params);
+			return res;
+		}
+
 
 		return this.kuroshiro.convert(text, {
 			to: target,

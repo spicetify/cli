@@ -17,7 +17,7 @@ const {
 
 // Define a function called "render" to specify app entry point
 // This function will be used to mount app to main view.
-function render() {
+function render() {	
 	return react.createElement(LyricsContainer, null);
 }
 
@@ -139,6 +139,7 @@ class LyricsContainer extends react.Component {
 			genius2: null,
 			currentLyrics: null,
 			romaji: null,
+			romajiCutlet: null,
 			furigana: null,
 			hiragana: null,
 			hangul: null,
@@ -292,7 +293,7 @@ class LyricsContainer extends react.Component {
 			CACHE[data.uri] = finalData;
 			return finalData;
 		}
-
+		
 		CACHE[trackInfo.uri] = finalData;
 		return finalData;
 	}
@@ -300,6 +301,7 @@ class LyricsContainer extends react.Component {
 	async fetchLyrics(track, mode = -1) {
 		this.state.furigana =
 			this.state.romaji =
+			this.state.romajiCutlet =
 			this.state.hiragana =
 			this.state.katakana =
 			this.state.hangul =
@@ -394,12 +396,13 @@ class LyricsContainer extends react.Component {
 
 		[
 			["romaji", "spaced", "romaji"],
+			["romajiCutlet", "romajiCutlet", "romajiCutlet"],
 			["hiragana", "furigana", "furigana"],
 			["hiragana", "normal", "hiragana"],
 			["katakana", "normal", "katakana"]
 		].forEach(params => {
 			if (language !== "ja") return;
-			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
+			this.translator.romajifyText(lyricText, params[0], params[1], this.state.provider).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[2] });
 				showNotification(200);
 				lyricContainerUpdate && lyricContainerUpdate();
@@ -664,7 +667,7 @@ class LyricsContainer extends react.Component {
 				break;
 			}
 			case "ja": {
-				isTranslated = !!(this.state.romaji || this.state.furigana || this.state.hiragana || this.state.katakana);
+				isTranslated = !!(this.state.romaji || this.state.romajiCutlet || this.state.furigana || this.state.hiragana || this.state.katakana);
 				break;
 			}
 			case "ko": {

@@ -121,6 +121,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				modeOptions = {
 					furigana: "Furigana",
 					romaji: "Romaji",
+					romajiCutlet: "Romaji (Cutlet)",
 					hiragana: "Hiragana",
 					katakana: "Katakana"
 				};
