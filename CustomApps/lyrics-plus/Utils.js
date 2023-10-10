@@ -280,4 +280,12 @@ class Utils {
 			.replace(/　| /g, "") // Remove space
 			.replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~？！，。、《》【】「」]/g, ""); // Remove punctuation
 	}
+
+	static copyLyricsToClipboard(event) {
+		event.preventDefault();
+		const lyrics = event.target?.innerText?.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
+		Spicetify.Platform.ClipboardAPI.copy(lyrics)
+			.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
+			.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+	}
 }

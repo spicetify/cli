@@ -186,12 +186,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 								Spicetify.Player.seek(startTime);
 							}
 						},
-						onContextMenu: event => {
-							event.preventDefault();
-							Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
-								.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-								.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-						}
+						onContextMenu: event => Utils.copyLyricsToClipboard(event)
 					},
 					!isKara ? text : react.createElement(KaraokeLine, { text, startTime, position, isActive })
 				);
@@ -424,12 +419,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 							Spicetify.Player.seek(startTime);
 						}
 					},
-					onContextMenu: event => {
-						event.preventDefault();
-						Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
-							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-					}
+					onContextMenu: event => Utils.copyLyricsToClipboard(event)
 				},
 				!isKara ? text : react.createElement(KaraokeLine, { text, startTime, position, isActive })
 			);
@@ -462,12 +452,7 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 				{
 					className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
 					dir: "auto",
-					onContextMenu: event => {
-						event.preventDefault();
-						Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
-							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-					}
+					onContextMenu: event => Utils.copyLyricsToClipboard(event)
 				},
 				text
 			);
@@ -562,13 +547,7 @@ const GeniusPage = react.memo(
 				dangerouslySetInnerHTML: {
 					__html: lyrics
 				},
-				onContextMenu: event => {
-					event.preventDefault();
-					const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
-					Spicetify.Platform.ClipboardAPI.copy(copylyrics)
-						.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-						.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-				}
+				onContextMenu: event => Utils.copyLyricsToClipboard(event)
 			})
 		);
 
@@ -586,13 +565,7 @@ const GeniusPage = react.memo(
 					dangerouslySetInnerHTML: {
 						__html: lyrics2
 					},
-					onContextMenu: event => {
-						event.preventDefault();
-						const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
-						Spicetify.Platform.ClipboardAPI.copy(copylyrics)
-							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-					}
+					onContextMenu: event => Utils.copyLyricsToClipboard(event)
 				})
 			);
 			mainContainer.push(lyricsEl2);
