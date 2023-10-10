@@ -577,7 +577,7 @@ const GeniusPage = react.memo(
 				className: "lyrics-lyricsContainer-UnsyncedLyricsPage"
 			},
 			react.createElement("p", {
-				className: "lyrics-lyricsContainer-LyricsUnsyncedPadding main-type-ballad"
+				className: "lyrics-lyricsContainer-LyricsUnsyncedPadding"
 			}),
 			react.createElement("div", { className: shouldSplit ? "split" : "" }, mainContainer),
 			react.createElement(CreditFooter, {
