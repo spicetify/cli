@@ -146,7 +146,7 @@ func Restore() {
 		utils.PrintWarning("Spotify version and backup version are mismatched.")
 
 		if spotStat.IsBackupable() {
-			utils.PrintInfo(`Spotify is at stock state. Run "spicetify backup" to backup current Spotify version.`)
+			utils.PrintInfo(`Spotify is at stock state. Please stop the process and then run "spicetify backup" to backup current Spotify version.`)
 		}
 
 		if !ReadAnswer("Continue restoring anyway? [y/N] ", false, true) {
