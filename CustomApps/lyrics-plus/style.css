@@ -182,31 +182,25 @@
 	pointer-events: none;
 }
 
-.lyrics-lyricsContainer-LyricsLine {
+.lyrics-lyricsContainer-LyricsLine,
+.lyrics-versionSelector {
 	margin-left: 100px;
 	margin-right: 100px;
 }
-.lyrics-versionSelector {
-	margin-left: 100px;
-}
 
 @media (min-width: 1024px) {
-	.lyrics-lyricsContainer-LyricsLine {
-		margin-left: 150px;
-		margin-right: 150px;
-	}
+	.lyrics-lyricsContainer-LyricsLine,
 	.lyrics-versionSelector {
 		margin-left: 150px;
+		margin-right: 150px;
 	}
 }
 
 @media (min-width: 1280px) {
-	.lyrics-lyricsContainer-LyricsLine {
-		margin-left: 200px;
-		margin-right: 200px;
-	}
+	.lyrics-lyricsContainer-LyricsLine,
 	.lyrics-versionSelector {
 		margin-left: 200px;
+		margin-right: 200px;
 	}
 }
 
@@ -690,7 +684,7 @@ div.lyrics-tabBar-headerItemLink {
 	padding-right: 50px;
 }
 .split .lyrics-versionSelector {
-	width: calc(100% - 50px);
+	margin-right: 50px;
 	margin-left: 50px;
 }
 .split .lyrics-versionSelector select {
@@ -703,7 +697,7 @@ div.lyrics-tabBar-headerItemLink {
 		padding-right: 75px;
 	}
 	.split .lyrics-versionSelector {
-		width: calc(100% - 75px);
+		margin-right: 75px;
 		margin-left: 75px;
 	}
 }
@@ -714,7 +708,7 @@ div.lyrics-tabBar-headerItemLink {
 		padding-right: 100px;
 	}
 	.split .lyrics-versionSelector {
-		width: calc(100% - 100px);
+		margin-right: 100px;
 		margin-left: 100px;
 	}
 }
