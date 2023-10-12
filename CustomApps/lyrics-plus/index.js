@@ -17,7 +17,7 @@ const {
 
 // Define a function called "render" to specify app entry point
 // This function will be used to mount app to main view.
-function render() {	
+function render() {
 	return react.createElement(LyricsContainer, null);
 }
 
@@ -293,7 +293,7 @@ class LyricsContainer extends react.Component {
 			CACHE[data.uri] = finalData;
 			return finalData;
 		}
-		
+
 		CACHE[trackInfo.uri] = finalData;
 		return finalData;
 	}
