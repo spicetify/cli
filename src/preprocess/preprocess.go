@@ -440,7 +440,7 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 	utils.Replace(
 		&input,
 		`(\w+)\s*=\s*e\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
-		`(globalThis.Spicetify.Snackbar = n = e.call(this, t) || this).enqueueSnackbar`)
+		`globalThis.Spicetify.Snackbar = n = e.call(this, t) || this).enqueueSnackbar`)
 
 	return input
 }
