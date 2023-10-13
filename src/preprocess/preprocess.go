@@ -354,6 +354,12 @@ Spicetify.React.useEffect(() => {
 		`case [\w$.]+BuddyFeed:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?;(?:break;)?(?:case [\w$.]+:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:break;)?)*default:(?:return ?|[\w$]+=)`,
 		`${0} Spicetify.Panel?.render()??`)
 
+	// Snackbar https://mui.com/material-ui/react-snackbar/
+	utils.Replace(
+		&input,
+		`(\w+)\s*=\s*e\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
+		`(globalThis.Spicetify.Snackbar = n = e.call(this, t) || this).enqueueSnackbar`)
+
 	return input
 }
 
