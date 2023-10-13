@@ -354,12 +354,6 @@ Spicetify.React.useEffect(() => {
 		`case [\w$.]+BuddyFeed:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?;(?:break;)?(?:case [\w$.]+:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:break;)?)*default:(?:return ?|[\w$]+=)`,
 		`${0} Spicetify.Panel?.render()??`)
 
-	// Snackbar https://mui.com/material-ui/react-snackbar/
-	utils.Replace(
-		&input,
-		`(\w+)\s*=\s*e\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
-		`(globalThis.Spicetify.Snackbar = n = e.call(this, t) || this).enqueueSnackbar`)
-
 	return input
 }
 
@@ -441,6 +435,12 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		&input,
 		`([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})`,
 		`${1}=Spicetify.ReactFlipToolkit.spring=${2}`)
+
+	// Snackbar https://mui.com/material-ui/react-snackbar/
+	utils.Replace(
+		&input,
+		`(\w+)\s*=\s*e\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
+		`(globalThis.Spicetify.Snackbar = n = e.call(this, t) || this).enqueueSnackbar`)
 
 	return input
 }
