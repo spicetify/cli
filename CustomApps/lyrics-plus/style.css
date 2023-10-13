@@ -102,7 +102,7 @@
 	display: grid;
 	grid-area: 1/1/-1/-1;
 	grid-template-rows: 1fr 30px;
-	overflow-y: hidden;
+	overflow: hidden;
 	text-align: var(--lyrics-align-text);
 	user-select: text;
 }
