@@ -402,6 +402,11 @@ window.Spicetify = {
 			ButtonPrimary: modules.find(m => m?.render && m?.displayName === "ButtonPrimary"),
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
+			Snackbar: {
+				// somehow append Spicetify.Snackbar.props.Components
+				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
+			   	simpleImageLayout: functionModules.find(m => m.toString().includes("enqueueCustomSnackbar"))
+			},
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
