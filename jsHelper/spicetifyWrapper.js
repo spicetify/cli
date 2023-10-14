@@ -407,7 +407,8 @@ window.Spicetify = {
 			Snackbar: {
 				//...Spicetify.Snackbar.props.Components, -> doesnt exist for a while
 				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
-				ImageLayout: functionModules.find(m => m.toString().includes("enqueueCustomSnackbar"))
+				ImageLayout: functionModules.find(m => m.toString().includes("enqueueCustomSnackbar")),
+				ctaText: functionModules.find(m => m.toString().includes("ctaText"))
 			},
 			...Object.fromEntries(menus)
 		},
