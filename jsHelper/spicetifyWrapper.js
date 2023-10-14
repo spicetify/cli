@@ -163,7 +163,8 @@ window.Spicetify = {
 			"ReactQuery",
 			"Color",
 			"extractColorPreset",
-			"ReactDOMServer"
+			"ReactDOMServer",
+			"Snackbar"
 		];
 
 		const PLAYER_METHOD = [
@@ -225,7 +226,8 @@ window.Spicetify = {
 			"RemoteConfigProvider",
 			"ButtonPrimary",
 			"ButtonSecondary",
-			"ButtonTertiary"
+			"ButtonTertiary",
+			"Snackbar"
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
@@ -403,9 +405,9 @@ window.Spicetify = {
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
 			Snackbar: {
-				// somehow append Spicetify.Snackbar.props.Components
+				//...Spicetify.Snackbar.props.Components, -> doesnt exist for a while
 				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
-			   	simpleImageLayout: functionModules.find(m => m.toString().includes("enqueueCustomSnackbar"))
+				ImageLayout: functionModules.find(m => m.toString().includes("enqueueCustomSnackbar"))
 			},
 			...Object.fromEntries(menus)
 		},
