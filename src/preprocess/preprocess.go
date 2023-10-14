@@ -358,7 +358,7 @@ Spicetify.React.useEffect(() => {
 	utils.Replace(
 		&input,
 		`\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;`,
-		`${0} globalThis.Spicetify.Snackbar.enqueueCustomSnackbar = ${1};`)
+		`${0} Spicetify.Snackbar.enqueueCustomSnackbar = ${1};`)
 
 	return input
 }
