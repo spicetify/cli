@@ -405,10 +405,8 @@ window.Spicetify = {
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
 			Snackbar: {
-				//...Spicetify.Snackbar.props.Components, -> doesnt exist for a while
-				wrapper: functionModules.find(m => m.toString().includes('encore-light-theme')),
+				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme")),
 				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
-				ImageLayout: functionModules.find(m => m.toString().includes("enqueueCustomSnackbar")),
 				ctaText: functionModules.find(m => m.toString().includes("ctaText"))
 			},
 			...Object.fromEntries(menus)

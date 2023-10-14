@@ -360,6 +360,11 @@ Spicetify.React.useEffect(() => {
 		`\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;`,
 		`${0} Spicetify.Snackbar.enqueueCustomSnackbar = ${1};`)
 
+	utils.Replace(
+		&input,
+		`\(\({[^}]*,\s*imageSrc`,
+		`Spicetify.Snackbar.enqueueImageSnackbar = ${0}`)
+
 	return input
 }
 
