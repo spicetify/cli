@@ -446,7 +446,7 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 	utils.Replace(
 		&input,
 		`\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
-		`globalThis.Spicetify.Snackbar = ${0}`)
+		`Spicetify.Snackbar = ${0}`)
 
 	return input
 }
