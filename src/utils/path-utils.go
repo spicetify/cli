@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -66,16 +67,48 @@ func GetUserFolder(name string) string {
 var userAppsFolder = GetUserFolder("CustomApps")
 var userExtensionsFolder = GetUserFolder("Extensions")
 
+func GetAppIndexFolderPath(folderPath string) string {
+	entries, err := ioutil.ReadDir(folderPath)
+	if err != nil {
+		return ""
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			subfolderPath := filepath.Join(folderPath, entry.Name())
+			indexPath := filepath.Join(subfolderPath, "index.js")
+
+			if _, err := os.Stat(indexPath); err == nil {
+				return subfolderPath
+			}
+
+			if subfolder := GetAppIndexFolderPath(subfolderPath); subfolder != "" {
+				return subfolder
+			}
+		}
+	}
+
+	return ""
+}
+
 func GetCustomAppPath(name string) (string, error) {
 	customAppFolderPath := filepath.Join(userAppsFolder, name)
 
 	if _, err := os.Stat(customAppFolderPath); err == nil {
+		customAppActualFolderPath := GetAppIndexFolderPath(customAppFolderPath)
+		if customAppActualFolderPath != "" {
+			return customAppActualFolderPath, nil
+		}
 		return customAppFolderPath, nil
 	}
 
 	customAppFolderPath = filepath.Join(GetExecutableDir(), "CustomApps", name)
 
 	if _, err := os.Stat(customAppFolderPath); err == nil {
+		customAppActualFolderPath := GetAppIndexFolderPath(customAppFolderPath)
+		if customAppActualFolderPath != "" {
+			return customAppActualFolderPath, nil
+		}
 		return customAppFolderPath, nil
 	}
 
