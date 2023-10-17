@@ -459,7 +459,7 @@ window.Spicetify = {
 				Spicetify.notification(message, isError, msTimeout);
 				return;
 			}
-			
+
 			Spicetify.Snackbar.enqueueSnackbar(message, {
 				variant: isError ? "error" : "default",
 				autoHideDuration: msTimeout
