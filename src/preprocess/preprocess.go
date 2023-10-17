@@ -273,7 +273,7 @@ func exposeAPIs_main(input string) string {
 	utils.Replace(
 		&input,
 		`(?:\w+ |,)([\w$]+)=(\([\w$]+=[\w$]+\.dispatch)`,
-		`;globalThis.Spicetify.notification=(message,isError=false,msTimeout)=>${1}({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const ${1}=${2}`)
+		`;globalThis.Spicetify.sendNotification=(message,isError=false,msTimeout)=>${1}({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const ${1}=${2}`)
 
 	// Remove list of exclusive shows
 	utils.Replace(
@@ -358,12 +358,12 @@ Spicetify.React.useEffect(() => {
 	utils.Replace(
 		&input,
 		`\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;`,
-		`${0} Spicetify.Snackbar.enqueueCustomSnackbar = ${1};`)
+		`${0}Spicetify.Snackbar.enqueueCustomSnackbar=${1};`)
 
 	utils.Replace(
 		&input,
 		`\(\({[^}]*,\s*imageSrc`,
-		`Spicetify.Snackbar.enqueueImageSnackbar = ${0}`)
+		`Spicetify.Snackbar.enqueueImageSnackbar=${0}`)
 
 	return input
 }
@@ -451,7 +451,7 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 	utils.Replace(
 		&input,
 		`\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
-		`Spicetify.Snackbar = ${0}`)
+		`Spicetify.Snackbar=${0}`)
 
 	return input
 }

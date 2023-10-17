@@ -126,7 +126,7 @@ window.Spicetify = {
 			"LocalStorage",
 			"Queue",
 			"removeFromQueue",
-			"notification",
+			"sendNotification",
 			"showNotification",
 			"Menu",
 			"ContextMenu",
@@ -449,20 +449,21 @@ window.Spicetify = {
 
 	// Combine snackbar and notification
 	(async function bindShowNotification() {
-		if (!(Spicetify.Snackbar && Spicetify.notification)) {
+		if (!(Spicetify.Snackbar || Spicetify.sendNotification)) {
 			setTimeout(bindShowNotification, 10);
 			return;
 		}
 
-		Spicetify.showNotification = (message, isError = false, msTimeout, snack = true) => {
-			if (snack) {
-				Spicetify.Snackbar.enqueueSnackbar(message, {
-					variant: isError ? "error" : "default",
-					autoHideDuration: msTimeout
-				});
-			} else {
+		Spicetify.showNotification = (message, isError = false, msTimeout) => {
+			if (!Spicetify.Snackbar?.enqueueSnackbar) {
 				Spicetify.notification(message, isError, msTimeout);
+				return;
 			}
+			
+			Spicetify.Snackbar.enqueueSnackbar(message, {
+				variant: isError ? "error" : "default",
+				autoHideDuration: msTimeout
+			});
 		};
 	})();
 
