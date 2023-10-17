@@ -456,7 +456,7 @@ window.Spicetify = {
 
 		Spicetify.showNotification = (message, isError = false, msTimeout) => {
 			if (!Spicetify.Snackbar?.enqueueSnackbar) {
-				Spicetify.notification(message, isError, msTimeout);
+				Spicetify.sendNotification(message, isError, msTimeout);
 				return;
 			}
 
