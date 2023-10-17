@@ -126,6 +126,7 @@ window.Spicetify = {
 			"LocalStorage",
 			"Queue",
 			"removeFromQueue",
+			"notification",
 			"showNotification",
 			"Menu",
 			"ContextMenu",
@@ -445,6 +446,25 @@ window.Spicetify = {
 	if (playlistMenuChunk) Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function");
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
+
+	// Combine snackbar and notification
+	(async function bindShowNotification() {
+		if (!(Spicetify.Snackbar && Spicetify.notification)) {
+			setTimeout(bindShowNotification, 10);
+			return;
+		}
+
+		Spicetify.showNotification = (message, isError = false, msTimeout, snack = true) => {
+			if (snack) {
+				Spicetify.Snackbar.enqueueSnackbar(message, {
+					variant: isError ? "error" : "default",
+					autoHideDuration: msTimeout
+				});
+			} else {
+				Spicetify.notification(message, isError, msTimeout);
+			}
+		};
+	})();
 
 	// Image color extractor
 	(async function bindColorExtractor() {
