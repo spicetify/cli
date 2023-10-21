@@ -29,6 +29,14 @@
 		"shift+pageup": { callback: () => focusOnApp() },
 		"shift+pagedown": { callback: () => focusOnApp() },
 
+		// Control next and previous song using Ctrl+RightArrow and Ctrl+LeftArrow
+		"ctrl+right": { callback: () => nextSong() },
+		"ctrl+left": { callback: () => previousSong() },
+
+		// Control volume using Ctrl+UpArrow and Ctrl+DownArrow
+		"ctrl+up": { callback: () => increaseVolume() },
+		"ctrl+down": { callback: () => decreaseVolume() },
+
 		// Scroll actions using 'j' and 'k' keys
 		j: { callback: () => createScrollCallback(SCROLL_STEP) },
 		k: { callback: () => createScrollCallback(-SCROLL_STEP) },
@@ -58,6 +66,22 @@
 	// Functions
 	function focusOnApp() {
 		return document.querySelector(".Root__main-view .os-viewport");
+	}
+
+	function nextSong() {
+		document.querySelector("button[aria-label='Next']").click();
+	}
+
+	function previousSong() {
+		document.querySelector("button[aria-label='Previous']").click();
+	}
+
+	function increaseVolume() {
+		Spicetify.Player.setVolume(Spicetify.Player.getVolume() + 0.05);
+	}
+
+	function decreaseVolume() {
+		Spicetify.Player.setVolume(Spicetify.Player.getVolume() - 0.05);
 	}
 
 	function createScrollCallback(step) {
