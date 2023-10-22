@@ -119,7 +119,7 @@
 })();
 
 function VimBind() {
-	const elementQuery = ["[href]", "button", "td.tl-play", "td.tl-number", "tr.TableRow"].join(",");
+	const elementQuery = ["[href]", "button", "td.tl-play", "td.tl-number", "tr.TableRow", "[role='button']"].join(",");
 
 	const keyList = "qwertasdfgzxcvyuiophjklbnm".split("");
 
