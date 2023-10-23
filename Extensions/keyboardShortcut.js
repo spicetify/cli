@@ -268,7 +268,7 @@ function VimBind() {
 	 * @param {HTMLElement} element
 	 */
 	function click(element) {
-		if (element.hasAttribute("href") || element.tagName === "BUTTON") {
+		if (element.hasAttribute("href") || element.tagName === "BUTTON" || element.role === "button") {
 			element.click();
 			return;
 		}
