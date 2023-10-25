@@ -67,7 +67,7 @@ func GetUserFolder(name string) string {
 var userAppsFolder = GetUserFolder("CustomApps")
 var userExtensionsFolder = GetUserFolder("Extensions")
 
-func GetAppIndexFolderPath(folderPath string) string {
+func GetCustomAppSubfolderPath(folderPath string) string {
 	entries, err := ioutil.ReadDir(folderPath)
 	if err != nil {
 		return ""
@@ -82,7 +82,7 @@ func GetAppIndexFolderPath(folderPath string) string {
 				return subfolderPath
 			}
 
-			if subfolder := GetAppIndexFolderPath(subfolderPath); subfolder != "" {
+			if subfolder := GetCustomAppSubfolderPath(subfolderPath); subfolder != "" {
 				return subfolder
 			}
 		}
@@ -95,7 +95,7 @@ func GetCustomAppPath(name string) (string, error) {
 	customAppFolderPath := filepath.Join(userAppsFolder, name)
 
 	if _, err := os.Stat(customAppFolderPath); err == nil {
-		customAppActualFolderPath := GetAppIndexFolderPath(customAppFolderPath)
+		customAppActualFolderPath := GetCustomAppSubfolderPath(customAppFolderPath)
 		if customAppActualFolderPath != "" {
 			return customAppActualFolderPath, nil
 		}
@@ -105,7 +105,7 @@ func GetCustomAppPath(name string) (string, error) {
 	customAppFolderPath = filepath.Join(GetExecutableDir(), "CustomApps", name)
 
 	if _, err := os.Stat(customAppFolderPath); err == nil {
-		customAppActualFolderPath := GetAppIndexFolderPath(customAppFolderPath)
+		customAppActualFolderPath := GetCustomAppSubfolderPath(customAppFolderPath)
 		if customAppActualFolderPath != "" {
 			return customAppActualFolderPath, nil
 		}
