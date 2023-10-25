@@ -6,7 +6,7 @@
 
 (function SkipVideo() {
 	Spicetify.Player.addEventListener("songchange", () => {
-		const data = Spicetify.Player.data || Spicetify.Queue;
+		const data = Spicetify1.Player.data || Spicetify.Queue;
 		if (!data) return;
 
 		const meta = data.item.metadata;
