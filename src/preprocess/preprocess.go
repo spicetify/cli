@@ -273,7 +273,7 @@ func exposeAPIs_main(input string) string {
 	utils.Replace(
 		&input,
 		`(?:\w+ |,)([\w$]+)=(\([\w$]+=[\w$]+\.dispatch)`,
-		`;globalThis.Spicetify.showNotification=(message,isError=false,msTimeout)=>${1}({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const ${1}=${2}`)
+		`;globalThis.Spicetify.sendNotification=(message,isError=false,msTimeout)=>${1}({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const ${1}=${2}`)
 
 	// Remove list of exclusive shows
 	utils.Replace(
@@ -353,6 +353,17 @@ Spicetify.React.useEffect(() => {
 		&input,
 		`case [\w$.]+BuddyFeed:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?;(?:break;)?(?:case [\w$.]+:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:break;)?)*default:(?:return ?|[\w$]+=)`,
 		`${0} Spicetify.Panel?.render()??`)
+
+	// Snackbar https://mui.com/material-ui/react-snackbar/
+	utils.Replace(
+		&input,
+		`\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;`,
+		`${0}Spicetify.Snackbar.enqueueCustomSnackbar=${1};`)
+
+	utils.Replace(
+		&input,
+		`\(\({[^}]*,\s*imageSrc`,
+		`Spicetify.Snackbar.enqueueImageSnackbar=${0}`)
 
 	return input
 }
@@ -435,6 +446,12 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		&input,
 		`([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})`,
 		`${1}=Spicetify.ReactFlipToolkit.spring=${2}`)
+
+	// Snackbar https://mui.com/material-ui/react-snackbar/
+	utils.Replace(
+		&input,
+		`\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
+		`Spicetify.Snackbar=${0}`)
 
 	return input
 }

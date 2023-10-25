@@ -126,6 +126,7 @@ window.Spicetify = {
 			"LocalStorage",
 			"Queue",
 			"removeFromQueue",
+			"sendNotification",
 			"showNotification",
 			"Menu",
 			"ContextMenu",
@@ -163,7 +164,8 @@ window.Spicetify = {
 			"ReactQuery",
 			"Color",
 			"extractColorPreset",
-			"ReactDOMServer"
+			"ReactDOMServer",
+			"Snackbar"
 		];
 
 		const PLAYER_METHOD = [
@@ -225,7 +227,8 @@ window.Spicetify = {
 			"RemoteConfigProvider",
 			"ButtonPrimary",
 			"ButtonSecondary",
-			"ButtonTertiary"
+			"ButtonTertiary",
+			"Snackbar"
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
@@ -402,6 +405,11 @@ window.Spicetify = {
 			ButtonPrimary: modules.find(m => m?.render && m?.displayName === "ButtonPrimary"),
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
+			Snackbar: {
+				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme")),
+				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
+				ctaText: functionModules.find(m => m.toString().includes("ctaText"))
+			},
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -438,6 +446,26 @@ window.Spicetify = {
 	if (playlistMenuChunk) Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function");
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
+
+	// Combine snackbar and notification
+	(async function bindShowNotification() {
+		if (!(Spicetify.Snackbar || Spicetify.sendNotification)) {
+			setTimeout(bindShowNotification, 10);
+			return;
+		}
+
+		Spicetify.showNotification = (message, isError = false, msTimeout) => {
+			if (!Spicetify.Snackbar?.enqueueSnackbar) {
+				Spicetify.sendNotification(message, isError, msTimeout);
+				return;
+			}
+
+			Spicetify.Snackbar.enqueueSnackbar(message, {
+				variant: isError ? "error" : "default",
+				autoHideDuration: msTimeout
+			});
+		};
+	})();
 
 	// Image color extractor
 	(async function bindColorExtractor() {
