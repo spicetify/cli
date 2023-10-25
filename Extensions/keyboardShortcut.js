@@ -119,7 +119,7 @@
 })();
 
 function VimBind() {
-	const elementQuery = ["[href]", "button", "td.tl-play", "td.tl-number", "tr.TableRow"].join(",");
+	const elementQuery = ["[href]", "button", "td.tl-play", "td.tl-number", "tr.TableRow", "[role='button']"].join(",");
 
 	const keyList = "qwertasdfgzxcvyuiophjklbnm".split("");
 
@@ -268,7 +268,7 @@ function VimBind() {
 	 * @param {HTMLElement} element
 	 */
 	function click(element) {
-		if (element.hasAttribute("href") || element.tagName === "BUTTON") {
+		if (element.hasAttribute("href") || element.tagName === "BUTTON" || element.role === "button") {
 			element.click();
 			return;
 		}
