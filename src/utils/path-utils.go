@@ -82,8 +82,8 @@ func GetCustomAppSubfolderPath(folderPath string) string {
 				return subfolderPath
 			}
 
-			if subfolder := GetCustomAppSubfolderPath(subfolderPath); subfolder != "" {
-				return subfolder
+			if subfolderPath := GetCustomAppSubfolderPath(subfolderPath); subfolderPath != "" {
+				return subfolderPath
 			}
 		}
 	}
