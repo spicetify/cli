@@ -246,6 +246,7 @@ func disableSentry(input string) string {
 
 func disableLogging(input string) string {
 	utils.Replace(&input, `sp://logging/v3/\w+`, "")
+	utils.Replace(&input, `[^"\/]+\/[^"\/]+\/(public\/)?v3\/events`, "")
 	return input
 }
 
