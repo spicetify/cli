@@ -688,7 +688,7 @@ Spicetify.LocalStorage = {
 };
 
 Spicetify._getStyledClassName = (args, component) => {
-	const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "iconSize", "position", "data-encore-id"];
+	const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "iconSize", "position", "data-encore-id", "$size"];
 	const customKeys = ["padding", "blocksize"];
 
 	const element = Array.from(args).find(
