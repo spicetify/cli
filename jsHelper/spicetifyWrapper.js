@@ -690,7 +690,19 @@ Spicetify.LocalStorage = {
 };
 
 Spicetify._getStyledClassName = (args, component) => {
-	const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "iconSize", "position", "data-encore-id"];
+	const includedKeys = [
+		"role",
+		"variant",
+		"semanticColor",
+		"iconColor",
+		"color",
+		"weight",
+		"buttonSize",
+		"iconSize",
+		"position",
+		"data-encore-id",
+		"$size" // >= 1.2.23
+	];
 	const customKeys = ["padding", "blocksize"];
 
 	const element = Array.from(args).find(
@@ -712,7 +724,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		}
 	}
 
-	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", ""];
+	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", ""];
 	const excludedPrefix = ["aria-"];
 
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
@@ -1876,7 +1888,7 @@ Spicetify.Playbar = (function () {
 			this.element = document.createElement("button");
 			this.element.classList.add("main-genericButton-button");
 			this.iconElement = document.createElement("span");
-			this.iconElement.classList.add("Wrapper-sm-only");
+			this.iconElement.classList.add("Wrapper-sm-only", "Wrapper-small-only");
 			this.element.appendChild(this.iconElement);
 			this.icon = icon;
 			this.onClick = onClick;
@@ -1926,6 +1938,7 @@ Spicetify.Playbar = (function () {
 		set active(bool) {
 			this._active = bool;
 			this.element.classList.toggle("main-genericButton-buttonActive", bool);
+			this.element.classList.toggle("main-genericButton-buttonActiveDot", bool);
 		}
 		get active() {
 			return this._active;
