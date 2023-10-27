@@ -126,7 +126,6 @@ window.Spicetify = {
 			"LocalStorage",
 			"Queue",
 			"removeFromQueue",
-			"sendNotification",
 			"showNotification",
 			"Menu",
 			"ContextMenu",
@@ -448,23 +447,26 @@ window.Spicetify = {
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
 
 	// Combine snackbar and notification
-	(async function bindShowNotification() {
-		if (!(Spicetify.Snackbar || Spicetify.sendNotification)) {
+	(function bindShowNotification() {
+		if (!Spicetify.Snackbar && !Spicetify.showNotification) {
 			setTimeout(bindShowNotification, 10);
 			return;
 		}
 
-		Spicetify.showNotification = (message, isError = false, msTimeout) => {
-			if (!Spicetify.Snackbar?.enqueueSnackbar) {
-				Spicetify.sendNotification(message, isError, msTimeout);
-				return;
-			}
-
-			Spicetify.Snackbar.enqueueSnackbar(message, {
-				variant: isError ? "error" : "default",
-				autoHideDuration: msTimeout
-			});
-		};
+		if (Spicetify.Snackbar?.enqueueSnackbar && !Spicetify.showNotification) {
+			Spicetify.showNotification = (message, isError = false, msTimeout) => {
+				Spicetify.Snackbar.enqueueSnackbar(message, {
+					variant: isError ? "error" : "default",
+					autoHideDuration: msTimeout
+				});
+			};
+		} else {
+			if (!Spicetify.Snackbar) Spicetify.Snackbar = {};
+			Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration }) => {
+				isError = variant === "error";
+				Spicetify.showNotification(message, isError, autoHideDuration);
+			};
+		}
 	})();
 
 	// Image color extractor

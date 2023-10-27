@@ -246,6 +246,7 @@ func disableSentry(input string) string {
 
 func disableLogging(input string) string {
 	utils.Replace(&input, `sp://logging/v3/\w+`, "")
+	utils.Replace(&input, `[^"\/]+\/[^"\/]+\/(public\/)?v3\/events`, "")
 	return input
 }
 
@@ -273,7 +274,7 @@ func exposeAPIs_main(input string) string {
 	utils.Replace(
 		&input,
 		`(?:\w+ |,)([\w$]+)=(\([\w$]+=[\w$]+\.dispatch)`,
-		`;globalThis.Spicetify.sendNotification=(message,isError=false,msTimeout)=>${1}({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const ${1}=${2}`)
+		`;globalThis.Spicetify.showNotification=(message,isError=false,msTimeout)=>${1}({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const ${1}=${2}`)
 
 	// Remove list of exclusive shows
 	utils.Replace(
