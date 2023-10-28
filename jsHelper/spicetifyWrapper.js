@@ -449,7 +449,7 @@ window.Spicetify = {
 	// Combine snackbar and notification
 	(function bindShowNotification() {
 		if (!Spicetify.Snackbar && !Spicetify.showNotification) {
-			setTimeout(bindShowNotification, 100);
+			setTimeout(bindShowNotification, 250);
 			return;
 		}
 
