@@ -449,24 +449,25 @@ window.Spicetify = {
 	// Combine snackbar and notification
 	(function bindShowNotification() {
 		if (!Spicetify.Snackbar && !Spicetify.showNotification) {
-			setTimeout(bindShowNotification, 10);
+			setTimeout(bindShowNotification, 250);
 			return;
 		}
 
-		if (Spicetify.Snackbar?.enqueueSnackbar && !Spicetify.showNotification) {
+		if (Spicetify.Snackbar?.enqueueSnackbar) {
 			Spicetify.showNotification = (message, isError = false, msTimeout) => {
 				Spicetify.Snackbar.enqueueSnackbar(message, {
 					variant: isError ? "error" : "default",
 					autoHideDuration: msTimeout
 				});
 			};
-		} else {
-			if (!Spicetify.Snackbar) Spicetify.Snackbar = {};
-			Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration }) => {
-				isError = variant === "error";
-				Spicetify.showNotification(message, isError, autoHideDuration);
-			};
+			return;
 		}
+
+		if (!Spicetify.Snackbar) Spicetify.Snackbar = {};
+		Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration } = {}) => {
+			isError = variant === "error";
+			Spicetify.showNotification(message, isError, autoHideDuration);
+		};
 	})();
 
 	// Image color extractor
