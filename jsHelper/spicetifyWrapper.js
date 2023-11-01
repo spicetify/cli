@@ -408,7 +408,7 @@ window.Spicetify = {
 				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme")),
 				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
 				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
-				styledImage: functionModules.find(m => m.toString().includes('placeholderSrc')),
+				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
 			},
 			...Object.fromEntries(menus)
 		},
