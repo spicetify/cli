@@ -384,7 +384,7 @@ window.Spicetify = {
 		ReactComponent: {
 			...Spicetify.ReactComponent,
 			TextComponent: modules.find(m => m?.h1 && m?.render),
-			ConfirmDialog: functionModules.find(m => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc")),
+			ConfirmDialog: functionModules.find(m => m.toString().includes("confirm-dialog-description")),
 			Menu: functionModules.find(m => m.toString().includes("getInitialFocusElement") && m.toString().includes("children")),
 			MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
 			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
