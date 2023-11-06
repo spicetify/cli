@@ -1,8 +1,8 @@
 package backupstatus
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/spicetify/spicetify-cli/src/utils"
@@ -30,7 +30,7 @@ const (
 
 // Get returns status of backup folder
 func Get(prefsPath, backupPath, backupVersion string) Status {
-	fileList, err := ioutil.ReadDir(backupPath)
+	fileList, err := os.ReadDir(backupPath)
 	if err != nil {
 		log.Fatal(err)
 	}
