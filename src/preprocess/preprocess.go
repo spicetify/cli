@@ -45,6 +45,7 @@ func readRemoteCssMap(tag string, cssTranslationMap *map[string]string) error {
 		err := json.NewDecoder(cssMapResp.Body).Decode(cssTranslationMap)
 		if err != nil {
 			utils.PrintWarning("Remote CSS map JSON malformed.")
+			return err
 		}
 	}
 	return nil
