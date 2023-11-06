@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -47,7 +46,7 @@ Modded Spotify cannot be launched using original Shortcut/Start menu tile. To co
 		log.Fatal(err)
 	}
 
-	appList, err := ioutil.ReadDir(backupFolder)
+	appList, err := os.ReadDir(backupFolder)
 	if err != nil {
 		log.Fatal(err)
 	}

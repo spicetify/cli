@@ -407,10 +407,6 @@ func pushApps(list ...string) {
 	}
 }
 
-func toTernary(key string) utils.TernaryBool {
-	return utils.TernaryBool(featureSection.Key(key).MustInt(0))
-}
-
 func nodeModuleSymlink() {
 	nodeModulePath, err := utils.GetExtensionPath("node_modules")
 	if err != nil {
