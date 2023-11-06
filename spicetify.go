@@ -473,6 +473,9 @@ spotify_launch_flags
     Separate each flag with "|".
     List of valid flags: https://spicetify.app/docs/development/spotify-cli-flags
 
+always_enable_devtools <0 | 1>
+    Whether Chrome DevTools is enabled when launching/restarting Spotify.
+
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>
     Prevents Sentry and Amazon Qualaroo to send console log/error/warning to Spotify developers.
