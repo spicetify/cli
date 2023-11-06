@@ -23,6 +23,7 @@ var (
 			"overwrite_assets":        "0",
 			"spotify_launch_flags":    "",
 			"check_spicetify_upgrade": "1",
+			"always_enable_devtools":  "0",
 		},
 		"Preprocesses": {
 			"disable_sentry":     "1",
