@@ -15,7 +15,7 @@ func ThemeAssetPath(kind string) (string, error) {
 	if kind == "root" {
 		return filepath.Join(utils.GetExecutableDir(), "Themes"), nil
 	} else if len(themeFolder) == 0 {
-		return "", errors.New(`Config "current_theme" is blank`)
+		return "", errors.New(`config "current_theme" is blank`)
 	}
 
 	if kind == "folder" {
@@ -34,7 +34,7 @@ func ThemeAssetPath(kind string) (string, error) {
 		return assets, nil
 	}
 
-	return "", errors.New(`Unrecognized theme assets kind. Only "root", "folder", "color", "css", "js" or "assets" is valid`)
+	return "", errors.New(`unrecognized theme assets kind. only "root", "folder", "color", "css", "js" or "assets" is valid`)
 }
 
 // ThemeAllAssetsPath returns paths of all theme's assets
@@ -42,7 +42,7 @@ func ThemeAllAssetsPath() (string, error) {
 	InitSetting()
 
 	if len(themeFolder) == 0 {
-		return "", errors.New(`Config "current_theme" is blank`)
+		return "", errors.New(`config "current_theme" is blank`)
 	}
 
 	results := []string{
