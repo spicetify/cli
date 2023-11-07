@@ -702,6 +702,10 @@ body.video-full-screen.video-full-screen--hide-ui {
 	}
 
 	async function activate() {
+		if (!Spicetify.Player.data) {
+			return
+		}
+
 		await toggleFullscreen();
 
 		document.body.classList.add(...classes);
