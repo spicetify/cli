@@ -54,8 +54,8 @@ func Watch(liveUpdate bool) {
 					utils.Fatal(err)
 				}
 
-				pushThemeJS()
-				utils.PrintSuccess(utils.PrependTime("Theme's JS is updated"))
+				refreshThemeJS()
+				utils.PrintSuccess(utils.PrependTime("Theme's JS was reloaded"))
 			}, autoReloadFunc)
 		}
 	}
@@ -69,8 +69,8 @@ func Watch(liveUpdate bool) {
 					utils.Fatal(err)
 				}
 
-				updateAssets()
-				utils.PrintSuccess(utils.PrependTime("Custom assets are updated"))
+				refreshThemeAssets()
+				utils.PrintSuccess(utils.PrependTime("Custom assets were reloaded"))
 			}, autoReloadFunc)
 		}
 	}
@@ -81,7 +81,7 @@ func Watch(liveUpdate bool) {
 		}
 
 		InitSetting()
-		updateCSS()
+		refreshThemeCSS()
 		utils.PrintSuccess(utils.PrependTime("Custom CSS is updated"))
 	}, autoReloadFunc)
 }
@@ -193,7 +193,7 @@ func WatchCustomApp(appName []string, liveUpdate bool) {
 				os.Exit(1)
 			}
 
-			pushApps(appName)
+			RefreshApps(appName)
 
 			utils.PrintSuccess(utils.PrependTime(`Custom app "` + appName + `" is updated.`))
 		}, autoReloadFunc)

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 
@@ -29,7 +30,7 @@ var (
 	appFocus       = false
 	styleFocus     = false
 	noRestart      = false
-	liveUpdate     = false
+	liveRefresh    = false
 )
 
 func init() {
@@ -84,44 +85,22 @@ func init() {
 			os.Exit(0)
 		case "-e", "--extension":
 			extensionFocus = true
-			liveUpdate = true
+			liveRefresh = true
 		case "-a", "--app":
 			appFocus = true
-			liveUpdate = true
+			liveRefresh = true
 		case "-q", "--quiet":
 			quiet = true
 		case "-n", "--no-restart":
 			noRestart = true
 		case "-s", "--style":
 			styleFocus = true
-			liveUpdate = true
-		case "-l", "--live-update":
+			liveRefresh = true
+		case "-l", "--live-refresh":
 			extensionFocus = true
 			appFocus = true
 			styleFocus = true
-			liveUpdate = true
-		case "--check-update":
-			upgradeStatus := cmd.Upgrade(version)
-			if upgradeStatus {
-				ex, err := os.Executable()
-				if err != nil {
-					ex = "spicetify"
-				}
-
-				spotStat := spotifystatus.Get(utils.FindAppPath())
-				cmds := []string{"backup", "apply"}
-				if !spotStat.IsBackupable() {
-					cmds = append([]string{"restore"}, cmds...)
-				}
-
-				cmd := exec.Command(ex, cmds...)
-				utils.CmdScanner(cmd)
-
-				cmd = exec.Command(ex, strings.Join(commands[:], " "))
-				utils.CmdScanner(cmd)
-
-				os.Exit(0)
-			}
+			liveRefresh = true
 		}
 	}
 
@@ -135,14 +114,13 @@ func init() {
 
 	if len(commands) < 1 {
 		help()
+		cmd.CheckUpdate(version)
 		os.Exit(0)
 	}
 }
 
 func main() {
-	// Show config directory without needing to initialize config
-	switch commands[0] {
-	case "config-dir":
+	if slices.Contains(commands, "config-dir") {
 		cmd.ShowConfigDirectory()
 		return
 	}
@@ -216,10 +194,6 @@ func main() {
 		log.Println(path)
 		return
 
-	case "upgrade":
-		cmd.Upgrade(version)
-		return
-
 	case "watch":
 		var name []string
 		if len(commands) > 1 {
@@ -233,7 +207,7 @@ func main() {
 			go func(name []string, liveUpdate bool) {
 				defer watchGroup.Done()
 				cmd.WatchExtensions(name, liveUpdate)
-			}(name, liveUpdate)
+			}(name, liveRefresh)
 		}
 
 		if appFocus {
@@ -241,7 +215,7 @@ func main() {
 			go func(name []string, liveUpdate bool) {
 				defer watchGroup.Done()
 				cmd.WatchCustomApp(name, liveUpdate)
-			}(name, liveUpdate)
+			}(name, liveRefresh)
 		}
 
 		if styleFocus {
@@ -249,7 +223,7 @@ func main() {
 			go func(liveUpdate bool) {
 				defer watchGroup.Done()
 				cmd.Watch(liveUpdate)
-			}(liveUpdate)
+			}(liveRefresh)
 		}
 
 		watchGroup.Wait()
@@ -257,7 +231,31 @@ func main() {
 	}
 
 	utils.PrintBold("spicetify v" + version)
-	cmd.CheckUpgrade(version)
+	if slices.Contains(commands, "upgrade") || slices.Contains(commands, "update") {
+		upgradeStatus := cmd.Update(version)
+		if upgradeStatus {
+			ex, err := os.Executable()
+			if err != nil {
+				ex = "spicetify"
+			}
+
+			spotStat := spotifystatus.Get(utils.FindAppPath())
+			cmds := []string{"backup", "apply"}
+			if !spotStat.IsBackupable() {
+				cmds = append([]string{"restore"}, cmds...)
+			}
+
+			cmd := exec.Command(ex, cmds...)
+			utils.CmdScanner(cmd)
+
+			cmd = exec.Command(ex, strings.Join(commands[:], " "))
+			utils.CmdScanner(cmd)
+
+			return
+		}
+	} else {
+		cmd.CheckUpdate(version)
+	}
 
 	// Chainable commands
 	for _, v := range commands {
@@ -269,14 +267,20 @@ func main() {
 			cmd.Clear()
 
 		case "apply":
+			cmd.CheckStates()
+			cmd.InitSetting()
 			cmd.Apply(version)
 			restartSpotify()
 
-		case "update":
+		case "refresh":
+			cmd.CheckStates()
+			cmd.InitSetting()
 			if extensionFocus {
-				cmd.UpdateAllExtension()
+				cmd.RefreshExtensions()
+			} else if appFocus {
+				cmd.RefreshApps()
 			} else {
-				cmd.UpdateTheme()
+				cmd.RefreshTheme()
 			}
 
 		case "restore":
@@ -320,7 +324,7 @@ backup              Start backup and preprocessing app files.
 
 apply               Apply customization.
 
-update              By default, updates theme's CSS, JS, colors, and assets.
+refresh             Refresh the theme's CSS, JS, colors, and assets.
                     Use with flag "-e" to update extensions.
 
 restore             Restore Spotify to original state.
@@ -414,7 +418,7 @@ color               1. Print all color fields and values.
 
 config-dir          Shows config directory in file viewer
 
-upgrade             Upgrade spicetify latest version
+upgrade|update      Upgrade spicetify latest version
 
 ` + utils.Bold("FLAGS") + `
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations
@@ -423,7 +427,7 @@ upgrade             Upgrade spicetify latest version
 
 -s, --style         Use with "watch" command to auto-reload Spotify when changes are made to the active theme (color.ini, user.css, theme.js, assets).
 
--e, --extension     Use with "update", "watch" or "path" command to
+-e, --extension     Use with "refresh", "watch" or "path" command to
                     focus on extensions. Use with "watch" command to auto-reload Spotify when changes are made to extensions.
 
 -a, --app           Use with "watch" or "path" to focus on custom apps. Use with "watch" command to auto-reload Spotify when changes are made to apps.
@@ -431,7 +435,7 @@ upgrade             Upgrade spicetify latest version
 -n, --no-restart    Do not restart Spotify after running command(s), except
                     "restart" command.
 
--l, --live-update   Use with "watch" command to auto-reload Spotify when changes are made to any custom component (color.ini, user.css, extensions, apps).
+-l, --live-refresh  Use with "watch" command to auto-reload Spotify when changes are made to any custom component (color.ini, user.css, extensions, apps).
 
 -c, --config        Print config file path and quit
 
