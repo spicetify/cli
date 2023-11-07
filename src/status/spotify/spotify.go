@@ -1,8 +1,8 @@
 package spotifystatus
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -33,7 +33,7 @@ const (
 
 // Get returns status of Spotify's Apps folder
 func Get(appsFolder string) Status {
-	fileList, err := ioutil.ReadDir(appsFolder)
+	fileList, err := os.ReadDir(appsFolder)
 	if err != nil {
 		log.Fatal(err)
 	}
