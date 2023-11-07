@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -126,7 +126,7 @@ func init() {
 	}
 
 	if quiet {
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 		os.Stdout = nil
 	}
 
@@ -190,11 +190,12 @@ func main() {
 				}
 				return cmd.AppPath(commands[0])
 			} else {
-				if len(flags) != 0 && (flags[0] != "-e" ||
-					flags[0] != "-c" ||
-					flags[0] != "-a" ||
-					flags[0] != "-s") {
-					return "", errors.New("Invalid Flag\nAvailable Flags: -e, -c, -a, -s")
+				if len(flags) != 0 {
+					for _, v := range flags {
+						if v != "-e" && v != "-c" && v != "-a" && v != "-s" {
+							return "", errors.New("invalid option\navailable options: -e, -c, -a, -s")
+						}
+					}
 				}
 
 				if len(commands) == 0 && len(flags) == 0 {
@@ -204,7 +205,7 @@ func main() {
 				} else if commands[0] == "userdata" {
 					return utils.GetSpicetifyFolder(), nil
 				}
-				return "", errors.New("Invalid Option\nAvailable Options: all, userdata")
+				return "", errors.New("invalid option\navailable options: all, userdata")
 			}
 		})()
 

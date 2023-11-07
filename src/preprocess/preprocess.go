@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"github.com/spicetify/spicetify-cli/src/utils"
 )
@@ -27,13 +26,6 @@ type Flag struct {
 	RemoveRTL bool
 	// ExposeAPIs leaks some Spotify's API, functions, objects to Spicetify global object.
 	ExposeAPIs bool
-	// DisableUpgrade stops Spotify to display new version upgrade notification
-	DisableUpgrade bool
-}
-
-type jsMap struct {
-	Sources        []string `json:"sources"`
-	SourcesContent []string `json:"sourcesContent"`
 }
 
 func readRemoteCssMap(tag string, cssTranslationMap *map[string]string) error {
@@ -105,9 +97,6 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 					content = disableLogging(content)
 				}
 
-				// 		if flags.DisableUpgrade {
-				// 			content = disableUpgradeCheck(content, appName)
-				// 		}
 				if flags.ExposeAPIs {
 					switch fileName {
 					case "xpui.js":
@@ -480,79 +469,6 @@ func fakeZLink(dest string) {
 	os.WriteFile(manifestFile, []byte(manifest), 0700)
 }
 
-func disableUpgradeCheck(input, appName string) string {
-	return input
-}
-
-func readSourceMapAndGenerateCSSMap(appPath string) {
-	var cssTranslationMap = make(map[string]string)
-	re := regexp.MustCompile(`"(\w+?)":"(_?\w+?-scss)"`)
-
-	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
-		extension := filepath.Ext(info.Name())
-
-		switch extension {
-		case ".map":
-			fileName := strings.Replace(info.Name(), ".js.map", "", 1)
-			isNumber, _ := regexp.MatchString(`\d+`, fileName)
-
-			if isNumber {
-				fileName = "x"
-			} else if fileName == "vendor~xpui" {
-				fileName = "vendor"
-			} else if fileName == "xpui" {
-				fileName = "main"
-			} else {
-				fileName = strings.Replace(fileName, "xpui-routes-", "", 1)
-				fileName = strings.Replace(fileName, "xpui-desktop-", "desktop", 1)
-				fileName = strings.Replace(fileName, "xpui-desktop-routes-", "desktop", 1)
-			}
-
-			raw, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			var symbolMap jsMap
-			if err = json.Unmarshal(raw, &symbolMap); err != nil {
-				return err
-			}
-			for index, content := range symbolMap.SourcesContent {
-				if strings.HasPrefix(content, `// extracted by mini-css`) {
-					matches := re.FindAllStringSubmatch(string(content), -1)
-					if len(matches) == 0 {
-						continue
-					}
-
-					source := filepath.Base(symbolMap.Sources[index])
-					source = strings.Replace(source, ".scss", "", 1)
-					// Lower first letter
-					temp := []rune(source)
-					temp[0] = unicode.ToLower(temp[0])
-					source = fileName + "-" + string(temp)
-
-					for _, m := range matches {
-						className := source + "-" + m[1]
-						savedClassLen := len(cssTranslationMap[m[2]])
-						if savedClassLen > 0 && savedClassLen < len(className) {
-							continue
-						}
-						cssTranslationMap[m[2]] = className
-					}
-				}
-			}
-		}
-
-		return nil
-	})
-
-	cssMapJson, err := json.MarshalIndent(cssTranslationMap, "", "    ")
-	if err == nil {
-		os.WriteFile("css-map.json", cssMapJson, 777)
-	} else {
-		println("CSS Map generator failed")
-	}
-}
-
 type githubRelease = utils.GithubRelease
 
 func splitVersion(version string) ([3]int, error) {
@@ -563,7 +479,7 @@ func splitVersion(version string) ([3]int, error) {
 	vSplit := strings.Split(vstring, ".")
 	var vInts [3]int
 	if len(vSplit) != 3 {
-		return [3]int{}, errors.New("Invalid version string")
+		return [3]int{}, errors.New("invalid version string")
 	}
 	for i := 0; i < 3; i++ {
 		conv, err := strconv.Atoi(vSplit[i])

@@ -2,7 +2,6 @@ package apply
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -67,11 +66,11 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 // To use default color scheme, set `scheme` to `nil`
 func UserCSS(appsFolderPath, themeFolder string, scheme map[string]string) {
 	colorsDest := filepath.Join(appsFolderPath, "xpui", "colors.css")
-	if err := ioutil.WriteFile(colorsDest, []byte(getColorCSS(scheme)), 0700); err != nil {
+	if err := os.WriteFile(colorsDest, []byte(getColorCSS(scheme)), 0700); err != nil {
 		utils.Fatal(err)
 	}
 	cssDest := filepath.Join(appsFolderPath, "xpui", "user.css")
-	if err := ioutil.WriteFile(cssDest, []byte(getUserCSS(themeFolder)), 0700); err != nil {
+	if err := os.WriteFile(cssDest, []byte(getUserCSS(themeFolder)), 0700); err != nil {
 		utils.Fatal(err)
 	}
 }
@@ -181,7 +180,7 @@ func getUserCSS(themeFolder string) string {
 		return ""
 	}
 
-	content, err := ioutil.ReadFile(cssFilePath)
+	content, err := os.ReadFile(cssFilePath)
 	if err != nil {
 		return ""
 	}
