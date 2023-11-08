@@ -2287,9 +2287,9 @@ Spicetify.Playbar = (function () {
 		setTimeout(checkForUpdate, 300);
 		return;
 	}
-	const { check_spicetify_upgrade, version } = Spicetify.Config;
+	const { check_spicetify_update, version } = Spicetify.Config;
 	// Skip checking if upgrade check is disabled, or version is Dev/version is not set
-	if (!check_spicetify_upgrade || !version || version === "Dev") {
+	if (!check_spicetify_update || !version || version === "Dev") {
 		return;
 	}
 	// Fetch latest version from GitHub
@@ -2368,10 +2368,9 @@ Spicetify.Playbar = (function () {
                 <p>Run these commands in the terminal:</p>
                 <ol>
                     <li>Update Spicetify CLI</li>
-                    <pre class="spicetify-update-little-space">spicetify upgrade</pre>
-                    <p class="spicetify-update-space">If you installed Spicetify via a package manager, update using said package manager.</p>
-                    <li>Apply changes to Spotify</li>
-                    <pre>spicetify restore backup apply</pre>
+                    <pre class="spicetify-update-little-space">spicetify update</pre>
+                    <p>Spicetify will automatically apply changes to Spotify after upgrading to the latest version.</p>
+                    <p>If you installed Spicetify via a package manager, update using said package manager.</p>
                 </ol>
             `;
 

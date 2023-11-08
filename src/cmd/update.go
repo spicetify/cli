@@ -13,7 +13,7 @@ import (
 	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
-func Upgrade(currentVersion string) bool {
+func Update(currentVersion string) bool {
 	utils.PrintBold("Fetch latest release info:")
 	tagName, err := utils.FetchLatestTag()
 	if err != nil {

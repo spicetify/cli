@@ -16,8 +16,6 @@ import (
 // Apply .
 func Apply(spicetifyVersion string) {
 	utils.MigrateConfigFolder()
-	checkStates()
-	InitSetting()
 
 	backupSpicetifyVersion := backupSection.Key("with").MustString("")
 	if spicetifyVersion != backupSpicetifyVersion {
@@ -58,23 +56,7 @@ func Apply(spicetifyVersion string) {
 		utils.PrintGreen("OK")
 	}
 
-	utils.PrintBold(`Transferring user.css:`)
-	updateCSS()
-	utils.PrintGreen("OK")
-
-	if injectJS {
-		utils.PrintBold(`Transferring theme.js:`)
-		pushThemeJS()
-		utils.PrintGreen("OK")
-	} else {
-		utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/theme.js"))
-	}
-
-	if overwriteAssets {
-		utils.PrintBold(`Overwriting custom assets:`)
-		updateAssets()
-		utils.PrintGreen("OK")
-	}
+	RefreshTheme()
 
 	if preprocSection.Key("expose_apis").MustBool(false) {
 		utils.CopyFile(
@@ -87,30 +69,30 @@ func Apply(spicetifyVersion string) {
 
 	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appDestPath, apply.Flag{
-		CurrentTheme:          settingSection.Key("current_theme").MustString(""),
-		ColorScheme:           settingSection.Key("color_scheme").MustString(""),
-		InjectThemeJS:         injectJS,
-		CheckSpicetifyUpgrade: settingSection.Key("check_spicetify_upgrade").MustBool(false),
-		Extension:             extensionList,
-		CustomApp:             customAppsList,
-		SidebarConfig:         featureSection.Key("sidebar_config").MustBool(false),
-		HomeConfig:            featureSection.Key("home_config").MustBool(false),
-		ExpFeatures:           featureSection.Key("experimental_features").MustBool(false),
-		SpicetifyVer:          backupSection.Key("with").MustString(""),
-		SpotifyVer:            supportedSpotifyVersion,
+		CurrentTheme:         settingSection.Key("current_theme").MustString(""),
+		ColorScheme:          settingSection.Key("color_scheme").MustString(""),
+		InjectThemeJS:        injectJS,
+		CheckSpicetifyUpdate: settingSection.Key("check_spicetify_update").MustBool(false),
+		Extension:            extensionList,
+		CustomApp:            customAppsList,
+		SidebarConfig:        featureSection.Key("sidebar_config").MustBool(false),
+		HomeConfig:           featureSection.Key("home_config").MustBool(false),
+		ExpFeatures:          featureSection.Key("experimental_features").MustBool(false),
+		SpicetifyVer:         backupSection.Key("with").MustString(""),
+		SpotifyVer:           supportedSpotifyVersion,
 	})
 	utils.PrintGreen("OK")
 
 	if len(extensionList) > 0 {
 		utils.PrintBold(`Transferring extensions:`)
-		pushExtensions("", extensionList...)
+		RefreshExtensions(extensionList...)
 		utils.PrintGreen("OK")
 		nodeModuleSymlink()
 	}
 
 	if len(customAppsList) > 0 {
 		utils.PrintBold(`Transferring custom apps:`)
-		pushApps(customAppsList...)
+		RefreshApps(customAppsList...)
 		utils.PrintGreen("OK")
 	}
 
@@ -123,26 +105,25 @@ func Apply(spicetifyVersion string) {
 	utils.PrintSuccess("Spotify is spiced up!")
 }
 
-// UpdateTheme updates user.css + theme.js and overwrites custom assets
-func UpdateTheme() {
-	checkStates()
-	InitSetting()
-
+// RefreshTheme updates user.css + theme.js and overwrites custom assets
+func RefreshTheme() {
 	if len(themeFolder) == 0 {
 		utils.PrintWarning(`Nothing is updated: Config "current_theme" is blank.`)
 		return
 	}
 
-	updateCSS()
+	refreshThemeCSS()
 	utils.PrintSuccess("Custom CSS is updated")
 
 	if injectJS {
-		pushThemeJS()
+		refreshThemeJS()
 		utils.PrintSuccess("Theme's JS is updated")
+	} else {
+		utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/theme.js"))
 	}
 
 	if overwriteAssets {
-		updateAssets()
+		refreshThemeAssets()
 		utils.PrintSuccess("Custom assets are updated")
 	}
 }
@@ -153,7 +134,7 @@ type spicetifyConfigJson struct {
 	Schemes    map[string]map[string]string `json:"schemes"`
 }
 
-func updateCSS() {
+func refreshThemeCSS() {
 	var scheme map[string]string = nil
 	if colorSection != nil {
 		scheme = colorSection.KeysHash()
@@ -192,14 +173,16 @@ func updateCSS() {
 	}
 }
 
-func updateAssets() {
+func refreshThemeAssets() {
 	apply.UserAsset(appDestPath, themeFolder)
 }
 
-// UpdateAllExtension pushes all extensions to Spotify
-func UpdateAllExtension() {
-	checkStates()
-	list := featureSection.Key("extensions").Strings("|")
+// RefreshExtensions pushes all extensions to Spotify
+func RefreshExtensions(list ...string) {
+	if len(list) == 0 {
+		list = featureSection.Key("extensions").Strings("|")
+	}
+
 	if len(list) > 0 {
 		pushExtensions("", list...)
 		utils.PrintSuccess(utils.PrependTime("All extensions are updated."))
@@ -208,9 +191,9 @@ func UpdateAllExtension() {
 	}
 }
 
-// checkStates examines both Backup and Spotify states to prompt informative
+// CheckStates examines both Backup and Spotify states to prompt informative
 // instruction for users
-func checkStates() {
+func CheckStates() {
 	backupVersion := backupSection.Key("version").MustString("")
 	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 	spotStat := spotifystatus.Get(appPath)
@@ -244,7 +227,7 @@ func checkStates() {
 	}
 }
 
-func pushThemeJS() {
+func refreshThemeJS() {
 	utils.CopyFile(
 		filepath.Join(themeFolder, "theme.js"),
 		filepath.Join(appDestPath, "xpui", "extensions"))
@@ -300,7 +283,11 @@ func pushExtensions(destExt string, list ...string) {
 	}
 }
 
-func pushApps(list ...string) {
+func RefreshApps(list ...string) {
+	if len(list) == 0 {
+		list = featureSection.Key("custom_apps").Strings("|")
+	}
+
 	for _, app := range list {
 		appName := `spicetify-routes-` + app
 

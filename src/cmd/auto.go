@@ -29,6 +29,8 @@ func Auto(spicetifyVersion string) {
 	}
 
 	if !spotStat.IsApplied() && backStat.IsBackuped() {
+		CheckStates()
+		InitSetting()
 		Apply(spicetifyVersion)
 	}
 }
