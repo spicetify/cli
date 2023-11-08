@@ -705,7 +705,8 @@ Spicetify._getStyledClassName = (args, component) => {
 		"iconSize",
 		"position",
 		"data-encore-id",
-		"$size" // >= 1.2.23
+		"$size",
+		"$iconColor"
 	];
 	const customKeys = ["padding", "blocksize"];
 
