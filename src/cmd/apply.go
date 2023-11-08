@@ -69,17 +69,17 @@ func Apply(spicetifyVersion string) {
 
 	utils.PrintBold(`Applying additional modifications:`)
 	apply.AdditionalOptions(appDestPath, apply.Flag{
-		CurrentTheme:          settingSection.Key("current_theme").MustString(""),
-		ColorScheme:           settingSection.Key("color_scheme").MustString(""),
-		InjectThemeJS:         injectJS,
-		CheckSpicetifyUpgrade: settingSection.Key("check_spicetify_upgrade").MustBool(false),
-		Extension:             extensionList,
-		CustomApp:             customAppsList,
-		SidebarConfig:         featureSection.Key("sidebar_config").MustBool(false),
-		HomeConfig:            featureSection.Key("home_config").MustBool(false),
-		ExpFeatures:           featureSection.Key("experimental_features").MustBool(false),
-		SpicetifyVer:          backupSection.Key("with").MustString(""),
-		SpotifyVer:            supportedSpotifyVersion,
+		CurrentTheme:         settingSection.Key("current_theme").MustString(""),
+		ColorScheme:          settingSection.Key("color_scheme").MustString(""),
+		InjectThemeJS:        injectJS,
+		CheckSpicetifyUpdate: settingSection.Key("check_spicetify_update").MustBool(false),
+		Extension:            extensionList,
+		CustomApp:            customAppsList,
+		SidebarConfig:        featureSection.Key("sidebar_config").MustBool(false),
+		HomeConfig:           featureSection.Key("home_config").MustBool(false),
+		ExpFeatures:          featureSection.Key("experimental_features").MustBool(false),
+		SpicetifyVer:         backupSection.Key("with").MustString(""),
+		SpotifyVer:           supportedSpotifyVersion,
 	})
 	utils.PrintGreen("OK")
 

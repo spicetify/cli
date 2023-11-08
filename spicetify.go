@@ -232,8 +232,8 @@ func main() {
 
 	utils.PrintBold("spicetify v" + version)
 	if slices.Contains(commands, "upgrade") || slices.Contains(commands, "update") {
-		upgradeStatus := cmd.Update(version)
-		if upgradeStatus {
+		updateStatus := cmd.Update(version)
+		if updateStatus {
 			ex, err := os.Executable()
 			if err != nil {
 				ex = "spicetify"
@@ -418,7 +418,7 @@ color               1. Print all color fields and values.
 
 config-dir          Shows config directory in file viewer
 
-upgrade|update      Upgrade spicetify latest version
+upgrade|update      Update spicetify latest version
 
 ` + utils.Bold("FLAGS") + `
 -q, --quiet         Quiet mode (no output). Be careful, dangerous operations
@@ -481,6 +481,9 @@ spotify_launch_flags
 always_enable_devtools <0 | 1>
     Whether Chrome DevTools is enabled when launching/restarting Spotify.
 
+check_spicetify_update <0 | 1>
+		Whether to check for spicetify-cli update when running Spicetify.
+
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>
     Prevents Sentry and Amazon Qualaroo to send console log/error/warning to Spotify developers.
@@ -498,10 +501,6 @@ remove_rtl_rule <0 | 1>
 expose_apis <0 | 1>
     Leaks some Spotify's API, functions, objects to Spicetify global object that
     are useful for making extensions to extend Spotify functionality.
-
-disable_upgrade_check <0 | 1>
-    Prevent Spotify checking new version and visually notifying user.
-    [Windows] Note: Automatic update still works if you don't manually delete "SpotifyMigrator.exe" and "SpotifyUpdate.exe".
 
 ` + utils.Bold("[AdditionalOptions]") + `
 custom_apps <string>
