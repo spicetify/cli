@@ -2368,9 +2368,8 @@ Spicetify.Playbar = (function () {
                 <ol>
                     <li>Update Spicetify CLI</li>
                     <pre class="spicetify-update-little-space">spicetify update</pre>
-                    <p class="spicetify-update-space">If you installed Spicetify via a package manager, update using said package manager.</p>
-                    <li>Apply changes to Spotify</li>
-                    <pre>spicetify restore backup apply</pre>
+                    <p>Spicetify will automatically apply changes to Spotify after upgrading to the latest version.</p>
+                    <p>If you installed Spicetify via a package manager, update using said package manager.</p>
                 </ol>
             `;
 
