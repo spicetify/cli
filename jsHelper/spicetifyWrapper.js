@@ -1127,25 +1127,22 @@ Spicetify.SVGIcons = {
 })();
 
 class _HTMLContextMenuItem extends HTMLLIElement {
-	constructor({ name, disabled = false, icon = undefined, divider = false }) {
+	constructor({ name, disabled = false, icon = "", divider = false }) {
 		super();
 		this.name = name;
-		this.icon = icon || "";
+		this.icon = icon;
 		this.disabled = disabled;
 		this.divider = divider;
 		this.classList.add("main-contextMenu-menuItem");
 	}
 	render() {
-		let icon = this.icon;
-		if (icon && Spicetify.SVGIcons[icon]) {
-			icon = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
+		if (this.icon && Spicetify.SVGIcons[this.icon]) {
+			this.icon = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[this.icon]}</svg>`;
 		}
 		this.innerHTML = `
-<button class="main-contextMenu-menuItemButton ${this.disabled ? "main-contextMenu-disabled" : ""} ${
-			this.divider ? "main-contextMenu-dividerAfter" : ""
-		}">
-    <span class="ellipsis-one-line main-type-mesto" dir="auto">${this.name}</span>
-    ${icon || ""}
+<button class="main-contextMenu-menuItemButton ${this.disabled && "main-contextMenu-disabled"} ${this.divider && "main-contextMenu-dividerAfter"}">
+	${this.icon}
+	<span class="ellipsis-one-line main-type-mesto main-contextMenu-menuItemLabel">${this.name}</span>
 </button>`;
 	}
 
