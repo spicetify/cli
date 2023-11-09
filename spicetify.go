@@ -250,9 +250,8 @@ func main() {
 
 			cmd = exec.Command(ex, strings.Join(commands[:], " "))
 			utils.CmdScanner(cmd)
-
-			return
 		}
+		return
 	} else {
 		cmd.CheckUpdate(version)
 	}
