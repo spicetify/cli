@@ -227,7 +227,8 @@ window.Spicetify = {
 			"ButtonPrimary",
 			"ButtonSecondary",
 			"ButtonTertiary",
-			"Snackbar"
+			"Snackbar",
+			"Chip"
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
@@ -412,6 +413,7 @@ window.Spicetify = {
 				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
 				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
 			},
+			Chip: modules.find(m => m?.render?.toString().includes("invertedDark")),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
