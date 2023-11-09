@@ -1138,7 +1138,11 @@ class _HTMLContextMenuItem extends HTMLLIElement {
 	render() {
 		this.innerHTML = `
 <button class="main-contextMenu-menuItemButton ${this.disabled && "main-contextMenu-disabled"} ${this.divider && "main-contextMenu-dividerAfter"}">
-	${Spicetify.SVGIcons[this.icon] && `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[this.icon]}</svg>`}
+	${
+		Spicetify.SVGIcons[this.icon]
+			? `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[this.icon]}</svg>`
+			: this.icon
+	}
 	<span class="ellipsis-one-line main-type-mesto main-contextMenu-menuItemLabel">${this.name}</span>
 </button>`;
 	}
