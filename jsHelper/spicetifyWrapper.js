@@ -1364,12 +1364,12 @@ Spicetify.Menu = (function () {
 			return this._icon;
 		}
 
-		settrailingIcon(trailingIcon) {
+		setTrailingIcon(trailingIcon) {
 			this._trailingIcon = trailingIcon;
 			this._element.update("trailingIcon", trailingIcon);
 		}
 		set trailingIcon(trailingIcon) {
-			this.settrailingIcon(trailingIcon);
+			this.setTrailingIcon(trailingIcon);
 		}
 		get trailingIcon() {
 			return this._trailingIcon;
