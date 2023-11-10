@@ -445,7 +445,8 @@ window.Spicetify = {
 	const playlistMenuChunk = Object.entries(require.m).find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("onRemoveCallback")
 	);
-	if (playlistMenuChunk) Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function");
+	if (playlistMenuChunk)
+		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
 
