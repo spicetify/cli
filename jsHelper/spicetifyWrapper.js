@@ -1127,7 +1127,7 @@ Spicetify.SVGIcons = {
 })();
 
 class _HTMLContextMenuItem extends HTMLLIElement {
-	constructor({ name, disabled = false, icon = "", actionIcon = "", divider = false }) {
+	constructor({ name, disabled = false, icon = undefined, actionIcon = undefined, divider = false }) {
 		super();
 		this.name = name;
 		(this.icon = icon), (this.actionIcon = actionIcon);
@@ -1148,9 +1148,9 @@ class _HTMLContextMenuItem extends HTMLLIElement {
 		<button class="main-contextMenu-menuItemButton ${this.disabled ? "main-contextMenu-disabled" : ""} ${
 			this.divider ? "main-contextMenu-dividerAfter" : ""
 		}">
-			${icons[0]}
+			${icons[0] || ""}
 			<span class="ellipsis-one-line main-type-mesto main-contextMenu-menuItemLabel">${this.name}</span>
-			${icons[1]}
+			${icons[1] || ""}
 		</button>`;
 	}
 
