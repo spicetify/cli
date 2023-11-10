@@ -1127,18 +1127,18 @@ Spicetify.SVGIcons = {
 })();
 
 class _HTMLContextMenuItem extends HTMLLIElement {
-	constructor({ name, disabled = false, icon = undefined, actionIcon = undefined, divider = false }) {
+	constructor({ name, disabled = false, icon = undefined, trailingIcon = undefined, divider = false }) {
 		super();
 		this.name = name;
 		this.icon = icon;
-		this.actionIcon = actionIcon;
+		this.trailingIcon = trailingIcon;
 		this.disabled = disabled;
 		this.divider = divider;
 		this.classList.add("main-contextMenu-menuItem");
 	}
 
 	render() {
-		const icons = [this.icon, this.actionIcon];
+		const icons = [this.icon, this.trailingIcon];
 		icons.forEach((icon, index) => {
 			if (icon && Spicetify.SVGIcons[icon]) {
 				icons[index] = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
@@ -1275,13 +1275,13 @@ Spicetify.Menu = (function () {
 			this._element = new _HTMLContextMenuItem({
 				name: name,
 				icon: icon,
-				actionIcon: isEnabled ? "check" : ""
+				trailingIcon: isEnabled ? "check" : ""
 			});
 		}
 
 		setState(isEnabled) {
 			this._isEnabled = isEnabled;
-			this._element.update("actionIcon", isEnabled ? "check" : "");
+			this._element.update("trailingIcon", isEnabled ? "check" : "");
 		}
 		set isEnabled(bool) {
 			this.setState(bool);
@@ -1321,16 +1321,16 @@ Spicetify.Menu = (function () {
 	}
 
 	class SubMenu {
-		constructor(name, items, icon, actionIcon) {
+		constructor(name, items, icon, trailingIcon) {
 			this._name = name;
 			this._items = new Set(items);
 			this._icon = icon;
-			this._actionIcon = actionIcon;
+			this._trailingIcon = trailingIcon;
 			this._element = new _HTMLContextMenuItem({
 				name: name,
 				icon: icon,
-				actionIcon:
-					actionIcon ||
+				trailingIcon:
+					trailingIcon ||
 					'<span><svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M14 10 8 4l-6 6h12z"></path></svg></span>'
 			});
 		}
@@ -1364,15 +1364,15 @@ Spicetify.Menu = (function () {
 			return this._icon;
 		}
 
-		setActionIcon(actionIcon) {
-			this._actionIcon = actionIcon;
-			this._element.update("actionIcon", actionIcon);
+		settrailingIcon(trailingIcon) {
+			this._trailingIcon = trailingIcon;
+			this._element.update("trailingIcon", trailingIcon);
 		}
-		set actionIcon(actionIcon) {
-			this.setActionIcon(actionIcon);
+		set trailingIcon(trailingIcon) {
+			this.settrailingIcon(trailingIcon);
 		}
-		get actionIcon() {
-			return this._actionIcon;
+		get trailingIcon() {
+			return this._trailingIcon;
 		}
 
 		register() {
@@ -1391,17 +1391,17 @@ Spicetify.ContextMenu = (function () {
 	const iconList = Object.keys(Spicetify.SVGIcons);
 
 	class Item {
-		constructor(name, onClick, shouldAdd = uris => true, icon = "", actionIcon = "", disabled = false) {
+		constructor(name, onClick, shouldAdd = uris => true, icon = "", trailingIcon = "", disabled = false) {
 			this.onClick = onClick;
 			this.shouldAdd = shouldAdd;
 			this._name = name;
 			this._icon = icon;
-			this._actionIcon = actionIcon;
+			this._trailingIcon = trailingIcon;
 			this._disabled = disabled;
 			this._element = new _HTMLContextMenuItem({
 				name: name,
 				icon: icon,
-				actionIcon: actionIcon,
+				trailingIcon: trailingIcon,
 				disabled: disabled
 			});
 		}
@@ -1421,12 +1421,12 @@ Spicetify.ContextMenu = (function () {
 			return this._icon;
 		}
 
-		set actionIcon(name) {
-			this._actionIcon = name;
-			this._element.update("actionIcon", name);
+		set trailingIcon(name) {
+			this._trailingIcon = name;
+			this._element.update("trailingIcon", name);
 		}
-		get actionIcon() {
-			return this._actionIcon;
+		get trailingIcon() {
+			return this._trailingIcon;
 		}
 
 		set disabled(bool) {
@@ -1448,18 +1448,18 @@ Spicetify.ContextMenu = (function () {
 	Item.iconList = iconList;
 
 	class SubMenu {
-		constructor(name, items, shouldAdd = uris => true, disabled = false, icon = "", actionIcon = "") {
+		constructor(name, items, shouldAdd = uris => true, disabled = false, icon = "", trailingIcon = "") {
 			this._items = new Set(items);
 			this.shouldAdd = shouldAdd;
 			this._name = name;
 			this._disabled = disabled;
 			this._icon = icon;
-			this._actionIcon = actionIcon;
+			this._trailingIcon = trailingIcon;
 			this._element = new _HTMLContextMenuItem({
 				name: name,
 				icon: icon,
-				actionIcon:
-					actionIcon ||
+				trailingIcon:
+					trailingIcon ||
 					'<span><svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M14 10 8 4l-6 6h12z"></path></svg></span>',
 				disabled: disabled
 			});
