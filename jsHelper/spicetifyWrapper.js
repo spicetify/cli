@@ -1138,20 +1138,20 @@ class _HTMLContextMenuItem extends HTMLLIElement {
 	}
 
 	render() {
-		const icons = [this.icon, this.trailingIcon];
-		icons.forEach((icon, index) => {
+		const parseIcon = icon => {
 			if (icon && Spicetify.SVGIcons[icon]) {
-				icons[index] = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
+				return `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
 			}
-		});
+			return "";
+		};
 
 		this.innerHTML = `
 		<button class="main-contextMenu-menuItemButton ${this.disabled ? "main-contextMenu-disabled" : ""} ${
 			this.divider ? "main-contextMenu-dividerAfter" : ""
 		}">
-			${icons[0] || ""}
+			${parseIcon(this.icon)}
 			<span class="ellipsis-one-line main-type-mesto main-contextMenu-menuItemLabel">${this.name}</span>
-			${icons[1] || ""}
+			${parseIcon(this.trailingIcon)}
 		</button>`;
 	}
 
