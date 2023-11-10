@@ -1142,7 +1142,7 @@ class _HTMLContextMenuItem extends HTMLLIElement {
 			if (icon && Spicetify.SVGIcons[icon]) {
 				return `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
 			}
-			return "";
+			return icon || "";
 		};
 
 		this.innerHTML = `
