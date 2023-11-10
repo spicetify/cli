@@ -1130,7 +1130,8 @@ class _HTMLContextMenuItem extends HTMLLIElement {
 	constructor({ name, disabled = false, icon = undefined, actionIcon = undefined, divider = false }) {
 		super();
 		this.name = name;
-		(this.icon = icon), (this.actionIcon = actionIcon);
+		this.icon = icon;
+		this.actionIcon = actionIcon;
 		this.disabled = disabled;
 		this.divider = divider;
 		this.classList.add("main-contextMenu-menuItem");
@@ -1330,7 +1331,7 @@ Spicetify.Menu = (function () {
 				icon: icon,
 				actionIcon:
 					actionIcon ||
-					`<span><svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M14 10 8 4l-6 6h12z"></path></svg></span>`
+					'<span><svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M14 10 8 4l-6 6h12z"></path></svg></span>'
 			});
 		}
 
@@ -1459,7 +1460,7 @@ Spicetify.ContextMenu = (function () {
 				icon: icon,
 				actionIcon:
 					actionIcon ||
-					`<span><svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M14 10 8 4l-6 6h12z"></path></svg></span>`,
+					'<span><svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M14 10 8 4l-6 6h12z"></path></svg></span>',
 				disabled: disabled
 			});
 		}
