@@ -413,7 +413,7 @@ window.Spicetify = {
 				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
 				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
 			},
-			Chip: modules.find(m => m?.render?.toString().includes("invertedDark")),
+			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
