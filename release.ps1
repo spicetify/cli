@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 #region Functions
 function Format-Code {
     [CmdletBinding()]
-    param()
+    param ()
     begin {
         Write-Verbose -Message 'Formatting the code...' -Verbose
     }
@@ -126,7 +126,7 @@ function New-ReleaseArchives {
 
 function Remove-TempFolders {
     [CmdletBinding()]
-    param()
+    param ()
     begin {
         Write-Verbose -Message 'Cleaning Up...' -Verbose
     }
