@@ -30,13 +30,13 @@ function New-ReleaseArchive {
 
         [Parameter(Mandatory)]
         [ValidateSet('darwin', 'linux', 'windows')]
-        [string]$TargetOS
+        [string]$OS
     )
     process {
         $env:GOARCH = $Architecture
-        $env:GOOS = $TargetOS
+        $env:GOOS = $OS
 
-        if ($TargetOS -eq 'windows') {
+        if ($OS -eq 'windows') {
             $binaryFormat = '.exe'
             $archiveFormat = '.zip'
             $archiveCompresson = '-mx9'
@@ -54,7 +54,7 @@ function New-ReleaseArchive {
             $visualArchitecture = $Architecture
         }
 
-        $targetVariant = "$TargetOS-$visualArchitecture"
+        $targetVariant = "$OS-$visualArchitecture"
         $compiledBinaryPath = "bin\$targetVariant\spicetify$binaryFormat"
         $fileList = @(".\bin\$targetVariant\*", 'CustomApps', 'Extensions', 'Themes', 'jsHelper', 'globals.d.ts', 'css-map.json')
         $archivePath = "bin\spicetify-$targetVariant$archiveFormat"
@@ -65,7 +65,7 @@ function New-ReleaseArchive {
 
         Write-Verbose -Message "Creating an archive for $targetVariant..." -Verbose
         7z a -bb0 $archiveCompresson $archivePath $fileList >$null 2>&1
-        if ($TargetOS -ne 'windows') {
+        if ($OS -ne 'windows') {
             7z a -bb0 -sdel $finalArchiveCompresson $finalArchivePath $archivePath >$null 2>&1
         }
     }
@@ -116,7 +116,7 @@ function New-ReleaseArchives {
     process {
         foreach ($variant in $variants) {
             foreach ($architecture in $variant.architectures) {
-                New-ReleaseArchive -Version $version -Architecture $architecture -TargetOS $variant.os
+                New-ReleaseArchive -Version $version -Architecture $architecture -OS $variant.os
             }
         }
     }
