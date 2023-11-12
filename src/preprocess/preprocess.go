@@ -237,7 +237,7 @@ func disableSentry(input string) string {
 func disableLogging(input string) string {
 	utils.Replace(&input, `sp://logging/v3/\w+`, "")
 	utils.Replace(&input, `[^"\/]+\/[^"\/]+\/(public\/)?v3\/events`, "")
-	utils.Replace(&input, `(\(e,\s*t\))\s*{(\s*return\s*this\.storageAdapter\.setItem\([${}\w."()]+,\s*t\)\s*)}`, "${1}{return null}")
+	utils.Replace(&input, `(\(e,\s*t\))\s*{(\s*return\s*this\.storageAdapter\.setItem\([${}\w."`+"`"+`()]+,\s*t\)\s*)}`, "${1}{return null}")
 	return input
 }
 
