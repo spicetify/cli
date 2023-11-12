@@ -90,6 +90,8 @@ function New-ReleaseArchives {
         [int]$Patch
     )
     begin {
+        $version = "$Major.$Minor.$Patch"
+
         $variants = @(
             @{
                 os            = 'linux'
@@ -105,15 +107,12 @@ function New-ReleaseArchives {
             }
         )
 
-        $version = "$Major.$Minor.$Patch"
-
         if (Test-Path -Path 'bin') {
             Remove-Item -Path 'bin' -Recurse -Force
         }
-
-        Write-Verbose -Message 'Creating release archives...' -Verbose
     }
     process {
+        Write-Verbose -Message 'Creating release archives...' -Verbose
         foreach ($variant in $variants) {
             foreach ($architecture in $variant.architectures) {
                 New-ReleaseArchive -Version $version -Architecture $architecture -OS $variant.os
