@@ -15,6 +15,11 @@ func EvalSpotifyRestart(start bool, flags ...string) {
 		flags = append(flags, launchFlag...)
 	}
 
+	enableDevtools := settingSection.Key("always_enable_devtools").MustBool(false)
+	if enableDevtools {
+		SetDevTools()
+	}
+
 	switch runtime.GOOS {
 	case "windows":
 		isRunning := exec.Command("tasklist", "/FI", "ImageName eq spotify.exe")

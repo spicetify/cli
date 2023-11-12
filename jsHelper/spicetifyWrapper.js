@@ -163,7 +163,8 @@ window.Spicetify = {
 			"ReactQuery",
 			"Color",
 			"extractColorPreset",
-			"ReactDOMServer"
+			"ReactDOMServer",
+			"Snackbar"
 		];
 
 		const PLAYER_METHOD = [
@@ -225,7 +226,8 @@ window.Spicetify = {
 			"RemoteConfigProvider",
 			"ButtonPrimary",
 			"ButtonSecondary",
-			"ButtonTertiary"
+			"ButtonTertiary",
+			"Snackbar"
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
@@ -382,7 +384,9 @@ window.Spicetify = {
 		ReactComponent: {
 			...Spicetify.ReactComponent,
 			TextComponent: modules.find(m => m?.h1 && m?.render),
-			ConfirmDialog: functionModules.find(m => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc")),
+			ConfirmDialog: functionModules.find(
+				m => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc") && m.toString().includes("onClose")
+			),
 			Menu: functionModules.find(m => m.toString().includes("getInitialFocusElement") && m.toString().includes("children")),
 			MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
 			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
@@ -402,6 +406,12 @@ window.Spicetify = {
 			ButtonPrimary: modules.find(m => m?.render && m?.displayName === "ButtonPrimary"),
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
+			Snackbar: {
+				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme")),
+				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
+				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
+				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
+			},
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -435,9 +445,34 @@ window.Spicetify = {
 	const playlistMenuChunk = Object.entries(require.m).find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("onRemoveCallback")
 	);
-	if (playlistMenuChunk) Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function");
+	if (playlistMenuChunk)
+		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
+
+	// Combine snackbar and notification
+	(function bindShowNotification() {
+		if (!Spicetify.Snackbar && !Spicetify.showNotification) {
+			setTimeout(bindShowNotification, 250);
+			return;
+		}
+
+		if (Spicetify.Snackbar?.enqueueSnackbar) {
+			Spicetify.showNotification = (message, isError = false, msTimeout) => {
+				Spicetify.Snackbar.enqueueSnackbar(message, {
+					variant: isError ? "error" : "default",
+					autoHideDuration: msTimeout
+				});
+			};
+			return;
+		}
+
+		if (!Spicetify.Snackbar) Spicetify.Snackbar = {};
+		Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration } = {}) => {
+			isError = variant === "error";
+			Spicetify.showNotification(message, isError, autoHideDuration);
+		};
+	})();
 
 	// Image color extractor
 	(async function bindColorExtractor() {
@@ -660,7 +695,20 @@ Spicetify.LocalStorage = {
 };
 
 Spicetify._getStyledClassName = (args, component) => {
-	const includedKeys = ["role", "variant", "semanticColor", "iconColor", "color", "weight", "buttonSize", "iconSize", "position", "data-encore-id"];
+	const includedKeys = [
+		"role",
+		"variant",
+		"semanticColor",
+		"iconColor",
+		"color",
+		"weight",
+		"buttonSize",
+		"iconSize",
+		"position",
+		"data-encore-id",
+		"$size",
+		"$iconColor"
+	];
 	const customKeys = ["padding", "blocksize"];
 
 	const element = Array.from(args).find(
@@ -682,7 +730,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		}
 	}
 
-	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", ""];
+	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", ""];
 	const excludedPrefix = ["aria-"];
 
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
@@ -1846,7 +1894,7 @@ Spicetify.Playbar = (function () {
 			this.element = document.createElement("button");
 			this.element.classList.add("main-genericButton-button");
 			this.iconElement = document.createElement("span");
-			this.iconElement.classList.add("Wrapper-sm-only");
+			this.iconElement.classList.add("Wrapper-sm-only", "Wrapper-small-only");
 			this.element.appendChild(this.iconElement);
 			this.icon = icon;
 			this.onClick = onClick;
@@ -1896,6 +1944,7 @@ Spicetify.Playbar = (function () {
 		set active(bool) {
 			this._active = bool;
 			this.element.classList.toggle("main-genericButton-buttonActive", bool);
+			this.element.classList.toggle("main-genericButton-buttonActiveDot", bool);
 		}
 		get active() {
 			return this._active;
@@ -2239,9 +2288,9 @@ Spicetify.Playbar = (function () {
 		setTimeout(checkForUpdate, 300);
 		return;
 	}
-	const { check_spicetify_upgrade, version } = Spicetify.Config;
+	const { check_spicetify_update, version } = Spicetify.Config;
 	// Skip checking if upgrade check is disabled, or version is Dev/version is not set
-	if (!check_spicetify_upgrade || !version || version === "Dev") {
+	if (!check_spicetify_update || !version || version === "Dev") {
 		return;
 	}
 	// Fetch latest version from GitHub
@@ -2320,10 +2369,9 @@ Spicetify.Playbar = (function () {
                 <p>Run these commands in the terminal:</p>
                 <ol>
                     <li>Update Spicetify CLI</li>
-                    <pre class="spicetify-update-little-space">spicetify upgrade</pre>
-                    <p class="spicetify-update-space">If you installed Spicetify via a package manager, update using said package manager.</p>
-                    <li>Apply changes to Spotify</li>
-                    <pre>spicetify restore backup apply</pre>
+                    <pre class="spicetify-update-little-space">spicetify update</pre>
+                    <p>Spicetify will automatically apply changes to Spotify after upgrading to the latest version.</p>
+                    <p>If you installed Spicetify via a package manager, update using said package manager.</p>
                 </ol>
             `;
 

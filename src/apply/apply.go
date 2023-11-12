@@ -2,7 +2,6 @@ package apply
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,17 +11,17 @@ import (
 
 // Flag enables/disables additional feature
 type Flag struct {
-	CurrentTheme          string
-	ColorScheme           string
-	InjectThemeJS         bool
-	CheckSpicetifyUpgrade bool
-	Extension             []string
-	CustomApp             []string
-	SidebarConfig         bool
-	HomeConfig            bool
-	ExpFeatures           bool
-	SpicetifyVer          string
-	SpotifyVer            string
+	CurrentTheme         string
+	ColorScheme          string
+	InjectThemeJS        bool
+	CheckSpicetifyUpdate bool
+	Extension            []string
+	CustomApp            []string
+	SidebarConfig        bool
+	HomeConfig           bool
+	ExpFeatures          bool
+	SpicetifyVer         string
+	SpotifyVer           string
 }
 
 // AdditionalOptions .
@@ -67,11 +66,11 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 // To use default color scheme, set `scheme` to `nil`
 func UserCSS(appsFolderPath, themeFolder string, scheme map[string]string) {
 	colorsDest := filepath.Join(appsFolderPath, "xpui", "colors.css")
-	if err := ioutil.WriteFile(colorsDest, []byte(getColorCSS(scheme)), 0700); err != nil {
+	if err := os.WriteFile(colorsDest, []byte(getColorCSS(scheme)), 0700); err != nil {
 		utils.Fatal(err)
 	}
 	cssDest := filepath.Join(appsFolderPath, "xpui", "user.css")
-	if err := ioutil.WriteFile(cssDest, []byte(getUserCSS(themeFolder)), 0700); err != nil {
+	if err := os.WriteFile(cssDest, []byte(getUserCSS(themeFolder)), 0700); err != nil {
 		utils.Fatal(err)
 	}
 }
@@ -130,9 +129,9 @@ func htmlMod(htmlPath string, flags Flag) {
 			Spicetify.Config["color_scheme"]="%s";
 			Spicetify.Config["extensions"] = [%s];
 			Spicetify.Config["custom_apps"] = [%s];
-			Spicetify.Config["check_spicetify_upgrade"]=%v;
+			Spicetify.Config["check_spicetify_update"]=%v;
 		</script>
-		`, flags.SpicetifyVer, flags.CurrentTheme, flags.ColorScheme, extList, customAppList, flags.CheckSpicetifyUpgrade)
+		`, flags.SpicetifyVer, flags.CurrentTheme, flags.ColorScheme, extList, customAppList, flags.CheckSpicetifyUpdate)
 	}
 
 	for _, v := range flags.Extension {
@@ -181,7 +180,7 @@ func getUserCSS(themeFolder string) string {
 		return ""
 	}
 
-	content, err := ioutil.ReadFile(cssFilePath)
+	content, err := os.ReadFile(cssFilePath)
 	if err != nil {
 		return ""
 	}
