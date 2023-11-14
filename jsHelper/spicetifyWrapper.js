@@ -456,7 +456,8 @@ window.Spicetify = {
 	const playlistMenuChunk = Object.entries(require.m).find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("onRemoveCallback")
 	);
-	if (playlistMenuChunk) Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function");
+	if (playlistMenuChunk)
+		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
 
@@ -962,7 +963,7 @@ Spicetify.SVGIcons = {
 	car: '<path d="M2.92 2.375A2.75 2.75 0 015.303 1h5.395c.983 0 1.89.524 2.382 1.375L14.017 4h1.233a.75.75 0 010 1.5h-.237c.989.9.988 2.117.987 2.707v7.043a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75V14H3v1.25a.75.75 0 01-.75.75H.75a.75.75 0 01-.75-.75V8.207C0 7.617-.002 6.4.987 5.5H.75a.75.75 0 010-1.5h1.233l.938-1.625zm2.382.125c-.446 0-.859.238-1.082.625L3.137 5h9.726L11.78 3.125a1.25 1.25 0 00-1.083-.625H5.302zm8.57 4H2.128a2.72 2.72 0 01-.055.046c-.473.377-.556.894-.57 1.454h2.429a1 1 0 011 1v.5H1.5v3h13v-3h-3.43V9a1 1 0 011-1h2.427c-.013-.56-.096-1.077-.569-1.454a2.585 2.585 0 01-.055-.046z"/>',
 	"chart-down": '<path d="M3 6l5 5.794L13 6z"/>',
 	"chart-up": '<path d="M13 10L8 4.206 3 10z"/>',
-	check: '<path d="M15.53 2.47a.75.75 0 0 1 0 1.06L4.907 14.153.47 9.716a.75.75 0 0 1 1.06-1.06l3.377 3.376L14.47 2.47a.75.75 0 0 1 1.06 0z"/>',
+	check: '<path d="M13.985 2.383L5.127 12.754 1.388 8.375l-.658.77 4.397 5.149 9.618-11.262z"/>',
 	"check-alt-fill":
 		'<path d="M7.5 0C3.354 0 0 3.354 0 7.5S3.354 15 7.5 15 15 11.646 15 7.5 11.646 0 7.5 0zM6.246 12.086l-3.16-3.707 1.05-1.232 2.111 2.464 4.564-5.346 1.221 1.05-5.786 6.771z"/><path fill="none" d="M0 0h16v16H0z"/>',
 	"chevron-left": '<path d="M11.521 1.38l-.65-.76L2.23 8l8.641 7.38.65-.76L3.77 8z"/>',
@@ -1138,32 +1139,26 @@ Spicetify.SVGIcons = {
 })();
 
 class _HTMLContextMenuItem extends HTMLLIElement {
-	constructor({ name, disabled = false, icon = undefined, trailingIcon = undefined, divider = false }) {
+	constructor({ name, disabled = false, icon = undefined, divider = false }) {
 		super();
 		this.name = name;
-		this.icon = icon;
-		this.trailingIcon = trailingIcon;
+		this.icon = icon || "";
 		this.disabled = disabled;
 		this.divider = divider;
 		this.classList.add("main-contextMenu-menuItem");
 	}
-
 	render() {
-		const parseIcon = icon => {
-			if (icon && Spicetify.SVGIcons[icon]) {
-				return `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
-			}
-			return icon || "";
-		};
-
+		let icon = this.icon;
+		if (icon && Spicetify.SVGIcons[icon]) {
+			icon = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
+		}
 		this.innerHTML = `
-		<button class="main-contextMenu-menuItemButton ${this.disabled ? "main-contextMenu-disabled" : ""} ${
+<button class="main-contextMenu-menuItemButton ${this.disabled ? "main-contextMenu-disabled" : ""} ${
 			this.divider ? "main-contextMenu-dividerAfter" : ""
 		}">
-			${parseIcon(this.icon)}
-			<span class="ellipsis-one-line main-type-mesto main-contextMenu-menuItemLabel">${this.name}</span>
-			${parseIcon(this.trailingIcon)}
-		</button>`;
+    <span class="ellipsis-one-line main-type-mesto" dir="auto">${this.name}</span>
+    ${icon || ""}
+</button>`;
 	}
 
 	connectedCallback() {
@@ -1276,7 +1271,7 @@ Spicetify.Menu = (function () {
 	};
 
 	class Item {
-		constructor(name, isEnabled, onClick, icon = "") {
+		constructor(name, isEnabled, onClick, icon = undefined) {
 			this._name = name;
 			this._isEnabled = isEnabled;
 			this._icon = icon;
@@ -1285,14 +1280,13 @@ Spicetify.Menu = (function () {
 			};
 			this._element = new _HTMLContextMenuItem({
 				name: name,
-				icon: icon,
-				trailingIcon: isEnabled ? "check" : ""
+				icon: isEnabled ? "check" : icon ?? ""
 			});
 		}
 
 		setState(isEnabled) {
 			this._isEnabled = isEnabled;
-			this._element.update("trailingIcon", isEnabled ? "check" : "");
+			this._element.update("icon", isEnabled ? "check" : this._icon ?? "");
 		}
 		set isEnabled(bool) {
 			this.setState(bool);
@@ -1332,17 +1326,12 @@ Spicetify.Menu = (function () {
 	}
 
 	class SubMenu {
-		constructor(name, items, icon, trailingIcon) {
+		constructor(name, items) {
 			this._name = name;
 			this._items = new Set(items);
-			this._icon = icon;
-			this._trailingIcon = trailingIcon;
 			this._element = new _HTMLContextMenuItem({
 				name: name,
-				icon: icon,
-				trailingIcon:
-					trailingIcon ||
-					'<span><svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M14 10 8 4l-6 6h12z"></path></svg></span>'
+				icon: `<svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M13 10L8 4.206 3 10z"></path></svg>`
 			});
 		}
 
@@ -1364,28 +1353,6 @@ Spicetify.Menu = (function () {
 			this._items.delete(item);
 		}
 
-		setIcon(icon) {
-			this._icon = icon;
-			this._element.update("icon", icon);
-		}
-		set icon(icon) {
-			this.setIcon(icon);
-		}
-		get icon() {
-			return this._icon;
-		}
-
-		setTrailingIcon(trailingIcon) {
-			this._trailingIcon = trailingIcon;
-			this._element.update("trailingIcon", trailingIcon);
-		}
-		set trailingIcon(trailingIcon) {
-			this.setTrailingIcon(trailingIcon);
-		}
-		get trailingIcon() {
-			return this._trailingIcon;
-		}
-
 		register() {
 			collection.add(this);
 		}
@@ -1402,17 +1369,15 @@ Spicetify.ContextMenu = (function () {
 	const iconList = Object.keys(Spicetify.SVGIcons);
 
 	class Item {
-		constructor(name, onClick, shouldAdd = uris => true, icon = "", trailingIcon = "", disabled = false) {
+		constructor(name, onClick, shouldAdd = uris => true, icon = undefined, disabled = false) {
 			this.onClick = onClick;
 			this.shouldAdd = shouldAdd;
 			this._name = name;
 			this._icon = icon;
-			this._trailingIcon = trailingIcon;
 			this._disabled = disabled;
 			this._element = new _HTMLContextMenuItem({
 				name: name,
 				icon: icon,
-				trailingIcon: trailingIcon,
 				disabled: disabled
 			});
 		}
@@ -1430,14 +1395,6 @@ Spicetify.ContextMenu = (function () {
 		}
 		get icon() {
 			return this._icon;
-		}
-
-		set trailingIcon(name) {
-			this._trailingIcon = name;
-			this._element.update("trailingIcon", name);
-		}
-		get trailingIcon() {
-			return this._trailingIcon;
 		}
 
 		set disabled(bool) {
@@ -1459,19 +1416,14 @@ Spicetify.ContextMenu = (function () {
 	Item.iconList = iconList;
 
 	class SubMenu {
-		constructor(name, items, shouldAdd = uris => true, disabled = false, icon = "", trailingIcon = "") {
+		constructor(name, items, shouldAdd = uris => true, disabled = false) {
 			this._items = new Set(items);
 			this.shouldAdd = shouldAdd;
 			this._name = name;
 			this._disabled = disabled;
-			this._icon = icon;
-			this._trailingIcon = trailingIcon;
 			this._element = new _HTMLContextMenuItem({
 				name: name,
-				icon: icon,
-				trailingIcon:
-					trailingIcon ||
-					'<span><svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M14 10 8 4l-6 6h12z"></path></svg></span>',
+				icon: `<svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M13 10L8 4.206 3 10z"></path></svg>`,
 				disabled: disabled
 			});
 		}
