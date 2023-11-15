@@ -1,177 +1,217 @@
-# Copyright 2023 Spicetify. GPL license.
-# Edited from project Denoland install script (https://github.com/denoland/deno_install)
-param (
-  [string] $version
-)
+$ErrorActionPreference = 'Stop'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$PSMinVersion = 3
-
-if ($v) {
-  $version = $v
-}
+#region Variables
+$spicetifyFolderPath = "$env:LOCALAPPDATA\spicetify"
+$spicetifyOldFolderPath = "$HOME\spicetify-cli"
+$logFilePath = "$spicetifyFolderPath\install.log"
+#endregion Variables
 
 #region Functions
-function Write-Emphasized {
+function Write-Log {
+  [CmdletBinding()]
   param (
     [Parameter(Mandatory)]
-    [string] $Text
+    [string]$Message,
+
+    [ValidateSet('Error', 'Warning', 'Information', 'Verbose', 'Debug')]
+    [string]$Stream = 'Information',
+
+    [System.ConsoleColor]$ForegroundColor = $Host.UI.RawUI.ForegroundColor,
+
+    [System.ConsoleColor]$BackgroundColor = $Host.UI.RawUI.BackgroundColor
   )
-    
-  Write-Host -Object $Text -NoNewline -ForegroundColor "Cyan"
+  begin {
+    if (-not (Test-Path -Path $logFilePath)) {
+      New-Item -Path $logFilePath -ItemType 'File' -Force
+    }
+  }
+  process {
+    Add-Content -Path $logFilePath -Value "[$(Get-Date -Format 'HH:mm:ss yyyy-MM-dd')] $($Stream): $Message"
+    switch -exact ($Stream) {
+      'Error' {
+        Write-Error -Message $Message
+      }
+      'Warning' {
+        Write-Warning -Message $Message
+      }
+      'Information' {
+        Write-Host -Object $Message -ForegroundColor $ForegroundColor -BackgroundColor $BackgroundColor
+      }
+      'Verbose' {
+        Write-Verbose -Message $Message -Verbose
+      }
+      'Debug' {
+        Write-Debug -Message $Message -Debug
+      }
+    }
+  }
 }
 
-function Write-Log {
-  param (
-    [string] $ActionText,
-    [string[]] $Texts,
-    [boolean[]] $Emphasized
-  )
-
-  if (-not (Test-Path -Path $logFileDir)) {
-    New-Item -Path $logFileDir -ItemType File -Force | Out-Null
+function Write-Success {
+  [CmdletBinding()]
+  param ()
+  process {
+    Write-Log -Message 'Success' -ForegroundColor 'Green'
   }
+}
 
-  if (-not ($ActionText)) {
-    $FormattedActionText = "{0, -15}" -f $ActionText
-    Write-Host -Object $FormattedActionText -NoNewline
+function Test-Admin {
+  [CmdletBinding()]
+  param ()
+  begin {
+    Write-Log -Message 'Checking if the script was ran as Administrator...' -Stream 'Verbose'
   }
-    
-  $logText = $FormattedActionText
-    
-  for ($i = 0; $i -lt $Texts.Length -and $Texts.Length -eq $Emphasized.Length; $i++) {
-    if ($Emphasized.Get($i)) {
-      Write-Host -Object $Texts.Get($i) -NoNewline
+  process {
+    $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  }
+}
+
+function Test-PowerShellVersion {
+  [CmdletBinding()]
+  param ()
+  begin {
+    $PSMinVersion = [version]'5.1'
+  }
+  process {
+    Write-Log -Message 'Checking your PowerShell version...' -Stream 'Verbose'
+    $PSVersionTable.PSVersion -lt $PSMinVersion
+  }
+}
+
+function Move-OldSpicetifyFolder {
+  [CmdletBinding()]
+  param ()
+  process {
+    if (Test-Path -Path $spicetifyOldFolderPath) {
+      Write-Log -Message 'Moving your old Spicetify folder...' -Stream 'Verbose'
+      Copy-Item -Path "$spicetifyOldFolderPath\*" -Destination $spicetifyFolderPath -Recurse -Force
+      Remove-Item -Path $spicetifyOldFolderPath -Recurse -Force
+      Write-Success
+    }
+  }
+}
+
+function Get-Spicetify {
+  [CmdletBinding()]
+  param ()
+  begin {
+    if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') { 
+      $architecture = 'x64' 
     }
     else {
-      Write-Host -Object $Texts.Get($i) -NoNewline
+      $architecture = 'x32'
     }
-    $logText = $LogText + $Texts.Get($i)
+    if ($v -match '^\d+\.\d+\.\d+$') {
+      $targetVersion = $v
+    }
+    else {
+      Write-Log -Message 'Fetching the latest Spicetify version...' -Stream 'Verbose'
+      $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/spicetify-cli/releases/latest'
+      $targetVersion = $latestRelease.tag_name -replace 'v', ''
+      Write-Success
+    }
+    $archivePath = "$env:TEMP\spicetify.zip"
   }
-  $logText = "[{0}] {1}" -f (Get-Date -Format "HH:mm:ss yyyy-MM-dd"), $LogText
-  Add-Content -Path $logFileDir -Value $LogText -NoNewline
-}
-
-function Write-Done {
-  Write-Host -Object " > " -NoNewline
-  Write-Host -Object "OK" -ForegroundColor "Green"
-  Add-Content -Path $logFileDir -Value " > OK"
-}
-
-function Remove-OldPath {
-  $spicetifyOldDir = "${HOME}\spicetify-cli"
-  $_isInPath = $paths -contains $spicetifyOldDir -or $paths -contains "${spicetifyOldDir}\"
-    
-  if ($_isInPath) {
-    Write-Log -ActionText "REMOVING" -Texts $spicetifyOldDir, " from Path" -Emphasized $true, $false
-    $replacedPath = $path.replace(";$spicetifyOldDir", "")
-    [Environment]::SetEnvironmentVariable("PATH", $replacedPath, $user)
-    $env:PATH = $env:PATH.replace(";$spicetifyOldDir", "")
-    Write-Done
+  process {
+    Write-Log -Message "Downloading Spicetify v$targetVersion..." -Stream 'Verbose'
+    $Parameters = @{
+      Uri            = "https://github.com/spicetify/spicetify-cli/releases/download/v$targetVersion/spicetify-$targetVersion-windows-$architecture.zip"
+      UseBasicParsin = $true
+      OutFile        = $archivePath
+    }
+    Invoke-WebRequest @Parameters
+    Write-Success
+  }
+  end {
+    $archivePath
   }
 }
 
-function Move-ConfigFolder {
-  $spicetifyOldDirContent = "${HOME}\spicetify-cli\*"
-  $spicetifyOldDir = "${HOME}\spicetify-cli"
-  if (Test-Path -Path $spicetifyOldDir) {
-    Write-Log -ActionText "MIGRATING" -Texts $spicetifyOldDir, " into", $spicetifyDir -Emphasized $true, $false, $true
-    Copy-Item -Path $spicetifyOldDirContent -Destination $spicetifyDir -Force -Recurse
-    Write-Done
-    Write-Log -ActionText "REMOVING" -Texts $spicetifyOldDir -Emphasized $true
-    Remove-Item -LiteralPath $spicetifyOldDir -Force -Recurse
-    Write-Done
+function Add-SpicetifyToPath {
+  [CmdletBinding()]
+  param ()
+  begin {
+    Write-Log -Message 'Adding Spicetify to your PATH variable if needed...' -Stream 'Verbose'
+    $user = [EnvironmentVariableTarget]::User
+    $path = [Environment]::GetEnvironmentVariable('PATH', $user)
+  }
+  process {
+    $path = $path -replace "$([regex]::Escape($spicetifyOldFolderPath))\\*;*", ''
+    if ($path -notlike "*$spicetifyFolderPath*") {
+      $path = "$path;$spicetifyFolderPath"
+    }
+  }
+  end {
+    [Environment]::SetEnvironmentVariable('PATH', $path, $user)
+    Write-Success
+  }
+}
+
+function Install-Spicetify {
+  [CmdletBinding()]
+  param ()
+  begin {
+    Write-Log -Message 'Installing Spicetify...' -Stream 'Verbose'
+  }
+  process {
+    $archivePath = Get-Spicetify
+    Write-Log -Message 'Extracting Spicetify...' -Stream 'Verbose'
+    Expand-Archive -Path $archivePath -DestinationPath $spicetifyFolderPath -Force
+    Write-Success
+    Add-SpicetifyToPath
+  }
+  end {
+    Remove-Item -Path $archivePath -Force
+    Write-Log -Message 'Spicetify was successfully installed' -ForegroundColor 'Green'
   }
 }
 #endregion Functions
 
 #region Main
-if ($PSVersionTable.PSVersion.Major -ge $PSMinVersion) {
-  $ErrorActionPreference = "Stop"
-    
-  # Enable TLS 1.2 since it is required for connections to GitHub.
-  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-    
-  # Create %localappdata%\spicetify directory if it doesn't already exist
-  $spicetifyDir = "$env:LOCALAPPDATA\spicetify"
-  $logFileDir = "$spicetifyDir\install.log"
+Remove-Item -Path $logFilePath -Force
 
-  $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-  $isAdmin = $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+#region Checks
+if (-not (Test-PowerShellVersion)) {
+  Write-Log -Message 'PowerShell 5.1 or higher is required to run this script' -Stream 'Warning'
+  Write-Log -Message "You are running PowerShell $($PSVersionTable.PSVersion)" -Stream 'Warning'
+  Write-Host -Object 'PowerShell 5.1 install guide:'
+  Write-Host -Object 'https://learn.microsoft.com/skypeforbusiness/set-up-your-computer-for-windows-powershell/download-and-install-windows-powershell-5-1'
+  Write-Host -Object 'PowerShell 7 install guide:'
+  Write-Host -Object 'https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows'
+  Pause
+  exit
+}
+if (Test-Admin) {
+  Write-Log -Message "The script was ran as Administrator which isn't recommended" -Stream 'Warning'
+  $Host.UI.RawUI.Flushinputbuffer()
+  $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process to avoid any issues?', ('&Yes', '&No'), 0)
+  if ($choice -eq 0) {
+    Write-Log -Message 'Spicetify installation aborted'
+    exit
+  }
+}
+#endregion Checks
 
-  if ($isAdmin) {
-    Write-Log -ActionText "WARNING" -Texts "The script was ran as Administrator which isn't recommended`n" -Emphasized $false
-    $Host.UI.RawUI.Flushinputbuffer()
-    $choice = $Host.UI.PromptForChoice("", "Do you want to abort the installation process to avoid any issues?", ("&Yes", "&No"), 0)
-    if ($choice -eq 0) {
-      Write-Log -ActionText "WARNING" -Texts "Exiting the script..." -Emphasized $false
-      exit
-    }
-  }
-    
-  if (-not (Test-Path -Path $spicetifyDir)) {
-    Write-Log -ActionText "MAKING FOLDER" -Texts $spicetifyDir -Emphasized $true
-    Write-Done
-  }
-    
-  if (-not $version) {
-    # Determine latest Spicetify release via GitHub API.
-    $latestReleaseUri = "https://api.github.com/repos/spicetify/spicetify-cli/releases/latest"
-    Write-Log -ActionText "DOWNLOADING" -Texts $latestReleaseUri -Emphasized $true
-    $latestReleaseJson = Invoke-WebRequest -Uri $latestReleaseUri -UseBasicParsing
-    Write-Done
-    $version = ($latestReleaseJson | ConvertFrom-Json).tag_name -replace "v", ""
-  }
-    
-  # Migrate old spicetify folder to new location.
-  Move-ConfigFolder
-    
-  # Download release.
-  $architecture = if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64") { "x64" } else { "x32" }
-  $zipFile = "${spicetifyDir}\spicetify-${version}-windows-${architecture}.zip"
-  $downloadUri = "https://github.com/spicetify/spicetify-cli/releases/download/" +
-  "v${version}/spicetify-${version}-windows-${architecture}.zip"
-  Write-Log -ActionText "DOWNLOADING" -Texts $downloadUri -Emphasized $true
-  Invoke-WebRequest -Uri $downloadUri -UseBasicParsing -OutFile $zipFile
-  Write-Done
-    
-  # Extract spicetify.exe and assets from .zip file.
-  Write-Log -ActionText "EXTRACTING" -Texts $zipFile, " into ", ${spicetifyDir} -Emphasized $true, $false, $true
-  # Using -Force to overwrite spicetify.exe and assets if it already exists
-  Expand-Archive -Path $zipFile -DestinationPath $spicetifyDir -Force
-  Write-Done
-    
-  # Remove .zip file.
-  Write-Log -ActionText "REMOVING" -Texts $zipFile -Emphasized $true
-  Remove-Item -Path $zipFile
-  Write-Done
-    
-  # Get Path environment variable for the current user.
-  $user = [EnvironmentVariableTarget]::User
-  $path = [Environment]::GetEnvironmentVariable("PATH", $user)
-    
-  # Check whether spicetify dir is in the Path.
-  $paths = $path -split ";"
-    
-  # Remove old spicetify folder from Path.
-  Remove-OldPath
-  $isInPath = $paths -contains $spicetifyDir -or $paths -contains "${spicetifyDir}\"
-    
-  # Add Spicetify dir to PATH if it hasn't been added already.
-  if (-not $isInPath) {
-    Write-Log -ActionText "ADDING" -Texts $spicetifyDir, " to the ", "PATH", " environment variable..." -Emphasized $true, $false, $true, $false
-    [Environment]::SetEnvironmentVariable("PATH", "${path};${spicetifyDir}", $user)
-    # Add Spicetify to the PATH variable of the current terminal session
-    # so `spicetify` can be used immediately without restarting the terminal.
-    $env:PATH += ";${spicetifyDir}"
-    Write-Done
-  }
-    
-  Write-Log -Texts "spicetify-cli was installed successfully." -Emphasized $false
-  Write-Done
-  Write-Log -Texts "Run ", "spicetify --help", " to get started.`n" -Emphasized $false, $true, $false
+#region Spicetify
+Move-OldSpicetifyFolder
+Install-Spicetify
+Write-Host -Object 'Run spicetify -h to get started'
+#endregion Spicetify
+
+#region Marketplace
+$Host.UI.RawUI.Flushinputbuffer()
+$choice = $Host.UI.PromptForChoice('', 'Do you want to install Spicetify Marketplace?', ('&Yes', '&No'), 0)
+if ($choice -eq 1) {
+  Write-Log -Message 'Spicetify Marketplace installation aborted'
+  exit
 }
-else {
-  Write-Log -Texts "`nYour Powershell version is lesser than ", "$PSMinVersion" -Emphasized $false, $true
-  Write-Log -Texts "`nPlease, update your Powershell downloading the ", "'Windows Management Framework'", " greater than ", "$PSMinVersion" -Emphasized $false, $true, $false, $true
+Write-Log -Message 'Starting the Spicetify Marketplace installation script..' -Stream 'Verbose'
+$Parameters = @{
+  Uri             = 'https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.ps1'
+  UseBasicParsing = $true
 }
+Invoke-WebRequest @Parameters | Invoke-Expression
+#endregion Marketplace
 #endregion Main
