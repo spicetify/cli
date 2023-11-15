@@ -14,7 +14,7 @@ function Write-Log {
     [Parameter(Mandatory)]
     [string]$Message,
 
-    [ValidateSet('Error', 'Warning', 'Information', 'Verbose', 'Debug')]
+    [ValidateSet('Error', 'Warning', 'Information', 'Verbose')]
     [string]$Stream = 'Information',
 
     [System.ConsoleColor]$ForegroundColor = $Host.UI.RawUI.ForegroundColor,
@@ -40,9 +40,6 @@ function Write-Log {
       }
       'Verbose' {
         Write-Verbose -Message $Message -Verbose
-      }
-      'Debug' {
-        Write-Debug -Message $Message -Debug
       }
     }
   }
