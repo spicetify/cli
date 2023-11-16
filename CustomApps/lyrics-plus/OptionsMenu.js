@@ -55,7 +55,7 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 			),
 			trigger: "click",
 			action: "toggle",
-			renderInline: true
+			renderInline: false
 		},
 		react.createElement(
 			"button",
