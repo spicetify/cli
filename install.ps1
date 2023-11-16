@@ -100,8 +100,16 @@ function Get-Spicetify {
     else {
       $architecture = 'x32'
     }
-    if ($v -match '^\d+\.\d+\.\d+$') {
-      $targetVersion = $v
+    if ($v) {
+      if ($v -match '^\d+\.\d+\.\d+$') {
+        $targetVersion = $v
+      }
+      else {
+        Write-Log -Message "You have spicefied an invalid Spicetify version: $v" -Stream 'Warning'
+        Write-Host -Object 'The version must be in the following format: 1.2.3'
+        Pause
+        exit
+      }
     }
     else {
       Write-Log -Message 'Fetching the latest Spicetify version...' -Stream 'Verbose'
