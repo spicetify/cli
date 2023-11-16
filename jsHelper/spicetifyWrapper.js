@@ -340,14 +340,12 @@ window.Spicetify = {
 
 	// Get Interanl Spotify SVGs
 	const svgFunctions = functionModules.filter(m => m.toString().includes("svgContent"));
-	const svgContent16pxArray = svgFunctions
+	Spicetify.SVGIcons["misc"] = svgFunctions
 		.map(m => {
-			const match = m.toString().match(/<path d='([^']+)'/);
-			return match ? match[1] : null;
+			const match = m.toString().match(/size:16,svgContent:"(.*?)"/);
+			return match && !Object.values(Spicetify.SVGIcons).some(value => value.includes(match[1])) ? match[1] : null;
 		})
 		.filter(Boolean);
-
-	Spicetify.SVGIcons["misc"] = svgContent16pxArray;
 
 	Object.assign(Spicetify, {
 		React: cache.find(m => m?.useMemo),
