@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 func MigrateConfigFolder() {
@@ -22,6 +23,17 @@ func MigrateConfigFolder() {
 			PrintGreen("OK")
 		}
 	}
+}
+
+func ReplaceEnvVarsInString(input string) string {
+	vars := os.Environ()
+	var replacements []string
+	for _, v := range vars {
+		pair := strings.SplitN(v, "=", 2)
+		replacements = append(replacements, "$"+pair[0], pair[1])
+	}
+	replacer := strings.NewReplacer(replacements...)
+	return replacer.Replace(input)
 }
 
 func GetSpicetifyFolder() string {
