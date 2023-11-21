@@ -1766,7 +1766,7 @@ declare namespace Spicetify {
 			/**
 			 * React component to render for an icon used as button body. Component, not element!
 			 */
-			iconTrailing?: (props: any) => any | string;
+			iconOnly?: (props: any) => any | string;
 			/**
 			 * Additional class name to apply to the button.
 			 */
@@ -1895,6 +1895,27 @@ declare namespace Spicetify {
 		 * @see Spicetify.ReactComponent.SliderProps
 		 */
 		const Slider: any;
+		/**
+		 * Component to render Spotify primary button
+		 *
+		 * Props:
+		 * @see Spicetify.ReactComponent.ButtonProps
+		 */
+		const ButtonPrimary: any;
+		/**
+		 * Component to render Spotify secondary button
+		 *
+		 * Props:
+		 * @see Spicetify.ReactComponent.ButtonProps
+		 */
+		const ButtonSecondary: any;
+		/**
+		 * Component to render Spotify tertiary button
+		 *
+		 * Props:
+		 * @see Spicetify.ReactComponent.ButtonProps
+		 */
+		const ButtonTertiary: any;
 	}
 
 	/**
