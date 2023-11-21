@@ -26,9 +26,8 @@ func MigrateConfigFolder() {
 }
 
 func ReplaceEnvVarsInString(input string) string {
-	vars := os.Environ()
 	var replacements []string
-	for _, v := range vars {
+	for _, v := range os.Environ() {
 		pair := strings.SplitN(v, "=", 2)
 		replacements = append(replacements, "$"+pair[0], pair[1])
 	}
