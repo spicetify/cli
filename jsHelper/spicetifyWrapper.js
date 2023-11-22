@@ -436,60 +436,61 @@ window.Spicetify = {
 		Locale: modules.find(m => m?._dictionary)
 	});
 
-	if (Spicetify.Locale) {
-		Spicetify.Locale._supportedLocales = cache.find(m => typeof m?.ja === "string");
-	} else {
-		const localeModule = modules.find(m => m?.getTranslations);
-		if (localeModule) {
-			const createUrlLocale = functionModules.find(m => m.toString().match(/"string"==typeof\s+(\w+)&&\(\1=new\s+Intl\.Locale\(\1\)\)/));
-			Spicetify.Locale = {
-				get _relativeTimeFormat() {
-					return localeModule._relativeTimeFormat;
-				},
-				get _dateTimeFormats() {
-					return localeModule._dateTimeFormats;
-				},
-				get _locale() {
-					return localeModule._localeForTranslation.baseName;
-				},
-				get _urlLocale() {
-					return localeModule._localeForURLPath;
-				},
-				_supportedLocales: cache.find(m => typeof m?.ja === "string"),
-				get _dictionary() {
-					return localeModule._translations;
-				},
-				formatRelativeTime: (date, options) => localeModule.formatRelativeDate(date, options),
-				formatNumber: (number, options) => localeModule.formatNumber(number, options),
-				formatNumberCompact: (number, options) => localeModule.formatNumberCompact(number, options),
-				get: (key, children) => localeModule.get(key, children),
-				getDateTimeFormat: options => localeModule.getDateTimeFormat(options),
-				getDictionary: () => localeModule.getTranslations(),
-				getLocale: () => localeModule._localeForTranslation.baseName,
-				getSmartlingLocale: () => localeModule.getLocaleForSmartling(),
-				getUrlLocale: () => localeModule.getLocaleForURLPath(),
-				getRelativeTimeFormat: () => localeModule.getRelativeTimeFormat(),
-				getSeparator: () => localeModule.getSeparator(),
-				setLocale: locale =>
-					localeModule.initialize({
-						localeForTranslation: locale,
-						localeForFormatting: localeModule._localeForFormatting.baseName,
-						translations: localeModule._translations
-					}),
-				setUrlLocale: locale => {
-					if (createUrlLocale) localeModule._localeForURLPath = createUrlLocale(locale);
-				},
-				setDictionary: dictionary =>
-					localeModule.initialize({
-						localeForTranslation: localeModule._localeForTranslation.baseName,
-						localeForFormatting: localeModule._localeForFormatting.baseName,
-						translations: dictionary
-					}),
-				toLocaleLowerCase: text => localeModule.toLocaleLowerCase(text),
-				toLocaleUpperCase: text => localeModule.toLocaleUpperCase(text)
-			};
-		}
+	const localeModule = modules.find(m => m?.getTranslations);
+	if (localeModule) {
+		const createUrlLocale = functionModules.find(
+			m => m.toString().includes("has") && m.toString().includes("baseName") && m.toString().includes("language")
+		);
+		Spicetify.Locale = {
+			get _relativeTimeFormat() {
+				return localeModule._relativeTimeFormat;
+			},
+			get _dateTimeFormats() {
+				return localeModule._dateTimeFormats;
+			},
+			get _locale() {
+				return localeModule._localeForTranslation.baseName;
+			},
+			get _urlLocale() {
+				return localeModule._localeForURLPath;
+			},
+			get _dictionary() {
+				return localeModule._translations;
+			},
+			formatRelativeTime: (date, options) => localeModule.formatRelativeDate(date, options),
+			formatNumber: (number, options) => localeModule.formatNumber(number, options),
+			formatNumberCompact: (number, options) => localeModule.formatNumberCompact(number, options),
+			get: (key, children) => localeModule.get(key, children),
+			getDateTimeFormat: options => localeModule.getDateTimeFormat(options),
+			getDictionary: () => localeModule.getTranslations(),
+			getLocale: () => localeModule._localeForTranslation.baseName,
+			getSmartlingLocale: () => localeModule.getLocaleForSmartling(),
+			getUrlLocale: () => localeModule.getLocaleForURLPath(),
+			getRelativeTimeFormat: () => localeModule.getRelativeTimeFormat(),
+			getSeparator: () => localeModule.getSeparator(),
+			setLocale: locale => {
+				localeModule.initialize({
+					localeForTranslation: locale,
+					localeForFormatting: localeModule._localeForFormatting.baseName,
+					translations: localeModule._translations
+				});
+			},
+			setUrlLocale: locale => {
+				if (createUrlLocale) localeModule._localeForURLPath = createUrlLocale(locale);
+			},
+			setDictionary: dictionary => {
+				localeModule.initialize({
+					localeForTranslation: localeModule._localeForTranslation.baseName,
+					localeForFormatting: localeModule._localeForFormatting.baseName,
+					translations: dictionary
+				});
+			},
+			toLocaleLowerCase: text => localeModule.toLocaleLowerCase(text),
+			toLocaleUpperCase: text => localeModule.toLocaleUpperCase(text)
+		};
 	}
+
+	if (Spicetify.Locale) Spicetify.Locale._supportedLocales = cache.find(m => typeof m?.ja === "string");
 
 	Object.defineProperty(Spicetify, "Queue", {
 		get() {
