@@ -457,7 +457,7 @@ window.Spicetify = {
 				},
 				_supportedLocales: cache.find(m => typeof m?.ja === "string"),
 				get _dictionary() {
-					return localeModule.translations;
+					return localeModule._translations;
 				},
 				formatRelativeTime: (date, options) => localeModule.formatRelativeDate(date, options),
 				formatNumber: (number, options) => localeModule.formatNumber(number, options),
