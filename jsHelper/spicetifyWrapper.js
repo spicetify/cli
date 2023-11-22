@@ -469,7 +469,7 @@ window.Spicetify = {
 			getRelativeTimeFormat: () => localeModule.getRelativeTimeFormat(),
 			getSeparator: () => localeModule.getSeparator(),
 			setLocale: locale => {
-				localeModule.initialize({
+				return localeModule.initialize({
 					localeForTranslation: locale,
 					localeForFormatting: localeModule._localeForFormatting.baseName,
 					translations: localeModule._translations
@@ -479,7 +479,7 @@ window.Spicetify = {
 				if (createUrlLocale) localeModule._localeForURLPath = createUrlLocale(locale);
 			},
 			setDictionary: dictionary => {
-				localeModule.initialize({
+				return localeModule.initialize({
 					localeForTranslation: localeModule._localeForTranslation.baseName,
 					localeForFormatting: localeModule._localeForFormatting.baseName,
 					translations: dictionary
