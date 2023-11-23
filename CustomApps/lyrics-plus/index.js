@@ -550,7 +550,7 @@ class LyricsContainer extends react.Component {
 			this.tryServices(nextInfo, this.state.explicitMode);
 		};
 
-		if (Spicetify.Player?.data?.track) {
+		if (Spicetify.Player?.data?.item) {
 			this.state.explicitMode = this.state.lockMode;
 			this.currentTrackUri = Spicetify.Player.data.item.uri;
 			this.fetchLyrics(Spicetify.Player.data.item, this.state.explicitMode);
