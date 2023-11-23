@@ -436,6 +436,60 @@ window.Spicetify = {
 		Locale: modules.find(m => m?._dictionary)
 	});
 
+	const localeModule = modules.find(m => m?.getTranslations);
+	if (localeModule) {
+		const createUrlLocale = functionModules.find(
+			m => m.toString().includes("has") && m.toString().includes("baseName") && m.toString().includes("language")
+		);
+		Spicetify.Locale = {
+			get _relativeTimeFormat() {
+				return localeModule._relativeTimeFormat;
+			},
+			get _dateTimeFormats() {
+				return localeModule._dateTimeFormats;
+			},
+			get _locale() {
+				return localeModule._localeForTranslation.baseName;
+			},
+			get _urlLocale() {
+				return localeModule._localeForURLPath;
+			},
+			get _dictionary() {
+				return localeModule._translations;
+			},
+			formatRelativeTime: (date, options) => localeModule.formatRelativeDate(date, options),
+			formatNumber: (number, options) => localeModule.formatNumber(number, options),
+			formatNumberCompact: (number, options) => localeModule.formatNumberCompact(number, options),
+			get: (key, children) => localeModule.get(key, children),
+			getDateTimeFormat: options => localeModule.getDateTimeFormat(options),
+			getDictionary: () => localeModule.getTranslations(),
+			getLocale: () => localeModule._localeForTranslation.baseName,
+			getSmartlingLocale: () => localeModule.getLocaleForSmartling(),
+			getUrlLocale: () => localeModule.getLocaleForURLPath(),
+			getRelativeTimeFormat: () => localeModule.getRelativeTimeFormat(),
+			getSeparator: () => localeModule.getSeparator(),
+			setLocale: locale => {
+				return localeModule.initialize({
+					localeForTranslation: locale,
+					localeForFormatting: localeModule._localeForFormatting.baseName,
+					translations: localeModule._translations
+				});
+			},
+			setUrlLocale: locale => {
+				if (createUrlLocale) localeModule._localeForURLPath = createUrlLocale(locale);
+			},
+			setDictionary: dictionary => {
+				return localeModule.initialize({
+					localeForTranslation: localeModule._localeForTranslation.baseName,
+					localeForFormatting: localeModule._localeForFormatting.baseName,
+					translations: dictionary
+				});
+			},
+			toLocaleLowerCase: text => localeModule.toLocaleLowerCase(text),
+			toLocaleUpperCase: text => localeModule.toLocaleUpperCase(text)
+		};
+	}
+
 	if (Spicetify.Locale) Spicetify.Locale._supportedLocales = cache.find(m => typeof m?.ja === "string");
 
 	Object.defineProperty(Spicetify, "Queue", {
@@ -1656,7 +1710,7 @@ Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 
 		let appProper = manifest.name;
 		if (typeof appProper === "object") {
-			appProper = appProper[Spicetify.Locale.getLocale()] || appProper["en"];
+			appProper = appProper[Spicetify.Locale?.getLocale()] || appProper["en"];
 		}
 		if (!appProper) {
 			appProper = app[0].toUpperCase() + app.slice(1);
