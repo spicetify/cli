@@ -58,6 +58,9 @@ func InitPaths() {
 	spotifyPath = settingSection.Key("spotify_path").String()
 	prefsPath = settingSection.Key("prefs_path").String()
 
+	spotifyPath = utils.ReplaceEnvVarsInString(spotifyPath)
+	prefsPath = utils.ReplaceEnvVarsInString(prefsPath)
+
 	if len(spotifyPath) == 0 {
 		spotifyPath = utils.FindAppPath()
 

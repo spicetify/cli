@@ -313,11 +313,11 @@
 		if (!list[uri]) {
 			list[uri] = true;
 			if (shouldSkipCurrentTrack(uri, type)) Spicetify.Player.next();
-			Spicetify.Player.data?.track.uri === uri && setWidgetState(true);
+			Spicetify.Player.data?.item.uri === uri && setWidgetState(true);
 			Spicetify.showNotification(type === Spicetify.URI.Type.TRACK ? "Song added to trashbin" : "Artist added to trashbin");
 		} else {
 			delete list[uri];
-			Spicetify.Player.data?.track.uri === uri && setWidgetState(false);
+			Spicetify.Player.data?.item.uri === uri && setWidgetState(false);
 			Spicetify.showNotification(type === Spicetify.URI.Type.TRACK ? "Song removed from trashbin" : "Artist removed from trashbin");
 		}
 
