@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	spotifystatus "github.com/spicetify/spicetify-cli/src/status/spotify"
 	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
@@ -100,6 +101,13 @@ func Update(currentVersion string) bool {
 		os.Rename(exeOld, exe)
 		permissionError(err)
 	}
+
+	spotStat := spotifystatus.Get(appPath)
+	if !spotStat.IsBackupable() {
+		Restore()
+	}
+	Backup(tagName)
+	Apply(tagName)
 
 	utils.CheckExistAndDelete(exeOld)
 	utils.PrintGreen("OK")

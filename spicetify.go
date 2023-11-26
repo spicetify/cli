@@ -6,15 +6,12 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"runtime"
 	"slices"
-	"strings"
 	"sync"
 
 	colorable "github.com/mattn/go-colorable"
 	"github.com/spicetify/spicetify-cli/src/cmd"
-	spotifystatus "github.com/spicetify/spicetify-cli/src/status/spotify"
 	"github.com/spicetify/spicetify-cli/src/utils"
 )
 
@@ -232,26 +229,8 @@ func main() {
 
 	utils.PrintBold("spicetify v" + version)
 	if slices.Contains(commands, "upgrade") || slices.Contains(commands, "update") {
-		updateStatus := cmd.Update(version)
-		if updateStatus {
-			ex, err := os.Executable()
-			if err != nil {
-				ex = "spicetify"
-			}
-
-			spotStat := spotifystatus.Get(utils.FindAppPath())
-			cmds := []string{"backup", "apply"}
-			if !spotStat.IsBackupable() {
-				cmds = append([]string{"restore"}, cmds...)
-			}
-
-			cmd := exec.Command(ex, cmds...)
-			utils.CmdScanner(cmd)
-
-			cmd = exec.Command(ex, strings.Join(commands[:], " "))
-			utils.CmdScanner(cmd)
-		}
-		return
+		cmd.Update(version)
+		return;
 	} else {
 		cmd.CheckUpdate(version)
 	}
