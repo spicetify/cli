@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
@@ -239,7 +240,8 @@ func main() {
 				ex = "spicetify"
 			}
 
-			spotStat := spotifystatus.Get(utils.FindAppPath())
+			spotifyPath := filepath.Join(utils.FindAppPath(), "Apps")
+			spotStat := spotifystatus.Get(spotifyPath)
 			cmds := []string{"backup", "apply"}
 			if !spotStat.IsBackupable() {
 				cmds = append([]string{"restore"}, cmds...)
