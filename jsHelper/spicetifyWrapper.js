@@ -729,7 +729,7 @@ window.Spicetify = {
 		return Spicetify.Player.origin._queue.removeFromQueue(uri);
 	};
 
-	Spicetify.Player._volumeBeforeMute = Spicetify.Player.getVolume() || 1;
+	Spicetify.Player._volumeBeforeMute = Spicetify.Player.getVolume() || 0.7;
 })();
 
 (function waitForPlaybackAPI() {
