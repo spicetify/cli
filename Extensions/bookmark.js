@@ -285,7 +285,7 @@
 		} else {
 			meta.description = Player.data.item.metadata.artist_name;
 		}
-		const playerState = Spicetify.Player.data
+		const playerState = Spicetify.Player.data;
 		const contextUri = URI.fromString(playerState.context_uri ?? playerState.context.uri);
 		if (contextUri && (contextUri.type === URI.Type.PLAYLIST || contextUri.type === URI.Type.PLAYLIST_V2 || contextUri.type === URI.Type.ALBUM)) {
 			meta.context = `/${contextUri.toURLPath()}?uid=${Player.data.item.uid}`;
