@@ -116,8 +116,11 @@ window.Spicetify = {
 		},
 		setHeart: b => {
 			const uri = [Spicetify.Player.origin._state.item?.uri];
-			if (b) Spicetify.Player.origin._collection.add({ uri })
-			else Spicetify.Player.origin._collection.remove({ uri });
+			if (b) {
+				Spicetify.Player.origin._collection.add({ uri });
+			} else {
+				Spicetify.Player.origin._collection.remove({ uri });
+			}
 		},
 		toggleHeart: () => {
 			Spicetify.Player.setHeart(!Spicetify.Player.getHeart());
