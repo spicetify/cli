@@ -77,7 +77,7 @@ window.Spicetify = {
 				if (volume > 0) Spicetify.Player._volumeBeforeMute = volume;
 				Spicetify.Player.setVolume(0);
 			} else {
-				Spicetify.Player.setVolume(Spicetify.Player._volumeBeforeMute || 1);
+				Spicetify.Player.setVolume(Spicetify.Player._volumeBeforeMute);
 			}
 		},
 		formatTime: ms => {
