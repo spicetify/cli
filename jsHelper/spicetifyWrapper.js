@@ -115,7 +115,7 @@ window.Spicetify = {
 			Spicetify.Player.origin.seekForward(amount);
 		},
 		setHeart: b => {
-			const uris = [Spicetify.Player.origin._state.item?.uri];
+			const uris = [Spicetify.Player.origin._state?.item.uri];
 			if (b) {
 				Spicetify.Platform.LibraryAPI.add({ uris });
 			} else {
