@@ -115,11 +115,11 @@ window.Spicetify = {
 			Spicetify.Player.origin.seekForward(amount);
 		},
 		setHeart: b => {
-			const uri = [Spicetify.Player.origin._state.item?.uri];
+			const uris = [Spicetify.Player.origin._state.item?.uri];
 			if (b) {
-				Spicetify.Player.origin._collection.add({ uri });
+				Spicetify.Platform.LibraryAPI.add({ uris });
 			} else {
-				Spicetify.Player.origin._collection.remove({ uri });
+				Spicetify.Platform.LibraryAPI.remove({ uris });
 			}
 		},
 		toggleHeart: () => {
