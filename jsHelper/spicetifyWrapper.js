@@ -213,7 +213,9 @@ window.Spicetify = {
 			"toggleRepeat",
 			"toggleShuffle",
 			"origin",
-			"playUri"
+			"playUri",
+			"setHeart",
+			"_volumeBeforeMute"
 		];
 
 		const REACT_COMPONENT = [
