@@ -1955,7 +1955,7 @@ Spicetify.Topbar = (function () {
 		}
 	}
 
-	function waitForTopbarMounted() {
+	(function waitForTopbarMounted() {
 		leftContainer = document.querySelector(".main-topBar-historyButtons");
 		rightContainer = document.querySelector(".main-noConnection");
 		if (!leftContainer || !rightContainer) {
@@ -1964,9 +1964,7 @@ Spicetify.Topbar = (function () {
 		}
 		leftContainer.append(...leftButtonsStash);
 		rightContainer.after(...rightButtonsStash);
-	}
-
-	waitForTopbarMounted();
+	})();
 
 	return { Button };
 })();
