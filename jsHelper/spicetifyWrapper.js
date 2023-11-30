@@ -86,7 +86,7 @@ window.Spicetify = {
 			seconds -= minutes * 60;
 			return `${minutes}:${seconds > 9 ? "" : "0"}${String(seconds)}`;
 		},
-		getHeart: () => Spicetify.Player.origin._state.item?.metadata["collection.in_collection"] === "true",
+		getHeart: () => Spicetify.Player.origin._state.item.metadata["collection.in_collection"] === "true",
 		pause: () => {
 			Spicetify.Player.origin.pause();
 		},
@@ -115,7 +115,7 @@ window.Spicetify = {
 			Spicetify.Player.origin.seekForward(amount);
 		},
 		setHeart: b => {
-			const uris = [Spicetify.Player.origin._state?.item.uri];
+			const uris = [Spicetify.Player.origin._state.item.uri];
 			if (b) {
 				Spicetify.Platform.LibraryAPI.add({ uris });
 			} else {
