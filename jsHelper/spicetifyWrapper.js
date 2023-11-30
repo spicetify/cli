@@ -1968,24 +1968,6 @@ Spicetify.Topbar = (function () {
 
 	waitForTopbarMounted();
 
-	(function attachObserver() {
-		const topBar = document.querySelector(".Root__top-bar");
-		if (!topBar) {
-			setTimeout(attachObserver, 300);
-			return;
-		}
-		const observer = new MutationObserver(mutations => {
-			mutations.forEach(mutation => {
-				if (mutation.removedNodes.length > 0) {
-					leftContainer = null;
-					rightContainer = null;
-					waitForTopbarMounted();
-				}
-			});
-		});
-		observer.observe(topBar, { childList: true });
-	})();
-
 	return { Button };
 })();
 
