@@ -370,7 +370,6 @@ Spicetify.React.useEffect(() => {
 		`case [\w$.]+BuddyFeed:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?;(?:break;)?(?:case [\w$.]+:(?:return ?|[\w$]+=)[\w$?]*(?:\([\w$.,]+\)\([\w(){},.:]+)?[\w:]*;(?:break;)?)*default:(?:return ?|[\w$]+=)`,
 		`${0} Spicetify.Panel?.render()??`)
 
-	// Snackbar https://mui.com/material-ui/react-snackbar/
 	utils.Replace(
 		&input,
 		`\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;`,
@@ -463,11 +462,16 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 		`([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})`,
 		`${1}=Spicetify.ReactFlipToolkit.spring=${2}`)
 
-	// Snackbar https://mui.com/material-ui/react-snackbar/
+	// Snackbar https://github.com/iamhosseindhv/notistack
 	utils.Replace(
 		&input,
-		`\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
-		`Spicetify.Snackbar=${0}`)
+		`\(\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
+		` Spicetify.Snackbar.enqueueSnackbar=${0}`)
+
+	utils.Replace(
+		&input,
+		`\w+.closeSnackbar=function`,
+		`Spicetify.Snackbar.closeSnackbar=${0}`)
 
 	return input
 }
