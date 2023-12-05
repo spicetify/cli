@@ -705,10 +705,6 @@ window.Spicetify = {
 		playerState.current = Spicetify.Platform.PlayerAPI._state;
 		Spicetify.Player.data = playerState.current;
 
-		// for compatibility reasons
-		// TODO: remove in the future
-		Spicetify.Player.data["track"] = Spicetify.Player.data.item;
-
 		if (playerState.cache?.item.uri !== playerState.current?.item?.uri) {
 			const event = new Event("songchange");
 			event.data = Spicetify.Player.data;
