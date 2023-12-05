@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -79,7 +78,7 @@ var userAppsFolder = GetUserFolder("CustomApps")
 var userExtensionsFolder = GetUserFolder("Extensions")
 
 func GetCustomAppSubfolderPath(folderPath string) string {
-	entries, err := ioutil.ReadDir(folderPath)
+	entries, err := os.ReadDir(folderPath)
 	if err != nil {
 		return ""
 	}

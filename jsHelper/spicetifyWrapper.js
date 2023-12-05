@@ -1955,7 +1955,7 @@ Spicetify.Topbar = (function () {
 		}
 	}
 
-	function waitForTopbarMounted() {
+	(function waitForTopbarMounted() {
 		leftContainer = document.querySelector(".main-topBar-historyButtons");
 		rightContainer = document.querySelector(".main-noConnection");
 		if (!leftContainer || !rightContainer) {
@@ -1964,26 +1964,6 @@ Spicetify.Topbar = (function () {
 		}
 		leftContainer.append(...leftButtonsStash);
 		rightContainer.after(...rightButtonsStash);
-	}
-
-	waitForTopbarMounted();
-
-	(function attachObserver() {
-		const topBar = document.querySelector(".Root__top-bar");
-		if (!topBar) {
-			setTimeout(attachObserver, 300);
-			return;
-		}
-		const observer = new MutationObserver(mutations => {
-			mutations.forEach(mutation => {
-				if (mutation.removedNodes.length > 0) {
-					leftContainer = null;
-					rightContainer = null;
-					waitForTopbarMounted();
-				}
-			});
-		});
-		observer.observe(topBar, { childList: true });
 	})();
 
 	return { Button };
@@ -2355,37 +2335,6 @@ Spicetify.Playbar = (function () {
 
 	// Eliminate false positives
 	Spicetify.Panel.subPanelState(() => clearTimeout(refreshTimeout));
-})();
-
-(function waitForHistoryAPI() {
-	const main = document.querySelector(".main-view-container__scroll-node-child > main");
-	if (!main || !Spicetify.Platform?.History) {
-		setTimeout(waitForHistoryAPI, 300);
-		return;
-	}
-
-	let currentPath;
-	const observer = new MutationObserver(() => {
-		const child = main.lastElementChild;
-		const isPlaceholder = child?.tagName === "DIV" && !child?.children.length;
-		if (!isPlaceholder) {
-			const event = new Event("appchange");
-			event.data = {
-				path: currentPath,
-				container: child
-			};
-			Spicetify.Player.dispatchEvent(event);
-			observer.disconnect();
-		}
-	});
-
-	Spicetify.Platform.History.listen(({ pathname }) => {
-		if (!Spicetify.Player.eventListeners["appchange"]?.length) {
-			return;
-		}
-		currentPath = pathname;
-		observer.observe(main, { childList: true });
-	});
 })();
 
 (async function checkForUpdate() {

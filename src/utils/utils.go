@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -83,7 +82,7 @@ func Unzip(src, dest string) error {
 
 // Copy .
 func Copy(src, dest string, recursive bool, filters []string) error {
-	dir, err := ioutil.ReadDir(src)
+	dir, err := os.ReadDir(src)
 	if err != nil {
 		return err
 	}
@@ -182,7 +181,7 @@ func ReplaceOnce(input *string, regexpTerm string, replaceTerm string) {
 // ModifyFile opens file, changes file content by executing
 // `repl` callback function and writes new content.
 func ModifyFile(path string, repl func(string) string) {
-	raw, err := ioutil.ReadFile(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		log.Print(err)
 		return
@@ -190,7 +189,7 @@ func ModifyFile(path string, repl func(string) string) {
 
 	content := repl(string(raw))
 
-	ioutil.WriteFile(path, []byte(content), 0700)
+	os.WriteFile(path, []byte(content), 0700)
 }
 
 // GetSpotifyVersion .
