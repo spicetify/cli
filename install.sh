@@ -136,11 +136,10 @@ echo
 log "spicetify v$tag was installed successfully to $spicetify_install"
 log "Run 'spicetify --help' to get started"
 
-read -p "Do you want to install Spicetify Marketplace? (y/N) " choice
-if [[ $choice == [Yy]* ]]; then
-	echo "Starting the Spicetify Marketplace installation script.."
-	curl -fsSL "https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.sh" | sh
-else
+read -p "Do you want to install Spicetify Marketplace? (Y/n) " choice
+if [[ $choice == [Nn]* ]]; then
 	echo "Spicetify Marketplace installation aborted"
 	exit
 fi
+echo "Starting the Spicetify Marketplace installation script.."
+curl -fsSL "https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.sh" | sh
