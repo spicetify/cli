@@ -446,6 +446,12 @@ window.Spicetify = {
 		},
 		_reservedPanelIds: modules.find(m => m?.BuddyFeed),
 		Mousetrap: cache.find(m => m?.addKeycodes),
+		// Snackbar notifications
+		// https://github.com/iamhosseindhv/notistack
+		Snackbar: {
+			SnackbarProvider: functionModules.find(m => m.toString().includes("enqueueSnackbar called with invalid argument")),
+			useSnackbar: functionModules.find(m => m.toString().match(/\{return\(0,\w+\.useContext\)\(\w+\)\}/))
+		},
 		Locale: modules.find(m => m?._dictionary)
 	});
 
@@ -521,7 +527,7 @@ window.Spicetify = {
 
 	// Combine snackbar and notification
 	(function bindShowNotification() {
-		if (!Spicetify.Snackbar && !Spicetify.showNotification) {
+		if (!Spicetify.Snackbar?.enqueueSnackbar && !Spicetify.showNotification) {
 			setTimeout(bindShowNotification, 250);
 			return;
 		}
