@@ -69,12 +69,15 @@ window.Spicetify = {
 		},
 		getMute: () => Spicetify.Player.getVolume() === 0,
 		toggleMute: () => {
-			document.querySelector(".volume-bar__icon-button").click();
+			Spicetify.Player.setMute(!Spicetify.Player.getMute());
 		},
 		setMute: b => {
-			const isMuted = Spicetify.Player.getMute();
-			if ((b && !isMuted) || (!b && isMuted)) {
-				Spicetify.Player.toggleMute();
+			if (b) {
+				const volume = Spicetify.Player.getVolume();
+				if (volume > 0) Spicetify.Player._volumeBeforeMute = volume;
+				Spicetify.Player.setVolume(0);
+			} else {
+				Spicetify.Player.setVolume(Spicetify.Player._volumeBeforeMute);
 			}
 		},
 		formatTime: ms => {
@@ -83,7 +86,7 @@ window.Spicetify = {
 			seconds -= minutes * 60;
 			return `${minutes}:${seconds > 9 ? "" : "0"}${String(seconds)}`;
 		},
-		getHeart: () => document.querySelector(".control-button-heart")?.ariaChecked === "true",
+		getHeart: () => Spicetify.Player.origin._state.item.metadata["collection.in_collection"] === "true",
 		pause: () => {
 			Spicetify.Player.origin.pause();
 		},
@@ -111,8 +114,16 @@ window.Spicetify = {
 		skipForward: (amount = 15e3) => {
 			Spicetify.Player.origin.seekForward(amount);
 		},
+		setHeart: b => {
+			const uris = [Spicetify.Player.origin._state.item.uri];
+			if (b) {
+				Spicetify.Platform.LibraryAPI.add({ uris });
+			} else {
+				Spicetify.Platform.LibraryAPI.remove({ uris });
+			}
+		},
 		toggleHeart: () => {
-			document.querySelector(".control-button-heart")?.click();
+			Spicetify.Player.setHeart(!Spicetify.Player.getHeart());
 		}
 	},
 	test: () => {
@@ -202,7 +213,9 @@ window.Spicetify = {
 			"toggleRepeat",
 			"toggleShuffle",
 			"origin",
-			"playUri"
+			"playUri",
+			"setHeart",
+			"_volumeBeforeMute"
 		];
 
 		const REACT_COMPONENT = [
@@ -717,6 +730,21 @@ window.Spicetify = {
 	Spicetify.removeFromQueue = uri => {
 		return Spicetify.Player.origin._queue.removeFromQueue(uri);
 	};
+
+	Spicetify.Player._volumeBeforeMute = Spicetify.Player.getVolume() || 0.7;
+})();
+
+(function waitForPlaybackAPI() {
+	if (!Spicetify.Platform?.PlaybackAPI) {
+		setTimeout(waitForPlaybackAPI, 10);
+		return;
+	}
+
+	Spicetify.Platform.PlaybackAPI._events.addListener("volume", ({ data: { volume } }) => {
+		if (volume > 0) {
+			Spicetify.Player._volumeBeforeMute = volume;
+		}
+	});
 })();
 
 Spicetify.getAudioData = async uri => {
