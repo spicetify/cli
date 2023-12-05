@@ -135,3 +135,12 @@ esac
 echo
 log "spicetify v$tag was installed successfully to $spicetify_install"
 log "Run 'spicetify --help' to get started"
+
+read -p "Do you want to install Spicetify Marketplace? (y/N) " choice
+if [[ $choice == [Yy]* ]]; then
+	echo "Starting the Spicetify Marketplace installation script.."
+	curl -fsSL "https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.sh" | sh
+else
+	echo "Spicetify Marketplace installation aborted"
+	exit
+fi
