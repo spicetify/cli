@@ -35,7 +35,7 @@ function Test-PowerShellVersion {
   }
   process {
     Write-Verbose -Message 'Checking your PowerShell version...' -Verbose
-    $PSVersionTable.PSVersion -lt $PSMinVersion
+    $PSVersionTable.PSVersion -ge $PSMinVersion
   }
 }
 
