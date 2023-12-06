@@ -476,6 +476,7 @@ window.Spicetify = {
 			get _dictionary() {
 				return localeModule._translations;
 			},
+			formatDate: (date, options) => localeModule.formatDate(date, options),
 			formatRelativeTime: (date, options) => localeModule.formatRelativeDate(date, options),
 			formatNumber: (number, options) => localeModule.formatNumber(number, options),
 			formatNumberCompact: (number, options) => localeModule.formatNumberCompact(number, options),
