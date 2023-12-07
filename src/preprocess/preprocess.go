@@ -475,8 +475,8 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 
 	utils.Replace(
 		&input,
-		`(this\.updater)\s*=\s*(.*)`,
-		`${1}=Spicetify.Snackbar.updater=${2}`)
+		`(function\s*\w+\(.*\)\s*\{.*,\s*)(this\.updater\s*=\s*)(.*;)(.*\})`,
+		`${1}${2}Spicetify.Snackbar.updater=${3}${4}`)
 
 	return input
 }
