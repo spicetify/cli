@@ -241,7 +241,8 @@ window.Spicetify = {
 			"ButtonSecondary",
 			"ButtonTertiary",
 			"Snackbar",
-			"Chip"
+			"Chip",
+			"Toggle"
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
@@ -427,6 +428,7 @@ window.Spicetify = {
 				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
 			},
 			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
+			Toggle: functionModules.find(m => m.toString().includes("onSelected")) && functionModules.find(m => m.toString().includes('type:"checkbox"')),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
