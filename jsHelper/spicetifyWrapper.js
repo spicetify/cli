@@ -543,7 +543,6 @@ window.Spicetify = {
 			return;
 		}
 
-		if (!Spicetify.Snackbar) Spicetify.Snackbar = {};
 		Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration } = {}) => {
 			isError = variant === "error";
 			Spicetify.showNotification(message, isError, autoHideDuration);
