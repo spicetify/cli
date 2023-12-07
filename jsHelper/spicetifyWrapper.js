@@ -450,6 +450,7 @@ window.Spicetify = {
 		// Snackbar notifications
 		// https://github.com/iamhosseindhv/notistack
 		Snackbar: {
+			...Spicetify.Snackbar,
 			SnackbarProvider: functionModules.find(m => m.toString().includes("enqueueSnackbar called with invalid argument")),
 			useSnackbar: functionModules.find(m => m.toString().match(/\{return\(0,\w+\.useContext\)\(\w+\)\}/))
 		},
