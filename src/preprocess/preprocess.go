@@ -465,13 +465,8 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 	// Snackbar https://github.com/iamhosseindhv/notistack
 	utils.Replace(
 		&input,
-		`\(\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
-		` Spicetify.Snackbar.enqueueSnackbar=${0}`)
-
-	utils.Replace(
-		&input,
-		`\w+.closeSnackbar=function`,
-		`Spicetify.Snackbar.closeSnackbar=${0}`)
+		`\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
+		`Spicetify.Snackbar=${0}`)
 
 	return input
 }
