@@ -311,7 +311,8 @@ window.Spicetify = {
 	},
 	ReactComponent: {},
 	ReactHook: {},
-	ReactFlipToolkit: {}
+	ReactFlipToolkit: {},
+	Snackbar: {}
 };
 
 (async function hotloadWebpackModules() {
@@ -449,6 +450,7 @@ window.Spicetify = {
 		// Snackbar notifications
 		// https://github.com/iamhosseindhv/notistack
 		Snackbar: {
+			...Spicetify.Snackbar,
 			SnackbarProvider: functionModules.find(m => m.toString().includes("enqueueSnackbar called with invalid argument")),
 			useSnackbar: functionModules.find(m => m.toString().match(/\{return\(0,\w+\.useContext\)\(\w+\)\}/))
 		},
@@ -542,7 +544,6 @@ window.Spicetify = {
 			return;
 		}
 
-		if (!Spicetify.Snackbar) Spicetify.Snackbar = {};
 		Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration } = {}) => {
 			isError = variant === "error";
 			Spicetify.showNotification(message, isError, autoHideDuration);
