@@ -311,7 +311,8 @@ window.Spicetify = {
 	},
 	ReactComponent: {},
 	ReactHook: {},
-	ReactFlipToolkit: {}
+	ReactFlipToolkit: {},
+	Snackbar: {}
 };
 
 (async function hotloadWebpackModules() {
@@ -543,7 +544,6 @@ window.Spicetify = {
 			return;
 		}
 
-		if (!Spicetify.Snackbar) Spicetify.Snackbar = {};
 		Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration } = {}) => {
 			isError = variant === "error";
 			Spicetify.showNotification(message, isError, autoHideDuration);
