@@ -171,13 +171,14 @@ $Host.UI.RawUI.Flushinputbuffer()
 $choice = $Host.UI.PromptForChoice('', 'Do you want to install Spicetify Marketplace?', ('&Yes', '&No'), 0)
 if ($choice -eq 1) {
   Write-Host -Object 'Spicetify Marketplace installation aborted'
-  exit
 }
-Write-Verbose -Message 'Starting the Spicetify Marketplace installation script..' -Verbose
-$Parameters = @{
-  Uri             = 'https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.ps1'
-  UseBasicParsing = $true
+else {
+  Write-Verbose -Message 'Starting the Spicetify Marketplace installation script..' -Verbose
+  $Parameters = @{
+    Uri             = 'https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.ps1'
+    UseBasicParsing = $true
+  }
+  Invoke-WebRequest @Parameters | Invoke-Expression
 }
-Invoke-WebRequest @Parameters | Invoke-Expression
 #endregion Marketplace
 #endregion Main
