@@ -112,6 +112,7 @@ function Add-SpicetifyToPath {
   }
   end {
     [Environment]::SetEnvironmentVariable('PATH', $path, $user)
+    $env:PATH = $path
     Write-Success
   }
 }
