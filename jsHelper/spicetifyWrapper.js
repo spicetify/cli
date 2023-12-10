@@ -685,31 +685,22 @@ window.Spicetify = {
 		return;
 	}
 
-	function objectsAreEqual(obj1, obj2) {
-		return JSON.stringify(obj1) === JSON.stringify(obj2);
-	}
+	const interval = setInterval(() => {
+		if (!Spicetify.Player.origin._state) return;
+		Spicetify.Player.data = Spicetify.Player.origin._state;
+		clearInterval(interval);
+	}, 10);
 
 	const playerState = {
 		cache: Spicetify.Player.data,
 		current: null
 	};
 
-	setInterval(() => {
-		if (
-			objectsAreEqual(Spicetify.Platform.PlayerAPI._state, playerState.cache) ||
-			(!Spicetify.Platform.PlayerAPI._state.item && !Spicetify.Player.data)
-		)
-			return;
-
-		if (!Spicetify.Platform.PlayerAPI._state.item) {
-			Spicetify.Player.data = null;
-			return;
-		}
-
-		playerState.current = Spicetify.Platform.PlayerAPI._state;
+	Spicetify.Player.origin._events.addListener("update", ({ data: playerEventData }) => {
+		playerState.current = playerEventData;
 		Spicetify.Player.data = playerState.current;
 
-		if (playerState.cache?.item.uri !== playerState.current?.item?.uri) {
+		if (playerState.cache?.item?.uri !== playerState.current?.item?.uri) {
 			const event = new Event("songchange");
 			event.data = Spicetify.Player.data;
 			Spicetify.Player.dispatchEvent(event);
@@ -722,12 +713,21 @@ window.Spicetify = {
 		}
 
 		playerState.cache = playerState.current;
-	}, 100);
+	});
+
+	Spicetify.Player.origin._events.addListener("error", ({ data: error }) => {
+		if (error.code === "all_tracks_unplayable_auto_stopped") {
+			Spicetify.Player.data = null;
+			playerState.cache = null;
+		}
+	});
 
 	setInterval(() => {
-		const event = new Event("onprogress");
-		event.data = Spicetify.Player.getProgress();
-		Spicetify.Player.dispatchEvent(event);
+		if (playerState.cache?.isPaused === false) {
+			const event = new Event("onprogress");
+			event.data = Spicetify.Player.getProgress();
+			Spicetify.Player.dispatchEvent(event);
+		}
 	}, 100);
 
 	Spicetify.addToQueue = uri => {
