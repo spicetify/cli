@@ -100,7 +100,7 @@ function Add-SpicetifyToPath {
   [CmdletBinding()]
   param ()
   begin {
-    Write-Verbose -Message 'Adding Spicetify to your PATH variable if needed...' -Verbose
+    Write-Verbose -Message 'Adding Spicetify to your PATH if needed...' -Verbose
     $user = [EnvironmentVariableTarget]::User
     $path = [Environment]::GetEnvironmentVariable('PATH', $user)
   }
