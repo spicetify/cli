@@ -155,6 +155,7 @@ if (Test-Admin) {
   $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process to avoid any issues?', ('&Yes', '&No'), 0)
   if ($choice -eq 0) {
     Write-Host -Object 'Spicetify installation aborted'
+    Pause
     exit
   }
 }
