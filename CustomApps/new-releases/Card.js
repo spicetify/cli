@@ -46,7 +46,7 @@ class Card extends react.Component {
 							center: "-",
 							trailing: Spicetify.ReactComponent.Snackbar.ctaText({
 								ctaText: "Undo",
-								onCtaClick: () => removeCards(null, "undo")
+								onCtaClick: () => removeCards(this.props.uri, "undo")
 							})
 						})
 					})
