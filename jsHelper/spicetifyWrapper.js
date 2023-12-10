@@ -686,7 +686,7 @@ window.Spicetify = {
 	}
 
 	const interval = setInterval(() => {
-		if (!Spicetify.Player.origin._state) return;
+		if (!Spicetify.Player.origin._state?.item) return;
 		Spicetify.Player.data = Spicetify.Player.origin._state;
 		clearInterval(interval);
 	}, 10);
