@@ -31,7 +31,28 @@ class Card extends react.Component {
 
 	closeButtonClicked(event) {
 		removeCards(this.props.uri);
-		Spicetify.showNotification(`Dismissed <b>${this.title}</b> from <b>${this.artist.name}</b>`);
+
+		const message = `Dismissed <b>${this.title}</b> from <b>${this.artist.name}</b>`;
+		Spicetify.Snackbar.enqueueCustomSnackbar
+			? Spicetify.Snackbar.enqueueCustomSnackbar("dismissed-release", {
+					keyPrefix: "dismissed-release",
+					children: Spicetify.ReactComponent.Snackbar.wrapper({
+						children: Spicetify.ReactComponent.Snackbar.simpleLayout({
+							leading: Spicetify.React.createElement("div", {
+								dangerouslySetInnerHTML: {
+									__html: message
+								}
+							}),
+							center: "-",
+							trailing: Spicetify.ReactComponent.Snackbar.ctaText({
+								ctaText: "Undo",
+								onCtaClick: () => removeCards(null, "undo")
+							})
+						})
+					})
+			  })
+			: Spicetify.showNotification(message);
+
 		event.stopPropagation();
 	}
 
