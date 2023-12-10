@@ -241,7 +241,8 @@ window.Spicetify = {
 			"ButtonSecondary",
 			"ButtonTertiary",
 			"Snackbar",
-			"Chip"
+			"Chip",
+			"Toggle"
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
@@ -311,7 +312,8 @@ window.Spicetify = {
 	},
 	ReactComponent: {},
 	ReactHook: {},
-	ReactFlipToolkit: {}
+	ReactFlipToolkit: {},
+	Snackbar: {}
 };
 
 (async function hotloadWebpackModules() {
@@ -403,7 +405,7 @@ window.Spicetify = {
 			),
 			Menu: functionModules.find(m => m.toString().includes("getInitialFocusElement") && m.toString().includes("children")),
 			MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
-			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
+			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward") && !m.toString().includes("volume"))),
 			RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
 			RightClickMenu: functionModules.find(
 				m =>
@@ -421,12 +423,13 @@ window.Spicetify = {
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
 			Snackbar: {
-				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme")),
-				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
+				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme") && m.toString().includes("elevated")),
+				simpleLayout: functionModules.find(m => ["leading", "center", "trailing"].every(keyword => m.toString().includes(keyword))),
 				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
 				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
 			},
 			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
+			Toggle: functionModules.find(m => m.toString().includes("onSelected")) && functionModules.find(m => m.toString().includes('type:"checkbox"')),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -449,6 +452,7 @@ window.Spicetify = {
 		// Snackbar notifications
 		// https://github.com/iamhosseindhv/notistack
 		Snackbar: {
+			...Spicetify.Snackbar,
 			SnackbarProvider: functionModules.find(m => m.toString().includes("enqueueSnackbar called with invalid argument")),
 			useSnackbar: functionModules.find(m => m.toString().match(/\{return\(0,\w+\.useContext\)\(\w+\)\}/))
 		},
@@ -476,6 +480,7 @@ window.Spicetify = {
 			get _dictionary() {
 				return localeModule._translations;
 			},
+			formatDate: (date, options) => localeModule.formatDate(date, options),
 			formatRelativeTime: (date, options) => localeModule.formatRelativeDate(date, options),
 			formatNumber: (number, options) => localeModule.formatNumber(number, options),
 			formatNumberCompact: (number, options) => localeModule.formatNumberCompact(number, options),
@@ -542,7 +547,6 @@ window.Spicetify = {
 			return;
 		}
 
-		if (!Spicetify.Snackbar) Spicetify.Snackbar = {};
 		Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration } = {}) => {
 			isError = variant === "error";
 			Spicetify.showNotification(message, isError, autoHideDuration);
@@ -681,31 +685,22 @@ window.Spicetify = {
 		return;
 	}
 
-	function objectsAreEqual(obj1, obj2) {
-		return JSON.stringify(obj1) === JSON.stringify(obj2);
-	}
+	const interval = setInterval(() => {
+		if (!Spicetify.Player.origin._state) return;
+		Spicetify.Player.data = Spicetify.Player.origin._state;
+		clearInterval(interval);
+	}, 10);
 
 	const playerState = {
 		cache: Spicetify.Player.data,
 		current: null
 	};
 
-	setInterval(() => {
-		if (
-			objectsAreEqual(Spicetify.Platform.PlayerAPI._state, playerState.cache) ||
-			(!Spicetify.Platform.PlayerAPI._state.item && !Spicetify.Player.data)
-		)
-			return;
-
-		if (!Spicetify.Platform.PlayerAPI._state.item) {
-			Spicetify.Player.data = null;
-			return;
-		}
-
-		playerState.current = Spicetify.Platform.PlayerAPI._state;
+	Spicetify.Player.origin._events.addListener("update", ({ data: playerEventData }) => {
+		playerState.current = playerEventData;
 		Spicetify.Player.data = playerState.current;
 
-		if (playerState.cache?.item.uri !== playerState.current?.item?.uri) {
+		if (playerState.cache?.item?.uri !== playerState.current?.item?.uri) {
 			const event = new Event("songchange");
 			event.data = Spicetify.Player.data;
 			Spicetify.Player.dispatchEvent(event);
@@ -718,12 +713,21 @@ window.Spicetify = {
 		}
 
 		playerState.cache = playerState.current;
-	}, 100);
+	});
+
+	Spicetify.Player.origin._events.addListener("error", ({ data: error }) => {
+		if (error.code === "all_tracks_unplayable_auto_stopped") {
+			Spicetify.Player.data = null;
+			playerState.cache = null;
+		}
+	});
 
 	setInterval(() => {
-		const event = new Event("onprogress");
-		event.data = Spicetify.Player.getProgress();
-		Spicetify.Player.dispatchEvent(event);
+		if (playerState.cache?.isPaused === false) {
+			const event = new Event("onprogress");
+			event.data = Spicetify.Player.getProgress();
+			Spicetify.Player.dispatchEvent(event);
+		}
 	}, 100);
 
 	Spicetify.addToQueue = uri => {
@@ -765,7 +769,7 @@ Spicetify.colorExtractor = async uri => {
 	if (body.entries && body.entries.length) {
 		const list = {};
 		for (const color of body.entries[0].color_swatches) {
-			list[color.preset] = `#${color.color.toString(16).padStart(6, "0")}`;
+			list[color.preset] = `#${color.color?.toString(16).padStart(6, "0")}`;
 		}
 		return list;
 	} else {
