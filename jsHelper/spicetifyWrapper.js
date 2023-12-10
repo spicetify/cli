@@ -423,8 +423,8 @@ window.Spicetify = {
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
 			Snackbar: {
-				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme")),
-				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
+				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme") && m.toString().includes("elevated")),
+				simpleLayout: functionModules.find(m => ["leading", "center", "trailing"].every(keyword => m.toString().includes(keyword))),
 				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
 				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
 			},
