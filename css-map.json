@@ -2554,5 +2554,10 @@
 	"bQthUEx0_U98DJkT1saO": "x-categoryCard-title",
 	"eEZSnYlv7__34b2yulfm": "volume-bar",
 	"FZhaXNtbN3Crwrgd0TA7": "volume-bar__icon-button",
-	"x1jWng8HDweDS840aiIA": "volume-bar__slider-container"
+	"x1jWng8HDweDS840aiIA": "volume-bar__slider-container",
+	"NH6UaoYYe47eIHA2Rmal": "main-card-imageContainerOld",
+	"AYwATC_zEPwCkmO1yc8R": "main-card-imageContainerSkeleton",
+	"coBkWVskipFo8KxLKief": "main-topBar-withBackgroundBlur",
+	"ep0_ry7CLwf91E1rN6Cv": "main-yourLibraryX-pulse",
+	"RmWKJG2G0fTrx11zKv_j": "main-entityHeader-theyFollowUs"
 }
