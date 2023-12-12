@@ -686,7 +686,7 @@ window.Spicetify = {
 	}
 
 	const interval = setInterval(() => {
-		if (!Spicetify.Player.origin._state) return;
+		if (!Spicetify.Player.origin._state?.item) return;
 		Spicetify.Player.data = Spicetify.Player.origin._state;
 		clearInterval(interval);
 	}, 10);
@@ -2338,7 +2338,7 @@ Spicetify.Playbar = (function () {
 							}),
 							Spicetify.React.cloneElement(children, { panel: id })
 						)
-				  );
+					);
 
 			contentMap.set(id, Spicetify.React.createElement(ErrorBoundary, { id }, content));
 
