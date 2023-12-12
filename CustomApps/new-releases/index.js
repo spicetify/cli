@@ -121,7 +121,7 @@ class Grid extends react.Component {
 			case "undo":
 				if (!dismissed[0]) Spicetify.showNotification("Nothing to undo", true);
 				else Spicetify.showNotification("Undone dismissal");
-				dismissed = id ? dismissed.filter(item => item !== id) : dismissed.slice(0, -1);
+				dismissed = id ? dismissed.filter(item => item !== id) : dismissed.pop();
 				break;
 			default:
 				dismissed.push(id);
