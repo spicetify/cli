@@ -44,7 +44,7 @@ class Card extends react.Component {
 							}),
 							center: Spicetify.React.createElement("div", {
 								dangerouslySetInnerHTML: {
-									__html: `Dismissed <b>${this.title}</b>`
+									__html: `Dismissed <b>${this.title}</b>.`
 								}
 							}),
 							trailing: Spicetify.ReactComponent.Snackbar.ctaText({
