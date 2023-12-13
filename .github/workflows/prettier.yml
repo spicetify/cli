@@ -16,6 +16,6 @@ jobs:
       - name: Prettify code
         uses: creyD/prettier_action@v4.3
         with:
-          prettier_options: --write .
-          commit_message: "style: prettify code"
-          github_token: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
+          prettier_options: --check .
+          only_changed: true
+          dry: true
