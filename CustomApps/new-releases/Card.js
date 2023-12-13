@@ -32,15 +32,19 @@ class Card extends react.Component {
 	closeButtonClicked(event) {
 		removeCards(this.props.uri);
 
-		const message = `Dismissed <b>${this.title}</b> from <b>${this.artist.name}</b>`;
 		Spicetify.Snackbar.enqueueCustomSnackbar
 			? Spicetify.Snackbar.enqueueCustomSnackbar("dismissed-release", {
 					keyPrefix: "dismissed-release",
 					children: Spicetify.ReactComponent.Snackbar.wrapper({
 						children: Spicetify.ReactComponent.Snackbar.simpleLayout({
-							leading: Spicetify.React.createElement("div", {
+							leading: Spicetify.ReactComponent.Snackbar.styledImage({
+								src: this.props.imageURL,
+								imageHeight: "24px",
+								imageWidth: "24px"
+							}),
+							center: Spicetify.React.createElement("div", {
 								dangerouslySetInnerHTML: {
-									__html: message
+									__html: `Dismissed <b>${this.title}</b>`
 								}
 							}),
 							trailing: Spicetify.ReactComponent.Snackbar.ctaText({
@@ -50,7 +54,7 @@ class Card extends react.Component {
 						})
 					})
 			  })
-			: Spicetify.showNotification(message);
+			: Spicetify.showNotification(`Dismissed <b>${this.title}</b> from <br>${this.artist.name}</b>`);
 
 		event.stopPropagation();
 	}
