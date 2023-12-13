@@ -107,11 +107,6 @@ func Apply(spicetifyVersion string) {
 
 // RefreshTheme updates user.css + theme.js and overwrites custom assets
 func RefreshTheme() {
-	if len(themeFolder) == 0 {
-		utils.PrintWarning(`Nothing is updated: Config "current_theme" is blank.`)
-		return
-	}
-
 	refreshThemeCSS()
 	utils.PrintSuccess("Custom CSS is updated")
 
