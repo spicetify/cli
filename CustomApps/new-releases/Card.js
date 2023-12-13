@@ -4,7 +4,7 @@ function DraggableComponent({ uri, title, children }) {
 		? react.cloneElement(children, {
 				onDragStart: dragHandler,
 				draggable: "true"
-		  })
+			})
 		: children;
 }
 

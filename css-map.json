@@ -2012,6 +2012,7 @@
 	"CCi1L2OQvgdZvxkRHeKE": "search-searchBrowse-SearchBrowse",
 	"rvvoAdb7aaUPYRasW7sK": "search-searchBrowse-browseAllContainer",
 	"UdXTcsz1eiiInKThkfYp": "search-searchBrowse-browseAllWrapper",
+	"M7LKuAFiIKaigK0fVguF": "search-searchBrowse-browseAllWrapper",
 	"khkfPsJuVBQyL_5cLT7y": "search-recentSearches-searchPageGrid",
 	"fVB_YDdnaDlztX7CcWTA": "search-searchCategory-SearchCategory",
 	"e179_Eg8r7Ub6yjjxctr": "search-searchCategory-container",
@@ -2554,5 +2555,10 @@
 	"bQthUEx0_U98DJkT1saO": "x-categoryCard-title",
 	"eEZSnYlv7__34b2yulfm": "volume-bar",
 	"FZhaXNtbN3Crwrgd0TA7": "volume-bar__icon-button",
-	"x1jWng8HDweDS840aiIA": "volume-bar__slider-container"
+	"x1jWng8HDweDS840aiIA": "volume-bar__slider-container",
+	"NH6UaoYYe47eIHA2Rmal": "main-card-imageContainerOld",
+	"AYwATC_zEPwCkmO1yc8R": "main-card-imageContainerSkeleton",
+	"coBkWVskipFo8KxLKief": "main-topBar-withBackgroundBlur",
+	"ep0_ry7CLwf91E1rN6Cv": "main-yourLibraryX-pulse",
+	"RmWKJG2G0fTrx11zKv_j": "main-entityHeader-theyFollowUs"
 }
