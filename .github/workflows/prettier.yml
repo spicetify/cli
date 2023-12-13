@@ -13,7 +13,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Prettify code
+      - name: Test formatting
         uses: creyD/prettier_action@v4.3
         with:
           prettier_options: --check .
