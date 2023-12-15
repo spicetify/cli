@@ -77,12 +77,6 @@ func InitPaths() {
 		cfg.Write()
 	}
 
-	if runtime.GOOS == "windows" {
-		if strings.Contains(spotifyPath, "SpotifyAB.SpotifyMusic") || strings.Contains(prefsPath, "SpotifyAB.SpotifyMusic") {
-			isAppX = true
-		}
-	}
-
 	if _, err := os.Stat(prefsPath); err != nil {
 		actualPrefsPath := utils.FindPrefFilePath()
 
@@ -97,6 +91,12 @@ func InitPaths() {
 		prefsPath = actualPrefsPath
 		settingSection.Key("prefs_path").SetValue(prefsPath)
 		cfg.Write()
+	}
+
+	if runtime.GOOS == "windows" {
+		if strings.Contains(spotifyPath, "SpotifyAB.SpotifyMusic") || strings.Contains(prefsPath, "SpotifyAB.SpotifyMusic") {
+			isAppX = true
+		}
 	}
 
 	appPath = filepath.Join(spotifyPath, "Apps")
