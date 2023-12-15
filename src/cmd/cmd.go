@@ -66,7 +66,8 @@ func InitPaths() {
 
 		if len(actualSpotifyPath) == 0 {
 			if len(spotifyPath) != 0 {
-				utils.PrintError(spotifyPath + ` does not exist or is not a valid path.`)
+				utils.PrintError(spotifyPath + ` is not a valid path. Please manually set "spotify_path" in config-xpui.ini to correct directory of Spotify.`)
+				os.Exit(1)
 			}
 			utils.PrintError(`Cannot detect Spotify location. Please manually set "spotify_path" in config-xpui.ini`)
 			os.Exit(1)
@@ -82,7 +83,8 @@ func InitPaths() {
 
 		if len(actualPrefsPath) == 0 {
 			if len(prefsPath) != 0 {
-				utils.PrintError(prefsPath + ` does not exist or is not a valid path.`)
+				utils.PrintError(prefsPath + ` does not exist or is not a valid path. Please manually set "prefs_path" in config-xpui.ini to correct path of "prefs" file.`)
+				os.Exit(1)
 			}
 			utils.PrintError(`Cannot detect Spotify "prefs" file location. Please manually set "prefs_path" in config-xpui.ini`)
 			os.Exit(1)
