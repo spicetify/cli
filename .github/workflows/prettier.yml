@@ -10,12 +10,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-          fetch-depth: 0
-          persist-credentials: false
 
-      - name: Prettify code
+      - name: Test formatting
         uses: creyD/prettier_action@v4.3
         with:
-          prettier_options: --write .
-          commit_message: "style: prettify code"
-          github_token: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
+          prettier_options: --check .
+          only_changed: true
+          dry: true
