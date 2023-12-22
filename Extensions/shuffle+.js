@@ -574,7 +574,7 @@
 				}
 
 				context = rawUri;
-				if (type === "folder" || type === "collection") {
+				if (type === "folder" || type === "collection" || type === "local") {
 					context = null;
 				}
 			}
