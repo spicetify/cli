@@ -209,7 +209,7 @@ func FindPrefFilePath() string {
 
 func winApp() string {
 	path := filepath.Join(os.Getenv("APPDATA"), "Spotify")
-	if _, err := os.Stat(path); err == nil {
+	if _, err := os.Stat(filepath.Join(path, "Spotify.exe")); err == nil {
 		return path
 	}
 

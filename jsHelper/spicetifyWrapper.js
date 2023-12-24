@@ -449,15 +449,22 @@ window.Spicetify = {
 		},
 		_reservedPanelIds: modules.find(m => m?.BuddyFeed),
 		Mousetrap: cache.find(m => m?.addKeycodes),
+		Locale: modules.find(m => m?._dictionary)
+	});
+
+	(function waitForSnackbar() {
+		if (!Object.keys(Spicetify.Snackbar).length) {
+			setTimeout(waitForSnackbar, 100);
+			return;
+		}
 		// Snackbar notifications
 		// https://github.com/iamhosseindhv/notistack
-		Snackbar: {
+		Spicetify.Snackbar = {
 			...Spicetify.Snackbar,
 			SnackbarProvider: functionModules.find(m => m.toString().includes("enqueueSnackbar called with invalid argument")),
 			useSnackbar: functionModules.find(m => m.toString().match(/\{return\(0,\w+\.useContext\)\(\w+\)\}/))
-		},
-		Locale: modules.find(m => m?._dictionary)
-	});
+		};
+	})();
 
 	const localeModule = modules.find(m => m?.getTranslations);
 	if (localeModule) {
