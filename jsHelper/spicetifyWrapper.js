@@ -699,7 +699,7 @@ window.Spicetify = {
 	};
 
 	Spicetify.Player.origin._events.addListener("update", ({ data: playerEventData }) => {
-		playerState.current = playerEventData;
+		playerState.current = playerEventData.item ? playerEventData : null;
 		Spicetify.Player.data = playerState.current;
 
 		if (playerState.cache?.item?.uri !== playerState.current?.item?.uri) {
@@ -715,13 +715,6 @@ window.Spicetify = {
 		}
 
 		playerState.cache = playerState.current;
-	});
-
-	Spicetify.Player.origin._events.addListener("error", ({ data: error }) => {
-		if (error.code === "all_tracks_unplayable_auto_stopped") {
-			Spicetify.Player.data = null;
-			playerState.cache = null;
-		}
 	});
 
 	setInterval(() => {
