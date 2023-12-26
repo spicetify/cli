@@ -210,7 +210,7 @@ window.Spicetify = {
 			"toggleShuffle",
 			"origin",
 			"playUri",
-			"setHeart",
+			"setHeart"
 		];
 
 		const REACT_COMPONENT = [
