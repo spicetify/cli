@@ -72,12 +72,8 @@ window.Spicetify = {
 			Spicetify.Player.setMute(!Spicetify.Player.getMute());
 		},
 		setMute: b => {
-			if (b) {
-				const volume = Spicetify.Player.getVolume();
-				if (volume > 0) Spicetify.Player._volumeBeforeMute = volume;
-				Spicetify.Player.setVolume(0);
-			} else {
-				Spicetify.Player.setVolume(Spicetify.Player._volumeBeforeMute);
+			if (b !== Spicetify.Player.getMute()) {
+				document.querySelector(".volume-bar__icon-button")?.click();
 			}
 		},
 		formatTime: ms => {
@@ -215,7 +211,6 @@ window.Spicetify = {
 			"origin",
 			"playUri",
 			"setHeart",
-			"_volumeBeforeMute"
 		];
 
 		const REACT_COMPONENT = [
@@ -743,21 +738,6 @@ window.Spicetify = {
 	Spicetify.removeFromQueue = uri => {
 		return Spicetify.Player.origin._queue.removeFromQueue(uri);
 	};
-
-	Spicetify.Player._volumeBeforeMute = Spicetify.Player.getVolume() || 0.7;
-})();
-
-(function waitForPlaybackAPI() {
-	if (!Spicetify.Platform?.PlaybackAPI) {
-		setTimeout(waitForPlaybackAPI, 10);
-		return;
-	}
-
-	Spicetify.Platform.PlaybackAPI._events.addListener("volume", ({ data: { volume } }) => {
-		if (volume > 0) {
-			Spicetify.Player._volumeBeforeMute = volume;
-		}
-	});
 })();
 
 Spicetify.getAudioData = async uri => {
