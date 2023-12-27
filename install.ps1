@@ -53,7 +53,6 @@ function Move-OldSpicetifyFolder {
   process {
     if (Test-Path -Path $spicetifyOldFolderPath) {
       Write-Host -Object 'Moving the old spicetify folder...' -NoNewline
-
       Copy-Item -Path "$spicetifyOldFolderPath\*" -Destination $spicetifyFolderPath -Recurse -Force
       Remove-Item -Path $spicetifyOldFolderPath -Recurse -Force
       Write-Success
@@ -77,14 +76,12 @@ function Get-Spicetify {
       }
       else {
         Write-Warning -Message "You have spicefied an invalid spicetify version: $v `nThe version must be in the following format: 1.2.3"
-
         Pause
         exit
       }
     }
     else {
       Write-Host -Object 'Fetching the latest spicetify version...' -NoNewline
-
       $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/spicetify-cli/releases/latest'
       $targetVersion = $latestRelease.tag_name -replace 'v', ''
       Write-Success
@@ -112,7 +109,6 @@ function Add-SpicetifyToPath {
   param ()
   begin {
     Write-Host -Object 'Making spicetify available in the PATH...' -NoNewline
-
     $user = [EnvironmentVariableTarget]::User
     $path = [Environment]::GetEnvironmentVariable('PATH', $user)
   }
@@ -134,12 +130,10 @@ function Install-Spicetify {
   param ()
   begin {
     Write-Host -Object 'Installing spicetify...'
-
   }
   process {
     $archivePath = Get-Spicetify
     Write-Host -Object 'Extracting spicetify...' -NoNewline
-
     Expand-Archive -Path $archivePath -DestinationPath $spicetifyFolderPath -Force
     Write-Success
     Add-SpicetifyToPath
@@ -147,7 +141,6 @@ function Install-Spicetify {
   end {
     Remove-Item -Path $archivePath -Force
     Write-Host -Object 'spicetify was successfully installed!' -ForegroundColor 'Green'
-
   }
 }
 #endregion Functions
@@ -175,7 +168,6 @@ if (-not (Test-Admin)) {
   $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process to avoid any issues?', ('&Yes', '&No'), 0)
   if ($choice -eq 0) {
     Write-Host -Object 'spicetify installation aborted' -ForegroundColor 'Yellow'
-
     Pause
     exit
   }
@@ -198,11 +190,9 @@ $Host.UI.RawUI.Flushinputbuffer()
 $choice = $Host.UI.PromptForChoice('', "`nDo you want to install Spicetify Marketplace?", ('&Yes', '&No'), 0)
 if ($choice -eq 1) {
   Write-Host -Object 'spicetify Marketplace installation aborted' -ForegroundColor 'Yellow'
-
 }
 else {
   Write-Host -Object 'Starting the spicetify Marketplace installation script..'
-
   $Parameters = @{
     Uri             = 'https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.ps1'
     UseBasicParsing = $true
