@@ -52,7 +52,8 @@ function Move-OldSpicetifyFolder {
   param ()
   process {
     if (Test-Path -Path $spicetifyOldFolderPath) {
-      Write-Host -Object 'Moving your old Spicetify folder...' -NoNewline
+      Write-Host -Object 'Moving the old spicetify folder...' -NoNewline
+
       Copy-Item -Path "$spicetifyOldFolderPath\*" -Destination $spicetifyFolderPath -Recurse -Force
       Remove-Item -Path $spicetifyOldFolderPath -Recurse -Force
       Write-Success
@@ -75,13 +76,15 @@ function Get-Spicetify {
         $targetVersion = $v
       }
       else {
-        Write-Warning -Message "You have spicefied an invalid Spicetify version: $v `nThe version must be in the following format: 1.2.3"
+        Write-Warning -Message "You have spicefied an invalid spicetify version: $v `nThe version must be in the following format: 1.2.3"
+
         Pause
         exit
       }
     }
     else {
-      Write-Host -Object 'Fetching the latest Spicetify version...' -NoNewline
+      Write-Host -Object 'Fetching the latest spicetify version...' -NoNewline
+
       $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/spicetify-cli/releases/latest'
       $targetVersion = $latestRelease.tag_name -replace 'v', ''
       Write-Success
@@ -89,7 +92,8 @@ function Get-Spicetify {
     $archivePath = "$env:TEMP\spicetify.zip"
   }
   process {
-    Write-Host -Object "Downloading Spicetify v$targetVersion..." -NoNewline
+    Write-Host -Object "Downloading spicetify v$targetVersion..." -NoNewline
+
     $Parameters = @{
       Uri            = "https://github.com/spicetify/spicetify-cli/releases/download/v$targetVersion/spicetify-$targetVersion-windows-$architecture.zip"
       UseBasicParsin = $true
@@ -107,7 +111,8 @@ function Add-SpicetifyToPath {
   [CmdletBinding()]
   param ()
   begin {
-    Write-Host -Object 'Adding Spicetify to your PATH if needed...' -NoNewline
+    Write-Host -Object 'Making spicetify available in the PATH...' -NoNewline
+
     $user = [EnvironmentVariableTarget]::User
     $path = [Environment]::GetEnvironmentVariable('PATH', $user)
   }
@@ -128,18 +133,21 @@ function Install-Spicetify {
   [CmdletBinding()]
   param ()
   begin {
-    Write-Host -Object 'Installing Spicetify...'
+    Write-Host -Object 'Installing spicetify...'
+
   }
   process {
     $archivePath = Get-Spicetify
-    Write-Host -Object 'Extracting Spicetify...' -NoNewline
+    Write-Host -Object 'Extracting spicetify...' -NoNewline
+
     Expand-Archive -Path $archivePath -DestinationPath $spicetifyFolderPath -Force
     Write-Success
     Add-SpicetifyToPath
   }
   end {
     Remove-Item -Path $archivePath -Force
-    Write-Host -Object 'Spicetify was successfully installed!' -ForegroundColor 'Green'
+    Write-Host -Object 'spicetify was successfully installed!' -ForegroundColor 'Green'
+
   }
 }
 #endregion Functions
@@ -166,7 +174,8 @@ if (-not (Test-Admin)) {
   $Host.UI.RawUI.Flushinputbuffer()
   $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process to avoid any issues?', ('&Yes', '&No'), 0)
   if ($choice -eq 0) {
-    Write-Host -Object 'Spicetify installation aborted' -ForegroundColor 'Yellow'
+    Write-Host -Object 'spicetify installation aborted' -ForegroundColor 'Yellow'
+
     Pause
     exit
   }
@@ -188,10 +197,12 @@ Write-Host -Object 'to get started'
 $Host.UI.RawUI.Flushinputbuffer()
 $choice = $Host.UI.PromptForChoice('', "`nDo you want to install Spicetify Marketplace?", ('&Yes', '&No'), 0)
 if ($choice -eq 1) {
-  Write-Host -Object 'Spicetify Marketplace installation aborted' -ForegroundColor 'Yellow'
+  Write-Host -Object 'spicetify Marketplace installation aborted' -ForegroundColor 'Yellow'
+
 }
 else {
-  Write-Host -Object 'Starting the Spicetify Marketplace installation script..'
+  Write-Host -Object 'Starting the spicetify Marketplace installation script..'
+
   $Parameters = @{
     Uri             = 'https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.ps1'
     UseBasicParsing = $true
