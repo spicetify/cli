@@ -90,7 +90,6 @@ function Get-Spicetify {
   }
   process {
     Write-Host -Object "Downloading spicetify v$targetVersion..." -NoNewline
-
     $Parameters = @{
       Uri            = "https://github.com/spicetify/spicetify-cli/releases/download/v$targetVersion/spicetify-$targetVersion-windows-$architecture.zip"
       UseBasicParsin = $true
