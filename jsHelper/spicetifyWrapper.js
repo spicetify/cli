@@ -237,7 +237,19 @@ window.Spicetify = {
 			"ButtonTertiary",
 			"Snackbar",
 			"Chip",
-			"Toggle"
+			"Toggle",
+			"Card",
+			"HeroCard",
+			"CardImage",
+			"BaseCard",
+			"AlbumCard",
+			"ArtistCard",
+			"AudiobookCard",
+			"EpisodeCard",
+			"PlaylistCard",
+			"ProfileCard",
+			"ShowCard",
+			"TrackCard"
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
