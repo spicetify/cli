@@ -120,8 +120,8 @@ class Grid extends react.Component {
 				break;
 			case "undo":
 				if (!dismissed[0]) Spicetify.showNotification("Nothing to undo", true);
-				else Spicetify.showNotification("Undone last dismiss");
-				dismissed.pop();
+				else Spicetify.showNotification("Undone dismissal");
+				dismissed = id ? dismissed.filter(item => item !== id) : dismissed.slice(0, -1);
 				break;
 			default:
 				dismissed.push(id);
@@ -269,17 +269,16 @@ class Grid extends react.Component {
 }
 
 async function getArtistList() {
-	const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/artists/all?responseFormat=protobufJson", {
-		policy: { list: { link: true, name: true } }
-	});
+	const base = await Spicetify.Platform.LibraryAPI.getArtists();
+	const artists = await Spicetify.Platform.LibraryAPI.getArtists({ limit: base.totalLength });
 	count(true);
-	return body.item ?? [];
+	return artists.items ?? [];
 }
 
 async function getArtistEverything(artist) {
 	const { queryArtistDiscographyAll } = Spicetify.GraphQL.Definitions;
 	const { data, errors } = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
-		uri: artist.link,
+		uri: artist.uri,
 		offset: 0,
 		// Limit 100 since GraphQL has resource limit
 		limit: 100
@@ -332,7 +331,7 @@ function metaFromTrack(artist, track) {
 			title: track.name,
 			artist: {
 				name: artist.name,
-				uri: artist.link
+				uri: artist.uri
 			},
 			imageURL: track.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url,
 			time,
@@ -354,8 +353,7 @@ async function fetchTracks() {
 	Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
 	const requests = artistList.map(async obj => {
-		const artist = obj.artistMetadata;
-		return await getArtistEverything(artist).catch(err => {
+		return await getArtistEverything(obj).catch(err => {
 			console.debug("Could not fetch all releases", err);
 			console.debug(`Missing releases from ${count()} artists`);
 		});
