@@ -425,6 +425,7 @@ window.Spicetify = {
 			},
 			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
 			Toggle: functionModules.find(m => m.toString().includes("onSelected")) && functionModules.find(m => m.toString().includes('type:"checkbox"')),
+			TrackList: modules.find(m => m?.type?.toString().includes("onNrValidItemsChange") && m?.type?.toString().includes("cacheAll")),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
