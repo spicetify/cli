@@ -349,6 +349,33 @@ window.Spicetify = {
 		})
 		.filter(Boolean);
 
+	let cardTypesToFind = ["album", "artist", "audiobook", "episode", "playlist", "profile", "show", "track"];
+	const cards = [
+		...functionModules
+			.flatMap(m => {
+				return cardTypesToFind.map(type => {
+					if (m.toString().includes(`featureIdentifier:"${type}"`)) {
+						cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+						return [type[0].toUpperCase() + type.slice(1) + "Card", m];
+					}
+				});
+			})
+			.filter(Boolean),
+		...modules
+			.flatMap(m => {
+				return cardTypesToFind.map(type => {
+					try {
+						const searchString = `featureIdentifier:"${type}"`;
+						if (m?.type?.toString().includes(searchString)) {
+							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+							return [type[0].toUpperCase() + type.slice(1) + "Card", m];
+						}
+					} catch {}
+				});
+			})
+			.filter(Boolean)
+	];
+
 	Object.assign(Spicetify, {
 		React: cache.find(m => m?.useMemo),
 		ReactDOM: cache.find(m => m?.createPortal),
@@ -429,6 +456,7 @@ window.Spicetify = {
 			Card: modules.find(m => m?.toString().includes('"card-click-handler"')),
 			HeroCard: modules.find(m => m?.toString().includes('"herocard-click-handler"')),
 			CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
+			...Object.fromEntries(cards),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
