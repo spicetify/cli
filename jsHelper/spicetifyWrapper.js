@@ -426,6 +426,7 @@ window.Spicetify = {
 			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
 			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
 			BaseCard: modules.find(m => m?.type?.toString().includes("navigationUrl") && m?.type?.toString().includes("isHero")),
+			CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
