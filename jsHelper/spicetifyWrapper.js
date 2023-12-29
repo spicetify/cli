@@ -237,19 +237,22 @@ window.Spicetify = {
 			"ButtonTertiary",
 			"Snackbar",
 			"Chip",
-			"Toggle",
-			"Card",
-			"HeroCard",
+			"Toggle"
+		];
+
+		const REACT_CARD_COMPONENTS = [
+			"Default",
+			"Hero",
 			"CardImage",
-			"BaseCard",
-			"AlbumCard",
-			"ArtistCard",
-			"AudiobookCard",
-			"EpisodeCard",
-			"PlaylistCard",
-			"ProfileCard",
-			"ShowCard",
-			"TrackCard"
+			"Base",
+			"Album",
+			"Artist",
+			"Audiobook",
+			"Episode",
+			"Playlist",
+			"Profile",
+			"Show",
+			"Track"
 		];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
@@ -281,6 +284,17 @@ window.Spicetify = {
 		});
 		console.log(`${count}/${REACT_COMPONENT.length} Spicetify.ReactComponent methods and objects are OK.`);
 
+		count = REACT_CARD_COMPONENTS.length;
+		REACT_CARD_COMPONENTS.forEach(object => {
+			if (Spicetify.ReactComponent.Cards[object] === undefined || Spicetify.ReactComponent.Cards[object] === null) {
+				console.error(
+					`Spicetify.ReactComponent.Cards.${object} is not available. Please open an issue in the Spicetify repository to inform us about it.`
+				);
+				count--;
+			}
+		});
+		console.log(`${count}/${REACT_CARD_COMPONENTS.length} Spicetify.ReactComponent.Cards methods and objects are OK.`);
+
 		count = REACT_HOOK.length;
 		REACT_HOOK.forEach(method => {
 			if (Spicetify.ReactHook[method] === undefined || Spicetify.ReactHook[method] === null) {
@@ -305,6 +319,12 @@ window.Spicetify = {
 		Object.keys(Spicetify.ReactComponent).forEach(key => {
 			if (!REACT_COMPONENT.includes(key)) {
 				console.log(`Spicetify.ReactComponent method ${key} exists but is not in the method list. Consider adding it.`);
+			}
+		});
+
+		Object.keys(Spicetify.ReactComponent.Cards).forEach(key => {
+			if (!REACT_CARD_COMPONENTS.includes(key)) {
+				console.log(`Spicetify.ReactComponent.Cards object ${key} exists but is not in the method list. Consider adding it.`);
 			}
 		});
 
@@ -368,7 +388,7 @@ window.Spicetify = {
 				return cardTypesToFind.map(type => {
 					if (m.toString().includes(`featureIdentifier:"${type}"`)) {
 						cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
-						return [type[0].toUpperCase() + type.slice(1) + "Card", m];
+						return [type[0].toUpperCase() + type.slice(1), m];
 					}
 				});
 			})
@@ -377,10 +397,9 @@ window.Spicetify = {
 			.flatMap(m => {
 				return cardTypesToFind.map(type => {
 					try {
-						const searchString = `featureIdentifier:"${type}"`;
-						if (m?.type?.toString().includes(searchString)) {
+						if (m?.type?.toString().includes(`featureIdentifier:"${type}"`)) {
 							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
-							return [type[0].toUpperCase() + type.slice(1) + "Card", m];
+							return [type[0].toUpperCase() + type.slice(1), m];
 						}
 					} catch {}
 				});
@@ -464,11 +483,13 @@ window.Spicetify = {
 			},
 			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
 			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
-			BaseCard: modules.find(m => m?.type?.toString().includes("navigationUrl") && m?.type?.toString().includes("isHero")),
-			Card: modules.find(m => m?.toString().includes('"card-click-handler"')),
-			HeroCard: modules.find(m => m?.toString().includes('"herocard-click-handler"')),
-			CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
-			...Object.fromEntries(cards),
+			Cards: {
+				Base: modules.find(m => m?.type?.toString().includes("navigationUrl") && m?.type?.toString().includes("isHero")),
+				Default: modules.find(m => m?.toString().includes('"card-click-handler"')),
+				Hero: modules.find(m => m?.toString().includes('"herocard-click-handler"')),
+				CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
+				...Object.fromEntries(cards)
+			},
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
