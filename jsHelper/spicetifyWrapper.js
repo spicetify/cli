@@ -240,19 +240,7 @@ window.Spicetify = {
 			"Toggle"
 		];
 
-		const REACT_CARD_COMPONENTS = [
-			"Default",
-			"Hero",
-			"CardImage",
-			"Album",
-			"Artist",
-			"Audiobook",
-			"Episode",
-			"Playlist",
-			"Profile",
-			"Show",
-			"Track"
-		];
+		const REACT_CARD_COMPONENTS = ["Default", "Hero", "CardImage", "Album", "Artist", "Audiobook", "Episode", "Playlist", "Profile", "Show", "Track"];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
 
