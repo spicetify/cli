@@ -240,20 +240,7 @@ window.Spicetify = {
 			"Toggle"
 		];
 
-		const REACT_CARD_COMPONENTS = [
-			"Default",
-			"Hero",
-			"CardImage",
-			"Base",
-			"Album",
-			"Artist",
-			"Audiobook",
-			"Episode",
-			"Playlist",
-			"Profile",
-			"Show",
-			"Track"
-		];
+		const REACT_CARD_COMPONENTS = ["Default", "Hero", "CardImage", "Album", "Artist", "Audiobook", "Episode", "Playlist", "Profile", "Show", "Track"];
 
 		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
 
@@ -484,7 +471,6 @@ window.Spicetify = {
 			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
 			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
 			Cards: {
-				Base: modules.find(m => m?.type?.toString().includes("navigationUrl") && m?.type?.toString().includes("isHero")),
 				Default: modules.find(m => m?.toString().includes('"card-click-handler"')),
 				Hero: modules.find(m => m?.toString().includes('"herocard-click-handler"')),
 				CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
