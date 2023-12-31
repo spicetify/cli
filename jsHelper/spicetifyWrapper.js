@@ -479,7 +479,7 @@ window.Spicetify = {
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
-			DragHandler: functionModules.find(m => m.toString().includes("data-dragging-uri")),
+			DragHandler: functionModules.find(m => m.toString().includes("setDropOriginUri") && m.toString().includes("data-dragging")),
 			usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
 			useExtractedColor: functionModules.find(
 				m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
