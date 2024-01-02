@@ -17,7 +17,7 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Build
-        run: CGO_ENABLED=0 go build .
+        run: go build .
 
       - name: Format
         run: |
@@ -55,11 +55,12 @@ jobs:
       - name: Build
         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
         run: |
-          CGO_ENABLED=0 go build -ldflags "-X main.version=${{ env.TAG }}" -o "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
+          go build -ldflags "-X main.version=${{ env.TAG }}" -o "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
           chmod +x "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
 
       - name: 7z - .tar
         if: env.IS_UNIX == 'true'
