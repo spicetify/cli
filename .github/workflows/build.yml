@@ -55,7 +55,7 @@ jobs:
       - name: Build
         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
         run: |
-          go build -ldflags "-X main.version=${{ env.TAG }}" -o "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
+          CGO_ENABLED=0 go build -ldflags "-X main.version=${{ env.TAG }}" -o "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
           chmod +x "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
         env:
           GOOS: ${{ matrix.os }}
