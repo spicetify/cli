@@ -125,7 +125,7 @@ window.Spicetify = {
 	test: () => {
 		function checkObject(object) {
 			const { objectToCheck, methods, name } = object;
-			let count = methods.length;
+			let count = methods.size;
 
 			for (const method of methods) {
 				if (objectToCheck[method] === undefined || objectToCheck[method] === null) {
@@ -133,7 +133,7 @@ window.Spicetify = {
 					count--;
 				}
 			}
-			console.log(`${count}/${methods.length} ${name} methods and objects are OK.`);
+			console.log(`${count}/${methods.size} ${name} methods and objects are OK.`);
 
 			for (const key of Object.keys(objectToCheck)) {
 				if (!methods.has(key)) {
