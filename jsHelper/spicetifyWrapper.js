@@ -123,197 +123,167 @@ window.Spicetify = {
 		}
 	},
 	test: () => {
-		const SPICETIFY_METHOD = [
-			"Player",
-			"addToQueue",
-			"CosmosAsync",
-			"getAudioData",
-			"Keyboard",
-			"URI",
-			"LocalStorage",
-			"Queue",
-			"removeFromQueue",
-			"showNotification",
-			"Menu",
-			"ContextMenu",
-			"React",
-			"Mousetrap",
-			"Locale",
-			"ReactDOM",
-			"Topbar",
-			"ReactComponent",
-			"PopupModal",
-			"_cloneSidebarItem",
-			// Deprecated since Spotify 1.2.14
-			// "_sidebarItemToClone",
-			"SVGIcons",
-			"colorExtractor",
-			"test",
-			"Platform",
-			"getFontStyle",
-			"_fontStyle",
-			"Config",
-			"expFeatureOverride",
-			"createInternalMap",
-			"RemoteConfigResolver",
-			"Playbar",
-			"Tippy",
-			"_getStyledClassName",
-			"GraphQL",
-			"ReactHook",
-			"_sidebarXItemToClone",
-			"AppTitle",
-			"_reservedPanelIds",
-			"Panel",
-			"ReactFlipToolkit",
-			"classnames",
-			"ReactQuery",
-			"Color",
-			"extractColorPreset",
-			"ReactDOMServer",
-			"Snackbar"
-		];
+		function checkObject(object) {
+			const { objectToCheck, methods, name } = object;
+			let count = methods.length;
 
-		const PLAYER_METHOD = [
-			"addEventListener",
-			"back",
-			"data",
-			"decreaseVolume",
-			"dispatchEvent",
-			"eventListeners",
-			"formatTime",
-			"getDuration",
-			"getHeart",
-			"getMute",
-			"getProgress",
-			"getProgressPercent",
-			"getRepeat",
-			"getShuffle",
-			"getVolume",
-			"increaseVolume",
-			"isPlaying",
-			"next",
-			"pause",
-			"play",
-			"removeEventListener",
-			"seek",
-			"setMute",
-			"setRepeat",
-			"setShuffle",
-			"setVolume",
-			"skipBack",
-			"skipForward",
-			"toggleHeart",
-			"toggleMute",
-			"togglePlay",
-			"toggleRepeat",
-			"toggleShuffle",
-			"origin",
-			"playUri",
-			"setHeart"
-		];
+			for (const method of methods) {
+				if (objectToCheck[method] === undefined || objectToCheck[method] === null) {
+					console.error(`${name}.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
+					count--;
+				}
+			}
+			console.log(`${count}/${methods.length} ${name} methods and objects are OK.`);
 
-		const REACT_COMPONENT = [
-			"RightClickMenu",
-			"ContextMenu",
-			"Menu",
-			"MenuItem",
-			"AlbumMenu",
-			"PodcastShowMenu",
-			"ArtistMenu",
-			"PlaylistMenu",
-			"TrackMenu",
-			"TooltipWrapper",
-			"TextComponent",
-			"IconComponent",
-			"ConfirmDialog",
-			"PanelContent",
-			"PanelSkeleton",
-			"PanelHeader",
-			"Slider",
-			"RemoteConfigProvider",
-			"ButtonPrimary",
-			"ButtonSecondary",
-			"ButtonTertiary",
-			"Snackbar",
-			"Chip",
-			"Toggle"
-		];
-
-		const REACT_CARD_COMPONENTS = ["Default", "Hero", "CardImage", "Album", "Artist", "Audiobook", "Episode", "Playlist", "Profile", "Show", "Track"];
-
-		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
-
-		let count = SPICETIFY_METHOD.length;
-		for (const method of SPICETIFY_METHOD) {
-			if (Spicetify[method] === undefined || Spicetify[method] === null) {
-				console.error(`Spicetify.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
-				count--;
+			for (const key of Object.keys(objectToCheck)) {
+				if (!methods.has(key)) {
+					console.warn(`${name} method ${key} exists but is not in the method list. Consider adding it.`);
+				}
 			}
 		}
-		console.log(`${count}/${SPICETIFY_METHOD.length} Spicetify methods and objects are OK.`);
 
-		count = PLAYER_METHOD.length;
-		for (const method of PLAYER_METHOD) {
-			if (Spicetify.Player[method] === undefined || Spicetify.Player[method] === null) {
-				console.error(`Spicetify.Player.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
-				count--;
+		const objectsToCheck = new Set([
+			{
+				objectToCheck: Spicetify,
+				name: "Spicetify",
+				methods: new Set([
+					"Player",
+					"addToQueue",
+					"CosmosAsync",
+					"getAudioData",
+					"Keyboard",
+					"URI",
+					"LocalStorage",
+					"Queue",
+					"removeFromQueue",
+					"showNotification",
+					"Menu",
+					"ContextMenu",
+					"React",
+					"Mousetrap",
+					"Locale",
+					"ReactDOM",
+					"Topbar",
+					"ReactComponent",
+					"PopupModal",
+					"_cloneSidebarItem",
+					// Deprecated since Spotify 1.2.14
+					// "_sidebarItemToClone",
+					"SVGIcons",
+					"colorExtractor",
+					"test",
+					"Platform",
+					"getFontStyle",
+					"_fontStyle",
+					"Config",
+					"expFeatureOverride",
+					"createInternalMap",
+					"RemoteConfigResolver",
+					"Playbar",
+					"Tippy",
+					"_getStyledClassName",
+					"GraphQL",
+					"ReactHook",
+					"_sidebarXItemToClone",
+					"AppTitle",
+					"_reservedPanelIds",
+					"Panel",
+					"ReactFlipToolkit",
+					"classnames",
+					"ReactQuery",
+					"Color",
+					"extractColorPreset",
+					"ReactDOMServer",
+					"Snackbar"
+				])
+			},
+			{
+				objectToCheck: Spicetify.Player,
+				name: "Spicetify.Player",
+				methods: new Set([
+					"addEventListener",
+					"back",
+					"data",
+					"decreaseVolume",
+					"dispatchEvent",
+					"eventListeners",
+					"formatTime",
+					"getDuration",
+					"getHeart",
+					"getMute",
+					"getProgress",
+					"getProgressPercent",
+					"getRepeat",
+					"getShuffle",
+					"getVolume",
+					"increaseVolume",
+					"isPlaying",
+					"next",
+					"pause",
+					"play",
+					"removeEventListener",
+					"seek",
+					"setMute",
+					"setRepeat",
+					"setShuffle",
+					"setVolume",
+					"skipBack",
+					"skipForward",
+					"toggleHeart",
+					"toggleMute",
+					"togglePlay",
+					"toggleRepeat",
+					"toggleShuffle",
+					"origin",
+					"playUri",
+					"setHeart"
+				])
+			},
+			{
+				objectToCheck: Spicetify.ReactComponent,
+				name: "Spicetify.ReactComponent",
+				methods: new Set([
+					"RightClickMenu",
+					"ContextMenu",
+					"Menu",
+					"MenuItem",
+					"AlbumMenu",
+					"PodcastShowMenu",
+					"ArtistMenu",
+					"PlaylistMenu",
+					"TrackMenu",
+					"TooltipWrapper",
+					"TextComponent",
+					"IconComponent",
+					"ConfirmDialog",
+					"PanelContent",
+					"PanelSkeleton",
+					"PanelHeader",
+					"Slider",
+					"RemoteConfigProvider",
+					"ButtonPrimary",
+					"ButtonSecondary",
+					"ButtonTertiary",
+					"Snackbar",
+					"Chip",
+					"Toggle",
+					"Cards"
+				])
+			},
+			{
+				objectToCheck: Spicetify.ReactComponent.Cards,
+				name: "Spicetify.ReactComponent.Cards",
+				methods: new Set(["Default", "Hero", "CardImage", "Album", "Artist", "Audiobook", "Episode", "Playlist", "Profile", "Show", "Track"])
+			},
+			{
+				objectToCheck: Spicetify.ReactHook,
+				name: "Spicetify.ReactHook",
+				methods: new Set(["DragHandler", "usePanelState", "useExtractedColor"])
 			}
-		}
-		console.log(`${count}/${PLAYER_METHOD.length} Spicetify.Player methods and objects are OK.`);
+		]);
 
-		count = REACT_COMPONENT.length;
-		for (const method of REACT_COMPONENT) {
-			if (Spicetify.ReactComponent[method] === undefined || Spicetify.ReactComponent[method] === null) {
-				console.error(`Spicetify.ReactComponent.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
-				count--;
-			}
-		}
-		console.log(`${count}/${REACT_COMPONENT.length} Spicetify.ReactComponent methods and objects are OK.`);
-
-		count = REACT_CARD_COMPONENTS.length;
-		for (const method of REACT_CARD_COMPONENTS) {
-			if (Spicetify.ReactComponent.Cards[method] === undefined || Spicetify.ReactComponent.Cards[method] === null) {
-				console.error(
-					`Spicetify.ReactComponent.Cards.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`
-				);
-				count--;
-			}
-		}
-		console.log(`${count}/${REACT_CARD_COMPONENTS.length} Spicetify.ReactComponent.Cards methods and objects are OK.`);
-
-		count = REACT_HOOK.length;
-		for (const method of REACT_HOOK) {
-			if (Spicetify.ReactHook[method] === undefined || Spicetify.ReactHook[method] === null) {
-				console.error(`Spicetify.ReactHook.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
-				count--;
-			}
-		}
-		console.log(`${count}/${REACT_HOOK.length} Spicetify.ReactHook methods and objects are OK.`);
-
-		for (const key of Object.keys(Spicetify)) {
-			if (SPICETIFY_METHOD.includes(key)) continue;
-			console.log(`Spicetify method ${key} exists but is not in the method list. Consider adding it.`);
-		}
-
-		for (const key of Object.keys(Spicetify.Player)) {
-			if (PLAYER_METHOD.includes(key)) continue;
-			console.log(`Spicetify.Player method ${key} exists but is not in the method list. Consider adding it.`);
-		}
-
-		for (const key of Object.keys(Spicetify.ReactComponent)) {
-			if (REACT_COMPONENT.includes(key)) continue;
-			console.log(`Spicetify.ReactComponent method ${key} exists but is not in the method list. Consider adding it.`);
-		}
-
-		for (const key of Object.keys(Spicetify.ReactComponent.Cards)) {
-			if (REACT_CARD_COMPONENTS.includes(key)) continue;
-			console.log(`Spicetify.ReactComponent.Cards method ${key} exists but is not in the method list. Consider adding it.`);
-		}
-
-		for (const key of Object.keys(Spicetify.ReactHook)) {
-			if (REACT_HOOK.includes(key)) continue;
-			console.log(`Spicetify.ReactHook method ${key} exists but is not in the method list. Consider adding it.`);
+		for (const object of objectsToCheck) {
+			checkObject(object);
 		}
 	},
 	GraphQL: {
