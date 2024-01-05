@@ -2361,7 +2361,7 @@ Spicetify.Playbar = (() => {
 							}),
 							Spicetify.React.cloneElement(children, { panel: id })
 						)
-				  );
+					);
 
 			contentMap.set(id, Spicetify.React.createElement(ErrorBoundary, { id }, content));
 
