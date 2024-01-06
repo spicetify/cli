@@ -442,7 +442,8 @@ window.Spicetify = {
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
-			DragHandler: functionModules.find(m => m.toString().includes("setDropOriginUri") && m.toString().includes("data-dragging")),
+			DragHandler: functionModules.find(m => m.toString().includes("dataTransfer") && m.toString().includes("data-dragging")),
+			// deprecated since 1.2.17
 			usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
 			useExtractedColor: functionModules.find(
 				m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
@@ -581,7 +582,8 @@ window.Spicetify = {
 		// Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features
 		if (!imageAnalysis) {
 			let chunk = Object.entries(require.m).find(
-				([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/.extractColor/g)
+				([, value]) =>
+					(value.toString().match(/[\w$]+\.isFallback/g) || value.toString().includes("colorRaw:")) && value.toString().match(/.extractColor/g)
 			);
 			if (!chunk) {
 				await new Promise(resolve => setTimeout(resolve, 100));
