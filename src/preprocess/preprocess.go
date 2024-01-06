@@ -310,20 +310,11 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$_\.&!=]+[\w$_\.()=!]+.)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
-	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
-	for _, found := range allAPIPromises {
-		splitted := strings.Split(found[1], ",")
-		if len(splitted) > 6 {
-			matchMap := regexp.MustCompile(`get(\w+):(?:\(\)=>|function\(\)\{return ?)([\w$]+|\(?\{\}\)?)\}?,?`)
-			code := "Spicetify.Platform={};"
-			for _, apiFunc := range splitted {
-				matches := matchMap.FindStringSubmatch(apiFunc)
-				code += "Spicetify.Platform[\"" + fmt.Sprint(matches[1]) + "\"]=" + fmt.Sprint(matches[2]) + ";"
-			}
-			input = strings.Replace(input, found[0], code+found[0], 1)
-		}
-	}
+	// Spicetify._platform
+	utils.Replace(
+		&input,
+		`(setTitlebarHeight[\w(){}.,&$!=;"" ]+)(\{version:\w+,)`,
+		`${1}Spicetify._platform=${2}`)
 
 	// Profile Menu hook v1.1.56
 	utils.Replace(
