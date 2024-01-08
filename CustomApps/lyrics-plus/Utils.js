@@ -9,7 +9,7 @@ export const Utils = {
 		const rgb = {
 			r: Math.round(((colorInt >> 16) & 0xff) / div),
 			g: Math.round(((colorInt >> 8) & 0xff) / div),
-			b: Math.round((colorInt & 0xff) / div),
+			b: Math.round((colorInt & 0xff) / div)
 		};
 		return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
 	},
@@ -142,7 +142,7 @@ export const Utils = {
 		for (let i = 0; i < lyricsToTranslate.length; i++)
 			state[stateName].push({
 				startTime: lyricsToTranslate[i].startTime || 0,
-				text: this.rubyTextToReact(translatedLines[i]),
+				text: this.rubyTextToReact(translatedLines[i])
 			});
 	},
 	rubyTextToReact(s) {
@@ -269,5 +269,5 @@ export const Utils = {
 		return lyrics
 			.replace(/　| /g, "") // Remove space
 			.replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~？！，。、《》【】「」]/g, ""); // Remove punctuation
-	},
+	}
 };
