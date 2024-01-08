@@ -1,27 +1,24 @@
-class Utils {
-	static addQueueListener(callback) {
+export const Utils = {
+	addQueueListener(callback) {
 		Spicetify.Player.origin._events.addListener("queue_update", callback);
-	}
-
-	static removeQueueListener(callback) {
+	},
+	removeQueueListener(callback) {
 		Spicetify.Player.origin._events.removeListener("queue_update", callback);
-	}
-
-	static convertIntToRGB(colorInt, div = 1) {
+	},
+	convertIntToRGB(colorInt, div = 1) {
 		const rgb = {
 			r: Math.round(((colorInt >> 16) & 0xff) / div),
 			g: Math.round(((colorInt >> 8) & 0xff) / div),
 			b: Math.round((colorInt & 0xff) / div)
 		};
 		return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
-	}
-
+	},
 	/**
 	 * @param {string} s
 	 * @param {boolean} emptySymbol
 	 * @returns {string}
 	 */
-	static normalize(s, emptySymbol = true) {
+	normalize(s, emptySymbol = true) {
 		let result = s
 			.replace(/（/g, "(")
 			.replace(/）/g, ")")
@@ -41,26 +38,26 @@ class Utils {
 			result = result.replace(/-/g, " ").replace(/\//g, " ");
 		}
 		return result.replace(/\s+/g, " ").trim();
-	}
-
+	},
 	/**
 	 * Check if the specified string contains Han character.
 	 *
 	 * @param {string} s
 	 * @returns {boolean}
 	 */
-	static containsHanCharacter(s) {
+	containsHanCharacter(s) {
 		const hanRegex = /\p{Script=Han}/u;
 		return hanRegex.test(s);
-	}
-
+	},
 	/**
 	 * Singleton Translator instance for {@link toSimplifiedChinese}.
 	 *
 	 * @type {Translator | null}
 	 */
-	static #translator = null;
-
+	set translator(translator) {
+		this.translatorPrivate = translator;
+	},
+	translatorPrivate: null,
 	/**
 	 * Convert all Han characters to Simplified Chinese.
 	 *
@@ -71,35 +68,31 @@ class Utils {
 	 * @param {string} s
 	 * @returns {Promise<string>}
 	 */
-	static async toSimplifiedChinese(s) {
+	async toSimplifiedChinese(s) {
 		// create a singleton Translator instance
-		if (!Utils.#translator) {
-			Utils.#translator = new Translator("zh");
+		if (!Utils.translator) {
+			Utils.translator = new Translator("zh");
 		}
 
 		// translate to Simplified Chinese
 		// as Traditional Chinese differs between HK and TW, forcing to use OpenCC standard
-		return Utils.#translator.convertChinese(s, "t", "cn");
-	}
-
-	static removeSongFeat(s) {
+		return Utils.translator.convertChinese(s, "t", "cn");
+	},
+	removeSongFeat(s) {
 		return (
 			s
 				.replace(/-\s+(feat|with|prod).*/i, "")
 				.replace(/(\(|\[)(feat|with|prod)\.?\s+.*(\)|\])$/i, "")
 				.trim() || s
 		);
-	}
-
-	static removeExtraInfo(s) {
+	},
+	removeExtraInfo(s) {
 		return s.replace(/\s-\s.*/, "");
-	}
-
-	static capitalize(s) {
+	},
+	capitalize(s) {
 		return s.replace(/^(\w)/, $1 => $1.toUpperCase());
-	}
-
-	static detectLanguage(lyrics) {
+	},
+	detectLanguage(lyrics) {
 		if (!Array.isArray(lyrics)) return;
 
 		// Should return IETF BCP 47 language tags.
@@ -140,9 +133,8 @@ class Utils {
 		}
 
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";
-	}
-
-	static processTranslatedLyrics(result, lyricsToTranslate, { state, stateName }) {
+	},
+	processTranslatedLyrics(result, lyricsToTranslate, { state, stateName }) {
 		const translatedLines = result.split("\n");
 
 		state[stateName] = [];
@@ -152,9 +144,8 @@ class Utils {
 				startTime: lyricsToTranslate[i].startTime || 0,
 				text: Utils.rubyTextToReact(translatedLines[i])
 			});
-	}
-
-	static rubyTextToReact(s) {
+	},
+	rubyTextToReact(s) {
 		const react = Spicetify.React;
 
 		const rubyElems = s.split("<ruby>");
@@ -172,9 +163,8 @@ class Utils {
 		}
 
 		return react.createElement("p1", null, reactChildren);
-	}
-
-	static formatTime(timestamp) {
+	},
+	formatTime(timestamp) {
 		if (Number.isNaN(timestamp)) return timestamp.toString();
 		let minutes = Math.trunc(timestamp / 60000),
 			seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
@@ -183,9 +173,8 @@ class Utils {
 		if (seconds < 10) seconds = `0${seconds}`;
 
 		return `${minutes}:${seconds}`;
-	}
-
-	static convertParsedToLRC(lyrics) {
+	},
+	convertParsedToLRC(lyrics) {
 		function processText(text, startTime = 0) {
 			if (text.props?.children) {
 				return text.props.children
@@ -217,9 +206,8 @@ class Utils {
 				return `[${Utils.formatTime(line.startTime)}]${processText(line.text, line.startTime)}`;
 			})
 			.join("\n");
-	}
-
-	static parseLocalLyrics(lyrics) {
+	},
+	parseLocalLyrics(lyrics) {
 		// Preprocess lyrics by removing [tags] and empty lines
 		const lines = lyrics
 			.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
@@ -255,7 +243,7 @@ class Utils {
 			return karaokeLine;
 		}
 
-		lines.forEach((line, i) => {
+		for (const [i, line] of lines.entries()) {
 			const time = line.match(syncedTimestamp)?.[1];
 			let lyricContent = line.replace(syncedTimestamp, "").trim();
 			const lyric = lyricContent.replaceAll(/\<([0-9:.]+)\>/g, "").trim();
@@ -273,14 +261,13 @@ class Utils {
 				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMs(time) });
 				unsynced.push({ text: lyric || "♪" });
 			}
-		});
+		}
 
 		return { synced, unsynced, karaoke };
-	}
-
-	static processLyrics(lyrics) {
+	},
+	processLyrics(lyrics) {
 		return lyrics
 			.replace(/　| /g, "") // Remove space
 			.replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~？！，。、《》【】「」]/g, ""); // Remove punctuation
 	}
-}
+};
