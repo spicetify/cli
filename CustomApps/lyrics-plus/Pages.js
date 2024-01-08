@@ -274,17 +274,24 @@ class SearchBar extends react.Component {
 			return;
 		}
 
-		const el = document.querySelector(".lyrics-lyricsContainer-UnsyncedLyricsPage");
-		const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+		const lyricsPage = document.querySelector(".lyrics-lyricsContainer-UnsyncedLyricsPage");
+		const walker = document.createTreeWalker(
+			lyricsPage,
+			NodeFilter.SHOW_TEXT,
+			node => {
+				if (node.textContent.toLowerCase().includes(value)) {
+					return NodeFilter.FILTER_ACCEPT;
+				}
+				return NodeFilter.FILTER_REJECT;
+			},
+			false
+		);
+
 		const foundNodes = [];
-		let node = walker.nextNode();
-		while (node) {
-			if (node.textContent.toLowerCase().includes(value)) {
-				const range = document.createRange();
-				range.selectNodeContents(node);
-				foundNodes.push(range);
-			}
-			node = walker.nextNode();
+		while (walker.nextNode()) {
+			const range = document.createRange();
+			range.selectNodeContents(walker.currentNode);
+			foundNodes.push(range);
 		}
 
 		if (!foundNodes.length) {
