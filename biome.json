@@ -24,5 +24,11 @@
 			"trailingComma": "none",
 			"arrowParentheses": "asNeeded"
 		}
+	},
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true,
+		"defaultBranch": "master"
 	}
 }
