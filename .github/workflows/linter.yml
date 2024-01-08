@@ -1,6 +1,6 @@
 name: Code quality
 
-on: [pull_request]
+on: [push, pull_request]
 
 jobs:
   linter:
@@ -13,4 +13,4 @@ jobs:
         with:
           version: latest
       - name: Run Biome
-        run: biome ci . --files-ignore-unknown=true --changed
+        run: biome ci . --files-ignore-unknown=true
