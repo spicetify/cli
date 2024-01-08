@@ -9,7 +9,7 @@ export const Utils = {
 		const rgb = {
 			r: Math.round(((colorInt >> 16) & 0xff) / div),
 			g: Math.round(((colorInt >> 8) & 0xff) / div),
-			b: Math.round((colorInt & 0xff) / div)
+			b: Math.round((colorInt & 0xff) / div),
 		};
 		return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
 	},
@@ -70,13 +70,13 @@ export const Utils = {
 	 */
 	async toSimplifiedChinese(s) {
 		// create a singleton Translator instance
-		if (!Utils.translator) {
-			Utils.translator = new Translator("zh");
+		if (!this.translator) {
+			this.translator = new Translator("zh");
 		}
 
 		// translate to Simplified Chinese
 		// as Traditional Chinese differs between HK and TW, forcing to use OpenCC standard
-		return Utils.translator.convertChinese(s, "t", "cn");
+		return this.translator.convertChinese(s, "t", "cn");
 	},
 	removeSongFeat(s) {
 		return (
@@ -142,7 +142,7 @@ export const Utils = {
 		for (let i = 0; i < lyricsToTranslate.length; i++)
 			state[stateName].push({
 				startTime: lyricsToTranslate[i].startTime || 0,
-				text: Utils.rubyTextToReact(translatedLines[i])
+				text: this.rubyTextToReact(translatedLines[i]),
 			});
 	},
 	rubyTextToReact(s) {
@@ -193,7 +193,7 @@ export const Utils = {
 				return text
 					.map(word => {
 						wordTime += word.time;
-						return `${word.word}<${Utils.formatTime(wordTime)}>`;
+						return `${word.word}<${this.formatTime(wordTime)}>`;
 					})
 					.join("");
 			}
@@ -203,7 +203,7 @@ export const Utils = {
 		return lyrics
 			.map(line => {
 				if (!line.startTime) return line.text;
-				return `[${Utils.formatTime(line.startTime)}]${processText(line.text, line.startTime)}`;
+				return `[${this.formatTime(line.startTime)}]${processText(line.text, line.startTime)}`;
 			})
 			.join("\n");
 	},
@@ -252,7 +252,7 @@ export const Utils = {
 				if (isKaraoke) {
 					if (!lyricContent.endsWith(">")) {
 						// For some reason there are a variety of formats for karaoke lyrics, Wikipedia is also inconsisent in their examples
-						const endTime = lines[i + 1]?.match(syncedTimestamp)?.[1] || Utils.formatTime(Number(Spicetify.Player.data.item.metadata.duration));
+						const endTime = lines[i + 1]?.match(syncedTimestamp)?.[1] || this.formatTime(Number(Spicetify.Player.data.item.metadata.duration));
 						lyricContent += `<${endTime}>`;
 					}
 					const karaokeLine = parseKaraokeLine(lyricContent, time);
@@ -269,5 +269,5 @@ export const Utils = {
 		return lyrics
 			.replace(/　| /g, "") // Remove space
 			.replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~？！，。、《》【】「」]/g, ""); // Remove punctuation
-	}
+	},
 };
