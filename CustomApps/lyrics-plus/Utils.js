@@ -55,9 +55,9 @@ export const Utils = {
 	 * @type {Translator | null}
 	 */
 	set translator(translator) {
-		this.translatorPrivate = translator;
+		this._translatorInstance = translator;
 	},
-	translatorPrivate: null,
+	_translatorInstance: null,
 	/**
 	 * Convert all Han characters to Simplified Chinese.
 	 *
@@ -70,13 +70,11 @@ export const Utils = {
 	 */
 	async toSimplifiedChinese(s) {
 		// create a singleton Translator instance
-		if (!this.translator) {
-			this.translator = new Translator("zh");
-		}
+		if (!this._translatorInstance) this.translator = new Translator("zh");
 
 		// translate to Simplified Chinese
 		// as Traditional Chinese differs between HK and TW, forcing to use OpenCC standard
-		return this.translator.convertChinese(s, "t", "cn");
+		return this._translatorInstance.convertChinese(s, "t", "cn");
 	},
 	removeSongFeat(s) {
 		return (
