@@ -52,7 +52,8 @@ let lastScroll = 0;
 let requestQueue = [];
 let requestAfter = null;
 
-let gridUpdateTabs, gridUpdatePostsVisual;
+let gridUpdateTabs;
+let gridUpdatePostsVisual;
 
 const typesLocale = {
 	album: Spicetify.Locale.get("album"),

@@ -164,8 +164,8 @@ export const Utils = {
 	},
 	formatTime(timestamp) {
 		if (Number.isNaN(timestamp)) return timestamp.toString();
-		let minutes = Math.trunc(timestamp / 60000),
-			seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
+		let minutes = Math.trunc(timestamp / 60000);
+		let seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
 
 		if (minutes < 10) minutes = `0${minutes}`;
 		if (seconds < 10) seconds = `0${seconds}`;

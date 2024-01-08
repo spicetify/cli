@@ -28,10 +28,10 @@ function getConfig(name, defaultVal = true) {
 
 const APP_NAME = "lyrics-plus";
 
-const KARAOKE = 0,
-	SYNCED = 1,
-	UNSYNCED = 2,
-	GENIUS = 3;
+const KARAOKE = 0;
+const SYNCED = 1;
+const UNSYNCED = 2;
+const GENIUS = 3;
 
 const CONFIG = {
 	visual: {
@@ -224,8 +224,8 @@ class LyricsContainer extends react.Component {
 		const audio = await Spicetify.CosmosAsync.get(`https://api.spotify.com/v1/audio-features/${uri.split(":")[2]}`);
 		let tempo = audio.tempo;
 
-		const MIN_TEMPO = 60,
-			MAX_TEMPO = 150;
+		const MIN_TEMPO = 60;
+		const MAX_TEMPO = 150;
 		const MAX_PERIOD = 0.4;
 		if (!tempo) tempo = 105;
 		if (tempo < MIN_TEMPO) tempo = MIN_TEMPO;

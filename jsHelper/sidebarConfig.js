@@ -2,9 +2,9 @@
 	const sidebar = document.querySelector(".Root__nav-bar");
 	if (!sidebar) return setTimeout(SidebarConfig, 100);
 	// Status enum
-	const HIDDEN = 0,
-		SHOW = 1,
-		STICKY = 2;
+	const HIDDEN = 0;
+	const SHOW = 1;
+	const STICKY = 2;
 	// Store sidebar buttons elements
 	let appItems;
 	let list;
@@ -35,9 +35,9 @@
 	}
 
 	function appendItems() {
-		const toShow = [],
-			toHide = [],
-			toStick = [];
+		const toShow = [];
+		const toHide = [];
+		const toStick = [];
 		for (const el of ordered) {
 			const [item, status] = el;
 			if (status === STICKY) {

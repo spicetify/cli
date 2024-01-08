@@ -2,9 +2,9 @@ SpicetifyHomeConfig = {};
 
 (() => {
 	// Status enum
-	const NORMAL = 0,
-		STICKY = 1,
-		LOWERED = 2;
+	const NORMAL = 0;
+	const STICKY = 1;
+	const LOWERED = 2;
 	// List of sections' metadata
 	let list;
 	// Store sections' statuses
@@ -87,9 +87,9 @@ SpicetifyHomeConfig = {};
 		}
 
 		function appendItems() {
-			const stick = [],
-				low = [],
-				normal = [];
+			const stick = [];
+			const low = [];
+			const normal = [];
 			for (const el of elem) {
 				if (statusDic[el.dataset.uri] === STICKY) stick.push(el);
 				else if (statusDic[el.dataset.uri] === LOWERED) low.push(el);

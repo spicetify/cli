@@ -298,8 +298,8 @@ class SearchBar extends react.Component {
 	}
 
 	render() {
-		let y = 0,
-			height = 0;
+		let y = 0;
+		let height = 0;
 		if (this.state.foundNodes.length) {
 			const node = this.state.foundNodes[this.state.atNode];
 			const rects = node.getBoundingClientRect();

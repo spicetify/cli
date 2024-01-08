@@ -522,10 +522,10 @@
 	}
 
 	async function fetchAndPlay(rawUri) {
-		let list,
-			context,
-			type = null,
-			uri;
+		let list;
+		let context;
+		let type = null;
+		let uri;
 
 		try {
 			if (typeof rawUri === "object") {

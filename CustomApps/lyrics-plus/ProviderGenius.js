@@ -102,7 +102,8 @@ const ProviderGenius = (() => {
 		titles.add(Utils.removeSongFeat(titleNoExtra));
 		console.log(titles);
 
-		let lyrics, hits;
+		let lyrics;
+		let hits;
 		for (const title of titles) {
 			const url = `https://genius.com/api/search/song?per_page=20&q=${encodeURIComponent(title)}%20${encodeURIComponent(info.artist)}`;
 

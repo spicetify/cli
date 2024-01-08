@@ -1,10 +1,10 @@
 (() => {
-	let overrideList,
-		prevSessionOverrideList = [],
-		newFeatures = [],
-		hooksPatched = false,
-		featureMap = {},
-		isFallback = false;
+	let overrideList;
+	let prevSessionOverrideList = [];
+	const newFeatures = [];
+	let hooksPatched = false;
+	const featureMap = {};
+	let isFallback = false;
 
 	try {
 		overrideList = JSON.parse(localStorage.getItem("spicetify-exp-features"));

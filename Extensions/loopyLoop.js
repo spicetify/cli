@@ -35,8 +35,8 @@
 	bar.append(startMark);
 	bar.append(endMark);
 
-	let start = null,
-		end = null;
+	let start = null;
+	let end = null;
 	let mouseOnBarPercent = 0.0;
 
 	function drawOnBar() {

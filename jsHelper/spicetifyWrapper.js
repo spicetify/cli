@@ -1281,8 +1281,8 @@ class _HTMLContextSubmenu extends HTMLDivElement {
 
 		const { y: parentY, width: parentWidth } = this.parentElement.getBoundingClientRect();
 		const { width: thisWidth, height: thisHeight } = this.getBoundingClientRect();
-		let x = 0,
-			y = this.parentElement.offsetTop;
+		let x = 0;
+		let y = this.parentElement.offsetTop;
 
 		switch (this.placement) {
 			case "top-start":
@@ -1752,7 +1752,8 @@ Spicetify._cloneSidebarItem = (list, isLibX = false) => {
 		const activeIcon = manifest["active-icon"] || icon;
 
 		const appLink = `/${app}`;
-		let obj, link;
+		let obj;
+		let link;
 
 		if (isLibX) {
 			link = findChild(Spicetify._sidebarXItemToClone, "className", "main-yourLibraryX-navLink");
@@ -2207,10 +2208,10 @@ Spicetify.Playbar = (() => {
 	}
 
 	// Workaround for older versions
-	let currentPanelId = 0,
-		fallback = false,
-		refreshTimeout,
-		init = true;
+	let currentPanelId = 0;
+	let fallback = false;
+	let refreshTimeout;
+	let init = true;
 
 	if (!Spicetify.Platform.PanelAPI.getLastCachedPanelState) {
 		fallback = true;

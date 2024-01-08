@@ -460,7 +460,8 @@ body.video-full-screen.video-full-screen--hide-ui {
 
 			const x = -blur * 2;
 
-			let y, dim;
+			let y;
+			let dim;
 
 			if (width > height) {
 				dim = width;
