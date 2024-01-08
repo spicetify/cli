@@ -3,7 +3,7 @@ name: Code quality
 on: [pull_request]
 
 jobs:
-  prettier:
+  linter:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,4 +16,4 @@ jobs:
         with:
           version: latest
       - name: Run Biome
-        run: biome ci .
+        run: biome ci . --files-ignore-unknown=true

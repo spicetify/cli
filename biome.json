@@ -9,6 +9,9 @@
 			"recommended": true,
 			"style": {
 				"useSingleVarDeclarator": "off"
+			},
+			"suspicious": {
+				"noExplicitAny": "off"
 			}
 		}
 	},
