@@ -7,9 +7,6 @@
 		"enabled": true,
 		"rules": {
 			"recommended": true,
-			"style": {
-				"useSingleVarDeclarator": "off"
-			},
 			"suspicious": {
 				"noExplicitAny": "off"
 			}
