@@ -1,4 +1,4 @@
-export const Utils = {
+const Utils = {
 	addQueueListener(callback) {
 		Spicetify.Player.origin._events.addListener("queue_update", callback);
 	},
