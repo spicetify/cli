@@ -1,4 +1,4 @@
-name: Prettier
+name: Code quality
 
 on: [pull_request]
 
@@ -11,9 +11,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
-      - name: Test formatting
-        uses: creyD/prettier_action@v4.3
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v1
         with:
-          prettier_options: --check .
-          only_changed: true
-          dry: true
+          version: latest
+      - name: Run Biome
+        run: biome ci .

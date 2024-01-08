@@ -1,4 +1,4 @@
-const ProviderGenius = (function () {
+const ProviderGenius = (() => {
 	function getChildDeep(parent, isDeep = false) {
 		let acc = "";
 
@@ -7,7 +7,7 @@ const ProviderGenius = (function () {
 		}
 
 		for (const child of parent.children) {
-			if (typeof child == "string") {
+			if (typeof child === "string") {
 				acc += child;
 			} else if (child.children) {
 				acc += getChildDeep(child, true);
@@ -25,7 +25,7 @@ const ProviderGenius = (function () {
 		let note = "";
 
 		// Authors annotations
-		if (response.referent && response.referent.classification == "verified") {
+		if (response.referent && response.referent.classification === "verified") {
 			const referentsBody = await CosmosAsync.get(`https://genius.com/api/referents/${id}`);
 			const referents = referentsBody.response;
 			for (const ref of referents.referent.annotations) {
@@ -81,7 +81,9 @@ const ProviderGenius = (function () {
 		const htmlDoc = parser.parseFromString(body, "text/html");
 		const lyricsDiv = htmlDoc.querySelectorAll('div[data-lyrics-container="true"]');
 
-		lyricsDiv.forEach(i => (lyrics += i.innerHTML + "<br>"));
+		for (const i of lyricsDiv) {
+			lyrics += `${i.innerHTML}<br>`;
+		}
 
 		if (!lyrics?.length) {
 			console.warn("forceError");

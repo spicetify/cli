@@ -1,4 +1,4 @@
-(function () {
+(() => {
 	let overrideList,
 		prevSessionOverrideList = [],
 		newFeatures = [],
@@ -15,7 +15,7 @@
 		prevSessionOverrideList = [];
 	}
 
-	Spicetify.expFeatureOverride = function (feature) {
+	Spicetify.expFeatureOverride = feature => {
 		hooksPatched = true;
 		newFeatures.push(feature.name);
 
@@ -169,21 +169,19 @@
 				notice.innerText = "⚠️ Using fallback mode. Some features may not work.";
 				setTimeout(waitForResolver, 500);
 				return;
-			} else {
-				isFallback = false;
-				notice.remove();
-				remoteConfiguration = Spicetify.RemoteConfigResolver.value.remoteConfiguration;
-				setOverrides = Spicetify.RemoteConfigResolver.value.setOverrides;
 			}
+			isFallback = false;
+			notice.remove();
+			remoteConfiguration = Spicetify.RemoteConfigResolver.value.remoteConfiguration;
+			setOverrides = Spicetify.RemoteConfigResolver.value.setOverrides;
 		})();
 
-		Object.keys(overrideList).forEach(key => {
-			if (!newFeatures.includes(key)) {
-				delete overrideList[key];
-				console.warn(`[spicetify-exp-features] Removed ${key} from override list`);
-				localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
-			}
-		});
+		for (const key of Object.keys(overrideList)) {
+			if (newFeatures.includes(key)) continue;
+			delete overrideList[key];
+			console.warn(`[spicetify-exp-features] Removed ${key} from override list`);
+			localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+		}
 
 		function changeValue(name, value) {
 			overrideList[name].value = value;
@@ -255,10 +253,10 @@ ${Spicetify.SVGIcons.search}
 		search.oninput = () => {
 			const query = search.value.toLowerCase();
 			const rows = content.querySelectorAll(".setting-row");
-			rows.forEach(row => {
+			for (const row of rows) {
 				if (row.id === "search" || row.id === "reset") return;
 				row.style.display = row.textContent.trim().toLowerCase().includes(query) || row.id.toLowerCase().includes(query) ? "flex" : "none";
-			});
+			}
 		};
 
 		const resetButton = document.createElement("div");
@@ -277,15 +275,13 @@ ${Spicetify.SVGIcons.search}
 
 		content.appendChild(searchBar);
 
-		Object.keys(overrideList).forEach(name => {
-			// If features are not stored in the previous session, use the remote value
+		for (const name of Object.keys(overrideList)) {
 			if (!prevSessionOverrideList.includes(name) && remoteConfiguration.values.has(name)) {
 				changeValue(name, remoteConfiguration.values.get(name));
 				console.log(name, remoteConfiguration.values.get(name), overrideList[name]);
 			}
 
 			const feature = overrideList[name];
-
 			if (!overrideList[name]?.description) return;
 
 			if (overrideList[name].values) {
@@ -293,7 +289,7 @@ ${Spicetify.SVGIcons.search}
 			} else content.appendChild(createSlider(name, feature.description, feature.value));
 
 			featureMap[name] = feature.value;
-		});
+		}
 
 		content.appendChild(resetButton);
 

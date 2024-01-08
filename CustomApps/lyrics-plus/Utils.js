@@ -116,7 +116,7 @@ class Utils {
 		const hanziRegex = /\p{Script=Han}/gu;
 
 		const cjkMatch = rawLyrics.match(
-			new RegExp(kanaRegex.source + "|" + hanziRegex.source + "|" + hangulRegex.source + "|" + /\p{Unified_Ideograph}/gu.source, "gu")
+			new RegExp(`${kanaRegex.source}|${hanziRegex.source}|${hangulRegex.source}|${/\p{Unified_Ideograph}/gu.source}`, "gu")
 		);
 
 		if (!cjkMatch) return;
@@ -150,7 +150,7 @@ class Utils {
 		for (let i = 0; i < lyricsToTranslate.length; i++)
 			state[stateName].push({
 				startTime: lyricsToTranslate[i].startTime || 0,
-				text: this.rubyTextToReact(translatedLines[i])
+				text: Utils.rubyTextToReact(translatedLines[i])
 			});
 	}
 
@@ -175,12 +175,12 @@ class Utils {
 	}
 
 	static formatTime(timestamp) {
-		if (isNaN(timestamp)) return timestamp.toString();
+		if (Number.isNaN(timestamp)) return timestamp.toString();
 		let minutes = Math.trunc(timestamp / 60000),
 			seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
 
-		if (minutes < 10) minutes = "0" + minutes;
-		if (seconds < 10) seconds = "0" + seconds;
+		if (minutes < 10) minutes = `0${minutes}`;
+		if (seconds < 10) seconds = `0${seconds}`;
 
 		return `${minutes}:${seconds}`;
 	}
@@ -192,12 +192,14 @@ class Utils {
 					.map(child => {
 						if (typeof child === "string") {
 							return child;
-						} else if (child.props?.children) {
+						}
+						if (child.props?.children) {
 							return child.props?.children[0];
 						}
 					})
 					.join("");
-			} else if (Array.isArray(text)) {
+			}
+			if (Array.isArray(text)) {
 				let wordTime = startTime;
 				return text
 					.map(word => {
@@ -205,7 +207,8 @@ class Utils {
 						return `${word.word}<${Utils.formatTime(wordTime)}>`;
 					})
 					.join("");
-			} else return text;
+			}
+			return text;
 		}
 
 		return lyrics
@@ -261,7 +264,7 @@ class Utils {
 				if (isKaraoke) {
 					if (!lyricContent.endsWith(">")) {
 						// For some reason there are a variety of formats for karaoke lyrics, Wikipedia is also inconsisent in their examples
-						const endTime = lines[i + 1]?.match(syncedTimestamp)?.[1] || this.formatTime(Number(Spicetify.Player.data.item.metadata.duration));
+						const endTime = lines[i + 1]?.match(syncedTimestamp)?.[1] || Utils.formatTime(Number(Spicetify.Player.data.item.metadata.duration));
 						lyricContent += `<${endTime}>`;
 					}
 					const karaokeLine = parseKaraokeLine(lyricContent, time);

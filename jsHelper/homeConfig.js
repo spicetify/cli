@@ -1,6 +1,6 @@
 SpicetifyHomeConfig = {};
 
-(function () {
+(() => {
 	// Status enum
 	const NORMAL = 0,
 		STICKY = 1,
@@ -11,15 +11,15 @@ SpicetifyHomeConfig = {};
 	const statusDic = {};
 	let mounted = false;
 
-	SpicetifyHomeConfig.arrange = function (sections) {
+	SpicetifyHomeConfig.arrange = sections => {
 		mounted = true;
 		if (list) {
 			return list;
 		}
 		const stickList = (localStorage.getItem("spicetify-home-config:stick") || "").split(",");
 		const lowList = (localStorage.getItem("spicetify-home-config:low") || "").split(",");
-		let stickSections = [];
-		let lowSections = [];
+		const stickSections = [];
+		const lowSections = [];
 		for (const uri of stickList) {
 			const index = sections.findIndex(a => a?.uri === uri);
 			if (index !== -1) {
@@ -82,7 +82,9 @@ SpicetifyHomeConfig = {};
 	function injectInteraction() {
 		const main = document.querySelector(".main-home-content");
 		elem = [...main.querySelectorAll("section")];
-		elem.forEach((item, index) => (item.dataset.uri = list[index].uri));
+		for (const [index, item] of myArray.entries()) {
+			item.dataset.uri = list[index].uri;
+		}
 
 		function appendItems() {
 			const stick = [],
@@ -125,7 +127,7 @@ SpicetifyHomeConfig = {};
 			appendItems();
 		}
 
-		elem.forEach(el => {
+		for (const el of elem) {
 			el.onmouseover = () => {
 				const status = statusDic[el.dataset.uri];
 				const index = elem.findIndex(a => a === el);
@@ -151,12 +153,14 @@ SpicetifyHomeConfig = {};
 
 				el.prepend(container);
 			};
-		});
+		}
 	}
 
 	function removeInteraction() {
 		container.remove();
-		elem.forEach(a => (a.onmouseover = undefined));
+		for (const a of elem) {
+			a.onmouseover = undefined;
+		}
 	}
 
 	const menu = new Spicetify.Menu.Item("Home config", false, self => {

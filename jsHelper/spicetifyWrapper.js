@@ -314,7 +314,7 @@ window.Spicetify = {
 
 	const knownMenuTypes = ["album", "show", "artist", "track"];
 	const menus = modules
-		.map(m => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m?.type?.toString().match(/value:"[\w-]+"/g)])
+		.map(m => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m.type.toString().match(/value:"[\w-]+"/g)])
 		.filter(Boolean)
 		.filter(m => m[1] !== 'value:"row"')
 		.map(([module, type]) => {
@@ -849,7 +849,7 @@ Spicetify.getFontStyle = font => {
 		.filter(style => typeof style === "string")
 		.join("");
 	// Clean up empty rulesets
-	rawStyle = rawStyle.replace(new RegExp("\\w+-\\w+:;", "g"), "").trim();
+	rawStyle = rawStyle.replace(/\w+-\w+:;/g, "").trim();
 	// Split special rulesets
 	const mediaStyle = rawStyle.split("@");
 	let returnStyle = `.main-type-${font}`;
@@ -859,9 +859,10 @@ Spicetify.getFontStyle = font => {
 			returnStyle += `{${ruleset}}`;
 			return;
 		}
-		if (ruleset.endsWith(";")) ruleset = ruleset.slice(0, -1);
-		ruleset = ruleset.split(")").join(`){.main-type-${font}`);
-		returnStyle += `@${ruleset}}`;
+		let newRuleset;
+		if (ruleset.endsWith(";")) newRuleset = ruleset.slice(0, -1);
+		newRuleset = ruleset.split(")").join(`){.main-type-${font}`);
+		returnStyle += `@${newRuleset}}`;
 		return;
 	});
 
@@ -960,6 +961,7 @@ Spicetify.getFontStyle = font => {
 		"[": "[",
 		"\\": "\\",
 		"]": "]",
+		// biome-ignore lint/suspicious/noDuplicateObjectKeys: <explanation>
 		'"': '"',
 		"~": "`",
 		"!": "1",
@@ -1203,7 +1205,7 @@ Spicetify.SVGIcons = {
 	}
 	const fontList = Spicetify._fontStyle
 		.toString()
-		.match(new RegExp('"\\w+"', "g"))
+		.match(/"\w+"/g)
 		.map(font => font.replaceAll('"', ""));
 	const fontStyle = document.createElement("style");
 	fontStyle.className = "spicetify-font";
@@ -1716,11 +1718,12 @@ Spicetify._cloneSidebarItem = (list, isLibX = false) => {
 	}
 
 	function conditionalAppend(baseClassname, activeClassname, location) {
+		let classnames = baseClassname;
 		if (Spicetify.Platform?.History?.location?.pathname.startsWith(location)) {
-			baseClassname += ` ${activeClassname}`;
+			classnames += ` ${activeClassname}`;
 		}
 
-		return baseClassname;
+		return classnames;
 	}
 
 	const React = Spicetify.React;
@@ -1740,7 +1743,7 @@ Spicetify._cloneSidebarItem = (list, isLibX = false) => {
 
 		let appProper = manifest.name;
 		if (typeof appProper === "object") {
-			appProper = appProper[Spicetify.Locale?.getLocale()] || appProper["en"];
+			appProper = appProper[Spicetify.Locale?.getLocale()] || appProper.en;
 		}
 		if (!appProper) {
 			appProper = app[0].toUpperCase() + app.slice(1);
@@ -1958,11 +1961,12 @@ Spicetify.Topbar = (() => {
 			return this._icon;
 		}
 		set icon(input) {
-			if (input && Spicetify.SVGIcons[input]) {
-				input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
+			let newInput = input;
+			if (newInput && Spicetify.SVGIcons[newInput]) {
+				newInput = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[newInput]}</svg>`;
 			}
-			this._icon = input;
-			this.element.innerHTML = input;
+			this._icon = newInput;
+			this.element.innerHTML = newInput;
 		}
 		get onClick() {
 			return this._onClick;
@@ -2031,11 +2035,12 @@ Spicetify.Playbar = (() => {
 			return this._icon;
 		}
 		set icon(input) {
-			if (input && Spicetify.SVGIcons[input]) {
-				input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
+			let newInput = input;
+			if (newInput && Spicetify.SVGIcons[newInput]) {
+				newInput = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor">${Spicetify.SVGIcons[newInput]}</svg>`;
 			}
-			this._icon = input;
-			this.iconElement.innerHTML = input;
+			this._icon = newInput;
+			this.iconElement.innerHTML = newInput;
 		}
 		get onClick() {
 			return this._onClick;
@@ -2123,11 +2128,12 @@ Spicetify.Playbar = (() => {
 			return this._icon;
 		}
 		set icon(input) {
-			if (input && Spicetify.SVGIcons[input]) {
-				input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
+			let newInput = input;
+			if (newInput && Spicetify.SVGIcons[newInput]) {
+				newInput = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[newInput]}</svg>`;
 			}
-			this._icon = input;
-			this.element.innerHTML = input;
+			this._icon = newInput;
+			this.element.innerHTML = newInput;
 		}
 		get onClick() {
 			return this._onClick;
@@ -2333,7 +2339,7 @@ Spicetify.Playbar = (() => {
 							}),
 							Spicetify.React.cloneElement(children, { panel: id })
 						)
-					);
+				  );
 
 			contentMap.set(id, Spicetify.React.createElement(ErrorBoundary, { id }, content));
 

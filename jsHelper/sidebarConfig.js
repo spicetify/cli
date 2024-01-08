@@ -28,7 +28,9 @@
 				newButtons[index] = undefined;
 			}
 		}
-		newButtons.filter(a => a).forEach(a => orderedButtons.push([a, STICKY]));
+		for (const a of newButtons.filter(a => a)) {
+			orderedButtons.push([a, SHOW]);
+		}
 		ordered = orderedButtons;
 	}
 
@@ -151,16 +153,19 @@ color: var(--spice-button-disabled);
 	function removeInteraction() {
 		hiddenList.classList.add("hidden-visually");
 		container.remove();
-		ordered.forEach(a => (a[0].onmouseover = undefined));
+		for (const a of ordered) {
+			a[0].onmouseover = undefined;
+		}
 		if (isYLX) {
 			if (YLXSidebarState === 1) document.querySelector(".main-yourLibraryX-collapseButton > button")?.click();
 			else
 				document.documentElement.style.setProperty(
 					"--nav-bar-width",
-					Spicetify.Platform.LocalStorageAPI.getItem(YLXSidebarState === 2 ? "ylx-expanded-state-nav-bar-width" : "ylx-default-state-nav-bar-width") +
-						"px"
+					`${Spicetify.Platform.LocalStorageAPI.getItem(
+						YLXSidebarState === 2 ? "ylx-expanded-state-nav-bar-width" : "ylx-default-state-nav-bar-width"
+					)}px`
 				);
-		} else document.documentElement.style.setProperty("--nav-bar-width", Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width") + "px");
+		} else document.documentElement.style.setProperty("--nav-bar-width", `${Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width")}px`);
 		writeStorage();
 	}
 
