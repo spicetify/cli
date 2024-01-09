@@ -6,11 +6,13 @@ jobs:
   linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout the repo
+        uses: actions/checkout@v4
 
       - name: Setup Biome
         uses: biomejs/setup-biome@v1
         with:
           version: latest
+
       - name: Run Biome
         run: biome ci . --files-ignore-unknown=true
