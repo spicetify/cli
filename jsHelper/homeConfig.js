@@ -38,7 +38,7 @@ SpicetifyHomeConfig = {};
 				sections[index] = undefined;
 			}
 		}
-		sections = sections.filter(a => a);
+		sections = sections.filter(Boolean);
 
 		list = [...stickSections, ...sections, ...lowSections];
 		return list;
@@ -82,7 +82,7 @@ SpicetifyHomeConfig = {};
 	function injectInteraction() {
 		const main = document.querySelector(".main-home-content");
 		elem = [...main.querySelectorAll("section")];
-		for (const [index, item] of myArray.entries()) {
+		for (const [index, item] of elem.entries()) {
 			item.dataset.uri = list[index].uri;
 		}
 

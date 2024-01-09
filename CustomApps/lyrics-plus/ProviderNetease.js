@@ -102,7 +102,7 @@ const ProviderNetease = (() => {
 				}
 				return null;
 			})
-			.filter(a => a);
+			.filter(Boolean);
 
 		if (!karaoke.length) {
 			return null;
@@ -136,7 +136,7 @@ const ProviderNetease = (() => {
 				}
 				return null;
 			})
-			.filter(a => a);
+			.filter(Boolean);
 
 		if (!lyrics.length || noLyrics) {
 			return null;
@@ -167,7 +167,7 @@ const ProviderNetease = (() => {
 				}
 				return null;
 			})
-			.filter(a => a);
+			.filter(Boolean);
 
 		if (!translation.length) {
 			return null;
@@ -191,7 +191,7 @@ const ProviderNetease = (() => {
 				if (!parsed.text || containCredits(parsed.text)) return null;
 				return parsed;
 			})
-			.filter(a => a);
+			.filter(Boolean);
 
 		if (!lyrics.length || noLyrics) {
 			return null;

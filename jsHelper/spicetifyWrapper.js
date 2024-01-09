@@ -1718,12 +1718,11 @@ Spicetify._cloneSidebarItem = (list, isLibX = false) => {
 	}
 
 	function conditionalAppend(baseClassname, activeClassname, location) {
-		let classnames = baseClassname;
 		if (Spicetify.Platform?.History?.location?.pathname.startsWith(location)) {
-			classnames += ` ${activeClassname}`;
+			return `${baseClassname} ${activeClassname}`;
 		}
 
-		return classnames;
+		return baseClassname;
 	}
 
 	const React = Spicetify.React;

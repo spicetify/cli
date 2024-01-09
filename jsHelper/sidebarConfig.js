@@ -28,8 +28,8 @@
 				newButtons[index] = undefined;
 			}
 		}
-		for (const a of newButtons.filter(a => a)) {
-			orderedButtons.push([a, SHOW]);
+		for (const button of newButtons) {
+			if (button) orderedButtons.push([button, SHOW]);
 		}
 		ordered = orderedButtons;
 	}

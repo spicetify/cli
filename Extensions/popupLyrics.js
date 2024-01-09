@@ -235,7 +235,7 @@ function PopupLyrics() {
 					}
 					return a.startTime - b.startTime;
 				})
-				.filter(a => a);
+				.filter(Boolean);
 
 			if (noLyrics) {
 				return { error: "No lyrics" };

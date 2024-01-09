@@ -151,7 +151,7 @@ class Grid extends react.Component {
 			items.push(...episodes);
 		}
 
-		items = items.filter(a => a).sort((a, b) => b.time - a.time);
+		items = items.filter(Boolean).sort((a, b) => b.time - a.time);
 
 		let timeFormat;
 		if (CONFIG.relative) {

@@ -453,7 +453,7 @@
 			array[counter] = array[index];
 			array[index] = temp;
 		}
-		return array.filter(track => track);
+		return array.filter(Boolean);
 	}
 
 	async function Queue(list, context, type) {

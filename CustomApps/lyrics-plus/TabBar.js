@@ -190,7 +190,7 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
 				),
 			droplistItem.length || childrenSizes.length === 0
 				? react.createElement(TabBarMore, {
-						items: droplistItem.map(i => options[i]).filter(i => i),
+						items: droplistItem.map(i => options[i]).filter(Boolean),
 						switchTo: switchCallback,
 						lockIn: lockCallback
 				  })
