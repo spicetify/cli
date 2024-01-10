@@ -5,7 +5,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function WebNowPlaying() {
-	if (!Spicetify.CosmosAsync || !Spicetify.Platform) {
+	if (!Spicetify.CosmosAsync || !Spicetify.Platform.LibraryAPI) {
 		setTimeout(WebNowPlaying, 500);
 		return;
 	}

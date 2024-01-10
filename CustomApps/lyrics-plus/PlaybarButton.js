@@ -1,5 +1,5 @@
 (function PlaybarButton() {
-	if (!Spicetify.Platform) {
+	if (!Spicetify.Platform.History) {
 		setTimeout(PlaybarButton, 300);
 		return;
 	}

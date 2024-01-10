@@ -173,6 +173,7 @@ window.Spicetify = {
 					"colorExtractor",
 					"test",
 					"Platform",
+					"_platform",
 					"getFontStyle",
 					"_fontStyle",
 					"Config",
@@ -292,10 +293,26 @@ window.Spicetify = {
 	ReactComponent: {},
 	ReactHook: {},
 	ReactFlipToolkit: {},
-	Snackbar: {}
+	Snackbar: {},
+	Platform: {}
 };
 
-(async function hotloadWebpackModules() {
+(function waitForPlatform() {
+	if (!Spicetify._platform) {
+		setTimeout(() => waitForPlatform(), 50);
+		return;
+	}
+	const { _platform } = Spicetify;
+	for (const key of Object.keys(_platform)) {
+		if (key.startsWith("get") && typeof _platform[key] === "function") {
+			Spicetify.Platform[key.slice(3)] = _platform[key]();
+		} else {
+			Spicetify.Platform[key] = _platform[key];
+		}
+	}
+})();
+
+(function hotloadWebpackModules() {
 	if (!window?.webpackChunkopen) {
 		setTimeout(hotloadWebpackModules, 50);
 		return;
