@@ -173,7 +173,7 @@ window.Spicetify = {
 					"colorExtractor",
 					"test",
 					"Platform",
-          "_platform",
+					"_platform",
 					"getFontStyle",
 					"_fontStyle",
 					"Config",
