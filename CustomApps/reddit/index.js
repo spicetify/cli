@@ -42,7 +42,7 @@ try {
 if (!CONFIG.lastService || !CONFIG.services.includes(CONFIG.lastService)) {
 	CONFIG.lastService = CONFIG.services[0];
 }
-let sortConfig = {
+const sortConfig = {
 	by: localStorage.getItem("reddit:sort-by") || "top",
 	time: localStorage.getItem("reddit:sort-time") || "month"
 };
@@ -52,7 +52,8 @@ let lastScroll = 0;
 let requestQueue = [];
 let requestAfter = null;
 
-let gridUpdateTabs, gridUpdatePostsVisual;
+let gridUpdateTabs;
+let gridUpdatePostsVisual;
 
 const typesLocale = {
 	album: Spicetify.Locale.get("album"),
@@ -138,8 +139,8 @@ class Grid extends react.Component {
 	}
 
 	async loadPage(queue) {
-		let subMeta = await getSubreddit(requestAfter);
-		let posts = postMapper(subMeta.data.children);
+		const subMeta = await getSubreddit(requestAfter);
+		const posts = postMapper(subMeta.data.children);
 		for (const post of posts) {
 			let item;
 			switch (post.type) {
@@ -173,10 +174,11 @@ class Grid extends react.Component {
 
 	async loadAmount(queue, quantity = 50) {
 		this.setState({ rest: false });
-		quantity += cardList.length;
+		let addQuantity = quantity;
+		addQuantity += cardList.length;
 
 		requestAfter = await this.loadPage(queue);
-		while (requestAfter && requestAfter !== -1 && cardList.length < quantity && !this.endOfList) {
+		while (requestAfter && requestAfter !== -1 && cardList.length < addQuantity && !this.endOfList) {
 			requestAfter = await this.loadPage(queue);
 		}
 
@@ -288,7 +290,7 @@ class Grid extends react.Component {
 
 async function getSubreddit(after = "") {
 	// www is needed or it will block with "cross-origin" error.
-	var url = `https://www.reddit.com/r/${CONFIG.lastService}/${sortConfig.by}.json?limit=100&count=10&raw_json=1`;
+	let url = `https://www.reddit.com/r/${CONFIG.lastService}/${sortConfig.by}.json?limit=100&count=10&raw_json=1`;
 	if (after) {
 		url += `&after=${after}`;
 	}
@@ -362,10 +364,10 @@ async function fetchTrack(post) {
 }
 
 function postMapper(posts) {
-	var mappedPosts = [];
-	posts.forEach(post => {
-		var uri = URI.from(post.data.url);
-		if (uri && (uri.type == "playlist" || uri.type == "playlist-v2" || uri.type == "track" || uri.type == "album")) {
+	const mappedPosts = [];
+	for (const post of posts) {
+		const uri = URI.from(post.data.url);
+		if (uri && (uri.type === "playlist" || uri.type === "playlist-v2" || uri.type === "track" || uri.type === "album")) {
 			mappedPosts.push({
 				uri: uri.toURI(),
 				type: uri.type,
@@ -373,6 +375,6 @@ function postMapper(posts) {
 				upvotes: post.data.ups
 			});
 		}
-	});
+	}
 	return mappedPosts;
 }
