@@ -35,8 +35,8 @@
 	bar.append(startMark);
 	bar.append(endMark);
 
-	let start = null,
-		end = null;
+	let start = null;
+	let end = null;
 	let mouseOnBarPercent = 0.0;
 
 	function drawOnBar() {
@@ -45,8 +45,8 @@
 			return;
 		}
 		startMark.hidden = endMark.hidden = false;
-		startMark.style.left = start * 100 + "%";
-		endMark.style.left = end * 100 + "%";
+		startMark.style.left = `${start * 100}%`;
+		endMark.style.left = `${end * 100}%`;
 	}
 	function reset() {
 		start = null;
@@ -101,7 +101,9 @@
 	document.body.append(contextMenu);
 	const { height: contextMenuHeight } = contextMenu.getBoundingClientRect();
 	contextMenu.hidden = true;
-	window.addEventListener("click", () => (contextMenu.hidden = true));
+	window.addEventListener("click", () => {
+		contextMenu.hidden = true;
+	});
 
 	bar.oncontextmenu = event => {
 		const { x, width } = bar.firstElementChild.getBoundingClientRect();

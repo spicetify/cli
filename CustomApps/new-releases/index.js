@@ -32,7 +32,7 @@ const CONFIG = {
 	podcast: getConfig("new-releases:podcast", false),
 	music: getConfig("new-releases:music", true),
 	album: getConfig("new-releases:album", true),
-	["single-ep"]: getConfig("new-releases:single-ep", true),
+	"single-ep": getConfig("new-releases:single-ep", true),
 	// ["appears-on"]: getConfig("new-releases:appears-on", false),
 	compilations: getConfig("new-releases:compilations", false),
 	range: localStorage.getItem("new-releases:range") || "30",
@@ -143,15 +143,15 @@ class Grid extends react.Component {
 		this.setState({ rest: false });
 		let items = [];
 		if (CONFIG.music) {
-			let tracks = await fetchTracks();
+			const tracks = await fetchTracks();
 			items.push(...tracks.flat());
 		}
 		if (CONFIG.podcast) {
-			let episodes = await fetchPodcasts();
+			const episodes = await fetchPodcasts();
 			items.push(...episodes);
 		}
 
-		items = items.filter(a => a).sort((a, b) => b.time - a.time);
+		items = items.filter(Boolean).sort((a, b) => b.time - a.time);
 
 		let timeFormat;
 		if (CONFIG.relative) {
@@ -285,7 +285,7 @@ async function getArtistEverything(artist) {
 	});
 	if (errors) throw errors;
 
-	const releases = data?.artistUnion.discography.all.items.map(r => r.releases.items).flat();
+	const releases = data?.artistUnion.discography.all.items.flatMap(r => r.releases.items);
 	const items = [];
 	const types = [
 		[CONFIG.album, releases.filter(r => r.type === "ALBUM"), Spicetify.Locale.get("album")],
@@ -295,7 +295,7 @@ async function getArtistEverything(artist) {
 		[
 			CONFIG["single-ep"],
 			releases.filter(r => r.type === "SINGLE" || r.type === "EP"),
-			Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")
+			`${Spicetify.Locale.get("single")}/${Spicetify.Locale.get("ep")}`
 		]
 	];
 	for (const type of types) {
@@ -341,15 +341,16 @@ function metaFromTrack(artist, track) {
 	return null;
 }
 
-var count = (function () {
-	var counter = 0;
-	return function (reset = false) {
-		return reset ? (counter = 0) : counter++;
+const count = (() => {
+	let counter = 0;
+	return (reset = false) => {
+		if (reset) counter = 0;
+		else counter++;
 	};
 })();
 
 async function fetchTracks() {
-	let artistList = await getArtistList();
+	const artistList = await getArtistList();
 	Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
 	const requests = artistList.map(async obj => {

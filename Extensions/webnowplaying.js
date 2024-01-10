@@ -59,16 +59,18 @@ class WNPReduxWebSocket {
 		this.spicetifyInfo.shuffle = data.shuffle;
 		this.spicetifyInfo.artist = meta.artist_name;
 		let artistCount = 1;
-		while (meta["artist_name:" + artistCount]) {
-			this.spicetifyInfo.artist += ", " + meta["artist_name:" + artistCount];
+		while (meta[`artist_name:${artistCount}`]) {
+			this.spicetifyInfo.artist += `, ${meta[`artist_name:${artistCount}`]}`;
 			artistCount++;
 		}
 		if (!this.spicetifyInfo.artist) this.spicetifyInfo.artist = meta.album_title; // Podcast
 
-		Spicetify.Platform.LibraryAPI.contains(data.item.uri).then(([added]) => (this.spicetifyInfo.rating = added ? 5 : 0));
+		Spicetify.Platform.LibraryAPI.contains(data.item.uri).then(([added]) => {
+			this.spicetifyInfo.rating = added ? 5 : 0;
+		});
 
 		const cover = meta.image_xlarge_url;
-		if (cover?.indexOf("localfile") === -1) this.spicetifyInfo.cover = "https://i.scdn.co/image/" + cover.substring(cover.lastIndexOf(":") + 1);
+		if (cover?.indexOf("localfile") === -1) this.spicetifyInfo.cover = `https://i.scdn.co/image/${cover.substring(cover.lastIndexOf(":") + 1)}`;
 		else this.spicetifyInfo.cover = "";
 	}
 
@@ -241,7 +243,7 @@ function SendUpdateLegacy(self) {
 	self.spicetifyInfo.position = timeInSecondsToString(Math.round(Spicetify.Player.getProgress() / 1000));
 	self.spicetifyInfo.volume = Math.round(Spicetify.Player.getVolume() * 100);
 
-	Object.keys(self.spicetifyInfo).forEach(key => {
+	for (const key of Object.keys(self.spicetifyInfo)) {
 		try {
 			let value = self.spicetifyInfo[key];
 			// For numbers, round it to an integer
@@ -261,7 +263,7 @@ function SendUpdateLegacy(self) {
 			self.send(`Error: Error updating ${key} for ${self.spicetifyInfo.player}`);
 			self.send(`ErrorD:${e}`);
 		}
-	});
+	}
 }
 
 function OnMessageRev1(self, message) {
@@ -306,13 +308,14 @@ function OnMessageRev1(self, message) {
 			}
 			// Spotify doesn't have a negative rating
 			// case 'TOGGLE_THUMBS_DOWN': break
-			case "SET_RATING":
+			case "SET_RATING": {
 				const rating = parseInt(data);
 				const isLiked = self.spicetifyInfo.rating > 3;
 				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
 				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();
 				self.spicetifyInfo.rating = rating;
 				break;
+			}
 		}
 	} catch (e) {
 		self.send(`ERROR Error sending event to ${self.spicetifyInfo.player}`);
@@ -330,7 +333,7 @@ function SendUpdateRev1(self) {
 	self.spicetifyInfo.position = timeInSecondsToString(Math.round(Spicetify.Player.getProgress() / 1000));
 	self.spicetifyInfo.volume = Math.round(Spicetify.Player.getVolume() * 100);
 
-	Object.keys(self.spicetifyInfo).forEach(key => {
+	for (const key of Object.keys(self.spicetifyInfo)) {
 		try {
 			let value = self.spicetifyInfo[key];
 			// For numbers, round it to an integer
@@ -344,7 +347,7 @@ function SendUpdateRev1(self) {
 			self.send(`ERROR Error updating ${key} for ${self.spicetifyInfo.player}`);
 			self.send(`ERRORDEBUG ${e}`);
 		}
-	});
+	}
 }
 
 // Convert seconds to a time string acceptable to Rainmeter
@@ -353,7 +356,7 @@ function pad(num, size) {
 }
 function timeInSecondsToString(timeInSeconds) {
 	const timeInMinutes = Math.floor(timeInSeconds / 60);
-	if (timeInMinutes < 60) return timeInMinutes + ":" + pad(Math.floor(timeInSeconds % 60), 2);
+	if (timeInMinutes < 60) return `${timeInMinutes}:${pad(Math.floor(timeInSeconds % 60), 2)}`;
 
-	return Math.floor(timeInMinutes / 60) + ":" + pad(Math.floor(timeInMinutes % 60), 2) + ":" + pad(Math.floor(timeInSeconds % 60), 2);
+	return `${Math.floor(timeInMinutes / 60)}:${pad(Math.floor(timeInMinutes % 60), 2)}:${pad(Math.floor(timeInSeconds % 60), 2)}`;
 }

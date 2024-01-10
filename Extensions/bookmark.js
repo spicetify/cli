@@ -94,8 +94,8 @@
 		}
 
 		changePosition(x, y) {
-			this.items.style.left = x + "px";
-			this.items.style.top = y + 40 + "px";
+			this.items.style.left = `${x}px`;
+			this.items.style.top = `${y + 40}px`;
 		}
 
 		storeScroll() {
@@ -235,7 +235,7 @@
 		}
 		const uri = contextUri.toURI();
 
-		let titleElem =
+		const titleElem =
 			document.querySelector(".Root__main-view h1") ||
 			document.querySelector(".Root__main-view h2") ||
 			document.querySelector(".Root__main-view h3") ||
@@ -252,7 +252,7 @@
 			description = contextUri.type.replace(/\-.+$/, "");
 			const tail = context.split("/");
 			if (tail.length > 3) {
-				description += " " + tail[3];
+				description += ` ${tail[3]}`;
 			}
 			description = idToProperName(description);
 		}
@@ -307,9 +307,9 @@
 
 	// Utilities
 	function idToProperName(id) {
-		id = id.replace(/\-/g, " ").replace(/^.|\s./g, char => char.toUpperCase());
+		const newId = id.replace(/\-/g, " ").replace(/^.|\s./g, char => char.toUpperCase());
 
-		return id;
+		return newId;
 	}
 
 	function createMenu() {
@@ -508,15 +508,16 @@
 	const fetchTrack = async (uri, uid, context) => {
 		const base62 = uri.split(":")[2];
 		const res = await CosmosAsync.get(`https://api.spotify.com/v1/tracks/${base62}`);
+		let newContext;
 		if (context && uid && Spicetify.URI.isPlaylistV1OrV2(context)) {
-			context = Spicetify.URI.fromString(context).toURLPath(true) + "?uid=" + uid;
+			newContext = `${Spicetify.URI.fromString(context).toURLPath(true)}?uid=${uid}`;
 		}
 		return {
 			uri,
 			title: res.name,
 			description: res.artists[0].name,
 			imageUrl: res.album.images[0].url,
-			context
+			context: newContext ?? context
 		};
 	};
 
@@ -527,7 +528,7 @@
 		return {
 			uri,
 			title: res.name,
-			description: res.show.name + " episode",
+			description: `${res.show.name} episode`,
 			imageUrl: res.show.images[0].url
 		};
 	};

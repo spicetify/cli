@@ -17,3 +17,4 @@ install.log
 
 # VSCode
 .vscode
+pnpm-lock.yaml

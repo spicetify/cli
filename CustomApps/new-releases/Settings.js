@@ -2,7 +2,7 @@ const ButtonSVG = ({ icon, active = true, onClick }) => {
 	return react.createElement(
 		"button",
 		{
-			className: "switch" + (active ? "" : " disabled"),
+			className: `switch${active ? "" : " disabled"}`,
 			onClick
 		},
 		react.createElement("svg", {
@@ -21,7 +21,7 @@ const ButtonText = ({ text, active = true, onClick }) => {
 	return react.createElement(
 		"button",
 		{
-			className: "text" + (active ? "" : " disabled"),
+			className: `text${active ? "" : " disabled"}`,
 			onClick
 		},
 		text
@@ -178,7 +178,7 @@ function openConfig() {
 				{
 					desc: "Time range",
 					key: "range",
-					defaultValue: CONFIG["range"],
+					defaultValue: CONFIG.range,
 					type: ConfigSelection,
 					options: {
 						30: "30 days",
@@ -219,30 +219,30 @@ function openConfig() {
 				{
 					desc: "Fetch new podcast",
 					key: "podcast",
-					defaultValue: CONFIG["podcast"],
+					defaultValue: CONFIG.podcast,
 					type: ConfigSlider,
 					when: () => true
 				},
 				{
 					desc: "Fetch new music",
 					key: "music",
-					defaultValue: CONFIG["music"],
+					defaultValue: CONFIG.music,
 					type: ConfigSlider,
 					when: () => true
 				},
 				{
 					desc: Spicetify.Locale.get("artist.albums"),
 					key: "album",
-					defaultValue: CONFIG["album"],
+					defaultValue: CONFIG.album,
 					type: ConfigSlider,
-					when: () => CONFIG["music"]
+					when: () => CONFIG.music
 				},
 				{
 					desc: Spicetify.Locale.get("artist.singles"),
 					key: "single-ep",
 					defaultValue: CONFIG["single-ep"],
 					type: ConfigSlider,
-					when: () => CONFIG["music"]
+					when: () => CONFIG.music
 				},
 				/* {
 					desc: Spicetify.Locale.get("artist.appears-on"),
@@ -254,9 +254,9 @@ function openConfig() {
 				{
 					desc: Spicetify.Locale.get("artist.compilations"),
 					key: "compilations",
-					defaultValue: CONFIG["compilations"],
+					defaultValue: CONFIG.compilations,
 					type: ConfigSlider,
-					when: () => CONFIG["music"]
+					when: () => CONFIG.music
 				}
 			],
 			onChange: (name, value) => {
