@@ -173,37 +173,36 @@ const Utils = {
 		return `${minutes}:${seconds}`;
 	},
 	convertParsedToLRC(lyrics) {
-		function processText(text, startTime = 0) {
-			if (text.props?.children) {
-				return text.props.children
-					.map(child => {
-						if (typeof child === "string") {
-							return child;
-						}
-						if (child.props?.children) {
-							return child.props?.children[0];
-						}
-					})
-					.join("");
-			}
-			if (Array.isArray(text)) {
-				let wordTime = startTime;
-				return text
-					.map(word => {
-						wordTime += word.time;
-						return `${word.word}<${this.formatTime(wordTime)}>`;
-					})
-					.join("");
-			}
-			return text;
-		}
-
 		return lyrics
 			.map(line => {
 				if (!line.startTime) return line.text;
-				return `[${this.formatTime(line.startTime)}]${processText(line.text, line.startTime)}`;
+				return `[${this.formatTime(line.startTime)}]${this.processText(line.text, line.startTime)}`;
 			})
 			.join("\n");
+	},
+	processText(text, startTime = 0) {
+		if (text.props?.children) {
+			return text.props.children
+				.map(child => {
+					if (typeof child === "string") {
+						return child;
+					}
+					if (child.props?.children) {
+						return child.props?.children[0];
+					}
+				})
+				.join("");
+		}
+		if (Array.isArray(text)) {
+			let wordTime = startTime;
+			return text
+				.map(word => {
+					wordTime += word.time;
+					return `${word.word}<${this.formatTime(wordTime)}>`;
+				})
+				.join("");
+		}
+		return text;
 	},
 	parseLocalLyrics(lyrics) {
 		// Preprocess lyrics by removing [tags] and empty lines
