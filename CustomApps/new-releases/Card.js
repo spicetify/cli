@@ -4,7 +4,7 @@ function DraggableComponent({ uri, title, children }) {
 		? react.cloneElement(children, {
 				onDragStart: dragHandler,
 				draggable: "true"
-			})
+		  })
 		: children;
 }
 
@@ -53,14 +53,14 @@ class Card extends react.Component {
 							})
 						})
 					})
-				})
+			  })
 			: Spicetify.showNotification(`Dismissed <b>${this.title}</b> from <br>${this.artist.name}</b>`);
 
 		event.stopPropagation();
 	}
 
 	render() {
-		let detail = [];
+		const detail = [];
 		this.visual.type && detail.push(this.type);
 		if (this.visual.count && this.trackCount) {
 			detail.push(Spicetify.Locale.get("tracklist-header.songs-counter", this.trackCount));
@@ -216,7 +216,7 @@ class Card extends react.Component {
 								react.createElement(
 									"a",
 									{
-										className: `main-cardSubHeader-root main-type-mesto new-releases-cardSubHeader`,
+										className: "main-cardSubHeader-root main-type-mesto new-releases-cardSubHeader",
 										href: this.artistHref,
 										onClick: event => {
 											History.push(this.artistHref);

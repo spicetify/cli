@@ -20,7 +20,7 @@ class Translator {
 
 	includeExternal(url) {
 		if (CONFIG.visual.translate && !document.querySelector(`script[src="${url}"]`)) {
-			var script = document.createElement("script");
+			const script = document.createElement("script");
 			script.setAttribute("type", "text/javascript");
 			script.setAttribute("src", url);
 			document.head.appendChild(script);

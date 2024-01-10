@@ -83,7 +83,7 @@
 	}
 
 	function styleSettings() {
-		let style = document.createElement("style");
+		const style = document.createElement("style");
 		style.innerHTML = `
 		.main-trackCreditsModal-container {
 			width: auto !important;
@@ -210,7 +210,9 @@
 	let trashSongList = initValue("TrashSongList", {});
 	let trashArtistList = initValue("TrashArtistList", {});
 	let userHitBack = false;
-	const eventListener = () => (userHitBack = true);
+	const eventListener = () => {
+		userHitBack = true;
+	};
 
 	putDataLocal();
 	refreshEventListeners(trashbinStatus);
@@ -257,7 +259,7 @@
 		}
 
 		let uriIndex = 0;
-		let artistUri = data.item.metadata["artist_uri"];
+		let artistUri = data.item.metadata.artist_uri;
 
 		while (artistUri) {
 			if (trashArtistList[artistUri]) {
@@ -266,7 +268,7 @@
 			}
 
 			uriIndex++;
-			artistUri = data.item.metadata["artist_uri:" + uriIndex];
+			artistUri = data.item.metadata[`artist_uri:${uriIndex}`];
 		}
 	}
 
@@ -286,7 +288,7 @@
 
 		if (type === Spicetify.URI.Type.ARTIST) {
 			let count = 1;
-			let artUri = curTrack.metadata["artist_uri"];
+			let artUri = curTrack.metadata.artist_uri;
 			while (artUri) {
 				if (uri === artUri) {
 					return true;
@@ -308,7 +310,7 @@
 		const uriObj = Spicetify.URI.fromString(uri);
 		const type = uriObj.type;
 
-		let list = type === Spicetify.URI.Type.TRACK ? trashSongList : trashArtistList;
+		const list = type === Spicetify.URI.Type.TRACK ? trashSongList : trashArtistList;
 
 		if (!list[uri]) {
 			list[uri] = true;
