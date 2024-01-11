@@ -465,7 +465,7 @@ window.Spicetify = {
 			Routes: functionModules.find(m => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
 			Route: functionModules.find(m => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
 			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
-      TrackList: modules.find(m => m?.type?.toString().includes("onNrValidItemsChange") && m?.type?.toString().includes("cacheAll")),
+			TrackList: modules.find(m => m?.type?.toString().includes("onNrValidItemsChange") && m?.type?.toString().includes("cacheAll")),
 			TrackRow: modules.find(m => m?.type?.toString().includes("isLocal") && !m?.type?.toString().includes("nrTracks")),
 			...Object.fromEntries(menus)
 		},
