@@ -172,15 +172,7 @@ const Utils = {
 
 		return `${minutes}:${seconds}`;
 	},
-	convertParsedToLRC(lyrics) {
-		return lyrics
-			.map(line => {
-				if (!line.startTime) return line.text;
-				return `[${this.formatTime(line.startTime)}]${this.processText(line.text, line.startTime)}`;
-			})
-			.join("\n");
-	},
-	processText(text, startTime = 0) {
+	formatTextWithTimestamps(text, startTime = 0) {
 		if (text.props?.children) {
 			return text.props.children
 				.map(child => {
@@ -203,6 +195,14 @@ const Utils = {
 				.join("");
 		}
 		return text;
+	},
+	convertParsedToLRC(lyrics) {
+		return lyrics
+			.map(line => {
+				if (!line.startTime) return line.text;
+				return `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}`;
+			})
+			.join("\n");
 	},
 	parseLocalLyrics(lyrics) {
 		// Preprocess lyrics by removing [tags] and empty lines
