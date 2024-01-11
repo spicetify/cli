@@ -313,23 +313,20 @@ func exposeAPIs_main(input string) string {
 	// Spicetify._platform
 	utils.Replace(
 		&input,
-		`(setTitlebarHeight[\w(){}.,&$!=;"" ]+)(\{version:\w+,)`,
+		`(setTitlebarHeight[\w(){}.,&$!=;"" ]+)(\{version:[\w$]+,)`,
 		`${1}Spicetify._platform=${2}`)
 
-	// Profile Menu hook v1.1.56
+	// Redux store
 	utils.Replace(
 		&input,
-		`\{listItems:\w+,icons:\w+,onOutsideClick:(\w+)\}=\w+;`,
-		`${0};
-Spicetify.React.useEffect(() => {
-	const container = document.querySelector(".main-userWidget-dropDownMenu")?.parentElement;
-	if (!container) {
-		console.error("Profile Menu Hook v1.1.56 failed");
-		return;
-	}
-	container._tippy = { props: { onClickOutside: ${1} }};
-	Spicetify.Menu._addItems(container);
-}, []);`)
+		`(,[\w$]+=)(([$\w,.:=;(){}]+\(\{session:[\w$]+,features:[\w$]+,seoExperiment:[\w$]+\}))`,
+		`${1}Spicetify.Platform.ReduxStore=${2}`)
+
+	// React Component: Platform Provider
+	utils.Replace(
+		&input,
+		`(,[$\w]+=)((function\([\w$]{1}\)\{var [\w$]+=[\w$]+\.platform,[\w$]+=[\w$]+\.children,)|(\(\{platform:[\w$]+,children:[\w$]+\}\)=>\{))`,
+		`${1}Spicetify.ReactComponent.PlatformProvider=${2}`)
 
 	// React Component: Context Menu
 	// TODO: replace with webpack module

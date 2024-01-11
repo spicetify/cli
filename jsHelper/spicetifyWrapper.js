@@ -268,7 +268,12 @@ window.Spicetify = {
 					"Snackbar",
 					"Chip",
 					"Toggle",
-					"Cards"
+					"Cards",
+					"Router",
+					"Routes",
+					"Route",
+					"StoreProvider",
+					"PlatformProvider"
 				])
 			},
 			{
@@ -456,6 +461,10 @@ window.Spicetify = {
 				CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
 				...Object.fromEntries(cards)
 			},
+			Router: functionModules.find(m => m.toString().includes("navigationType") && m.toString().includes("static")),
+			Routes: functionModules.find(m => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
+			Route: functionModules.find(m => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
+			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -489,7 +498,7 @@ window.Spicetify = {
 		Spicetify.Snackbar = {
 			...Spicetify.Snackbar,
 			SnackbarProvider: functionModules.find(m => m.toString().includes("enqueueSnackbar called with invalid argument")),
-			useSnackbar: functionModules.find(m => m.toString().match(/\{return\(0,\w+\.useContext\)\(\w+\)\}/))
+			useSnackbar: functionModules.find(m => m.toString().match(/^function\(\)\{return\(0,[\w$]+\.useContext\)\([\w$]+\)\}$/))
 		};
 	})();
 
@@ -1740,6 +1749,11 @@ Spicetify._cloneSidebarItem = (list, isLibX = false) => {
 		}
 
 		return baseClassname;
+	}
+
+	if (!Spicetify.React) {
+		setTimeout(Spicetify._cloneSidebarItem, 10, list, isLibX);
+		return;
 	}
 
 	const React = Spicetify.React;
