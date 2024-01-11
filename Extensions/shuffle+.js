@@ -21,7 +21,7 @@
 			}
 			throw "";
 		} catch {
-			Spicetify.LocalStorage.set("shufflePlus:settings", `{}`);
+			Spicetify.LocalStorage.set("shufflePlus:settings", "{}");
 			return { artistMode: "all", artistNameMust: false };
 		}
 	}
@@ -112,7 +112,7 @@
 					React.createElement(
 						"button",
 						{
-							className: "checkbox" + (value ? "" : " disabled"),
+							className: `checkbox${value ? "" : " disabled"}`,
 							onClick: () => {
 								CONFIG[field] = !value;
 								setValue(!value);
@@ -284,7 +284,7 @@
 	}
 
 	async function fetchFolderTracks(uri) {
-		const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/rootlist`, {
+		const res = await Spicetify.CosmosAsync.get("sp://core-playlist/v1/rootlist", {
 			policy: { folder: { rows: true, link: true } }
 		});
 
@@ -361,7 +361,7 @@
 		if (overview.errors) throw overview.errors[0].message;
 
 		const artistName = overview.data.artistUnion.profile.name;
-		const releases = discography.data.artistUnion.discography.all.items.map(({ releases }) => releases.items).flat();
+		const releases = discography.data.artistUnion.discography.all.items.flatMap(({ releases }) => releases.items);
 
 		const artistAlbums = releases.filter(album => album.type === "ALBUM");
 		const artistSingles = releases.filter(album => album.type === "SINGLE" || album.type === "EP");
@@ -453,10 +453,10 @@
 			array[counter] = array[index];
 			array[index] = temp;
 		}
-		return array.filter(track => track);
+		return array.filter(Boolean);
 	}
 
-	async function Queue(list, context = null, type) {
+	async function Queue(list, context, type) {
 		const count = list.length;
 
 		// Delimits the end of our list, as Spotify may add new context tracks to the queue
@@ -488,7 +488,7 @@
 
 		if (context) {
 			const { sessionId } = Spicetify.Platform.PlayerAPI.getState();
-			Spicetify.Platform.PlayerAPI.updateContext(sessionId, { uri: context, url: "context://" + context });
+			Spicetify.Platform.PlayerAPI.updateContext(sessionId, { uri: context, url: `context://${context}` });
 		}
 
 		Spicetify.Player.next();
@@ -522,10 +522,10 @@
 	}
 
 	async function fetchAndPlay(rawUri) {
-		let list,
-			context,
-			type = null,
-			uri;
+		let list;
+		let context;
+		let type = null;
+		let uri;
 
 		try {
 			if (typeof rawUri === "object") {
@@ -544,7 +544,7 @@
 					case Type.ALBUM:
 						list = await fetchAlbumTracks(rawUri);
 						break;
-					case Type.ARTIST + "":
+					case `${Type.ARTIST}`:
 						if (CONFIG.artistMode === "likedSongArtist") {
 							list = await fetchArtistLikedTracks(uri);
 							break;

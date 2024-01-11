@@ -1,11 +1,12 @@
-const ProviderMusixmatch = (function () {
+const ProviderMusixmatch = (() => {
 	const headers = {
 		authority: "apic-desktop.musixmatch.com",
 		cookie: "x-mxm-token-guid="
 	};
 
 	async function findLyrics(info) {
-		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
+		const baseURL =
+			"https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&";
 
 		const durr = info.duration / 1000;
 
@@ -23,7 +24,7 @@ const ProviderMusixmatch = (function () {
 		const finalURL =
 			baseURL +
 			Object.keys(params)
-				.map(key => key + "=" + encodeURIComponent(params[key]))
+				.map(key => `${key}=${encodeURIComponent(params[key])}`)
 				.join("&");
 
 		let body = await CosmosAsync.get(finalURL, null, headers);
@@ -35,7 +36,8 @@ const ProviderMusixmatch = (function () {
 				error: `Requested error: ${body["matcher.track.get"].message.header.mode}`,
 				uri: info.uri
 			};
-		} else if (body["track.lyrics.get"]?.message?.body?.lyrics?.restricted) {
+		}
+		if (body["track.lyrics.get"]?.message?.body?.lyrics?.restricted) {
 			return {
 				error: "Unfortunately we're not authorized to show these lyrics.",
 				uri: info.uri
@@ -55,7 +57,7 @@ const ProviderMusixmatch = (function () {
 			return null;
 		}
 
-		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=web-desktop-app-v1.0&`;
+		const baseURL = "https://apic-desktop.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=web-desktop-app-v1.0&";
 
 		const params = {
 			f_subtitle_length: meta.track.track_length,
@@ -67,12 +69,12 @@ const ProviderMusixmatch = (function () {
 		const finalURL =
 			baseURL +
 			Object.keys(params)
-				.map(key => key + "=" + encodeURIComponent(params[key]))
+				.map(key => `${key}=${encodeURIComponent(params[key])}`)
 				.join("&");
 
 		let result = await CosmosAsync.get(finalURL, null, headers);
 
-		if (result.message.header.status_code != 200) {
+		if (result.message.header.status_code !== 200) {
 			return null;
 		}
 
@@ -88,7 +90,7 @@ const ProviderMusixmatch = (function () {
 				const wordStartTime = word.o * 1000;
 				const nextWordStartTime = words[index + 1]?.o * 1000;
 
-				const time = !isNaN(nextWordStartTime) ? nextWordStartTime - wordStartTime : endTime - (wordStartTime + startTime);
+				const time = !Number.isNaN(nextWordStartTime) ? nextWordStartTime - wordStartTime : endTime - (wordStartTime + startTime);
 
 				return {
 					word: wordText,
@@ -116,7 +118,8 @@ const ProviderMusixmatch = (function () {
 
 		if (isInstrumental) {
 			return [{ text: "♪ Instrumental ♪", startTime: "0000" }];
-		} else if (hasSynced) {
+		}
+		if (hasSynced) {
 			const subtitle = body["track.subtitles.get"]?.message?.body?.subtitle_list?.[0]?.subtitle;
 			if (!subtitle) {
 				return null;
@@ -143,7 +146,8 @@ const ProviderMusixmatch = (function () {
 
 		if (isInstrumental) {
 			return [{ text: "♪ Instrumental ♪" }];
-		} else if (hasUnSynced) {
+		}
+		if (hasUnSynced) {
 			const lyrics = body["track.lyrics.get"]?.message?.body?.lyrics?.lyrics_body;
 			if (!lyrics) {
 				return null;
@@ -158,7 +162,8 @@ const ProviderMusixmatch = (function () {
 		const track_id = body?.["matcher.track.get"]?.message?.body?.track?.track_id;
 		if (!track_id) return null;
 
-		const baseURL = `https://apic-desktop.musixmatch.com/ws/1.1/crowd.track.translations.get?translation_fields_set=minimal&selected_language=en&comment_format=text&format=json&app_id=web-desktop-app-v1.0&`;
+		const baseURL =
+			"https://apic-desktop.musixmatch.com/ws/1.1/crowd.track.translations.get?translation_fields_set=minimal&selected_language=en&comment_format=text&format=json&app_id=web-desktop-app-v1.0&";
 
 		const params = {
 			track_id,
@@ -168,12 +173,12 @@ const ProviderMusixmatch = (function () {
 		const finalURL =
 			baseURL +
 			Object.keys(params)
-				.map(key => key + "=" + encodeURIComponent(params[key]))
+				.map(key => `${key}=${encodeURIComponent(params[key])}`)
 				.join("&");
 
 		let result = await CosmosAsync.get(finalURL, null, headers);
 
-		if (result.message.header.status_code != 200) return null;
+		if (result.message.header.status_code !== 200) return null;
 
 		result = result.message.body;
 

@@ -28,7 +28,7 @@ const IdlingIndicator = ({ isActive, progress, delay }) => {
 			style: {
 				"--position-index": 0,
 				"--animation-index": 1,
-				"--indicator-delay": delay + "ms"
+				"--indicator-delay": `${delay}ms`
 			}
 		},
 		react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.05 ? "active" : ""}` }),
@@ -67,9 +67,9 @@ const KaraokeLine = ({ text, isActive, position, startTime }) => {
 		return react.createElement(
 			"span",
 			{
-				className: "lyrics-lyricsContainer-Karaoke-Word" + (isWordActive ? " lyrics-lyricsContainer-Karaoke-WordActive" : ""),
+				className: `lyrics-lyricsContainer-Karaoke-Word${isWordActive ? " lyrics-lyricsContainer-Karaoke-WordActive" : ""}`,
 				style: {
-					"--word-duration": time + "ms"
+					"--word-duration": `${time}ms`
 				}
 			},
 			word
@@ -85,7 +85,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 	useTrackPosition(() => {
 		const newPos = Spicetify.Player.getProgress();
 		const delay = CONFIG.visual["global-delay"] + CONFIG.visual.delay;
-		if (newPos != position) {
+		if (newPos !== position) {
 			setPosition(newPos + delay);
 		}
 	});
@@ -134,12 +134,12 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 			{
 				className: "lyrics-lyricsContainer-SyncedLyrics",
 				style: {
-					"--offset": offset + "px"
+					"--offset": `${offset}px`
 				},
 				key: lyricsId
 			},
 			activeLines.map(({ text, lineNumber, startTime }, i) => {
-				if (i == 1 && activeLineIndex == 1) {
+				if (i === 1 && activeLineIndex === 1) {
 					return react.createElement(IdlingIndicator, {
 						progress: position / activeLines[2].startTime,
 						delay: activeLines[2].startTime / 3
@@ -147,7 +147,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 				}
 
 				let className = "lyrics-lyricsContainer-LyricsLine";
-				let activeElementIndex = Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1);
+				const activeElementIndex = Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1);
 				let ref;
 
 				const isActive = activeElementIndex === i;
@@ -274,16 +274,24 @@ class SearchBar extends react.Component {
 			return;
 		}
 
-		const el = document.querySelector(".lyrics-lyricsContainer-UnsyncedLyricsPage");
-		const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+		const lyricsPage = document.querySelector(".lyrics-lyricsContainer-UnsyncedLyricsPage");
+		const walker = document.createTreeWalker(
+			lyricsPage,
+			NodeFilter.SHOW_TEXT,
+			node => {
+				if (node.textContent.toLowerCase().includes(value)) {
+					return NodeFilter.FILTER_ACCEPT;
+				}
+				return NodeFilter.FILTER_REJECT;
+			},
+			false
+		);
+
 		const foundNodes = [];
-		let node;
-		while ((node = walker.nextNode())) {
-			if (node.textContent.toLowerCase().includes(value)) {
-				const range = document.createRange();
-				range.selectNodeContents(node);
-				foundNodes.push(range);
-			}
+		while (walker.nextNode()) {
+			const range = document.createRange();
+			range.selectNodeContents(walker.currentNode);
+			foundNodes.push(range);
 		}
 
 		if (!foundNodes.length) {
@@ -297,8 +305,8 @@ class SearchBar extends react.Component {
 	}
 
 	render() {
-		let y = 0,
-			height = 0;
+		let y = 0;
+		let height = 0;
 		if (this.state.foundNodes.length) {
 			const node = this.state.foundNodes[this.state.atNode];
 			const rects = node.getBoundingClientRect();
@@ -308,10 +316,12 @@ class SearchBar extends react.Component {
 		return react.createElement(
 			"div",
 			{
-				className: "lyrics-Searchbar" + (this.state.hidden ? " hidden" : "")
+				className: `lyrics-Searchbar${this.state.hidden ? " hidden" : ""}`
 			},
 			react.createElement("input", {
-				ref: c => (this.container = c),
+				ref: c => {
+					this.container = c;
+				},
 				onChange: this.getNodeFromInput.bind(this)
 			}),
 			react.createElement("svg", {
@@ -333,8 +343,8 @@ class SearchBar extends react.Component {
 			react.createElement("div", {
 				className: "lyrics-Searchbar-highlight",
 				style: {
-					"--search-highlight-top": y + "px",
-					"--search-highlight-height": height + "px"
+					"--search-highlight-top": `${y}px`,
+					"--search-highlight-height": `${height}px`
 				}
 			})
 		);
@@ -401,19 +411,19 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 			className: "lyrics-lyricsContainer-LyricsUnsyncedPadding"
 		}),
 		padded.map(({ text, startTime }, i) => {
-			if (i == 0) {
+			if (i === 0) {
 				return react.createElement(IdlingIndicator, {
-					isActive: activeLineIndex == 0,
+					isActive: activeLineIndex === 0,
 					progress: position / padded[1].startTime,
 					delay: padded[1].startTime / 3
 				});
 			}
 
-			const isActive = i == activeLineIndex;
+			const isActive = i === activeLineIndex;
 			return react.createElement(
 				"p",
 				{
-					className: "lyrics-lyricsContainer-LyricsLine" + (i <= activeLineIndex ? " lyrics-lyricsContainer-LyricsLine-active" : ""),
+					className: `lyrics-lyricsContainer-LyricsLine${i <= activeLineIndex ? " lyrics-lyricsContainer-LyricsLine-active" : ""}`,
 					style: {
 						cursor: "pointer"
 					},
@@ -505,7 +515,7 @@ function showNote(parent, note) {
 	noteTextContainer.innerText = note;
 	parent.append(noteContainer);
 	const arrowPos = parent.offsetLeft - noteContainer.offsetLeft;
-	noteDivider.style.setProperty("--link-left", arrowPos + "px");
+	noteDivider.style.setProperty("--link-left", `${arrowPos}px`);
 	const box = noteTextContainer.getBoundingClientRect();
 	if (box.y + box.height > window.innerHeight) {
 		// Wait for noteContainer is mounted
@@ -558,7 +568,9 @@ const GeniusPage = react.memo(
 			react.createElement(VersionSelector, { items: versions, index: versionIndex, callback: onVersionChange }),
 			react.createElement("div", {
 				className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
-				ref: c => (container = c),
+				ref: c => {
+					container = c;
+				},
 				dangerouslySetInnerHTML: {
 					__html: lyrics
 				},
@@ -572,7 +584,7 @@ const GeniusPage = react.memo(
 			})
 		);
 
-		let mainContainer = [lyricsEl1];
+		const mainContainer = [lyricsEl1];
 		const shouldSplit = versions.length > 1 && isSplitted;
 
 		if (shouldSplit) {
@@ -582,7 +594,9 @@ const GeniusPage = react.memo(
 				react.createElement(VersionSelector, { items: versions, index: versionIndex2, callback: onVersionChange2 }),
 				react.createElement("div", {
 					className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
-					ref: c => (container2 = c),
+					ref: c => {
+						container2 = c;
+					},
 					dangerouslySetInnerHTML: {
 						__html: lyrics2
 					},

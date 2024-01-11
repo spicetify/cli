@@ -2,9 +2,9 @@
 	const sidebar = document.querySelector(".Root__nav-bar");
 	if (!sidebar) return setTimeout(SidebarConfig, 100);
 	// Status enum
-	const HIDDEN = 0,
-		SHOW = 1,
-		STICKY = 2;
+	const HIDDEN = 0;
+	const SHOW = 1;
+	const STICKY = 2;
 	// Store sidebar buttons elements
 	let appItems;
 	let list;
@@ -28,14 +28,16 @@
 				newButtons[index] = undefined;
 			}
 		}
-		newButtons.filter(a => a).forEach(a => orderedButtons.push([a, STICKY]));
+		for (const button of newButtons) {
+			if (button) orderedButtons.push([button, SHOW]);
+		}
 		ordered = orderedButtons;
 	}
 
 	function appendItems() {
-		const toShow = [],
-			toHide = [],
-			toStick = [];
+		const toShow = [];
+		const toHide = [];
+		const toStick = [];
 		for (const el of ordered) {
 			const [item, status] = el;
 			if (status === STICKY) {
@@ -151,16 +153,19 @@ color: var(--spice-button-disabled);
 	function removeInteraction() {
 		hiddenList.classList.add("hidden-visually");
 		container.remove();
-		ordered.forEach(a => (a[0].onmouseover = undefined));
+		for (const a of ordered) {
+			a[0].onmouseover = undefined;
+		}
 		if (isYLX) {
 			if (YLXSidebarState === 1) document.querySelector(".main-yourLibraryX-collapseButton > button")?.click();
 			else
 				document.documentElement.style.setProperty(
 					"--nav-bar-width",
-					Spicetify.Platform.LocalStorageAPI.getItem(YLXSidebarState === 2 ? "ylx-expanded-state-nav-bar-width" : "ylx-default-state-nav-bar-width") +
-						"px"
+					`${Spicetify.Platform.LocalStorageAPI.getItem(
+						YLXSidebarState === 2 ? "ylx-expanded-state-nav-bar-width" : "ylx-default-state-nav-bar-width"
+					)}px`
 				);
-		} else document.documentElement.style.setProperty("--nav-bar-width", Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width") + "px");
+		} else document.documentElement.style.setProperty("--nav-bar-width", `${Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width")}px`);
 		writeStorage();
 	}
 
