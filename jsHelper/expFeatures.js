@@ -254,7 +254,7 @@ ${Spicetify.SVGIcons.search}
 			const query = search.value.toLowerCase();
 			const rows = content.querySelectorAll(".setting-row");
 			for (const row of rows) {
-				if (row.id === "search" || row.id === "reset") return;
+				if (row.id === "search" || row.id === "reset") continue;
 				row.style.display = row.textContent.trim().toLowerCase().includes(query) || row.id.toLowerCase().includes(query) ? "flex" : "none";
 			}
 		};
