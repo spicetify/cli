@@ -325,7 +325,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 	const PlayerControls = () => {
 		const [value, setValue] = useState(Spicetify.Player.isPlaying());
 		useEffect(() => {
-			const update = ({ data }) => setValue(!data.is_paused);
+			const update = ({ data }) => setValue(!data.isPaused);
 			Spicetify.Player.addEventListener("onplaypause", update);
 			return () => Spicetify.Player.removeEventListener("onplaypause", update);
 		});

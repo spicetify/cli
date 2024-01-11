@@ -172,36 +172,35 @@ const Utils = {
 
 		return `${minutes}:${seconds}`;
 	},
-	convertParsedToLRC(lyrics) {
-		function processText(text, startTime = 0) {
-			if (text.props?.children) {
-				return text.props.children
-					.map(child => {
-						if (typeof child === "string") {
-							return child;
-						}
-						if (child.props?.children) {
-							return child.props?.children[0];
-						}
-					})
-					.join("");
-			}
-			if (Array.isArray(text)) {
-				let wordTime = startTime;
-				return text
-					.map(word => {
-						wordTime += word.time;
-						return `${word.word}<${this.formatTime(wordTime)}>`;
-					})
-					.join("");
-			}
-			return text;
+	formatTextWithTimestamps(text, startTime = 0) {
+		if (text.props?.children) {
+			return text.props.children
+				.map(child => {
+					if (typeof child === "string") {
+						return child;
+					}
+					if (child.props?.children) {
+						return child.props?.children[0];
+					}
+				})
+				.join("");
 		}
-
+		if (Array.isArray(text)) {
+			let wordTime = startTime;
+			return text
+				.map(word => {
+					wordTime += word.time;
+					return `${word.word}<${this.formatTime(wordTime)}>`;
+				})
+				.join("");
+		}
+		return text;
+	},
+	convertParsedToLRC(lyrics) {
 		return lyrics
 			.map(line => {
 				if (!line.startTime) return line.text;
-				return `[${this.formatTime(line.startTime)}]${processText(line.text, line.startTime)}`;
+				return `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}`;
 			})
 			.join("\n");
 	},
