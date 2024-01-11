@@ -244,10 +244,10 @@ func disableLogging(input string) string {
 	utils.Replace(&input, `key:"logImpression",value:function\([\w,]+\)\{`, "${0}return;")
 	utils.Replace(&input, `key:"logNonAuthImpression",value:function\([\w,]+\)\{`, "${0}return;")
 	utils.Replace(&input, `key:"logNavigation",value:function\([\w,]+\)\{`, "${0}return;")
-	utils.Replace(&input, `key:"logClientLostFocus",value:function\(\)\{`, "${0}return;")
-	utils.Replace(&input, `key:"logClientGainedFocus",value:function\(\)\{`, "${0}return;")
+	utils.Replace(&input, `key:"handleBackgroundStates",value:function\(\)\{`, "${0}return;")
 	utils.Replace(&input, `key:"createLoggingParams",value:function\([\w,]+\)\{`, "${0}return;")
 	utils.Replace(&input, `key:"initSendingEvents",value:function\(\)\{`, "${0}return;")
+	utils.Replace(&input, `key:"flush",value:function\(\)\{`, "${0}return;")
 	utils.Replace(&input, `(\{key:"send",value:function\([\w,]+\))\{[\d\w\s,{}()[\]\.,!\?=>&|;:_""]+?\}(\},\{key:"hasContext")`, "${1}{return;}${2}")
 	utils.Replace(&input, `key:"lastFlush",value:function\(\)\{`, "${0}return;")
 
@@ -255,10 +255,11 @@ func disableLogging(input string) string {
 	utils.Replace(&input, `(\}logInteraction\([\w,]+\))\{.+?\}(logImpression)`, "${1}{return{interactionId:null,pageInstanceId:null};}${2}")
 	utils.Replace(&input, `(\}logImpression\([\w,]+\))\{.+?\}(logNavigation)`, "${1}{return;}${2}")
 	utils.Replace(&input, `(\}logNavigation\([\w,]+\))\{.+?\}(getPageInstanceId|getInteractionId)`, "${1}{return;}${2}")
-	utils.Replace(&input, `(\}logClientLostFocus\(\))\{.+?\}(logClientGainedFocus)`, "${1}{return;}${2}")
-	utils.Replace(&input, `(\}logClientGainedFocus\(\))\{.+?\}(getPageInstanceId|addEventListeners)`, "${1}{return;}${2}")
+	utils.Replace(&input, `(\}handleBackgroundStates\(\))\{.+?\}(startNavigation)`, "${1}{return;}${2}")
 	utils.Replace(&input, `(\}createLoggingParams\([\w,]+\))\{.+?\}(async pullToLocal)`, "${1}{return;}${2}")
 	utils.Replace(&input, `(\}initSendingEvents\(\))\{.+?\}(initializeContexts)`, "${1}{return;}${2}")
+	utils.Replace(&input, `(\}flush\(\))\{.+\}(sendEvents)`, "${1}{return;}${2}")
+	utils.Replace(&input, `(\}flush\(\w+=!0\))\{.+\}(flushAll)`, "${1}{return;}${2}")
 	utils.Replace(&input, `(\}send\([\w,:=!\d{}]+\))\{.+?\}(hasContext)`, "${1}{return;}${2}")
 	utils.Replace(&input, `(\}lastFlush\(\))\{.+?\}(flush\(\))`, "${1}{return;}${2}")
 
@@ -309,35 +310,23 @@ func exposeAPIs_main(input string) string {
 		`"data-testid":`,
 		`"":`)
 
-	reAllAPIPromises := regexp.MustCompile(`return ?(?:function\(\))?(?:[\w$_\.&!=]+[\w$_\.()=!]+.)*\{(?:[ \w.$,(){}]+:[\w\d!$_.()]+,)*(?:return [\w.\(,\)}]+)?(?:get\w+:(?:[()=>{}\w]+new Promise[()=>{}]+),)?((?:get\w+:(?:\(\)=>|function\(\)\{return ?)(?:[\w$]+|[(){}]+)\}?,?)+?)[})]+;?`)
-	allAPIPromises := reAllAPIPromises.FindAllStringSubmatch(input, -1)
-	for _, found := range allAPIPromises {
-		splitted := strings.Split(found[1], ",")
-		if len(splitted) > 6 {
-			matchMap := regexp.MustCompile(`get(\w+):(?:\(\)=>|function\(\)\{return ?)([\w$]+|\(?\{\}\)?)\}?,?`)
-			code := "Spicetify.Platform={};"
-			for _, apiFunc := range splitted {
-				matches := matchMap.FindStringSubmatch(apiFunc)
-				code += "Spicetify.Platform[\"" + fmt.Sprint(matches[1]) + "\"]=" + fmt.Sprint(matches[2]) + ";"
-			}
-			input = strings.Replace(input, found[0], code+found[0], 1)
-		}
-	}
-
-	// Profile Menu hook v1.1.56
+	// Spicetify._platform
 	utils.Replace(
 		&input,
-		`\{listItems:\w+,icons:\w+,onOutsideClick:(\w+)\}=\w+;`,
-		`${0};
-Spicetify.React.useEffect(() => {
-	const container = document.querySelector(".main-userWidget-dropDownMenu")?.parentElement;
-	if (!container) {
-		console.error("Profile Menu Hook v1.1.56 failed");
-		return;
-	}
-	container._tippy = { props: { onClickOutside: ${1} }};
-	Spicetify.Menu._addItems(container);
-}, []);`)
+		`(setTitlebarHeight[\w(){}.,&$!=;"" ]+)(\{version:[\w$]+,)`,
+		`${1}Spicetify._platform=${2}`)
+
+	// Redux store
+	utils.Replace(
+		&input,
+		`(,[\w$]+=)(([$\w,.:=;(){}]+\(\{session:[\w$]+,features:[\w$]+,seoExperiment:[\w$]+\}))`,
+		`${1}Spicetify.Platform.ReduxStore=${2}`)
+
+	// React Component: Platform Provider
+	utils.Replace(
+		&input,
+		`(,[$\w]+=)((function\([\w$]{1}\)\{var [\w$]+=[\w$]+\.platform,[\w$]+=[\w$]+\.children,)|(\(\{platform:[\w$]+,children:[\w$]+\}\)=>\{))`,
+		`${1}Spicetify.ReactComponent.PlatformProvider=${2}`)
 
 	// React Component: Context Menu
 	// TODO: replace with webpack module
@@ -465,13 +454,8 @@ if (${1}.popper?.firstChild?.id === "context-menu") {
 	// Snackbar https://github.com/iamhosseindhv/notistack
 	utils.Replace(
 		&input,
-		`\(\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
-		` Spicetify.Snackbar.enqueueSnackbar=${0}`)
-
-	utils.Replace(
-		&input,
-		`\w+.closeSnackbar=function`,
-		`Spicetify.Snackbar.closeSnackbar=${0}`)
+		`\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
+		`Spicetify.Snackbar=${0}`)
 
 	return input
 }

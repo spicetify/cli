@@ -32,7 +32,7 @@ const CONFIG = {
 	podcast: getConfig("new-releases:podcast", false),
 	music: getConfig("new-releases:music", true),
 	album: getConfig("new-releases:album", true),
-	["single-ep"]: getConfig("new-releases:single-ep", true),
+	"single-ep": getConfig("new-releases:single-ep", true),
 	// ["appears-on"]: getConfig("new-releases:appears-on", false),
 	compilations: getConfig("new-releases:compilations", false),
 	range: localStorage.getItem("new-releases:range") || "30",
@@ -120,8 +120,8 @@ class Grid extends react.Component {
 				break;
 			case "undo":
 				if (!dismissed[0]) Spicetify.showNotification("Nothing to undo", true);
-				else Spicetify.showNotification("Undone last dismiss");
-				dismissed.pop();
+				else Spicetify.showNotification("Undone dismissal");
+				dismissed = id ? dismissed.filter(item => item !== id) : dismissed.slice(0, -1);
 				break;
 			default:
 				dismissed.push(id);
@@ -143,15 +143,15 @@ class Grid extends react.Component {
 		this.setState({ rest: false });
 		let items = [];
 		if (CONFIG.music) {
-			let tracks = await fetchTracks();
+			const tracks = await fetchTracks();
 			items.push(...tracks.flat());
 		}
 		if (CONFIG.podcast) {
-			let episodes = await fetchPodcasts();
+			const episodes = await fetchPodcasts();
 			items.push(...episodes);
 		}
 
-		items = items.filter(a => a).sort((a, b) => b.time - a.time);
+		items = items.filter(Boolean).sort((a, b) => b.time - a.time);
 
 		let timeFormat;
 		if (CONFIG.relative) {
@@ -269,24 +269,23 @@ class Grid extends react.Component {
 }
 
 async function getArtistList() {
-	const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/artists/all?responseFormat=protobufJson", {
-		policy: { list: { link: true, name: true } }
-	});
+	const base = await Spicetify.Platform.LibraryAPI.getArtists();
+	const artists = await Spicetify.Platform.LibraryAPI.getArtists({ limit: base.totalLength });
 	count(true);
-	return body.item ?? [];
+	return artists.items ?? [];
 }
 
 async function getArtistEverything(artist) {
 	const { queryArtistDiscographyAll } = Spicetify.GraphQL.Definitions;
 	const { data, errors } = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
-		uri: artist.link,
+		uri: artist.uri,
 		offset: 0,
 		// Limit 100 since GraphQL has resource limit
 		limit: 100
 	});
 	if (errors) throw errors;
 
-	const releases = data?.artistUnion.discography.all.items.map(r => r.releases.items).flat();
+	const releases = data?.artistUnion.discography.all.items.flatMap(r => r.releases.items);
 	const items = [];
 	const types = [
 		[CONFIG.album, releases.filter(r => r.type === "ALBUM"), Spicetify.Locale.get("album")],
@@ -296,7 +295,7 @@ async function getArtistEverything(artist) {
 		[
 			CONFIG["single-ep"],
 			releases.filter(r => r.type === "SINGLE" || r.type === "EP"),
-			Spicetify.Locale.get("single") + "/" + Spicetify.Locale.get("ep")
+			`${Spicetify.Locale.get("single")}/${Spicetify.Locale.get("ep")}`
 		]
 	];
 	for (const type of types) {
@@ -332,7 +331,7 @@ function metaFromTrack(artist, track) {
 			title: track.name,
 			artist: {
 				name: artist.name,
-				uri: artist.link
+				uri: artist.uri
 			},
 			imageURL: track.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url,
 			time,
@@ -342,20 +341,20 @@ function metaFromTrack(artist, track) {
 	return null;
 }
 
-var count = (function () {
-	var counter = 0;
-	return function (reset = false) {
-		return reset ? (counter = 0) : counter++;
+const count = (() => {
+	let counter = 0;
+	return (reset = false) => {
+		if (reset) counter = 0;
+		else counter++;
 	};
 })();
 
 async function fetchTracks() {
-	let artistList = await getArtistList();
+	const artistList = await getArtistList();
 	Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
 	const requests = artistList.map(async obj => {
-		const artist = obj.artistMetadata;
-		return await getArtistEverything(artist).catch(err => {
+		return await getArtistEverything(obj).catch(err => {
 			console.debug("Could not fetch all releases", err);
 			console.debug(`Missing releases from ${count()} artists`);
 		});

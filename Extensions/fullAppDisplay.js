@@ -259,7 +259,7 @@ body.video-full-screen.video-full-screen--hide-ui {
     max-width: 210px;
     margin-left: 50px;
 }`,
-		``
+		""
 	];
 	updateStyle();
 
@@ -314,7 +314,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 				react.createElement("div", {
 					id: "fad-progress-inner",
 					style: {
-						width: (value / duration) * 100 + "%"
+						width: `${(value / duration) * 100}%`
 					}
 				})
 			),
@@ -325,7 +325,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 	const PlayerControls = () => {
 		const [value, setValue] = useState(Spicetify.Player.isPlaying());
 		useEffect(() => {
-			const update = ({ data }) => setValue(!data.is_paused);
+			const update = ({ data }) => setValue(!data.isPaused);
 			Spicetify.Player.addEventListener("onplaypause", update);
 			return () => Spicetify.Player.removeEventListener("onplaypause", update);
 		});
@@ -413,7 +413,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 			}
 
 			// prepare album
-			let albumText = meta.album_title || "";
+			const albumText = meta.album_title || "";
 
 			if (meta.image_xlarge_url === this.currTrackImg.src) {
 				this.setState({
@@ -455,12 +455,13 @@ body.video-full-screen.video-full-screen--hide-ui {
 
 			const ctx = this.back.getContext("2d");
 			ctx.imageSmoothingEnabled = false;
-			ctx.filter = `blur(30px) brightness(0.6)`;
+			ctx.filter = "blur(30px) brightness(0.6)";
 			const blur = 30;
 
 			const x = -blur * 2;
 
-			let y, dim;
+			let y;
+			let dim;
 
 			if (width > height) {
 				dim = width;
@@ -518,14 +519,14 @@ body.video-full-screen.video-full-screen--hide-ui {
 			const scaleLimit = { min: 0.1, max: 4, step: 0.05 };
 			this.onScaleChange = event => {
 				if (!event.ctrlKey) return;
-				let dir = event.deltaY < 0 ? 1 : -1;
-				let temp = (CONFIG["scale"] || 1) + dir * scaleLimit.step;
+				const dir = event.deltaY < 0 ? 1 : -1;
+				let temp = (CONFIG.scale || 1) + dir * scaleLimit.step;
 				if (temp < scaleLimit.min) {
 					temp = scaleLimit.min;
 				} else if (temp > scaleLimit.max) {
 					temp = scaleLimit.max;
 				}
-				CONFIG["scale"] = temp;
+				CONFIG.scale = temp;
 				saveConfig();
 				updateVisual();
 			};
@@ -552,7 +553,9 @@ body.video-full-screen.video-full-screen--hide-ui {
 				},
 				react.createElement("canvas", {
 					id: "fad-background",
-					ref: el => (this.back = el)
+					ref: el => {
+						this.back = el;
+					}
 				}),
 				react.createElement("div", { id: "fad-header" }),
 				react.createElement(
@@ -563,7 +566,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 						{
 							id: "fad-foreground",
 							style: {
-								"--fad-scale": CONFIG["scale"] || 1
+								"--fad-scale": CONFIG.scale || 1
 							},
 							ref: el => {
 								if (!el) return;
@@ -787,7 +790,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 				react.createElement(
 					"button",
 					{
-						className: "switch" + (value ? "" : " disabled"),
+						className: `switch${value ? "" : " disabled"}`,
 						disabled,
 						onClick: () => {
 							const state = !value;
@@ -847,7 +850,7 @@ button.switch[disabled] {
 `
 			}
 		});
-		let configContainer = react.createElement(
+		const configContainer = react.createElement(
 			"div",
 			null,
 			style,

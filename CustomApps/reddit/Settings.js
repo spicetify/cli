@@ -43,7 +43,7 @@ function openConfig() {
 
 			serviceContainer.append(el);
 		});
-		gridUpdateTabs && gridUpdateTabs();
+		gridUpdateTabs?.();
 	}
 
 	function posCallback(el, dir) {
@@ -64,7 +64,7 @@ function openConfig() {
 
 	function removeCallback(el) {
 		const id = el.dataset.id;
-		CONFIG.services = CONFIG.services.filter(s => s != id);
+		CONFIG.services = CONFIG.services.filter(s => s !== id);
 		CONFIG.servicesElement[id].remove();
 
 		localStorage.setItem("reddit:services", JSON.stringify(CONFIG.services));
@@ -72,15 +72,15 @@ function openConfig() {
 		stackServiceElements();
 	}
 
-	CONFIG.services.forEach(name => {
+	for (const name of CONFIG.services) {
 		CONFIG.servicesElement[name] = createServiceOption(name, posCallback, removeCallback);
-	});
+	}
 	stackServiceElements();
 
 	const serviceInput = document.createElement("input");
 	serviceInput.placeholder = "Add new subreddit";
 	serviceInput.onkeydown = event => {
-		if (event.key != "Enter") {
+		if (event.key !== "Enter") {
 			return;
 		}
 		event.preventDefault();
@@ -134,7 +134,7 @@ function createSlider(name, key) {
 		const state = !slider.classList.toggle("disabled");
 		CONFIG.visual[key] = state;
 		localStorage.setItem(`reddit:${key}`, String(state));
-		gridUpdatePostsVisual && gridUpdatePostsVisual();
+		gridUpdatePostsVisual?.();
 	};
 
 	return container;
@@ -159,7 +159,7 @@ function createServiceOption(id, posCallback, removeCallback) {
         </button>
         <button class="switch small">
             <svg height="10" width="10" viewBox="0 0 16 16" fill="currentColor">
-                ${Spicetify.SVGIcons["x"]}
+                ${Spicetify.SVGIcons.x}
             </svg>
         </button>
     </div>

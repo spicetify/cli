@@ -34,7 +34,7 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 	 *      </button>
 	 * </Spicetify.ReactComponent.ContextMenu>
 	 */
-	let menuRef = react.useRef(null);
+	const menuRef = react.useRef(null);
 	return react.createElement(
 		Spicetify.ReactComponent.ContextMenu,
 		{

@@ -83,7 +83,7 @@ class Card extends react.Component {
 	}
 
 	render() {
-		let detail = [];
+		const detail = [];
 		this.visual.type && detail.push(this.type);
 		this.visual.upvotes && detail.push(`▲ ${this.upvotes}`);
 

@@ -45,7 +45,7 @@
 			}
 		}
 	};
-	Object.entries(binds).forEach(([key, { staticCondition, callback }]) => {
+	for (const [key, { staticCondition, callback }] of Object.entries(binds)) {
 		if (typeof staticCondition === "undefined" || staticCondition) {
 			Spicetify.Mousetrap.bind(key, event => {
 				if (!vim.isActive) {
@@ -53,7 +53,7 @@
 				}
 			});
 		}
-	});
+	}
 
 	// Functions
 	function focusOnApp() {
@@ -165,23 +165,25 @@ function VimBind() {
 
 		const vimkey = getVims();
 		if (vimkey.length > 0) {
-			vimkey.forEach(e => e.remove());
+			for (const e of vimkey) {
+				e.remove();
+			}
 			return;
 		}
 
 		let firstKey = 0;
 		let secondKey = 0;
 
-		getLinks().forEach(e => {
+		for (const e of getLinks()) {
 			if (e.style.display === "none" || e.style.visibility === "hidden" || e.style.opacity === "0") {
 				return;
 			}
 
 			const bound = e.getBoundingClientRect();
-			let owner = document.body;
+			const owner = document.body;
 
-			let top = bound.top;
-			let left = bound.left;
+			const top = bound.top;
+			const left = bound.left;
 
 			if (
 				bound.bottom > owner.clientHeight ||
@@ -201,10 +203,12 @@ function VimBind() {
 				secondKey = 0;
 				firstKey++;
 			}
-		});
+		}
 
 		this.isActive = true;
-		setTimeout(() => (mousetrap.stopCallback = orgStopCallback.bind(mousetrap)), 100);
+		setTimeout(() => {
+			mousetrap.stopCallback = orgStopCallback.bind(mousetrap);
+		}, 100);
 	};
 
 	/**
@@ -215,7 +219,9 @@ function VimBind() {
 		mousetrap.stopCallback = () => true;
 		this.isActive = false;
 		vimOverlay.style.display = "none";
-		getVims().forEach(e => e.remove());
+		for (const e of getVims()) {
+			e.remove();
+		}
 	};
 
 	function getLinks() {
@@ -292,8 +298,8 @@ function VimBind() {
 		const div = document.createElement("span");
 		div.classList.add("vim-key");
 		div.innerText = key;
-		div.style.top = top + "px";
-		div.style.left = left + "px";
+		div.style.top = `${top}px`;
+		div.style.left = `${left}px`;
 		div.target = target;
 		return div;
 	}

@@ -72,12 +72,8 @@ window.Spicetify = {
 			Spicetify.Player.setMute(!Spicetify.Player.getMute());
 		},
 		setMute: b => {
-			if (b) {
-				const volume = Spicetify.Player.getVolume();
-				if (volume > 0) Spicetify.Player._volumeBeforeMute = volume;
-				Spicetify.Player.setVolume(0);
-			} else {
-				Spicetify.Player.setVolume(Spicetify.Player._volumeBeforeMute);
+			if (b !== Spicetify.Player.getMute()) {
+				document.querySelector(".volume-bar__icon-button")?.click();
 			}
 		},
 		formatTime: ms => {
@@ -127,195 +123,201 @@ window.Spicetify = {
 		}
 	},
 	test: () => {
-		const SPICETIFY_METHOD = [
-			"Player",
-			"addToQueue",
-			"CosmosAsync",
-			"getAudioData",
-			"Keyboard",
-			"URI",
-			"LocalStorage",
-			"Queue",
-			"removeFromQueue",
-			"showNotification",
-			"Menu",
-			"ContextMenu",
-			"React",
-			"Mousetrap",
-			"Locale",
-			"ReactDOM",
-			"Topbar",
-			"ReactComponent",
-			"PopupModal",
-			"_cloneSidebarItem",
-			// Deprecated since Spotify 1.2.14
-			// "_sidebarItemToClone",
-			"SVGIcons",
-			"colorExtractor",
-			"test",
-			"Platform",
-			"getFontStyle",
-			"_fontStyle",
-			"Config",
-			"expFeatureOverride",
-			"createInternalMap",
-			"RemoteConfigResolver",
-			"Playbar",
-			"Tippy",
-			"_getStyledClassName",
-			"GraphQL",
-			"ReactHook",
-			"_sidebarXItemToClone",
-			"AppTitle",
-			"_reservedPanelIds",
-			"Panel",
-			"ReactFlipToolkit",
-			"classnames",
-			"ReactQuery",
-			"Color",
-			"extractColorPreset",
-			"ReactDOMServer",
-			"Snackbar"
-		];
+		function checkObject(object) {
+			const { objectToCheck, methods, name } = object;
+			let count = methods.size;
 
-		const PLAYER_METHOD = [
-			"addEventListener",
-			"back",
-			"data",
-			"decreaseVolume",
-			"dispatchEvent",
-			"eventListeners",
-			"formatTime",
-			"getDuration",
-			"getHeart",
-			"getMute",
-			"getProgress",
-			"getProgressPercent",
-			"getRepeat",
-			"getShuffle",
-			"getVolume",
-			"increaseVolume",
-			"isPlaying",
-			"next",
-			"pause",
-			"play",
-			"removeEventListener",
-			"seek",
-			"setMute",
-			"setRepeat",
-			"setShuffle",
-			"setVolume",
-			"skipBack",
-			"skipForward",
-			"toggleHeart",
-			"toggleMute",
-			"togglePlay",
-			"toggleRepeat",
-			"toggleShuffle",
-			"origin",
-			"playUri",
-			"setHeart",
-			"_volumeBeforeMute"
-		];
-
-		const REACT_COMPONENT = [
-			"RightClickMenu",
-			"ContextMenu",
-			"Menu",
-			"MenuItem",
-			"AlbumMenu",
-			"PodcastShowMenu",
-			"ArtistMenu",
-			"PlaylistMenu",
-			"TrackMenu",
-			"TooltipWrapper",
-			"TextComponent",
-			"IconComponent",
-			"ConfirmDialog",
-			"PanelContent",
-			"PanelSkeleton",
-			"PanelHeader",
-			"Slider",
-			"RemoteConfigProvider",
-			"ButtonPrimary",
-			"ButtonSecondary",
-			"ButtonTertiary",
-			"Snackbar",
-			"Chip",
-			"Dropdown"
-		];
-
-		const REACT_HOOK = ["DragHandler", "usePanelState", "useExtractedColor"];
-
-		let count = SPICETIFY_METHOD.length;
-		SPICETIFY_METHOD.forEach(method => {
-			if (Spicetify[method] === undefined || Spicetify[method] === null) {
-				console.error(`Spicetify.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
-				count--;
+			for (const method of methods) {
+				if (objectToCheck[method] === undefined || objectToCheck[method] === null) {
+					console.error(`${name}.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
+					count--;
+				}
 			}
-		});
-		console.log(`${count}/${SPICETIFY_METHOD.length} Spicetify methods and objects are OK.`);
+			console.log(`${count}/${methods.size} ${name} methods and objects are OK.`);
 
-		count = PLAYER_METHOD.length;
-		PLAYER_METHOD.forEach(method => {
-			if (Spicetify.Player[method] === undefined || Spicetify.Player[method] === null) {
-				console.error(`Spicetify.Player.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
-				count--;
+			for (const key of Object.keys(objectToCheck)) {
+				if (!methods.has(key)) {
+					console.warn(`${name} method ${key} exists but is not in the method list. Consider adding it.`);
+				}
 			}
-		});
-		console.log(`${count}/${PLAYER_METHOD.length} Spicetify.Player methods and objects are OK.`);
+		}
 
-		count = REACT_COMPONENT.length;
-		REACT_COMPONENT.forEach(method => {
-			if (Spicetify.ReactComponent[method] === undefined || Spicetify.ReactComponent[method] === null) {
-				console.error(`Spicetify.ReactComponent.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
-				count--;
+		const objectsToCheck = new Set([
+			{
+				objectToCheck: Spicetify,
+				name: "Spicetify",
+				methods: new Set([
+					"Player",
+					"addToQueue",
+					"CosmosAsync",
+					"getAudioData",
+					"Keyboard",
+					"URI",
+					"LocalStorage",
+					"Queue",
+					"removeFromQueue",
+					"showNotification",
+					"Menu",
+					"ContextMenu",
+					"React",
+					"Mousetrap",
+					"Locale",
+					"ReactDOM",
+					"Topbar",
+					"ReactComponent",
+					"PopupModal",
+					"_cloneSidebarItem",
+					// Deprecated since Spotify 1.2.14
+					// "_sidebarItemToClone",
+					"SVGIcons",
+					"colorExtractor",
+					"test",
+					"Platform",
+					"_platform",
+					"getFontStyle",
+					"_fontStyle",
+					"Config",
+					"expFeatureOverride",
+					"createInternalMap",
+					"RemoteConfigResolver",
+					"Playbar",
+					"Tippy",
+					"_getStyledClassName",
+					"GraphQL",
+					"ReactHook",
+					"_sidebarXItemToClone",
+					"AppTitle",
+					"_reservedPanelIds",
+					"Panel",
+					"ReactFlipToolkit",
+					"classnames",
+					"ReactQuery",
+					"Color",
+					"extractColorPreset",
+					"ReactDOMServer",
+					"Snackbar"
+				])
+			},
+			{
+				objectToCheck: Spicetify.Player,
+				name: "Spicetify.Player",
+				methods: new Set([
+					"addEventListener",
+					"back",
+					"data",
+					"decreaseVolume",
+					"dispatchEvent",
+					"eventListeners",
+					"formatTime",
+					"getDuration",
+					"getHeart",
+					"getMute",
+					"getProgress",
+					"getProgressPercent",
+					"getRepeat",
+					"getShuffle",
+					"getVolume",
+					"increaseVolume",
+					"isPlaying",
+					"next",
+					"pause",
+					"play",
+					"removeEventListener",
+					"seek",
+					"setMute",
+					"setRepeat",
+					"setShuffle",
+					"setVolume",
+					"skipBack",
+					"skipForward",
+					"toggleHeart",
+					"toggleMute",
+					"togglePlay",
+					"toggleRepeat",
+					"toggleShuffle",
+					"origin",
+					"playUri",
+					"setHeart"
+				])
+			},
+			{
+				objectToCheck: Spicetify.ReactComponent,
+				name: "Spicetify.ReactComponent",
+				methods: new Set([
+					"RightClickMenu",
+					"ContextMenu",
+					"Menu",
+					"MenuItem",
+					"AlbumMenu",
+					"PodcastShowMenu",
+					"ArtistMenu",
+					"PlaylistMenu",
+					"TrackMenu",
+					"TooltipWrapper",
+					"TextComponent",
+					"IconComponent",
+					"ConfirmDialog",
+					"PanelContent",
+					"PanelSkeleton",
+					"PanelHeader",
+					"Slider",
+					"RemoteConfigProvider",
+					"ButtonPrimary",
+					"ButtonSecondary",
+					"ButtonTertiary",
+					"Snackbar",
+					"Chip",
+					"Toggle",
+					"Cards",
+					"Router",
+					"Routes",
+					"Route",
+					"StoreProvider",
+					"PlatformProvider"
+				])
+			},
+			{
+				objectToCheck: Spicetify.ReactComponent.Cards,
+				name: "Spicetify.ReactComponent.Cards",
+				methods: new Set(["Default", "Hero", "CardImage", "Album", "Artist", "Audiobook", "Episode", "Playlist", "Profile", "Show", "Track"])
+			},
+			{
+				objectToCheck: Spicetify.ReactHook,
+				name: "Spicetify.ReactHook",
+				methods: new Set(["DragHandler", "usePanelState", "useExtractedColor"])
 			}
-		});
-		console.log(`${count}/${REACT_COMPONENT.length} Spicetify.ReactComponent methods and objects are OK.`);
+		]);
 
-		count = REACT_HOOK.length;
-		REACT_HOOK.forEach(method => {
-			if (Spicetify.ReactHook[method] === undefined || Spicetify.ReactHook[method] === null) {
-				console.error(`Spicetify.ReactHook.${method} is not available. Please open an issue in the Spicetify repository to inform us about it.`);
-				count--;
-			}
-		});
-		console.log(`${count}/${REACT_HOOK.length} Spicetify.ReactHook methods and objects are OK.`);
-
-		Object.keys(Spicetify).forEach(key => {
-			if (!SPICETIFY_METHOD.includes(key)) {
-				console.log(`Spicetify method ${key} exists but is not in the method list. Consider adding it.`);
-			}
-		});
-
-		Object.keys(Spicetify.Player).forEach(key => {
-			if (!PLAYER_METHOD.includes(key)) {
-				console.log(`Spicetify.Player method ${key} exists but is not in the method list. Consider adding it.`);
-			}
-		});
-
-		Object.keys(Spicetify.ReactComponent).forEach(key => {
-			if (!REACT_COMPONENT.includes(key)) {
-				console.log(`Spicetify.ReactComponent method ${key} exists but is not in the method list. Consider adding it.`);
-			}
-		});
-
-		Object.keys(Spicetify.ReactHook).forEach(key => {
-			if (!REACT_HOOK.includes(key)) {
-				console.log(`Spicetify.ReactHook method ${key} exists but is not in the method list. Consider adding it.`);
-			}
-		});
+		for (const object of objectsToCheck) {
+			checkObject(object);
+		}
 	},
 	GraphQL: {
 		Definitions: {}
 	},
 	ReactComponent: {},
 	ReactHook: {},
-	ReactFlipToolkit: {}
+	ReactFlipToolkit: {},
+	Snackbar: {},
+	Platform: {}
 };
 
-(async function hotloadWebpackModules() {
+(function waitForPlatform() {
+	if (!Spicetify._platform) {
+		setTimeout(() => waitForPlatform(), 50);
+		return;
+	}
+	const { _platform } = Spicetify;
+	for (const key of Object.keys(_platform)) {
+		if (key.startsWith("get") && typeof _platform[key] === "function") {
+			Spicetify.Platform[key.slice(3)] = _platform[key]();
+		} else {
+			Spicetify.Platform[key] = _platform[key];
+		}
+	}
+})();
+
+(function hotloadWebpackModules() {
 	if (!window?.webpackChunkopen) {
 		setTimeout(hotloadWebpackModules, 50);
 		return;
@@ -325,33 +327,57 @@ window.Spicetify = {
 	const cache = Object.keys(require.m).map(id => require(id));
 	const modules = cache
 		.filter(module => typeof module === "object")
-		.map(module => {
+		.flatMap(module => {
 			try {
 				return Object.values(module);
 			} catch {}
-		})
-		.flat();
+		});
 	const functionModules = modules.filter(module => typeof module === "function");
 
 	const knownMenuTypes = ["album", "show", "artist", "track"];
 	const menus = modules
-		.map(m => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m?.type?.toString().match(/value:"[\w-]+"/g)])
+		.map(m => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m.type.toString().match(/value:"[\w-]+"/g)])
 		.filter(Boolean)
 		.filter(m => m[1] !== 'value:"row"')
 		.map(([module, type]) => {
 			type = type.match(/value:"([\w-]+)"/)[1];
 
 			if (!knownMenuTypes.includes(type)) return;
-			else if (type === "show") type = "podcast-show";
+			if (type === "show") type = "podcast-show";
 
-			type =
-				type
-					.split("-")
-					.map(str => str[0].toUpperCase() + str.slice(1))
-					.join("") + "Menu";
+			type = `${type
+				.split("-")
+				.map(str => str[0].toUpperCase() + str.slice(1))
+				.join("")}Menu`;
 			return [type, module];
 		})
 		.filter(Boolean);
+
+	const cardTypesToFind = ["album", "artist", "audiobook", "episode", "playlist", "profile", "show", "track"];
+	const cards = [
+		...functionModules
+			.flatMap(m => {
+				return cardTypesToFind.map(type => {
+					if (m.toString().includes(`featureIdentifier:"${type}"`)) {
+						cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+						return [type[0].toUpperCase() + type.slice(1), m];
+					}
+				});
+			})
+			.filter(Boolean),
+		...modules
+			.flatMap(m => {
+				return cardTypesToFind.map(type => {
+					try {
+						if (m?.type?.toString().includes(`featureIdentifier:"${type}"`)) {
+							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+							return [type[0].toUpperCase() + type.slice(1), m];
+						}
+					} catch {}
+				});
+			})
+			.filter(Boolean)
+	];
 
 	Object.assign(Spicetify, {
 		React: cache.find(m => m?.useMemo),
@@ -404,7 +430,7 @@ window.Spicetify = {
 			),
 			Menu: functionModules.find(m => m.toString().includes("getInitialFocusElement") && m.toString().includes("children")),
 			MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
-			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward"))),
+			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward") && !m.toString().includes("volume"))),
 			RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
 			RightClickMenu: functionModules.find(
 				m =>
@@ -422,19 +448,31 @@ window.Spicetify = {
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
 			Snackbar: {
-				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme")),
-				simpleLayout: functionModules.find(m => m.toString().includes("leading")),
+				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme") && m.toString().includes("elevated")),
+				simpleLayout: functionModules.find(m => ["leading", "center", "trailing"].every(keyword => m.toString().includes(keyword))),
 				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
 				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
 			},
 			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
+			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
+			Cards: {
+				Default: functionModules.find(m => m?.toString().includes('"card-click-handler"')),
+				Hero: functionModules.find(m => m?.toString().includes('"herocard-click-handler"')),
+				CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
+				...Object.fromEntries(cards)
+			},
+			Router: functionModules.find(m => m.toString().includes("navigationType") && m.toString().includes("static")),
+			Routes: functionModules.find(m => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
+			Route: functionModules.find(m => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
+			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
 			Dropdown: Object.values(
 				require(Object.entries(require.m).find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"))[0])
-			).find(m => typeof m === "function"),
+				).find(m => typeof m === "function"),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
-			DragHandler: functionModules.find(m => m.toString().includes("data-dragging-uri")),
+			DragHandler: functionModules.find(m => m.toString().includes("dataTransfer") && m.toString().includes("data-dragging")),
+			// deprecated since 1.2.17
 			usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
 			useExtractedColor: functionModules.find(
 				m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
@@ -450,14 +488,22 @@ window.Spicetify = {
 		},
 		_reservedPanelIds: modules.find(m => m?.BuddyFeed),
 		Mousetrap: cache.find(m => m?.addKeycodes),
-		// Snackbar notifications
-		// https://github.com/iamhosseindhv/notistack
-		Snackbar: {
-			SnackbarProvider: functionModules.find(m => m.toString().includes("enqueueSnackbar called with invalid argument")),
-			useSnackbar: functionModules.find(m => m.toString().match(/\{return\(0,\w+\.useContext\)\(\w+\)\}/))
-		},
 		Locale: modules.find(m => m?._dictionary)
 	});
+
+	(function waitForSnackbar() {
+		if (!Object.keys(Spicetify.Snackbar).length) {
+			setTimeout(waitForSnackbar, 100);
+			return;
+		}
+		// Snackbar notifications
+		// https://github.com/iamhosseindhv/notistack
+		Spicetify.Snackbar = {
+			...Spicetify.Snackbar,
+			SnackbarProvider: functionModules.find(m => m.toString().includes("enqueueSnackbar called with invalid argument")),
+			useSnackbar: functionModules.find(m => m.toString().match(/^function\(\)\{return\(0,[\w$]+\.useContext\)\([\w$]+\)\}$/))
+		};
+	})();
 
 	const localeModule = modules.find(m => m?.getTranslations);
 	if (localeModule) {
@@ -480,6 +526,7 @@ window.Spicetify = {
 			get _dictionary() {
 				return localeModule._translations;
 			},
+			formatDate: (date, options) => localeModule.formatDate(date, options),
 			formatRelativeTime: (date, options) => localeModule.formatRelativeDate(date, options),
 			formatNumber: (number, options) => localeModule.formatNumber(number, options),
 			formatNumberCompact: (number, options) => localeModule.formatNumberCompact(number, options),
@@ -522,7 +569,7 @@ window.Spicetify = {
 	});
 
 	const playlistMenuChunk = Object.entries(require.m).find(
-		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("onRemoveCallback")
+		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
 	if (playlistMenuChunk)
 		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
@@ -537,7 +584,7 @@ window.Spicetify = {
 		}
 
 		if (Spicetify.Snackbar?.enqueueSnackbar) {
-			Spicetify.showNotification = (message, isError = false, msTimeout) => {
+			Spicetify.showNotification = (message, isError, msTimeout) => {
 				Spicetify.Snackbar.enqueueSnackbar(message, {
 					variant: isError ? "error" : "default",
 					autoHideDuration: msTimeout
@@ -546,7 +593,6 @@ window.Spicetify = {
 			return;
 		}
 
-		if (!Spicetify.Snackbar) Spicetify.Snackbar = {};
 		Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration } = {}) => {
 			isError = variant === "error";
 			Spicetify.showNotification(message, isError, autoHideDuration);
@@ -565,7 +611,8 @@ window.Spicetify = {
 		// Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features
 		if (!imageAnalysis) {
 			let chunk = Object.entries(require.m).find(
-				([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/.extractColor/g)
+				([, value]) =>
+					(value.toString().match(/[\w$]+\.isFallback/g) || value.toString().includes("colorRaw:")) && value.toString().match(/.extractColor/g)
 			);
 			if (!chunk) {
 				await new Promise(resolve => setTimeout(resolve, 100));
@@ -685,31 +732,22 @@ window.Spicetify = {
 		return;
 	}
 
-	function objectsAreEqual(obj1, obj2) {
-		return JSON.stringify(obj1) === JSON.stringify(obj2);
-	}
+	const interval = setInterval(() => {
+		if (!Spicetify.Player.origin._state?.item) return;
+		Spicetify.Player.data = Spicetify.Player.origin._state;
+		clearInterval(interval);
+	}, 10);
 
 	const playerState = {
 		cache: Spicetify.Player.data,
 		current: null
 	};
 
-	setInterval(() => {
-		if (
-			objectsAreEqual(Spicetify.Platform.PlayerAPI._state, playerState.cache) ||
-			(!Spicetify.Platform.PlayerAPI._state.item && !Spicetify.Player.data)
-		)
-			return;
-
-		if (!Spicetify.Platform.PlayerAPI._state.item) {
-			Spicetify.Player.data = null;
-			return;
-		}
-
-		playerState.current = Spicetify.Platform.PlayerAPI._state;
+	Spicetify.Player.origin._events.addListener("update", ({ data: playerEventData }) => {
+		playerState.current = playerEventData.item ? playerEventData : null;
 		Spicetify.Player.data = playerState.current;
 
-		if (playerState.cache?.item.uri !== playerState.current?.item?.uri) {
+		if (playerState.cache?.item?.uri !== playerState.current?.item?.uri) {
 			const event = new Event("songchange");
 			event.data = Spicetify.Player.data;
 			Spicetify.Player.dispatchEvent(event);
@@ -722,12 +760,14 @@ window.Spicetify = {
 		}
 
 		playerState.cache = playerState.current;
-	}, 100);
+	});
 
 	setInterval(() => {
-		const event = new Event("onprogress");
-		event.data = Spicetify.Player.getProgress();
-		Spicetify.Player.dispatchEvent(event);
+		if (playerState.cache?.isPaused === false) {
+			const event = new Event("onprogress");
+			event.data = Spicetify.Player.getProgress();
+			Spicetify.Player.dispatchEvent(event);
+		}
 	}, 100);
 
 	Spicetify.addToQueue = uri => {
@@ -736,21 +776,6 @@ window.Spicetify = {
 	Spicetify.removeFromQueue = uri => {
 		return Spicetify.Player.origin._queue.removeFromQueue(uri);
 	};
-
-	Spicetify.Player._volumeBeforeMute = Spicetify.Player.getVolume() || 0.7;
-})();
-
-(function waitForPlaybackAPI() {
-	if (!Spicetify.Platform?.PlaybackAPI) {
-		setTimeout(waitForPlaybackAPI, 10);
-		return;
-	}
-
-	Spicetify.Platform.PlaybackAPI._events.addListener("volume", ({ data: { volume } }) => {
-		if (volume > 0) {
-			Spicetify.Player._volumeBeforeMute = volume;
-		}
-	});
 })();
 
 Spicetify.getAudioData = async uri => {
@@ -766,15 +791,14 @@ Spicetify.getAudioData = async uri => {
 Spicetify.colorExtractor = async uri => {
 	const body = await Spicetify.CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
 
-	if (body.entries && body.entries.length) {
+	if (body.entries?.length) {
 		const list = {};
 		for (const color of body.entries[0].color_swatches) {
-			list[color.preset] = `#${color.color.toString(16).padStart(6, "0")}`;
+			list[color.preset] = `#${color.color?.toString(16).padStart(6, "0")}`;
 		}
 		return list;
-	} else {
-		return null;
 	}
+	return null;
 };
 
 Spicetify.LocalStorage = {
@@ -854,19 +878,21 @@ Spicetify.getFontStyle = font => {
 		.filter(style => typeof style === "string")
 		.join("");
 	// Clean up empty rulesets
-	rawStyle = rawStyle.replace(new RegExp("\\w+-\\w+:;", "g"), "").trim();
+	rawStyle = rawStyle.replace(/\w+-\w+:;/g, "").trim();
 	// Split special rulesets
 	const mediaStyle = rawStyle.split("@");
 	let returnStyle = `.main-type-${font}`;
 
 	mediaStyle.map((ruleset, index) => {
 		if (index === 0) {
-			return (returnStyle += `{${ruleset}}`);
-		} else {
-			if (ruleset.endsWith(";")) ruleset = ruleset.slice(0, -1);
-			ruleset = ruleset.split(")").join(`){.main-type-${font}`);
-			return (returnStyle += `@${ruleset}}`);
+			returnStyle += `{${ruleset}}`;
+			return;
 		}
+		let newRuleset;
+		if (ruleset.endsWith(";")) newRuleset = ruleset.slice(0, -1);
+		newRuleset = ruleset.split(")").join(`){.main-type-${font}`);
+		returnStyle += `@${newRuleset}}`;
+		return;
 	});
 
 	if (returnStyle.endsWith(";")) returnStyle = returnStyle.slice(0, -1);
@@ -964,6 +990,7 @@ Spicetify.getFontStyle = font => {
 		"[": "[",
 		"\\": "\\",
 		"]": "]",
+		// biome-ignore lint/suspicious/noDuplicateObjectKeys: <explanation>
 		'"': '"',
 		"~": "`",
 		"!": "1",
@@ -990,7 +1017,7 @@ Spicetify.getFontStyle = font => {
 		let keystroke = "";
 		if (typeof keys === "object") {
 			if (!keys.key || !Object.values(KEYS).includes(keys.key)) {
-				throw "Spicetify.Keyboard.registerShortcut: Invalid key " + keys.key;
+				throw `Spicetify.Keyboard.registerShortcut: Invalid key ${keys.key}`;
 			}
 			if (keys.ctrl) keystroke += "mod+";
 			if (keys.meta) keystroke += "meta+";
@@ -1000,7 +1027,7 @@ Spicetify.getFontStyle = font => {
 		} else if (typeof keys === "string" && Object.values(KEYS).includes(keys)) {
 			keystroke = keys;
 		} else {
-			throw "Spicetify.Keyboard.registerShortcut: Invalid keys " + keys;
+			throw `Spicetify.Keyboard.registerShortcut: Invalid keys ${keys}`;
 		}
 		return keystroke;
 	}
@@ -1207,13 +1234,13 @@ Spicetify.SVGIcons = {
 	}
 	const fontList = Spicetify._fontStyle
 		.toString()
-		.match(new RegExp('"\\w+"', "g"))
+		.match(/"\w+"/g)
 		.map(font => font.replaceAll('"', ""));
 	const fontStyle = document.createElement("style");
 	fontStyle.className = "spicetify-font";
-	fontList.forEach(font => {
+	for (const font of fontList) {
 		fontStyle.innerHTML += Spicetify.getFontStyle(font);
-	});
+	}
 	return document.head.appendChild(fontStyle);
 })();
 
@@ -1283,21 +1310,19 @@ class _HTMLContextSubmenu extends HTMLDivElement {
 
 		const { y: parentY, width: parentWidth } = this.parentElement.getBoundingClientRect();
 		const { width: thisWidth, height: thisHeight } = this.getBoundingClientRect();
-		let x = 0,
-			y = this.parentElement.offsetTop;
+		let x = 0;
+		let y = this.parentElement.offsetTop;
 
 		switch (this.placement) {
 			case "top-start":
 			case "bottom-start":
 				x += parentWidth - 5;
 				break;
-			case "top-end":
-			case "bottom-end":
 			default:
 				x -= thisWidth - 5;
 				break;
 		}
-		let realY = y + parentY;
+		const realY = y + parentY;
 		if (realY + thisHeight > window.innerHeight) {
 			y -= realY + thisHeight - window.innerHeight;
 		}
@@ -1318,10 +1343,10 @@ class _HTMLContextSubmenu extends HTMLDivElement {
 customElements.define("context-menu-item", _HTMLContextMenuItem, { extends: "li" });
 customElements.define("context-submenu", _HTMLContextSubmenu, { extends: "div" });
 
-Spicetify.Menu = (function () {
+Spicetify.Menu = (() => {
 	const collection = new Set();
 
-	const _addItems = function (instance) {
+	const _addItems = instance => {
 		const list = instance.querySelector("ul");
 		const elemList = [];
 
@@ -1477,8 +1502,8 @@ Spicetify.Menu = (function () {
 	return { Item, SubMenu, _addItems };
 })();
 
-Spicetify.ContextMenu = (function () {
-	let itemList = new Set();
+Spicetify.ContextMenu = (() => {
+	const itemList = new Set();
 	const iconList = Object.keys(Spicetify.SVGIcons);
 
 	class Item {
@@ -1696,7 +1721,7 @@ Spicetify.ContextMenu = (function () {
 	return { Item, SubMenu, _addItems };
 })();
 
-Spicetify._cloneSidebarItem = function (list, isLibX = false) {
+Spicetify._cloneSidebarItem = (list, isLibX = false) => {
 	function findChild(parent, key, value) {
 		if (!parent.props) {
 			return null;
@@ -1704,11 +1729,13 @@ Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 
 		if (value && parent.props[key]?.includes(value)) {
 			return parent;
-		} else if (!parent.props.children) {
+		}
+		if (!parent.props.children) {
 			return null;
-		} else if (Array.isArray(parent.props.children)) {
+		}
+		if (Array.isArray(parent.props.children)) {
 			for (const child of parent.props.children) {
-				let ele = findChild(child, key, value);
+				const ele = findChild(child, key, value);
 				if (ele) {
 					return ele;
 				}
@@ -1721,10 +1748,15 @@ Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 
 	function conditionalAppend(baseClassname, activeClassname, location) {
 		if (Spicetify.Platform?.History?.location?.pathname.startsWith(location)) {
-			baseClassname += " " + activeClassname;
+			return `${baseClassname} ${activeClassname}`;
 		}
 
 		return baseClassname;
+	}
+
+	if (!Spicetify.React) {
+		setTimeout(Spicetify._cloneSidebarItem, 10, list, isLibX);
+		return;
 	}
 
 	const React = Spicetify.React;
@@ -1734,7 +1766,7 @@ Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 	for (const app of list) {
 		let manifest;
 		try {
-			var request = new XMLHttpRequest();
+			const request = new XMLHttpRequest();
 			request.open("GET", `spicetify-routes-${app}.json`, false);
 			request.send(null);
 			manifest = JSON.parse(request.responseText);
@@ -1744,7 +1776,7 @@ Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 
 		let appProper = manifest.name;
 		if (typeof appProper === "object") {
-			appProper = appProper[Spicetify.Locale?.getLocale()] || appProper["en"];
+			appProper = appProper[Spicetify.Locale?.getLocale()] || appProper.en;
 		}
 		if (!appProper) {
 			appProper = app[0].toUpperCase() + app.slice(1);
@@ -1752,8 +1784,9 @@ Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 		const icon = manifest.icon || "";
 		const activeIcon = manifest["active-icon"] || icon;
 
-		const appLink = "/" + app;
-		let obj, link;
+		const appLink = `/${app}`;
+		let obj;
+		let link;
 
 		if (isLibX) {
 			link = findChild(Spicetify._sidebarXItemToClone, "className", "main-yourLibraryX-navLink");
@@ -1837,10 +1870,6 @@ Spicetify._cloneSidebarItem = function (list, isLibX = false) {
 };
 
 class _HTMLGenericModal extends HTMLElement {
-	constructor() {
-		super();
-	}
-
 	hide() {
 		this.remove();
 	}
@@ -1864,7 +1893,7 @@ class _HTMLGenericModal extends HTMLElement {
 		this.querySelector("button").onclick = this.hide.bind(this);
 		const main = this.querySelector("main");
 
-		let hidePopup = this.hide.bind(this);
+		const hidePopup = this.hide.bind(this);
 
 		// Listen for click events on Overlay
 		this.querySelector(".GenericModal__overlay").addEventListener("click", event => {
@@ -1926,7 +1955,7 @@ Object.defineProperty(Spicetify, "TippyProps", {
 	writable: false
 });
 
-Spicetify.Topbar = (function () {
+Spicetify.Topbar = (() => {
 	let leftContainer;
 	let rightContainer;
 	const leftButtonsStash = new Set();
@@ -1966,11 +1995,12 @@ Spicetify.Topbar = (function () {
 			return this._icon;
 		}
 		set icon(input) {
-			if (input && Spicetify.SVGIcons[input]) {
-				input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
+			let newInput = input;
+			if (newInput && Spicetify.SVGIcons[newInput]) {
+				newInput = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[newInput]}</svg>`;
 			}
-			this._icon = input;
-			this.element.innerHTML = input;
+			this._icon = newInput;
+			this.element.innerHTML = newInput;
 		}
 		get onClick() {
 			return this._onClick;
@@ -2003,7 +2033,7 @@ Spicetify.Topbar = (function () {
 	return { Button };
 })();
 
-Spicetify.Playbar = (function () {
+Spicetify.Playbar = (() => {
 	let rightContainer;
 	let sibling;
 	const buttonsStash = new Set();
@@ -2039,11 +2069,12 @@ Spicetify.Playbar = (function () {
 			return this._icon;
 		}
 		set icon(input) {
-			if (input && Spicetify.SVGIcons[input]) {
-				input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
+			let newInput = input;
+			if (newInput && Spicetify.SVGIcons[newInput]) {
+				newInput = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor">${Spicetify.SVGIcons[newInput]}</svg>`;
 			}
-			this._icon = input;
-			this.iconElement.innerHTML = input;
+			this._icon = newInput;
+			this.iconElement.innerHTML = newInput;
 		}
 		get onClick() {
 			return this._onClick;
@@ -2084,7 +2115,9 @@ Spicetify.Playbar = (function () {
 			setTimeout(waitForPlaybarMounted, 300);
 			return;
 		}
-		buttonsStash.forEach(button => addClassname(button));
+		for (const button of buttonsStash) {
+			addClassname(button);
+		}
 		rightContainer.prepend(...buttonsStash);
 	})();
 
@@ -2094,9 +2127,9 @@ Spicetify.Playbar = (function () {
 			setTimeout(addClassname, 300, element);
 			return;
 		}
-		Array.from(sibling.classList).forEach(className => {
+		for (const className of Array.from(sibling.classList)) {
 			if (!className.startsWith("main-genericButton")) element.classList.add(className);
-		});
+		}
 	}
 
 	const widgetStash = new Set();
@@ -2129,11 +2162,12 @@ Spicetify.Playbar = (function () {
 			return this._icon;
 		}
 		set icon(input) {
-			if (input && Spicetify.SVGIcons[input]) {
-				input = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[input]}</svg>`;
+			let newInput = input;
+			if (newInput && Spicetify.SVGIcons[newInput]) {
+				newInput = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[newInput]}</svg>`;
 			}
-			this._icon = input;
-			this.element.innerHTML = input;
+			this._icon = newInput;
+			this.element.innerHTML = newInput;
 		}
 		get onClick() {
 			return this._onClick;
@@ -2186,12 +2220,12 @@ Spicetify.Playbar = (function () {
 		}
 		waitForWidgetMounted();
 		const observer = new MutationObserver(mutations => {
-			mutations.forEach(mutation => {
+			for (const mutation of mutations) {
 				if (mutation.removedNodes.length > 0) {
 					nowPlayingWidget = null;
 					waitForWidgetMounted();
 				}
-			});
+			}
 		});
 		observer.observe(leftPlayer, { childList: true });
 	})();
@@ -2199,6 +2233,7 @@ Spicetify.Playbar = (function () {
 	return { Button, Widget };
 })();
 
+// TODO: Remove this with v3 release
 (function waitForPanelAPI() {
 	if (!Spicetify.Platform?.PanelAPI || !Spicetify.React || !Spicetify._reservedPanelIds) {
 		setTimeout(waitForPanelAPI, 300);
@@ -2206,10 +2241,10 @@ Spicetify.Playbar = (function () {
 	}
 
 	// Workaround for older versions
-	let currentPanelId = 0,
-		fallback = false,
-		refreshTimeout,
-		init = true;
+	let currentPanelId = 0;
+	let fallback = false;
+	let refreshTimeout;
+	let init = true;
 
 	if (!Spicetify.Platform.PanelAPI.getLastCachedPanelState) {
 		fallback = true;
@@ -2220,7 +2255,7 @@ Spicetify.Playbar = (function () {
 
 	const contentMap = new Map(
 		Object.entries(Spicetify._reservedPanelIds)
-			.map(([key, value]) => !isNaN(parseInt(key)) && [parseInt(key), value])
+			.map(([key, value]) => !Number.isNaN(parseInt(key)) && [parseInt(key), value])
 			.filter(Boolean)
 	);
 
@@ -2475,13 +2510,13 @@ Spicetify.Playbar = (function () {
 					...Spicetify.TippyProps
 				});
 
-				tippy.forEach(instance => {
+				for (const instance of tippy) {
 					instance.reference.addEventListener("click", () => {
 						Spicetify.Platform.ClipboardAPI.copy(instance.reference.textContent);
 						instance.setContent("Copied!");
 						setTimeout(() => instance.setContent("Click to copy"), 1000);
 					});
-				});
+				}
 			})();
 
 			const updateModal = {

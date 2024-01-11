@@ -1,5 +1,5 @@
 # Executables
-bin/
+bin
 spicetify-cli
 spicetify
 *.exe
@@ -14,3 +14,7 @@ package.json
 
 # Logs
 install.log
+
+# VSCode
+.vscode
+pnpm-lock.yaml
