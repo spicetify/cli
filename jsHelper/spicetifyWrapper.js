@@ -467,7 +467,7 @@ window.Spicetify = {
 			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
 			Dropdown: Object.values(
 				require(Object.entries(require.m).find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"))[0])
-				).find(m => typeof m === "function"),
+			).find(m => typeof m === "function"),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
