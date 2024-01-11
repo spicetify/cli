@@ -282,7 +282,7 @@ ${Spicetify.SVGIcons.search}
 			}
 
 			const feature = overrideList[name];
-			if (!overrideList[name]?.description) return;
+			if (!overrideList[name]?.description) continue;
 
 			if (overrideList[name].values) {
 				content.appendChild(createDropdown(name, feature.description, feature.value, feature.values));
