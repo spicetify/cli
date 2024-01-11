@@ -557,7 +557,7 @@ window.Spicetify = {
 	});
 
 	const playlistMenuChunk = Object.entries(require.m).find(
-		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("contextmenu")
+		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
 	if (playlistMenuChunk)
 		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
