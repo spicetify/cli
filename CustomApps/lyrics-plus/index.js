@@ -398,7 +398,7 @@ class LyricsContainer extends react.Component {
 			["hiragana", "normal", "hiragana"],
 			["katakana", "normal", "katakana"]
 		]) {
-			if (language !== "ja") return;
+			if (language !== "ja") continue;
 			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[2] });
 				showNotification(200);
@@ -410,7 +410,7 @@ class LyricsContainer extends react.Component {
 			["hangul", "hangul"],
 			["romaja", "romaja"]
 		]) {
-			if (language !== "ko") return;
+			if (language !== "ko") continue;
 			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
 				showNotification(200);
@@ -425,7 +425,7 @@ class LyricsContainer extends react.Component {
 			["t", "hk"],
 			["t", "tw"]
 		]) {
-			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) return;
+			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) continue;
 			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
 				showNotification(200);
