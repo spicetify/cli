@@ -273,7 +273,8 @@ window.Spicetify = {
 					"Routes",
 					"Route",
 					"StoreProvider",
-					"PlatformProvider"
+					"PlatformProvider",
+					"Dropdown"
 				])
 			},
 			{
