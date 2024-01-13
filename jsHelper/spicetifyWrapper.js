@@ -465,9 +465,6 @@ window.Spicetify = {
 			Routes: functionModules.find(m => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
 			Route: functionModules.find(m => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
 			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
-			Dropdown: Object.values(
-				require(Object.entries(require.m).find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"))[0])
-			).find(m => typeof m === "function"),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -571,8 +568,14 @@ window.Spicetify = {
 	const playlistMenuChunk = Object.entries(require.m).find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
-	if (playlistMenuChunk)
+	if (playlistMenuChunk) {
 		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
+	}
+
+	const dropdownChunk = Object.entries(require.m).find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
+	if (dropdownChunk) {
+		Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find(m => typeof m === "function")
+	}
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
 
