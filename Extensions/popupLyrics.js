@@ -404,7 +404,7 @@ function PopupLyrics() {
 		const words = str.split(/(\p{sc=Han}|\p{sc=Katakana}|\p{sc=Hiragana}|\p{sc=Hang}|\p{gc=Punctuation})|\s+/gu);
 		let tempWord = "";
 		for (let word of words) {
-			if (word === undefined) word = " ";
+			word ??= " ";
 			if (word) {
 				if (tempWord && /(“|')$/.test(tempWord) && word !== " ") {
 					// End of line not allowed
