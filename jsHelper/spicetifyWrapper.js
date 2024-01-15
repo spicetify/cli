@@ -273,7 +273,8 @@ window.Spicetify = {
 					"Routes",
 					"Route",
 					"StoreProvider",
-					"PlatformProvider"
+					"PlatformProvider",
+					"Dropdown"
 				])
 			},
 			{
@@ -568,8 +569,14 @@ window.Spicetify = {
 	const playlistMenuChunk = Object.entries(require.m).find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
-	if (playlistMenuChunk)
+	if (playlistMenuChunk) {
 		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
+	}
+
+	const dropdownChunk = Object.entries(require.m).find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
+	if (dropdownChunk) {
+		Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find(m => typeof m === "function");
+	}
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
 
