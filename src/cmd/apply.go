@@ -20,9 +20,7 @@ func Apply(spicetifyVersion string) {
 	backupSpicetifyVersion := backupSection.Key("with").MustString("")
 	if spicetifyVersion != backupSpicetifyVersion {
 		utils.PrintInfo(`Preprocessed Spotify data is outdated. Please run "spicetify restore backup apply" to receive new features and bug fixes`)
-		if !ReadAnswer("Continue applying anyway? [y/N]: ", false, true) {
-			os.Exit(1)
-		}
+		os.Exit(1)
 	}
 
 	// Copy raw assets to Spotify Apps folder if Spotify is never applied
@@ -196,7 +194,6 @@ func CheckStates() {
 	if backStat.IsEmpty() {
 		if spotStat.IsBackupable() {
 			utils.PrintError(`You haven't backed up. Run "spicetify backup apply".`)
-
 		} else {
 			utils.PrintError(`You haven't backed up and Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
 		}
@@ -207,18 +204,15 @@ func CheckStates() {
 
 		if spotStat.IsMixed() {
 			utils.PrintInfo(`Spotify client possibly just had an new update.`)
-			utils.PrintInfo(`Please stop the process and then run "spicetify backup apply".`)
-
+			utils.PrintInfo(`Please run "spicetify backup apply".`)
 		} else if spotStat.IsStock() {
-			utils.PrintInfo(`Please stop the process and then run "spicetify backup apply".`)
-
+			utils.PrintInfo(`Spotify client is in stock state.`)
+			utils.PrintInfo(`Please run "spicetify backup apply".`)
 		} else {
-			utils.PrintInfo(`Spotify cannot be backed up at this state. Please stop the process and then re-install Spotify then run "spicetify backup apply".`)
+			utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
 		}
 
-		if !ReadAnswer("Continue anyway? [y/N] ", false, true) {
-			os.Exit(1)
-		}
+		os.Exit(1)
 	}
 }
 
