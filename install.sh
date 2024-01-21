@@ -137,7 +137,7 @@ echo
 log "spicetify v$tag was installed successfully to $spicetify_install"
 log "Run 'spicetify --help' to get started"
 
-printf "Do you want to install spicetify Marketplace? (Y/n)"
+echo "Do you want to install spicetify Marketplace? (Y/n)"
 read -r choice
 if [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
     echo "spicetify Marketplace installation aborted"
