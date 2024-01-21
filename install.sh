@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # Copyright 2022 khanhas. GPL license.
 # Edited from project Denoland install script (https://github.com/denoland/deno_install)
 
