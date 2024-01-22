@@ -1519,12 +1519,16 @@ Spicetify.ContextMenu = (() => {
 	}
 
 	function createIconComponent(icon) {
-		return Spicetify.React.createElement(Spicetify.ReactComponent.IconComponent, {
-			iconSize: "24",
-			dangerouslySetInnerHTML: {
-				__html: parseIcon(icon)
-			}
-		});
+		return Spicetify.React.createElement(
+			Spicetify.ReactComponent.IconComponent,
+			{
+				iconSize: "16",
+				dangerouslySetInnerHTML: {
+					__html: parseIcon(icon)
+				}
+			},
+			null
+		);
 	}
 
 	class Item {
@@ -1560,15 +1564,16 @@ Spicetify.ContextMenu = (() => {
 				});
 
 				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuItem, {
-					disabled,
+					disabled: _disabled,
 					divider: undefined,
 					onClick: e => onClick(uris, uids, contextUri),
-					leadingIcon: icon && createIconComponent(icon),
-					trailingIcon: trailingIcon && createIconComponent(trailingIcon),
-					children: name
+					leadingIcon: _icon && createIconComponent(_icon),
+					trailingIcon: _trailingIcon && createIconComponent(_trailingIcon),
+					children: _name
 				});
 			}, {});
 		}
+
 		set name(name) {
 			this._name = name;
 			this._setName?.(this._name);
@@ -1612,6 +1617,8 @@ Spicetify.ContextMenu = (() => {
 	class SubMenu {
 		static iconList = iconList;
 
+		static itemsToComponents = items => Array.from(items).map(item => item._element);
+
 		constructor(name, items, shouldAdd = () => true, disabled = false, icon, trailingIcon) {
 			this._items = new Set(items);
 			this.shouldAdd = shouldAdd;
@@ -1623,7 +1630,7 @@ Spicetify.ContextMenu = (() => {
 			this._element = Spicetify.ReactJSX.jsx(() => {
 				const [_name, setName] = Spicetify.React.useState(name);
 				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
-				const [_items, setItems] = Spicetify.React.useState(Array.from(items));
+				const [_items, setItems] = Spicetify.React.useState(SubMenu.itemsToComponents(items));
 
 				Spicetify.React.useEffect(() => {
 					self._setName = setName;
@@ -1660,11 +1667,11 @@ Spicetify.ContextMenu = (() => {
 
 		addItem(item) {
 			this._items.add(item);
-			this._setItems?.(Array.from(this._items));
+			this._setItems?.(SubMenu.itemsToComponents(this._items));
 		}
 		removeItem(item) {
 			this._items.delete(item);
-			this._setItems?.(Array.from(this._items));
+			this._setItems?.(SubMenu.itemsToComponents(this._items));
 		}
 
 		set disabled(bool) {
