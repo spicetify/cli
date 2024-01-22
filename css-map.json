@@ -1181,5 +1181,12 @@
 	"ghfuv80I8uW_ymG_jfx9": "show-show-episodesFilter",
 	"XGCdw_LcXQHrxmvpxjwi": "main-seekForwardButton-button",
 	"MRfNcNMd_djj3KOg_VOB": "main-seekBackButton-button",
-	"d89qxCxbCRj4y1Woft8j": "main-smartShuffleButton-active"
+	"d89qxCxbCRj4y1Woft8j": "main-smartShuffleButton-active",
+	"tr1hDrJgoPSbMXlXU_sl": "npv-nowPlayingBar-container",
+	"mbUrqWP55sK6zhspiR72": "npv-nowPlayingBar-controls",
+	"SVGHXIQcH9HYU7uGITw5": "npv-nowPlayingBar-section",
+	"N5cWYDvyLrfnyMZuqQHo": "npv-nowPlayingBar-left",
+	"gIobRDHAxkAvUaF4_OOL": "npv-nowPlayingBar-center",
+	"FTi9QEhetf4Q4__5sb4S": "npv-nowPlayingBar-right",
+	"Gw7E7MkWci1ttQhb4EK0": "npv-exitFullScreenButton-button"
 }
