@@ -138,7 +138,7 @@ function Install-Spicetify {
     Add-SpicetifyToPath
   }
   end {
-    Remove-Item -Path $archivePath -Force
+    Remove-Item -Path $archivePath -Force -ErrorAction 'SilentlyContinue'
     Write-Host -Object 'spicetify was successfully installed!' -ForegroundColor 'Green'
   }
 }
