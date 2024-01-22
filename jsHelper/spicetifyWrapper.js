@@ -1534,13 +1534,12 @@ Spicetify.ContextMenu = (() => {
 	class Item {
 		static iconList = iconList;
 
-		constructor(name, onClick, shouldAdd = () => true, icon, trailingIcon, disabled = false) {
+		constructor(name, onClick, shouldAdd = () => true, icon = undefined, trailingIcon = undefined, disabled = false) {
 			this.shouldAdd = shouldAdd;
 			this._name = name;
 			this._icon = icon;
 			this._trailingIcon = trailingIcon;
 			this._disabled = disabled;
-			const self = this;
 			this._element = Spicetify.ReactJSX.jsx(() => {
 				const [_name, setName] = Spicetify.React.useState(name);
 				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
@@ -1550,16 +1549,16 @@ Spicetify.ContextMenu = (() => {
 				const [uris, uids, contextUri] = parseProps(Spicetify.React.useContext(Spicetify.ContextMenuV2._context));
 
 				Spicetify.React.useEffect(() => {
-					self._setName = setName;
-					self._setDisabled = setDisabled;
-					self._setIcon = setIcon;
-					self._setTrailingIcon = setTrailingIcon;
+					this._setName = setName;
+					this._setDisabled = setDisabled;
+					this._setIcon = setIcon;
+					this._setTrailingIcon = setTrailingIcon;
 
 					return () => {
-						self._setName = undefined;
-						self._setDisabled = undefined;
-						self._setIcon = undefined;
-						self._setTrailingIcon = undefined;
+						this._setName = undefined;
+						this._setDisabled = undefined;
+						this._setIcon = undefined;
+						this._setTrailingIcon = undefined;
 					};
 				});
 
@@ -1619,27 +1618,26 @@ Spicetify.ContextMenu = (() => {
 
 		static itemsToComponents = items => Array.from(items).map(item => item._element);
 
-		constructor(name, items, shouldAdd = () => true, disabled = false, icon, trailingIcon) {
+		constructor(name, items, shouldAdd = () => true, disabled = false, icon = undefined, trailingIcon = undefined) {
 			this._items = new Set(items);
 			this.shouldAdd = shouldAdd;
 			this._name = name;
 			this._disabled = disabled;
 			this._icon = icon;
 			this._trailingIcon = trailingIcon;
-			const self = this;
 			this._element = Spicetify.ReactJSX.jsx(() => {
 				const [_name, setName] = Spicetify.React.useState(name);
 				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
 				const [_items, setItems] = Spicetify.React.useState(SubMenu.itemsToComponents(items));
 
 				Spicetify.React.useEffect(() => {
-					self._setName = setName;
-					self._setDisabled = setDisabled;
-					self._setItems = setItems;
+					this._setName = setName;
+					this._setDisabled = setDisabled;
+					this._setItems = setItems;
 					return () => {
-						self._setName = undefined;
-						self._setDisabled = undefined;
-						self._setItems = undefined;
+						this._setName = undefined;
+						this._setDisabled = undefined;
+						this._setItems = undefined;
 					};
 				});
 
