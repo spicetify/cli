@@ -1359,10 +1359,14 @@ Spicetify.ContextMenuV2 = (() => {
 					};
 				});
 
+				const context = Spicetify.React.useContext(Spicetify.ContextMenuV2._context) ?? {};
+
 				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuItem, {
 					disabled: _disabled,
 					divider: _divider,
-					onClick,
+					onClick: e => {
+						onClick(context, this, e);
+					},
 					leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
 					trailingIcon: _trailingIcon && createIconComponent(_trailingIcon),
 					children: _children
@@ -1537,7 +1541,7 @@ Spicetify.Menu = (() => {
 
 	class Item extends Spicetify.ContextMenuV2.Item {
 		constructor(children, isEnabled, onClick, leadingIcon) {
-			super({ children, disabled: !isEnabled, leadingIcon, onClick: () => onClick(this), shouldAdd });
+			super({ children, disabled: !isEnabled, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
 		}
 
 		set isEnabled(bool) {
@@ -1583,9 +1587,8 @@ Spicetify.ContextMenu = (() => {
 				disabled,
 				leadingIcon: icon,
 				trailingIcon,
-				onClick: () => {
-					const { props } = Spicetify.React.useContext(Spicetify.ContextMenuV2._context) ?? {};
-					const [uris, uids, contextUri] = Spicetify.ContextMenuV2.parseProps(props);
+				onClick: context => {
+					const [uris, uids, contextUri] = Spicetify.ContextMenuV2.parseProps(context.props);
 					onClick(uris, uids, contextUri);
 				},
 				shouldAdd: props => {
