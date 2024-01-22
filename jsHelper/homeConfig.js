@@ -163,7 +163,7 @@ SpicetifyHomeConfig = {};
 		}
 	}
 
-	const addMenu = () => {
+	Spicetify.Hooks.onWebpackLoaded(() => {
 		const menu = new Spicetify.Menu.Item("Home config", true, self => {
 			self.isEnabled = !self.isEnabled;
 			if (self.isEnabled) {
@@ -177,15 +177,7 @@ SpicetifyHomeConfig = {};
 			menu.isEnabled = false;
 			menu.deregister();
 		};
-	};
-
-	if (Spicetify.React) {
-		addMenu();
-	} else {
-		document.addEventListener("webpack-loaded", addMenu);
-	}
-
-	(function waitForHistoryAPI() {
+	})(function waitForHistoryAPI() {
 		if (!Spicetify.Platform?.History || !mounted) {
 			setTimeout(waitForHistoryAPI, 100);
 			return;

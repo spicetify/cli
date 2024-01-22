@@ -730,7 +730,23 @@ window.Spicetify = {
 		Spicetify.URI.isSameIdentity = URIModules.find(m => typeof m === "function" && m.toString().match(/[\w$]+\.id===[\w$]+\.id/));
 	})();
 
-	document.dispatchEvent(new Event("webpack-loaded"));
+	Spicetify.Hooks.fireWebpackLoaded();
+})();
+
+Spicetify.Hooks = (() => {
+	const webpackLoadedCallbacks = [];
+	let isWebpackLoaded = false;
+	function onWebpackLoaded(callback) {
+		if (isWebpackLoaded) return callback();
+		webpackLoadedCallbacks.push(callback);
+	}
+
+	function fireWebpackLoaded() {
+		isWebpackLoaded = true;
+		for (callback of webpackLoadedCallbacks) callback();
+	}
+
+	return { onWebpackLoaded, fireWebpackLoaded };
 })();
 
 // Wait for Spicetify.Player.origin._state before adding following APIs
