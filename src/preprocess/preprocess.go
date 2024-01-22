@@ -372,7 +372,14 @@ func exposeAPIs_main(input string) string {
 	// Menu hook
 	utils.Replace(&input, `children:([\w_$]+),onClose:[\w_$]+,getInitialFocusElement:[\w_$]+,onFocusVerticalItem:[\w_$]+.+?\}\)=>\{`, `${0}${1}=[Spicetify.ContextMenuV2.renderItems(),${1}].flat();`)
 
-	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `${1}.jsx((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=i.createContext(null))).Provider,{value:{props:e?.props,trigger:l,target:p},children:${0}})`)
+	croppedInput := utils.FindFirstMatch(input, `.*value:"contextmenu"`)[0]
+
+	react := utils.FindLastMatch(croppedInput, `([\w_$]+)\.useRef`)[1]
+	menu := utils.FindLastMatch(croppedInput, `menu:([\w_$]+)`)[1]
+	trigger := utils.FindLastMatch(croppedInput, `trigger:([\w_$]+)`)[1]
+	target := utils.FindLastMatch(croppedInput, `triggerRef:([\w_$]+)`)[1]
+
+	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `${1}.jsx((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=`+react+`.createContext(null))).Provider,{value:{props:`+menu+`?.props,trigger:`+trigger+`,target:`+target+`},children:${0}})`)
 
 	return input
 }
