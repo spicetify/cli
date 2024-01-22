@@ -730,7 +730,7 @@ window.Spicetify = {
 		Spicetify.URI.isSameIdentity = URIModules.find(m => typeof m === "function" && m.toString().match(/[\w$]+\.id===[\w$]+\.id/));
 	})();
 
-    document.dispatchEvent(new Event("webpack-loaded"))
+	document.dispatchEvent(new Event("webpack-loaded"));
 })();
 
 // Wait for Spicetify.Player.origin._state before adding following APIs
