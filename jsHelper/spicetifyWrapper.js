@@ -729,6 +729,8 @@ window.Spicetify = {
 		// isSameIdentity
 		Spicetify.URI.isSameIdentity = URIModules.find(m => typeof m === "function" && m.toString().match(/[\w$]+\.id===[\w$]+\.id/));
 	})();
+
+    document.dispatchEvent(new Event("webpack-loaded"))
 })();
 
 // Wait for Spicetify.Player.origin._state before adding following APIs
@@ -1250,443 +1252,8 @@ Spicetify.SVGIcons = {
 	return document.head.appendChild(fontStyle);
 })();
 
-class _HTMLContextMenuItem extends HTMLLIElement {
-	constructor({ name, disabled = false, icon = undefined, trailingIcon = undefined, divider = false }) {
-		super();
-		this.name = name;
-		this.icon = icon;
-		this.trailingIcon = trailingIcon;
-		this.disabled = disabled;
-		this.divider = divider;
-		this.classList.add("main-contextMenu-menuItem");
-	}
-
-	render() {
-		function parseIcon(icon) {
-			if (icon && Spicetify.SVGIcons[icon]) {
-				return `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
-			}
-			return icon || "";
-		}
-
-		this.innerHTML = `
-		<button class="main-contextMenu-menuItemButton ${this.disabled ? "main-contextMenu-disabled" : ""} ${
-			this.divider ? "main-contextMenu-dividerAfter" : ""
-		}">
-			${parseIcon(this.icon)}
-			<span class="ellipsis-one-line main-type-mesto main-contextMenu-menuItemLabel">${this.name}</span>
-			${parseIcon(this.trailingIcon)}
-		</button>`;
-	}
-
-	connectedCallback() {
-		if (!this.rendered) {
-			this.render();
-			this.rendered = true;
-		}
-	}
-
-	update(name, value) {
-		this[name] = value;
-		this.render();
-	}
-}
-
-class _HTMLContextSubmenu extends HTMLDivElement {
-	constructor({ items = [], placement = "bottom-start" } = {}) {
-		super();
-		this.items = items;
-		this.placement = placement;
-		this.style.zIndex = "9999";
-		this.style.position = "absolute";
-		this.style.inset = "0px auto auto 0px";
-	}
-	render() {
-		this._tippy = {
-			unmount: () => {},
-			popperInstance: {
-				forceUpdate: () => {}
-			}
-		};
-
-		const list = document.createElement("ul");
-		list.classList.add("main-contextMenu-menu");
-		list.append(...this.items);
-		this.append(list);
-
-		const { y: parentY, width: parentWidth } = this.parentElement.getBoundingClientRect();
-		const { width: thisWidth, height: thisHeight } = this.getBoundingClientRect();
-		let x = 0;
-		let y = this.parentElement.offsetTop;
-
-		switch (this.placement) {
-			case "top-start":
-			case "bottom-start":
-				x += parentWidth - 5;
-				break;
-			default:
-				x -= thisWidth - 5;
-				break;
-		}
-		const realY = y + parentY;
-		if (realY + thisHeight > window.innerHeight) {
-			y -= realY + thisHeight - window.innerHeight;
-		}
-		this.style.transform = `translate(${x}px, ${y}px)`;
-	}
-
-	addItem(item) {
-		this.items.push(item);
-	}
-
-	connectedCallback() {
-		if (!this.rendered) {
-			this.render();
-			this.rendered = true;
-		}
-	}
-}
-customElements.define("context-menu-item", _HTMLContextMenuItem, { extends: "li" });
-customElements.define("context-submenu", _HTMLContextSubmenu, { extends: "div" });
-
-Spicetify.Menu = (() => {
-	const collection = new Set();
-
-	const _addItems = instance => {
-		const list = instance.querySelector("ul");
-		const elemList = [];
-
-		for (const item of collection) {
-			if (item._items?.size) {
-				const htmlSubmenu = new _HTMLContextSubmenu({
-					placement: instance.firstChild.dataset.placement
-				});
-
-				for (const child of item._items) {
-					child._element.onclick = () => {
-						child.onClick();
-						htmlSubmenu.remove();
-						instance._tippy?.props?.onClickOutside();
-					};
-					htmlSubmenu.addItem(child._element);
-				}
-
-				item._element.onmouseenter = () => item._element.append(htmlSubmenu);
-				item._element.onmouseleave = () => htmlSubmenu.remove();
-				elemList.push(item._element);
-				continue;
-			}
-
-			item._element.onclick = () => {
-				item.onClick();
-				instance._tippy?.props?.onClickOutside();
-			};
-			elemList.push(item._element);
-		}
-		list.prepend(...elemList);
-	};
-
-	class Item {
-		constructor(name, isEnabled, onClick, icon = "") {
-			this._name = name;
-			this._isEnabled = isEnabled;
-			this._icon = icon;
-			this.onClick = () => {
-				onClick(this);
-			};
-			this._element = new _HTMLContextMenuItem({
-				name: name,
-				icon: icon,
-				trailingIcon: isEnabled ? "check" : ""
-			});
-		}
-
-		setState(isEnabled) {
-			this._isEnabled = isEnabled;
-			this._element.update("trailingIcon", isEnabled ? "check" : "");
-		}
-		set isEnabled(bool) {
-			this.setState(bool);
-		}
-		get isEnabled() {
-			return this._isEnabled;
-		}
-
-		setName(name) {
-			this._name = name;
-			this._element.update("name", name);
-		}
-		set name(text) {
-			this.setName(text);
-		}
-		get name() {
-			return this._name;
-		}
-
-		setIcon(icon) {
-			this._icon = icon;
-			this._element.update("icon", icon);
-		}
-		set icon(icon) {
-			this.setIcon(icon);
-		}
-		get icon() {
-			return this._icon;
-		}
-
-		register() {
-			collection.add(this);
-		}
-		deregister() {
-			collection.delete(this);
-		}
-	}
-
-	class SubMenu {
-		constructor(name, items, icon, trailingIcon) {
-			this._name = name;
-			this._items = new Set(items);
-			this._icon = icon;
-			this._trailingIcon = trailingIcon;
-			this._element = new _HTMLContextMenuItem({
-				name: name,
-				icon: icon,
-				trailingIcon:
-					trailingIcon ||
-					'<span><svg role="img" height="16" width="16" fill="currentColor" class="main-contextMenu-subMenuIcon" viewBox="0 0 16 16"><path d="M14 10 8 4l-6 6h12z"></path></svg></span>'
-			});
-		}
-
-		setName(name) {
-			this._name = name;
-			this._element.update("name", name);
-		}
-		set name(text) {
-			this.setName(text);
-		}
-		get name() {
-			return this._name;
-		}
-
-		addItem(item) {
-			this._items.add(item);
-		}
-		removeItem(item) {
-			this._items.delete(item);
-		}
-
-		setIcon(icon) {
-			this._icon = icon;
-			this._element.update("icon", icon);
-		}
-		set icon(icon) {
-			this.setIcon(icon);
-		}
-		get icon() {
-			return this._icon;
-		}
-
-		setTrailingIcon(trailingIcon) {
-			this._trailingIcon = trailingIcon;
-			this._element.update("trailingIcon", trailingIcon);
-		}
-		set trailingIcon(trailingIcon) {
-			this.setTrailingIcon(trailingIcon);
-		}
-		get trailingIcon() {
-			return this._trailingIcon;
-		}
-
-		register() {
-			collection.add(this);
-		}
-		deregister() {
-			collection.delete(this);
-		}
-	}
-
-	return { Item, SubMenu, _addItems };
-})();
-
-Spicetify.ContextMenu = (() => {
-	const iconList = Object.keys(Spicetify.SVGIcons);
-
-	function parseIcon(icon) {
-		if (icon && Spicetify.SVGIcons[icon]) {
-			return `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
-		}
-		return icon || "";
-	}
-
-	function createIconComponent(icon) {
-		return Spicetify.React.createElement(
-			Spicetify.ReactComponent.IconComponent,
-			{
-				iconSize: "16",
-				dangerouslySetInnerHTML: {
-					__html: parseIcon(icon)
-				}
-			},
-			null
-		);
-	}
-
-	class Item {
-		static iconList = iconList;
-
-		constructor(name, onClick, shouldAdd = () => true, icon = undefined, trailingIcon = undefined, disabled = false) {
-			this.shouldAdd = shouldAdd;
-			this._name = name;
-			this._icon = icon;
-			this._trailingIcon = trailingIcon;
-			this._disabled = disabled;
-			this._element = Spicetify.ReactJSX.jsx(() => {
-				const [_name, setName] = Spicetify.React.useState(name);
-				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
-				const [_icon, setIcon] = Spicetify.React.useState(icon);
-				const [_trailingIcon, setTrailingIcon] = Spicetify.React.useState(trailingIcon);
-
-				const [uris, uids, contextUri] = parseProps(Spicetify.React.useContext(Spicetify.ContextMenuV2._context));
-
-				Spicetify.React.useEffect(() => {
-					this._setName = setName;
-					this._setDisabled = setDisabled;
-					this._setIcon = setIcon;
-					this._setTrailingIcon = setTrailingIcon;
-
-					return () => {
-						this._setName = undefined;
-						this._setDisabled = undefined;
-						this._setIcon = undefined;
-						this._setTrailingIcon = undefined;
-					};
-				});
-
-				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuItem, {
-					disabled: _disabled,
-					divider: undefined,
-					onClick: e => onClick(uris, uids, contextUri),
-					leadingIcon: _icon && createIconComponent(_icon),
-					trailingIcon: _trailingIcon && createIconComponent(_trailingIcon),
-					children: _name
-				});
-			}, {});
-		}
-
-		set name(name) {
-			this._name = name;
-			this._setName?.(this._name);
-		}
-		get name() {
-			return this._name;
-		}
-
-		set icon(name) {
-			this._icon = name;
-			this._setIcon?.(this._icon);
-		}
-		get icon() {
-			return this._icon;
-		}
-
-		set trailingIcon(name) {
-			this._trailingIcon = name;
-			this._setTrailingIcon?.(this._trailingIcon);
-		}
-		get trailingIcon() {
-			return this._trailingIcon;
-		}
-
-		set disabled(bool) {
-			this._disabled = bool;
-			this._setDisabled?.(this._disabled);
-		}
-		get disabled() {
-			return this._disabled;
-		}
-
-		register() {
-			Spicetify.ContextMenuV2.registerItem(this._element, this.shouldAdd);
-		}
-		deregister() {
-			Spicetify.ContextMenuV2.unregisterItem(this._element);
-		}
-	}
-
-	class SubMenu {
-		static iconList = iconList;
-
-		static itemsToComponents = items => Array.from(items).map(item => item._element);
-
-		constructor(name, items, shouldAdd = () => true, disabled = false, icon = undefined, trailingIcon = undefined) {
-			this._items = new Set(items);
-			this.shouldAdd = shouldAdd;
-			this._name = name;
-			this._disabled = disabled;
-			this._icon = icon;
-			this._trailingIcon = trailingIcon;
-			this._element = Spicetify.ReactJSX.jsx(() => {
-				const [_name, setName] = Spicetify.React.useState(name);
-				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
-				const [_items, setItems] = Spicetify.React.useState(SubMenu.itemsToComponents(items));
-
-				Spicetify.React.useEffect(() => {
-					this._setName = setName;
-					this._setDisabled = setDisabled;
-					this._setItems = setItems;
-					return () => {
-						this._setName = undefined;
-						this._setDisabled = undefined;
-						this._setItems = undefined;
-					};
-				});
-
-				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuSubMenuItem, {
-					displayText: _name,
-					divider: undefined,
-					depth: 1,
-					placement: "right-start",
-					onOpenChange: () => undefined,
-					onClick: () => undefined,
-					disabled: _disabled,
-					leadingIcon: icon && createIconComponent(icon),
-					children: _items
-				});
-			}, {});
-		}
-
-		set name(name) {
-			this._name = name;
-			this._setName?.(this._name);
-		}
-		get name() {
-			return this._name;
-		}
-
-		addItem(item) {
-			this._items.add(item);
-			this._setItems?.(SubMenu.itemsToComponents(this._items));
-		}
-		removeItem(item) {
-			this._items.delete(item);
-			this._setItems?.(SubMenu.itemsToComponents(this._items));
-		}
-
-		set disabled(bool) {
-			this._disabled = bool;
-			this._setDisabled?.(this._disabled);
-		}
-		get disabled() {
-			return this._disabled;
-		}
-
-		register() {
-			Spicetify.ContextMenuV2.registerItem(this._element, this.shouldAdd);
-		}
-		deregister() {
-			Spicetify.ContextMenuV2.unregisterItem(this._element);
-		}
-	}
+Spicetify.ContextMenuV2 = (() => {
+	const registeredItems = new Map();
 
 	function parseProps(props) {
 		if (!props) return;
@@ -1721,11 +1288,214 @@ Spicetify.ContextMenu = (() => {
 		return [uris, uids, contextUri];
 	}
 
-	return { Item, SubMenu, parseProps };
-})();
+	function parseIcon(icon) {
+		if (icon && Spicetify.SVGIcons[icon]) {
+			return `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
+		}
+		return icon || "";
+	}
 
-Spicetify.ContextMenuV2 = (() => {
-	const registeredItems = new Map();
+	function createIconComponent(icon) {
+		return Spicetify.React.createElement(
+			Spicetify.ReactComponent.IconComponent,
+			{
+				iconSize: "16",
+				dangerouslySetInnerHTML: {
+					__html: parseIcon(icon)
+				}
+			},
+			null
+		);
+	}
+
+	// these classes bridge the gap between react and js, insuring reactivity
+	class Item {
+		constructor({ children, disabled = false, leadingIcon, trailingIcon, divider, onClick, shouldAdd = () => true }) {
+			// maybe use a props object and a setProps
+			this.shouldAdd = shouldAdd;
+
+			this._children = children;
+			this._disabled = disabled;
+			this._leadingIcon = leadingIcon;
+			this._trailingIcon = trailingIcon;
+			this._divider = divider;
+
+			this._element = Spicetify.ReactJSX.jsx(() => {
+				const [_children, setChildren] = Spicetify.React.useState(children);
+				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
+				const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(leadingIcon);
+				const [_trailingIcon, setTrailingIcon] = Spicetify.React.useState(trailingIcon);
+				const [_divider, setDivider] = Spicetify.React.useState(divider);
+
+				Spicetify.React.useEffect(() => {
+					this._setChildren = setChildren;
+					this._setDisabled = setDisabled;
+					this._setIcon = setLeadingIcon;
+					this._setTrailingIcon = setTrailingIcon;
+					this._setDivider = setDivider;
+
+					return () => {
+						this._setChildren = undefined;
+						this._setDisabled = undefined;
+						this._setIcon = undefined;
+						this._setTrailingIcon = undefined;
+						this._setDivider = undefined;
+					};
+				});
+
+				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuItem, {
+					disabled: _disabled,
+					divider: _divider,
+					onClick,
+					leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
+					trailingIcon: _trailingIcon && createIconComponent(_trailingIcon),
+					children: _children
+				});
+			}, {});
+		}
+
+		set children(children) {
+			this._children = children;
+			this._setChildren?.(this._children);
+		}
+		get children() {
+			return this._children;
+		}
+
+		set disabled(bool) {
+			this._disabled = bool;
+			this._setDisabled?.(this._disabled);
+		}
+		get disabled() {
+			return this._disabled;
+		}
+
+		set leadingIcon(name) {
+			this._leadingIcon = name;
+			this._setIcon?.(this._leadingIcon);
+		}
+		get leadingIcon() {
+			return this._leadingIcon;
+		}
+
+		set trailingIcon(name) {
+			this._trailingIcon = name;
+			this._setTrailingIcon?.(this._trailingIcon);
+		}
+		get trailingIcon() {
+			return this._trailingIcon;
+		}
+
+		set divider(divider) {
+			this._divider = divider;
+			this._setDivider?.(this._divider);
+		}
+		get divider() {
+			return this._divider;
+		}
+
+		register() {
+			Spicetify.ContextMenuV2.registerItem(this._element, this.shouldAdd);
+		}
+		deregister() {
+			Spicetify.ContextMenuV2.unregisterItem(this._element);
+		}
+	}
+
+	class ItemSubMenu {
+		static itemsToComponents = items => items.map(item => item._element);
+
+		constructor({ text, disabled = false, leadingIcon, divider, items, shouldAdd = () => true }) {
+			this.shouldAdd = shouldAdd;
+
+			this._text = text;
+			this._disabled = disabled;
+			this._leadingIcon = leadingIcon;
+			this._items = items;
+			this._element = Spicetify.ReactJSX.jsx(() => {
+				const [_text, setText] = Spicetify.React.useState(text);
+				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
+				const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(leadingIcon);
+				const [_divider, setDivider] = Spicetify.React.useState(divider);
+				const [_items, setItems] = Spicetify.React.useState(items);
+
+				Spicetify.React.useEffect(() => {
+					this._setText = setText;
+					this._setDisabled = setDisabled;
+					this._setLeadingIcon = setLeadingIcon;
+					this._setDivider = setDivider;
+					this._setItems = setItems;
+					return () => {
+						this._setText = undefined;
+						this._setDisabled = undefined;
+						this._setLeadingIcon = undefined;
+						this._setDivider = undefined;
+						this._setItems = undefined;
+					};
+				});
+
+				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuSubMenuItem, {
+					displayText: _text,
+					divider: _divider,
+					depth: 1,
+					placement: "right-start",
+					onOpenChange: () => undefined,
+					onClick: () => undefined,
+					disabled: _disabled,
+					leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
+					children: ItemSubMenu.itemsToComponents(_items)
+				});
+			}, {});
+		}
+
+		set text(text) {
+			this._text = text;
+			this._setText?.(this._text);
+		}
+		get text() {
+			return this._text;
+		}
+
+		set disabled(bool) {
+			this._disabled = bool;
+			this._setDisabled?.(this._disabled);
+		}
+		get disabled() {
+			return this._disabled;
+		}
+
+		set leadingIcon(name) {
+			this._leadingIcon = name;
+			this._setIcon?.(this._leadingIcon);
+		}
+		get leadingIcon() {
+			return this._leadingIcon;
+		}
+
+		set divider(divider) {
+			this._divider = divider;
+			this._setDivider?.(this._divider);
+		}
+		get divider() {
+			return this._divider;
+		}
+
+		addItem(item) {
+			this._items.add(item);
+			this._setItems?.(this._items);
+		}
+		removeItem(item) {
+			this._items.delete(item);
+			this._setItems?.(this._items);
+		}
+
+		register() {
+			registerItem(this._element, this.shouldAdd);
+		}
+		deregister() {
+			unregisterItem(this._element);
+		}
+	}
 
 	function registerItem(item, shouldAdd = () => true) {
 		registeredItems.set(item, shouldAdd);
@@ -1735,17 +1505,120 @@ Spicetify.ContextMenuV2 = (() => {
 		registeredItems.delete(item);
 	}
 
-	const renderItems = props => {
-		const parsed = Spicetify.ContextMenu.parseProps(props);
-		if (!parsed) return [];
-		const [uris, uids, contextUri] = parsed;
+	const renderItems = () => {
+		const { props, trigger, target } = Spicetify.React.useContext(Spicetify.ContextMenuV2._context) ?? {};
 
 		return Array.from(registeredItems.entries())
-			.map(([item, shouldAdd]) => shouldAdd?.(uris, uids, contextUri) && item)
+			.map(([item, shouldAdd]) => shouldAdd?.(props, trigger, target) && item)
 			.filter(Boolean);
 	};
 
-	return { registerItem, unregisterItem, renderItems };
+	return { parseProps, Item, ItemSubMenu, registerItem, unregisterItem, renderItems };
+})();
+
+Spicetify.Menu = (() => {
+	const shouldAdd = (_, trigger, target) => trigger === "click" && target.parentElement.classList.contains("main-topBar-topbarContentRight");
+
+	class Item extends Spicetify.ContextMenuV2.Item {
+		constructor(children, isEnabled, onClick, leadingIcon) {
+			super({ children, disabled: !isEnabled, leadingIcon, onClick: () => onClick(this), shouldAdd });
+		}
+
+		set isEnabled(bool) {
+			this.disabled = !bool;
+		}
+		get isEnabled() {
+			return !this.disabled;
+		}
+	}
+
+	class SubMenu extends Spicetify.ContextMenuV2.ItemSubMenu {
+		constructor(text, items, leadingIcon) {
+			super({ text, leadingIcon, items, shouldAdd });
+		}
+
+		set name(text) {
+			this.text = text;
+		}
+		get name() {
+			return this.text;
+		}
+
+		set icon(icon) {
+			this.leadingIcon = icon;
+		}
+		get icon() {
+			return this.leadingIcon;
+		}
+	}
+
+	return { Item, SubMenu };
+})();
+
+Spicetify.ContextMenu = (() => {
+	const iconList = Object.keys(Spicetify.SVGIcons);
+
+	class Item extends Spicetify.ContextMenuV2.Item {
+		static iconList = iconList;
+
+		constructor(name, onClick, shouldAdd = () => true, icon = undefined, trailingIcon = undefined, disabled = false) {
+			super({
+				children: name,
+				disabled,
+				leadingIcon: icon,
+				trailingIcon,
+				onClick: () => {
+					const { props } = Spicetify.React.useContext(Spicetify.ContextMenuV2._context) ?? {};
+					const [uris, uids, contextUri] = Spicetify.ContextMenuV2.parseProps(props);
+					onClick(uris, uids, contextUri);
+				},
+				shouldAdd: props => {
+					const parsedProps = Spicetify.ContextMenuV2.parseProps(props);
+					return parsedProps && shouldAdd(...parsedProps);
+				}
+			});
+		}
+
+		set name(name) {
+			this.children = name;
+		}
+		get name() {
+			return this.children;
+		}
+
+		set icon(name) {
+			this.leadingIcon = name;
+		}
+		get icon() {
+			return this.leadingIcon;
+		}
+	}
+
+	class SubMenu extends Spicetify.ContextMenuV2.ItemSubMenu {
+		static iconList = iconList;
+
+		constructor(name, items, shouldAdd, disabled = false, icon = undefined) {
+			super({
+				text: name,
+				disabled,
+				leadingIcon: icon,
+				items,
+				shouldAdd: props => {
+					const parsedProps = Spicetify.ContextMenuV2.parseProps(props);
+					return parsedProps && shouldAdd(...parsedProps);
+				}
+			});
+		}
+
+		set name(name) {
+			this.text = name;
+		}
+		get name() {
+			return this.text;
+		}
+	}
+
+	return { Item, SubMenu };
 })();
 
 Spicetify._cloneSidebarItem = (list, isLibX = false) => {

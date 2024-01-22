@@ -369,10 +369,10 @@ func exposeAPIs_main(input string) string {
 		`\(\({[^}]*,\s*imageSrc`,
 		`Spicetify.Snackbar.enqueueImageSnackbar=${0}`)
 
-	// Context Menu hook
-	utils.Replace(&input, `children:([\w_$]+),onClose:[\w_$]+,getInitialFocusElement:[\w_$]+,onFocusVerticalItem:[\w_$]+.+?\}\)=>\{`, `${0}${1}=[Spicetify.ContextMenuV2.renderItems(Spicetify.React.useContext(Spicetify.ContextMenuV2._context)),${1}].flat();`)
+	// Menu hook
+	utils.Replace(&input, `children:([\w_$]+),onClose:[\w_$]+,getInitialFocusElement:[\w_$]+,onFocusVerticalItem:[\w_$]+.+?\}\)=>\{`, `${0}${1}=[Spicetify.ContextMenuV2.renderItems(),${1}].flat();`)
 
-	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `${1}.jsx((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=i.createContext(null))).Provider,{value:e?.props,children:${0}})`)
+	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `${1}.jsx((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=i.createContext(null))).Provider,{value:{props:e?.props,trigger:l,target:p},children:${0}})`)
 
 	return input
 }
@@ -407,12 +407,6 @@ func exposeAPIs_vendor(input string) string {
 				1)
 		}
 	}
-
-	// Menu hook
-	utils.Replace(
-		&input,
-		`\w+\("onMount",\[(\w+)\]\)`,
-		`${0};if(${1}.popper?.firstChild?.id==="context-menu"){const container=${1}.popper.firstChild;!container.children.length&&container.firstChild?.classList.contains("main-userWidget-dropDownMenu")&&Spicetify.Menu._addItems(${1}.popper)};0`)
 
 	utils.ReplaceOnce(
 		&input,
