@@ -382,7 +382,7 @@ window.Spicetify = {
 
 	Object.assign(Spicetify, {
 		React: cache.find(m => m?.useMemo),
-        ReactJSX: cache.find(m => m?.jsx),
+		ReactJSX: cache.find(m => m?.jsx),
 		ReactDOM: cache.find(m => m?.createPortal),
 		ReactDOMServer: cache.find(m => m?.renderToString),
 		// classnames
@@ -582,7 +582,7 @@ window.Spicetify = {
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
 
-		// Combine snackbar and notification
+	// Combine snackbar and notification
 	(function bindShowNotification() {
 		if (!Spicetify.Snackbar?.enqueueSnackbar && !Spicetify.showNotification) {
 			setTimeout(bindShowNotification, 250);
@@ -1530,7 +1530,7 @@ Spicetify.ContextMenu = (() => {
 	class Item {
 		static iconList = iconList;
 
-		constructor(name, onClick, shouldAdd = () => true, icon = "", trailingIcon = "", disabled = false) {
+		constructor(name, onClick, shouldAdd = () => true, icon, trailingIcon, disabled = false) {
 			this.shouldAdd = shouldAdd;
 			this._name = name;
 			this._icon = icon;
@@ -1542,6 +1542,8 @@ Spicetify.ContextMenu = (() => {
 				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
 				const [_icon, setIcon] = Spicetify.React.useState(icon);
 				const [_trailingIcon, setTrailingIcon] = Spicetify.React.useState(trailingIcon);
+
+				const [uris, uids, contextUri] = parseProps(Spicetify.React.useContext(Spicetify.ContextMenuV2._context));
 
 				Spicetify.React.useEffect(() => {
 					self._setName = setName;
@@ -1560,9 +1562,9 @@ Spicetify.ContextMenu = (() => {
 				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuItem, {
 					disabled,
 					divider: undefined,
-					onClick,
-					leadingIcon: undefined,//: createIconComponent(icon),
-					trailingIcon: undefined,//: createIconComponent(trailingIcon),
+					onClick: e => onClick(uris, uids, contextUri),
+					leadingIcon: icon && createIconComponent(icon),
+					trailingIcon: trailingIcon && createIconComponent(trailingIcon),
 					children: name
 				});
 			}, {});
@@ -1610,7 +1612,7 @@ Spicetify.ContextMenu = (() => {
 	class SubMenu {
 		static iconList = iconList;
 
-		constructor(name, items, shouldAdd = () => true, disabled = false, icon = "", trailingIcon = "") {
+		constructor(name, items, shouldAdd = () => true, disabled = false, icon, trailingIcon) {
 			this._items = new Set(items);
 			this.shouldAdd = shouldAdd;
 			this._name = name;
@@ -1642,7 +1644,7 @@ Spicetify.ContextMenu = (() => {
 					onOpenChange: () => undefined,
 					onClick: () => undefined,
 					disabled: _disabled,
-					leadingIcon: undefined,//: createIconComponent(icon),
+					leadingIcon: icon && createIconComponent(icon),
 					children: _items
 				});
 			}, {});
@@ -1662,7 +1664,7 @@ Spicetify.ContextMenu = (() => {
 		}
 		removeItem(item) {
 			this._items.delete(item);
-            this._setItems?.(Array.from(this._items));
+			this._setItems?.(Array.from(this._items));
 		}
 
 		set disabled(bool) {
@@ -1682,6 +1684,7 @@ Spicetify.ContextMenu = (() => {
 	}
 
 	function parseProps(props) {
+		if (!props) return;
 		let uris = [];
 		let uids;
 		let contextUri;
@@ -1727,11 +1730,15 @@ Spicetify.ContextMenuV2 = (() => {
 		registeredItems.delete(item);
 	}
 
-	const renderItems = (props) => {
-		const [uris, uids, contextUri] = Spicetify.ContextMenu.parseProps(props);
+	const renderItems = props => {
+		const parsed = Spicetify.ContextMenu.parseProps(props);
+		if (!parsed) return [];
+		const [uris, uids, contextUri] = parsed;
 
-		return Array.from(registeredItems.entries()).map(([item, shouldAdd]) => shouldAdd?.(uris, uids, contextUri) && item).filter(Boolean);
-	}
+		return Array.from(registeredItems.entries())
+			.map(([item, shouldAdd]) => shouldAdd?.(uris, uids, contextUri) && item)
+			.filter(Boolean);
+	};
 
 	return { registerItem, unregisterItem, renderItems };
 })();
