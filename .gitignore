@@ -15,6 +15,4 @@ package.json
 # Logs
 install.log
 
-# VSCode
-.vscode
 pnpm-lock.yaml
