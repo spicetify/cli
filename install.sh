@@ -114,9 +114,7 @@ check() {
                 echo >> "$shellrc"
             fi
             echo "${2:-$path}" >> "$shellrc"
-            # Source the rc file to have spicetify binary available already in the session
-            # shellcheck source=/dev/null
-            . "$shellrc"
+            export PATH="$PATH:$spicetify_install"
         else
             log "spicetify path already set in $shellrc, continuing..."
         fi
