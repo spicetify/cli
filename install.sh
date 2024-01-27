@@ -114,7 +114,8 @@ check() {
                 echo >> "$shellrc"
             fi
             echo "${2:-$path}" >> "$shellrc"
-            log "Restart your shell to have spicetify in your PATH."
+            # Source the rc file to have spicetify binary available already in the session
+            source $shellrc
         else
             log "spicetify path already set in $shellrc, continuing..."
         fi
