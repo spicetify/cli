@@ -493,7 +493,7 @@ disable_ui_logging <0 | 1>
     Enable to stop logging and improve user experience.
 
 disable_self_update <0 | 1>
-	Diables self-updates for Spotify. Won't affect package manager updates.
+	Prevent Spotify from self-updating. Won't affect updates via package managers.
 
 remove_rtl_rule <0 | 1>
     To support Arabic and other Right-To-Left language, Spotify added a lot of
