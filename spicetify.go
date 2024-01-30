@@ -169,11 +169,9 @@ func main() {
 				}
 				return cmd.AppPath(commands[0])
 			} else {
-				if len(flags) != 0 {
-					for _, v := range flags {
-						if v != "-e" && v != "-c" && v != "-a" && v != "-s" {
-							return "", errors.New("invalid option\navailable options: -e, -c, -a, -s")
-						}
+				for _, v := range flags {
+					if v != "-e" && v != "-c" && v != "-a" && v != "-s" {
+						return "", errors.New("invalid option\navailable options: -e, -c, -a, -s")
 					}
 				}
 
