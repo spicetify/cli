@@ -273,7 +273,7 @@ func disableLogging(input string) string {
 }
 
 func disableUpdates(input string) string {
-	utils.Replace(&input, `"sp:\/\/desktop\/v1\/upgrade[\/\w]*"`, `""`)
+	utils.Replace(&input, `"sp:\/\/desktop\/v\d+\/upgrade[\/\w]*"`, `""`)
 	return input
 }
 
