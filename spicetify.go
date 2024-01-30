@@ -478,7 +478,7 @@ spotify_launch_flags
     List of valid flags: https://spicetify.app/docs/development/spotify-cli-flags
 
 always_enable_devtools <0 | 1>
-    Whether Chrome DevTools is enabled when launching/restarting Spotify.
+    Whether Chrome DevTools is enabled when launching/restarting Spotify using Spicetify.
 
 check_spicetify_update <0 | 1>
 		Whether to check for spicetify-cli update when running Spicetify.
@@ -491,6 +491,9 @@ disable_sentry <0 | 1>
 disable_ui_logging <0 | 1>
     Various elements logs every user clicks, scrolls.
     Enable to stop logging and improve user experience.
+
+disable_self_update <0 | 1>
+	Diables self-updates for Spotify. Won't affect package manager updates.
 
 remove_rtl_rule <0 | 1>
     To support Arabic and other Right-To-Left language, Spotify added a lot of

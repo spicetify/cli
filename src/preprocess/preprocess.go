@@ -22,6 +22,8 @@ type Flag struct {
 	DisableSentry bool
 	// DisableLogging stops various elements to log user interaction.
 	DisableLogging bool
+	// DisableUpdates prevents Spotify from self-updating.
+	DisableUpdates bool
 	// RemoveRTL removes all Right-To-Left CSS rules to simplify CSS files.
 	RemoveRTL bool
 	// ExposeAPIs leaks some Spotify's API, functions, objects to Spicetify global object.
@@ -95,6 +97,10 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 
 				if flags.DisableLogging {
 					content = disableLogging(content)
+				}
+
+				if flags.DisableUpdates && fileName == "xpui.js" {
+					content = disableUpdates(content)
 				}
 
 				if flags.ExposeAPIs {
@@ -263,6 +269,11 @@ func disableLogging(input string) string {
 	utils.Replace(&input, `(\}send\([\w,:=!\d{}]+\))\{.+?\}(hasContext)`, "${1}{return;}${2}")
 	utils.Replace(&input, `(\}lastFlush\(\))\{.+?\}(flush\(\))`, "${1}{return;}${2}")
 
+	return input
+}
+
+func disableUpdates(input string) string {
+	utils.Replace(&input, `"sp:\/\/desktop\/v1\/upgrade[\/\w]*"`, `""`)
 	return input
 }
 
