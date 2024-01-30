@@ -28,7 +28,7 @@ var (
 		"Preprocesses": {
 			"disable_sentry":       "1",
 			"disable_ui_logging":   "1",
-			"disable_self_update":  "0",
+			"disable_self_updates":  "0",
 			"remove_rtl_rule":      "1",
 			"expose_apis":          "1",
 		},

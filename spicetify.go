@@ -492,7 +492,7 @@ disable_ui_logging <0 | 1>
     Various elements logs every user clicks, scrolls.
     Enable to stop logging and improve user experience.
 
-disable_self_update <0 | 1>
+disable_self_updates <0 | 1>
 	Prevent Spotify from self-updating. Won't affect updates via package managers.
 
 remove_rtl_rule <0 | 1>
