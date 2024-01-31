@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
-# Copyright 2022 khanhas. GPL license.
+# Copyright 2022 khanhas.
+# Copyright 2023-present Spicetify contributors.
 # Edited from project Denoland install script (https://github.com/denoland/deno_install)
 
 set -e
