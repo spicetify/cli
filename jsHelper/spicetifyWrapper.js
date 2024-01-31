@@ -384,17 +384,6 @@ window.Spicetify = {
 		React: cache.find(m => m?.useMemo),
 		ReactDOM: cache.find(m => m?.createPortal),
 		ReactDOMServer: cache.find(m => m?.renderToString),
-		// classnames
-		// https://github.com/JedWatson/classnames/
-		classnames: cache
-			.filter(module => typeof module === "function")
-			.find(
-				module =>
-					module
-						.toString()
-						.match(/\(\){for\(var.*="",.*=0;.*<arguments.length;.*\+\+\){var.*=arguments\[.*];.*&&\(.*=a\(.*,\s*r\(.*\)\)\)}return.*}/) ??
-					(module.toString().includes('"string"') && module.toString().includes("[native code]"))
-			),
 		Color: functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
 		Player: {
 			...Spicetify.Player,
@@ -572,6 +561,13 @@ window.Spicetify = {
 		}
 	});
 
+	// classnames
+	// https://github.com/JedWatson/classnames/
+	const classnamesChunk = Object.entries(require.m).find(
+		([_, value]) => value.toString().includes("[native code]") && !value.toString().includes("<anonymous>")
+	);
+	if (classnamesChunk) Spicetify.classnames = Object.values(require(classnamesChunk[0])).find(m => typeof m === "function");
+
 	const playlistMenuChunk = Object.entries(require.m).find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
@@ -580,9 +576,7 @@ window.Spicetify = {
 	}
 
 	const dropdownChunk = Object.entries(require.m).find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
-	if (dropdownChunk) {
-		Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find(m => typeof m === "function");
-	}
+	if (dropdownChunk) Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find(m => typeof m === "function");
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
 
