@@ -481,8 +481,12 @@ window.Spicetify = {
 			QueryClientProvider: functionModules.find(m => m.toString().includes("use QueryClientProvider")),
 			notifyManager: modules.find(m => m?.setBatchNotifyFunction),
 			useMutation: functionModules.find(m => m.toString().includes("mutateAsync")),
-			useQuery: functionModules.find(m => m.toString().match(/^function [\w_$]+\(([\w_$]+),([\w_$]+)\)\{return\(0,[\w_$]+\.[\w_$]+\)\(\1,[\w_$]+\.[\w_$]+,\2\)\}$/)),
-			useQueryClient: functionModules.find(m => m.toString().includes("client") && m.toString().includes("Provider") && m.toString().includes("mount")),
+			useQuery: functionModules.find(m =>
+				m.toString().match(/^function [\w_$]+\(([\w_$]+),([\w_$]+)\)\{return\(0,[\w_$]+\.[\w_$]+\)\(\1,[\w_$]+\.[\w_$]+,\2\)\}$/)
+			),
+			useQueryClient: functionModules.find(
+				m => m.toString().includes("client") && m.toString().includes("Provider") && m.toString().includes("mount")
+			),
 			useSuspenseQuery: functionModules.find(
 				m => m.toString().includes("throwOnError") && m.toString().includes("suspense") && m.toString().includes("enabled")
 			)
