@@ -388,7 +388,13 @@ window.Spicetify = {
 		// https://github.com/JedWatson/classnames/
 		classnames: cache
 			.filter(module => typeof module === "function")
-			.find(module => module.toString().includes('"string"') && module.toString().includes("[native code]")),
+			.find(
+				module =>
+					module
+						.toString()
+						.match(/\(\){for\(var.*="",.*=0;.*<arguments.length;.*\+\+\){var.*=arguments\[.*];.*&&\(.*=a\(.*,\s*r\(.*\)\)\)}return.*}/) ??
+					(module.toString().includes('"string"') && module.toString().includes("[native code]"))
+			),
 		Color: functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
 		Player: {
 			...Spicetify.Player,
