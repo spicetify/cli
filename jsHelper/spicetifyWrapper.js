@@ -476,9 +476,22 @@ window.Spicetify = {
 				m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
 			)
 		},
-		// React Query v3
-		// https://github.com/TanStack/query/tree/v3
-		ReactQuery: cache.find(module => module.useQuery),
+		// React Query
+		// https://github.com/TanStack/query
+		// v3 until Spotify v1.2.29
+		// v5 since Spotify v1.2.30
+		ReactQuery: cache.find(module => module.useQuery) || {
+			PersistQueryClientProvider: functionModules.find(m => m.toString().includes("persistOptions")),
+			QueryClient: functionModules.find(m => m.toString().includes("defaultMutationOptions")),
+			QueryClientProvider: functionModules.find(m => m.toString().includes("use QueryClientProvider")),
+			notifyManager: modules.find(m => m?.setBatchNotifyFunction),
+			useMutation: functionModules.find(m => m.toString().includes("mutateAsync")),
+			useQuery: functionModules.find(m => m.toString().match(/^function [\w_$]+\([\w_$,]+,[\w_$]+\)\{return\(0,[\w_$.]+\)\([\w_$,.]+\)\}$/)),
+			useQueryClient: functionModules.find(m => m.toString().includes("client") && m.toString().includes("Provider")),
+			useSuspenseQuery: functionModules.find(
+				m => m.toString().includes("throwOnError") && m.toString().includes("suspense") && m.toString().includes("enabled")
+			)
+		},
 		ReactFlipToolkit: {
 			...Spicetify.ReactFlipToolkit,
 			Flipper: functionModules.find(m => m?.prototype?.getSnapshotBeforeUpdate),
@@ -576,6 +589,13 @@ window.Spicetify = {
 	const dropdownChunk = Object.entries(require.m).find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
 	if (dropdownChunk) {
 		Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find(m => typeof m === "function");
+	}
+
+	const infiniteQueryChunk = Object.entries(require.m).find(
+		([_, value]) => value.toString().includes("fetchPreviousPage") && value.toString().includes("getOptimisticResult")
+	);
+	if (infiniteQueryChunk) {
+		Spicetify.ReactQuery.useInfiniteQuery = Object.values(require(infiniteQueryChunk[0])).find(m => typeof m === "function");
 	}
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
