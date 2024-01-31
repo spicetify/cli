@@ -325,6 +325,7 @@ window.Spicetify = {
 	}
 	// Force all webpack modules to load
 	const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
+	const chunks = Object.entries(require.m);
 	const cache = Object.keys(require.m).map(id => require(id));
 	const modules = cache
 		.filter(module => typeof module === "object")
@@ -580,22 +581,24 @@ window.Spicetify = {
 
 	// classnames
 	// https://github.com/JedWatson/classnames/
-	const classnamesChunk = Object.entries(require.m).find(
-		([_, value]) => value.toString().includes("[native code]") && !value.toString().includes("<anonymous>")
-	);
-	if (classnamesChunk) Spicetify.classnames = Object.values(require(classnamesChunk[0])).find(m => typeof m === "function");
+	const classnamesChunk = chunks.find(([_, value]) => value.toString().includes("[native code]") && !value.toString().includes("<anonymous>"));
+	if (classnamesChunk) {
+		Spicetify.classnames = Object.values(require(classnamesChunk[0])).find(m => typeof m === "function");
+	}
 
-	const playlistMenuChunk = Object.entries(require.m).find(
+	const playlistMenuChunk = chunks.find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
 	if (playlistMenuChunk) {
 		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
 	}
 
-	const dropdownChunk = Object.entries(require.m).find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
-	if (dropdownChunk) Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find(m => typeof m === "function");
+	const dropdownChunk = chunks.find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
+	if (dropdownChunk) {
+		Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find(m => typeof m === "function");
+	}
 
-	const infiniteQueryChunk = Object.entries(require.m).find(
+	const infiniteQueryChunk = chunks.find(
 		([_, value]) => value.toString().includes("fetchPreviousPage") && value.toString().includes("getOptimisticResult")
 	);
 	if (infiniteQueryChunk) {
@@ -638,15 +641,13 @@ window.Spicetify = {
 
 		// Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features
 		if (!imageAnalysis) {
-			let chunk = Object.entries(require.m).find(
+			let chunk = chunks.find(
 				([, value]) =>
 					(value.toString().match(/[\w$]+\.isFallback/g) || value.toString().includes("colorRaw:")) && value.toString().match(/.extractColor/g)
 			);
 			if (!chunk) {
 				await new Promise(resolve => setTimeout(resolve, 100));
-				chunk = Object.entries(require.m).find(
-					([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/.extractColor/g)
-				);
+				chunk = chunks.find(([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/.extractColor/g));
 			}
 			imageAnalysis = Object.values(require(chunk[0])).find(m => typeof m === "function");
 		}
