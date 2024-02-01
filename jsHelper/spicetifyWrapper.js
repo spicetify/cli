@@ -586,11 +586,11 @@ window.Spicetify = {
 		Spicetify.classnames = Object.values(require(classnamesChunk[0])).find(m => typeof m === "function");
 	}
 
-  const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
+	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
 	if (contextMenuChunk) {
 		Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find(m => typeof m === "function");
 	}
-  
+
 	const playlistMenuChunk = chunks.find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
