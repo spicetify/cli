@@ -566,7 +566,7 @@ window.Spicetify = {
 		}
 	});
 
-	const contextMenuChunk = Object.entries(require.m).find(([, value]) => value.toString().includes("toggleContextMenu"));
+	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
 	if (contextMenuChunk) {
 		Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find(m => typeof m === "function");
 	}
