@@ -566,6 +566,11 @@ window.Spicetify = {
 		}
 	});
 
+	const contextMenuChunk = Object.entries(require.m).find(([, value]) => value.toString().includes("toggleContextMenu"));
+	if (contextMenuChunk) {
+		Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find(m => typeof m === "function");
+	}
+
 	const playlistMenuChunk = Object.entries(require.m).find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
