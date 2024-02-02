@@ -177,7 +177,9 @@ SpicetifyHomeConfig = {};
 			menu.isEnabled = false;
 			menu.deregister();
 		};
-	})(function waitForHistoryAPI() {
+	});
+
+	(function waitForHistoryAPI() {
 		if (!Spicetify.Platform?.History || !mounted) {
 			setTimeout(waitForHistoryAPI, 100);
 			return;
