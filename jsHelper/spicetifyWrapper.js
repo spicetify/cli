@@ -1987,6 +1987,7 @@ Object.defineProperty(Spicetify, "TippyProps", {
 Spicetify.Topbar = (() => {
 	let leftContainer;
 	let rightContainer;
+	let timeout;
 	const leftButtonsStash = new Set();
 	const rightButtonsStash = new Set();
 
@@ -2057,12 +2058,11 @@ Spicetify.Topbar = (() => {
 		}
 		leftContainer.append(...leftButtonsStash);
 		rightContainer.after(...rightButtonsStash);
-		attachObserver();
 	}
 
 	waitForTopbarMounted();
-
-	function attachObserver() {
+	(function attachObserver() {
+		if (timeout) clearTimeout(timeout);
 		const topBar = document.querySelector(".main-topBar-container");
 		if (!topBar) {
 			setTimeout(attachObserver, 100);
@@ -2075,11 +2075,12 @@ Spicetify.Topbar = (() => {
 					rightContainer = null;
 					waitForTopbarMounted();
 					observer.disconnect();
+					timeout = setTimeout(attachObserver, 300);
 				}
 			}
 		});
 		observer.observe(topBar, { childList: true, subtree: true });
-	}
+	})();
 
 	return { Button };
 })();
