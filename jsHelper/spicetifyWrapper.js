@@ -2048,16 +2048,38 @@ Spicetify.Topbar = (() => {
 		}
 	}
 
-	(function waitForTopbarMounted() {
+	function waitForTopbarMounted() {
 		leftContainer = document.querySelector(".main-topBar-historyButtons");
 		rightContainer = document.querySelector(".main-noConnection");
 		if (!leftContainer || !rightContainer) {
-			setTimeout(waitForTopbarMounted, 300);
+			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
 		leftContainer.append(...leftButtonsStash);
 		rightContainer.after(...rightButtonsStash);
-	})();
+		attachObserver();
+	}
+
+	waitForTopbarMounted();
+
+	function attachObserver() {
+		const topBar = document.querySelector(".main-topBar-container");
+		if (!topBar) {
+			setTimeout(attachObserver, 100);
+			return;
+		}
+		const observer = new MutationObserver(mutations => {
+			for (const mutation of mutations) {
+				if (mutation.removedNodes.length > 0) {
+					leftContainer = null;
+					rightContainer = null;
+					waitForTopbarMounted();
+					observer.disconnect();
+				}
+			}
+		});
+		observer.observe(topBar, { childList: true, subtree: true });
+	}
 
 	return { Button };
 })();
