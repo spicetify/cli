@@ -779,7 +779,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 	}
 
 	const ConfigItem = ({ name, field, func, disabled = false }) => {
-		const [value, setValue] = useState(CONFIG[field]);
+		const [value, setValue] = useState(true);
 		return react.createElement(
 			"div",
 			{ className: "setting-row" },
