@@ -126,7 +126,7 @@
 	notice.innerText = "Waiting for Spotify to finish loading...";
 	content.appendChild(notice);
 
-	Spicetify.Hooks.onWebpackLoaded(() =>
+	Spicetify.Events.webpackLoaded.on(() =>
 		new Spicetify.Menu.Item(
 			"Experimental features",
 			true,

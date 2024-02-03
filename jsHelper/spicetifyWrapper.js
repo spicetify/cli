@@ -305,7 +305,7 @@ window.Spicetify = {
 
 (function waitForPlatform() {
 	if (!Spicetify._platform) {
-		setTimeout(() => waitForPlatform(), 50);
+		setTimeout(waitForPlatform, 50);
 		return;
 	}
 	const { _platform } = Spicetify;
@@ -316,6 +316,7 @@ window.Spicetify = {
 			Spicetify.Platform[key] = _platform[key];
 		}
 	}
+	Spicetify.Events.platformLoaded.fire();
 })();
 
 (function hotloadWebpackModules() {
@@ -730,23 +731,23 @@ window.Spicetify = {
 		Spicetify.URI.isSameIdentity = URIModules.find(m => typeof m === "function" && m.toString().match(/[\w$]+\.id===[\w$]+\.id/));
 	})();
 
-	Spicetify.Hooks.fireWebpackLoaded();
+	Spicetify.Events.webpackLoaded.fire();
 })();
 
-Spicetify.Hooks = (() => {
-	const webpackLoadedCallbacks = [];
-	let isWebpackLoaded = false;
-	function onWebpackLoaded(callback) {
-		if (isWebpackLoaded) return callback();
-		webpackLoadedCallbacks.push(callback);
+Spicetify.Events = (() => {
+	class Event {
+		callbacks = [];
+		on(callback) {
+			if (!this.callbacks) return void callback();
+			this.callbacks.push(callback);
+		}
+		fire() {
+			for (const callback of this.callbacks) callback();
+			this.callbacks = undefined;
+		}
 	}
 
-	function fireWebpackLoaded() {
-		isWebpackLoaded = true;
-		for (callback of webpackLoadedCallbacks) callback();
-	}
-
-	return { onWebpackLoaded, fireWebpackLoaded };
+	return { webpackLoaded: new Event(), platformLoaded: new Event() };
 })();
 
 // Wait for Spicetify.Player.origin._state before adding following APIs

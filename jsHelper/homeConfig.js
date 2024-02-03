@@ -163,7 +163,7 @@ SpicetifyHomeConfig = {};
 		}
 	}
 
-	Spicetify.Hooks.onWebpackLoaded(() => {
+	Spicetify.Events.webpackLoaded.on(async () => {
 		const menu = new Spicetify.Menu.Item("Home config", true, self => {
 			self.isEnabled = !self.isEnabled;
 			if (self.isEnabled) {
@@ -177,24 +177,19 @@ SpicetifyHomeConfig = {};
 			menu.isEnabled = false;
 			menu.deregister();
 		};
-	});
 
-	(function waitForHistoryAPI() {
-		if (!Spicetify.Platform?.History || !mounted) {
-			setTimeout(waitForHistoryAPI, 100);
-			return;
-		}
+		await new Promise(res => Spicetify.Events.platformLoaded.on(res));
 		// Init
 		if (Spicetify.Platform.History.location.pathname === "/") {
-			SpicetifyHomeConfig.addToMenu?.();
+			SpicetifyHomeConfig.addToMenu();
 		}
 
 		Spicetify.Platform.History.listen(({ pathname }) => {
 			if (pathname === "/") {
-				SpicetifyHomeConfig.addToMenu?.();
+				SpicetifyHomeConfig.addToMenu();
 			} else {
-				SpicetifyHomeConfig.removeMenu?.();
+				SpicetifyHomeConfig.removeMenu();
 			}
 		});
-	})();
+	});
 })();

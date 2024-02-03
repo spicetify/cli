@@ -169,7 +169,7 @@ color: var(--spice-button-disabled);
 		writeStorage();
 	}
 
-	Spicetify.Hooks.onWebpackLoaded(() => {
+	Spicetify.Events.webpackLoaded.on(() => {
 		new Spicetify.Menu.Item(
 			"Sidebar config",
 			true,
