@@ -1,6 +1,6 @@
 SpicetifyHomeConfig = {};
 
-(() => {
+(async () => {
 	// Status enum
 	const NORMAL = 0;
 	const STICKY = 1;
@@ -163,33 +163,33 @@ SpicetifyHomeConfig = {};
 		}
 	}
 
-	Spicetify.Events.webpackLoaded.on(async () => {
-		const menu = new Spicetify.Menu.Item("Home config", true, self => {
-			self.isEnabled = !self.isEnabled;
-			if (self.isEnabled) {
-				injectInteraction();
-			} else {
-				removeInteraction();
-			}
-		});
-		SpicetifyHomeConfig.addToMenu = () => menu.register();
-		SpicetifyHomeConfig.removeMenu = () => {
-			menu.isEnabled = false;
-			menu.deregister();
-		};
+	await new Promise(Spicetify.Events.webpackLoaded.on);
 
-		await new Promise(res => Spicetify.Events.platformLoaded.on(res));
-		// Init
-		if (Spicetify.Platform.History.location.pathname === "/") {
-			SpicetifyHomeConfig.addToMenu();
+	const menu = new Spicetify.Menu.Item("Home config", true, self => {
+		self.isEnabled = !self.isEnabled;
+		if (self.isEnabled) {
+			injectInteraction();
+		} else {
+			removeInteraction();
 		}
+	});
+	SpicetifyHomeConfig.addToMenu = () => menu.register();
+	SpicetifyHomeConfig.removeMenu = () => {
+		menu.isEnabled = false;
+		menu.deregister();
+	};
 
-		Spicetify.Platform.History.listen(({ pathname }) => {
-			if (pathname === "/") {
-				SpicetifyHomeConfig.addToMenu();
-			} else {
-				SpicetifyHomeConfig.removeMenu();
-			}
-		});
+	await new Promise(res => Spicetify.Events.platformLoaded.on(res));
+	// Init
+	if (Spicetify.Platform.History.location.pathname === "/") {
+		SpicetifyHomeConfig.addToMenu();
+	}
+
+	Spicetify.Platform.History.listen(({ pathname }) => {
+		if (pathname === "/") {
+			SpicetifyHomeConfig.addToMenu();
+		} else {
+			SpicetifyHomeConfig.removeMenu();
+		}
 	});
 })();
