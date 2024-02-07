@@ -14,7 +14,7 @@ if (!navigator.serviceWorker) {
 	onmessage = event => {
 		if (event.data === "popup-lyric-request-update") {
 			console.warn("popup-lyric-request-update");
-			num = setInterval(() => postMessage("popup-lyric-update-ui"), 8);
+			num = setInterval(() => postMessage("popup-lyric-update-ui"), 15);
 		} else if (event.data === "popup-lyric-stop-update") {
 			clearInterval(num);
 			num = null;
@@ -719,22 +719,20 @@ function PopupLyrics() {
 		} else if (!audio.duration || lyrics.length === 0) {
 			drawText(lyricCtx, audio.currentSrc ? "Loading" : "Waiting");
 		}
-		if (lyrics?.length) {
-			if (document.hidden) {
-				if (!workerIsRunning) {
-					worker.postMessage("popup-lyric-request-update");
-					workerIsRunning = true;
-				}
-			} else {
-				if (workerIsRunning) {
-					worker.postMessage("popup-lyric-stop-update");
-					workerIsRunning = false;
-				}
 
-				requestAnimationFrame(() => tick(options));
+		if (!lyrics?.length) return setTimeout(tick, 1000, options);
+		if (document.hidden) {
+			if (!workerIsRunning) {
+				worker.postMessage("popup-lyric-request-update");
+				workerIsRunning = true;
 			}
 		} else {
-			setTimeout(tick, 80, options);
+			if (workerIsRunning) {
+				worker.postMessage("popup-lyric-stop-update");
+				workerIsRunning = false;
+			}
+
+			requestAnimationFrame(() => tick(options));
 		}
 	}
 
