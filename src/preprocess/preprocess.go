@@ -370,7 +370,7 @@ func exposeAPIs_main(input string) string {
 		`Spicetify.Snackbar.enqueueImageSnackbar=${0}`)
 
 	// Menu hook
-	utils.Replace(&input, `children:([\w_$]+),onClose:[\w_$]+,getInitialFocusElement:[\w_$]+,onFocusVerticalItem:[\w_$]+.+?\}\)=>\{`, `${0}${1}=[Spicetify.ContextMenuV2.renderItems(),${1}].flat();`)
+	utils.Replace(&input, `("Menu".+?children:)([\w$][\w$\d]*)`, `${1}[Spicetify.ContextMenuV2.renderItems(),${2}].flat()`)
 
 	croppedInput := utils.FindFirstMatch(input, `.*value:"contextmenu"`)[0]
 
