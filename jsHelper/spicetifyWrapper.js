@@ -1274,33 +1274,15 @@ Spicetify.ContextMenuV2 = (() => {
 
 	function parseProps(props) {
 		if (!props) return;
-		let uris = [];
-		let uids;
-		let contextUri;
-		if (props.uris) {
-			uris = props.uris;
-		} else if (props.uri) {
-			uris = [props.uri];
-		} else if (props.item?.uri) {
-			uris = [props.item.uri];
-		} else if (props.reference?.uri) {
-			uris = [props.reference.uri];
-		} else {
-			return;
-		}
-		if (props.uids) {
-			uids = props.uids;
-		} else if (props.uid) {
-			uids = [props.uid];
-		} else if (props.item?.uid) {
-			uids = [props.item.uid];
-		}
 
-		if (props.contextUri) {
-			contextUri = props?.contextUri;
-		} else if (props.context?.uri) {
-			contextUri = props.context.uri;
-		}
+		const uri = props.uri ?? props.item?.uri ?? props.reference?.uri;
+		const uris = props.uris ?? (uri ? [uri] : undefined);
+		if (!uris) return;
+
+		const uid = props.uid ?? props.item?.uid;
+		const uids = props.uids ?? (uid ? [uid] : undefined);
+
+		const contextUri = props.contextUri ?? props.context?.uri;
 
 		return [uris, uids, contextUri];
 	}
