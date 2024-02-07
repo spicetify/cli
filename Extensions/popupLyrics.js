@@ -14,7 +14,7 @@ if (!navigator.serviceWorker) {
 	onmessage = event => {
 		if (event.data === "popup-lyric-request-update") {
 			console.warn("popup-lyric-request-update");
-			num = setInterval(() => postMessage("popup-lyric-update-ui"), 15);
+			num = setInterval(() => postMessage("popup-lyric-update-ui"), 16.66);
 		} else if (event.data === "popup-lyric-stop-update") {
 			clearInterval(num);
 			num = null;
