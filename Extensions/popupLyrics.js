@@ -693,11 +693,14 @@ function PopupLyrics() {
 	}
 
 	let workerIsRunning = null;
+	let timeout = null;
 
 	async function tick(options) {
 		if (!lyricVideoIsOpen) {
 			return;
 		}
+
+		if (timeout) clearTimeout(timeout);
 
 		const audio = {
 			currentTime: (Player.getProgress() - Number(options.delay)) / 1000,
@@ -720,7 +723,11 @@ function PopupLyrics() {
 			drawText(lyricCtx, audio.currentSrc ? "Loading" : "Waiting");
 		}
 
-		if (!lyrics?.length) return setTimeout(tick, 1000, options);
+		if (!lyrics?.length) {
+			timeout = setTimeout(tick, 1000, options);
+			return;
+		}
+
 		if (document.hidden) {
 			if (!workerIsRunning) {
 				worker.postMessage("popup-lyric-request-update");
