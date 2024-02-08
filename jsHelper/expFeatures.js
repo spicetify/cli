@@ -269,7 +269,7 @@ ${Spicetify.SVGIcons.search}
 		setOverrides(Spicetify.createInternalMap?.(featureMap));
 	})();
 
-	await new Promise(Spicetify.Events.webpackLoaded.on);
+	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
 
 	new Spicetify.Menu.Item(
 		"Experimental features",
