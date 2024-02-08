@@ -178,6 +178,28 @@ func ReplaceOnce(input *string, regexpTerm string, replaceTerm string) {
 	}
 }
 
+func FindMatch(input string, regexpTerm string) [][]string {
+	re := regexp.MustCompile(regexpTerm)
+	matches := re.FindAllStringSubmatch(input, -1)
+	return matches
+}
+
+func FindFirstMatch(input string, regexpTerm string) []string {
+	matches := FindMatch(input, regexpTerm)
+	if len(matches) > 0 {
+		return matches[0]
+	}
+	return nil
+}
+
+func FindLastMatch(input string, regexpTerm string) []string {
+	matches := FindMatch(input, regexpTerm)
+	if len(matches) > 0 {
+		return matches[len(matches)-1]
+	}
+	return nil
+}
+
 // ModifyFile opens file, changes file content by executing
 // `repl` callback function and writes new content.
 func ModifyFile(path string, repl func(string) string) {
