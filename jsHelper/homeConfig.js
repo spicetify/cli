@@ -163,7 +163,7 @@ SpicetifyHomeConfig = {};
 		}
 	}
 
-	await new Promise(Spicetify.Events.webpackLoaded.on);
+	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
 
 	const menu = new Spicetify.Menu.Item("Home config", true, self => {
 		self.isEnabled = !self.isEnabled;
