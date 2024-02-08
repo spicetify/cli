@@ -1,6 +1,6 @@
 SpicetifyHomeConfig = {};
 
-(() => {
+(async () => {
 	// Status enum
 	const NORMAL = 0;
 	const STICKY = 1;
@@ -163,7 +163,9 @@ SpicetifyHomeConfig = {};
 		}
 	}
 
-	const menu = new Spicetify.Menu.Item("Home config", false, self => {
+	await new Promise(Spicetify.Events.webpackLoaded.on);
+
+	const menu = new Spicetify.Menu.Item("Home config", true, self => {
 		self.isEnabled = !self.isEnabled;
 		if (self.isEnabled) {
 			injectInteraction();
@@ -177,22 +179,17 @@ SpicetifyHomeConfig = {};
 		menu.deregister();
 	};
 
-	(function waitForHistoryAPI() {
-		if (!Spicetify.Platform?.History || !mounted) {
-			setTimeout(waitForHistoryAPI, 100);
-			return;
-		}
-		// Init
-		if (Spicetify.Platform.History.location.pathname === "/") {
-			SpicetifyHomeConfig.addToMenu();
-		}
+	await new Promise(res => Spicetify.Events.platformLoaded.on(res));
+	// Init
+	if (Spicetify.Platform.History.location.pathname === "/") {
+		SpicetifyHomeConfig.addToMenu();
+	}
 
-		Spicetify.Platform.History.listen(({ pathname }) => {
-			if (pathname === "/") {
-				SpicetifyHomeConfig.addToMenu();
-			} else {
-				SpicetifyHomeConfig.removeMenu();
-			}
-		});
-	})();
+	Spicetify.Platform.History.listen(({ pathname }) => {
+		if (pathname === "/") {
+			SpicetifyHomeConfig.addToMenu();
+		} else {
+			SpicetifyHomeConfig.removeMenu();
+		}
+	});
 })();

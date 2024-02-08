@@ -362,6 +362,18 @@ func exposeAPIs_main(input string) string {
 		`\(\({[^}]*,\s*imageSrc`,
 		`Spicetify.Snackbar.enqueueImageSnackbar=${0}`)
 
+	// Menu hook
+	utils.Replace(&input, `("Menu".+?children:)([\w$][\w$\d]*)`, `${1}[Spicetify.ContextMenuV2.renderItems(),${2}].flat()`)
+
+	croppedInput := utils.FindFirstMatch(input, `.*value:"contextmenu"`)[0]
+
+	react := utils.FindLastMatch(croppedInput, `([\w_$]+)\.useRef`)[1]
+	menu := utils.FindLastMatch(croppedInput, `menu:([\w_$]+)`)[1]
+	trigger := utils.FindLastMatch(croppedInput, `trigger:([\w_$]+)`)[1]
+	target := utils.FindLastMatch(croppedInput, `triggerRef:([\w_$]+)`)[1]
+
+	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `${1}.jsx((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=`+react+`.createContext(null))).Provider,{value:{props:`+menu+`?.props,trigger:`+trigger+`,target:`+target+`},children:${0}})`)
+
 	return input
 }
 
@@ -395,26 +407,6 @@ func exposeAPIs_vendor(input string) string {
 				1)
 		}
 	}
-
-	// Context Menu hook
-	utils.Replace(
-		&input,
-		`\w+\("onMount",\[(\w+)\]\)`,
-		`${0};
-if (${1}.popper?.firstChild?.id === "context-menu") {
-    const container = ${1}.popper.firstChild;
-	if (!container.children.length) {
-		const observer = new MutationObserver(() => {
-			Spicetify.ContextMenu._addItems(${1}.popper);
-			observer.disconnect();
-		});
-		observer.observe(container, { childList: true });
-    } else if (container.firstChild.classList.contains("main-userWidget-dropDownMenu")) {
-        Spicetify.Menu._addItems(${1}.popper);
-    } else {
-		Spicetify.ContextMenu._addItems(${1}.popper);
-	}
-};0`)
 
 	utils.ReplaceOnce(
 		&input,
