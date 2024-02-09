@@ -372,7 +372,7 @@ func exposeAPIs_main(input string) string {
 	trigger := utils.FindLastMatch(croppedInput, `trigger:([\w_$]+)`)[1]
 	target := utils.FindLastMatch(croppedInput, `triggerRef:([\w_$]+)`)[1]
 
-	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `${1}.jsx((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=`+react+`.createContext(null))).Provider,{value:{props:`+menu+`?.props,trigger:`+trigger+`,target:`+target+`},children:${0}})`)
+	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `(0,${1}.jsx)((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=`+react+`.createContext(null))).Provider,{value:{props:`+menu+`?.props,trigger:`+trigger+`,target:`+target+`},children:${0}})`)
 
 	return input
 }
