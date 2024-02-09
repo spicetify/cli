@@ -374,6 +374,7 @@ func exposeAPIs_main(input string) string {
 
 	menuCandidates := utils.FindMatch(croppedInput, `menu:([\w_$]+)`)
 	if len(menuCandidates) == 0 {
+		// v1.2.13 fix
 		menu = utils.FindFirstMatch(croppedInput, `([\w_$]+)=[\w_$]+\.menu,`)[1]
 		trigger = utils.FindFirstMatch(croppedInput, `([\w_$]+)=[\w_$]+\.trigger,`)[1]
 		target = utils.FindFirstMatch(croppedInput, `([\w_$]+)=[\w_$]+\.triggerRef,`)[1]
@@ -382,7 +383,6 @@ func exposeAPIs_main(input string) string {
 		trigger = utils.FindFirstMatch(croppedInput, `trigger:([\w_$]+)`)[1]
 		target = utils.FindFirstMatch(croppedInput, `triggerRef:([\w_$]+)`)[1]
 	}
-
 
 	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `(0,${1}.jsx)((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=`+react+`.createContext(null))).Provider,{value:{props:`+menu+`?.props,trigger:`+trigger+`,target:`+target+`},children:${0}})`)
 
