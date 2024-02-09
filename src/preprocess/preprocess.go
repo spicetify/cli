@@ -328,13 +328,6 @@ func exposeAPIs_main(input string) string {
 		`(,[$\w]+=)((function\([\w$]{1}\)\{var [\w$]+=[\w$]+\.platform,[\w$]+=[\w$]+\.children,)|(\(\{platform:[\w$]+,children:[\w$]+\}\)=>\{))`,
 		`${1}Spicetify.ReactComponent.PlatformProvider=${2}`)
 
-	// React Component: Context Menu
-	// TODO: replace with webpack module
-	utils.Replace(
-		&input,
-		`=(?:function\()?(\w+)(?:=>|\)\{return ?)((?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),(?:[\w(){},\.]+,[\w{}]+,)?\{[.,\w+]*action:"open",trigger:"right-click"\}\)\)?)(?:\}(\}))?`,
-		`=${1}=>${2};Spicetify.ReactComponent.ContextMenu=${3};${4}`)
-
 	// Prevent breaking popupLyrics
 	utils.Replace(
 		&input,
@@ -391,7 +384,7 @@ func exposeAPIs_main(input string) string {
 	}
 
 
-	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `${1}.jsx((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=`+react+`.createContext(null))).Provider,{value:{props:`+menu+`?.props,trigger:`+trigger+`,target:`+target+`},children:${0}})`)
+	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `(0,${1}.jsx)((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=`+react+`.createContext(null))).Provider,{value:{props:`+menu+`?.props,trigger:`+trigger+`,target:`+target+`},children:${0}})`)
 
 	return input
 }

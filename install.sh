@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
-# Copyright 2022 khanhas. GPL license.
+# Copyright 2022 khanhas.
+# Copyright 2023-present Spicetify contributors.
 # Edited from project Denoland install script (https://github.com/denoland/deno_install)
 
 set -e
@@ -114,7 +115,7 @@ check() {
                 echo >> "$shellrc"
             fi
             echo "${2:-$path}" >> "$shellrc"
-            log "Restart your shell to have spicetify in your PATH."
+            export PATH="$spicetify_install:$PATH"
         else
             log "spicetify path already set in $shellrc, continuing..."
         fi

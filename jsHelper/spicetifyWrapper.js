@@ -326,6 +326,7 @@ window.Spicetify = {
 	}
 	// Force all webpack modules to load
 	const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
+	const chunks = Object.entries(require.m);
 	const cache = Object.keys(require.m).map(id => require(id));
 	const modules = cache
 		.filter(module => typeof module === "object")
@@ -386,11 +387,6 @@ window.Spicetify = {
 		ReactJSX: cache.find(m => m?.jsx),
 		ReactDOM: cache.find(m => m?.createPortal),
 		ReactDOMServer: cache.find(m => m?.renderToString),
-		// classnames
-		// https://github.com/JedWatson/classnames/
-		classnames: cache
-			.filter(module => typeof module === "function")
-			.find(module => module.toString().includes('"string"') && module.toString().includes("[native code]")),
 		Color: functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
 		Player: {
 			...Spicetify.Player,
@@ -479,9 +475,26 @@ window.Spicetify = {
 				m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
 			)
 		},
-		// React Query v3
-		// https://github.com/TanStack/query/tree/v3
-		ReactQuery: cache.find(module => module.useQuery),
+		// React Query
+		// https://github.com/TanStack/query
+		// v3 until Spotify v1.2.29
+		// v5 since Spotify v1.2.30
+		ReactQuery: cache.find(module => module.useQuery) || {
+			PersistQueryClientProvider: functionModules.find(m => m.toString().includes("persistOptions")),
+			QueryClient: functionModules.find(m => m.toString().includes("defaultMutationOptions")),
+			QueryClientProvider: functionModules.find(m => m.toString().includes("use QueryClientProvider")),
+			notifyManager: modules.find(m => m?.setBatchNotifyFunction),
+			useMutation: functionModules.find(m => m.toString().includes("mutateAsync")),
+			useQuery: functionModules.find(m =>
+				m.toString().match(/^function [\w_$]+\(([\w_$]+),([\w_$]+)\)\{return\(0,[\w_$]+\.[\w_$]+\)\(\1,[\w_$]+\.[\w_$]+,\2\)\}$/)
+			),
+			useQueryClient: functionModules.find(
+				m => m.toString().includes("client") && m.toString().includes("Provider") && m.toString().includes("mount")
+			),
+			useSuspenseQuery: functionModules.find(
+				m => m.toString().includes("throwOnError") && m.toString().includes("suspense") && m.toString().includes("enabled")
+			)
+		},
 		ReactFlipToolkit: {
 			...Spicetify.ReactFlipToolkit,
 			Flipper: functionModules.find(m => m?.prototype?.getSnapshotBeforeUpdate),
@@ -569,16 +582,35 @@ window.Spicetify = {
 		}
 	});
 
-	const playlistMenuChunk = Object.entries(require.m).find(
+	// classnames
+	// https://github.com/JedWatson/classnames/
+	const classnamesChunk = chunks.find(([_, value]) => value.toString().includes("[native code]") && !value.toString().includes("<anonymous>"));
+	if (classnamesChunk) {
+		Spicetify.classnames = Object.values(require(classnamesChunk[0])).find(m => typeof m === "function");
+	}
+
+	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
+	if (contextMenuChunk) {
+		Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find(m => typeof m === "function");
+	}
+
+	const playlistMenuChunk = chunks.find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
 	if (playlistMenuChunk) {
 		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
 	}
 
-	const dropdownChunk = Object.entries(require.m).find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
+	const dropdownChunk = chunks.find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
 	if (dropdownChunk) {
 		Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find(m => typeof m === "function");
+	}
+
+	const infiniteQueryChunk = chunks.find(
+		([_, value]) => value.toString().includes("fetchPreviousPage") && value.toString().includes("getOptimisticResult")
+	);
+	if (infiniteQueryChunk) {
+		Spicetify.ReactQuery.useInfiniteQuery = Object.values(require(infiniteQueryChunk[0])).find(m => typeof m === "function");
 	}
 
 	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
@@ -617,15 +649,13 @@ window.Spicetify = {
 
 		// Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features
 		if (!imageAnalysis) {
-			let chunk = Object.entries(require.m).find(
+			let chunk = chunks.find(
 				([, value]) =>
 					(value.toString().match(/[\w$]+\.isFallback/g) || value.toString().includes("colorRaw:")) && value.toString().match(/.extractColor/g)
 			);
 			if (!chunk) {
 				await new Promise(resolve => setTimeout(resolve, 100));
-				chunk = Object.entries(require.m).find(
-					([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/.extractColor/g)
-				);
+				chunk = chunks.find(([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/.extractColor/g));
 			}
 			imageAnalysis = Object.values(require(chunk[0])).find(m => typeof m === "function");
 		}
@@ -1860,6 +1890,7 @@ Object.defineProperty(Spicetify, "TippyProps", {
 Spicetify.Topbar = (() => {
 	let leftContainer;
 	let rightContainer;
+	let timeout;
 	const leftButtonsStash = new Set();
 	const rightButtonsStash = new Set();
 
@@ -1921,15 +1952,37 @@ Spicetify.Topbar = (() => {
 		}
 	}
 
-	(function waitForTopbarMounted() {
+	function waitForTopbarMounted() {
 		leftContainer = document.querySelector(".main-topBar-historyButtons");
 		rightContainer = document.querySelector(".main-noConnection");
 		if (!leftContainer || !rightContainer) {
-			setTimeout(waitForTopbarMounted, 300);
+			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
 		leftContainer.append(...leftButtonsStash);
 		rightContainer.after(...rightButtonsStash);
+	}
+
+	waitForTopbarMounted();
+	(function attachObserver() {
+		if (timeout) clearTimeout(timeout);
+		const topBar = document.querySelector(".main-topBar-container");
+		if (!topBar) {
+			setTimeout(attachObserver, 100);
+			return;
+		}
+		const observer = new MutationObserver(mutations => {
+			for (const mutation of mutations) {
+				if (mutation.removedNodes.length > 0) {
+					leftContainer = null;
+					rightContainer = null;
+					waitForTopbarMounted();
+					observer.disconnect();
+					timeout = setTimeout(attachObserver, 300);
+				}
+			}
+		});
+		observer.observe(topBar, { childList: true, subtree: true });
 	})();
 
 	return { Button };
