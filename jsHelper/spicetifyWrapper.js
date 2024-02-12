@@ -1959,7 +1959,13 @@ Spicetify.Topbar = (() => {
 			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
+		for (const button of leftButtonsStash) {
+			if (button.parentNode) button.parentNode.removeChild(button);
+		}
 		leftContainer.append(...leftButtonsStash);
+		for (const button of rightButtonsStash) {
+			if (button.parentNode) button.parentNode.removeChild(button);
+		}
 		rightContainer.after(...rightButtonsStash);
 	}
 
