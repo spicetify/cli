@@ -505,6 +505,8 @@ window.Spicetify = {
 		Locale: modules.find(m => m?._dictionary)
 	});
 
+	if (!Spicetify.ContextMenuV2._context) Spicetify.ContextMenuV2._context = Spicetify.React.createContext({});
+
 	(function waitForSnackbar() {
 		if (!Object.keys(Spicetify.Snackbar).length) {
 			setTimeout(waitForSnackbar, 100);
