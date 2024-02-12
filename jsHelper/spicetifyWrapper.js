@@ -1389,6 +1389,11 @@ Spicetify.ContextMenuV2 = (() => {
 			}, {});
 		}
 
+		setState(state) {
+			this.disabled = !state;
+			this.trailingIcon = this.disabled ? "" : "check";
+		}
+
 		set children(children) {
 			this._children = children;
 			this._setChildren?.(this._children);
