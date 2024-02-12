@@ -1389,11 +1389,6 @@ Spicetify.ContextMenuV2 = (() => {
 			}, {});
 		}
 
-		setState(state) {
-			this.disabled = !state;
-			this.trailingIcon = this.disabled ? "" : "check";
-		}
-
 		set children(children) {
 			this._children = children;
 			this._setChildren?.(this._children);
@@ -1562,6 +1557,11 @@ Spicetify.Menu = (() => {
 	class Item extends Spicetify.ContextMenuV2.Item {
 		constructor(children, isEnabled, onClick, leadingIcon) {
 			super({ children, disabled: !isEnabled, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
+		}
+
+		setState(state) {
+			this.isEnabled = state;
+			this.trailingIcon = this.isEnabled ? "check" : "";
 		}
 
 		set isEnabled(bool) {
