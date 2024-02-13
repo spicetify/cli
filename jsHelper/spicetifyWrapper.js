@@ -1967,7 +1967,7 @@ Spicetify.Topbar = (() => {
 	waitForTopbarMounted();
 	(function waitForPlatform() {
 		if (!Spicetify.Platform?.History) {
-			setTimeout(waitForPlatform, 1000);
+			setTimeout(waitForPlatform, 100);
 			return;
 		}
 		Spicetify.Platform.History.listen(() => waitForTopbarMounted());
