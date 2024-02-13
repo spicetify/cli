@@ -365,12 +365,24 @@ func exposeAPIs_main(input string) string {
 	// Menu hook
 	utils.Replace(&input, `("Menu".+?children:)([\w$][\w$\d]*)`, `${1}[Spicetify.ContextMenuV2.renderItems(),${2}].flat()`)
 
-	croppedInput := utils.FindFirstMatch(input, `.*value:"contextmenu"`)[0]
+	croppedInput := utils.FindFirstMatch(input, `"context-menu".*value:"contextmenu"`)[0]
 
-	react := utils.FindLastMatch(croppedInput, `([\w_$]+)\.useRef`)[1]
-	menu := utils.FindLastMatch(croppedInput, `menu:([\w_$]+)`)[1]
-	trigger := utils.FindLastMatch(croppedInput, `trigger:([\w_$]+)`)[1]
-	target := utils.FindLastMatch(croppedInput, `triggerRef:([\w_$]+)`)[1]
+	react := utils.FindFirstMatch(croppedInput, `([\w_$]+)\.useRef`)[1]
+	var menu string
+	var trigger string
+	var target string
+
+	menuCandidates := utils.FindMatch(croppedInput, `menu:([\w_$]+)`)
+	if len(menuCandidates) == 0 {
+		// v1.2.13 fix
+		menu = utils.FindFirstMatch(croppedInput, `([\w_$]+)=[\w_$]+\.menu,`)[1]
+		trigger = utils.FindFirstMatch(croppedInput, `([\w_$]+)=[\w_$]+\.trigger,`)[1]
+		target = utils.FindFirstMatch(croppedInput, `([\w_$]+)=[\w_$]+\.triggerRef,`)[1]
+	} else {
+		menu = menuCandidates[0][1]
+		trigger = utils.FindFirstMatch(croppedInput, `trigger:([\w_$]+)`)[1]
+		target = utils.FindFirstMatch(croppedInput, `triggerRef:([\w_$]+)`)[1]
+	}
 
 	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, `(0,${1}.jsx)((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=`+react+`.createContext(null))).Provider,{value:{props:`+menu+`?.props,trigger:`+trigger+`,target:`+target+`},children:${0}})`)
 

@@ -505,6 +505,8 @@ window.Spicetify = {
 		Locale: modules.find(m => m?._dictionary)
 	});
 
+	if (!Spicetify.ContextMenuV2._context) Spicetify.ContextMenuV2._context = Spicetify.React.createContext({});
+
 	(function waitForSnackbar() {
 		if (!Object.keys(Spicetify.Snackbar).length) {
 			setTimeout(waitForSnackbar, 100);
@@ -1550,7 +1552,7 @@ Spicetify.ContextMenuV2 = (() => {
 })();
 
 Spicetify.Menu = (() => {
-	const shouldAdd = (_, trigger, target) => trigger === "click" && target.parentElement.classList.contains("main-topBar-topbarContentRight");
+	const shouldAdd = (_, trigger, target) => trigger === "click" && target.closest(".main-topBar-container");
 
 	class Item extends Spicetify.ContextMenuV2.Item {
 		constructor(children, isEnabled, onClick, leadingIcon) {
