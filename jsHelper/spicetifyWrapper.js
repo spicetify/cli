@@ -1556,19 +1556,21 @@ Spicetify.Menu = (() => {
 
 	class Item extends Spicetify.ContextMenuV2.Item {
 		constructor(children, isEnabled, onClick, leadingIcon) {
-			super({ children, disabled: !isEnabled, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
+			super({ children, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
+
+			this._isEnabled = isEnabled;
 		}
 
 		setState(state) {
 			this.isEnabled = state;
-			this.trailingIcon = this.isEnabled ? "check" : "";
 		}
 
 		set isEnabled(bool) {
-			this.disabled = !bool;
+			this._isEnabled = bool;
+			this.trailingIcon = this.isEnabled ? "check" : "";
 		}
 		get isEnabled() {
-			return !this.disabled;
+			return this._isEnabled;
 		}
 	}
 
