@@ -1899,7 +1899,6 @@ Object.defineProperty(Spicetify, "TippyProps", {
 Spicetify.Topbar = (() => {
 	let leftContainer;
 	let rightContainer;
-	let timeout;
 	const leftButtonsStash = new Set();
 	const rightButtonsStash = new Set();
 
@@ -1979,25 +1978,12 @@ Spicetify.Topbar = (() => {
 	}
 
 	waitForTopbarMounted();
-	(function attachObserver() {
-		if (timeout) clearTimeout(timeout);
-		const topBar = document.querySelector(".main-topBar-container");
-		if (!topBar) {
-			setTimeout(attachObserver, 100);
+	(function waitForPlatform() {
+		if (!Spicetify.Platform?.History) {
+			setTimeout(waitForPlatform, 100);
 			return;
 		}
-		const observer = new MutationObserver(mutations => {
-			for (const mutation of mutations) {
-				if (mutation.removedNodes.length > 0) {
-					leftContainer = null;
-					rightContainer = null;
-					waitForTopbarMounted();
-					observer.disconnect();
-					timeout = setTimeout(attachObserver, 300);
-				}
-			}
-		});
-		observer.observe(topBar, { childList: true, subtree: true });
+		Spicetify.Platform.History.listen(() => waitForTopbarMounted());
 	})();
 
 	return { Button };
