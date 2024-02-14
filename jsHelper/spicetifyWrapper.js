@@ -1559,6 +1559,11 @@ Spicetify.Menu = (() => {
 			super({ children, disabled: !isEnabled, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
 		}
 
+		setState(state) {
+			this.isEnabled = state;
+			this.trailingIcon = this.isEnabled ? "check" : "";
+		}
+
 		set isEnabled(bool) {
 			this.disabled = !bool;
 		}
