@@ -1556,7 +1556,7 @@ Spicetify.Menu = (() => {
 
 	class Item extends Spicetify.ContextMenuV2.Item {
 		constructor(children, isEnabled, onClick, leadingIcon) {
-			super({ children, disabled: !isEnabled, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
+			super({ children, disabled: isEnabled, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
 		}
 
 		setState(state) {
