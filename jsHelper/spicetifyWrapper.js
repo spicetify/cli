@@ -326,7 +326,11 @@ window.Spicetify = {
 	}
 	// Force all webpack modules to load
 	const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
-	const chunks = Object.entries(require.m);
+	const chunks = require.m ? Object.entries(require.m) : [];
+	if (!chunks) {
+		setTimeout(hotloadWebpackModules, 50);
+		return;
+	}
 	const cache = Object.keys(require.m).map(id => require(id));
 	const modules = cache
 		.filter(module => typeof module === "object")
