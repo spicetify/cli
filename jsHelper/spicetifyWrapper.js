@@ -337,7 +337,7 @@ window.Spicetify = {
 				const isSpotifyAPI = exposedURL.hostname === "api.spotify.com";
 				const isSpClientAPI = exposedURL.hostname.includes("spclient") && exposedURL.hostname.includes(".spotify.com");
 				const isInternalURL = exposedURL.protocol === "sp";
-				const useProxy = !isInternalURL && !isSpotifyAPI;
+				const useProxy = !isInternalURL && !isSpotifyAPI && !isSpClientAPI;
 				const method = mappedMethods[prop.toLowerCase()] || prop.toLowerCase();
 
 				const options = {
