@@ -322,7 +322,7 @@ window.Spicetify = {
 			const origMethod = Reflect.get(target, prop, receiver);
 
 			if (!allowedMethods.includes(prop) && typeof origMethod !== "function") return origMethod;
-			if (proxyMethods.includes(prop)) return origMethod;
+			if (proxyMethods.includes(prop) || Spicetify.Platform.version >= "1.2.31") return origMethod;
 
 			return async function (...args) {
 				const [url, paramsOrBody] = args;
