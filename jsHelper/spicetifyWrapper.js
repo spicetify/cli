@@ -303,6 +303,76 @@ window.Spicetify = {
 	Platform: {}
 };
 
+(function addProxyCosmos() {
+	if (!Spicetify.Player.origin?._cosmos) {
+		setTimeout(addProxyCosmos, 50);
+		return;
+	}
+
+	const proxyURL = "https://cors-proxy.ririxi.workers.dev/";
+	const allowedMethods = ["get", "post", "del", "put", "patch"];
+	const mappedMethods = {
+		del: "delete"
+	};
+	const proxyMethods = ["resolve", "requestFactory", "resolver"];
+
+	const handler = {
+		// biome-ignore lint/complexity/useArrowFunction: <explanation>
+		get: function (target, prop, receiver) {
+			const origMethod = Reflect.get(target, prop, receiver);
+
+			if (!allowedMethods.includes(prop) && typeof origMethod !== "function") return origMethod;
+			if (proxyMethods.includes(prop)) return origMethod;
+
+			return async function (...args) {
+				const [url, paramsOrBody] = args;
+				let exposedURL;
+
+				try {
+					const urlObj = new URL(url);
+					exposedURL = urlObj;
+				} catch {
+					throw Error("Invalid URL");
+				}
+				const spotifyApi = exposedURL.hostname === "api.spotify.com";
+				const spClientSpotify = exposedURL.hostname.includes("spclient") && exposedURL.hostname.includes(".spotify.com");
+				const internalUrl = exposedURL.protocol === "sp";
+				const useProxy = !internalUrl && !spotifyApi;
+				const method = mappedMethods[prop.toLowerCase()] || prop.toLowerCase();
+
+				const options = {
+					method,
+					headers: {
+						"Content-Type": "application/json"
+					},
+					timeout: 1000 * 15
+				};
+				let finalURL = exposedURL.toString();
+
+				if (method === "get" && paramsOrBody) finalURL += `?${new URLSearchParams(paramsOrBody).toString()}`;
+				if (method !== "get" && paramsOrBody) options.body = JSON.stringify(paramsOrBody);
+
+				if (useProxy) finalURL = `${proxyURL}${finalURL}`;
+				if (spotifyApi) options.headers.Authorization = `Bearer ${Spicetify.Platform.Session.accessToken}`;
+				if (spClientSpotify) {
+					options.headers.Authorization = `Bearer ${Spicetify.Platform.Session.accessToken}`;
+					options.headers["Spotify-App-Version"] = Spicetify.Platform.version;
+					options.headers["App-Platform"] = Spicetify.Platform.PlatformData.app_platform;
+				}
+
+				try {
+					if (internalUrl && !spotifyApi) return origMethod.apply(this, args);
+					return await (await fetch(finalURL, options)).json();
+				} catch (e) {
+					console.error(e);
+				}
+			};
+		}
+	};
+
+	Spicetify.Player.origin._cosmos = new Proxy(Spicetify.Player.origin._cosmos, handler);
+})();
+
 (function waitForPlatform() {
 	if (!Spicetify._platform) {
 		setTimeout(waitForPlatform, 50);
