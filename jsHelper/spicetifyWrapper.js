@@ -334,10 +334,10 @@ window.Spicetify = {
 				} catch {
 					throw Error("Invalid URL");
 				}
-				const spotifyApi = exposedURL.hostname === "api.spotify.com";
-				const spClientSpotify = exposedURL.hostname.includes("spclient") && exposedURL.hostname.includes(".spotify.com");
-				const internalUrl = exposedURL.protocol === "sp";
-				const useProxy = !internalUrl && !spotifyApi;
+				const isSpotifyAPI = exposedURL.hostname === "api.spotify.com";
+				const isSpClientAPI = exposedURL.hostname.includes("spclient") && exposedURL.hostname.includes(".spotify.com");
+				const isInternalURL = exposedURL.protocol === "sp";
+				const useProxy = !internalUrl && !isSpotifyAPI;
 				const method = mappedMethods[prop.toLowerCase()] || prop.toLowerCase();
 
 				const options = {
@@ -353,15 +353,15 @@ window.Spicetify = {
 				if (method !== "get" && paramsOrBody) options.body = JSON.stringify(paramsOrBody);
 
 				if (useProxy) finalURL = `${proxyURL}${finalURL}`;
-				if (spotifyApi) options.headers.Authorization = `Bearer ${Spicetify.Platform.Session.accessToken}`;
-				if (spClientSpotify) {
+				if (isSpotifyAPI) options.headers.Authorization = `Bearer ${Spicetify.Platform.Session.accessToken}`;
+				if (isSpClientAPI) {
 					options.headers.Authorization = `Bearer ${Spicetify.Platform.Session.accessToken}`;
 					options.headers["Spotify-App-Version"] = Spicetify.Platform.version;
 					options.headers["App-Platform"] = Spicetify.Platform.PlatformData.app_platform;
 				}
 
 				try {
-					if (internalUrl && !spotifyApi) return origMethod.apply(this, args);
+					if (isInternalURL && !isSpotifyAPI && !isSpClientAPI) return origMethod.apply(this, args);
 					return await (await fetch(finalURL, options)).json();
 				} catch (e) {
 					console.error(e);
