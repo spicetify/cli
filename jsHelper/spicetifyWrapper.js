@@ -309,60 +309,67 @@ window.Spicetify = {
 		return;
 	}
 
-	const proxyURL = "https://cors-proxy.ririxi.workers.dev/";
-	const allowedMethods = ["get", "post", "del", "put", "patch"];
-	const mappedMethods = {
-		del: "delete"
+	const corsProxyURL = "https://cors-proxy.ririxi.workers.dev/";
+	const allowedMethodsMap = {
+		get: "get",
+		post: "post",
+		del: "delete",
+		put: "put",
+		patch: "patch"
 	};
-	const proxyMethods = ["resolve", "requestFactory", "resolver"];
+	const allowedMethodsSet = new Set(Object.keys(allowedMethodsMap));
+	const internalEndpoints = new Set(["sp", "wg"]);
 
 	const handler = {
 		// biome-ignore lint/complexity/useArrowFunction: <explanation>
 		get: function (target, prop, receiver) {
-			const origMethod = Reflect.get(target, prop, receiver);
+			const internalFetch = Reflect.get(target, prop, receiver);
 
-			if (!allowedMethods.includes(prop) && typeof origMethod !== "function") return origMethod;
-			if (proxyMethods.includes(prop) || Spicetify.Platform.version >= "1.2.31") return origMethod;
+			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop) || Spicetify.Platform.version < "1.2.31") return internalFetch;
 
-			return async function (...args) {
-				const [url, paramsOrBody] = args;
-				let exposedURL;
+			return async function (url, paramsOrBody) {
+				const urlObj = new URL(url);
 
-				try {
-					const urlObj = new URL(url);
-					exposedURL = urlObj;
-				} catch {
-					throw Error("Invalid URL");
-				}
-				const isSpotifyAPI = exposedURL.hostname === "api.spotify.com";
-				const isSpClientAPI = exposedURL.hostname.includes("spclient") && exposedURL.hostname.includes(".spotify.com");
-				const isInternalURL = exposedURL.protocol === "sp" || exposedURL.protocol === "wg";
-				const useProxy = !isInternalURL && !isSpotifyAPI && !isSpClientAPI;
-				const method = mappedMethods[prop.toLowerCase()] || prop.toLowerCase();
+				const isWebAPI = urlObj.hostname === "api.spotify.com";
+				const isSpClientAPI = urlObj.hostname.includes(".spotify.com") && urlObj.hostname.includes("spclient");
+				const isInternalURL = internalEndpoints.has(urlObj.protocol);
+				const shouldUseCORSProxy = !isWebAPI && !isSpClientAPI && !isInternalURL;
+
+				const method = allowedMethodsMap[prop.toLowerCase()];
+				const headers = {
+					"Content-Type": "application/json"
+				};
 
 				const options = {
 					method,
-					headers: {
-						"Content-Type": "application/json"
-					},
+					headers,
 					timeout: 1000 * 15
 				};
-				let finalURL = exposedURL.toString();
 
-				if (method === "get" && paramsOrBody) finalURL += `?${new URLSearchParams(paramsOrBody).toString()}`;
-				if (method !== "get" && paramsOrBody) options.body = JSON.stringify(paramsOrBody);
-
-				if (useProxy) finalURL = `${proxyURL}${finalURL}`;
-				if (isSpotifyAPI) options.headers.Authorization = `Bearer ${Spicetify.Platform.Session.accessToken}`;
-				if (isSpClientAPI) {
-					options.headers.Authorization = `Bearer ${Spicetify.Platform.Session.accessToken}`;
-					options.headers["Spotify-App-Version"] = Spicetify.Platform.version;
-					options.headers["App-Platform"] = Spicetify.Platform.PlatformData.app_platform;
+				let finalURL = urlObj.toString();
+				if (paramsOrBody) {
+					if (method === "get") {
+						const params = new URLSearchParams(paramsOrBody);
+						finalURL += `?${params.toString()}`;
+					} else options.body = JSON.stringify(paramsOrBody);
 				}
+				if (shouldUseCORSProxy) finalURL = `${corsProxyURL}${finalURL}`;
+
+				const Authorization = `Bearer ${Spicetify.Platform.Session.accessToken}`;
+				let injectedHeaders = {};
+				if (isWebAPI) injectedHeaders = { Authorization };
+				if (isSpClientAPI) {
+					injectedHeaders = {
+						Authorization,
+						"Spotify-App-Version": Spicetify.Platform.version,
+						"App-Platform": Spicetify.Platform.PlatformData.app_platform
+					};
+				}
+				Object.assign(options.headers, injectedHeaders);
 
 				try {
-					if (isInternalURL && !isSpotifyAPI && !isSpClientAPI) return origMethod.apply(this, args);
-					return await (await fetch(finalURL, options)).json();
+					if (isInternalURL) return internalFetch.apply(this, args);
+					return fetch(finalURL, options).then(res => res.json());
 				} catch (e) {
 					console.error(e);
 				}
