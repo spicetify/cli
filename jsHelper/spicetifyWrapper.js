@@ -318,7 +318,7 @@ window.Spicetify = {
 		patch: "patch"
 	};
 	const allowedMethodsSet = new Set(Object.keys(allowedMethodsMap));
-	const internalEndpoints = new Set(["sp", "wg"]);
+	const internalEndpoints = new Set(["sp:", "wg:"]);
 
 	const handler = {
 		// biome-ignore lint/complexity/useArrowFunction: <explanation>
@@ -327,12 +327,16 @@ window.Spicetify = {
 
 			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop) || Spicetify.Platform.version < "1.2.31") return internalFetch;
 
+			// biome-ignore lint/complexity/useArrowFunction: <explanation>
 			return async function (url, paramsOrBody) {
 				const urlObj = new URL(url);
 
 				const isWebAPI = urlObj.hostname === "api.spotify.com";
 				const isSpClientAPI = urlObj.hostname.includes(".spotify.com") && urlObj.hostname.includes("spclient");
 				const isInternalURL = internalEndpoints.has(urlObj.protocol);
+				// biome-ignore lint/style/noArguments: <explanation>
+				if (isInternalURL) return internalFetch.apply(this, arguments);
+
 				const shouldUseCORSProxy = !isWebAPI && !isSpClientAPI && !isInternalURL;
 
 				const method = allowedMethodsMap[prop.toLowerCase()];
@@ -368,7 +372,6 @@ window.Spicetify = {
 				Object.assign(options.headers, injectedHeaders);
 
 				try {
-					if (isInternalURL) return internalFetch.apply(this, args);
 					return fetch(finalURL, options).then(res => res.json());
 				} catch (e) {
 					console.error(e);
