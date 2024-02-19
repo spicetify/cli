@@ -1552,7 +1552,7 @@ Spicetify.ContextMenuV2 = (() => {
 })();
 
 Spicetify.Menu = (() => {
-	const shouldAdd = (_, trigger, target) => trigger === "click" && target.closest(".main-topBar-container");
+	const shouldAdd = (_, trigger, target) => trigger === "click" && target.getAttribute("data-testid")?.endsWith("user-widget-link");
 
 	class Item extends Spicetify.ContextMenuV2.Item {
 		constructor(children, isEnabled, onClick, leadingIcon) {
