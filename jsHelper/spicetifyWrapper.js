@@ -309,7 +309,7 @@ window.Spicetify = {
 		return;
 	}
 
-	const corsProxyURL = "https://cors-proxy.ririxi.workers.dev/";
+	const corsProxyURL = "https://cors-proxy.spicetify.app/";
 	const allowedMethodsMap = {
 		get: "get",
 		post: "post",
