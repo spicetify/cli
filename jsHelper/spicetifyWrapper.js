@@ -1556,14 +1556,21 @@ Spicetify.Menu = (() => {
 
 	class Item extends Spicetify.ContextMenuV2.Item {
 		constructor(children, isEnabled, onClick, leadingIcon) {
-			super({ children, disabled: !isEnabled, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
+			super({ children, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
+
+			this._isEnabled = isEnabled;
+		}
+
+		setState(state) {
+			this.isEnabled = state;
 		}
 
 		set isEnabled(bool) {
-			this.disabled = !bool;
+			this._isEnabled = bool;
+			this.trailingIcon = this.isEnabled ? "check" : "";
 		}
 		get isEnabled() {
-			return !this.disabled;
+			return this._isEnabled;
 		}
 	}
 
@@ -1892,7 +1899,6 @@ Object.defineProperty(Spicetify, "TippyProps", {
 Spicetify.Topbar = (() => {
 	let leftContainer;
 	let rightContainer;
-	let timeout;
 	const leftButtonsStash = new Set();
 	const rightButtonsStash = new Set();
 
@@ -1961,30 +1967,23 @@ Spicetify.Topbar = (() => {
 			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
+		for (const button of leftButtonsStash) {
+			if (button.parentNode) button.parentNode.removeChild(button);
+		}
 		leftContainer.append(...leftButtonsStash);
+		for (const button of rightButtonsStash) {
+			if (button.parentNode) button.parentNode.removeChild(button);
+		}
 		rightContainer.after(...rightButtonsStash);
 	}
 
 	waitForTopbarMounted();
-	(function attachObserver() {
-		if (timeout) clearTimeout(timeout);
-		const topBar = document.querySelector(".main-topBar-container");
-		if (!topBar) {
-			setTimeout(attachObserver, 100);
+	(function waitForPlatform() {
+		if (!Spicetify.Platform?.History) {
+			setTimeout(waitForPlatform, 100);
 			return;
 		}
-		const observer = new MutationObserver(mutations => {
-			for (const mutation of mutations) {
-				if (mutation.removedNodes.length > 0) {
-					leftContainer = null;
-					rightContainer = null;
-					waitForTopbarMounted();
-					observer.disconnect();
-					timeout = setTimeout(attachObserver, 300);
-				}
-			}
-		});
-		observer.observe(topBar, { childList: true, subtree: true });
+		Spicetify.Platform.History.listen(() => waitForTopbarMounted());
 	})();
 
 	return { Button };
