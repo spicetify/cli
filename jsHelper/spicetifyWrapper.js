@@ -328,7 +328,7 @@ window.Spicetify = {
 			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop) || Spicetify.Platform.version < "1.2.31") return internalFetch;
 
 			// biome-ignore lint/complexity/useArrowFunction: <explanation>
-			return async function (url, paramsOrBody) {
+			return async function (url, body) {
 				const urlObj = new URL(url);
 
 				const isWebAPI = urlObj.hostname === "api.spotify.com";
@@ -350,12 +350,21 @@ window.Spicetify = {
 					timeout: 1000 * 15
 				};
 
+				function isJson(str) {
+					try {
+						JSON.parse(str);
+					} catch {
+						return false;
+					}
+					return true;
+				}
+
 				let finalURL = urlObj.toString();
-				if (paramsOrBody) {
+				if (body) {
 					if (method === "get") {
-						const params = new URLSearchParams(paramsOrBody);
+						const params = new URLSearchParams(body);
 						finalURL += `?${params.toString()}`;
-					} else options.body = JSON.stringify(paramsOrBody);
+					} else options.body = isJson ? JSON.stringify(body) : body;
 				}
 				if (shouldUseCORSProxy) finalURL = `${corsProxyURL}${finalURL}`;
 
