@@ -368,7 +368,7 @@ window.Spicetify = {
 				}
 				if (shouldUseCORSProxy) finalURL = `${corsProxyURL}${finalURL}`;
 
-				const Authorization = `Bearer ${Spicetify.Platform.AuthorizationAPI._state.token.accessToken}`;
+				const Authorization = `Bearer ${Spicetify.Platform.AuthorizationAPI.getState().token.accessToken}`;
 				let injectedHeaders = {};
 				if (isWebAPI) injectedHeaders = { Authorization };
 				if (isSpClientAPI) {
