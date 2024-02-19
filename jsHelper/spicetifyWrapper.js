@@ -332,7 +332,7 @@ window.Spicetify = {
 				const urlObj = new URL(url);
 
 				const isWebAPI = urlObj.hostname === "api.spotify.com";
-				const isSpClientAPI = urlObj.hostname.includes(".spotify.com") && urlObj.hostname.includes("spclient");
+				const isSpClientAPI = urlObj.hostname.includes("spotify.com") && urlObj.hostname.includes("spclient");
 				const isInternalURL = internalEndpoints.has(urlObj.protocol);
 				// biome-ignore lint/style/noArguments: <explanation>
 				if (isInternalURL) return internalFetch.apply(this, arguments);
