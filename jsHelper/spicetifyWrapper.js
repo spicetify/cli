@@ -303,6 +303,99 @@ window.Spicetify = {
 	Platform: {}
 };
 
+(function addProxyCosmos() {
+	if (!Spicetify.Player.origin?._cosmos) {
+		setTimeout(addProxyCosmos, 50);
+		return;
+	}
+
+	const corsProxyURL = "https://cors-proxy.spicetify.app/";
+	const allowedMethodsMap = {
+		get: "get",
+		post: "post",
+		del: "delete",
+		put: "put",
+		patch: "patch"
+	};
+	const allowedMethodsSet = new Set(Object.keys(allowedMethodsMap));
+	const internalEndpoints = new Set(["sp:", "wg:"]);
+
+	const handler = {
+		// biome-ignore lint/complexity/useArrowFunction: <explanation>
+		get: function (target, prop, receiver) {
+			const internalFetch = Reflect.get(target, prop, receiver);
+
+			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop) || Spicetify.Platform.version < "1.2.31") return internalFetch;
+
+			// biome-ignore lint/complexity/useArrowFunction: <explanation>
+			return async function (url, body) {
+				const urlObj = new URL(url);
+
+				const isWebAPI = urlObj.hostname === "api.spotify.com";
+				const isSpClientAPI = urlObj.hostname.includes("spotify.com") && urlObj.hostname.includes("spclient");
+				const isInternalURL = internalEndpoints.has(urlObj.protocol);
+				// biome-ignore lint/style/noArguments: <explanation>
+				if (isInternalURL) return internalFetch.apply(this, arguments);
+
+				const shouldUseCORSProxy = !isWebAPI && !isSpClientAPI && !isInternalURL;
+
+				const method = allowedMethodsMap[prop.toLowerCase()];
+				const headers = {
+					"Content-Type": "application/json"
+				};
+
+				const options = {
+					method,
+					headers,
+					timeout: 1000 * 15
+				};
+
+				function isJson(str) {
+					try {
+						JSON.parse(str);
+					} catch {
+						return false;
+					}
+					return true;
+				}
+
+				let finalURL = urlObj.toString();
+				if (body) {
+					if (method === "get") {
+						const params = new URLSearchParams(body);
+						finalURL += `?${params.toString()}`;
+					} else options.body = isJson ? JSON.stringify(body) : body;
+				}
+				if (shouldUseCORSProxy) finalURL = `${corsProxyURL}${finalURL}`;
+
+				const Authorization = `Bearer ${Spicetify.Platform.AuthorizationAPI.getState().token.accessToken}`;
+				let injectedHeaders = {};
+				if (isWebAPI) injectedHeaders = { Authorization };
+				if (isSpClientAPI) {
+					injectedHeaders = {
+						Authorization,
+						"Spotify-App-Version": Spicetify.Platform.version,
+						"App-Platform": Spicetify.Platform.PlatformData.app_platform
+					};
+				}
+				Object.assign(options.headers, injectedHeaders);
+
+				try {
+					return fetch(finalURL, options).then(res =>
+						res.json().catch(() => {
+							return { status: res.status };
+						})
+					);
+				} catch (e) {
+					console.error(e);
+				}
+			};
+		}
+	};
+
+	Spicetify.Player.origin._cosmos = new Proxy(Spicetify.Player.origin._cosmos, handler);
+})();
+
 (function waitForPlatform() {
 	if (!Spicetify._platform) {
 		setTimeout(waitForPlatform, 50);
