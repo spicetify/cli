@@ -73,7 +73,7 @@ const CONFIG = {
 		},
 		genius: {
 			on: false,
-			desc: "Provide unsynced lyrics with insights from artists themselves.",
+			desc: "Provide unsynced lyrics with insights from artists themselves. Genius has been disabled for now and cannot be enabled.",
 			modes: [GENIUS]
 		},
 		local: {
