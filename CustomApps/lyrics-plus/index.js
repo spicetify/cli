@@ -72,7 +72,7 @@ const CONFIG = {
 			modes: [SYNCED, UNSYNCED]
 		},
 		genius: {
-			on: getConfig("lyrics-plus:provider:genius:on"),
+			on: false,
 			desc: "Provide unsynced lyrics with insights from artists themselves.",
 			modes: [GENIUS]
 		},
@@ -83,7 +83,7 @@ const CONFIG = {
 		}
 	},
 	providersOrder: localStorage.getItem("lyrics-plus:services-order"),
-	modes: ["karaoke", "synced", "unsynced", "genius"],
+	modes: ["karaoke", "synced", "unsynced"],
 	locked: localStorage.getItem("lyrics-plus:lock-mode") || "-1"
 };
 
