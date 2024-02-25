@@ -73,7 +73,7 @@ const CONFIG = {
 		},
 		genius: {
 			on: getConfig("lyrics-plus:provider:genius:on"),
-			desc: "Provide unsynced lyrics with insights from artists themselves. Genius has been disabled for now and cannot be enabled.",
+			desc: "Provide unsynced lyrics with insights from artists themselves. Genius is disabled on `1.2.31` and higher and cannot be used as an provider.",
 			modes: [GENIUS]
 		},
 		local: {
