@@ -367,7 +367,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 	const pageRef = useRef(null);
 
 	useTrackPosition(() => {
-		if (!Player.data.is_paused) {
+		if (!Spicetify.Player.data.is_paused) {
 			setPosition(Spicetify.Player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay);
 		}
 	});
