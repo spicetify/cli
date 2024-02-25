@@ -21,6 +21,9 @@
 	 * @param {(event: KeyboardEvent) => void} callback - Callback function for the event.
 	 */
 	const binds = {
+		// Shutdown Spotify using Ctrl+Q
+		"ctrl+q": { callback: () => Spicetify.CosmosAsync.post("sp://esperanto/spotify.desktop.lifecycle_esperanto.proto.DesktopLifecycle/Shutdown") },
+
 		// Rotate through sidebar items using Ctrl+Tab and Ctrl+Shift+Tab
 		"ctrl+tab": { callback: () => rotateSidebar(1) },
 		"ctrl+shift+tab": { callback: () => rotateSidebar(-1) },
@@ -175,8 +178,9 @@ function VimBind() {
 		let secondKey = 0;
 
 		for (const e of getLinks()) {
-			if (e.style.display === "none" || e.style.visibility === "hidden" || e.style.opacity === "0") {
-				return;
+			const computed = window.getComputedStyle(e);
+			if (computed.display === "none" || computed.visibility === "hidden" || computed.opacity === "0") {
+				continue;
 			}
 
 			const bound = e.getBoundingClientRect();
@@ -193,7 +197,7 @@ function VimBind() {
 				bound.width === 0 ||
 				bound.height === 0
 			) {
-				return;
+				continue;
 			}
 
 			vimOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
