@@ -109,6 +109,7 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
 	const [availableSpace, setAvailableSpace] = useState(0);
 	const [droplistItem, setDroplistItems] = useState([]);
 
+	if (Spicetify.Platform.version >= "1.2.31") links = links.filter(key => key !== "genius");
 	const options = links.map(key => {
 		let value = key.replace(/./, c => c.toUpperCase());
 		if (key === lockLink) {

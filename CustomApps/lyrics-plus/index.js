@@ -72,7 +72,7 @@ const CONFIG = {
 			modes: [SYNCED, UNSYNCED]
 		},
 		genius: {
-			on: false,
+			on: getConfig("lyrics-plus:provider:genius:on"),
 			desc: "Provide unsynced lyrics with insights from artists themselves. Genius has been disabled for now and cannot be enabled.",
 			modes: [GENIUS]
 		},
@@ -83,7 +83,7 @@ const CONFIG = {
 		}
 	},
 	providersOrder: localStorage.getItem("lyrics-plus:services-order"),
-	modes: ["karaoke", "synced", "unsynced"],
+	modes: ["karaoke", "synced", "unsynced", "genius"],
 	locked: localStorage.getItem("lyrics-plus:lock-mode") || "-1"
 };
 
@@ -237,6 +237,7 @@ class LyricsContainer extends react.Component {
 		let finalData = { ...emptyState, uri: trackInfo.uri };
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
+			if (id === "genius" && Spicetify.Platform.version >= "1.2.31") continue;
 			if (!service.on) continue;
 			if (mode !== -1 && !service.modes.includes(mode)) continue;
 
