@@ -8,13 +8,6 @@ const { useState, useEffect, useCallback, useMemo, useRef } = react;
 /** @type {import("react").ReactDOM} */
 const reactDOM = Spicetify.ReactDOM;
 
-const {
-	URI,
-	Platform: { History },
-	Player,
-	CosmosAsync
-} = Spicetify;
-
 // Define a function called "render" to specify app entry point
 // This function will be used to mount app to main view.
 function render() {
@@ -205,7 +198,7 @@ class LyricsContainer extends react.Component {
 				const { hex } = data.trackUnion.albumOfTrack.coverArt.extractedColors.colorDark;
 				vibrant = parseInt(hex.replace("#", ""), 16);
 			} catch {
-				const colors = await CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
+				const colors = await Spicetify.CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
 				vibrant = colors.entries[0].color_swatches.find(color => color.preset === "VIBRANT_NON_ALARMING").color;
 			}
 		} catch {
@@ -892,7 +885,7 @@ class LyricsContainer extends react.Component {
 						const mode = CONFIG.modes.findIndex(a => a === label);
 						if (mode !== this.state.mode) {
 							this.setState({ explicitMode: mode });
-							this.state.provider !== "local" && this.fetchLyrics(Player.data.item, mode);
+							this.state.provider !== "local" && this.fetchLyrics(Spicetify.Player.data.item, mode);
 						}
 					},
 					lockCallback: label => {
@@ -901,7 +894,7 @@ class LyricsContainer extends react.Component {
 							mode = -1;
 						}
 						this.setState({ explicitMode: mode, lockMode: mode });
-						this.fetchLyrics(Player.data.item, mode);
+						this.fetchLyrics(Spicetify.Player.data.item, mode);
 						CONFIG.locked = mode;
 						localStorage.setItem("lyrics-plus:lock-mode", mode);
 					}
