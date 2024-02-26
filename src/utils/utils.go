@@ -164,18 +164,25 @@ func CopyFile(srcPath, dest string) error {
 
 // Replace uses Regexp to find any matched from `input` with `regexpTerm`
 // and replaces them with `replaceTerm` then returns new string.
-func Replace(input *string, regexpTerm string, replaceTerm string) {
-	re := regexp.MustCompile(regexpTerm)
-	*input = re.ReplaceAllString(*input, replaceTerm)
+func Replace(str *string, pattern string, repl func(submatches ...string) string) {
+	re := regexp.MustCompile(pattern)
+	*str = re.ReplaceAllStringFunc(*str, func(match string) string {
+		submatches := re.FindStringSubmatch(match)
+		return repl(submatches...)
+	})
 }
 
-func ReplaceOnce(input *string, regexpTerm string, replaceTerm string) {
-	re := regexp.MustCompile(regexpTerm)
-	matches := re.FindAllString(*input, -1)
-	if len(matches) > 0 {
-		toReplace := re.ReplaceAllString(matches[0], replaceTerm)
-		*input = strings.Replace(*input, matches[0], toReplace, 1)
-	}
+func ReplaceOnce(str *string, pattern string, repl func(submatches ...string) string) {
+	re := regexp.MustCompile(pattern)
+	firstMatch := true
+	*str = re.ReplaceAllStringFunc(*str, func(match string) string {
+		if firstMatch {
+			firstMatch = false
+			submatches := re.FindStringSubmatch(match)
+			return repl(submatches...)
+		}
+		return match
+	})
 }
 
 func FindMatch(input string, regexpTerm string) [][]string {

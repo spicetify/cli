@@ -188,14 +188,15 @@ window.Spicetify = {
 					"_sidebarXItemToClone",
 					"AppTitle",
 					"_reservedPanelIds",
-					"Panel",
 					"ReactFlipToolkit",
 					"classnames",
 					"ReactQuery",
 					"Color",
 					"extractColorPreset",
 					"ReactDOMServer",
-					"Snackbar"
+					"Snackbar",
+					"ContextMenuV2",
+					"ReactJSX"
 				])
 			},
 			{
@@ -257,9 +258,6 @@ window.Spicetify = {
 					"TextComponent",
 					"IconComponent",
 					"ConfirmDialog",
-					"PanelContent",
-					"PanelSkeleton",
-					"PanelHeader",
 					"Slider",
 					"RemoteConfigProvider",
 					"ButtonPrimary",
@@ -274,7 +272,8 @@ window.Spicetify = {
 					"Route",
 					"StoreProvider",
 					"PlatformProvider",
-					"Dropdown"
+					"Dropdown",
+					"MenuSubMenuItem"
 				])
 			},
 			{
@@ -285,7 +284,7 @@ window.Spicetify = {
 			{
 				objectToCheck: Spicetify.ReactHook,
 				name: "Spicetify.ReactHook",
-				methods: new Set(["DragHandler", "usePanelState", "useExtractedColor"])
+				methods: new Set(["DragHandler", "useExtractedColor"])
 			}
 		]);
 
@@ -309,7 +308,7 @@ window.Spicetify = {
 		return;
 	}
 
-	const corsProxyURL = "https://cors-proxy.spicetify.app/";
+	const corsProxyURL = "https://cors-proxy.spicetify.app";
 	const allowedMethodsMap = {
 		get: "get",
 		post: "post",
@@ -321,21 +320,18 @@ window.Spicetify = {
 	const internalEndpoints = new Set(["sp:", "wg:"]);
 
 	const handler = {
-		// biome-ignore lint/complexity/useArrowFunction: <explanation>
-		get: function (target, prop, receiver) {
+		get: (target, prop, receiver) => {
 			const internalFetch = Reflect.get(target, prop, receiver);
 
 			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop) || Spicetify.Platform.version < "1.2.31") return internalFetch;
 
-			// biome-ignore lint/complexity/useArrowFunction: <explanation>
 			return async function (url, body) {
 				const urlObj = new URL(url);
 
 				const isWebAPI = urlObj.hostname === "api.spotify.com";
 				const isSpClientAPI = urlObj.hostname.includes("spotify.com") && urlObj.hostname.includes("spclient");
 				const isInternalURL = internalEndpoints.has(urlObj.protocol);
-				// biome-ignore lint/style/noArguments: <explanation>
-				if (isInternalURL) return internalFetch.apply(this, arguments);
+				if (isInternalURL) return internalFetch.apply(this, [url, body]);
 
 				const shouldUseCORSProxy = !isWebAPI && !isSpClientAPI && !isInternalURL;
 
@@ -366,7 +362,7 @@ window.Spicetify = {
 						finalURL += `?${params.toString()}`;
 					} else options.body = isJson ? JSON.stringify(body) : body;
 				}
-				if (shouldUseCORSProxy) finalURL = `${corsProxyURL}${finalURL}`;
+				if (shouldUseCORSProxy) finalURL = `${corsProxyURL}/${finalURL}`;
 
 				const Authorization = `Bearer ${Spicetify.Platform.AuthorizationAPI.getState().token.accessToken}`;
 				let injectedHeaders = {};
@@ -413,12 +409,12 @@ window.Spicetify = {
 })();
 
 (function hotloadWebpackModules() {
-	if (!window?.webpackChunkopen) {
+	if (!window?.webpackChunkclient_web) {
 		setTimeout(hotloadWebpackModules, 50);
 		return;
 	}
 	// Force all webpack modules to load
-	const require = webpackChunkopen.push([[Symbol()], {}, re => re]);
+	const require = webpackChunkclient_web.push([[Symbol()], {}, re => re]);
 	const chunks = require.m ? Object.entries(require.m) : [];
 	if (!chunks) {
 		setTimeout(hotloadWebpackModules, 50);
@@ -534,13 +530,6 @@ window.Spicetify = {
 					m.toString().includes("action") && m.toString().includes("open") && m.toString().includes("trigger") && m.toString().includes("right-click")
 			),
 			TooltipWrapper: functionModules.find(m => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
-			PanelHeader: functionModules.find(m => m.toString().includes("panel") && m.toString().includes("actions")),
-			PanelContent:
-				modules.find(m => m?.render?.toString().includes("scrollBarContainer")) ||
-				functionModules.find(m => m.toString().includes("scrollBarContainer")),
-			PanelSkeleton:
-				functionModules.find(m => m.toString().includes("label") && m.toString().includes("aside")) ||
-				modules.find(m => m?.render?.toString().includes('"section"')),
 			ButtonPrimary: modules.find(m => m?.render && m?.displayName === "ButtonPrimary"),
 			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
 			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
@@ -566,8 +555,6 @@ window.Spicetify = {
 		},
 		ReactHook: {
 			DragHandler: functionModules.find(m => m.toString().includes("dataTransfer") && m.toString().includes("data-dragging")),
-			// deprecated since 1.2.17
-			usePanelState: functionModules.find(m => m.toString().includes("setPanelState")),
 			useExtractedColor: functionModules.find(
 				m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
 			)
@@ -2285,179 +2272,6 @@ Spicetify.Playbar = (() => {
 	})();
 
 	return { Button, Widget };
-})();
-
-// TODO: Remove this with v3 release
-(function waitForPanelAPI() {
-	if (!Spicetify.Platform?.PanelAPI || !Spicetify.React || !Spicetify._reservedPanelIds) {
-		setTimeout(waitForPanelAPI, 300);
-		return;
-	}
-
-	// Workaround for older versions
-	let currentPanelId = 0;
-	let fallback = false;
-	let refreshTimeout;
-	let init = true;
-
-	if (!Spicetify.Platform.PanelAPI.getLastCachedPanelState) {
-		fallback = true;
-		Spicetify.Platform.PanelAPI.subscribeToPanelState(panelId => {
-			currentPanelId = panelId;
-		});
-	}
-
-	const contentMap = new Map(
-		Object.entries(Spicetify._reservedPanelIds)
-			.map(([key, value]) => !Number.isNaN(parseInt(key)) && [parseInt(key), value])
-			.filter(Boolean)
-	);
-
-	// https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary
-	class ErrorBoundary extends Spicetify.React.Component {
-		constructor(props) {
-			super(props);
-			this.state = { hasError: false };
-		}
-
-		static getDerivedStateFromError() {
-			// Update state so the next render will show the fallback UI.
-			return { hasError: true };
-		}
-
-		componentDidCatch(error, info) {
-			const extension =
-				Spicetify.Config.extensions.find(ext => error.stack.includes(ext)) ||
-				Spicetify.Config.custom_apps.find(app => error.stack.includes(`spicetify-routes-${app}`));
-
-			Spicetify.showNotification(
-				`Something went wrong in panel ID "${this.props.id}" ${extension ? `of "${extension}"` : ""}, check Console for error log`,
-				true
-			);
-			console.error(error);
-			console.error(`Error stack in panel ID "${this.props.id}": ${info.componentStack}`);
-			Spicetify.Panel.setPanel(Spicetify.Panel.reservedPanelIds.Disabled);
-		}
-
-		render() {
-			if (this.state.hasError) {
-				// `false` not `null`, so it won’t render beyond the null coalescing operator.
-				return false;
-			}
-
-			// Pass the `panel` prop with the current panel ID to the children
-			return Spicetify.React.cloneElement(this.props.children, { panel: this.props.id });
-		}
-	}
-
-	Spicetify.Panel = {
-		reservedPanelIds: Spicetify._reservedPanelIds,
-		Components: {
-			PanelSkeleton: Spicetify.ReactComponent.PanelSkeleton,
-			PanelContent: Spicetify.ReactComponent.PanelContent,
-			PanelHeader: Spicetify.ReactComponent.PanelHeader
-		},
-		hasPanel: (id, _internal) => {
-			// Render is sometimes ran before the wrapper is initialized, so we need to refresh it
-			// For some reason it doesn't trigger listeners
-			if (_internal && init) {
-				clearTimeout(refreshTimeout);
-				refreshTimeout = setTimeout(() => {
-					Spicetify.Panel.setPanel(id);
-					init = false;
-				}, 100);
-			}
-			return contentMap.has(id);
-		},
-		getPanel: id => contentMap.get(id),
-		render: () => {
-			const { currentPanel } = Spicetify.Panel;
-			return (!Spicetify.Panel.reservedPanelIds[currentPanel] && contentMap.get(Spicetify.Panel.currentPanel)) || null;
-		},
-		get currentPanel() {
-			return fallback ? currentPanelId : Spicetify.Platform.PanelAPI.getLastCachedPanelState();
-		},
-		setPanel: async id => {
-			currentPanelId = id;
-			await Spicetify.Platform.PanelAPI.setPanelState(id);
-		},
-		subPanelState: callback => Spicetify.Platform.PanelAPI.subscribeToPanelState(callback),
-		registerPanel: ({
-			label,
-			children,
-			isCustom = false,
-			style,
-			wrapperClassname,
-			headerClassname,
-			headerVariant,
-			headerSemanticColor,
-			headerLink,
-			headerActions,
-			headerOnClose,
-			headerPreventDefaultClose,
-			headerOnBack
-		}) => {
-			const id = [...contentMap.keys()].sort((a, b) => a - b).pop() + 1;
-			const content = isCustom
-				? children
-				: Spicetify.React.createElement(
-						Spicetify.ReactComponent.PanelSkeleton,
-						{
-							label,
-							// Backwards compatibility, no longer needed in Spotify 1.2.12
-							className: "Root__right-sidebar",
-							style
-						},
-						Spicetify.React.createElement(
-							Spicetify.ReactComponent.PanelContent,
-							{
-								className: wrapperClassname
-							},
-							Spicetify.React.createElement(Spicetify.ReactComponent.PanelHeader, {
-								title: label,
-								panel: id,
-								link: headerLink,
-								actions: headerActions,
-								onClose: headerOnClose,
-								onBack: headerOnBack,
-								preventDefaultClose: headerPreventDefaultClose,
-								className: headerClassname,
-								titleVariant: headerVariant,
-								titleSemanticColor: headerSemanticColor
-							}),
-							Spicetify.React.cloneElement(children, { panel: id })
-						)
-				  );
-
-			contentMap.set(id, Spicetify.React.createElement(ErrorBoundary, { id }, content));
-
-			let isActive = Spicetify.Panel.currentPanel === id;
-
-			return {
-				id,
-				toggle: async () => {
-					const { currentPanel } = Spicetify.Panel;
-					currentPanelId = currentPanel === id ? 0 : id;
-					await Spicetify.Panel.setPanel(currentPanel === id ? 0 : id);
-				},
-				onStateChange: callback => {
-					Spicetify.Panel.subPanelState(panel => {
-						const activeState = panel === id;
-						if (activeState !== isActive) {
-							isActive = activeState;
-							callback(isActive);
-						}
-					});
-				},
-				get isActive() {
-					return Spicetify.Panel.currentPanel === id;
-				}
-			};
-		}
-	};
-
-	// Eliminate false positives
-	Spicetify.Panel.subPanelState(() => clearTimeout(refreshTimeout));
 })();
 
 (async function checkForUpdate() {

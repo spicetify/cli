@@ -159,11 +159,15 @@ func htmlMod(htmlPath string, flags Flag) {
 		utils.Replace(
 			&content,
 			`<\!-- spicetify helpers -->`,
-			"${0}"+helperHTML)
+			func(submatches ...string) string {
+				return submatches[0] + helperHTML
+			})
 		utils.Replace(
 			&content,
 			`</body>`,
-			extensionsHTML+"${0}")
+			func(submatches ...string) string {
+				return extensionsHTML + submatches[0]
+			})
 		return content
 	})
 }
@@ -214,8 +218,8 @@ func getColorCSS(scheme map[string]string) string {
 
 func insertCustomApp(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
-		const REACT_REGEX = `(\w+(?:\(\))?)\.lazy\(\((?:\(\)=>|function\(\)\{return )(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\}?\)\)`
-		const REACT_ELEMENT_REGEX = `(\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,(element|children)?[:.\w,{}()/*"]+)?\}`
+		const REACT_REGEX = `([\w_\$][\w_\$\d]*(?:\(\))?)\.lazy\(\((?:\(\)=>|function\(\)\{return )(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\}?\)\)`
+		const REACT_ELEMENT_REGEX = `(\[\w_\$][\w_\$\d]*(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,(element|children)?[:.\w,{}()/*"]+)?\}`
 		reactSymbs := utils.FindSymbol(
 			"Custom app React symbols",
 			content,
@@ -266,32 +270,44 @@ func insertCustomApp(jsPath string, flags Flag) {
 		utils.Replace(
 			&content,
 			`\{(\d+:"xpui)`,
-			`{`+appMap+`${1}`)
+			func(submatches ...string) string {
+				return "{" + appMap + submatches[1]
+			})
 
 		utils.ReplaceOnce(
 			&content,
 			REACT_REGEX,
-			`${0}`+appReactMap)
+			func(submatches ...string) string {
+				return submatches[0] + appReactMap
+			})
 
 		utils.ReplaceOnce(
 			&content,
 			REACT_ELEMENT_REGEX,
-			appEleMap+`${0}`)
+			func(submatches ...string) string {
+				return appEleMap + submatches[0]
+			})
 
 		utils.Replace(
 			&content,
 			`(?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
-			`Spicetify._sidebarItemToClone=${0}`)
+			func(submatches ...string) string {
+				return "Spicetify._sidebarItemToClone=" + submatches[0]
+			})
 
 		utils.Replace(
 			&content,
 			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\("li",{className:[-\w".${}()?!:, ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()?!:, ]+,(\w+:[-\w".${}()?!&: ]+,)*children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,\{to:"/search"`,
-			`Spicetify._sidebarXItemToClone=${0}`)
+			func(submatches ...string) string {
+				return "Spicetify._sidebarXItemToClone=" + submatches[0]
+			})
 
 		utils.ReplaceOnce(
 			&content,
 			`\d+:1,\d+:1,\d+:1`,
-			"${0}"+cssEnableMap)
+			func(submatches ...string) string {
+				return submatches[0] + cssEnableMap
+			})
 
 		sidebarItemMatch := utils.SeekToCloseParen(
 			content,
@@ -327,14 +343,18 @@ func insertCustomApp(jsPath string, flags Flag) {
 			utils.ReplaceOnce(
 				&content,
 				`return null!=\w+&&\w+\.totalLength(\?\w+\(\)\.createElement\(\w+,\{contextUri:)(\w+)\.uri`,
-				`return true${1}${2}?.uri||""`)
+				func(submatches ...string) string {
+					return fmt.Sprintf(`return true%s%s?.uri||""`, submatches[1], submatches[2])
+				})
 		}
 
 		if flags.ExpFeatures {
 			utils.ReplaceOnce(
 				&content,
 				`(([\w$.]+\.fromJSON)\(\w+\)+;)(return ?[\w{}().,]+[\w$]+\.Provider,)(\{value:\{localConfiguration)`,
-				`${1}Spicetify.createInternalMap=${2};${3}Spicetify.RemoteConfigResolver=${4}`)
+				func(submatches ...string) string {
+					return fmt.Sprintf("%sSpicetify.createInternalMap=%s;%sSpicetify.RemoteConfigResolver=%s", submatches[1], submatches[2], submatches[3], submatches[4])
+				})
 		}
 
 		return content
@@ -350,7 +370,9 @@ func insertHomeConfig(jsPath string, flags Flag) {
 		utils.ReplaceOnce(
 			&content,
 			`([\w$_\.]+\.sections\.items)(\.map)`,
-			`SpicetifyHomeConfig.arrange(${1})${2}`)
+			func(submatches ...string) string {
+				return fmt.Sprintf("SpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2])
+			})
 		return content
 	})
 }
@@ -374,7 +396,9 @@ func insertExpFeatures(jsPath string, flags Flag) {
 		utils.ReplaceOnce(
 			&content,
 			`(function \w+\((\w+)\)\{)(\w+ \w+=\w\.name;if\("internal")`,
-			`${1}${2}=Spicetify.expFeatureOverride(${2});${3}`)
+			func(submatches ...string) string {
+				return submatches[1] + submatches[2] + "=Spicetify.expFeatureOverride(" + submatches[2] + ");" + submatches[3]
+			})
 		return content
 	})
 }
@@ -384,12 +408,14 @@ func insertVersionInfo(jsPath string, flags Flag) {
 		utils.ReplaceOnce(
 			&content,
 			`(\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\([\w\."]+,[\w{}():,]+\.containerVersion\}?\),`,
-			`${0}${1}("details",{children: [
-				${1}("summary",{children: "Spicetify v" + Spicetify.Config.version}),
-				${1}("li",{children: "Theme: " + Spicetify.Config.current_theme + (Spicetify.Config.color_scheme && " / ") + Spicetify.Config.color_scheme}),
-				${1}("li",{children: "Extensions: " + Spicetify.Config.extensions.join(", ")}),
-				${1}("li",{children: "Custom apps: " + Spicetify.Config.custom_apps.join(", ")}),
-				]}),`)
+			func(submatches ...string) string {
+				return fmt.Sprintf(`%s%s("details",{children: [
+					%s("summary",{children: "Spicetify v" + Spicetify.Config.version}),
+					%s("li",{children: "Theme: " + Spicetify.Config.current_theme + (Spicetify.Config.color_scheme && " / ") + Spicetify.Config.color_scheme}),
+					%s("li",{children: "Extensions: " + Spicetify.Config.extensions.join(", ")}),
+					%s("li",{children: "Custom apps: " + Spicetify.Config.custom_apps.join(", ")}),
+					]}),`, submatches[0], submatches[1], submatches[1], submatches[1], submatches[1], submatches[1])
+			})
 		return content
 	})
 }
