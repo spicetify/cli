@@ -271,42 +271,42 @@ func insertCustomApp(jsPath string, flags Flag) {
 			&content,
 			`\{(\d+:"xpui)`,
 			func(submatches ...string) string {
-				return "{" + appMap + submatches[1]
+				return fmt.Sprintf("{%s%s", appMap, submatches[1])
 			})
 
 		utils.ReplaceOnce(
 			&content,
 			REACT_REGEX,
 			func(submatches ...string) string {
-				return submatches[0] + appReactMap
+				return fmt.Sprintf("%s%s", submatches[0], appReactMap)
 			})
 
 		utils.ReplaceOnce(
 			&content,
 			REACT_ELEMENT_REGEX,
 			func(submatches ...string) string {
-				return appEleMap + submatches[0]
+				return fmt.Sprintf("%s%s", appEleMap, submatches[0])
 			})
 
 		utils.Replace(
 			&content,
 			`(?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
 			func(submatches ...string) string {
-				return "Spicetify._sidebarItemToClone=" + submatches[0]
+				return fmt.Sprintf("Spicetify._sidebarItemToClone=%s", submatches[0])
 			})
 
 		utils.Replace(
 			&content,
 			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\("li",{className:[-\w".${}()?!:, ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()?!:, ]+,(\w+:[-\w".${}()?!&: ]+,)*children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,\{to:"/search"`,
 			func(submatches ...string) string {
-				return "Spicetify._sidebarXItemToClone=" + submatches[0]
+				return fmt.Sprintf("Spicetify._sidebarXItemToClone=%s", submatches[0])
 			})
 
 		utils.ReplaceOnce(
 			&content,
 			`\d+:1,\d+:1,\d+:1`,
 			func(submatches ...string) string {
-				return submatches[0] + cssEnableMap
+				return fmt.Sprintf("%s%s", submatches[0], cssEnableMap)
 			})
 
 		sidebarItemMatch := utils.SeekToCloseParen(
