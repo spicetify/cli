@@ -10,7 +10,7 @@ const ProviderNetease = (() => {
 		const cleanTitle = Utils.removeExtraInfo(Utils.removeSongFeat(Utils.normalize(info.title)));
 		const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 
-		const searchResults = await CosmosAsync.get(finalURL, null, requestHeader);
+		const searchResults = await Spicetify.CosmosAsync.get(finalURL, null, requestHeader);
 		const items = searchResults.result.songs;
 		if (!items?.length) {
 			throw "Cannot find track";
