@@ -364,7 +364,7 @@ func disableLogging(input string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
 	})
 	utils.Replace(&input, `logInteraction\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
+		return fmt.Sprintf("%sreturn {interactionId:null,pageInstanceId:null};", submatches[0])
 	})
 	utils.Replace(&input, `logImpression\([^)]*\)\s*\{`, func(submatches ...string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
