@@ -140,12 +140,12 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 		case ".html":
 			utils.ModifyFile(path, func(content string) string {
 				var tags string
-				tags += `<link rel="stylesheet" class="userCSS" href="colors.css">\n`
-				tags += `<link rel="stylesheet" class="userCSS" href="user.css">\n`
+				tags += "<link rel='stylesheet' class='userCSS' href='colors.css'>\n"
+				tags += "<link rel='stylesheet' class='userCSS' href='user.css'>\n"
 
 				if flags.ExposeAPIs {
-					tags += `<script src="helper/spicetifyWrapper.js"></script>\n`
-					tags += `<!-- spicetify helpers -->\n`
+					tags += "<script src='helper/spicetifyWrapper.js'></script>\n"
+					tags += "<!-- spicetify helpers -->\n"
 				}
 
 				utils.Replace(&content, `<body>`, func(submatches ...string) string {

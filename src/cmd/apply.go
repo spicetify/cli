@@ -328,7 +328,7 @@ func RefreshApps(list ...string) {
 					continue
 				}
 				if len(assetsList) == 0 {
-					message := fmt.Sprintf("Custom App '%s': no assets found for expression \"%s\"", app, assetExpr)
+					message := fmt.Sprintf("Custom App '%s': no assets found for expression '%s'", app, assetExpr)
 					utils.PrintWarning(message)
 					continue
 				}

@@ -96,19 +96,19 @@ func htmlMod(htmlPath string, flags Flag) {
 	helperHTML := "\n"
 
 	if flags.InjectThemeJS {
-		extensionsHTML += `<script defer src="extensions/theme.js"></script>\n`
+		extensionsHTML += "<script defer src='extensions/theme.js'></script>\n"
 	}
 
 	if flags.SidebarConfig {
-		helperHTML += `<script defer src="helper/sidebarConfig.js"></script>\n`
+		helperHTML += "<script defer src='helper/sidebarConfig.js'></script>\n"
 	}
 
 	if flags.HomeConfig {
-		helperHTML += `<script defer src="helper/homeConfig.js"></script>\n`
+		helperHTML += "<script defer src='helper/homeConfig.js'></script>\n"
 	}
 
 	if flags.ExpFeatures {
-		helperHTML += `<script defer src="helper/expFeatures.js"></script>\n`
+		helperHTML += "<script defer src='helper/expFeatures.js'></script>\n"
 	}
 
 	if flags.SpicetifyVer != "" {
@@ -136,9 +136,9 @@ func htmlMod(htmlPath string, flags Flag) {
 
 	for _, v := range flags.Extension {
 		if strings.HasSuffix(v, ".mjs") {
-			extensionsHTML += fmt.Sprintf(`<script defer type="module" src="extensions/%s"></script>\n`, v)
+			extensionsHTML += fmt.Sprintf("<script defer type='module' src='extensions/%s'></script>\n", v)
 		} else {
-			extensionsHTML += fmt.Sprintf(`<script defer src="extensions/%s"></script>\n`, v)
+			extensionsHTML += fmt.Sprintf("<script defer src='extensions/%s'></script>\n", v)
 		}
 	}
 
@@ -147,9 +147,9 @@ func htmlMod(htmlPath string, flags Flag) {
 		if err == nil {
 			for _, extensionFile := range manifest.ExtensionFiles {
 				if strings.HasSuffix(extensionFile, ".mjs") {
-					extensionsHTML += fmt.Sprintf(`<script defer type="module" src="extensions/%s/%s"></script>\n`, v, extensionFile)
+					extensionsHTML += fmt.Sprintf("<script defer type='module' src='extensions/%s/%s'></script>\n", v, extensionFile)
 				} else {
-					extensionsHTML += fmt.Sprintf(`<script defer src="extensions/%s/%s"></script>\n`, v, extensionFile)
+					extensionsHTML += fmt.Sprintf("<script defer src='extensions/%s/%s'></script>\n", v, extensionFile)
 				}
 			}
 		}
