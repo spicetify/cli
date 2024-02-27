@@ -96,30 +96,30 @@ func htmlMod(htmlPath string, flags Flag) {
 	helperHTML := "\n"
 
 	if flags.InjectThemeJS {
-		extensionsHTML += `<script defer src="extensions/theme.js"></script>` + "\n"
+		extensionsHTML += `<script defer src="extensions/theme.js"></script>\n`
 	}
 
 	if flags.SidebarConfig {
-		helperHTML += `<script defer src="helper/sidebarConfig.js"></script>` + "\n"
+		helperHTML += `<script defer src="helper/sidebarConfig.js"></script>\n`
 	}
 
 	if flags.HomeConfig {
-		helperHTML += `<script defer src="helper/homeConfig.js"></script>` + "\n"
+		helperHTML += `<script defer src="helper/homeConfig.js"></script>\n`
 	}
 
 	if flags.ExpFeatures {
-		helperHTML += `<script defer src="helper/expFeatures.js"></script>` + "\n"
+		helperHTML += `<script defer src="helper/expFeatures.js"></script>\n`
 	}
 
 	if flags.SpicetifyVer != "" {
 		var extList string
 		for _, ext := range flags.Extension {
-			extList += `"` + ext + `",`
+			extList += fmt.Sprintf(`"%s",`, ext)
 		}
 
 		var customAppList string
 		for _, app := range flags.CustomApp {
-			customAppList += `"` + app + `",`
+			customAppList += fmt.Sprintf(`"%s",`, app)
 		}
 
 		helperHTML += fmt.Sprintf(`<script>
@@ -136,9 +136,9 @@ func htmlMod(htmlPath string, flags Flag) {
 
 	for _, v := range flags.Extension {
 		if strings.HasSuffix(v, ".mjs") {
-			extensionsHTML += `<script defer type="module" src="extensions/` + v + `"></script>` + "\n"
+			extensionsHTML += fmt.Sprintf(`<script defer type="module" src="extensions/%s"></script>\n`, v)
 		} else {
-			extensionsHTML += `<script defer src="extensions/` + v + `"></script>` + "\n"
+			extensionsHTML += fmt.Sprintf(`<script defer src="extensions/%s"></script>\n`, v)
 		}
 	}
 
@@ -147,9 +147,9 @@ func htmlMod(htmlPath string, flags Flag) {
 		if err == nil {
 			for _, extensionFile := range manifest.ExtensionFiles {
 				if strings.HasSuffix(extensionFile, ".mjs") {
-					extensionsHTML += `<script defer type="module" src="extensions/` + v + `/` + extensionFile + `"></script>` + "\n"
+					extensionsHTML += fmt.Sprintf(`<script defer type="module" src="extensions/%s/%s"></script>\n`, v, extensionFile)
 				} else {
-					extensionsHTML += `<script defer src="extensions/` + v + `/` + extensionFile + `"></script>` + "\n"
+					extensionsHTML += fmt.Sprintf(`<script defer src="extensions/%s/%s"></script>\n`, v, extensionFile)
 				}
 			}
 		}
@@ -160,13 +160,13 @@ func htmlMod(htmlPath string, flags Flag) {
 			&content,
 			`<\!-- spicetify helpers -->`,
 			func(submatches ...string) string {
-				return submatches[0] + helperHTML
+				return fmt.Sprintf("%s%s", submatches[0], helperHTML)
 			})
 		utils.Replace(
 			&content,
 			`</body>`,
 			func(submatches ...string) string {
-				return extensionsHTML + submatches[0]
+				return fmt.Sprintf("%s%s", extensionsHTML, submatches[0])
 			})
 		return content
 	})
@@ -397,7 +397,7 @@ func insertExpFeatures(jsPath string, flags Flag) {
 			&content,
 			`(function \w+\((\w+)\)\{)(\w+ \w+=\w\.name;if\("internal")`,
 			func(submatches ...string) string {
-				return submatches[1] + submatches[2] + "=Spicetify.expFeatureOverride(" + submatches[2] + ");" + submatches[3]
+				return fmt.Sprintf("%s%s=Spicetify.expFeatureOverride(%s);%s", submatches[1], submatches[2], submatches[2], submatches[3])
 			})
 		return content
 	})

@@ -126,13 +126,12 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 				}
 				// Temporary fix for top bar opacity bug
 				if fileName == "xpui.css" {
-					content = content + `
-.main-topBar-topbarContent:not(.main-topBar-topbarContentFadeIn)>* {
-	opacity: unset !important;
-}
-.main-entityHeader-topbarContent:not(.main-entityHeader-topbarContentFadeIn)>* {
-	opacity: 0 !important;
-}`
+					content = fmt.Sprintf(`%s.main-topBar-topbarContent:not(.main-topBar-topbarContentFadeIn)>* {
+						opacity: unset !important;
+					}
+					.main-entityHeader-topbarContent:not(.main-entityHeader-topbarContentFadeIn)>* {
+						opacity: 0 !important;
+					}`, content)
 				}
 				return content
 			})
@@ -140,12 +139,12 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 		case ".html":
 			utils.ModifyFile(path, func(content string) string {
 				var tags string
-				tags += `<link rel="stylesheet" class="userCSS" href="colors.css">` + "\n"
-				tags += `<link rel="stylesheet" class="userCSS" href="user.css">` + "\n"
+				tags += `<link rel="stylesheet" class="userCSS" href="colors.css">\n`
+				tags += `<link rel="stylesheet" class="userCSS" href="user.css">\n`
 
 				if flags.ExposeAPIs {
-					tags += `<script src="helper/spicetifyWrapper.js"></script>` + "\n"
-					tags += `<!-- spicetify helpers -->` + "\n"
+					tags += `<script src="helper/spicetifyWrapper.js"></script>\n`
+					tags += `<!-- spicetify helpers -->\n`
 				}
 
 				utils.Replace(&content, `<body>`, func(submatches ...string) string {
@@ -307,7 +306,7 @@ func colorVariableReplaceForJS(content string) string {
 
 func disableSentry(input string) string {
 	utils.Replace(&input, `(?:prototype\.)?bindClient(?:=function)?\(\w+\)\{`, func(submatches ...string) string {
-		return submatches[0] + "return;"
+		return fmt.Sprintf("%sreturn;", submatches[0])
 	})
 	return input
 }
@@ -576,13 +575,13 @@ func exposeAPIs_vendor(input string) string {
 			if URIObj[1] == "" {
 				URIObj[1] = URIObj[2]
 				// Class is a self-invoking function
-				URI = URI + "()"
+				URI = fmt.Sprintf("%s()", URI)
 			}
 
 			input = strings.Replace(
 				input,
 				URI,
-				URI+";Spicetify.URI="+URIObj[1]+";",
+				fmt.Sprintf("%s;Spicetify.URI=%s;", URI, URIObj[1]),
 				1)
 		}
 	}
