@@ -328,7 +328,7 @@ func RefreshApps(list ...string) {
 					continue
 				}
 				if len(assetsList) == 0 {
-					message := fmt.Sprintf("Custom App '%s': no assets found for expression \"%s\"", app, assetExpr)
+					message := fmt.Sprintf("Custom App '%s': no assets found for expression '%s'", app, assetExpr)
 					utils.PrintWarning(message)
 					continue
 				}
@@ -359,7 +359,7 @@ func RefreshApps(list ...string) {
 		}
 
 		jsTemplate := fmt.Sprintf(
-			`(("undefined"!=typeof self?self:global).webpackChunkopen=("undefined"!=typeof self?self:global).webpackChunkopen||[])
+			`(("undefined"!=typeof self?self:global).webpackChunkclient_web=("undefined"!=typeof self?self:global).webpackChunkclient_web||[])
 .push([["%s"],{"%s":(e,t,n)=>{
 "use strict";n.r(t),n.d(t,{default:()=>render});
 %s
