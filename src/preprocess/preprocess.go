@@ -126,7 +126,8 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 				}
 				// Temporary fix for top bar opacity bug
 				if fileName == "xpui.css" {
-					content = fmt.Sprintf(`%s.main-topBar-topbarContent:not(.main-topBar-topbarContentFadeIn)>* {
+					content = fmt.Sprintf(`%s
+					.main-topBar-topbarContent:not(.main-topBar-topbarContentFadeIn)>* {
 						opacity: unset !important;
 					}
 					.main-entityHeader-topbarContent:not(.main-entityHeader-topbarContentFadeIn)>* {
