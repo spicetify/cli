@@ -354,7 +354,7 @@ func disableLogging(input string) string {
 		return fmt.Sprintf("%s{return;}%s", submatches[1], submatches[2])
 	})
 	utils.Replace(&input, `key:"lastFlush",value:function\(\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn Promise.resolve({fired: true});", submatches[0])
+		return fmt.Sprintf("%sreturn Promise.resolve({fired:true});", submatches[0])
 	})
 	utils.Replace(&input, `key:"addItemInEventsStorage",value:function\([^)]*\)\s*\{`, func(submatches ...string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
@@ -388,7 +388,7 @@ func disableLogging(input string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
 	})
 	utils.Replace(&input, `lastFlush\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn Promise.resolve({fired: true});", submatches[0])
+		return fmt.Sprintf("%sreturn Promise.resolve({fired:true});", submatches[0])
 	})
 	utils.Replace(&input, `addItemInEventsStorage\([^)]*\)\s*\{`, func(submatches ...string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
