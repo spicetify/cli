@@ -324,10 +324,10 @@ func disableLogging(input string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
 	})
 	utils.Replace(&input, `key:"logInteraction",value:function\([\w,]+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn{interactionId:null,pageInstanceId:null};", submatches[0])
+		return fmt.Sprintf("%sreturn {interactionId:null,pageInstanceId:null};", submatches[0])
 	})
 	utils.Replace(&input, `key:"logNonAuthInteraction",value:function\([\w,]+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn{interactionId:null,pageInstanceId:null};", submatches[0])
+		return fmt.Sprintf("%sreturn {interactionId:null,pageInstanceId:null};", submatches[0])
 	})
 	utils.Replace(&input, `key:"logImpression",value:function\([\w,]+\)\{`, func(submatches ...string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
@@ -354,10 +354,13 @@ func disableLogging(input string) string {
 		return fmt.Sprintf("%s{return;}%s", submatches[1], submatches[2])
 	})
 	utils.Replace(&input, `key:"lastFlush",value:function\(\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
+		return fmt.Sprintf("%sreturn Promise.resolve({fired:true});", submatches[0])
 	})
 	utils.Replace(&input, `key:"addItemInEventsStorage",value:function\([^)]*\)\s*\{`, func(submatches ...string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
+	})
+	utils.Replace(&input, `key:"createLoggingParams",value:function\([^)]*\)\s*\{`, func(submatches ...string) string {
+		return fmt.Sprintf("%sreturn {interactionIds:null,pageInstanceIds:null};", submatches[0])
 	})
 
 	utils.Replace(&input, `registerEventListeners\([^)]*\)\s*\{`, func(submatches ...string) string {
@@ -385,10 +388,13 @@ func disableLogging(input string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
 	})
 	utils.Replace(&input, `lastFlush\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
+		return fmt.Sprintf("%sreturn Promise.resolve({fired:true});", submatches[0])
 	})
 	utils.Replace(&input, `addItemInEventsStorage\([^)]*\)\s*\{`, func(submatches ...string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
+	})
+	utils.Replace(&input, `createLoggingParams\([^)]*\)\s*\{`, func(submatches ...string) string {
+		return fmt.Sprintf("%sreturn {interactionIds:null,pageInstanceIds:null};", submatches[0])
 	})
 
 	return input
