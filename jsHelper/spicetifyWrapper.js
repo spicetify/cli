@@ -1,7 +1,4 @@
 window.Spicetify = {
-	get CosmosAsync() {
-		return Spicetify.Player.origin?._cosmos;
-	},
 	Player: {
 		addEventListener: (type, callback) => {
 			if (!(type in Spicetify.Player.eventListeners)) {
@@ -390,6 +387,11 @@ window.Spicetify = {
 	};
 
 	Spicetify.Player.origin._cosmos = new Proxy(Spicetify.Player.origin._cosmos, handler);
+	Object.defineProperty(Spicetify, "CosmosAsync", {
+		get: () => {
+			return Spicetify.Player.origin?._cosmos;
+		}
+	});
 })();
 
 (function waitForPlatform() {
