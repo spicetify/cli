@@ -9,7 +9,7 @@ const Providers = {
 			copyright: null
 		};
 
-		const baseURL = "wg://lyrics/v1/track/";
+		const baseURL = "https://spclient.wg.spotify.com/lyrics/v1/track/";
 		const id = info.uri.split(":")[2];
 		let body;
 		try {
