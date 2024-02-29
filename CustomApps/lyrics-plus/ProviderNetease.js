@@ -22,7 +22,7 @@ const ProviderNetease = (() => {
 		const itemId = items.findIndex(val => Utils.normalize(val.album.name) === expectedAlbumName || Math.abs(info.duration - val.duration) < 1000);
 		if (itemId === -1) throw "Cannot find track";
 
-		return await CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
+		return await Spicetify.CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
 	}
 
 	const creditInfo = [
