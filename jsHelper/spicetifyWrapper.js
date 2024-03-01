@@ -928,11 +928,13 @@ Spicetify.getAudioData = async uri => {
 		throw "URI is invalid.";
 	}
 
-	return await Spicetify.CosmosAsync.get(`wg://audio-attributes/v1/audio-analysis/${uriObj.getBase62Id?.() ?? uriObj.id}?format=json`);
+	return await Spicetify.CosmosAsync.get(
+		`https://spclient.wg.spotify.com/audio-attributes/v1/audio-analysis/${uriObj.getBase62Id?.() ?? uriObj.id}?format=json`
+	);
 };
 
 Spicetify.colorExtractor = async uri => {
-	const body = await Spicetify.CosmosAsync.get(`wg://colorextractor/v1/extract-presets?uri=${uri}&format=json`);
+	const body = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/colorextractor/v1/extract-presets?uri=${uri}&format=json`);
 
 	if (body.entries?.length) {
 		const list = {};
