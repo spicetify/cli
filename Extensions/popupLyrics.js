@@ -79,7 +79,7 @@ function PopupLyrics() {
 
 	const LyricProviders = {
 		async fetchSpotify(info) {
-			const baseURL = "wg://lyrics/v1/track/";
+			const baseURL = "https://spclient.wg.spotify.com/lyrics/v1/track/";
 			const id = info.uri.split(":")[2];
 			const body = await CosmosAsync.get(baseURL + id);
 
