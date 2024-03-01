@@ -2049,7 +2049,7 @@ Spicetify.Topbar = (() => {
 
 	function waitForTopbarMounted() {
 		leftContainer = document.querySelector(".main-topBar-historyButtons");
-		rightContainer = document.querySelector(".main-noConnection");
+		rightContainer = document.querySelector(".main-actionButtons");
 		if (!leftContainer || !rightContainer) {
 			setTimeout(waitForTopbarMounted, 100);
 			return;
