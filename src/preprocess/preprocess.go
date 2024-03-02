@@ -507,12 +507,20 @@ func exposeAPIs_main(input string) string {
 			return ""
 		})
 
-	// GraphQL definitions
+	// GraphQL definitions <=1.2.30
 	utils.Replace(
 		&input,
 		`((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
 		func(submatches ...string) string {
 			return fmt.Sprintf("%sSpicetify.GraphQL.Definitions[%s]=%s", submatches[1], submatches[3], submatches[2])
+		})
+
+	// GraphQL definitons >=1.2.31
+	utils.Replace(
+		&input,
+		`(=new [\w_\$][\w_\$\d]*\.[\w_\$][\w_\$\d]*\("(\w+)","(query|mutation)","[\w\d]{64}",null\))`,
+		func(submatches ...string) string {
+			return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
 		})
 
 	utils.Replace(
