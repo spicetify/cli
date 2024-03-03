@@ -109,7 +109,7 @@
 	 */
 	function rotateSidebar(direction) {
 		const allItems = document.querySelectorAll(
-			"#spicetify-sticky-list .main-yourLibraryX-navLink, .main-yourLibraryX-listItem > div > div:first-child"
+			"#spicetify-sticky-list .main-yourLibraryX-navLink, .main-yourLibraryX-listItem > div:not(:has([data-skip-in-keyboard-nav])) > div:first-child"
 		);
 		const maxIndex = allItems.length - 1;
 
