@@ -60,7 +60,9 @@
 
 	// Window resize listener
 	window.addEventListener('resize', function(event) {
-		vim.render();
+		if (vim.isActive) {
+			vim.render();
+		}
 	}, true);
 
 
@@ -185,7 +187,7 @@ function VimBind() {
 
 		for (const e of getLinks()) {
 			const computed = window.getComputedStyle(e);
-			if (computed.display === "none" || computed.visibility === "hidden" || computed.opacity === "0") {
+			if (computed.display === "none" || computed.visibility === "hidden" || computed.opacity === "0" || isObscured(e)) {
 				continue;
 			}
 
@@ -247,6 +249,10 @@ function VimBind() {
 			e.remove();
 		}
 		this.activate();
+	}
+
+	function isObscured(element) {
+		return false;
 	}
 
 	function getLinks() {
