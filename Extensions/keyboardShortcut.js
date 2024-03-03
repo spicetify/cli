@@ -200,7 +200,8 @@ function VimBind() {
 				continue;
 			}
 
-			vimOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
+			vimOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], (top + bound.height / 2) - 15, (left + bound.width / 2)  - 15)
+			);
 
 			secondKey++;
 			if (secondKey > lastKeyIndex) {
