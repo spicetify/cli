@@ -186,8 +186,8 @@ function VimBind() {
 			const bound = e.getBoundingClientRect();
 			const owner = document.body;
 
-			const top = bound.top;
-			const left = bound.left;
+			let top = bound.top;
+			let left = bound.left;
 
 			if (
 				bound.bottom > owner.clientHeight ||
@@ -200,7 +200,14 @@ function VimBind() {
 				continue;
 			}
 
-			vimOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], (top + bound.height / 2) - 15, (left + bound.width / 2)  - 15)
+			// Exclude certain elements from the centering calculation
+			if (e.parentNode.role !== "row") {
+				top = (top + bound.height / 2) - 15
+				left = (left + bound.width / 2)  - 15
+			}
+
+			// Append the key to the overlay
+			vimOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left)
 			);
 
 			secondKey++;
