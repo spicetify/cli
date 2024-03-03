@@ -80,7 +80,7 @@
 	// Window resize listener
 	window.addEventListener('resize', function(event) {
 		if (vim.isActive) {
-			vim.render();
+			vim.activate();
 		}
 	}, true);
 
@@ -198,7 +198,6 @@ function VimBind() {
 			for (const e of vimkey) {
 				e.remove();
 			}
-			return;
 		}
 
 		let firstKey = 0;
@@ -262,13 +261,6 @@ function VimBind() {
 			e.remove();
 		}
 	};
-
-	this.render = function () {
-		for (const e of getVims()) {
-			e.remove();
-		}
-		this.activate();
-	}
 
 	function isObscured(element) {
 		return false;
