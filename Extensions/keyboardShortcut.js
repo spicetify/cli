@@ -40,6 +40,24 @@
 		g: { callback: () => scrollToPosition(0) },
 		"shift+g": { callback: () => scrollToPosition(1) },
 
+		// Shift + H and Shift + L to go back and forward page
+		"shift+h": { callback: () => Spicetify.Platform.History.goBack() },
+		"shift+l": { callback: () => Spicetify.Platform.History.goForward() },
+
+		// M to Like/Unlike track
+		m: { callback: () => Spicetify.Player.toggleHeart()},
+
+		// Forward Slash to open search page
+		"/": { callback: () => Spicetify.Platform.History.replace("/search")},
+
+		// CTRL + Arrow Left Next and CTRL + Arrow Right  Previous Song
+		"ctrl+left": { callback: () => Spicetify.Player.prev() },
+		"ctrl+right": { callback: () => Spicetify.Player.next() },
+
+		// CTRL + Arrow Up Increase Volume CTRL + Arrow Down Decrease Volume
+		"ctrl+up": { callback: () => Spicetify.Player.setVolume(Spicetify.Player.getVolume() - 10) },
+		"ctrl+down": { callback: () => Spicetify.Player.setVolume(Spicetify.Player.getVolume() + 10) },
+
 		// Activate Vim mode and set cancel key to 'ESCAPE'
 		f: {
 			callback: event => {
@@ -51,6 +69,7 @@
 	for (const [key, { staticCondition, callback }] of Object.entries(binds)) {
 		if (typeof staticCondition === "undefined" || staticCondition) {
 			Spicetify.Mousetrap.bind(key, event => {
+				event.preventDefault();
 				if (!vim.isActive) {
 					callback(event);
 				}
