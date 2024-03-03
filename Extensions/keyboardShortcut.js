@@ -261,7 +261,7 @@ function VimBind() {
 
 			const newText = text.slice(1);
 			if (newText.length === 0) {
-				click(div.target);
+				interact(div.target);
 				this.deactivate(event);
 				return;
 			}
@@ -277,7 +277,19 @@ function VimBind() {
 	/**
 	 * @param {HTMLElement} element
 	 */
-	function click(element) {
+	function interact(element) {
+		// Hover on contextmenu dropdown list items
+		if (element.tagName === "BUTTON" && element.parentNode.tagName === "LI" && element.ariaExpanded !== null) {
+			var event = new MouseEvent('mouseover', {
+				'view': window,
+				'bubbles': true,
+				'cancelable': true
+			  });
+			  
+			  element.dispatchEvent(event);
+			return;
+		}
+
 		if (element.hasAttribute("href") || element.tagName === "BUTTON" || element.role === "button" || element.parentNode.role === "row") {
 			element.click();
 			return;
