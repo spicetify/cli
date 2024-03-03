@@ -141,10 +141,10 @@ function VimBind() {
 .vim-key {
     position: fixed;
     padding: 3px 6px;
-    background-color: black;
+    background-color: var(--spice-button-disabled);
     border-radius: 3px;
-    border: solid 2px white;
-    color: white;
+    border: solid 2px var(--spice-text);
+    color: var(--spice-text);
     text-transform: lowercase;
     line-height: normal;
     font-size: 14px;
