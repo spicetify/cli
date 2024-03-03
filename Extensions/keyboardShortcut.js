@@ -132,7 +132,7 @@ function VimBind() {
 
 	const vimOverlay = document.createElement("div");
 	vimOverlay.id = "vim-overlay";
-	vimOverlay.style.zIndex = "9999";
+	vimOverlay.style.zIndex = "10000";
 	vimOverlay.style.position = "absolute";
 	vimOverlay.style.width = "100%";
 	vimOverlay.style.height = "100%";
