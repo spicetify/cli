@@ -58,6 +58,12 @@
 		}
 	}
 
+	// Window resize listener
+	window.addEventListener('resize', function(event) {
+		vim.render();
+	}, true);
+
+
 	// Functions
 	function focusOnApp() {
 		return document.querySelector(".Root__main-view .os-viewport");
@@ -235,6 +241,13 @@ function VimBind() {
 			e.remove();
 		}
 	};
+
+	this.render = function () {
+		for (const e of getVims()) {
+			e.remove();
+		}
+		this.activate();
+	}
 
 	function getLinks() {
 		const elements = Array.from(document.querySelectorAll(elementQuery));
