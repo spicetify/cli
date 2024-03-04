@@ -1993,7 +1993,8 @@ Spicetify.Topbar = (() => {
 
 	class Button {
 		constructor(label, icon, onClick, disabled = false, isRight = false) {
-			this.element = document.createElement("button");
+			this.element = document.createElement("div");
+			this.button = document.createElement("button");
 			this.icon = icon;
 			this.onClick = onClick;
 			this.disabled = disabled;
@@ -2003,10 +2004,11 @@ Spicetify.Topbar = (() => {
 			});
 			this.label = label;
 
+			this.element.appendChild(this.button);
 			if (isRight) {
-				this.element.classList.add("encore-over-media-set", "main-topBar-buddyFeed");
+				this.button.classList.add("encore-over-media-set", "main-topBar-buddyFeed");
 				rightButtonsStash.add(this.element);
-				rightContainer?.after(this.element);
+				rightContainer?.prepend(this.element);
 			} else {
 				this.element.classList.add("main-topBar-button");
 				leftButtonsStash.add(this.element);
@@ -2018,7 +2020,8 @@ Spicetify.Topbar = (() => {
 		}
 		set label(text) {
 			this._label = text;
-			if (!this.tippy) this.element.setAttribute("title", text);
+			this.button.setAttribute("aria-label", text);
+			if (!this.tippy) this.button.setAttribute("title", text);
 			else this.tippy.setContent(text);
 		}
 		get icon() {
@@ -2030,22 +2033,22 @@ Spicetify.Topbar = (() => {
 				newInput = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[newInput]}</svg>`;
 			}
 			this._icon = newInput;
-			this.element.innerHTML = newInput;
+			this.button.innerHTML = newInput;
 		}
 		get onClick() {
 			return this._onClick;
 		}
 		set onClick(func) {
 			this._onClick = func;
-			this.element.onclick = () => this._onClick(this);
+			this.button.onclick = () => this._onClick(this);
 		}
 		get disabled() {
 			return this._disabled;
 		}
 		set disabled(bool) {
 			this._disabled = bool;
-			this.element.disabled = bool;
-			this.element.classList.toggle("disabled", bool);
+			this.button.disabled = bool;
+			this.button.classList.toggle("disabled", bool);
 		}
 	}
 
@@ -2063,7 +2066,7 @@ Spicetify.Topbar = (() => {
 		for (const button of rightButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
 		}
-		rightContainer.after(...rightButtonsStash);
+		rightContainer.prepend(...rightButtonsStash);
 	}
 
 	waitForTopbarMounted();
