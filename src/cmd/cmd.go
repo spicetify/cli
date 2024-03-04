@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	supportedSpotifyVersion = "1.2.17"
 	spicetifyFolder         = utils.GetSpicetifyFolder()
 	rawFolder, themedFolder = getExtractFolder()
 	backupFolder            = utils.GetUserFolder("Backup")
@@ -277,8 +276,6 @@ func CheckUpdate(version string) {
 		utils.PrintError(err.Error())
 		return
 	}
-
-	utils.PrintNote("Full Spicetify functionality is not guaranteed above Spotify's v" + supportedSpotifyVersion)
 
 	if latestTag == version {
 		utils.PrintInfo("Spicetify up-to-date")

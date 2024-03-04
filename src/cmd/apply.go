@@ -77,7 +77,6 @@ func Apply(spicetifyVersion string) {
 		HomeConfig:           featureSection.Key("home_config").MustBool(false),
 		ExpFeatures:          featureSection.Key("experimental_features").MustBool(false),
 		SpicetifyVer:         backupSection.Key("with").MustString(""),
-		SpotifyVer:           supportedSpotifyVersion,
 	})
 	utils.PrintGreen("OK")
 
