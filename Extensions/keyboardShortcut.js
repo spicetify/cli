@@ -45,10 +45,10 @@
 		"shift+l": { callback: () => Spicetify.Platform.History.goForward() },
 
 		// M to Like/Unlike track
-		m: { callback: () => Spicetify.Player.toggleHeart()},
+		m: { callback: () => Spicetify.Player.toggleHeart() },
 
 		// Forward Slash to open search page
-		"/": { callback: () => Spicetify.Platform.History.replace("/search")},
+		"/": { callback: () => Spicetify.Platform.History.replace("/search") },
 
 		// CTRL + Arrow Left Next and CTRL + Arrow Right  Previous Song
 		"ctrl+left": { callback: () => Spicetify.Player.prev() },
@@ -66,6 +66,8 @@
 			}
 		}
 	};
+
+	// Bind all the keys
 	for (const [key, { staticCondition, callback }] of Object.entries(binds)) {
 		if (typeof staticCondition === "undefined" || staticCondition) {
 			Spicetify.Mousetrap.bind(key, event => {
@@ -77,18 +79,26 @@
 		}
 	}
 
-	// Window resize listener
-	window.addEventListener('resize', function(event) {
-		if (vim.isActive) {
-			vim.activate();
-		}
-	}, true);
+	// re-render vim on window resize & prevent mouse event while active
+	window.addEventListener(
+		"resize",
+		function (event) {
+			if (vim.isActive) {
+				vim.activate();
+			}
+		},
+		true
+	);
 
-	window.addEventListener("mousedown", function (event) {
-		if (vim.isActive) {
-			event.stopPropagation();
-		}
-	}, true);
+	window.addEventListener(
+		"mousedown",
+		function (event) {
+			if (vim.isActive) {
+				event.stopPropagation();
+			}
+		},
+		true
+	);
 
 	// Functions
 	function focusOnApp() {
@@ -240,17 +250,15 @@ function VimBind() {
 
 			// Exclude certain elements from the centering calculation
 			if (e.parentNode.role !== "row") {
-				top = (top + bound.height / 2) - 15
-				left = (left + bound.width / 2)  - 15
+				top = top + bound.height / 2 - 15;
+				left = left + bound.width / 2 - 15;
 			}
 
 			// Append the key to the correct overlay
 			if (e.tagName === "BUTTON" && e.parentNode.tagName === "LI") {
-				tippyOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left)
-				);
+				tippyOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
 			} else {
-				baseOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left)
-				);
+				baseOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
 			}
 
 			secondKey++;
@@ -278,7 +286,6 @@ function VimBind() {
 			console.log(e);
 			e.remove();
 		}
-		
 	};
 
 	function getLinks() {
@@ -333,13 +340,13 @@ function VimBind() {
 	function interact(element) {
 		// Hover on contextmenu dropdown list items
 		if (element.tagName === "BUTTON" && element.parentNode.tagName === "LI" && element.ariaExpanded !== null) {
-			var event = new MouseEvent('mouseover', {
-				'view': window,
-				'bubbles': true,
-				'cancelable': true
-			  });
-			  
-			  element.dispatchEvent(event);
+			var event = new MouseEvent("mouseover", {
+				view: window,
+				bubbles: true,
+				cancelable: true
+			});
+
+			element.dispatchEvent(event);
 			return;
 		}
 
