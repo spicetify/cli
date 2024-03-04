@@ -82,7 +82,7 @@
 	// re-render vim on window resize & prevent mouse event while active
 	window.addEventListener(
 		"resize",
-		function (event) {
+		event => {
 			if (vim.isActive) {
 				vim.activate();
 			}
@@ -92,7 +92,7 @@
 
 	window.addEventListener(
 		"mousedown",
-		function (event) {
+		event => {
 			if (vim.isActive) {
 				event.stopPropagation();
 			}
@@ -340,7 +340,7 @@ function VimBind() {
 	function interact(element) {
 		// Hover on contextmenu dropdown list items
 		if (element.tagName === "BUTTON" && element.parentNode.tagName === "LI" && element.ariaExpanded !== null) {
-			var event = new MouseEvent("mouseover", {
+			const event = new MouseEvent("mouseover", {
 				view: window,
 				bubbles: true,
 				cancelable: true
