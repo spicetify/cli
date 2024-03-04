@@ -84,6 +84,11 @@
 		}
 	}, true);
 
+	window.addEventListener("mousedown", function (event) {
+		if (vim.isActive) {
+			event.stopPropagation();
+		}
+	}, true);
 
 	// Functions
 	function focusOnApp() {
@@ -158,11 +163,16 @@ function VimBind() {
 	this.isActive = false;
 
 	const vimOverlay = document.createElement("div");
+	const baseOverlay = document.createElement("div");
+	const tippyOverlay = document.createElement("div");
 	vimOverlay.id = "vim-overlay";
-	vimOverlay.style.zIndex = "10000";
-	vimOverlay.style.position = "absolute";
-	vimOverlay.style.width = "100%";
-	vimOverlay.style.height = "100%";
+	baseOverlay.id = "base-overlay";
+	tippyOverlay.id = "tippy-overlay";
+	vimOverlay.style.position = baseOverlay.style.position = tippyOverlay.style.position = "absolute";
+	vimOverlay.style.width = baseOverlay.style.width = tippyOverlay.style.width = "100%";
+	vimOverlay.style.height = baseOverlay.style.height = tippyOverlay.style.height = "100%";
+	baseOverlay.style.zIndex = "9999";
+	tippyOverlay.style.zIndex = "10000";
 	vimOverlay.style.display = "none";
 	vimOverlay.innerHTML = `<style>
 .vim-key {
@@ -178,6 +188,8 @@ function VimBind() {
     font-weight: 500;
 }
 </style>`;
+	vimOverlay.append(baseOverlay);
+	vimOverlay.append(tippyOverlay);
 	document.body.append(vimOverlay);
 
 	const mousetrap = new Spicetify.Mousetrap(document);
@@ -205,7 +217,7 @@ function VimBind() {
 
 		for (const e of getLinks()) {
 			const computed = window.getComputedStyle(e);
-			if (computed.display === "none" || computed.visibility === "hidden" || computed.opacity === "0" || isObscured(e)) {
+			if (computed.display === "none" || computed.visibility === "hidden" || computed.opacity === "0") {
 				continue;
 			}
 
@@ -232,9 +244,14 @@ function VimBind() {
 				left = (left + bound.width / 2)  - 15
 			}
 
-			// Append the key to the overlay
-			vimOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left)
-			);
+			// Append the key to the correct overlay
+			if (e.tagName === "BUTTON" && e.parentNode.tagName === "LI") {
+				tippyOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left)
+				);
+			} else {
+				baseOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left)
+				);
+			}
 
 			secondKey++;
 			if (secondKey > lastKeyIndex) {
@@ -258,13 +275,11 @@ function VimBind() {
 		this.isActive = false;
 		vimOverlay.style.display = "none";
 		for (const e of getVims()) {
+			console.log(e);
 			e.remove();
 		}
+		
 	};
-
-	function isObscured(element) {
-		return false;
-	}
 
 	function getLinks() {
 		const elements = Array.from(document.querySelectorAll(elementQuery));
@@ -307,7 +322,7 @@ function VimBind() {
 			div.innerText = newText;
 		}
 
-		if (vimOverlay.childNodes.length === 1) {
+		if (baseOverlay.childNodes.length === 0 && tippyOverlay.childNodes.length === 0) {
 			this.deactivate(event);
 		}
 	}
