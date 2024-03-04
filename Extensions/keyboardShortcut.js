@@ -283,7 +283,6 @@ function VimBind() {
 		this.isActive = false;
 		vimOverlay.style.display = "none";
 		for (const e of getVims()) {
-			console.log(e);
 			e.remove();
 		}
 	};
