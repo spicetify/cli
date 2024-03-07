@@ -7,6 +7,7 @@ const react = Spicetify.React;
 const { useState, useEffect, useCallback, useMemo, useRef } = react;
 /** @type {import("react").ReactDOM} */
 const reactDOM = Spicetify.ReactDOM;
+const version = Spicetify.Platform.version;
 
 // Define a function called "render" to specify app entry point
 // This function will be used to mount app to main view.
