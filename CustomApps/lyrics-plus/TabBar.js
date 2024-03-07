@@ -112,7 +112,7 @@ const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCa
 	const options = [];
 	for (let i = 0; i < links.length; i++) {
 		const key = links[i];
-		if (version >= "1.2.31" && key === "genius") continue;
+		if (spotifyVersion >= "1.2.31" && key === "genius") continue;
 		let value = key[0].toUpperCase() + key.slice(1);
 		if (key === lockLink) value = `• ${value}`;
 		const active = key === activeLink;

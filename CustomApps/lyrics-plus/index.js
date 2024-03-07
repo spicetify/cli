@@ -7,7 +7,7 @@ const react = Spicetify.React;
 const { useState, useEffect, useCallback, useMemo, useRef } = react;
 /** @type {import("react").ReactDOM} */
 const reactDOM = Spicetify.ReactDOM;
-const version = Spicetify.Platform.version;
+const spotifyVersion = Spicetify.Platform.version;
 
 // Define a function called "render" to specify app entry point
 // This function will be used to mount app to main view.
@@ -73,7 +73,7 @@ const CONFIG = {
 			modes: [KARAOKE, SYNCED, UNSYNCED]
 		},
 		genius: {
-			on: version >= "1.2.31" ? false : getConfig("lyrics-plus:provider:genius:on"),
+			on: spotifyVersion >= "1.2.31" ? false : getConfig("lyrics-plus:provider:genius:on"),
 			desc: "Provide unsynced lyrics with insights from artists themselves. Genius is disabled and cannot be used as a provider on <code>1.2.31</code> and higher.",
 			modes: [GENIUS]
 		},
@@ -238,7 +238,7 @@ class LyricsContainer extends react.Component {
 		let finalData = { ...emptyState, uri: trackInfo.uri };
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
-			if (id === "genius" && Spicetify.Platform.version >= "1.2.31") continue;
+			if (spotifyVersion >= "1.2.31" && id === "genius") continue;
 			if (!service.on) continue;
 			if (mode !== -1 && !service.modes.includes(mode)) continue;
 
