@@ -374,11 +374,18 @@ window.Spicetify = {
 				Object.assign(options.headers, injectedHeaders);
 
 				try {
-					return fetch(finalURL, options).then(res =>
-						res.json().catch(() => {
-							return { status: res.status };
-						})
-					);
+					return fetch(finalURL, options).then(res => {
+						if (!res.ok) return { code: res.status, error: res.statusText, message: "Failed to fetch", stack: undefined };
+						try {
+							return res.clone().json();
+						} catch {
+							try {
+								return res.clone().blob();
+							} catch {
+								return res.clone().text();
+							}
+						}
+					});
 				} catch (e) {
 					console.error(e);
 				}
