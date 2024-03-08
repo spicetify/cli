@@ -97,12 +97,12 @@ try {
 	localStorage.setItem("lyrics-plus:services-order", JSON.stringify(CONFIG.providersOrder));
 }
 
-CONFIG.locked = parseInt(CONFIG.locked);
-CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
-CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
-CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
-CONFIG.visual["ja-detect-threshold"] = parseInt(CONFIG.visual["ja-detect-threshold"]);
-CONFIG.visual["hans-detect-threshold"] = parseInt(CONFIG.visual["hans-detect-threshold"]);
+CONFIG.locked = Number.parseInt(CONFIG.locked);
+CONFIG.visual["lines-before"] = Number.parseInt(CONFIG.visual["lines-before"]);
+CONFIG.visual["lines-after"] = Number.parseInt(CONFIG.visual["lines-after"]);
+CONFIG.visual["font-size"] = Number.parseInt(CONFIG.visual["font-size"]);
+CONFIG.visual["ja-detect-threshold"] = Number.parseInt(CONFIG.visual["ja-detect-threshold"]);
+CONFIG.visual["hans-detect-threshold"] = Number.parseInt(CONFIG.visual["hans-detect-threshold"]);
 
 const CACHE = {};
 
@@ -196,7 +196,7 @@ class LyricsContainer extends react.Component {
 				const { fetchExtractedColorForTrackEntity } = Spicetify.GraphQL.Definitions;
 				const { data } = await Spicetify.GraphQL.Request(fetchExtractedColorForTrackEntity, { uri });
 				const { hex } = data.trackUnion.albumOfTrack.coverArt.extractedColors.colorDark;
-				vibrant = parseInt(hex.replace("#", ""), 16);
+				vibrant = Number.parseInt(hex.replace("#", ""), 16);
 			} catch {
 				const colors = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/colorextractor/v1/extract-presets?uri=${uri}&format=json`);
 				vibrant = colors.entries[0].color_swatches.find(color => color.preset === "VIBRANT_NON_ALARMING").color;

@@ -103,7 +103,7 @@ const TabBarContext = ({ children }) => {
 	);
 };
 
-const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCallback, windowSize = Infinity }) => {
+const TabBar = react.memo(({ links, activeLink, lockLink, switchCallback, lockCallback, windowSize = Number.POSITIVE_INFINITY }) => {
 	const tabBarRef = react.useRef(null);
 	const [childrenSizes, setChildrenSizes] = useState([]);
 	const [availableSpace, setAvailableSpace] = useState(0);
