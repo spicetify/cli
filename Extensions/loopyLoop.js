@@ -74,7 +74,7 @@
 
 	Spicetify.Player.addEventListener("songchange", reset);
 
-	const startBtn = new Spicetify.ContextMenu.Item("Set start");
+	const startBtn = new _HTMLContextMenuItem({ name: "Set start" });
 	startBtn.onclick = () => {
 		start = mouseOnBarPercent;
 		if (end === null || start > end) {
@@ -82,7 +82,7 @@
 		}
 		drawOnBar();
 	};
-	const endBtn = new Spicetify.ContextMenu.Item("Set end");
+	const endBtn = new _HTMLContextMenuItem({ name: "Set end" });
 	endBtn.onclick = () => {
 		end = mouseOnBarPercent;
 		if (start === null || end < start) {
@@ -90,7 +90,7 @@
 		}
 		drawOnBar();
 	};
-	const resetBtn = new Spicetify.ContextMenu.Item("Reset");
+	const resetBtn = new _HTMLContextMenuItem({ name: "Reset" });
 	resetBtn.onclick = reset;
 
 	const contextMenu = document.createElement("div");
