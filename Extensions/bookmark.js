@@ -202,22 +202,13 @@
 		const wrapper = document.createElement("div");
 		Spicetify.ReactDOM.render(
 			Spicetify.React.createElement(
-				Spicetify.React.memo(props => {
-					return Spicetify.React.createElement(
-						Spicetify.ReactComponent.MenuItem,
-						{
-							...props
-						},
-						props.title
-					);
-				}),
+				Spicetify.ReactComponent.MenuItem,
 				{
-					title: title,
 					onClick: () => {
-						contextMenu.hidden = true;
 						callback?.();
 					}
-				}
+				},
+				title
 			),
 			wrapper
 		);
