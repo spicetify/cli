@@ -7,7 +7,7 @@
 
 (function LoopyLoop() {
 	const bar = document.querySelector(".playback-bar .progress-bar");
-	if (!bar) {
+	if (!(bar && Spicetify.React)) {
 		setTimeout(LoopyLoop, 100);
 		return;
 	}
@@ -74,24 +74,48 @@
 
 	Spicetify.Player.addEventListener("songchange", reset);
 
-	const startBtn = new _HTMLContextMenuItem({ name: "Set start" });
-	startBtn.onclick = () => {
+	function createMenuItem(title, callback) {
+		const wrapper = document.createElement("div");
+		Spicetify.ReactDOM.render(
+			Spicetify.React.createElement(
+				Spicetify.React.memo(props => {
+					return Spicetify.React.createElement(
+						Spicetify.ReactComponent.MenuItem,
+						{
+							...props
+						},
+						props.title
+					);
+				}),
+				{
+					title: title,
+					onClick: () => {
+						contextMenu.hidden = true;
+						callback?.();
+					}
+				}
+			),
+			wrapper
+		);
+
+		return wrapper;
+	}
+
+	const startBtn = createMenuItem("Set start", () => {
 		start = mouseOnBarPercent;
 		if (end === null || start > end) {
 			end = 0.99;
 		}
 		drawOnBar();
-	};
-	const endBtn = new _HTMLContextMenuItem({ name: "Set end" });
-	endBtn.onclick = () => {
+	});
+	const endBtn = createMenuItem("Set end", () => {
 		end = mouseOnBarPercent;
 		if (start === null || end < start) {
 			start = 0;
 		}
 		drawOnBar();
-	};
-	const resetBtn = new _HTMLContextMenuItem({ name: "Reset" });
-	resetBtn.onclick = reset;
+	});
+	const resetBtn = createMenuItem("Reset", reset);
 
 	const contextMenu = document.createElement("div");
 	contextMenu.id = "loopy-context-menu";
