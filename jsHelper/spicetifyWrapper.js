@@ -876,7 +876,7 @@ Spicetify.Events = (() => {
 	}
 
 	const playerState = {
-		cache: Spicetify.Player.data,
+		cache: null,
 		current: null
 	};
 
