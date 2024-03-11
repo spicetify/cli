@@ -98,19 +98,6 @@ jobs:
         with:
           url: https://vps.itsmeow.dev/spicetify-update
           method: GET
-      - name: Update Homebrew tap
-        uses: mislav/bump-homebrew-formula-action@v3
-        if: ${{ !contains(github.ref, '-') }}
-        with:
-          formula-name: spicetify-cli
-          formula-path: spicetify-cli.rb
-          homebrew-tap: spicetify/homebrew-tap
-          base-branch: main
-          download-url: https://github.com/spicetify/spicetify-cli/archive/${{ github.ref_name }}.tar.gz
-          commit-message: |
-            feat: {{version}} release
-        env:
-          COMMITTER_TOKEN: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
       - name: Update Winget package
         uses: vedantmgoyal2009/winget-releaser@v2
         with:
