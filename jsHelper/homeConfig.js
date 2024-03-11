@@ -172,7 +172,7 @@ SpicetifyHomeConfig = {};
 		} else {
 			removeInteraction();
 		}
-	});
+	}, Spicetify.SVGIcons["grid-view"]);
 
 	SpicetifyHomeConfig.addToMenu = () => {
 		SpicetifyHomeConfig.menu.register();
