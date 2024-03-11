@@ -165,19 +165,20 @@ SpicetifyHomeConfig = {};
 
 	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
 
-	const menu = new Spicetify.Menu.Item("Home config", false, self => {
-		self.setState(true);
+	SpicetifyHomeConfig.menu = new Spicetify.Menu.Item("Home config", false, self => {
+		self.setState(!self.isEnabled)
 		if (self.isEnabled) {
 			injectInteraction();
 		} else {
 			removeInteraction();
 		}
 	});
+
 	SpicetifyHomeConfig.addToMenu = () => {
-		menu.register();
+		SpicetifyHomeConfig.menu.register();
 	};
 	SpicetifyHomeConfig.removeMenu = () => {
-		menu.deregister();
+		SpicetifyHomeConfig.menu.deregister();
 	};
 
 	await new Promise(res => Spicetify.Events.platformLoaded.on(res));
