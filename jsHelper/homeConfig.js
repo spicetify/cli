@@ -178,6 +178,7 @@ SpicetifyHomeConfig = {};
 		SpicetifyHomeConfig.menu.register();
 	};
 	SpicetifyHomeConfig.removeMenu = () => {
+		SpicetifyHomeConfig.menu.setState(false)
 		SpicetifyHomeConfig.menu.deregister();
 	};
 
