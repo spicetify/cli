@@ -397,10 +397,6 @@ func disableLogging(input string) string {
 		return fmt.Sprintf("%sreturn {interactionIds:null,pageInstanceIds:null};", submatches[0])
 	})
 
-	utils.Replace(&input, `/function\s+\w+\(\)\s+\{[\s\S]*"console"\s+in\s+\w+\.\w+\s+&&[\s\S]*\.\w+\s+.forEach\([\s\S]*\}\s+\)\s+\}\s+\)/`, func(submatches ...string) string {
-		return ""
-	})
-
 	return input
 }
 
