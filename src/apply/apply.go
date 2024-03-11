@@ -369,9 +369,9 @@ func insertHomeConfig(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		utils.ReplaceOnce(
 			&content,
-            `(\w+)\s*=\s*(\w+)\?\.home;`,
+            `(createDesktopHomeFeatureActivationShelfEventFactory.*?)([\w\.]+)(\.map)`,
 			func(submatches ...string) string {
-				return fmt.Sprintf("%s = %s?.home;%s.sectionContainer = SpicetifyHomeConfig.arrange(%s.sectionContainer);", submatches[1], submatches[2], submatches[1], submatches[1])
+				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
 			})
 		return content
 	})

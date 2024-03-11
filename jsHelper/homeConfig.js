@@ -11,15 +11,11 @@ SpicetifyHomeConfig = {};
 	const statusDic = {};
 	let mounted = false;
 
-	SpicetifyHomeConfig.arrange = container => {
-		let sections = container.sections?.items;
-
+	SpicetifyHomeConfig.arrange = sections => {
 		mounted = true;
 		if (list) {
-			container.sections.items = list;
-			return container;
+			return list;
 		}
-
 		const stickList = (localStorage.getItem("spicetify-home-config:stick") || "").split(",");
 		const lowList = (localStorage.getItem("spicetify-home-config:low") || "").split(",");
 		const stickSections = [];
@@ -45,9 +41,7 @@ SpicetifyHomeConfig = {};
 		sections = sections.filter(Boolean);
 
 		list = [...stickSections, ...sections, ...lowSections];
-		container.sections.items = list;
-
-		return container;
+		return list;
 	};
 
 	const up = document.createElement("button");
