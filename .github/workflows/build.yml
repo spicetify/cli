@@ -6,19 +6,15 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
-
       - name: Build
         run: go build .
-
       - name: Format
         run: |
           gofmt -s -l .
@@ -40,18 +36,14 @@ jobs:
 
       - name: Get Tag
         run: echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
-
       - name: Is Unix Platform
         run: echo "IS_UNIX=${{ matrix.os != 'windows' && matrix.arch != '386' }}" >> $GITHUB_ENV
-
       - name: Is Windows Platform
         run: echo "IS_WIN=${{ matrix.os == 'windows' && matrix.arch != 'arm64' }}" >> $GITHUB_ENV
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: "go.mod"
-
       - name: Build
         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
         run: |
@@ -61,28 +53,24 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
-
       - name: 7z - .tar
         if: env.IS_UNIX == 'true'
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar" "./spicetify" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
-
       - name: 7z - .tar.gz
         if: env.IS_UNIX == 'true'
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -sdel -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch }}.tar"
-
       - name: 7z - .zip
         if: env.IS_WIN == 'true'
         uses: edgarrc/action-7z@v1
         with:
           args: 7z a -bb0 -mx9 "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ matrix.arch == 'amd64' && 'x64' || 'x32' }}.zip" "./spicetify.exe" "./CustomApps" "./Extensions" "./Themes" "./jsHelper" "globals.d.ts" "css-map.json"
-
       - name: Release
         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@1ce812a7bd7fa6c191ed3334eeace31579a98f25
         with:
           files: "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.os == 'windows' && matrix.arch == 'amd64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }}.${{ matrix.os == 'windows' && 'zip' || 'tar.gz' }}"
         env:
@@ -94,12 +82,12 @@ jobs:
     needs: release
     steps:
       - name: Update AUR package
-        uses: fjogeleit/http-request-action@master
+        uses: fjogeleit/http-request-action@606bb16fb9fd924ced9f9ab393386c7ef1e44e5c
         with:
           url: https://vps.itsmeow.dev/spicetify-update
           method: GET
       - name: Update Homebrew tap
-        uses: mislav/bump-homebrew-formula-action@v3
+        uses: mislav/bump-homebrew-formula-action@868bf7871f81dda58cc50fe1d17ea83ae1f3f929
         if: ${{ !contains(github.ref, '-') }}
         with:
           formula-name: spicetify-cli
@@ -112,7 +100,7 @@ jobs:
         env:
           COMMITTER_TOKEN: ${{ secrets.SPICETIFY_GITHUB_TOKEN }}
       - name: Update Winget package
-        uses: vedantmgoyal2009/winget-releaser@v2
+        uses: vedantmgoyal2009/winget-releaser@cf8c5b693dd449d2587c52cf5032febca299281d
         with:
           identifier: Spicetify.Spicetify
           installers-regex: '-windows-\w+\.zip$'
