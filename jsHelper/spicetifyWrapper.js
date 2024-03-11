@@ -348,7 +348,7 @@ window.Spicetify = {
 					if (method === "get") {
 						const params = new URLSearchParams(body);
 						finalURL += `?${params.toString()}`;
-					} else options.body = Array.isArray(body) && typeof body === "object" ? JSON.stringify(body) : body;
+					} else options.body = !Array.isArray(body) && typeof body === "object" ? JSON.stringify(body) : body;
 				}
 				if (shouldUseCORSProxy) finalURL = `${corsProxyURL}/${finalURL}`;
 
