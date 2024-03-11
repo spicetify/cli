@@ -66,6 +66,7 @@ SpicetifyHomeConfig = {};
     justify-content: center;
     align-items: flex-start;
     gap: 5px;
+	z-index: 9999;
 }
 #spicetify-home-config button {
     min-width: 60px;
@@ -172,20 +173,25 @@ SpicetifyHomeConfig = {};
 
 	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
 
-	SpicetifyHomeConfig.menu = new Spicetify.Menu.Item("Home config", false, self => {
-		self.setState(!self.isEnabled)
-		if (self.isEnabled) {
-			injectInteraction();
-		} else {
-			removeInteraction();
-		}
-	}, Spicetify.SVGIcons["grid-view"]);
+	SpicetifyHomeConfig.menu = new Spicetify.Menu.Item(
+		"Home config",
+		false,
+		self => {
+			self.setState(!self.isEnabled);
+			if (self.isEnabled) {
+				injectInteraction();
+			} else {
+				removeInteraction();
+			}
+		},
+		Spicetify.SVGIcons["grid-view"]
+	);
 
 	SpicetifyHomeConfig.addToMenu = () => {
 		SpicetifyHomeConfig.menu.register();
 	};
 	SpicetifyHomeConfig.removeMenu = () => {
-		SpicetifyHomeConfig.menu.setState(false)
+		SpicetifyHomeConfig.menu.setState(false);
 		SpicetifyHomeConfig.menu.deregister();
 	};
 

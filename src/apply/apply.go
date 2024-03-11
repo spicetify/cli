@@ -369,7 +369,7 @@ func insertHomeConfig(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
 		utils.ReplaceOnce(
 			&content,
-            `(createDesktopHomeFeatureActivationShelfEventFactory.*?)([\w\.]+)(\.map)`,
+			`(createDesktopHomeFeatureActivationShelfEventFactory.*?)([\w\.]+)(\.map)`,
 			func(submatches ...string) string {
 				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
 			})
