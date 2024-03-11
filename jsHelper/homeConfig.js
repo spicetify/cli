@@ -50,8 +50,14 @@ SpicetifyHomeConfig = {};
 	down.innerText = "Down";
 	const lower = document.createElement("button");
 	const stick = document.createElement("button");
-	const style = document.createElement("style");
-	style.innerHTML = `
+	const sectionStyle = document.createElement("style");
+	sectionStyle.innerHTML = `
+.main-home-content section {
+	order: 0 !important;
+}
+`;
+	const containerStyle = document.createElement("style");
+	containerStyle.innerHTML = `
 #spicetify-home-config {
     position: relative;
     width: 100%;
@@ -76,7 +82,8 @@ SpicetifyHomeConfig = {};
 
 	const container = document.createElement("div");
 	container.id = "spicetify-home-config";
-	container.append(style, up, down, lower, stick);
+	container.append(containerStyle, up, down, lower, stick);
+	document.head.append(sectionStyle);
 	let elem = [];
 
 	function injectInteraction() {
