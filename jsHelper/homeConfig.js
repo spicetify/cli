@@ -11,11 +11,15 @@ SpicetifyHomeConfig = {};
 	const statusDic = {};
 	let mounted = false;
 
-	SpicetifyHomeConfig.arrange = sections => {
+	SpicetifyHomeConfig.arrange = container => {
+		let sections = container.sections?.items;
+
 		mounted = true;
 		if (list) {
-			return list;
+			container.sections.items = list;
+			return container;
 		}
+
 		const stickList = (localStorage.getItem("spicetify-home-config:stick") || "").split(",");
 		const lowList = (localStorage.getItem("spicetify-home-config:low") || "").split(",");
 		const stickSections = [];
@@ -41,7 +45,9 @@ SpicetifyHomeConfig = {};
 		sections = sections.filter(Boolean);
 
 		list = [...stickSections, ...sections, ...lowSections];
-		return list;
+		container.sections.items = list;
+
+		return container;
 	};
 
 	const up = document.createElement("button");
@@ -165,17 +171,18 @@ SpicetifyHomeConfig = {};
 
 	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
 
-	const menu = new Spicetify.Menu.Item("Home config", true, self => {
-		self.isEnabled = !self.isEnabled;
+	const menu = new Spicetify.Menu.Item("Home config", false, self => {
+		self.setState(true);
 		if (self.isEnabled) {
 			injectInteraction();
 		} else {
 			removeInteraction();
 		}
 	});
-	SpicetifyHomeConfig.addToMenu = () => menu.register();
+	SpicetifyHomeConfig.addToMenu = () => {
+		menu.register();
+	};
 	SpicetifyHomeConfig.removeMenu = () => {
-		menu.isEnabled = false;
 		menu.deregister();
 	};
 
@@ -183,13 +190,16 @@ SpicetifyHomeConfig = {};
 	// Init
 	if (Spicetify.Platform.History.location.pathname === "/") {
 		SpicetifyHomeConfig.addToMenu();
+		console.log("initial");
 	}
 
 	Spicetify.Platform.History.listen(({ pathname }) => {
 		if (pathname === "/") {
 			SpicetifyHomeConfig.addToMenu();
+			console.log("enabled via entering home");
 		} else {
 			SpicetifyHomeConfig.removeMenu();
+			console.log("removed");
 		}
 	});
 })();
