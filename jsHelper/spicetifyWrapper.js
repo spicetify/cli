@@ -873,16 +873,17 @@ Spicetify.Events = (() => {
 		return;
 	}
 
+	const playerState = {
+		cache: null,
+		current: null
+	};
+
 	const interval = setInterval(() => {
 		if (!Spicetify.Player.origin._state?.item) return;
 		Spicetify.Player.data = Spicetify.Player.origin._state;
+		playerState.cache = Spicetify.Player.data;
 		clearInterval(interval);
 	}, 10);
-
-	const playerState = {
-		cache: Spicetify.Player.data,
-		current: null
-	};
 
 	Spicetify.Player.origin._events.addListener("update", ({ data: playerEventData }) => {
 		playerState.current = playerEventData.item ? playerEventData : null;

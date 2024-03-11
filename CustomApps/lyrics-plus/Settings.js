@@ -148,7 +148,7 @@ const ConfigSelection = ({ name, defaultValue, options, onChange = () => {} }) =
 		event => {
 			let value = event.target.value;
 			if (!Number.isNaN(Number(value))) {
-				value = parseInt(value);
+				value = Number.parseInt(value);
 			}
 			setValue(value);
 			onChange(value);
