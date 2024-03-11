@@ -186,16 +186,13 @@ SpicetifyHomeConfig = {};
 	// Init
 	if (Spicetify.Platform.History.location.pathname === "/") {
 		SpicetifyHomeConfig.addToMenu();
-		console.log("initial");
 	}
 
 	Spicetify.Platform.History.listen(({ pathname }) => {
 		if (pathname === "/") {
 			SpicetifyHomeConfig.addToMenu();
-			console.log("enabled via entering home");
 		} else {
 			SpicetifyHomeConfig.removeMenu();
-			console.log("removed");
 		}
 	});
 })();
