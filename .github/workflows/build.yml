@@ -82,7 +82,7 @@ jobs:
 
       - name: Release
         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: "spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.os == 'windows' && matrix.arch == 'amd64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }}.${{ matrix.os == 'windows' && 'zip' || 'tar.gz' }}"
         env:

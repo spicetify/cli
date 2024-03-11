@@ -7,6 +7,7 @@ const react = Spicetify.React;
 const { useState, useEffect, useCallback, useMemo, useRef } = react;
 /** @type {import("react").ReactDOM} */
 const reactDOM = Spicetify.ReactDOM;
+const spotifyVersion = Spicetify.Platform.version;
 
 // Define a function called "render" to specify app entry point
 // This function will be used to mount app to main view.
@@ -55,14 +56,9 @@ const CONFIG = {
 		delay: 0
 	},
 	providers: {
-		netease: {
-			on: getConfig("lyrics-plus:provider:netease:on"),
-			desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
-			modes: [KARAOKE, SYNCED, UNSYNCED]
-		},
 		musixmatch: {
 			on: getConfig("lyrics-plus:provider:musixmatch:on"),
-			desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://spicetify.app/docs/faq#sometimes-popup-lyrics-andor-lyrics-plus-seem-to-not-work">Spicetify Docs</a>.`,
+			desc: "Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button.",
 			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
 			modes: [KARAOKE, SYNCED, UNSYNCED]
 		},
@@ -71,8 +67,13 @@ const CONFIG = {
 			desc: "Lyrics sourced from official Spotify API.",
 			modes: [SYNCED, UNSYNCED]
 		},
+		netease: {
+			on: getConfig("lyrics-plus:provider:netease:on"),
+			desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
+			modes: [KARAOKE, SYNCED, UNSYNCED]
+		},
 		genius: {
-			on: getConfig("lyrics-plus:provider:genius:on"),
+			on: spotifyVersion >= "1.2.31" ? false : getConfig("lyrics-plus:provider:genius:on"),
 			desc: "Provide unsynced lyrics with insights from artists themselves. Genius is disabled and cannot be used as a provider on <code>1.2.31</code> and higher.",
 			modes: [GENIUS]
 		},
@@ -97,12 +98,12 @@ try {
 	localStorage.setItem("lyrics-plus:services-order", JSON.stringify(CONFIG.providersOrder));
 }
 
-CONFIG.locked = parseInt(CONFIG.locked);
-CONFIG.visual["lines-before"] = parseInt(CONFIG.visual["lines-before"]);
-CONFIG.visual["lines-after"] = parseInt(CONFIG.visual["lines-after"]);
-CONFIG.visual["font-size"] = parseInt(CONFIG.visual["font-size"]);
-CONFIG.visual["ja-detect-threshold"] = parseInt(CONFIG.visual["ja-detect-threshold"]);
-CONFIG.visual["hans-detect-threshold"] = parseInt(CONFIG.visual["hans-detect-threshold"]);
+CONFIG.locked = Number.parseInt(CONFIG.locked);
+CONFIG.visual["lines-before"] = Number.parseInt(CONFIG.visual["lines-before"]);
+CONFIG.visual["lines-after"] = Number.parseInt(CONFIG.visual["lines-after"]);
+CONFIG.visual["font-size"] = Number.parseInt(CONFIG.visual["font-size"]);
+CONFIG.visual["ja-detect-threshold"] = Number.parseInt(CONFIG.visual["ja-detect-threshold"]);
+CONFIG.visual["hans-detect-threshold"] = Number.parseInt(CONFIG.visual["hans-detect-threshold"]);
 
 const CACHE = {};
 
@@ -196,7 +197,7 @@ class LyricsContainer extends react.Component {
 				const { fetchExtractedColorForTrackEntity } = Spicetify.GraphQL.Definitions;
 				const { data } = await Spicetify.GraphQL.Request(fetchExtractedColorForTrackEntity, { uri });
 				const { hex } = data.trackUnion.albumOfTrack.coverArt.extractedColors.colorDark;
-				vibrant = parseInt(hex.replace("#", ""), 16);
+				vibrant = Number.parseInt(hex.replace("#", ""), 16);
 			} catch {
 				const colors = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/colorextractor/v1/extract-presets?uri=${uri}&format=json`);
 				vibrant = colors.entries[0].color_swatches.find(color => color.preset === "VIBRANT_NON_ALARMING").color;
@@ -237,7 +238,7 @@ class LyricsContainer extends react.Component {
 		let finalData = { ...emptyState, uri: trackInfo.uri };
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
-			if (id === "genius" && Spicetify.Platform.version >= "1.2.31") continue;
+			if (spotifyVersion >= "1.2.31" && id === "genius") continue;
 			if (!service.on) continue;
 			if (mode !== -1 && !service.modes.includes(mode)) continue;
 

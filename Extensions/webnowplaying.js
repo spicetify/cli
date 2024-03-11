@@ -53,7 +53,7 @@ class WNPReduxWebSocket {
 		const meta = data.item.metadata;
 		this.spicetifyInfo.title = meta.title;
 		this.spicetifyInfo.album = meta.album_title;
-		this.spicetifyInfo.duration = timeInSecondsToString(Math.round(parseInt(meta.duration) / 1000));
+		this.spicetifyInfo.duration = timeInSecondsToString(Math.round(Number.parseInt(meta.duration) / 1000));
 		this.spicetifyInfo.state = !data.isPaused ? "PLAYING" : "PAUSED";
 		this.spicetifyInfo.repeat = data.repeat === 2 ? "ONE" : data.repeat === 1 ? "ALL" : "NONE";
 		this.spicetifyInfo.shuffle = data.shuffle;
@@ -195,11 +195,11 @@ function OnMessageLegacy(self, message) {
 			case "SETPOSITION": {
 				// Example string: SetPosition 34:SetProgress 0,100890207715134:
 				const [, positionPercentage] = message.toUpperCase().split(":")[1].split("SETPROGRESS ");
-				Spicetify.Player.seek(parseFloat(positionPercentage.replace(",", ".")));
+				Spicetify.Player.seek(Number.parseFloat(positionPercentage.replace(",", ".")));
 				break;
 			}
 			case "SETVOLUME":
-				Spicetify.Player.setVolume(parseInt(data) / 100);
+				Spicetify.Player.setVolume(Number.parseInt(data) / 100);
 				break;
 			case "REPEAT": {
 				Spicetify.Player.toggleRepeat();
@@ -219,7 +219,7 @@ function OnMessageLegacy(self, message) {
 			// Spotify doesn't have a negative rating
 			// case 'TOGGLETHUMBSDOWN': break
 			case "RATING": {
-				const rating = parseInt(data);
+				const rating = Number.parseInt(data);
 				const isLiked = self.spicetifyInfo.rating > 3;
 				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
 				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();
@@ -285,11 +285,11 @@ function OnMessageRev1(self, message) {
 				break;
 			case "SET_POSITION": {
 				const [, positionPercentage] = data.split(":");
-				Spicetify.Player.seek(parseFloat(positionPercentage.replace(",", ".")));
+				Spicetify.Player.seek(Number.parseFloat(positionPercentage.replace(",", ".")));
 				break;
 			}
 			case "SET_VOLUME":
-				Spicetify.Player.setVolume(parseInt(data) / 100);
+				Spicetify.Player.setVolume(Number.parseInt(data) / 100);
 				break;
 			case "TOGGLE_REPEAT": {
 				Spicetify.Player.toggleRepeat();
@@ -309,7 +309,7 @@ function OnMessageRev1(self, message) {
 			// Spotify doesn't have a negative rating
 			// case 'TOGGLE_THUMBS_DOWN': break
 			case "SET_RATING": {
-				const rating = parseInt(data);
+				const rating = Number.parseInt(data);
 				const isLiked = self.spicetifyInfo.rating > 3;
 				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
 				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();

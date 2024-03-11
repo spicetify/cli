@@ -11,6 +11,7 @@ if (!navigator.serviceWorker) {
 	// setTimeout and setInterval are also throttled at 1 second.
 	// Offload setInterval to a Worker to consistently call tick function.
 	let num = null;
+	// biome-ignore lint/suspicious/noGlobalAssign: <explanation>
 	onmessage = event => {
 		if (event.data === "popup-lyric-request-update") {
 			console.warn("popup-lyric-request-update");
@@ -217,7 +218,7 @@ function PopupLyrics() {
 						const result = {};
 						const matchResult = slice.match(/[^\[\]]+/g);
 						const [key, value] = matchResult[0].split(":") || [];
-						const [min, sec] = [parseFloat(key), parseFloat(value)];
+						const [min, sec] = [Number.parseFloat(key), Number.parseFloat(value)];
 						if (!Number.isNaN(min) && !Number.isNaN(sec) && !otherInfoRegexp.test(text)) {
 							result.startTime = min * 60 + sec;
 							result.text = text || "♪";

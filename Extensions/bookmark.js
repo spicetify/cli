@@ -195,13 +195,25 @@
 
 	/**
 	 *
-	 * @param {string} name
+	 * @param {string} title
 	 * @param {() => void} callback
 	 */
-	function createMenuItem(name, callback) {
-		const item = new _HTMLContextMenuItem({ name });
-		item.onclick = callback;
-		return item;
+	function createMenuItem(title, callback) {
+		const wrapper = document.createElement("div");
+		Spicetify.ReactDOM.render(
+			Spicetify.React.createElement(
+				Spicetify.ReactComponent.MenuItem,
+				{
+					onClick: () => {
+						callback?.();
+					}
+				},
+				title
+			),
+			wrapper
+		);
+
+		return wrapper;
 	}
 
 	function createSortSelect(defaultOpt = 0) {
