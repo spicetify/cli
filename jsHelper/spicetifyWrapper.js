@@ -2009,7 +2009,7 @@ Spicetify.Topbar = (() => {
 				rightButtonsStash.add(this.element);
 				rightContainer?.prepend(this.element);
 			} else {
-				this.element.classList.add("main-topBar-button");
+				this.button.classList.add("main-topBar-button");
 				leftButtonsStash.add(this.element);
 				leftContainer?.append(this.element);
 			}
