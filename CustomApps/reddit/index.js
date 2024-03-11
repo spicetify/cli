@@ -298,7 +298,7 @@ async function getSubreddit(after = "") {
 		url += `&t=${sortConfig.time}`;
 	}
 
-	return await Spicetify.CosmosAsync.get(url);
+	return await fetch(url).then(res => res.json());
 }
 
 async function fetchPlaylist(post) {
