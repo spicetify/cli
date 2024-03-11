@@ -21,6 +21,9 @@
 	 * @param {(event: KeyboardEvent) => void} callback - Callback function for the event.
 	 */
 	const binds = {
+		// Shutdown Spotify using Ctrl+Q
+		"ctrl+q": { callback: () => Spicetify.CosmosAsync.post("sp://esperanto/spotify.desktop.lifecycle_esperanto.proto.DesktopLifecycle/Shutdown") },
+
 		// Rotate through sidebar items using Ctrl+Tab and Ctrl+Shift+Tab
 		"ctrl+tab": { callback: () => rotateSidebar(1) },
 		"ctrl+shift+tab": { callback: () => rotateSidebar(-1) },
@@ -37,6 +40,24 @@
 		g: { callback: () => scrollToPosition(0) },
 		"shift+g": { callback: () => scrollToPosition(1) },
 
+		// Shift + H and Shift + L to go back and forward page
+		"shift+h": { callback: () => Spicetify.Platform.History.goBack() },
+		"shift+l": { callback: () => Spicetify.Platform.History.goForward() },
+
+		// M to Like/Unlike track
+		m: { callback: () => Spicetify.Player.toggleHeart() },
+
+		// Forward Slash to open search page
+		"/": { callback: () => Spicetify.Platform.History.replace("/search") },
+
+		// CTRL + Arrow Left Next and CTRL + Arrow Right  Previous Song
+		"ctrl+left": { callback: () => Spicetify.Player.prev() },
+		"ctrl+right": { callback: () => Spicetify.Player.next() },
+
+		// CTRL + Arrow Up Increase Volume CTRL + Arrow Down Decrease Volume
+		"ctrl+up": { callback: () => Spicetify.Player.setVolume(Spicetify.Player.getVolume() - 0.05) },
+		"ctrl+down": { callback: () => Spicetify.Player.setVolume(Spicetify.Player.getVolume() + 0.05) },
+
 		// Activate Vim mode and set cancel key to 'ESCAPE'
 		f: {
 			callback: event => {
@@ -45,15 +66,39 @@
 			}
 		}
 	};
+
+	// Bind all the keys
 	for (const [key, { staticCondition, callback }] of Object.entries(binds)) {
 		if (typeof staticCondition === "undefined" || staticCondition) {
 			Spicetify.Mousetrap.bind(key, event => {
+				event.preventDefault();
 				if (!vim.isActive) {
 					callback(event);
 				}
 			});
 		}
 	}
+
+	// re-render vim on window resize & prevent mouse event while active
+	window.addEventListener(
+		"resize",
+		event => {
+			if (vim.isActive) {
+				vim.activate();
+			}
+		},
+		true
+	);
+
+	window.addEventListener(
+		"mousedown",
+		event => {
+			if (vim.isActive) {
+				event.stopPropagation();
+			}
+		},
+		true
+	);
 
 	// Functions
 	function focusOnApp() {
@@ -106,7 +151,7 @@
 	 */
 	function rotateSidebar(direction) {
 		const allItems = document.querySelectorAll(
-			"#spicetify-sticky-list .main-yourLibraryX-navLink, .main-yourLibraryX-listItem > div > div:first-child"
+			"#spicetify-sticky-list .main-yourLibraryX-navLink, .main-yourLibraryX-listItem > div:not(:has([data-skip-in-keyboard-nav])) > div:first-child"
 		);
 		const maxIndex = allItems.length - 1;
 
@@ -119,7 +164,7 @@
 })();
 
 function VimBind() {
-	const elementQuery = ["[href]", "button", "td.tl-play", "td.tl-number", "tr.TableRow", "[role='button']"].join(",");
+	const elementQuery = ["[href]", "button", ".main-trackList-trackListRow", "[role='button']"].join(",");
 
 	const keyList = "qwertasdfgzxcvyuiophjklbnm".split("");
 
@@ -128,26 +173,33 @@ function VimBind() {
 	this.isActive = false;
 
 	const vimOverlay = document.createElement("div");
+	const baseOverlay = document.createElement("div");
+	const tippyOverlay = document.createElement("div");
 	vimOverlay.id = "vim-overlay";
-	vimOverlay.style.zIndex = "9999";
-	vimOverlay.style.position = "absolute";
-	vimOverlay.style.width = "100%";
-	vimOverlay.style.height = "100%";
+	baseOverlay.id = "base-overlay";
+	tippyOverlay.id = "tippy-overlay";
+	vimOverlay.style.position = baseOverlay.style.position = tippyOverlay.style.position = "absolute";
+	vimOverlay.style.width = baseOverlay.style.width = tippyOverlay.style.width = "100%";
+	vimOverlay.style.height = baseOverlay.style.height = tippyOverlay.style.height = "100%";
+	baseOverlay.style.zIndex = "9999";
+	tippyOverlay.style.zIndex = "10000";
 	vimOverlay.style.display = "none";
 	vimOverlay.innerHTML = `<style>
 .vim-key {
     position: fixed;
     padding: 3px 6px;
-    background-color: black;
+    background-color: var(--spice-button-disabled);
     border-radius: 3px;
-    border: solid 2px white;
-    color: white;
+    border: solid 2px var(--spice-text);
+    color: var(--spice-text);
     text-transform: lowercase;
     line-height: normal;
     font-size: 14px;
     font-weight: 500;
 }
 </style>`;
+	vimOverlay.append(baseOverlay);
+	vimOverlay.append(tippyOverlay);
 	document.body.append(vimOverlay);
 
 	const mousetrap = new Spicetify.Mousetrap(document);
@@ -168,22 +220,22 @@ function VimBind() {
 			for (const e of vimkey) {
 				e.remove();
 			}
-			return;
 		}
 
 		let firstKey = 0;
 		let secondKey = 0;
 
 		for (const e of getLinks()) {
-			if (e.style.display === "none" || e.style.visibility === "hidden" || e.style.opacity === "0") {
-				return;
+			const computed = window.getComputedStyle(e);
+			if (computed.display === "none" || computed.visibility === "hidden" || computed.opacity === "0") {
+				continue;
 			}
 
 			const bound = e.getBoundingClientRect();
 			const owner = document.body;
 
-			const top = bound.top;
-			const left = bound.left;
+			let top = bound.top;
+			let left = bound.left;
 
 			if (
 				bound.bottom > owner.clientHeight ||
@@ -193,10 +245,21 @@ function VimBind() {
 				bound.width === 0 ||
 				bound.height === 0
 			) {
-				return;
+				continue;
 			}
 
-			vimOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
+			// Exclude certain elements from the centering calculation
+			if (e.parentNode.role !== "row") {
+				top = top + bound.height / 2 - 15;
+				left = left + bound.width / 2 - 15;
+			}
+
+			// Append the key to the correct overlay
+			if (e.tagName === "BUTTON" && e.parentNode.tagName === "LI") {
+				tippyOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
+			} else {
+				baseOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
+			}
 
 			secondKey++;
 			if (secondKey > lastKeyIndex) {
@@ -257,7 +320,7 @@ function VimBind() {
 
 			const newText = text.slice(1);
 			if (newText.length === 0) {
-				click(div.target);
+				interact(div.target);
 				this.deactivate(event);
 				return;
 			}
@@ -265,7 +328,7 @@ function VimBind() {
 			div.innerText = newText;
 		}
 
-		if (vimOverlay.childNodes.length === 1) {
+		if (baseOverlay.childNodes.length === 0 && tippyOverlay.childNodes.length === 0) {
 			this.deactivate(event);
 		}
 	}
@@ -273,8 +336,20 @@ function VimBind() {
 	/**
 	 * @param {HTMLElement} element
 	 */
-	function click(element) {
-		if (element.hasAttribute("href") || element.tagName === "BUTTON" || element.role === "button") {
+	function interact(element) {
+		// Hover on contextmenu dropdown list items
+		if (element.tagName === "BUTTON" && element.parentNode.tagName === "LI" && element.ariaExpanded !== null) {
+			const event = new MouseEvent("mouseover", {
+				view: window,
+				bubbles: true,
+				cancelable: true
+			});
+
+			element.dispatchEvent(event);
+			return;
+		}
+
+		if (element.hasAttribute("href") || element.tagName === "BUTTON" || element.role === "button" || element.parentNode.role === "row") {
 			element.click();
 			return;
 		}
