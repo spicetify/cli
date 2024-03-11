@@ -343,21 +343,12 @@ window.Spicetify = {
 					timeout: 1000 * 15
 				};
 
-				function isJson(str) {
-					try {
-						JSON.parse(str);
-					} catch {
-						return false;
-					}
-					return true;
-				}
-
 				let finalURL = urlObj.toString();
 				if (body) {
 					if (method === "get") {
 						const params = new URLSearchParams(body);
 						finalURL += `?${params.toString()}`;
-					} else options.body = isJson ? JSON.stringify(body) : body;
+					} else options.body = !Array.isArray(body) && typeof body === "object" ? JSON.stringify(body) : body;
 				}
 				if (shouldUseCORSProxy) finalURL = `${corsProxyURL}/${finalURL}`;
 
@@ -374,11 +365,18 @@ window.Spicetify = {
 				Object.assign(options.headers, injectedHeaders);
 
 				try {
-					return fetch(finalURL, options).then(res =>
-						res.json().catch(() => {
-							return { status: res.status };
-						})
-					);
+					return fetch(finalURL, options).then(res => {
+						if (!res.ok) return { code: res.status, error: res.statusText, message: "Failed to fetch", stack: undefined };
+						try {
+							return res.clone().json();
+						} catch {
+							try {
+								return res.clone().blob();
+							} catch {
+								return res.clone().text();
+							}
+						}
+					});
 				} catch (e) {
 					console.error(e);
 				}
@@ -875,16 +873,17 @@ Spicetify.Events = (() => {
 		return;
 	}
 
+	const playerState = {
+		cache: null,
+		current: null
+	};
+
 	const interval = setInterval(() => {
 		if (!Spicetify.Player.origin._state?.item) return;
 		Spicetify.Player.data = Spicetify.Player.origin._state;
+		playerState.cache = Spicetify.Player.data;
 		clearInterval(interval);
 	}, 10);
-
-	const playerState = {
-		cache: Spicetify.Player.data,
-		current: null
-	};
 
 	Spicetify.Player.origin._events.addListener("update", ({ data: playerEventData }) => {
 		playerState.current = playerEventData.item ? playerEventData : null;
