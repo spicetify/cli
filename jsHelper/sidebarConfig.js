@@ -172,9 +172,9 @@ color: var(--spice-button-disabled);
 		await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
 		new Spicetify.Menu.Item(
 			"Sidebar config",
-			true,
+			false, 
 			self => {
-				self.isEnabled = !self.isEnabled;
+				self.setState(!self.isEnabled)
 				if (self.isEnabled) {
 					injectInteraction();
 				} else {
