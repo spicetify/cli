@@ -18,7 +18,6 @@ type Flag struct {
 	Extension            []string
 	CustomApp            []string
 	SidebarConfig        bool
-	HomeConfig           bool
 	ExpFeatures          bool
 	SpicetifyVer         string
 	SpotifyVer           string
@@ -30,7 +29,6 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		filepath.Join(appsFolderPath, "xpui", "index.html"):             htmlMod,
 		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertCustomApp,
 		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):         insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "home-v2.js"):             insertHomeConfig,
 		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): insertVersionInfo,
 	}
 
@@ -45,12 +43,6 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	if flags.SidebarConfig {
 		utils.CopyFile(
 			filepath.Join(utils.GetJsHelperDir(), "sidebarConfig.js"),
-			filepath.Join(appsFolderPath, "xpui", "helper"))
-	}
-
-	if flags.HomeConfig {
-		utils.CopyFile(
-			filepath.Join(utils.GetJsHelperDir(), "homeConfig.js"),
 			filepath.Join(appsFolderPath, "xpui", "helper"))
 	}
 
@@ -86,7 +78,6 @@ func UserAsset(appsFolderPath, themeFolder string) {
 
 func htmlMod(htmlPath string, flags Flag) {
 	if len(flags.Extension) == 0 &&
-		!flags.HomeConfig &&
 		!flags.SidebarConfig &&
 		!flags.ExpFeatures {
 		return
@@ -101,10 +92,6 @@ func htmlMod(htmlPath string, flags Flag) {
 
 	if flags.SidebarConfig {
 		helperHTML += "<script defer src='helper/sidebarConfig.js'></script>\n"
-	}
-
-	if flags.HomeConfig {
-		helperHTML += "<script defer src='helper/homeConfig.js'></script>\n"
 	}
 
 	if flags.ExpFeatures {
@@ -357,22 +344,6 @@ func insertCustomApp(jsPath string, flags Flag) {
 				})
 		}
 
-		return content
-	})
-}
-
-func insertHomeConfig(jsPath string, flags Flag) {
-	if !flags.HomeConfig {
-		return
-	}
-
-	utils.ModifyFile(jsPath, func(content string) string {
-		utils.ReplaceOnce(
-			&content,
-			`([\w$_\.]+\.sections\.items)(\.map)`,
-			func(submatches ...string) string {
-				return fmt.Sprintf("SpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2])
-			})
 		return content
 	})
 }

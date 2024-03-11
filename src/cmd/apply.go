@@ -74,7 +74,6 @@ func Apply(spicetifyVersion string) {
 		Extension:            extensionList,
 		CustomApp:            customAppsList,
 		SidebarConfig:        featureSection.Key("sidebar_config").MustBool(false),
-		HomeConfig:           featureSection.Key("home_config").MustBool(false),
 		ExpFeatures:          featureSection.Key("experimental_features").MustBool(false),
 		SpicetifyVer:         backupSection.Key("with").MustString(""),
 	})
