@@ -89,7 +89,7 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 		switch extension {
 		case ".js":
 			utils.ModifyFile(path, func(content string) string {
-				if flags.DisableSentry && fileName == "vendor~xpui.js" {
+				if flags.DisableSentry && fileName == "xpui.js" {
 					content = disableSentry(content)
 				}
 
@@ -303,8 +303,8 @@ func colorVariableReplaceForJS(content string) string {
 }
 
 func disableSentry(input string) string {
-	utils.Replace(&input, `(?:prototype\.)?bindClient(?:=function)?\(\w+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
+	utils.Replace(&input, `(\("[^"]+sentry.io)/`, func(submatches ...string) string {
+		return fmt.Sprintf(",%s", submatches[0])
 	})
 	return input
 }
