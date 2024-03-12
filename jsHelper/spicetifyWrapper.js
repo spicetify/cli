@@ -965,7 +965,8 @@ Spicetify._getStyledClassName = (args, component) => {
 		"position",
 		"data-encore-id",
 		"$size",
-		"$iconColor"
+		"$iconColor",
+		"$variant"
 	];
 	const customKeys = ["padding", "blocksize"];
 
@@ -988,7 +989,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		}
 	}
 
-	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", ""];
+	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$isInteractive", "$hasFocus", ""];
 	const excludedPrefix = ["aria-"];
 
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
@@ -1010,7 +1011,8 @@ Spicetify._getStyledClassName = (args, component) => {
 	);
 
 	for (const [key, value] of customEntries) {
-		className += `-${key}_${value.replace(/[^a-z0-9]/gi, "_")}`;
+		const sanitizedKey = key.startsWith("$") ? key.slice(1) : key;
+		className += `-${sanitizedKey}_${value.replace(/[^a-z0-9]/gi, "_")}`;
 	}
 
 	return className;
