@@ -1535,11 +1535,11 @@ Spicetify.ContextMenuV2 = (() => {
 			this._leadingIcon = leadingIcon;
 			this._items = items;
 			this._element = Spicetify.ReactJSX.jsx(() => {
-				const [_text, setText] = Spicetify.React.useState(text);
-				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
-				const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(leadingIcon);
-				const [_divider, setDivider] = Spicetify.React.useState(divider);
-				const [_items, setItems] = Spicetify.React.useState(items);
+				const [_text, setText] = Spicetify.React.useState(this._text);
+				const [_disabled, setDisabled] = Spicetify.React.useState(this._disabled);
+				const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(this._leadingIcon);
+				const [_divider, setDivider] = Spicetify.React.useState(this._divider);
+				const [_items, setItems] = Spicetify.React.useState(this._items);
 
 				Spicetify.React.useEffect(() => {
 					this._setText = setText;
