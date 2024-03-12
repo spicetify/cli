@@ -89,7 +89,7 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 		switch extension {
 		case ".js":
 			utils.ModifyFile(path, func(content string) string {
-				if flags.DisableSentry && fileName == "vendor~xpui.js" {
+				if flags.DisableSentry && fileName == "xpui.js" {
 					content = disableSentry(content)
 				}
 
@@ -124,14 +124,11 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 				if flags.RemoveRTL {
 					content = removeRTL(content)
 				}
-				// Temporary fix for top bar opacity bug
 				if fileName == "xpui.css" {
 					content = fmt.Sprintf(`%s
-					.main-topBar-topbarContent:not(.main-topBar-topbarContentFadeIn)>* {
-						opacity: unset !important;
-					}
-					.main-entityHeader-topbarContent:not(.main-entityHeader-topbarContentFadeIn)>* {
-						opacity: 0 !important;
+					.main-gridContainer-fixedWidth {
+						grid-template-columns: repeat(auto-fill, var(--column-width));
+						width: calc((var(--column-count) - 1) * var(--grid-gap)) + var(--column-count) * var(--column-width));
 					}`, content)
 				}
 				return content
@@ -306,8 +303,8 @@ func colorVariableReplaceForJS(content string) string {
 }
 
 func disableSentry(input string) string {
-	utils.Replace(&input, `(?:prototype\.)?bindClient(?:=function)?\(\w+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
+	utils.Replace(&input, `(\("[^"]+sentry.io)/`, func(submatches ...string) string {
+		return fmt.Sprintf(",%s", submatches[0])
 	})
 	return input
 }

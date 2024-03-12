@@ -185,6 +185,19 @@ color: var(--spice-button-disabled);
 		).register();
 	})();
 
+	function initConfig() {
+		const libraryX = document.querySelector(".main-yourLibraryX-navItems");
+		const libraryLegacy = document.querySelector(".main-navBar-entryPoints");
+
+		if (!libraryLegacy && !libraryX) {
+			setTimeout(initConfig, 300);
+			return;
+		}
+
+		if (libraryX) InitSidebarXConfig();
+		else InitSidebarConfig();
+	}
+
 	function InitSidebarConfig() {
 		// STICKY container
 		const legacyAppItems = document.querySelector(".main-navBar-entryPoints");
@@ -305,8 +318,7 @@ color: var(--spice-button-disabled);
 		appendItems();
 	}
 
-	InitSidebarConfig();
-	InitSidebarXConfig();
+	initConfig();
 
 	// Rearrange sidebar when dynamically switching in Experimental Features
 	new MutationObserver(mutations => {

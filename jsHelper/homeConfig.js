@@ -66,7 +66,7 @@ SpicetifyHomeConfig = {};
     justify-content: center;
     align-items: flex-start;
     gap: 5px;
-	z-index: 9999;
+    z-index: 9999;
 }
 #spicetify-home-config button {
     min-width: 60px;
