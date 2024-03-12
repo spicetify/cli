@@ -14,8 +14,7 @@ func Start(appPath, backupPath string) error {
 
 // Extract all SPA files from backupPath to extractPath
 func Extract(backupPath, extractPath string) {
-	// TODO: "settings" no longer exists in > 1.1.62, remove it when Linux Spotify is updated.
-	for _, app := range []string{"xpui", "login", "settings"} {
+	for _, app := range []string{"xpui", "login"} {
 		appPath := filepath.Join(backupPath, app+".spa")
 		appExtractToFolder := filepath.Join(extractPath, app)
 

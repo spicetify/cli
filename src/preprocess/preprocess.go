@@ -124,14 +124,11 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 				if flags.RemoveRTL {
 					content = removeRTL(content)
 				}
-				// Temporary fix for top bar opacity bug
 				if fileName == "xpui.css" {
 					content = fmt.Sprintf(`%s
-					.main-topBar-topbarContent:not(.main-topBar-topbarContentFadeIn)>* {
-						opacity: unset !important;
-					}
-					.main-entityHeader-topbarContent:not(.main-entityHeader-topbarContentFadeIn)>* {
-						opacity: 0 !important;
+					.main-gridContainer-fixedWidth {
+						grid-template-columns: repeat(auto-fill, var(--column-width));
+						width: calc((var(--column-count) - 1) * var(--grid-gap)) + var(--column-count) * var(--column-width));
 					}`, content)
 				}
 				return content
