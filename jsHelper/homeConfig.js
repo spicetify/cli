@@ -165,7 +165,7 @@ SpicetifyHomeConfig = {};
 
 	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
 
-	const menu = new Spicetify.Menu.Item("Home config", true, self => {
+	const menu = new Spicetify.Menu.Item("Home config", false, self => {
 		self.isEnabled = !self.isEnabled;
 		if (self.isEnabled) {
 			injectInteraction();
