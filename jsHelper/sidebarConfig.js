@@ -174,7 +174,7 @@ color: var(--spice-button-disabled);
 			"Sidebar config",
 			false,
 			self => {
-				self.isEnabled = !self.isEnabled;
+				self.setState(!self.isEnabled);
 				if (self.isEnabled) {
 					injectInteraction();
 				} else {

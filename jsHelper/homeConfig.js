@@ -50,8 +50,14 @@ SpicetifyHomeConfig = {};
 	down.innerText = "Down";
 	const lower = document.createElement("button");
 	const stick = document.createElement("button");
-	const style = document.createElement("style");
-	style.innerHTML = `
+	const sectionStyle = document.createElement("style");
+	sectionStyle.innerHTML = `
+.main-home-content section {
+	order: 0 !important;
+}
+`;
+	const containerStyle = document.createElement("style");
+	containerStyle.innerHTML = `
 #spicetify-home-config {
     position: relative;
     width: 100%;
@@ -60,6 +66,7 @@ SpicetifyHomeConfig = {};
     justify-content: center;
     align-items: flex-start;
     gap: 5px;
+    z-index: 9999;
 }
 #spicetify-home-config button {
     min-width: 60px;
@@ -76,7 +83,8 @@ SpicetifyHomeConfig = {};
 
 	const container = document.createElement("div");
 	container.id = "spicetify-home-config";
-	container.append(style, up, down, lower, stick);
+	container.append(containerStyle, up, down, lower, stick);
+	document.head.append(sectionStyle);
 	let elem = [];
 
 	function injectInteraction() {
@@ -165,18 +173,26 @@ SpicetifyHomeConfig = {};
 
 	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
 
-	const menu = new Spicetify.Menu.Item("Home config", false, self => {
-		self.isEnabled = !self.isEnabled;
-		if (self.isEnabled) {
-			injectInteraction();
-		} else {
-			removeInteraction();
-		}
-	});
-	SpicetifyHomeConfig.addToMenu = () => menu.register();
+	SpicetifyHomeConfig.menu = new Spicetify.Menu.Item(
+		"Home config",
+		false,
+		self => {
+			self.setState(!self.isEnabled);
+			if (self.isEnabled) {
+				injectInteraction();
+			} else {
+				removeInteraction();
+			}
+		},
+		Spicetify.SVGIcons["grid-view"]
+	);
+
+	SpicetifyHomeConfig.addToMenu = () => {
+		SpicetifyHomeConfig.menu.register();
+	};
 	SpicetifyHomeConfig.removeMenu = () => {
-		menu.isEnabled = false;
-		menu.deregister();
+		SpicetifyHomeConfig.menu.setState(false);
+		SpicetifyHomeConfig.menu.deregister();
 	};
 
 	await new Promise(res => Spicetify.Events.platformLoaded.on(res));
