@@ -1439,11 +1439,11 @@ Spicetify.ContextMenuV2 = (() => {
 			this._divider = divider;
 
 			this._element = Spicetify.ReactJSX.jsx(() => {
-				const [_children, setChildren] = Spicetify.React.useState(children);
-				const [_disabled, setDisabled] = Spicetify.React.useState(disabled);
-				const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(leadingIcon);
-				const [_trailingIcon, setTrailingIcon] = Spicetify.React.useState(trailingIcon);
-				const [_divider, setDivider] = Spicetify.React.useState(divider);
+				const [_children, setChildren] = Spicetify.React.useState(this._children);
+				const [_disabled, setDisabled] = Spicetify.React.useState(this._disabled);
+				const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(this._leadingIcon);
+				const [_trailingIcon, setTrailingIcon] = Spicetify.React.useState(this._trailingIcon);
+				const [_divider, setDivider] = Spicetify.React.useState(this._divider);
 
 				Spicetify.React.useEffect(() => {
 					this._setChildren = setChildren;
