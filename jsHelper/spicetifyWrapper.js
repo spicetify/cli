@@ -1649,7 +1649,7 @@ Spicetify.Menu = (() => {
 		constructor(children, isEnabled, onClick, leadingIcon) {
 			super({ children, leadingIcon, onClick: (_, self) => onClick(self), shouldAdd });
 
-			this._isEnabled = isEnabled;
+			this.isEnabled = isEnabled;
 		}
 
 		setState(state) {
