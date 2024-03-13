@@ -989,7 +989,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		}
 	}
 
-	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$isInteractive", "$hasFocus", ""];
+	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$hasFocus", ""];
 	const excludedPrefix = ["aria-"];
 
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
@@ -1003,7 +1003,8 @@ Spicetify._getStyledClassName = (args, component) => {
 	for (const key of booleanKeys) {
 		if (excludedKeys.includes(key)) continue;
 		if (excludedPrefix.some(prefix => key.startsWith(prefix))) continue;
-		className += `-${key}`;
+		const sanitizedKey = key.startsWith("$") ? key.slice(1) : key;
+		className += `-${sanitizedKey}`;
 	}
 
 	const customEntries = Object.entries(element).filter(
