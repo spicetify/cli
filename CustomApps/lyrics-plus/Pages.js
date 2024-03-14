@@ -577,7 +577,6 @@ const GeniusPage = react.memo(
 				onContextMenu: event => {
 					event.preventDefault();
 					const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
-					console.log(copylyrics);
 					Spicetify.Platform.ClipboardAPI.copy(copylyrics)
 						.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
 						.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
@@ -604,7 +603,6 @@ const GeniusPage = react.memo(
 					onContextMenu: event => {
 						event.preventDefault();
 						const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
-						console.log(copylyrics);
 						Spicetify.Platform.ClipboardAPI.copy(copylyrics)
 							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
 							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
