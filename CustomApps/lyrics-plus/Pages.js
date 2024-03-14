@@ -456,7 +456,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 });
 
 const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
-	const rawLyrics = lyrics.map(lyrics => lyrics.text).join("\n");
+	const rawLyrics = lyrics.map(lyrics => (typeof lyrics.text !== "object" ? lyrics.text : lyrics.text?.props?.children?.[0])).join("\n");
 
 	return react.createElement(
 		"div",
@@ -577,6 +577,7 @@ const GeniusPage = react.memo(
 				onContextMenu: event => {
 					event.preventDefault();
 					const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
+					console.log(copylyrics);
 					Spicetify.Platform.ClipboardAPI.copy(copylyrics)
 						.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
 						.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
@@ -603,6 +604,7 @@ const GeniusPage = react.memo(
 					onContextMenu: event => {
 						event.preventDefault();
 						const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
+						console.log(copylyrics);
 						Spicetify.Platform.ClipboardAPI.copy(copylyrics)
 							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
 							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
