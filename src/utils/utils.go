@@ -179,7 +179,9 @@ func ReplaceOnce(str *string, pattern string, repl func(submatches ...string) st
 		if firstMatch {
 			firstMatch = false
 			submatches := re.FindStringSubmatch(match)
-			return repl(submatches...)
+			if submatches != nil {
+				return repl(submatches...)
+			}
 		}
 		return match
 	})

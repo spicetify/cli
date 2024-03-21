@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spicetify/spicetify-cli/src/utils"
@@ -288,19 +289,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 				return fmt.Sprintf("%s%s", appEleMap, submatches[0])
 			})
 
-		utils.Replace(
-			&content,
-			`(?:\w+(?:\(\))?\.createElement|\([\w$\.,]+\))\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
-			func(submatches ...string) string {
-				return fmt.Sprintf("Spicetify._sidebarItemToClone=%s", submatches[0])
-			})
-
-		utils.Replace(
-			&content,
-			`(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\("li",{className:[-\w".${}()?!:, ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()?!:, ]+,(\w+:[-\w".${}()?!&: ]+,)*children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,\{to:"/search"`,
-			func(submatches ...string) string {
-				return fmt.Sprintf("Spicetify._sidebarXItemToClone=%s", submatches[0])
-			})
+		content = insertNavLink(content, appNameArray)
 
 		utils.ReplaceOnce(
 			&content,
@@ -308,36 +297,6 @@ func insertCustomApp(jsPath string, flags Flag) {
 			func(submatches ...string) string {
 				return fmt.Sprintf("%s%s", submatches[0], cssEnableMap)
 			})
-
-		sidebarItemMatch := utils.SeekToCloseParen(
-			content,
-			`\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
-			'(', ')')
-
-		// Prevent breaking on future Spotify update
-		if sidebarItemMatch != "" {
-			content = strings.Replace(
-				content,
-				sidebarItemMatch,
-				sidebarItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"])",
-				1)
-		}
-
-		sidebarXItemMatch := utils.SeekToCloseParen(
-			content,
-			`\("li",{className:[-\w".${}()?!:, ]+,children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,{label:[-\w".${}()?!:, ]+,(\w+:[-\w".${}()?!&: ]+,)*children:(?:\w+(?:\(\))?\.createElement|\([\w$.,_]+\))\([\w$._]+,\{to:"/search"`,
-			'(', ')')
-
-		// Prevent breaking on future Spotify update
-		if sidebarXItemMatch != "" {
-			content = strings.Replace(
-				content,
-				sidebarXItemMatch,
-				sidebarXItemMatch+",Spicetify._cloneSidebarItem(["+appNameArray+"],true)",
-				1)
-		} else {
-			utils.PrintWarning("Sidebar X item not found, ignoring")
-		}
 
 		if flags.SidebarConfig {
 			utils.ReplaceOnce(
@@ -359,6 +318,41 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		return content
 	})
+}
+
+func findMatchingPos(str string, start int, direction int, pair []string, scopes int) int {
+	l := scopes
+	i := start + direction
+
+	for l > 0 {
+		c := string(str[i])
+		i += direction
+		if c == pair[0] {
+			l++
+		} else if c == pair[1] {
+			l--
+		}
+	}
+
+	return i
+}
+
+func insertNavLink(str string, appNameArray string) string {
+	// Library X
+	re := regexp.MustCompile(`\("li",\{[^\{]*\{[^\{]*\{to:"\/search`)
+	loc := re.FindStringIndex(str)
+	if loc == nil {
+		return str
+	}
+	index := findMatchingPos(str, loc[0], 1, []string{"(", ")"}, 1)
+	str = str[:index] + ",Spicetify._renderNavLinks([" + appNameArray + "], false)," + str[index:]
+
+	// Global Navbar
+	utils.ReplaceOnce(&str, `(,[a-zA-Z_\$][\w\$]*===(?:[a-zA-Z_\$][\w\$]*\.){2}HOME_NEXT_TO_NAVIGATION&&.+?)\]`, func(submatches ...string) string {
+		return submatches[1] + ",Spicetify._renderNavLinks([" + appNameArray + "], true)]"
+	})
+
+	return str
 }
 
 func insertHomeConfig(jsPath string, flags Flag) {

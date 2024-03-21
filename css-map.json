@@ -1218,5 +1218,20 @@
 	"N5cWYDvyLrfnyMZuqQHo": "npv-nowPlayingBar-left",
 	"gIobRDHAxkAvUaF4_OOL": "npv-nowPlayingBar-center",
 	"FTi9QEhetf4Q4__5sb4S": "npv-nowPlayingBar-right",
-	"Gw7E7MkWci1ttQhb4EK0": "npv-exitFullScreenButton-button"
+	"Gw7E7MkWci1ttQhb4EK0": "npv-exitFullScreenButton-button",
+	"KAq2kDjXj2VS4eXrFL4i": "main-userWidget-box",
+	"LKfKy7bXKmlkMEANVJMS": "main-avatar-avatar",
+	"nRSfonXHVr6utXYgk2Ui": "main-globalNav-mainNav",
+	"Z6t_8rA6LOBrX3huqRJG": "main-globalNav-historyButtonsContainer",
+	"VizXsWMIuNfKGN5pMyox": "main-globalNav-historyButtons",
+	"rBX1EWVZ2EaPwP4y1Gkd": "main-globalNav-icon",
+	"W02pQCvfy5Bin7z4EAzo": "main-globalNav-searchSection",
+	"QrpHSphgBSqzODEHqr_t": "main-globalNav-searchContainer",
+	"jdlOKroADlFeZZQeTdp8": "main-globalNav-link-icon",
+	"PvsV2JgJRDME1vDn6IJL": "main-globalNav-searchInputSection",
+	"fksI89zEXwqKWm1O6sJm": "main-globalNav-searchInputContainer",
+	"OomFKn3bsxs5JfNUoWhz": "main-globalNav-buddyFeed",
+	"rQ6LXqVlEOGZdGIG0LgP": "main-contextMenu-menuItem",
+	"mWj8N7D_OlsbDgtQx5GW": "main-contextMenu-menuItemButton",
+	"NbcaczStd8vD2rHWwaKv": "main-contextMenu-menu"
 }

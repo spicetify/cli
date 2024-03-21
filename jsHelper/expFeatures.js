@@ -273,7 +273,7 @@ ${Spicetify.SVGIcons.search}
 
 	new Spicetify.Menu.Item(
 		"Experimental features",
-		true,
+		false,
 		() => {
 			Spicetify.PopupModal.display({
 				title: "Experimental features",
