@@ -1972,11 +1972,15 @@ Spicetify.Topbar = (() => {
 
 			this.element.appendChild(this.button);
 			if (isRight) {
-				this.button.classList.add("encore-over-media-set", "main-topBar-buddyFeed");
+				this.button.classList.add("encore-over-media-set", "main-topBar-buddyFeed", "main-globalNav-buddyFeed");
 				rightButtonsStash.add(this.element);
 				rightContainer?.prepend(this.element);
 			} else {
-				this.button.classList.add("main-topBar-button");
+				this.button.classList.add(
+					"main-topBar-button",
+					"main-globalNav-icon",
+					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+				);
 				leftButtonsStash.add(this.element);
 				leftContainer?.append(this.element);
 			}
@@ -2019,7 +2023,7 @@ Spicetify.Topbar = (() => {
 	}
 
 	function waitForTopbarMounted() {
-		leftContainer = document.querySelector(".main-topBar-historyButtons");
+		leftContainer = document.querySelector(".main-topBar-historyButtons") ?? document.querySelector(".main-globalNav-historyButtons");
 		rightContainer = document.querySelector(".main-actionButtons");
 		if (!leftContainer || !rightContainer) {
 			setTimeout(waitForTopbarMounted, 100);
