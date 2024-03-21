@@ -1844,7 +1844,8 @@ const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
 					"aria-label": appProper
 				},
 				createIcon(),
-				!isSidebarCollapsed && Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold" }, appProper)
+				!isSidebarCollapsed &&
+					Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold", weight: "bold" }, appProper)
 			)
 		)
 	);
@@ -1972,15 +1973,18 @@ Spicetify.Topbar = (() => {
 
 			this.element.appendChild(this.button);
 			if (isRight) {
-				this.button.classList.add("encore-over-media-set", "main-topBar-buddyFeed", "main-globalNav-buddyFeed");
+				this.button.classList.add("encore-over-media-set", "main-topBar-buddyFeed");
+				if (document.querySelector(".main-globalNav-historyButtons")) this.button.classList.add("main-globalNav-buddyFeed");
 				rightButtonsStash.add(this.element);
 				rightContainer?.prepend(this.element);
 			} else {
-				this.button.classList.add(
-					"main-topBar-button",
-					"main-globalNav-icon",
-					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-				);
+				this.button.classList.add("main-topBar-button");
+				if (document.querySelector(".main-globalNav-historyButtons")) {
+					this.button.classList.add(
+						"main-globalNav-icon",
+						"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+					);
+				}
 				leftButtonsStash.add(this.element);
 				leftContainer?.append(this.element);
 			}
@@ -2031,10 +2035,27 @@ Spicetify.Topbar = (() => {
 		}
 		for (const button of leftButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
+
+			const buttonElement = button.querySelector("button");
+			if (document.querySelector(".main-globalNav-historyButtons")) {
+				buttonElement.classList.add(
+					"main-globalNav-icon",
+					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+				);
+			} else {
+				buttonElement.classList.remove(
+					"main-globalNav-icon",
+					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+				);
+			}
 		}
 		leftContainer.append(...leftButtonsStash);
 		for (const button of rightButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
+
+			const buttonElement = button.querySelector("button");
+			if (document.querySelector(".main-globalNav-historyButtons")) buttonElement.classList.add("main-globalNav-buddyFeed");
+			else buttonElement.classList.remove("main-globalNav-buddyFeed");
 		}
 		rightContainer.prepend(...rightButtonsStash);
 	}
