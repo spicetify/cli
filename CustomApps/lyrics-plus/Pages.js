@@ -456,7 +456,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 });
 
 const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
-	const rawLyrics = lyrics.map(lyrics => lyrics.text).join("\n");
+	const rawLyrics = lyrics.map(lyrics => (typeof lyrics.text !== "object" ? lyrics.text : lyrics.text?.props?.children?.[0])).join("\n");
 
 	return react.createElement(
 		"div",
