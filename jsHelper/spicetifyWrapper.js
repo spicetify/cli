@@ -1972,20 +1972,22 @@ Spicetify.Topbar = (() => {
 			this.label = label;
 
 			this.element.appendChild(this.button);
-			const historyButtons = document.querySelector(".main-globalNav-historyButtons");
+			const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
 			if (isRight) {
 				this.button.classList.add("encore-over-media-set", "main-topBar-buddyFeed");
-				if (historyButtons) this.button.classList.add("main-globalNav-buddyFeed");
+				if (globalHistoryButtons) this.button.classList.add("main-globalNav-buddyFeed");
+
 				rightButtonsStash.add(this.element);
 				rightContainer?.prepend(this.element);
 			} else {
 				this.button.classList.add("main-topBar-button");
-				if (historyButtons) {
+				if (globalHistoryButtons) {
 					this.button.classList.add(
 						"main-globalNav-icon",
 						"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
 					);
 				}
+
 				leftButtonsStash.add(this.element);
 				leftContainer?.append(this.element);
 			}
