@@ -1844,7 +1844,7 @@ const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
 					"aria-label": appProper
 				},
 				createIcon(),
-				!isSidebarCollapsed && Spicetify.React.createElement(Spicetify.ReactComponent.TextWrapper, { variant: "bodyMediumBold" }, appProper)
+				!isSidebarCollapsed && Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold" }, appProper)
 			)
 		)
 	);
