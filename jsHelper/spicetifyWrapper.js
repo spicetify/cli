@@ -429,6 +429,9 @@ window.Spicetify = {
 			} catch {}
 		});
 	const functionModules = modules.filter(module => typeof module === "function");
+	const exportedReactObjects = Object.groupBy(modules.filter(Boolean), x => x.$$typeof);
+	const exportedMemos = exportedReactObjects[Symbol.for("react.memo")];
+	const exportedMemoFRefs = exportedMemos.filter(m => m.type.$$typeof === Symbol.for("react.forward_ref"));
 
 	const knownMenuTypes = ["album", "show", "artist", "track"];
 	const menus = modules
@@ -551,6 +554,7 @@ window.Spicetify = {
 			Routes: functionModules.find(m => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
 			Route: functionModules.find(m => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
 			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
+			Navigation: exportedMemoFRefs.find(m => m.type.render.toString().includes("navigationalRoot")),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -848,6 +852,7 @@ window.Spicetify = {
 	})();
 
 	Spicetify.Events.webpackLoaded.fire();
+	refreshNavLinks?.();
 })();
 
 Spicetify.Events = (() => {
@@ -1391,6 +1396,26 @@ Spicetify.SVGIcons = {
 	return document.head.appendChild(fontStyle);
 })();
 
+function parseIcon(icon, size = 16) {
+	if (icon && Spicetify.SVGIcons[icon]) {
+		return `<svg height="${size}" width="${size}" viewBox="0 0 ${size} ${size}" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
+	}
+	return icon || "";
+}
+
+function createIconComponent(icon, size = 16) {
+	return Spicetify.React.createElement(
+		Spicetify.ReactComponent.IconComponent,
+		{
+			iconSize: size,
+			dangerouslySetInnerHTML: {
+				__html: parseIcon(icon)
+			}
+		},
+		null
+	);
+}
+
 Spicetify.ContextMenuV2 = (() => {
 	const registeredItems = new Map();
 
@@ -1407,26 +1432,6 @@ Spicetify.ContextMenuV2 = (() => {
 		const contextUri = props.contextUri ?? props.context?.uri;
 
 		return [uris, uids, contextUri];
-	}
-
-	function parseIcon(icon) {
-		if (icon && Spicetify.SVGIcons[icon]) {
-			return `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons[icon]}</svg>`;
-		}
-		return icon || "";
-	}
-
-	function createIconComponent(icon) {
-		return Spicetify.React.createElement(
-			Spicetify.ReactComponent.IconComponent,
-			{
-				iconSize: "16",
-				dangerouslySetInnerHTML: {
-					__html: parseIcon(icon)
-				}
-			},
-			null
-		);
 	}
 
 	// these classes bridge the gap between react and js, insuring reactivity
@@ -1753,47 +1758,27 @@ Spicetify.ContextMenu = (() => {
 	return { Item, SubMenu };
 })();
 
-Spicetify._cloneSidebarItem = (list, isLibX = false) => {
-	function findChild(parent, key, value) {
-		if (!parent.props) {
-			return null;
-		}
+let navLinkFactoryCtx = null;
+let refreshNavLinks = null;
 
-		if (value && parent.props[key]?.includes(value)) {
-			return parent;
-		}
-		if (!parent.props.children) {
-			return null;
-		}
-		if (Array.isArray(parent.props.children)) {
-			for (const child of parent.props.children) {
-				const ele = findChild(child, key, value);
-				if (ele) {
-					return ele;
-				}
-			}
-		} else if (parent.props.children) {
-			return findChild(parent.props.children, key, value);
-		}
-		return null;
-	}
+Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
+	const [refreshCount, refresh] = Spicetify.React.useReducer(x => x + 1, 0);
+	refreshNavLinks = refresh;
 
-	function conditionalAppend(baseClassname, activeClassname, location) {
-		if (Spicetify.Platform?.History?.location?.pathname.startsWith(location)) {
-			return `${baseClassname} ${activeClassname}`;
-		}
-
-		return baseClassname;
-	}
-
-	if (!Spicetify.React) {
-		setTimeout(Spicetify._cloneSidebarItem, 10, list, isLibX);
+	if (
+		!Spicetify.ReactComponent.ButtonTertiary ||
+		!Spicetify.ReactComponent.Navigation ||
+		!Spicetify.ReactComponent.TooltipWrapper ||
+		!Spicetify.Platform.History ||
+		!Spicetify.Platform.LocalStorageAPI
+	) {
 		return;
 	}
 
-	const React = Spicetify.React;
-	const reactObjs = [];
-	const sidebarIsCollapsed = Spicetify.Platform?.LocalStorageAPI?.getItem?.("ylx-sidebar-state") === 1;
+	const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : NavLinkSidebar;
+
+	if (!navLinkFactoryCtx) navLinkFactoryCtx = Spicetify.React.createContext(null);
+	const registered = [];
 
 	for (const app of list) {
 		let manifest;
@@ -1815,90 +1800,69 @@ Spicetify._cloneSidebarItem = (list, isLibX = false) => {
 		}
 		const icon = manifest.icon || "";
 		const activeIcon = manifest["active-icon"] || icon;
-
-		const appLink = `/${app}`;
-		let obj;
-		let link;
-
-		if (isLibX) {
-			link = findChild(Spicetify._sidebarXItemToClone, "className", "main-yourLibraryX-navLink");
-			obj = React.cloneElement(
-				Spicetify._sidebarXItemToClone,
-				null,
-				React.cloneElement(
-					Spicetify._sidebarXItemToClone.props.children,
-					{
-						label: sidebarIsCollapsed ? appProper : ""
-					},
-					React.cloneElement(
-						link,
-						{
-							to: appLink,
-							isActive: (e, { pathname: t }) => t.startsWith(appLink),
-							className: conditionalAppend("link-subtle main-yourLibraryX-navLink", "main-yourLibraryX-navLinkActive", appLink)
-						},
-						React.createElement(Spicetify.ReactComponent.IconComponent, {
-							className: "home-icon",
-							iconSize: "24",
-							dangerouslySetInnerHTML: {
-								__html: icon
-							}
-						}),
-						React.createElement(Spicetify.ReactComponent.IconComponent, {
-							className: "home-active-icon",
-							iconSize: "24",
-							dangerouslySetInnerHTML: {
-								__html: activeIcon
-							}
-						}),
-						!sidebarIsCollapsed &&
-							React.createElement(
-								Spicetify.ReactComponent.TextComponent,
-								{
-									variant: "balladBold"
-								},
-								appProper
-							)
-					)
-				)
-			);
-		} else {
-			link = findChild(Spicetify._sidebarItemToClone, "className", "main-navBar-navBarLink");
-			obj = React.cloneElement(
-				Spicetify._sidebarItemToClone,
-				null,
-				React.cloneElement(
-					link,
-					{
-						to: appLink,
-						isActive: (e, { pathname: t }) => t.startsWith(appLink),
-						className: conditionalAppend("link-subtle main-navBar-navBarLink", "main-navBar-navBarLinkActive", appLink)
-					},
-					React.createElement("div", {
-						className: "icon collection-icon",
-						dangerouslySetInnerHTML: {
-							__html: icon
-						}
-					}),
-					React.createElement("div", {
-						className: "icon collection-active-icon",
-						dangerouslySetInnerHTML: {
-							__html: activeIcon
-						}
-					}),
-					React.createElement(
-						"span",
-						{
-							className: "ellipsis-one-line main-type-mestoBold"
-						},
-						appProper
-					)
-				)
-			);
-		}
-		reactObjs.push(obj);
+		const appRoutePath = `/${app}`;
+		registered.push({ appProper, appRoutePath, icon, activeIcon });
 	}
-	return reactObjs;
+
+	return Spicetify.React.createElement(
+		navLinkFactoryCtx.Provider,
+		{ value: navLinkFactory },
+		registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
+	);
+};
+
+const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
+	const isActive = Spicetify.Platform.History.location.pathname?.startsWith(appRoutePath);
+	const createIcon = () => createIconComponent(isActive ? activeIcon : icon, 24);
+
+	const NavLinkFactory = Spicetify.React.useContext(navLinkFactoryCtx);
+	if (!NavLinkFactory) {
+		return;
+	}
+
+	return Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, createIcon, isActive }, null);
+};
+
+const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
+	const isSidebarCollapsed = Spicetify.Platform.LocalStorageAPI.getItem("ylx-sidebar-state") === 1;
+
+	return Spicetify.React.createElement(
+		"li",
+		{ className: "main-yourLibraryX-navItem InvalidDropTarget" },
+		Spicetify.React.createElement(
+			Spicetify.ReactComponent.TooltipWrapper,
+			{ label: isSidebarCollapsed ? appProper : null, disabled: !isSidebarCollapsed, placement: "right" },
+			Spicetify.React.createElement(
+				Spicetify.ReactComponent.Navigation,
+				{
+					to: appRoutePath,
+					referrer: "other",
+					className: Spicetify.classnames("link-subtle", "main-yourLibraryX-navLink", {
+						"main-yourLibraryX-navLinkActive": isActive
+					}),
+					onClick: () => undefined,
+					"aria-label": appProper
+				},
+				createIcon(),
+				!isSidebarCollapsed && Spicetify.React.createElement(Spicetify.ReactComponent.TextWrapper, { variant: "bodyMediumBold" }, appProper)
+			)
+		)
+	);
+};
+
+const NavLinkGlobal = ({ appProper, appRoutePath, createIcon, isActive }) => {
+	return Spicetify.React.createElement(
+		Spicetify.ReactComponent.TooltipWrapper,
+		{ label: appProper },
+		Spicetify.React.createElement(Spicetify.ReactComponent.ButtonTertiary, {
+			iconOnly: createIcon,
+			className: Spicetify.classnames("bWBqSiXEceAj1SnzqusU", "main-globalNav-link-icon", "cUwQnQoE3OqXqSYLT0hv", {
+				voA9ZoTTlPFyLpckNw3S: isActive
+			}),
+			"aria-label": appProper,
+			onClick: () => Spicetify.Platform.History.push(appRoutePath)
+		})
+	);
 };
 
 class _HTMLGenericModal extends HTMLElement {
