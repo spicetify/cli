@@ -1972,14 +1972,15 @@ Spicetify.Topbar = (() => {
 			this.label = label;
 
 			this.element.appendChild(this.button);
+			const historyButtons = document.querySelector(".main-globalNav-historyButtons");
 			if (isRight) {
 				this.button.classList.add("encore-over-media-set", "main-topBar-buddyFeed");
-				if (document.querySelector(".main-globalNav-historyButtons")) this.button.classList.add("main-globalNav-buddyFeed");
+				if (historyButtons) this.button.classList.add("main-globalNav-buddyFeed");
 				rightButtonsStash.add(this.element);
 				rightContainer?.prepend(this.element);
 			} else {
 				this.button.classList.add("main-topBar-button");
-				if (document.querySelector(".main-globalNav-historyButtons")) {
+				if (historyButtons) {
 					this.button.classList.add(
 						"main-globalNav-icon",
 						"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
@@ -2027,7 +2028,8 @@ Spicetify.Topbar = (() => {
 	}
 
 	function waitForTopbarMounted() {
-		leftContainer = document.querySelector(".main-topBar-historyButtons") ?? document.querySelector(".main-globalNav-historyButtons");
+		const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
+		leftContainer = document.querySelector(".main-topBar-historyButtons") ?? globalHistoryButtons;
 		rightContainer = document.querySelector(".main-actionButtons");
 		if (!leftContainer || !rightContainer) {
 			setTimeout(waitForTopbarMounted, 100);
@@ -2037,7 +2039,7 @@ Spicetify.Topbar = (() => {
 			if (button.parentNode) button.parentNode.removeChild(button);
 
 			const buttonElement = button.querySelector("button");
-			if (document.querySelector(".main-globalNav-historyButtons")) {
+			if (globalHistoryButtons) {
 				buttonElement.classList.add(
 					"main-globalNav-icon",
 					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
@@ -2054,7 +2056,7 @@ Spicetify.Topbar = (() => {
 			if (button.parentNode) button.parentNode.removeChild(button);
 
 			const buttonElement = button.querySelector("button");
-			if (document.querySelector(".main-globalNav-historyButtons")) buttonElement.classList.add("main-globalNav-buddyFeed");
+			if (globalHistoryButtons) buttonElement.classList.add("main-globalNav-buddyFeed");
 			else buttonElement.classList.remove("main-globalNav-buddyFeed");
 		}
 		rightContainer.prepend(...rightButtonsStash);
