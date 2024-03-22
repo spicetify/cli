@@ -19,8 +19,7 @@ Before you ask a question, it is best to search for existing [issues](https://gi
 If you then still feel the need to ask a question and need clarification, we recommend the following:
 
 - Open an [issue](https://github.com/spicetify/spicetify-cli/issues/new).
-- Provide as much context as you can about what you're running into.
-- Provide project and platform versions (go, nodejs, npm, etc), depending on what seems relevant.
+- Provide both Spicetify and Spotify version.
 
 We will then take care of the issue as soon as possible.
 
@@ -38,13 +37,6 @@ A good bug report shouldn't leave others needing to chase you up for more inform
 - Make sure that you are using the latest version.
 - Determine if your bug is really a bug and not an error on your side e.g. using incompatible environment components/versions (Make sure that you have read the [documentation](https://spicetify.app/docs/getting-started/). If you are looking for support, you might want to check [this section](#i-have-a-question)).
 - To see if other users have experienced (and potentially already solved) the same issue you are having, check if there is not already a bug report existing for your bug or error in the [bug tracker](https://github.com/spicetify/spicetify-cli/labels/%F0%9F%90%9B%20bug).
-- Also make sure to search the internet (including Stack Overflow) to see if users outside of the GitHub community have discussed the issue.
-- Collect information about the bug:
-  - Stack trace (Traceback)
-  - OS, Platform and Version (Windows, Linux, macOS, x86, ARM)
-  - Version of the interpreter, compiler, SDK, runtime environment, package manager, depending on what seems relevant.
-  - Possibly your input and the output
-  - Can you reliably reproduce the issue? And can you also reproduce it with older versions?
 
 #### How Do I Submit a Good Bug Report?
 
@@ -55,8 +47,6 @@ We use GitHub issues to track bugs and errors. If you run into an issue with the
 - Explain the behavior you would expect and the actual behavior.
 - Please provide as much context as possible and describe the *reproduction steps* that someone else can follow to recreate the issue on their own. This usually includes your code. For good bug reports you should isolate the problem and create a reduced test case.
 - Provide the information you collected in the previous section.
-
-<!-- You might want to create an issue template for bugs and errors that can be used as a guide and that defines the structure of the information to be included. If you do so, reference it here in the description. -->
 
 ### Suggesting Enhancements
 
@@ -76,7 +66,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/spicet
 - Use a **clear and descriptive title** for the issue to identify the suggestion.
 - Provide a **step-by-step description of the suggested enhancement** in as many details as possible.
 - **Describe the current behavior** and **explain which behavior you expected to see instead** and why. At this point you can also tell which alternatives do not work for you.
-- For GUIs, you may want to **include screenshots and animated GIFs** which help you demonstrate the steps or point out the part which the suggestion is related to. You can use [this tool](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows and [this tool](https://github.com/colinkeenan/silentcast) on Linux.
+- For GUIs, you may want to **include screenshots** which help you demonstrate the steps or point out the part which the suggestion is related to. Animated GIFS and videos may be helpful but are not expected. Some tools available are the [built-in screen recorder](https://support.apple.com/en-us/102618) on macOS, [LICEcap](https://www.cockos.com/licecap/) on macOS and Windows, and [ShareX](https://getsharex.com/) on Linux.
 - **Explain why this enhancement would be useful** to most spicetify users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
 
 ### Your First Code Contribution
@@ -119,7 +109,6 @@ To improve the [documentation](https://spicetify.app/docs/getting-started), navi
     *   **chore:** Changes to build process, auxiliary tools, libraries, and other things
     *   **revert:** A reversion to a previous commit
 *   **scope:** Anything specifying place of the commit change
-    *   Use `*` when affecting more than one scope
 *   **subject:** What changes you have done
     *   Use the imperative, present tense: "change" not "changed" nor "changes"
     *   Don't capitalize first letter
