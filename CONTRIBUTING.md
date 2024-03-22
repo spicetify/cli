@@ -20,6 +20,7 @@ If you then still feel the need to ask a question and need clarification, we rec
 
 - Open an [issue](https://github.com/spicetify/spicetify-cli/issues/new).
 - Provide both Spicetify and Spotify version.
+- Explain what the problem is.
 
 We will then take care of the issue as soon as possible.
 
