@@ -304,7 +304,7 @@ func linuxApp() string {
 		"/usr/share/spotify/",
 		"/usr/libexec/spotify/",
 		"/var/lib/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
-		"$HOME/.local/share/flatpak/app/com.spotify.Client/",
+		"$HOME/.local/share/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
 	}
 
 	for _, v := range potentialList {
