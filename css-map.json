@@ -1221,7 +1221,7 @@
 	"Gw7E7MkWci1ttQhb4EK0": "npv-exitFullScreenButton-button",
 	"KAq2kDjXj2VS4eXrFL4i": "main-userWidget-box",
 	"LKfKy7bXKmlkMEANVJMS": "main-avatar-avatar",
-	"nRSfonXHVr6utXYgk2Ui": "main-globalNav-mainNav",
+	"nRSfonXHVr6utXYgk2Ui": "Root__globalNav",
 	"Z6t_8rA6LOBrX3huqRJG": "main-globalNav-historyButtonsContainer",
 	"VizXsWMIuNfKGN5pMyox": "main-globalNav-historyButtons",
 	"rBX1EWVZ2EaPwP4y1Gkd": "main-globalNav-icon",
@@ -1231,6 +1231,9 @@
 	"PvsV2JgJRDME1vDn6IJL": "main-globalNav-searchInputSection",
 	"fksI89zEXwqKWm1O6sJm": "main-globalNav-searchInputContainer",
 	"OomFKn3bsxs5JfNUoWhz": "main-globalNav-buddyFeed",
+	"bWBqSiXEceAj1SnzqusU": "main-globalNav-navLink",
+	"voA9ZoTTlPFyLpckNw3S": "main-globalNav-navLinkActive",
+	"cUwQnQoE3OqXqSYLT0hv": "link-subtle",
 	"rQ6LXqVlEOGZdGIG0LgP": "main-contextMenu-menuItem",
 	"mWj8N7D_OlsbDgtQx5GW": "main-contextMenu-menuItemButton",
 	"NbcaczStd8vD2rHWwaKv": "main-contextMenu-menu"

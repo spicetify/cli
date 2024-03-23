@@ -163,9 +163,6 @@ window.Spicetify = {
 					"Topbar",
 					"ReactComponent",
 					"PopupModal",
-					"_cloneSidebarItem",
-					// Deprecated since Spotify 1.2.14
-					// "_sidebarItemToClone",
 					"SVGIcons",
 					"colorExtractor",
 					"test",
@@ -182,7 +179,6 @@ window.Spicetify = {
 					"_getStyledClassName",
 					"GraphQL",
 					"ReactHook",
-					"_sidebarXItemToClone",
 					"AppTitle",
 					"_reservedPanelIds",
 					"ReactFlipToolkit",
@@ -193,7 +189,8 @@ window.Spicetify = {
 					"ReactDOMServer",
 					"Snackbar",
 					"ContextMenuV2",
-					"ReactJSX"
+					"ReactJSX",
+					"_renderNavLinks"
 				])
 			},
 			{
@@ -428,8 +425,17 @@ window.Spicetify = {
 				return Object.values(module);
 			} catch {}
 		});
+	// polyfill for chromium <117
+	const groupBy = (values, keyFinder) => {
+		if (typeof Object.groupBy === "function") return Object.groupBy(values, keyFinder);
+		return values.reduce((a, b) => {
+			const key = typeof keyFinder === "function" ? keyFinder(b) : b[keyFinder];
+			a[key] = a[key] ? [...a[key], b] : [b];
+			return a;
+		}, {});
+	};
 	const functionModules = modules.filter(module => typeof module === "function");
-	const exportedReactObjects = Object.groupBy(modules.filter(Boolean), x => x.$$typeof);
+	const exportedReactObjects = groupBy(modules.filter(Boolean), x => x.$$typeof);
 	const exportedMemos = exportedReactObjects[Symbol.for("react.memo")];
 	const exportedMemoFRefs = exportedMemos.filter(m => m.type.$$typeof === Symbol.for("react.forward_ref"));
 
@@ -483,6 +489,10 @@ window.Spicetify = {
 		ReactJSX: cache.find(m => m?.jsx),
 		ReactDOM: cache.find(m => m?.createPortal),
 		ReactDOMServer: cache.find(m => m?.renderToString),
+		// classnames for 1.2.13
+		classnames: cache
+			.filter(module => typeof module === "function")
+			.find(module => module.toString().includes('"string"') && module.toString().includes("[native code]")),
 		Color: functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
 		Player: {
 			...Spicetify.Player,
@@ -675,7 +685,7 @@ window.Spicetify = {
 	// classnames
 	// https://github.com/JedWatson/classnames/
 	const classnamesChunk = chunks.find(([_, value]) => value.toString().includes("[native code]") && !value.toString().includes("<anonymous>"));
-	if (classnamesChunk) {
+	if (classnamesChunk && !Spicetify.classnames) {
 		Spicetify.classnames = Object.values(require(classnamesChunk[0])).find(m => typeof m === "function");
 	}
 
@@ -994,7 +1004,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		}
 	}
 
-	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$hasFocus", ""];
+	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "isUsingKeyboard", "$autoMirror", "$hasFocus", ""];
 	const excludedPrefix = ["aria-"];
 
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
@@ -1844,8 +1854,7 @@ const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
 					"aria-label": appProper
 				},
 				createIcon(),
-				!isSidebarCollapsed &&
-					Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold", weight: "bold" }, appProper)
+				!isSidebarCollapsed && Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold" }, appProper)
 			)
 		)
 	);
@@ -1857,8 +1866,8 @@ const NavLinkGlobal = ({ appProper, appRoutePath, createIcon, isActive }) => {
 		{ label: appProper },
 		Spicetify.React.createElement(Spicetify.ReactComponent.ButtonTertiary, {
 			iconOnly: createIcon,
-			className: Spicetify.classnames("bWBqSiXEceAj1SnzqusU", "main-globalNav-link-icon", "cUwQnQoE3OqXqSYLT0hv", {
-				voA9ZoTTlPFyLpckNw3S: isActive
+			className: Spicetify.classnames("link-subtle", "main-globalNav-navLink", "main-globalNav-link-icon", {
+				"main-globalNav-navLinkActive": isActive
 			}),
 			"aria-label": appProper,
 			onClick: () => Spicetify.Platform.History.push(appRoutePath)
@@ -1982,7 +1991,10 @@ Spicetify.Topbar = (() => {
 			} else {
 				this.button.classList.add("main-topBar-button");
 				if (globalHistoryButtons)
-					this.button.classList.add("main-globalNav-icon", "Button-medium-medium-buttonTertiary-iconOnly-condensed-useBrowserDefaultFocusStyle");
+					this.button.classList.add(
+						"main-globalNav-icon",
+						"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+					);
 
 				leftButtonsStash.add(this.element);
 				leftContainer?.append(this.element);
@@ -2033,15 +2045,21 @@ Spicetify.Topbar = (() => {
 			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
-		if (globalHistoryButtons) globalHistoryButtons.style = "gap: 4px; padding-inline: 4px 4px;";
+		if (globalHistoryButtons) globalHistoryButtons.style = "gap: 4px; padding-inline: 4px 4px";
 		for (const button of leftButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
 
 			const buttonElement = button.querySelector("button");
 			if (globalHistoryButtons)
-				buttonElement.classList.add("main-globalNav-icon", "Button-medium-medium-buttonTertiary-iconOnly-condensed-useBrowserDefaultFocusStyle");
+				buttonElement.classList.add(
+					"main-globalNav-icon",
+					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+				);
 			else
-				buttonElement.classList.remove("main-globalNav-icon", "Button-medium-medium-buttonTertiary-iconOnly-condensed-useBrowserDefaultFocusStyle");
+				buttonElement.classList.remove(
+					"main-globalNav-icon",
+					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+				);
 		}
 		leftContainer.append(...leftButtonsStash);
 		for (const button of rightButtonsStash) {
