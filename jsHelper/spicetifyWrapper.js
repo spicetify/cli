@@ -1981,12 +1981,8 @@ Spicetify.Topbar = (() => {
 				rightContainer?.prepend(this.element);
 			} else {
 				this.button.classList.add("main-topBar-button");
-				if (globalHistoryButtons) {
-					this.button.classList.add(
-						"main-globalNav-icon",
-						"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-					);
-				}
+				if (globalHistoryButtons)
+					this.button.classList.add("main-globalNav-icon", "Button-medium-medium-buttonTertiary-iconOnly-condensed-useBrowserDefaultFocusStyle");
 
 				leftButtonsStash.add(this.element);
 				leftContainer?.append(this.element);
@@ -2037,21 +2033,15 @@ Spicetify.Topbar = (() => {
 			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
+		if (globalHistoryButtons) globalHistoryButtons.style = "gap: 4px; padding-inline: 4px 4px;";
 		for (const button of leftButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
 
 			const buttonElement = button.querySelector("button");
-			if (globalHistoryButtons) {
-				buttonElement.classList.add(
-					"main-globalNav-icon",
-					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-				);
-			} else {
-				buttonElement.classList.remove(
-					"main-globalNav-icon",
-					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-				);
-			}
+			if (globalHistoryButtons)
+				buttonElement.classList.add("main-globalNav-icon", "Button-medium-medium-buttonTertiary-iconOnly-condensed-useBrowserDefaultFocusStyle");
+			else
+				buttonElement.classList.remove("main-globalNav-icon", "Button-medium-medium-buttonTertiary-iconOnly-condensed-useBrowserDefaultFocusStyle");
 		}
 		leftContainer.append(...leftButtonsStash);
 		for (const button of rightButtonsStash) {
