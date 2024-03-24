@@ -1815,7 +1815,7 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 
 	const style = document.createElement("style");
 	style.innerHTML = `
-	:root {
+:root {
     --max-custom-navlink-count: 4;
 }
 
