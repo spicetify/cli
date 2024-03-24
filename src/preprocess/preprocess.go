@@ -145,7 +145,7 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 					tags += "<!-- spicetify helpers -->\n"
 				}
 
-				utils.Replace(&content, `<body>`, func(submatches ...string) string {
+				utils.Replace(&content, `<body(\sclass="[^"]*")?>`, func(submatches ...string) string {
 					return fmt.Sprintf("%s\n%s", submatches[0], tags)
 				})
 
