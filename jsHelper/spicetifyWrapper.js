@@ -1816,12 +1816,12 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 	const style = document.createElement("style");
 	style.innerHTML = `
 :root {
-    --max-custom-navlink-count: 4;
+  --max-custom-navlink-count: 4;
 }
 
 .custom-navlinks-scrollable_container {
-    max-width: calc(48px * var(--max-custom-navlink-count) + 8px * (var(--max-custom-navlink-count) - 1));
-    -webkit-app-region: no-drag;
+  max-width: calc(48px * var(--max-custom-navlink-count) + 8px * (var(--max-custom-navlink-count) - 1));
+  -webkit-app-region: no-drag;
 }
 
 .custom-navlinks-scrollable_container div[role="presentation"] > *:not(:last-child) {
@@ -1834,24 +1834,34 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 }
 
 .custom-navlink {
-    -webkit-app-region: unset;
+  -webkit-app-region: unset;
 }
 	`;
 	document.head.appendChild(style);
 
-	return Spicetify.React.createElement(
-		"div",
-		{ className: "custom-navlinks-scrollable_container" },
+	const touchScreenUi = element =>
 		Spicetify.React.createElement(
-			Spicetify.ReactComponent.ScrollableContainer,
-			null,
-			Spicetify.React.createElement(
-				navLinkFactoryCtx.Provider,
-				{ value: navLinkFactory },
-				registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
+			"div",
+			{ className: "custom-navlinks-scrollable_container" },
+			Spicetify.React.createElement(Spicetify.ReactComponent.ScrollableContainer, null, element)
+		);
+
+	const NavLinks = () =>
+		Spicetify.React.createElement(
+			navLinkFactoryCtx.Provider,
+			{ value: navLinkFactory },
+			registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
+		);
+
+	return isTouchScreenUi
+		? touchScreenUi(
+				Spicetify.React.createElement(
+					navLinkFactoryCtx.Provider,
+					{ value: navLinkFactory },
+					registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
+				)
 			)
-		)
-	);
+		: NavLinks();
 };
 
 const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
