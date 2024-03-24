@@ -345,11 +345,11 @@ func insertNavLink(str string, appNameArray string) string {
 		return str
 	}
 	index := findMatchingPos(str, loc[0], 1, []string{"(", ")"}, 1)
-	str = str[:index] + ",Spicetify._renderNavLinks([" + appNameArray + "], false)," + str[index:]
+	str = fmt.Sprintf(`%s,Spicetify._renderNavLinks([%s], false),%s`, str[:index], appNameArray, str[index:])
 
 	// Global Navbar
 	utils.ReplaceOnce(&str, `(,[a-zA-Z_\$][\w\$]*===(?:[a-zA-Z_\$][\w\$]*\.){2}HOME_NEXT_TO_NAVIGATION&&.+?)\]`, func(submatches ...string) string {
-		return submatches[1] + ",Spicetify._renderNavLinks([" + appNameArray + "], true)]"
+		return fmt.Sprintf(`%s,Spicetify._renderNavLinks([%s], true)]`, submatches[1], appNameArray)
 	})
 
 	return str
