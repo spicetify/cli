@@ -1839,7 +1839,7 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 	`;
 	document.head.appendChild(style);
 
-	const touchScreenUi = element =>
+	const wrapScrollableContainer = element =>
 		Spicetify.React.createElement(
 			"div",
 			{ className: "custom-navlinks-scrollable_container" },
@@ -1853,15 +1853,7 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 			registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
 		);
 
-	return isTouchScreenUi
-		? touchScreenUi(
-				Spicetify.React.createElement(
-					navLinkFactoryCtx.Provider,
-					{ value: navLinkFactory },
-					registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
-				)
-			)
-		: NavLinks();
+	return isTouchScreenUi ? wrapScrollableContainer(NavLinks()) : NavLinks();
 };
 
 const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
