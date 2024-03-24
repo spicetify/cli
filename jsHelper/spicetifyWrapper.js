@@ -90,9 +90,7 @@ window.Spicetify = {
 			return await Spicetify.Player.origin.play({ uri: uri }, context, options);
 		},
 		removeEventListener: (type, callback) => {
-			if (!(type in Spicetify.Player.eventListeners)) {
-				return;
-			}
+			if (!(type in Spicetify.Player.eventListeners)) return;
 			const stack = Spicetify.Player.eventListeners[type];
 			for (let i = 0; i < stack.length; i++) {
 				if (stack[i] === callback) {
@@ -565,6 +563,7 @@ window.Spicetify = {
 			Route: functionModules.find(m => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
 			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
 			Navigation: exportedMemoFRefs.find(m => m.type.render.toString().includes("navigationalRoot")),
+			ScrollableContainer: functionModules.find(m => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -729,6 +728,7 @@ window.Spicetify = {
 					autoHideDuration: msTimeout
 				});
 			};
+
 			return;
 		}
 
@@ -1781,9 +1781,8 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 		!Spicetify.ReactComponent.TooltipWrapper ||
 		!Spicetify.Platform.History ||
 		!Spicetify.Platform.LocalStorageAPI
-	) {
+	)
 		return;
-	}
 
 	const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : NavLinkSidebar;
 
@@ -1814,10 +1813,44 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 		registered.push({ appProper, appRoutePath, icon, activeIcon });
 	}
 
+	const style = document.createElement("style");
+	style.innerHTML = `
+	:root {
+    --max-custom-navlink-count: 4;
+}
+
+.custom-navlinks-scrollable_container {
+    max-width: calc(48px * var(--max-custom-navlink-count) + 8px * (var(--max-custom-navlink-count) - 1));
+    -webkit-app-region: no-drag;
+}
+
+.custom-navlinks-scrollable_container div[role="presentation"] > *:not(:last-child) {
+  margin-inline-end: 8px;
+}
+
+.custom-navlinks-scrollable_container div[role="presentation"] {
+	display: flex;
+	flex-direction: row;
+}
+
+.custom-navlink {
+    -webkit-app-region: unset;
+}
+	`;
+	document.head.appendChild(style);
+
 	return Spicetify.React.createElement(
-		navLinkFactoryCtx.Provider,
-		{ value: navLinkFactory },
-		registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
+		"div",
+		{ className: "custom-navlinks-scrollable_container" },
+		Spicetify.React.createElement(
+			Spicetify.ReactComponent.ScrollableContainer,
+			null,
+			Spicetify.React.createElement(
+				navLinkFactoryCtx.Provider,
+				{ value: navLinkFactory },
+				registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
+			)
+		)
 	);
 };
 
@@ -1826,11 +1859,8 @@ const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
 	const createIcon = () => createIconComponent(isActive ? activeIcon : icon, 24);
 
 	const NavLinkFactory = Spicetify.React.useContext(navLinkFactoryCtx);
-	if (!NavLinkFactory) {
-		return;
-	}
 
-	return Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, createIcon, isActive }, null);
+	return NavLinkFactory && Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, createIcon, isActive }, null);
 };
 
 const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
@@ -1854,7 +1884,8 @@ const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
 					"aria-label": appProper
 				},
 				createIcon(),
-				!isSidebarCollapsed && Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold" }, appProper)
+				!isSidebarCollapsed &&
+					Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold", weight: "bold" }, appProper)
 			)
 		)
 	);
@@ -1866,7 +1897,7 @@ const NavLinkGlobal = ({ appProper, appRoutePath, createIcon, isActive }) => {
 		{ label: appProper },
 		Spicetify.React.createElement(Spicetify.ReactComponent.ButtonTertiary, {
 			iconOnly: createIcon,
-			className: Spicetify.classnames("link-subtle", "main-globalNav-navLink", "main-globalNav-link-icon", {
+			className: Spicetify.classnames("link-subtle", "main-globalNav-navLink", "main-globalNav-link-icon", "custom-navlink", {
 				"main-globalNav-navLinkActive": isActive
 			}),
 			"aria-label": appProper,
@@ -1990,11 +2021,12 @@ Spicetify.Topbar = (() => {
 				rightContainer?.prepend(this.element);
 			} else {
 				this.button.classList.add("main-topBar-button");
-				if (globalHistoryButtons)
+				if (globalHistoryButtons) {
 					this.button.classList.add(
 						"main-globalNav-icon",
 						"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
 					);
+				}
 
 				leftButtonsStash.add(this.element);
 				leftContainer?.append(this.element);
@@ -2045,21 +2077,23 @@ Spicetify.Topbar = (() => {
 			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
+
 		if (globalHistoryButtons) globalHistoryButtons.style = "gap: 4px; padding-inline: 4px 4px";
 		for (const button of leftButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
 
 			const buttonElement = button.querySelector("button");
-			if (globalHistoryButtons)
+			if (globalHistoryButtons) {
 				buttonElement.classList.add(
 					"main-globalNav-icon",
 					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
 				);
-			else
+			} else {
 				buttonElement.classList.remove(
 					"main-globalNav-icon",
 					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
 				);
+			}
 		}
 		leftContainer.append(...leftButtonsStash);
 		for (const button of rightButtonsStash) {
@@ -2078,6 +2112,7 @@ Spicetify.Topbar = (() => {
 			setTimeout(waitForPlatform, 100);
 			return;
 		}
+
 		Spicetify.Platform.History.listen(() => waitForTopbarMounted());
 	})();
 
@@ -2291,9 +2326,7 @@ Spicetify.Playbar = (() => {
 	}
 	const { check_spicetify_update, version } = Spicetify.Config;
 	// Skip checking if upgrade check is disabled, or version is Dev/version is not set
-	if (!check_spicetify_update || !version || version === "Dev") {
-		return;
-	}
+	if (!check_spicetify_update || !version || version === "Dev") return;
 	// Fetch latest version from GitHub
 	try {
 		const res = await fetch("https://api.github.com/repos/spicetify/spicetify-cli/releases/latest");
