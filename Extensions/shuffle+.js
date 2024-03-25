@@ -435,8 +435,11 @@
 	function fetchQueue() {
 		const { _queueState } = Spicetify.Platform.PlayerAPI._queue;
 		const nextUp = _queueState.nextUp.map(track => track.uri);
+		const queued = _queueState.queued.map(track => track.uri);
+		const array = [...new Set([...nextUp, ...queued])];
 		const current = _queueState.current?.uri;
-		return [current, ...nextUp];
+		if (current) array.push(current);
+		return array;
 	}
 
 	async function fetchCollection(uriObj) {
@@ -510,6 +513,8 @@
 			blocked: [],
 			provider: "context"
 		}));
+
+		console.log(nextTracks);
 
 		// Lowest level setQueue method from vendor~xpui.js
 		_client.setQueue({
