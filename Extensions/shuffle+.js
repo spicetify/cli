@@ -12,6 +12,7 @@
 
 	const { React } = Spicetify;
 	const { useState } = React;
+	let playbarButton = null;
 
 	function getConfig() {
 		try {
@@ -22,7 +23,7 @@
 			throw "";
 		} catch {
 			Spicetify.LocalStorage.set("shufflePlus:settings", "{}");
-			return { artistMode: "all", artistNameMust: false };
+			return { artistMode: "all", artistNameMust: false, enableQueueButton: false };
 		}
 	}
 
@@ -180,12 +181,18 @@
 			React.createElement(checkBoxItem, {
 				name: "Chosen artist must be included",
 				field: "artistNameMust"
+			}),
+			React.createElement(checkBoxItem, {
+				name: "Enable Shuffle+ Queue Tracks button in Playbar",
+				field: "enableQueueButton",
+				onclickFun: () => renderQueuePlaybarButton()
 			})
 		);
 
 		Spicetify.PopupModal.display({
 			title: "Shuffle+",
-			content: settingsDOMContent
+			content: settingsDOMContent,
+			isLarge: true
 		});
 	}
 
@@ -264,6 +271,24 @@
 		shouldAddShufflePlusLocal,
 		"playlist-folder"
 	).register();
+
+	renderQueuePlaybarButton();
+	function renderQueuePlaybarButton() {
+		if (!playbarButton) {
+			playbarButton = new Spicetify.Playbar.Button(
+				"Shuffle+ Queue Tracks",
+				"enhance",
+				async () => {
+					await fetchAndPlay("queue");
+				},
+				false,
+				false
+			);
+		}
+
+		if (CONFIG.enableQueueButton) playbarButton.register();
+		else playbarButton.deregister();
+	}
 
 	async function fetchPlaylistTracks(uri) {
 		const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/spotify:playlist:${uri}/rows`, {
@@ -407,6 +432,13 @@
 		return res.map(track => track.uri);
 	}
 
+	function fetchQueue() {
+		const { _queueState } = Spicetify.Platform.PlayerAPI._queue;
+		const nextUp = _queueState.nextUp.map(track => track.uri);
+		const current = _queueState.current?.uri;
+		return [current, ...nextUp];
+	}
+
 	async function fetchCollection(uriObj) {
 		const { category, type } = uriObj;
 		const { pathname } = Spicetify.Platform.History.location;
@@ -528,7 +560,10 @@
 		let uri;
 
 		try {
-			if (typeof rawUri === "object") {
+			if (rawUri === "queue") {
+				list = await fetchQueue();
+				context = null;
+			} else if (typeof rawUri === "object") {
 				list = rawUri;
 				context = null;
 			} else {
