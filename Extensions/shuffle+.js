@@ -561,7 +561,7 @@
 
 		try {
 			if (rawUri === "queue") {
-				list = await fetchQueue();
+				list = fetchQueue();
 				context = null;
 			} else if (typeof rawUri === "object") {
 				list = rawUri;
