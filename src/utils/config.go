@@ -304,11 +304,12 @@ func linuxApp() string {
 		"/usr/share/spotify/",
 		"/usr/libexec/spotify/",
 		"/var/lib/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
+		"$HOME/.local/share/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
 	}
 
 	for _, v := range potentialList {
-		_, err := os.Stat(filepath.Join(v, "Apps"))
-		_, err2 := os.Stat(filepath.Join(v, "spotify"))
+		_, err := os.Stat(filepath.Join(ReplaceEnvVarsInString(v), "Apps"))
+		_, err2 := os.Stat(filepath.Join(ReplaceEnvVarsInString(v), "spotify"))
 		if err == nil && err2 == nil {
 			return v
 		}
