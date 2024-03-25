@@ -145,7 +145,7 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 					tags += "<!-- spicetify helpers -->\n"
 				}
 
-				utils.Replace(&content, `<body>`, func(submatches ...string) string {
+				utils.Replace(&content, `<body(\sclass="[^"]*")?>`, func(submatches ...string) string {
 					return fmt.Sprintf("%s\n%s", submatches[0], tags)
 				})
 
@@ -359,6 +359,9 @@ func disableLogging(input string) string {
 	utils.Replace(&input, `key:"createLoggingParams",value:function\([^)]*\)\s*\{`, func(submatches ...string) string {
 		return fmt.Sprintf("%sreturn {interactionIds:null,pageInstanceIds:null};", submatches[0])
 	})
+	utils.Replace(&input, `key:"addEventsToESSData",value:function\([^)]*\)\s*\{`, func(submatches ...string) string {
+		return fmt.Sprintf("%sreturn;", submatches[0])
+	})
 
 	utils.Replace(&input, `registerEventListeners\([^)]*\)\s*\{`, func(submatches ...string) string {
 		return fmt.Sprintf("%sreturn;", submatches[0])
@@ -392,6 +395,9 @@ func disableLogging(input string) string {
 	})
 	utils.Replace(&input, `createLoggingParams\([^)]*\)\s*\{`, func(submatches ...string) string {
 		return fmt.Sprintf("%sreturn {interactionIds:null,pageInstanceIds:null};", submatches[0])
+	})
+	utils.Replace(&input, `addEventsToESSData\([^)]*\)\s*\{`, func(submatches ...string) string {
+		return fmt.Sprintf("%sreturn;", submatches[0])
 	})
 
 	return input

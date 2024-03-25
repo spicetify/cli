@@ -90,9 +90,7 @@ window.Spicetify = {
 			return await Spicetify.Player.origin.play({ uri: uri }, context, options);
 		},
 		removeEventListener: (type, callback) => {
-			if (!(type in Spicetify.Player.eventListeners)) {
-				return;
-			}
+			if (!(type in Spicetify.Player.eventListeners)) return;
 			const stack = Spicetify.Player.eventListeners[type];
 			for (let i = 0; i < stack.length; i++) {
 				if (stack[i] === callback) {
@@ -163,9 +161,6 @@ window.Spicetify = {
 					"Topbar",
 					"ReactComponent",
 					"PopupModal",
-					"_cloneSidebarItem",
-					// Deprecated since Spotify 1.2.14
-					// "_sidebarItemToClone",
 					"SVGIcons",
 					"colorExtractor",
 					"test",
@@ -182,7 +177,6 @@ window.Spicetify = {
 					"_getStyledClassName",
 					"GraphQL",
 					"ReactHook",
-					"_sidebarXItemToClone",
 					"AppTitle",
 					"_reservedPanelIds",
 					"ReactFlipToolkit",
@@ -193,7 +187,8 @@ window.Spicetify = {
 					"ReactDOMServer",
 					"Snackbar",
 					"ContextMenuV2",
-					"ReactJSX"
+					"ReactJSX",
+					"_renderNavLinks"
 				])
 			},
 			{
@@ -428,8 +423,17 @@ window.Spicetify = {
 				return Object.values(module);
 			} catch {}
 		});
+	// polyfill for chromium <117
+	const groupBy = (values, keyFinder) => {
+		if (typeof Object.groupBy === "function") return Object.groupBy(values, keyFinder);
+		return values.reduce((a, b) => {
+			const key = typeof keyFinder === "function" ? keyFinder(b) : b[keyFinder];
+			a[key] = a[key] ? [...a[key], b] : [b];
+			return a;
+		}, {});
+	};
 	const functionModules = modules.filter(module => typeof module === "function");
-	const exportedReactObjects = Object.groupBy(modules.filter(Boolean), x => x.$$typeof);
+	const exportedReactObjects = groupBy(modules.filter(Boolean), x => x.$$typeof);
 	const exportedMemos = exportedReactObjects[Symbol.for("react.memo")];
 	const exportedMemoFRefs = exportedMemos.filter(m => m.type.$$typeof === Symbol.for("react.forward_ref"));
 
@@ -483,6 +487,10 @@ window.Spicetify = {
 		ReactJSX: cache.find(m => m?.jsx),
 		ReactDOM: cache.find(m => m?.createPortal),
 		ReactDOMServer: cache.find(m => m?.renderToString),
+		// classnames for 1.2.13
+		classnames: cache
+			.filter(module => typeof module === "function")
+			.find(module => module.toString().includes('"string"') && module.toString().includes("[native code]")),
 		Color: functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
 		Player: {
 			...Spicetify.Player,
@@ -555,6 +563,7 @@ window.Spicetify = {
 			Route: functionModules.find(m => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
 			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
 			Navigation: exportedMemoFRefs.find(m => m.type.render.toString().includes("navigationalRoot")),
+			ScrollableContainer: functionModules.find(m => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")),
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -675,7 +684,7 @@ window.Spicetify = {
 	// classnames
 	// https://github.com/JedWatson/classnames/
 	const classnamesChunk = chunks.find(([_, value]) => value.toString().includes("[native code]") && !value.toString().includes("<anonymous>"));
-	if (classnamesChunk) {
+	if (classnamesChunk && !Spicetify.classnames) {
 		Spicetify.classnames = Object.values(require(classnamesChunk[0])).find(m => typeof m === "function");
 	}
 
@@ -719,6 +728,7 @@ window.Spicetify = {
 					autoHideDuration: msTimeout
 				});
 			};
+
 			return;
 		}
 
@@ -994,7 +1004,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		}
 	}
 
-	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$hasFocus", ""];
+	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "isUsingKeyboard", "$autoMirror", "$hasFocus", ""];
 	const excludedPrefix = ["aria-"];
 
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
@@ -1771,9 +1781,8 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 		!Spicetify.ReactComponent.TooltipWrapper ||
 		!Spicetify.Platform.History ||
 		!Spicetify.Platform.LocalStorageAPI
-	) {
+	)
 		return;
-	}
 
 	const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : NavLinkSidebar;
 
@@ -1804,11 +1813,47 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 		registered.push({ appProper, appRoutePath, icon, activeIcon });
 	}
 
-	return Spicetify.React.createElement(
-		navLinkFactoryCtx.Provider,
-		{ value: navLinkFactory },
-		registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
-	);
+	const style = document.createElement("style");
+	style.innerHTML = `
+:root {
+  --max-custom-navlink-count: 4;
+}
+
+.custom-navlinks-scrollable_container {
+  max-width: calc(48px * var(--max-custom-navlink-count) + 8px * (var(--max-custom-navlink-count) - 1));
+  -webkit-app-region: no-drag;
+}
+
+.custom-navlinks-scrollable_container div[role="presentation"] > *:not(:last-child) {
+  margin-inline-end: 8px;
+}
+
+.custom-navlinks-scrollable_container div[role="presentation"] {
+	display: flex;
+	flex-direction: row;
+}
+
+.custom-navlink {
+  -webkit-app-region: unset;
+}
+	`;
+	document.head.appendChild(style);
+
+	const wrapScrollableContainer = element =>
+		Spicetify.React.createElement(
+			"div",
+			{ className: "custom-navlinks-scrollable_container" },
+			Spicetify.React.createElement(Spicetify.ReactComponent.ScrollableContainer, null, element)
+		);
+
+	const NavLinks = () =>
+		Spicetify.React.createElement(
+			navLinkFactoryCtx.Provider,
+			{ value: navLinkFactory },
+			registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
+		);
+
+	return isTouchScreenUi ? wrapScrollableContainer(NavLinks()) : NavLinks();
 };
 
 const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
@@ -1816,11 +1861,8 @@ const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
 	const createIcon = () => createIconComponent(isActive ? activeIcon : icon, 24);
 
 	const NavLinkFactory = Spicetify.React.useContext(navLinkFactoryCtx);
-	if (!NavLinkFactory) {
-		return;
-	}
 
-	return Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, createIcon, isActive }, null);
+	return NavLinkFactory && Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, createIcon, isActive }, null);
 };
 
 const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
@@ -1844,7 +1886,8 @@ const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
 					"aria-label": appProper
 				},
 				createIcon(),
-				!isSidebarCollapsed && Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold" }, appProper)
+				!isSidebarCollapsed &&
+					Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold", weight: "bold" }, appProper)
 			)
 		)
 	);
@@ -1856,8 +1899,8 @@ const NavLinkGlobal = ({ appProper, appRoutePath, createIcon, isActive }) => {
 		{ label: appProper },
 		Spicetify.React.createElement(Spicetify.ReactComponent.ButtonTertiary, {
 			iconOnly: createIcon,
-			className: Spicetify.classnames("bWBqSiXEceAj1SnzqusU", "main-globalNav-link-icon", "cUwQnQoE3OqXqSYLT0hv", {
-				voA9ZoTTlPFyLpckNw3S: isActive
+			className: Spicetify.classnames("link-subtle", "main-globalNav-navLink", "main-globalNav-link-icon", "custom-navlink", {
+				"main-globalNav-navLinkActive": isActive
 			}),
 			"aria-label": appProper,
 			onClick: () => Spicetify.Platform.History.push(appRoutePath)
@@ -1971,12 +2014,22 @@ Spicetify.Topbar = (() => {
 			this.label = label;
 
 			this.element.appendChild(this.button);
+			const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
 			if (isRight) {
 				this.button.classList.add("encore-over-media-set", "main-topBar-buddyFeed");
+				if (globalHistoryButtons) this.button.classList.add("main-globalNav-buddyFeed");
+
 				rightButtonsStash.add(this.element);
 				rightContainer?.prepend(this.element);
 			} else {
 				this.button.classList.add("main-topBar-button");
+				if (globalHistoryButtons) {
+					this.button.classList.add(
+						"main-globalNav-icon",
+						"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+					);
+				}
+
 				leftButtonsStash.add(this.element);
 				leftContainer?.append(this.element);
 			}
@@ -2019,18 +2072,38 @@ Spicetify.Topbar = (() => {
 	}
 
 	function waitForTopbarMounted() {
-		leftContainer = document.querySelector(".main-topBar-historyButtons");
+		const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
+		leftContainer = document.querySelector(".main-topBar-historyButtons") ?? globalHistoryButtons;
 		rightContainer = document.querySelector(".main-actionButtons");
 		if (!leftContainer || !rightContainer) {
 			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
+
+		if (globalHistoryButtons) globalHistoryButtons.style = "gap: 4px; padding-inline: 4px 4px";
 		for (const button of leftButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
+
+			const buttonElement = button.querySelector("button");
+			if (globalHistoryButtons) {
+				buttonElement.classList.add(
+					"main-globalNav-icon",
+					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+				);
+			} else {
+				buttonElement.classList.remove(
+					"main-globalNav-icon",
+					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
+				);
+			}
 		}
 		leftContainer.append(...leftButtonsStash);
 		for (const button of rightButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
+
+			const buttonElement = button.querySelector("button");
+			if (globalHistoryButtons) buttonElement.classList.add("main-globalNav-buddyFeed");
+			else buttonElement.classList.remove("main-globalNav-buddyFeed");
 		}
 		rightContainer.prepend(...rightButtonsStash);
 	}
@@ -2041,6 +2114,7 @@ Spicetify.Topbar = (() => {
 			setTimeout(waitForPlatform, 100);
 			return;
 		}
+
 		Spicetify.Platform.History.listen(() => waitForTopbarMounted());
 	})();
 
@@ -2254,9 +2328,7 @@ Spicetify.Playbar = (() => {
 	}
 	const { check_spicetify_update, version } = Spicetify.Config;
 	// Skip checking if upgrade check is disabled, or version is Dev/version is not set
-	if (!check_spicetify_update || !version || version === "Dev") {
-		return;
-	}
+	if (!check_spicetify_update || !version || version === "Dev") return;
 	// Fetch latest version from GitHub
 	try {
 		const res = await fetch("https://api.github.com/repos/spicetify/spicetify-cli/releases/latest");
