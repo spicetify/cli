@@ -62,7 +62,7 @@ const typesLocale = {
 };
 
 class Grid extends react.Component {
-	viewportSelector = "#main .os-viewport";
+	viewportSelector = document.querySelector("#main .os-viewport") ? "#main .os-viewport" : "#main .main-view-container__scroll-node";
 
 	constructor(props) {
 		super(props);
