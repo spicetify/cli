@@ -1784,7 +1784,7 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi, isPreLibX = false) => {
 	)
 		return;
 
-	const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : isPreLibX ? NavLinkSidebarPreLibX : NavLinkSidebar;
+	const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : isPreLibX ? NavLinkSidebarLegacy : NavLinkSidebar;
 
 	if (!navLinkFactoryCtx) navLinkFactoryCtx = Spicetify.React.createContext(null);
 	const registered = [];
@@ -1865,7 +1865,7 @@ const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
 	return NavLinkFactory && Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, createIcon, isActive }, null);
 };
 
-const NavLinkSidebarPreLibX = ({ appProper, appRoutePath, createIcon, isActive }) => {
+const NavLinkSidebarLegacy = ({ appProper, appRoutePath, createIcon, isActive }) => {
 	return Spicetify.React.createElement(
 		"li",
 		{ className: "main-navBar-navBarItem InvalidDropTarget" },
