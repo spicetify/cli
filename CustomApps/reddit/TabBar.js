@@ -166,7 +166,7 @@ const TabBar = react.memo(({ links, activeLink, switchCallback, windowSize = Num
 				? react.createElement(TabBarMore, {
 						items: droplistItem.map(i => options[i]).filter(Boolean),
 						switchTo: switchCallback
-				  })
+					})
 				: null
 		)
 	);
