@@ -514,8 +514,6 @@
 			provider: "context"
 		}));
 
-		console.log(nextTracks);
-
 		// Lowest level setQueue method from vendor~xpui.js
 		_client.setQueue({
 			nextTracks,
