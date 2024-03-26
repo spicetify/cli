@@ -48,7 +48,8 @@ const TabBarMore = react.memo(({ items, switchTo }) => {
 });
 
 const TopBarContent = ({ links, activeLink, switchCallback }) => {
-	const resizeHost = document.querySelector(".Root__main-view .os-resize-observer-host");
+	const resizeHost =
+		document.querySelector(".Root__main-view .os-resize-observer-host") ?? document.querySelector(".Root__main-view .os-size-observer");
 	const [windowSize, setWindowSize] = useState(resizeHost.clientWidth);
 	const resizeHandler = () => setWindowSize(resizeHost.clientWidth);
 

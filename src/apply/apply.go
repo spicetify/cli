@@ -347,6 +347,20 @@ func insertNavLink(str string, appNameArray string) string {
 	index := findMatchingPos(str, loc[0], 1, []string{"(", ")"}, 1)
 	str = fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], false),%s", str[:index], appNameArray, str[index:])
 
+	// pre-Library X
+	sidebarItemMatch := utils.SeekToCloseParen(
+		str,
+		`\("li",\{className:[\w$\.]+\}?,(?:children:)?[\w$\.,()]+\(\w+,\{uri:"spotify:user:@:collection",to:"/collection"`,
+		'(', ')')
+
+	if sidebarItemMatch != "" {
+		str = strings.Replace(
+			str,
+			sidebarItemMatch,
+			fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], false, true)", sidebarItemMatch, appNameArray),
+			1)
+	}
+
 	// Global Navbar
 	utils.ReplaceOnce(&str, `(,[a-zA-Z_\$][\w\$]*===(?:[a-zA-Z_\$][\w\$]*\.){2}HOME_NEXT_TO_NAVIGATION&&.+?)\]`, func(submatches ...string) string {
 		return fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], true)]", submatches[1], appNameArray)
