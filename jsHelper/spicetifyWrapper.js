@@ -2356,18 +2356,37 @@ Spicetify.Playbar = (() => {
 	if (!check_spicetify_update || !version || version === "Dev") return;
 	// Fetch latest version from GitHub
 	try {
+		let changelog;
 		const res = await fetch("https://api.github.com/repos/spicetify/spicetify-cli/releases/latest");
 		const { tag_name, html_url, body } = await res.json();
 		const semver = tag_name.slice(1);
-		const changelogRawData = body.match(/## What's Changed([\s\S]*?)\r\n\r/)[1];
-		const changelog = [...changelogRawData.matchAll(/\r\n\*\s(.+?)\sin\shttps/g)]
-			.map(match => {
-				const featureData = match[1].split("@");
-				const feature = featureData[0];
-				const committerID = featureData[1];
-				return `<li>${feature}<a href="https://github.com/${committerID}">${committerID}</a></li>`;
-			})
-			.join("\n");
+		const changelogRawDataOld = body.match(/## What's Changed([\s\S]*?)\r\n\r/)?.[1];
+		if (changelogRawDataOld) {
+			changelog = [...changelogRawDataOld.matchAll(/\r\n\*\s(.+?)\sin\shttps/g)]
+				.map(match => {
+					const featureData = match[1].split("@");
+					const feature = featureData[0];
+					const committerID = featureData[1];
+					return `<li>${feature}<a href="https://github.com/${committerID}">${committerID}</a></li>`;
+				})
+				.join("\n");
+		} else {
+			const sections = body.split("\n## ");
+			const filteredSections = sections.filter(section => !section.startsWith("Compatibility"));
+			const filteredText = filteredSections.join("\n## ");
+			changelog = [...filteredText.matchAll(/- (?:\*\*(.+?)\*\*:? )?(.+?) \(\[(.+?)\]\((.+?)\)\)/g)]
+				.map(match => {
+					const feature = match[1];
+					const description = match[2];
+					const prNumber = match[3];
+					const prLink = match[4];
+					let text = "<li>";
+					if (feature) text += `<strong>${feature}</strong>: `;
+					text += `${description} (<a href="${prLink}">${prNumber}</a>)</li>`;
+					return text;
+				})
+				.join("\n");
+		}
 
 		if (semver !== version) {
 			const content = document.createElement("div");
