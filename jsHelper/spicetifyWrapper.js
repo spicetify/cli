@@ -1771,7 +1771,7 @@ Spicetify.ContextMenu = (() => {
 let navLinkFactoryCtx = null;
 let refreshNavLinks = null;
 
-Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
+Spicetify._renderNavLinks = (list, isTouchScreenUi, isPreLibX = false) => {
 	const [refreshCount, refresh] = Spicetify.React.useReducer(x => x + 1, 0);
 	refreshNavLinks = refresh;
 
@@ -1784,7 +1784,7 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 	)
 		return;
 
-	const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : NavLinkSidebar;
+	const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : isPreLibX ? NavLinkSidebarLegacy : NavLinkSidebar;
 
 	if (!navLinkFactoryCtx) navLinkFactoryCtx = Spicetify.React.createContext(null);
 	const registered = [];
@@ -1863,6 +1863,31 @@ const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
 	const NavLinkFactory = Spicetify.React.useContext(navLinkFactoryCtx);
 
 	return NavLinkFactory && Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, createIcon, isActive }, null);
+};
+
+const NavLinkSidebarLegacy = ({ appProper, appRoutePath, createIcon, isActive }) => {
+	return Spicetify.React.createElement(
+		"li",
+		{ className: "main-navBar-navBarItem InvalidDropTarget" },
+		Spicetify.React.createElement(
+			Spicetify.ReactComponent.TooltipWrapper,
+			{ label: appProper, placement: "right" },
+			Spicetify.React.createElement(
+				Spicetify.ReactComponent.Navigation,
+				{
+					to: appRoutePath,
+					referrer: "other",
+					className: Spicetify.classnames("link-subtle", "main-navBar-navBarLink", {
+						"main-navBar-navBarLinkActive active": isActive
+					}),
+					onClick: () => undefined,
+					"aria-label": appProper
+				},
+				createIcon(),
+				Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold", weight: "bold" }, appProper)
+			)
+		)
+	);
 };
 
 const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
