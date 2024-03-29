@@ -1884,7 +1884,7 @@ const NavLinkSidebarLegacy = ({ appProper, appRoutePath, createIcon, isActive })
 					"aria-label": appProper
 				},
 				createIcon(),
-				Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold", weight: "bold" }, appProper)
+				Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "mestoBold" }, appProper)
 			)
 		)
 	);
@@ -1911,8 +1911,7 @@ const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
 					"aria-label": appProper
 				},
 				createIcon(),
-				!isSidebarCollapsed &&
-					Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "bodyMediumBold", weight: "bold" }, appProper)
+				!isSidebarCollapsed && Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "balladBold" }, appProper)
 			)
 		)
 	);

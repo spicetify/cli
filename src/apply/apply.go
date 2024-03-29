@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/spicetify/spicetify-cli/src/utils"
@@ -320,32 +319,20 @@ func insertCustomApp(jsPath string, flags Flag) {
 	})
 }
 
-func findMatchingPos(str string, start int, direction int, pair []string, scopes int) int {
-	l := scopes
-	i := start + direction
-
-	for l > 0 {
-		c := string(str[i])
-		i += direction
-		if c == pair[0] {
-			l++
-		} else if c == pair[1] {
-			l--
-		}
-	}
-
-	return i
-}
-
 func insertNavLink(str string, appNameArray string) string {
 	// Library X
-	re := regexp.MustCompile(`\("li",\{[^\{]*\{[^\{]*\{to:"\/search`)
-	loc := re.FindStringIndex(str)
-	if loc == nil {
-		return str
+	libraryXItemMatch := utils.SeekToCloseParen(
+		str,
+		`\("li",\{[^\{]*\{[^\{]*\{to:"\/search`,
+		'(', ')')
+
+	if libraryXItemMatch != "" {
+		str = strings.Replace(
+			str,
+			libraryXItemMatch,
+			fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], false)", libraryXItemMatch, appNameArray),
+			1)
 	}
-	index := findMatchingPos(str, loc[0], 1, []string{"(", ")"}, 1)
-	str = fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], false),%s", str[:index], appNameArray, str[index:])
 
 	// pre-Library X
 	sidebarItemMatch := utils.SeekToCloseParen(
