@@ -45,7 +45,7 @@ jobs:
         run: echo "IS_UNIX=${{ matrix.os != 'windows' && matrix.arch != '386' }}" >> $GITHUB_ENV
 
       - name: Is Windows Platform
-        run: echo "IS_WIN=${{ matrix.os == 'windows' && matrix.arch != 'arm64' }}" >> $GITHUB_ENV
+        run: echo "IS_WIN=${{ matrix.os == 'windows' }}" >> $GITHUB_ENV
 
       - name: Setup Go
         uses: actions/setup-go@v5
