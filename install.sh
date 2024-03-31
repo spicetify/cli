@@ -6,11 +6,11 @@
 set -e
 
 for arg in "$@"; do
-  shift
-  case "$arg" in
-    "--root") set -- "$@" "-r" ;;
-    *)        set -- "$@" "$arg"
-  esac
+    shift
+    case "$arg" in
+        "--root") set -- "$@" "-r" ;;
+        *) set -- "$@" "$arg"
+    esac
 done
 
 while getopts ":r" arg; do
