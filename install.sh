@@ -5,12 +5,22 @@
 
 set -e
 
+for arg in "$@"; do
+  shift
+  case "$arg" in
+    "--root") set -- "$@" "-r" ;;
+    *)        set -- "$@" "$arg"
+  esac
+done
+
 while getopts ":r" arg; do
     case "${arg}" in
         "r") override_root=1 ;;
         *) echo "Invalid option -${OPTARG}" >&2; exit 1 ;;
     esac
 done
+
+shift $((OPTIND -1))
 
 is_root() {
     [ "$(id -u)" -ne 0 ]
