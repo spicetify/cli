@@ -67,6 +67,9 @@ function Get-Spicetify {
     if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') { 
       $architecture = 'x64' 
     }
+    elseif ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
+      $architecture = 'arm64'
+    }
     else {
       $architecture = 'x32'
     }
