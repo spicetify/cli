@@ -19,8 +19,6 @@ for arg in "$@"; do
     esac
 done
 
-shift $((OPTIND -1))
-
 is_root() {
     [ "$(id -u)" -ne 0 ]
 }
