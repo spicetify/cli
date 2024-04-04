@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/go-ini/ini v1.67.0
 	github.com/mattn/go-colorable v0.1.13
-	golang.org/x/net v0.22.0
+	golang.org/x/net v0.23.0
 )
 
 require (
