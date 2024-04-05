@@ -1,6 +1,6 @@
 module github.com/spicetify/spicetify-cli
 
-go 1.21
+go 1.20
 
 require (
 	github.com/go-ini/ini v1.67.0
