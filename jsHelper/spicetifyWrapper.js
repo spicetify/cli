@@ -553,7 +553,7 @@ window.Spicetify = {
 			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
 			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
 			Cards: {
-				Default: functionModules.find(m => m?.toString().includes('"card-click-handler"')),
+				Default: functionModules.find(m => m.toString().includes('"No delegate playback handler provided"') && !m.toString().includes("herocard-click-handler")),
 				Hero: functionModules.find(m => m?.toString().includes('"herocard-click-handler"')),
 				CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
 				...Object.fromEntries(cards)
