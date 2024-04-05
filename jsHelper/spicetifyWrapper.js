@@ -554,7 +554,7 @@ window.Spicetify = {
 			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
 			Cards: {
 				Default: functionModules.find(
-					m => m.toString().includes("?highlight") && m.toString().includes("headerText") && m.toString().includes("cardContainer")
+					m => m.toString().includes("?highlight") && m.toString().includes("headerText") && m.toString().includes("imageContainer")
 				),
 				Hero: functionModules.find(m => m?.toString().includes('"herocard-click-handler"')),
 				CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
