@@ -5,10 +5,17 @@
 
 set -e
 
-while getopts ":r" arg; do
-    case "${arg}" in
-        "r") override_root=1 ;;
-        *) echo "Invalid option -${OPTARG}" >&2; exit 1 ;;
+for arg in "$@"; do
+    shift
+    case "$arg" in
+        "--root") override_root=1 ;;
+        *)
+        if echo "$arg" | grep -qv "^-"; then
+            tag="$arg"
+        else
+            echo "Invalid option $arg" >&2
+            exit 1
+        fi
     esac
 done
 
@@ -19,7 +26,7 @@ is_root() {
 if ! is_root && [ "${override_root:-0}" -eq 0 ]; then
     echo "The script was ran as root. Script will now exit"
     echo "If you did not intend to do this, please run the script without root permissions to avoid issues with Spicetify"
-    echo "You can override this behavior by passing '-r' or '--root' flag to this script"
+    echo "You can override this behavior by passing '--root' flag to this script"
     exit
 fi
 
@@ -46,9 +53,7 @@ command -v grep >/dev/null || { log "grep isn't installed!" >&2; exit 1; }
 
 # download uri
 releases_uri=https://github.com/spicetify/spicetify-cli/releases
-if [ $# -gt 0 ]; then
-    tag=$1
-else
+if [ -z "$tag" ]; then
     tag=$(curl -LsH 'Accept: application/json' $releases_uri/latest)
     tag=${tag%\,\"update_url*}
     tag=${tag##*tag_name\":\"}
