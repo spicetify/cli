@@ -18,12 +18,6 @@
 		"main": "Extensions/autoSkipExplicit.js"
 	},
 	{
-		"name": "Full App Display",
-		"description": "Minimal album cover art display with beautiful blur effect background. Activating button locates in top bar. While in display mode, double click anywhere to exit. Right click anywhere to open setting menu.",
-		"preview": "https://i.imgur.com/S7CPQ2s.png",
-		"main": "Extensions/fullAppDisplay.js"
-	},
-	{
 		"name": "Keyboard Shortcut",
 		"description": "Register some useful keybinds to support keyboard-driven navigation in Spotify client. Less time touching the mouse.",
 		"preview": "https://i.imgur.com/evkGv9q.png",
@@ -36,12 +30,6 @@
 		"main": "Extensions/loopyLoop.js"
 	},
 	{
-		"name": "Pop-up Lyrics",
-		"description": "Have easy access to a pop-up window with the current song's lyrics. Click at microphone icon on top bar to open lyrics windows. Right click at the same icon to open config menu to customize looks and lyrics providers priorities.",
-		"preview": "https://i.imgur.com/Nx9Lx7D.png",
-		"main": "Extensions/popupLyrics.js"
-	},
-	{
 		"name": "Shuffle+",
 		"description": "Shuffles using Fisher–Yates algorithm with zero bias. After installing extensions, right click album/playlist/artist item, there will be an option \"Play with Shuffle+\". You can also multiple select tracks and choose to \"Play with Shuffle+\". Moreover, enable option \"Auto Shuffle+\" in Profile menu to inject Shuffle+ into every play buttons, no need to right click anymore.",
 		"preview": "https://i.imgur.com/gxbnqSN.png",
@@ -52,11 +40,5 @@
 		"description": "Throw songs/artists to trash bin and never hear them again (automatically skip). This extension will append a Throw to Trashbin option in tracks and artists link right click menu.",
 		"preview": "https://i.imgur.com/ZFTy5Rm.png",
 		"main": "Extensions/trashbin.js"
-	},
-	{
-		"name": "Web Now Playing",
-		"description": "For Rainmeter users, establish connection with WebNowPlaying plugin to send track metadata and control players.",
-		"preview": null,
-		"main": "Extensions/webnowplaying.js"
 	}
 ]
