@@ -1045,7 +1045,7 @@ Spicetify._getStyledClassName = (args, component) => {
 
 Spicetify.getFontStyle = font => {
 	if (!font || !Spicetify._fontStyle) return;
-	let rawStyle = Spicetify._fontStyle({ variant: font })
+	let rawStyle = Spicetify._fontStyle({ variant: font, $variant: font })
 		.filter(style => typeof style === "string")
 		.join("");
 	// Clean up empty rulesets

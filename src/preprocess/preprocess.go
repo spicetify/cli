@@ -611,7 +611,7 @@ func exposeAPIs_vendor(input string) string {
 
 	utils.ReplaceOnce(
 		&input,
-		`\(function\(\w+\)\{return \w+\.variant\?function\(\w+\)\{`,
+		`\(function\(\w+\)\{return \w+\.\$?variant\?function\(\w+\)\{`,
 		func(submatches ...string) string {
 			return fmt.Sprintf("Spicetify._fontStyle=%s", submatches[0])
 		})
