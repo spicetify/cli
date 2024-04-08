@@ -197,7 +197,7 @@ $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
     (New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Install Spicetify Marketplace."),
     (New-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not install Spicetify Marketplace.")
 )
-$choice = $Host.UI.PromptForChoice('', "`nDo you want to install Spicetify Marketplace?", $choices, 0)
+$choice = $Host.UI.PromptForChoice('', "Do you want to install Spicetify Marketplace?", $choices, 0)
 if ($choice -eq 1) {
   Write-Host -Object 'spicetify Marketplace installation aborted' -ForegroundColor 'Yellow'
 }
