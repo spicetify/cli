@@ -265,7 +265,9 @@ window.Spicetify = {
 					"StoreProvider",
 					"PlatformProvider",
 					"Dropdown",
-					"MenuSubMenuItem"
+					"MenuSubMenuItem",
+					"Navigation",
+					"ScrollableContainer"
 				])
 			},
 			{
@@ -557,7 +559,12 @@ window.Spicetify = {
 					m => m.toString().includes("?highlight") && m.toString().includes("headerText") && m.toString().includes("imageContainer")
 				),
 				Hero: functionModules.find(m => m?.toString().includes('"herocard-click-handler"')),
-				CardImage: functionModules.find(m => m.toString().includes("isHero") && m.toString().includes("withWaves")),
+				CardImage: functionModules.find(
+					m =>
+						m.toString().includes("isHero") &&
+						(m.toString().includes("withWaves") || m.toString().includes("isCircular")) &&
+						m.toString().includes("imageWrapper")
+				),
 				...Object.fromEntries(cards)
 			},
 			Router: functionModules.find(m => m.toString().includes("navigationType") && m.toString().includes("static")),
