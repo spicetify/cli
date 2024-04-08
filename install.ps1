@@ -210,4 +210,37 @@ else {
   Invoke-WebRequest @Parameters | Invoke-Expression
 }
 #endregion Marketplace
+
+#region Clink
+if ($null -ne $env:CMDER_ROOT) {
+  $Host.UI.RawUI.Flushinputbuffer()
+  Write-Host -Object "`nCmder installation detected" -NoNewline
+  $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
+    (New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Install clink completions for Spicetify: https://chrisant996.github.io/clink/clink.html"),
+    (New-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not install clink completions.")
+  )
+  $choice = $Host.UI.PromptForChoice('', "`nDo you want to install clink completions?", $choices, 0)
+  if ($choice -eq 1) {
+    Write-Host -Object 'Clink completions installation aborted' -ForegroundColor 'Yellow'
+  }
+  else {
+    Write-Host -Object 'Installing clink completions..'
+    $Parameters = @{
+      Uri             = 'https://raw.githubusercontent.com/spicetify/spicetify-cli/master/spicetify.lua'
+      UseBasicParsing = $true
+      OutFile         = "$spicetifyFolderPath\spicetify.lua"
+    }
+    Invoke-WebRequest @Parameters
+    if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') { 
+      & "$env:CMDER_ROOT\vendor\clink\clink_x64.exe" installscripts $spicetifyFolderPath
+    }
+    elseif ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
+      & "$env:CMDER_ROOT\vendor\clink\clink_arm64.exe" installscripts $spicetifyFolderPath
+    }
+    else {
+      & "$env:CMDER_ROOT\vendor\clink\clink_x86.exe" installscripts $spicetifyFolderPath
+    }
+  }
+}
+#endregion Clink
 #endregion Main
