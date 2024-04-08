@@ -278,7 +278,7 @@ func FindSymbol(debugInfo, content string, clues []string) []string {
 	}
 
 	if len(debugInfo) > 0 {
-		PrintError("cannot find symbol for " + debugInfo)
+		PrintError("Cannot find symbol for " + debugInfo)
 	}
 
 	return nil
