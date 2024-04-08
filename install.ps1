@@ -167,7 +167,11 @@ if (-not (Test-Admin)) {
   Write-Unsuccess
   Write-Warning -Message "The script was ran as Administrator which isn't recommended"
   $Host.UI.RawUI.Flushinputbuffer()
-  $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process to avoid any issues?', ('&Yes', '&No'), 0)
+  $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
+    (New-Object System.Management.Automation.Host.ChoiceDescription '&Yes', 'Abort installation.'),
+    (New-Object System.Management.Automation.Host.ChoiceDescription '&No', 'Resume installation.')
+  )
+  $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process to avoid any issues?', $choices, 0)
   if ($choice -eq 0) {
     Write-Host -Object 'spicetify installation aborted' -ForegroundColor 'Yellow'
     Pause
@@ -189,7 +193,11 @@ Write-Host -Object 'to get started'
 
 #region Marketplace
 $Host.UI.RawUI.Flushinputbuffer()
-$choice = $Host.UI.PromptForChoice('', "`nDo you want to install Spicetify Marketplace?", ('&Yes', '&No'), 0)
+$choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
+    (New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Install Spicetify Marketplace."),
+    (New-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not install Spicetify Marketplace.")
+)
+$choice = $Host.UI.PromptForChoice('', "`nDo you want to install Spicetify Marketplace?", $choices, 0)
 if ($choice -eq 1) {
   Write-Host -Object 'spicetify Marketplace installation aborted' -ForegroundColor 'Yellow'
 }
