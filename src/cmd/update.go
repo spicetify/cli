@@ -34,6 +34,8 @@ func Update(currentVersion string) bool {
 	case "windows":
 		if runtime.GOARCH == "386" {
 			assetURL += "-windows-x32.zip"
+		} else if runtime.GOARCH == "arm64" {
+			assetURL += "-windows-arm64.zip"
 		} else {
 			assetURL += "-windows-x64.zip"
 		}
