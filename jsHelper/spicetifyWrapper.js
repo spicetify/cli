@@ -990,7 +990,8 @@ Spicetify._getStyledClassName = (args, component) => {
 		"data-encore-id",
 		"$size",
 		"$iconColor",
-		"$variant"
+		"$variant",
+		"$semanticColor"
 	];
 	const customKeys = ["padding", "blocksize"];
 
@@ -1025,6 +1026,7 @@ Spicetify._getStyledClassName = (args, component) => {
 	const booleanKeys = Object.keys(element).filter(key => typeof element[key] === "boolean" && element[key]);
 
 	for (const key of booleanKeys) {
+		console.log(key);
 		if (excludedKeys.includes(key)) continue;
 		if (excludedPrefix.some(prefix => key.startsWith(prefix))) continue;
 		const sanitizedKey = key.startsWith("$") ? key.slice(1) : key;
