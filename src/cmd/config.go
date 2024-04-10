@@ -143,6 +143,7 @@ func arrayType(section *ini.Section, field, value string) {
 				unchangeWarning(field, fmt.Sprintf("%s is not on the list.", value))
 				return
 			}
+
 			modifiedValues++
 			delete(allExts, value)
 		} else {
@@ -152,6 +153,7 @@ func arrayType(section *ini.Section, field, value string) {
 				allExts[value] = true
 				modifiedValues++
 			}
+
 			inputValues[value] = true
 		}
 	}
