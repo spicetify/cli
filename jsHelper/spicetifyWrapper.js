@@ -990,7 +990,8 @@ Spicetify._getStyledClassName = (args, component) => {
 		"data-encore-id",
 		"$size",
 		"$iconColor",
-		"$variant"
+		"$variant",
+		"$semanticColor"
 	];
 	const customKeys = ["padding", "blocksize"];
 
