@@ -559,7 +559,8 @@ class LyricsContainer extends react.Component {
 			this.forceUpdate();
 		};
 
-		this.viewPort = document.querySelector(".Root__main-view .os-viewport");
+		this.viewPort =
+			document.querySelector(".Root__main-view .os-viewport") ?? document.querySelector(".Root__main-view .main-view-container__scroll-node");
 
 		this.configButton = new Spicetify.Menu.Item("Lyrics Plus config", false, openConfig, "lyrics");
 		this.configButton.register();
