@@ -130,6 +130,7 @@ func arrayType(section *ini.Section, field, value string) {
 	values := strings.Split(value, "|")
 	duplicates := []string{}
 	inputValues := make(map[string]bool)
+	modifiedValues := 0
 
 	for _, value := range values {
 		isSubstract := strings.HasSuffix(value, "-")
@@ -142,12 +143,14 @@ func arrayType(section *ini.Section, field, value string) {
 				unchangeWarning(field, fmt.Sprintf("%s is not on the list.", value))
 				return
 			}
+			modifiedValues++
 			delete(allExts, value)
 		} else {
 			if _, found := allExts[value]; found && !inputValues[value] {
 				duplicates = append(duplicates, value)
 			} else if _, found := allExts[value]; !found {
 				allExts[value] = true
+				modifiedValues++
 			}
 			inputValues[value] = true
 		}
@@ -155,6 +158,10 @@ func arrayType(section *ini.Section, field, value string) {
 
 	if len(duplicates) > 0 {
 		unchangeWarning(field, fmt.Sprintf("%s %s already in the list.", strings.Join(duplicates, ", "), pluralize(len(duplicates), "is", "are")))
+	}
+
+	if modifiedValues == 0 {
+		return
 	}
 
 	newList := make([]string, 0, len(allExts))
