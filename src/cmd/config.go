@@ -139,7 +139,7 @@ func arrayType(section *ini.Section, field, value string) {
 
 		if isSubstract {
 			if _, found := allExts[value]; !found {
-				unchangeWarning(field, value+" is not on the list.")
+				unchangeWarning(field, fmt.Sprintf("%s is not on the list.", value))
 				return
 			}
 			delete(allExts, value)
