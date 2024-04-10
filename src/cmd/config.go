@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -121,41 +122,56 @@ func arrayType(section *ini.Section, field, value string) {
 		utils.Fatal(err)
 	}
 
-	allExts := key.Strings("|")
-
-	isSubstract := value[len(value)-1] == '-'
-	if isSubstract {
-		value = value[0 : len(value)-1]
-		found := false
-		newList := []string{}
-		for _, v := range allExts {
-			if value == v {
-				found = true
-			} else {
-				newList = append(newList, v)
-			}
-		}
-
-		if !found {
-			unchangeWarning(field, value+" is not on the list.")
-			return
-		}
-
-		allExts = newList
-	} else {
-		for _, ext := range allExts {
-			if value == ext {
-				unchangeWarning(field, value+" is already in the list.")
-				return
-			}
-		}
-
-		allExts = append(allExts, value)
+	allExts := make(map[string]bool)
+	for _, v := range key.Strings("|") {
+		allExts[v] = true
 	}
 
-	newList := strings.Join(allExts, "|")
-	key.SetValue(newList)
-	changeSuccess(field, newList)
+	values := strings.Split(value, "|")
+	duplicates := []string{}
+	inputValues := make(map[string]bool)
+
+	for _, value := range values {
+		isSubstract := strings.HasSuffix(value, "-")
+		if isSubstract {
+			value = value[:len(value)-1]
+		}
+
+		if isSubstract {
+			if _, found := allExts[value]; !found {
+				unchangeWarning(field, value+" is not on the list.")
+				return
+			}
+			delete(allExts, value)
+		} else {
+			if _, found := allExts[value]; found && !inputValues[value] {
+				duplicates = append(duplicates, value)
+			} else {
+				allExts[value] = true
+			}
+			inputValues[value] = true
+		}
+	}
+
+	if len(duplicates) > 0 {
+		unchangeWarning(field, fmt.Sprintf("%s %s already in the list.", strings.Join(duplicates, ", "), pluralize(len(duplicates), "is", "are")))
+		return
+	}
+
+	newList := make([]string, 0, len(allExts))
+	for k := range allExts {
+		newList = append(newList, k)
+	}
+
+	key.SetValue(strings.Join(newList, "|"))
+	changeSuccess(field, strings.Join(newList, "|"))
+}
+
+func pluralize(count int, singular, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
 }
 
 func stringType(section *ini.Section, field, value string) {
