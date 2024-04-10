@@ -146,7 +146,7 @@ func arrayType(section *ini.Section, field, value string) {
 		} else {
 			if _, found := allExts[value]; found && !inputValues[value] {
 				duplicates = append(duplicates, value)
-			} else {
+			} else if _, found := allExts[value]; !found {
 				allExts[value] = true
 			}
 			inputValues[value] = true
@@ -155,7 +155,6 @@ func arrayType(section *ini.Section, field, value string) {
 
 	if len(duplicates) > 0 {
 		unchangeWarning(field, fmt.Sprintf("%s %s already in the list.", strings.Join(duplicates, ", "), pluralize(len(duplicates), "is", "are")))
-		return
 	}
 
 	newList := make([]string, 0, len(allExts))
