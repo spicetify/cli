@@ -233,6 +233,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		if (len(reactSymbs) < 2) || (len(eleSymbs) == 0) {
 			utils.PrintError("Spotify version mismatch with Spicetify. Please report it on our github repository.")
+			utils.PrintInfo("Spicetify might have got the update for this problem already. To check for updates, please run `spicetify update`. If none are available, please wait for the update to be released.")
 			return content
 		}
 

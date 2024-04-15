@@ -2390,7 +2390,7 @@ Spicetify.Playbar = (() => {
 					const prNumber = match[3];
 					const prLink = match[4];
 					let text = "<li>";
-					if (feature) text += `<strong>${feature}</strong>: `;
+					if (feature) text += `<strong>${feature}</strong>${!feature.endsWith(":") && ":"} `;
 					text += `${description} (<a href="${prLink}">${prNumber}</a>)</li>`;
 					return text;
 				})
