@@ -1000,7 +1000,8 @@ Spicetify._getStyledClassName = (args, component) => {
 		"$position",
 		"$iconSize"
 	];
-	const customKeys = ["padding", "blocksize"];
+	const customKeys = ["blocksize"];
+	const customExactKeys = ["$padding", "padding"];
 
 	const element = Array.from(args).find(
 		e =>
@@ -1008,6 +1009,7 @@ Spicetify._getStyledClassName = (args, component) => {
 			e?.dangerouslySetInnerHTML ||
 			typeof e?.className !== "undefined" ||
 			includedKeys.some(key => typeof e?.[key] !== "undefined") ||
+			customExactKeys.some(key => typeof e?.[key] !== "undefined") ||
 			customKeys.some(key => Object.keys(e).some(k => k.toLowerCase().includes(key)))
 	);
 
@@ -1021,7 +1023,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		}
 	}
 
-	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "isUsingKeyboard", "$autoMirror", "$hasFocus", ""];
+	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$hasFocus", ""];
 	const excludedPrefix = ["aria-"];
 
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
@@ -1040,7 +1042,10 @@ Spicetify._getStyledClassName = (args, component) => {
 	}
 
 	const customEntries = Object.entries(element).filter(
-		([key, value]) => customKeys.some(k => key.toLowerCase().includes(k)) && typeof value === "string" && value.length
+		([key, value]) =>
+			(customKeys.some(k => key.toLowerCase().includes(k)) || customExactKeys.some(k => key.toLowerCase().includes(k))) &&
+			typeof value === "string" &&
+			value.length
 	);
 
 	for (const [key, value] of customEntries) {
@@ -2040,6 +2045,7 @@ Spicetify.Topbar = (() => {
 	let rightContainer;
 	const leftButtonsStash = new Set();
 	const rightButtonsStash = new Set();
+	const generatedClassName = "Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-isUsingKeyboard-useBrowserDefaultFocusStyle";
 
 	class Button {
 		constructor(label, icon, onClick, disabled = false, isRight = false) {
@@ -2065,10 +2071,7 @@ Spicetify.Topbar = (() => {
 			} else {
 				this.button.classList.add("main-topBar-button");
 				if (globalHistoryButtons) {
-					this.button.classList.add(
-						"main-globalNav-icon",
-						"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-					);
+					this.button.classList.add("main-globalNav-icon", generatedClassName);
 				}
 
 				leftButtonsStash.add(this.element);
@@ -2127,15 +2130,9 @@ Spicetify.Topbar = (() => {
 
 			const buttonElement = button.querySelector("button");
 			if (globalHistoryButtons) {
-				buttonElement.classList.add(
-					"main-globalNav-icon",
-					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-				);
+				buttonElement.classList.add("main-globalNav-icon", generatedClassName);
 			} else {
-				buttonElement.classList.remove(
-					"main-globalNav-icon",
-					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-				);
+				buttonElement.classList.remove("main-globalNav-icon", generatedClassName);
 			}
 		}
 		leftContainer.append(...leftButtonsStash);
