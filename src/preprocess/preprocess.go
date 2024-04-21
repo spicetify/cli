@@ -616,13 +616,6 @@ func exposeAPIs_vendor(input string) string {
 			return fmt.Sprintf("Spicetify._fontStyle=%s", submatches[0])
 		})
 
-	utils.ReplaceOnce(
-		&input,
-		`=(?:\(\w\)=>|function\(\w\)\{)\w+ ?\w=\w\.iconSize`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("=Spicetify.ReactComponent.IconComponent%s", submatches[0])
-		})
-
 	// Mapping styled-components classes
 	utils.Replace(
 		&input,

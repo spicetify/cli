@@ -437,7 +437,17 @@ window.Spicetify = {
 	const functionModules = modules.filter(module => typeof module === "function");
 	const exportedReactObjects = groupBy(modules.filter(Boolean), x => x.$$typeof);
 	const exportedMemos = exportedReactObjects[Symbol.for("react.memo")];
+	const exportedForwardRefs = exportedReactObjects[Symbol.for("react.forward_ref")];
 	const exportedMemoFRefs = exportedMemos.filter(m => m.type.$$typeof === Symbol.for("react.forward_ref"));
+	const exposeReactComponentsUI = ({ modules, functionModules, exportedForwardRefs }) => {
+		const componentNames = Object.keys(modules.filter(Boolean).find(e => e.BrowserDefaultFocusStyleProvider));
+		const componentRegexes = componentNames.map(n => new RegExp(`"data-encore-id":(?:[a-zA-Z_\$][\w\$]*\\.){2}${n}\\b`));
+		const componentPairs = [functionModules.map(f => [f, f]), exportedForwardRefs.map(f => [f.render, f])]
+			.flat()
+			.map(([s, f]) => [componentNames.find((_, i) => s.toString().match(componentRegexes[i])), f]);
+		return Object.fromEntries(componentPairs);
+	};
+	const reactComponentsUI = exposeReactComponentsUI({ modules, functionModules, exportedForwardRefs });
 
 	const knownMenuTypes = ["album", "show", "artist", "track"];
 	const menus = modules
@@ -543,28 +553,21 @@ window.Spicetify = {
 					m.toString().includes("action") && m.toString().includes("open") && m.toString().includes("trigger") && m.toString().includes("right-click")
 			),
 			TooltipWrapper: functionModules.find(m => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
-			ButtonPrimary: modules.find(m => m?.render && m?.displayName === "ButtonPrimary"),
-			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
-			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
+			ButtonPrimary: reactComponentsUI.ButtonPrimary,
+			ButtonSecondary: reactComponentsUI.ButtonSecondary,
+			ButtonTertiary: reactComponentsUI.ButtonTertiary,
 			Snackbar: {
 				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme") && m.toString().includes("elevated")),
 				simpleLayout: functionModules.find(m => ["leading", "center", "trailing"].every(keyword => m.toString().includes(keyword))),
 				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
 				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
 			},
-			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
+			Chip: reactComponentsUI.Chip,
 			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
 			Cards: {
-				Default: functionModules.find(
-					m => m.toString().includes("?highlight") && m.toString().includes("headerText") && m.toString().includes("imageContainer")
-				),
+				Default: reactComponentsUI.Card,
 				Hero: functionModules.find(m => m?.toString().includes('"herocard-click-handler"')),
-				CardImage: functionModules.find(
-					m =>
-						m.toString().includes("isHero") &&
-						(m.toString().includes("withWaves") || m.toString().includes("isCircular")) &&
-						m.toString().includes("imageWrapper")
-				),
+				CardImage: reactComponentsUI.CardImage,
 				...Object.fromEntries(cards)
 			},
 			Router: functionModules.find(m => m.toString().includes("navigationType") && m.toString().includes("static")),
@@ -573,6 +576,7 @@ window.Spicetify = {
 			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
 			Navigation: exportedMemoFRefs.find(m => m.type.render.toString().includes("navigationalRoot")),
 			ScrollableContainer: functionModules.find(m => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")),
+			IconComponent: reactComponentsUI.Icon,
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -991,7 +995,10 @@ Spicetify._getStyledClassName = (args, component) => {
 		"$size",
 		"$iconColor",
 		"$variant",
-		"$semanticColor"
+		"$semanticColor",
+		"$buttonSize",
+		"$position",
+		"$iconSize"
 	];
 	const customKeys = ["padding", "blocksize"];
 
