@@ -1043,7 +1043,7 @@ Spicetify._getStyledClassName = (args, component) => {
 
 	const customEntries = Object.entries(element).filter(
 		([key, value]) =>
-			(customKeys.some(k => key.toLowerCase().includes(k)) || customExactKeys.some(k => key.toLowerCase().includes(k))) &&
+			(customKeys.some(k => key.toLowerCase().includes(k)) || customExactKeys.some(k => key.toLowerCase() === k)) &&
 			typeof value === "string" &&
 			value.length
 	);
