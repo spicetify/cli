@@ -122,6 +122,12 @@ func arrayType(section *ini.Section, field, value string) {
 		utils.Fatal(err)
 	}
 
+	if strings.TrimSpace(value) == "" {
+		key.SetValue("")
+		changeSuccess(field, "")
+		return
+	}
+
 	allExts := make(map[string]bool)
 	for _, v := range key.Strings("|") {
 		allExts[v] = true

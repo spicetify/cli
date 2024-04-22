@@ -437,7 +437,17 @@ window.Spicetify = {
 	const functionModules = modules.filter(module => typeof module === "function");
 	const exportedReactObjects = groupBy(modules.filter(Boolean), x => x.$$typeof);
 	const exportedMemos = exportedReactObjects[Symbol.for("react.memo")];
+	const exportedForwardRefs = exportedReactObjects[Symbol.for("react.forward_ref")];
 	const exportedMemoFRefs = exportedMemos.filter(m => m.type.$$typeof === Symbol.for("react.forward_ref"));
+	const exposeReactComponentsUI = ({ modules, functionModules, exportedForwardRefs }) => {
+		const componentNames = Object.keys(modules.filter(Boolean).find(e => e.BrowserDefaultFocusStyleProvider));
+		const componentRegexes = componentNames.map(n => new RegExp(`"data-encore-id":(?:[a-zA-Z_\$][\w\$]*\\.){2}${n}\\b`));
+		const componentPairs = [functionModules.map(f => [f, f]), exportedForwardRefs.map(f => [f.render, f])]
+			.flat()
+			.map(([s, f]) => [componentNames.find((_, i) => s.toString().match(componentRegexes[i])), f]);
+		return Object.fromEntries(componentPairs);
+	};
+	const reactComponentsUI = exposeReactComponentsUI({ modules, functionModules, exportedForwardRefs });
 
 	const knownMenuTypes = ["album", "show", "artist", "track"];
 	const menus = modules
@@ -543,28 +553,21 @@ window.Spicetify = {
 					m.toString().includes("action") && m.toString().includes("open") && m.toString().includes("trigger") && m.toString().includes("right-click")
 			),
 			TooltipWrapper: functionModules.find(m => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
-			ButtonPrimary: modules.find(m => m?.render && m?.displayName === "ButtonPrimary"),
-			ButtonSecondary: modules.find(m => m?.render && m?.displayName === "ButtonSecondary"),
-			ButtonTertiary: modules.find(m => m?.render && m?.displayName === "ButtonTertiary"),
+			ButtonPrimary: reactComponentsUI.ButtonPrimary,
+			ButtonSecondary: reactComponentsUI.ButtonSecondary,
+			ButtonTertiary: reactComponentsUI.ButtonTertiary,
 			Snackbar: {
 				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme") && m.toString().includes("elevated")),
 				simpleLayout: functionModules.find(m => ["leading", "center", "trailing"].every(keyword => m.toString().includes(keyword))),
 				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
 				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
 			},
-			Chip: modules.find(m => m?.render?.toString().includes("invertedDark") && m?.render?.toString().includes("isUsingKeyboard")),
+			Chip: reactComponentsUI.Chip,
 			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
 			Cards: {
-				Default: functionModules.find(
-					m => m.toString().includes("?highlight") && m.toString().includes("headerText") && m.toString().includes("imageContainer")
-				),
+				Default: reactComponentsUI.Card,
 				Hero: functionModules.find(m => m?.toString().includes('"herocard-click-handler"')),
-				CardImage: functionModules.find(
-					m =>
-						m.toString().includes("isHero") &&
-						(m.toString().includes("withWaves") || m.toString().includes("isCircular")) &&
-						m.toString().includes("imageWrapper")
-				),
+				CardImage: reactComponentsUI.CardImage,
 				...Object.fromEntries(cards)
 			},
 			Router: functionModules.find(m => m.toString().includes("navigationType") && m.toString().includes("static")),
@@ -573,6 +576,7 @@ window.Spicetify = {
 			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
 			Navigation: exportedMemoFRefs.find(m => m.type.render.toString().includes("navigationalRoot")),
 			ScrollableContainer: functionModules.find(m => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")),
+			IconComponent: reactComponentsUI.Icon,
 			...Object.fromEntries(menus)
 		},
 		ReactHook: {
@@ -991,9 +995,13 @@ Spicetify._getStyledClassName = (args, component) => {
 		"$size",
 		"$iconColor",
 		"$variant",
-		"$semanticColor"
+		"$semanticColor",
+		"$buttonSize",
+		"$position",
+		"$iconSize"
 	];
-	const customKeys = ["padding", "blocksize"];
+	const customKeys = ["blocksize"];
+	const customExactKeys = ["$padding", "padding"];
 
 	const element = Array.from(args).find(
 		e =>
@@ -1001,6 +1009,7 @@ Spicetify._getStyledClassName = (args, component) => {
 			e?.dangerouslySetInnerHTML ||
 			typeof e?.className !== "undefined" ||
 			includedKeys.some(key => typeof e?.[key] !== "undefined") ||
+			customExactKeys.some(key => typeof e?.[key] !== "undefined") ||
 			customKeys.some(key => Object.keys(e).some(k => k.toLowerCase().includes(key)))
 	);
 
@@ -1014,7 +1023,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		}
 	}
 
-	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "isUsingKeyboard", "$autoMirror", "$hasFocus", ""];
+	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$hasFocus", ""];
 	const excludedPrefix = ["aria-"];
 
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
@@ -1033,7 +1042,10 @@ Spicetify._getStyledClassName = (args, component) => {
 	}
 
 	const customEntries = Object.entries(element).filter(
-		([key, value]) => customKeys.some(k => key.toLowerCase().includes(k)) && typeof value === "string" && value.length
+		([key, value]) =>
+			(customKeys.some(k => key.toLowerCase().includes(k)) || customExactKeys.some(k => key.toLowerCase().includes(k))) &&
+			typeof value === "string" &&
+			value.length
 	);
 
 	for (const [key, value] of customEntries) {
@@ -2033,6 +2045,7 @@ Spicetify.Topbar = (() => {
 	let rightContainer;
 	const leftButtonsStash = new Set();
 	const rightButtonsStash = new Set();
+	const generatedClassName = "Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-isUsingKeyboard-useBrowserDefaultFocusStyle";
 
 	class Button {
 		constructor(label, icon, onClick, disabled = false, isRight = false) {
@@ -2058,10 +2071,7 @@ Spicetify.Topbar = (() => {
 			} else {
 				this.button.classList.add("main-topBar-button");
 				if (globalHistoryButtons) {
-					this.button.classList.add(
-						"main-globalNav-icon",
-						"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-					);
+					this.button.classList.add("main-globalNav-icon", generatedClassName);
 				}
 
 				leftButtonsStash.add(this.element);
@@ -2120,15 +2130,9 @@ Spicetify.Topbar = (() => {
 
 			const buttonElement = button.querySelector("button");
 			if (globalHistoryButtons) {
-				buttonElement.classList.add(
-					"main-globalNav-icon",
-					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-				);
+				buttonElement.classList.add("main-globalNav-icon", generatedClassName);
 			} else {
-				buttonElement.classList.remove(
-					"main-globalNav-icon",
-					"Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-useBrowserDefaultFocusStyle"
-				);
+				buttonElement.classList.remove("main-globalNav-icon", generatedClassName);
 			}
 		}
 		leftContainer.append(...leftButtonsStash);

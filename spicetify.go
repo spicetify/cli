@@ -51,7 +51,7 @@ func init() {
 
 	// Separates flags and commands
 	for _, v := range os.Args[1:] {
-		if v[0] == '-' && v != "-1" {
+		if len(v) > 0 && v[0] == '-' && v != "-1" {
 			if v[1] != '-' && len(v) > 2 {
 				for _, char := range v[1:] {
 					flags = append(flags, "-"+string(char))
@@ -356,17 +356,17 @@ path                Prints path of Spotify's executable, userdata, and more.
 
                     4. Toggle focus with flags:
                     spicetify path <flag> <option>
-	
+
                     Available Flags and Options:
                     "-e" (for extensions),
                     options: root, extension name, blank for all.
-					
+
                     "-a" (for custom apps),
                     options: root, <app-name>, blank for all.
-					
+
                     "-s" (for the active theme)
                     options: root, folder, color, css, js, assets, blank for all.
-					
+
                     "-c" (for config.ini)
                     options: N/A.
 
