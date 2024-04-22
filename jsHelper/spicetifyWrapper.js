@@ -1026,7 +1026,7 @@ Spicetify._getStyledClassName = (args, component) => {
 	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$hasFocus", ""];
 	const excludedPrefix = ["aria-"];
 
-	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
+	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly", "$iconOnly", "$iconLeading", "$iconTrailing"];
 
 	for (const key of childrenProps) {
 		if (element[key]) className += `-${key}`;
