@@ -1026,7 +1026,7 @@ Spicetify._getStyledClassName = (args, component) => {
 	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$hasFocus", ""];
 	const excludedPrefix = ["aria-"];
 
-	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly"];
+	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly", "$iconOnly", "$iconLeading", "$iconTrailing"];
 
 	for (const key of childrenProps) {
 		if (element[key]) className += `-${key}`;
@@ -1043,9 +1043,7 @@ Spicetify._getStyledClassName = (args, component) => {
 
 	const customEntries = Object.entries(element).filter(
 		([key, value]) =>
-			(customKeys.some(k => key.toLowerCase().includes(k)) || customExactKeys.some(k => key.toLowerCase().includes(k))) &&
-			typeof value === "string" &&
-			value.length
+			(customKeys.some(k => key.toLowerCase().includes(k)) || customExactKeys.some(k => key === k)) && typeof value === "string" && value.length
 	);
 
 	for (const [key, value] of customEntries) {
