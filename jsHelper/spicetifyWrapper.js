@@ -1029,7 +1029,8 @@ Spicetify._getStyledClassName = (args, component) => {
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly", "$iconOnly", "$iconLeading", "$iconTrailing"];
 
 	for (const key of childrenProps) {
-		if (element[key]) className += `-${key}`;
+		const sanitizedKey = key.startsWith("$") ? key.slice(1) : key;
+		if (element[key]) className += `-${sanitizedKey}`;
 	}
 
 	const booleanKeys = Object.keys(element).filter(key => typeof element[key] === "boolean" && element[key]);
