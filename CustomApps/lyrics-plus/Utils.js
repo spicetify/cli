@@ -133,7 +133,7 @@ const Utils = {
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";
 	},
 	processTranslatedLyrics(result, lyricsToTranslate, { state, stateName }) {
-		const translatedLines = result.split("\n").filter(line => line !== "" && typeof line === "string");
+		const translatedLines = result.split("\n").filter(line => line !== "");
 
 		state[stateName] = [];
 
@@ -146,7 +146,7 @@ const Utils = {
 	rubyTextToReact(s) {
 		const react = Spicetify.React;
 
-		const rubyElems = s.split("<ruby>");
+		const rubyElems = s?.split("<ruby>");
 		const reactChildren = [];
 
 		reactChildren.push(rubyElems[0]);
