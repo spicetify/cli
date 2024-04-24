@@ -133,7 +133,7 @@ const Utils = {
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";
 	},
 	processTranslatedLyrics(result, lyricsToTranslate, { state, stateName }) {
-		const translatedLines = result.split("\n");
+		const translatedLines = result.split("\n").filter(line => line !== "" && typeof line === "string");
 
 		state[stateName] = [];
 

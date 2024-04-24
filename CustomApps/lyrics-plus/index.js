@@ -385,8 +385,6 @@ class LyricsContainer extends react.Component {
 
 		// Seemingly long delay so it can be cleared later for accurate timing
 		showNotification(10000);
-		const lyricText = lyrics.map(lyric => lyric.text).join("\n");
-
 		for (const params of [
 			["romaji", "spaced", "romaji"],
 			["hiragana", "furigana", "furigana"],
@@ -394,7 +392,8 @@ class LyricsContainer extends react.Component {
 			["katakana", "normal", "katakana"]
 		]) {
 			if (language !== "ja") continue;
-			this.translator.romajifyText(lyricText, params[0], params[1]).then(result => {
+			Promise.all(lyrics.map(lyric => this.translator.romajifyText(lyric.text, params[0], params[1]))).then(results => {
+				const result = results.join("\n");
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[2] });
 				showNotification(200);
 				lyricContainerUpdate?.();
@@ -406,7 +405,8 @@ class LyricsContainer extends react.Component {
 			["romaja", "romaja"]
 		]) {
 			if (language !== "ko") continue;
-			this.translator.convertToRomaja(lyricText, params[1]).then(result => {
+			Promise.all(lyrics.map(lyric => this.translator.convertToRomaja(lyric.text, params[1]))).then(results => {
+				const result = results.join("\n");
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
 				showNotification(200);
 				lyricContainerUpdate?.();
@@ -421,7 +421,8 @@ class LyricsContainer extends react.Component {
 			["t", "tw"]
 		]) {
 			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) continue;
-			this.translator.convertChinese(lyricText, params[0], params[1]).then(result => {
+			Promise.all(lyrics.map(lyric => this.translator.convertChinese(lyric.text, params[0], params[1]))).then(results => {
+				const result = results.join("\n");
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
 				showNotification(200);
 				lyricContainerUpdate?.();
