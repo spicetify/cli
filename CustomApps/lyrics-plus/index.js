@@ -323,6 +323,29 @@ class LyricsContainer extends react.Component {
 			if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
 				this.resetDelay();
 				this.setState({ ...CACHE[info.uri], isCached });
+				{
+					let mode = -1;
+					if (this.state.explicitMode !== -1) {
+						mode = this.state.explicitMode;
+					} else if (this.state.lockMode !== -1) {
+						mode = this.state.lockMode;
+					} else {
+						// Auto switch
+						if (this.state.karaoke) {
+							mode = KARAOKE;
+						} else if (this.state.synced) {
+							mode = SYNCED;
+						} else if (this.state.unsynced) {
+							mode = UNSYNCED;
+						} else if (this.state.genius) {
+							mode = GENIUS;
+						}
+					}
+					const lyricsState = CACHE[info.uri][CONFIG.modes[mode]];
+					if (lyricsState) {
+						this.state.currentLyrics = this.state[CONFIG.visual["translate:translated-lyrics-source"]] ?? lyricsState;
+					}
+				}
 				this.translateLyrics();
 				return;
 			}
@@ -330,6 +353,29 @@ class LyricsContainer extends react.Component {
 			if (CACHE[info.uri]) {
 				this.resetDelay();
 				this.setState({ ...CACHE[info.uri], isCached });
+				{
+					let mode = -1;
+					if (this.state.explicitMode !== -1) {
+						mode = this.state.explicitMode;
+					} else if (this.state.lockMode !== -1) {
+						mode = this.state.lockMode;
+					} else {
+						// Auto switch
+						if (this.state.karaoke) {
+							mode = KARAOKE;
+						} else if (this.state.synced) {
+							mode = SYNCED;
+						} else if (this.state.unsynced) {
+							mode = UNSYNCED;
+						} else if (this.state.genius) {
+							mode = GENIUS;
+						}
+					}
+					const lyricsState = CACHE[info.uri][CONFIG.modes[mode]];
+					if (lyricsState) {
+						this.state.currentLyrics = this.state[CONFIG.visual["translate:translated-lyrics-source"]] ?? lyricsState;
+					}
+				}
 				this.translateLyrics();
 				return;
 			}
