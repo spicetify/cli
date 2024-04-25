@@ -146,7 +146,7 @@ const Utils = {
 	rubyTextToReact(s) {
 		const react = Spicetify.React;
 
-		const rubyElems = s?.split("<ruby>");
+		const rubyElems = s.split("<ruby>");
 		const reactChildren = [];
 
 		reactChildren.push(rubyElems[0]);
