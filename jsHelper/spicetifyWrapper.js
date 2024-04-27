@@ -566,6 +566,9 @@ window.Spicetify = {
 			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
 			Cards: {
 				Default: reactComponentsUI.Card,
+				FeatureCard: functionModules.find(
+					m => m.toString().includes("?highlight") && m.toString().includes("headerText") && m.toString().includes("imageContainer")
+				),
 				Hero: functionModules.find(m => m?.toString().includes('"herocard-click-handler"')),
 				CardImage: reactComponentsUI.CardImage,
 				...Object.fromEntries(cards)
