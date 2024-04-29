@@ -2042,18 +2042,6 @@ declare namespace Spicetify {
 		 */
 		const Definitions: Record<Query | string, any>;
 		/**
-		 * GraphQL query definitions. Subset of `Definitions` that are used as query requests.
-		 */
-		const QueryDefinitions: Record<Query | string, any>;
-		/**
-		 * GraphQL mutation definitions. Subset of `Definitions` that are used as mutation requests.
-		 */
-		const MutationDefinitions: Record<Query | string, any>;
-		/**
-		 * GraphQL response definitions. Subset of `Definitions` that are used as response types.
-		 */
-		const ResponseDefinitions: Record<Query | string, any>;
-		/**
 		 * Sends a GraphQL query to Spotify.
 		 * @description A preinitialized version of `Spicetify.GraphQL.Handler` using current context.
 		 * @param query Query to send
