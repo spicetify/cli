@@ -333,7 +333,7 @@
 
 	async function fetchAlbumTracks(uri, includeMetadata = false) {
 		const { queryAlbumTracks } = Spicetify.GraphQL.Definitions;
-		const { data, errors } = await Spicetify.GraphQL.Request(queryAlbumTracks, { uri, offset: 0, limit: 500 });
+		const { data, errors } = await Spicetify.GraphQL.Request(queryAlbumTracks, { uri, offset: 0, limit: 100 });
 
 		if (errors) throw errors[0].message;
 		if (data.albumUnion.playability.playable === false) throw "Album is not playable";
@@ -368,7 +368,13 @@
 	}
 
 	async function fetchArtistTracks(uri) {
-		const { queryArtistDiscographyAll, queryArtistOverview } = Spicetify.GraphQL.Definitions;
+		const { queryArtistDiscographyAll } = Spicetify.GraphQL.Definitions;
+		const queryArtistOverview = {
+			name: "queryArtistOverview",
+			operation: "query",
+			sha256Hash: "35648a112beb1794e39ab931365f6ae4a8d45e65396d641eeda94e4003d41497",
+			value: null
+		};
 
 		const discography = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
 			uri,
