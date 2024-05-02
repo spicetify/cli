@@ -89,7 +89,7 @@ function Get-Spicetify {
       $targetVersion = $latestRelease.tag_name -replace 'v', ''
       Write-Success
     }
-    $archivePath = "$env:TEMP\spicetify.zip"
+    $archivePath = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "spicetify.zip")
   }
   process {
     Write-Host -Object "Downloading spicetify v$targetVersion..." -NoNewline
