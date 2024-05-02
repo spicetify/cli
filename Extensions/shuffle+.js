@@ -369,6 +369,7 @@
 
 	async function fetchArtistTracks(uri) {
 		const { queryArtistDiscographyAll } = Spicetify.GraphQL.Definitions;
+		// Definition from older Spotify version
 		const queryArtistOverview = {
 			name: "queryArtistOverview",
 			operation: "query",
