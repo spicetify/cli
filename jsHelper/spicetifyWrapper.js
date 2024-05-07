@@ -921,6 +921,23 @@ Spicetify.Events = (() => {
 		playerState.cache = playerState.current;
 	});
 
+	(function waitProductStateAPI() {
+		if (!Spicetify.Platform?.UserAPI) {
+			setTimeout(waitUserAPI, 1000);
+			return;
+		}
+
+		const productState = Spicetify.Platform.UserAPI?._product_state || Spicetify.Platform.UserAPI?._product_state_service;
+		if (productState) return;
+		if (!Spicetify.Platform?.ProductStateAPI) {
+			setTimeout(waitProductStateAPI, 1000);
+			return;
+		}
+
+		const productStateApi = Spicetify.Platform.ProductStateAPI.productStateApi;
+		Spicetify.Platform.UserAPI._product_state_service = productStateApi;
+	})();
+
 	setInterval(() => {
 		if (playerState.cache?.isPaused === false) {
 			const event = new Event("onprogress");
@@ -1370,7 +1387,10 @@ Spicetify.SVGIcons = {
 	let subRequest;
 
 	// product_state was renamed to product_state_service in Spotify 1.2.21
-	const productState = Spicetify.Platform.UserAPI?._product_state || Spicetify.Platform.UserAPI?._product_state_service;
+	const productState =
+		Spicetify.Platform.UserAPI?._product_state ||
+		Spicetify.Platform.UserAPI?._product_state_service ||
+		Spicetify.Platform?.ProductStateAPI.productStateApi;
 
 	Spicetify.AppTitle = {
 		set: async name => {
