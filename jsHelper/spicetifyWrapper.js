@@ -273,7 +273,20 @@ window.Spicetify = {
 			{
 				objectToCheck: Spicetify.ReactComponent.Cards,
 				name: "Spicetify.ReactComponent.Cards",
-				methods: new Set(["Default", "Hero", "CardImage", "Album", "Artist", "Audiobook", "Episode", "Playlist", "Profile", "Show", "Track"])
+				methods: new Set([
+					"Default",
+					"Hero",
+					"CardImage",
+					"Album",
+					"Artist",
+					"Audiobook",
+					"Episode",
+					"Playlist",
+					"Profile",
+					"Show",
+					"Track",
+					"FeatureCard"
+				])
 			},
 			{
 				objectToCheck: Spicetify.ReactHook,
