@@ -940,7 +940,7 @@ Spicetify.Events = (() => {
 			return;
 		}
 
-		const productState = Spicetify.Platform.UserAPI?._product_state || Spicetify.Platform.UserAPI?._product_state_service;
+		const productState = Spicetify.Platform.UserAPI._product_state || Spicetify.Platform.UserAPI._product_state_service;
 		if (productState) return;
 		if (!Spicetify.Platform?.ProductStateAPI) {
 			setTimeout(waitProductStateAPI, 100);
