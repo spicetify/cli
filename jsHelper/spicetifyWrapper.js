@@ -936,7 +936,7 @@ Spicetify.Events = (() => {
 
 	(function waitProductStateAPI() {
 		if (!Spicetify.Platform?.UserAPI) {
-			setTimeout(waitUserAPI, 100);
+			setTimeout(waitProductStateAPI, 100);
 			return;
 		}
 
