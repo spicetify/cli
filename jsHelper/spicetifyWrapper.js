@@ -936,14 +936,14 @@ Spicetify.Events = (() => {
 
 	(function waitProductStateAPI() {
 		if (!Spicetify.Platform?.UserAPI) {
-			setTimeout(waitUserAPI, 1000);
+			setTimeout(waitUserAPI, 100);
 			return;
 		}
 
 		const productState = Spicetify.Platform.UserAPI?._product_state || Spicetify.Platform.UserAPI?._product_state_service;
 		if (productState) return;
 		if (!Spicetify.Platform?.ProductStateAPI) {
-			setTimeout(waitProductStateAPI, 1000);
+			setTimeout(waitProductStateAPI, 100);
 			return;
 		}
 
