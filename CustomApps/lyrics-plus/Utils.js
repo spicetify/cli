@@ -145,27 +145,31 @@ const Utils = {
 	},
 	processTranslatedOriginalLyrics(lyrics, synced) {
 		const data = [];
-		let index = 0;
-		for (let i = 0; i < lyrics.length; i++) {
-			const lItem = lyrics[i];
-			const qItem = synced[i - index];
+		const dataSouce = {};
 
-			console.log(lItem,qItem)
+		lyrics.forEach((item) => {
+			dataSouce[item.startTime] = { translate: item.text };
+		});
 
-			const isEqual = lItem.startTime !== qItem?.startTime;
+		synced.forEach((item) => {
+			dataSouce[item.startTime] = {
+				...dataSouce[item.startTime],
+				text: item.text,
+			};
+		});
 
-			if (isEqual) {
-				index += 1;
-			}
+		Object.keys(dataSouce).forEach((time) => {
+			const item = dataSouce[time];
 			const lyric = {
-				startTime: lItem.startTime || 0,
+				startTime: time || 0,
 				text: this.rubyTextToOriginalReact(
-					lItem.text,
-					isEqual ? lItem.text : qItem?.text || lItem.text
+					item.translate || item.text,
+					item.text || item.translate
 				),
 			};
 			data.push(lyric);
-		}
+		});
+
 		return data;
 	},
 	rubyTextToOriginalReact(translated, syncedText) {
