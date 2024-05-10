@@ -132,34 +132,67 @@ const Utils = {
 
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";
 	},
-	processTranslatedLyrics(result, lyricsToTranslate, { state, stateName }) {
+	processTranslatedLyrics(result, lyricsToTranslate, {state, stateName}) {
 		const translatedLines = result.split("\n");
-
 		state[stateName] = [];
-
-		for (let i = 0; i < lyricsToTranslate.length; i++)
-			state[stateName].push({
+		for (let i = 0; i < lyricsToTranslate.length; i++) {
+			const lyric = {
 				startTime: lyricsToTranslate[i].startTime || 0,
-				text: this.rubyTextToReact(translatedLines[i])
-			});
+				text: this.rubyTextToReact(translatedLines[i]),
+			};
+			state[stateName].push(lyric);
+		}
+	},
+	processTranslatedOriginalLyrics(lyrics, synced) {
+		const data = [];
+		let index = 0;
+		for (let i = 0; i < lyrics.length; i++) {
+			const lItem = lyrics[i];
+			const qItem = synced[i - index];
+
+			console.log(lItem,qItem)
+
+			const isEqual = lItem.startTime !== qItem?.startTime;
+
+			if (isEqual) {
+				index += 1;
+			}
+			const lyric = {
+				startTime: lItem.startTime || 0,
+				text: this.rubyTextToOriginalReact(
+					lItem.text,
+					isEqual ? lItem.text : qItem?.text || lItem.text
+				),
+			};
+			data.push(lyric);
+		}
+		return data;
+	},
+	rubyTextToOriginalReact(translated, syncedText) {
+		const react = Spicetify.React;
+		return react.createElement("p1", null,
+			[
+				react.createElement("ruby", {}, syncedText,
+					react.createElement("rt", {
+						style: {textAlign: "center", letterSpacing: 10, fontSize: `60%`}
+					}, translated)
+				)
+			]
+		);
 	},
 	rubyTextToReact(s) {
 		const react = Spicetify.React;
-
 		const rubyElems = s.split("<ruby>");
 		const reactChildren = [];
 
 		reactChildren.push(rubyElems[0]);
-
 		for (let i = 1; i < rubyElems.length; i++) {
 			const kanji = rubyElems[i].split("<rp>")[0];
 			const furigana = rubyElems[i].split("<rt>")[1].split("</rt>")[0];
-
 			reactChildren.push(react.createElement("ruby", null, kanji, react.createElement("rt", null, furigana)));
 
 			reactChildren.push(rubyElems[i].split("</ruby>")[1]);
 		}
-
 		return react.createElement("p1", null, reactChildren);
 	},
 	formatTime(timestamp) {
@@ -234,7 +267,7 @@ const Utils = {
 			for (const match of karaoke) {
 				const word = match[1];
 				const time = match[2];
-				karaokeLine.push({ word, time: timestampToMs(time) - wordTime });
+				karaokeLine.push({word, time: timestampToMs(time) - wordTime});
 				wordTime = timestampToMs(time);
 			}
 			return karaokeLine;
@@ -253,14 +286,14 @@ const Utils = {
 						lyricContent += `<${endTime}>`;
 					}
 					const karaokeLine = parseKaraokeLine(lyricContent, time);
-					karaoke.push({ text: karaokeLine, startTime: timestampToMs(time) });
+					karaoke.push({text: karaokeLine, startTime: timestampToMs(time)});
 				}
-				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMs(time) });
-				unsynced.push({ text: lyric || "♪" });
+				isSynced && time && synced.push({text: lyric || "♪", startTime: timestampToMs(time)});
+				unsynced.push({text: lyric || "♪"});
 			}
 		}
 
-		return { synced, unsynced, karaoke };
+		return {synced, unsynced, karaoke};
 	},
 	processLyrics(lyrics) {
 		return lyrics
