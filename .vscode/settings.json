@@ -1,0 +1,9 @@
+{
+   "editor.formatOnSave": true,
+   "[go]": {
+      "editor.defaultFormatter": "golang.go"
+   },
+   "[powershell]": {
+      "editor.defaultFormatter": "ms-vscode.powershell"
+   }
+}

@@ -1,0 +1,12 @@
+{
+   "version": "0.2.0",
+   "configurations": [
+      {
+         "type": "msedge",
+         "name": "Attach to Spotify",
+         "request": "attach",
+         "address": "localhost",
+         "port": 9222
+      }
+   ]
+}
