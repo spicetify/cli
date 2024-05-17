@@ -1,5 +1,5 @@
-/* Copyright © 2024
- *      Delusoire <deluso7re@outlook.com>
+/*
+ * Copyright (C) 2024 Delusoire
  *
  * This file is part of bespoke/cli.
  *
