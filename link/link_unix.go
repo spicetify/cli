@@ -1,7 +1,7 @@
 //go:build unix
 
-/* Copyright © 2024
- *      Delusoire <deluso7re@outlook.com>
+/*
+ * Copyright (C) 2024 OhItsTom
  *
  * This file is part of bespoke/cli.
  *
