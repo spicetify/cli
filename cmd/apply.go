@@ -21,6 +21,7 @@ package cmd
 
 import (
 	"bespoke/archive"
+	"bespoke/link"
 	"bespoke/paths"
 	"log"
 	"os"
@@ -85,13 +86,13 @@ func patchIndexHtml(destXpuiPath string) error {
 	})
 }
 
-func symlinkFiles(destXpuiPath string) error {
+func linkFiles(destXpuiPath string) error {
 	folders := []string{"hooks", "modules"}
 	for _, folder := range folders {
 		folderSrcPath := filepath.Join(paths.ConfigPath, folder)
 		folderDestPath := filepath.Join(destXpuiPath, folder)
 		log.Println("Symlinking", folderDestPath, "->", folderSrcPath)
-		if err := os.Symlink(folderSrcPath, folderDestPath); err != nil {
+		if err := link.Create(folderSrcPath, folderDestPath); err != nil {
 			return err
 		}
 	}
@@ -111,7 +112,7 @@ func execApply() error {
 	if err := patchIndexHtml(destXpuiPath); err != nil {
 		return err
 	}
-	return symlinkFiles(destXpuiPath)
+	return linkFiles(destXpuiPath)
 }
 
 func init() {
