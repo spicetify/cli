@@ -91,7 +91,7 @@ func linkFiles(destXpuiPath string) error {
 	for _, folder := range folders {
 		folderSrcPath := filepath.Join(paths.ConfigPath, folder)
 		folderDestPath := filepath.Join(destXpuiPath, folder)
-		log.Println("Symlinking", folderDestPath, "->", folderSrcPath)
+		log.Println("linking", folderDestPath, "->", folderSrcPath)
 		if err := link.Create(folderSrcPath, folderDestPath); err != nil {
 			return err
 		}
