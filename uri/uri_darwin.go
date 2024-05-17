@@ -10,7 +10,7 @@ package uri
 /*
 #cgo CFLAGS: -x objective-c
 #cgo LDFLAGS: -framework Foundation
-#include "build/macos/handler.h"
+#include "build/darwin/handler.h"
 */
 
 import "C"
