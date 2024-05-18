@@ -31,5 +31,7 @@
         <string>1.0.0</string>
         <key>CFBundleVersion</key>
         <string>1.0.0</string>
+				<key>NSAppleEventsUsageDescription</key>
+				<string>spicetify needs to send Apple events to System Events to perform certain tasks.</string>
     </dict>
 </plist>
