@@ -1,32 +1,18 @@
 /*
  * Copyright (C) 2024 Delusoire
- *
- * This file is part of bespoke/cli.
- *
- * bespoke/cli is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/cli is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/cli. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 package cmd
 
 import (
-	"bespoke/module"
 	"log"
+	"net/url"
 	"os/exec"
-	"regexp"
 	"runtime"
+	"spicetify/module"
 
-	e "bespoke/errors"
+	e "spicetify/errors"
 
 	"github.com/spf13/cobra"
 )
@@ -44,14 +30,16 @@ var protocolCmd = &cobra.Command{
 	},
 }
 
-func HandleProtocol(message string) (string, error) {
-	re := regexp.MustCompile(`bespoke:(?<uuid>[^:]+):(?<action>[^:]+)(:(?<args>.*))?`)
-	submatches := re.FindStringSubmatch(message)
-	uuid := submatches[1]
-	response := "spotify:app:rpc:bespoke:" + uuid
-	action := submatches[2]
-	arguments := submatches[4]
-	err := hp(action, arguments)
+func HandleProtocol(uri string) (string, error) {
+	u, err := url.Parse(uri)
+	if err != nil || u.Scheme != "spicetify" {
+		return "", err
+	}
+	uuid := u.Fragment
+	response := "spotify:app:rpc:spicetify:" + uuid
+	action := u.Opaque
+	arguments := u.Query()
+	err = hp(action, arguments)
 	if err == nil {
 		response += ":1"
 	} else {
@@ -60,18 +48,18 @@ func HandleProtocol(message string) (string, error) {
 	return response, err
 }
 
-func hp(action, arguments string) error {
+func hp(action string, arguments url.Values) error {
 	switch action {
 	case "add":
-		metadataURL := arguments
+		metadataURL := arguments.Get("url")
 		return module.InstallModuleRemote(metadataURL)
 
 	case "remove":
-		identifier := module.NewStoreIdentifier(arguments)
+		identifier := module.NewStoreIdentifier(arguments.Get("id"))
 		return module.DeleteModule(identifier)
 
 	case "enable":
-		identifier := module.NewStoreIdentifier(arguments)
+		identifier := module.NewStoreIdentifier(arguments.Get("id"))
 		return module.ToggleModuleInVault(identifier)
 
 	}

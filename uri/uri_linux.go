@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build linux
 
 /*
  * Copyright (C) 2024 Delusoire
@@ -7,6 +7,9 @@
 
 package uri
 
+import e "spicetify/errors"
+
+// TODO
 func RegisterURIScheme() error {
-	return nil
+	return e.ErrUnsupportedOperation
 }

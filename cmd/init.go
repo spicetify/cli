@@ -1,27 +1,13 @@
 /*
  * Copyright (C) 2024 Delusoire
- *
- * This file is part of bespoke/cli.
- *
- * bespoke/cli is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/cli is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/cli. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 package cmd
 
 import (
-	"bespoke/module"
-	"bespoke/uri"
+	"spicetify/module"
+	"spicetify/uri"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -29,7 +15,7 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Perform one-time bespoke initization",
+	Short: "Perform one-time spicetify initization",
 	Long:  "required to be ran at least once per installation",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := execInit(); err != nil {
@@ -49,7 +35,7 @@ func execInit() error {
 	}
 
 	return module.SetVault(&module.Vault{Modules: map[module.ModuleIdentifierStr]module.Module{
-		"official/stdlib": module.Module{
+		"official/stdlib": {
 			Remotes: []string{"https://github.com/spicetify/stdlib/repo.json"},
 		},
 	}})

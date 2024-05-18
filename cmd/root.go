@@ -1,20 +1,6 @@
 /*
  * Copyright (C) 2024 Delusoire
- *
- * This file is part of bespoke/cli.
- *
- * bespoke/cli is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/cli is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/cli. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 package cmd
@@ -24,14 +10,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"bespoke/paths"
+	"spicetify/paths"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
-	autoUpdate bool
+	// autoUpdate bool
 
 	mirror            bool
 	spotifyDataPath   string
@@ -40,7 +26,7 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "bespoke",
+	Use:   "spicetify",
 	Short: "Make Spotify your own",
 	Long:  `Bespoke is a CLI utility that empowers the desktop Spotify client with custom themes and extensions`,
 	Run:   func(cmd *cobra.Command, args []string) {},
@@ -56,18 +42,19 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.Flags().BoolVar(&autoUpdate, "auto-update", false, "Toggle auto updates for bespoke")
+	// rootCmd.Flags().BoolVar(&autoUpdate, "auto-update", false, "Toggle auto updates for spicetify")
 
 	rootCmd.PersistentFlags().BoolVarP(&mirror, "mirror", "m", false, "Mirror Spotify files instead of patching them directly")
-	rootCmd.PersistentFlags().StringVar(&spotifyDataPath, "spotify-data", paths.GetSpotifyPath(), "Override Spotify data folder (containing the spotify executable)")
-	rootCmd.PersistentFlags().StringVar(&spotifyConfigPath, "spotify-config", paths.GetSpotifyConfigPath(), "Override Spotify config folder (containing prefs & offline.bnk)")
+	rootCmd.PersistentFlags().StringVar(&spotifyDataPath, "spotify-data", paths.GetDefaultSpotifyPath(), "Override Spotify data folder (containing the spotify executable)")
+	rootCmd.PersistentFlags().StringVar(&spotifyConfigPath, "spotify-config", paths.GetDefaultSpotifyConfigPath(), "Override Spotify config folder (containing prefs & offline.bnk)")
+
 	viper.BindPFlag("mirror", rootCmd.PersistentFlags().Lookup("mirror"))
 	viper.BindPFlag("spotify-data", rootCmd.PersistentFlags().Lookup("spotify-data"))
 	viper.BindPFlag("spotify-config", rootCmd.PersistentFlags().Lookup("spotify-config"))
 
 	defaultcfgFile := filepath.Join(paths.ConfigPath, "config.yaml")
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultcfgFile, "config file (default is "+defaultcfgFile+")")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultcfgFile, "config file")
 }
 
 func initConfig() {

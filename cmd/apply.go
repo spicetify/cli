@@ -1,31 +1,17 @@
 /*
  * Copyright (C) 2024 Delusoire
- *
- * This file is part of bespoke/cli.
- *
- * bespoke/cli is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/cli is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/cli. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 package cmd
 
 import (
-	"bespoke/archive"
-	"bespoke/link"
-	"bespoke/paths"
 	"log"
 	"os"
 	"path/filepath"
+	"spicetify/archive"
+	"spicetify/link"
+	"spicetify/paths"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -33,7 +19,7 @@ import (
 
 var applyCmd = &cobra.Command{
 	Use:   "apply",
-	Short: "Apply bespoke patch on Spotify",
+	Short: "Apply spicetify patches on Spotify",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := execApply(); err != nil {
 			log.Panicln(err.Error())
@@ -100,7 +86,7 @@ func linkFiles(destXpuiPath string) error {
 }
 
 func execApply() error {
-	log.Println("Initializing bespoke")
+	log.Println("Initializing spicetify")
 	src, dest := getApps()
 
 	spa := filepath.Join(src, "xpui.spa")
