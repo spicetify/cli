@@ -12,14 +12,18 @@ import (
 	"path/filepath"
 )
 
-func GetPlatformDefaultSpotifyPath() string {
-	return "/Applications/Spotify.app/Contents/Resources"
+func GetPlatformSpotifyPath() (string, error) {
+	return "/Applications/Spotify.app/Contents/Resources", nil
 }
 
-func GetSpotifyExecPath(spotifyPath string) string {
+func GetPlatformSpotifyExecPath(spotifyPath string) string {
 	return filepath.Join(spotifyPath, "Spotify")
 }
 
-func GetSpotifyConfigPath() string {
-	return os.Getenv("HOME") + "/Library/Application Support/Spotify"
+func GetPlatformSpotifyConfigPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "Library/Application Support/Spotify"), nil
 }

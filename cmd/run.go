@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"bespoke/paths"
+	"spicetify/paths"
 
 	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"

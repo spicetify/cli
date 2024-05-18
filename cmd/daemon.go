@@ -6,9 +6,9 @@
 package cmd
 
 import (
-	"bespoke/paths"
 	"log"
 	"net/http"
+	"spicetify/paths"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"

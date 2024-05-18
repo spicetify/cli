@@ -8,10 +8,10 @@
 package uri
 
 import (
-	"bespoke/paths"
 	"io"
 	"os"
 	"path/filepath"
+	"spicetify/paths"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -20,11 +20,11 @@ func RegisterURIScheme() error {
 	access := uint32(registry.QUERY_VALUE | registry.SET_VALUE)
 	key := registry.CURRENT_USER
 
-	key, _, err := registry.CreateKey(key, `Software\Classes\bespoke`, access)
+	key, _, err := registry.CreateKey(key, `Software\Classes\spicetify`, access)
 	if err != nil {
 		return err
 	}
-	err = key.SetStringValue("", "URL:bespoke")
+	err = key.SetStringValue("", "URL:spicetify")
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func RegisterURIScheme() error {
 	if err != nil {
 		return err
 	}
-	bin := filepath.Join(paths.ConfigPath, "bin", "bespoke.exe")
+	bin := filepath.Join(paths.ConfigPath, "bin", "spicetify.exe")
 
 	if err := copyExeToBin(bin); err != nil {
 		return err

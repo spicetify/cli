@@ -12,13 +12,23 @@ import (
 )
 
 var (
-	ConfigPath = filepath.Join(xdg.ConfigHome, "bespoke")
+	ConfigPath = filepath.Join(xdg.ConfigHome, "spicetify")
 )
 
-func GetSpotifyPath() string {
-	return GetPlatformDefaultSpotifyPath()
+func GetDefaultSpotifyPath() string {
+	path, _ := GetPlatformSpotifyPath()
+	return path
 }
 
 func GetSpotifyAppsPath(spotifyPath string) string {
 	return filepath.Join(spotifyPath, "Apps")
+}
+
+func GetDefaultSpotifyConfigPath() string {
+	path, _ := GetPlatformSpotifyConfigPath()
+	return path
+}
+
+func GetSpotifyExecPath(spotifyPath string) string {
+	return GetPlatformSpotifyExecPath(spotifyPath)
 }

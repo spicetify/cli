@@ -6,8 +6,8 @@
 package cmd
 
 import (
-	"bespoke/module"
 	"log"
+	"spicetify/module"
 
 	"github.com/spf13/cobra"
 )

@@ -6,19 +6,19 @@
 package cmd
 
 import (
-	"bespoke/archive"
-	"bespoke/paths"
 	"log"
 	"net/http"
 	"path/filepath"
 	"regexp"
+	"spicetify/archive"
+	"spicetify/paths"
 
 	"github.com/spf13/cobra"
 )
 
 var syncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Update bespoke from GitHub",
+	Short: "Update spicetify hooks from GitHub",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := installHooks(); err != nil {
 			log.Panicln(err.Error())

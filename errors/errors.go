@@ -8,4 +8,4 @@ package errors
 import "errors"
 
 var ErrUnsupportedOperation = errors.New("this opperation is not supported")
-var ErrURIUnsupportedOpeartion = errors.New("this operation is not supported on this platform. URI Handler is assigned after launching the app")
+var ErrPathNotFound = errors.New("couldn't find path")

@@ -6,10 +6,10 @@
 package cmd
 
 import (
-	"bespoke/paths"
 	"log"
 	"os"
 	"path/filepath"
+	"spicetify/paths"
 	"strings"
 
 	"github.com/spf13/cobra"

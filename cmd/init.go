@@ -6,8 +6,8 @@
 package cmd
 
 import (
-	"bespoke/module"
-	"bespoke/uri"
+	"spicetify/module"
+	"spicetify/uri"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -15,7 +15,7 @@ import (
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Perform one-time bespoke initization",
+	Short: "Perform one-time spicetify initization",
 	Long:  "required to be ran at least once per installation",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := execInit(); err != nil {

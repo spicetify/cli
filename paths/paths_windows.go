@@ -13,14 +13,14 @@ import (
 	"github.com/adrg/xdg"
 )
 
-func GetPlatformDefaultSpotifyPath() string {
-	return filepath.Join(xdg.DataDirs[0], "Spotify")
+func GetPlatformSpotifyPath() (string, error) {
+	return filepath.Join(xdg.DataDirs[0], "Spotify"), nil
 }
 
-func GetSpotifyExecPath(spotifyPath string) string {
+func GetPlatformSpotifyExecPath(spotifyPath string) string {
 	return filepath.Join(spotifyPath, "spotify.exe")
 }
 
-func GetSpotifyConfigPath() string {
-	return filepath.Join(xdg.ConfigHome, "Spotify")
+func GetPlatformSpotifyConfigPath() (string, error) {
+	return filepath.Join(xdg.ConfigHome, "Spotify"), nil
 }

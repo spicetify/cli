@@ -6,8 +6,6 @@
 package module
 
 import (
-	"bespoke/archive"
-	"bespoke/paths"
 	"context"
 	"encoding/json"
 	"errors"
@@ -19,6 +17,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"spicetify/archive"
+	"spicetify/paths"
 
 	"github.com/google/go-github/github"
 )

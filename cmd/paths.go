@@ -6,8 +6,8 @@
 package cmd
 
 import (
-	"bespoke/paths"
 	"fmt"
+	"spicetify/paths"
 
 	"github.com/spf13/cobra"
 )
@@ -20,7 +20,7 @@ var (
 
 var pathsCmd = &cobra.Command{
 	Use:   "paths",
-	Short: "Print bespoke config",
+	Short: "Print spicetify config",
 	Run: func(cmd *cobra.Command, args []string) {
 		if !showSpotiyData && !showSpotifyConfig && !showConfig {
 			showSpotiyData = true

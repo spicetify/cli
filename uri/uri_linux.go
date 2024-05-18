@@ -7,7 +7,7 @@
 
 package uri
 
-import e "bespoke/errors"
+import e "spicetify/errors"
 
 // TODO
 func RegisterURIScheme() error {

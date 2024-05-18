@@ -6,13 +6,13 @@
 package cmd
 
 import (
-	"bespoke/module"
 	"log"
+	"net/url"
 	"os/exec"
-	"regexp"
 	"runtime"
+	"spicetify/module"
 
-	e "bespoke/errors"
+	e "spicetify/errors"
 
 	"github.com/spf13/cobra"
 )
@@ -30,14 +30,16 @@ var protocolCmd = &cobra.Command{
 	},
 }
 
-func HandleProtocol(message string) (string, error) {
-	re := regexp.MustCompile(`spicetify:(?://)?(?<uuid>[^:]+):(?<action>[^:]+)(:(?<args>.*))?`)
-	submatches := re.FindStringSubmatch(message)
-	uuid := submatches[1]
-	response := "spotify:app:rpc:bespoke:" + uuid
-	action := submatches[2]
-	arguments := submatches[4]
-	err := hp(action, arguments)
+func HandleProtocol(uri string) (string, error) {
+	u, err := url.Parse(uri)
+	if err != nil || u.Scheme != "spicetify" {
+		return "", err
+	}
+	uuid := u.Fragment
+	response := "spotify:app:rpc:spicetify:" + uuid
+	action := u.Opaque
+	arguments := u.Query()
+	err = hp(action, arguments)
 	if err == nil {
 		response += ":1"
 	} else {
@@ -46,18 +48,18 @@ func HandleProtocol(message string) (string, error) {
 	return response, err
 }
 
-func hp(action, arguments string) error {
+func hp(action string, arguments url.Values) error {
 	switch action {
 	case "add":
-		metadataURL := arguments
+		metadataURL := arguments.Get("url")
 		return module.InstallModuleRemote(metadataURL)
 
 	case "remove":
-		identifier := module.NewStoreIdentifier(arguments)
+		identifier := module.NewStoreIdentifier(arguments.Get("id"))
 		return module.DeleteModule(identifier)
 
 	case "enable":
-		identifier := module.NewStoreIdentifier(arguments)
+		identifier := module.NewStoreIdentifier(arguments.Get("id"))
 		return module.ToggleModuleInVault(identifier)
 
 	}

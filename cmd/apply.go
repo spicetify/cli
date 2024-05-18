@@ -6,12 +6,12 @@
 package cmd
 
 import (
-	"bespoke/archive"
-	"bespoke/link"
-	"bespoke/paths"
 	"log"
 	"os"
 	"path/filepath"
+	"spicetify/archive"
+	"spicetify/link"
+	"spicetify/paths"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -19,7 +19,7 @@ import (
 
 var applyCmd = &cobra.Command{
 	Use:   "apply",
-	Short: "Apply bespoke patch on Spotify",
+	Short: "Apply spicetify patches on Spotify",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := execApply(); err != nil {
 			log.Panicln(err.Error())
@@ -86,7 +86,7 @@ func linkFiles(destXpuiPath string) error {
 }
 
 func execApply() error {
-	log.Println("Initializing bespoke")
+	log.Println("Initializing spicetify")
 	src, dest := getApps()
 
 	spa := filepath.Join(src, "xpui.spa")

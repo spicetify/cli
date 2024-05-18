@@ -1,4 +1,4 @@
-module bespoke
+module spicetify
 
 go 1.22.0
 
