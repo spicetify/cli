@@ -6,7 +6,7 @@ spicetify.app: ../../*.go Makefile Info.plist
 	cp -r Resources ../../dist/spicetify.app/Contents/Resources
 	cp applet ../../dist/spicetify.app/Contents/MacOS/applet
 	echo "APPLaplt" >> ../../dist/spicetify.app/Contents/PkgInfo
-=
+
 .PHONY: open
 open: spicetify.app
 	open spicetify.app
