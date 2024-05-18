@@ -3,7 +3,7 @@
 <plist version="1.0">
     <dict>
         <key>CFBundleExecutable</key>
-        <string>urihandler</string>
+        <string>applet</string>
         <key>CFBundleIdentifier</key>
         <string>app.spicetify</string>
         <key>CFBundleURLTypes</key>
