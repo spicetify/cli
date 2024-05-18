@@ -7,14 +7,6 @@
 
 package uri
 
-/*
-#cgo CFLAGS: -x objective-c
-#cgo LDFLAGS: -framework Foundation
-#include "build/darwin/handler.h"
-*/
-
-import "C"
-
 func RegisterURIScheme() error {
 	return nil
 }

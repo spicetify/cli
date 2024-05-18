@@ -53,7 +53,7 @@ func init() {
 
 	defaultcfgFile := filepath.Join(paths.ConfigPath, "config.yaml")
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultcfgFile, "config file (default is "+defaultcfgFile+")")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", defaultcfgFile, "config file")
 }
 
 func initConfig() {

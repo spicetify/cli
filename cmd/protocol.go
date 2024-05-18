@@ -31,7 +31,7 @@ var protocolCmd = &cobra.Command{
 }
 
 func HandleProtocol(message string) (string, error) {
-	re := regexp.MustCompile(`bespoke:(?<uuid>[^:]+):(?<action>[^:]+)(:(?<args>.*))?`)
+	re := regexp.MustCompile(`spicetify:(?://)?(?<uuid>[^:]+):(?<action>[^:]+)(:(?<args>.*))?`)
 	submatches := re.FindStringSubmatch(message)
 	uuid := submatches[1]
 	response := "spotify:app:rpc:bespoke:" + uuid

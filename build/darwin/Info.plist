@@ -3,14 +3,18 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>spicetify</string>
+    <string>applet</string>
     <key>CFBundleIdentifier</key>
     <string>app.spicetify</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
+            <key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLIconFile</key>
+			<string></string>
             <key>CFBundleURLName</key>
-            <string>app.spicetify</string>
+            <string>spicetify URI handler</string>
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>spicetify</string>
