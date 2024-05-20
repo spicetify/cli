@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-ini/ini"
-	"github.com/spicetify/spicetify-cli/src/utils"
+	"github.com/spicetify/cli/src/utils"
 )
 
 const (

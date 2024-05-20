@@ -14,9 +14,9 @@ import (
 	"sync"
 
 	colorable "github.com/mattn/go-colorable"
-	"github.com/spicetify/spicetify-cli/src/cmd"
-	spotifystatus "github.com/spicetify/spicetify-cli/src/status/spotify"
-	"github.com/spicetify/spicetify-cli/src/utils"
+	"github.com/spicetify/cli/src/cmd"
+	spotifystatus "github.com/spicetify/cli/src/status/spotify"
+	"github.com/spicetify/cli/src/utils"
 )
 
 var (
@@ -444,7 +444,7 @@ upgrade|update      Update spicetify latest version
 
 When using the "watch" command, any combination of the style (-s), extension (-e), and app (-a) flags can be used (ex. "watch -s -e" or "watch -e -a").
 For config information, run "spicetify -h config".
-For more information and bug report: https://github.com/spicetify/spicetify-cli/`)
+For more information and bug report: https://github.com/spicetify/cli/`)
 }
 
 func helpConfig() {
@@ -481,7 +481,7 @@ always_enable_devtools <0 | 1>
     Whether Chrome DevTools is enabled when launching/restarting Spotify.
 
 check_spicetify_update <0 | 1>
-		Whether to check for spicetify-cli update when running Spicetify.
+		Whether to check for CLI update when running Spicetify.
 
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>

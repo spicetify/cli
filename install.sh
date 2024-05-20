@@ -52,7 +52,7 @@ command -v tar >/dev/null || { log "tar isn't installed!" >&2; exit 1; }
 command -v grep >/dev/null || { log "grep isn't installed!" >&2; exit 1; }
 
 # download uri
-releases_uri=https://github.com/spicetify/spicetify-cli/releases
+releases_uri=https://github.com/spicetify/cli/releases
 if [ -z "$tag" ]; then
     tag=$(curl -LsH 'Accept: application/json' $releases_uri/latest)
     tag=${tag%\,\"update_url*}

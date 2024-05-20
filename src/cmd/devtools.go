@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/spicetify/spicetify-cli/src/utils"
+	"github.com/spicetify/cli/src/utils"
 )
 
 // SetDevTool enables/disables developer mode of Spotify client

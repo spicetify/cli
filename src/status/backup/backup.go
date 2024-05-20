@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spicetify/spicetify-cli/src/utils"
+	"github.com/spicetify/cli/src/utils"
 )
 
 type status struct {

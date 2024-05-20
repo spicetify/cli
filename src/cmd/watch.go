@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	spotifystatus "github.com/spicetify/spicetify-cli/src/status/spotify"
-	"github.com/spicetify/spicetify-cli/src/utils"
+	spotifystatus "github.com/spicetify/cli/src/status/spotify"
+	"github.com/spicetify/cli/src/utils"
 )
 
 var (

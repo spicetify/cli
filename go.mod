@@ -1,4 +1,4 @@
-module github.com/spicetify/spicetify-cli
+module github.com/spicetify/cli
 
 go 1.21
 

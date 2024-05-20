@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/spicetify/spicetify-cli/src/utils"
+	"github.com/spicetify/cli/src/utils"
 )
 
 // Flag enables/disables preprocesses to be applied
@@ -29,7 +29,7 @@ type Flag struct {
 }
 
 func readRemoteCssMap(tag string, cssTranslationMap *map[string]string) error {
-	var cssMapURL string = "https://raw.githubusercontent.com/spicetify/spicetify-cli/" + tag + "/css-map.json"
+	var cssMapURL string = "https://raw.githubusercontent.com/spicetify/cli/" + tag + "/css-map.json"
 	cssMapResp, err := http.Get(cssMapURL)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 	// readSourceMapAndGenerateCSSMap(appPath)
 
 	if version != "Dev" {
-		tag, err := FetchLatestTagMatchingOrMaster(version)
+		tag, err := FetchLatestTagMatchingOrMain(version)
 		if err != nil {
 			utils.PrintWarning("Cannot fetch version tag for CSS mappings")
 			fmt.Printf("err: %v\n", err)
@@ -671,7 +671,7 @@ func splitVersion(version string) ([3]int, error) {
 	return vInts, nil
 }
 
-func FetchLatestTagMatchingOrMaster(version string) (string, error) {
+func FetchLatestTagMatchingOrMain(version string) (string, error) {
 	tag, err := utils.FetchLatestTag()
 	if err != nil {
 		return "", err
@@ -684,9 +684,9 @@ func FetchLatestTagMatchingOrMaster(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// major version matches latest, use master branch
+	// major version matches latest, use main branch
 	if ver[0] == versionS[0] && ver[1] == versionS[1] {
-		return "master", nil
+		return "main", nil
 	} else {
 		return FetchLatestTagMatchingVersion(version)
 	}
@@ -696,7 +696,7 @@ func FetchLatestTagMatchingVersion(version string) (string, error) {
 	if version == "Dev" {
 		return "Dev", nil
 	}
-	res, err := http.Get("https://api.github.com/repos/spicetify/spicetify-cli/releases")
+	res, err := http.Get("https://api.github.com/repos/spicetify/cli/releases")
 	if err != nil {
 		return "", err
 	}
