@@ -2,6 +2,7 @@
 bin
 cli
 spicetify
+spicetify-cli
 *.exe
 
 # MacOS
