@@ -6,7 +6,13 @@
 	"[powershell]": {
 		"editor.defaultFormatter": "ms-vscode.powershell"
 	},
-	"[javascript][typescript][json]": {
+	"[javascript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[json]": {
 		"editor.defaultFormatter": "biomejs.biome"
 	}
 }
