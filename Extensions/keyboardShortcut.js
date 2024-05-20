@@ -22,7 +22,7 @@
 	 */
 	const binds = {
 		// Shutdown Spotify using Ctrl+Q
-		"ctrl+q": { callback: () => Spicetify.CosmosAsync.post("sp://esperanto/spotify.desktop.lifecycle_esperanto.proto.DesktopLifecycle/Shutdown") },
+		"ctrl+q": { callback: () => Spicetify.CosmosAsync.post("sp://esperanto/spotify.desktop.lifecycle_esperanto.proto.DesktopLifecycle/Shutdown") && Spicetify.CosmosAsync.post("sp://desktop/v1/shutdown") },
 
 		// Rotate through sidebar items using Ctrl+Tab and Ctrl+Shift+Tab
 		"ctrl+tab": { callback: () => rotateSidebar(1) },
@@ -102,7 +102,7 @@
 
 	// Functions
 	function focusOnApp() {
-		return document.querySelector(".Root__main-view .os-viewport");
+		return document.querySelector(".Root__main-view .os-viewport, .Root__main-view .main-view-container__scroll-node, .Root__main-view .main-view-container__scroll-node > [data-overlayscrollbars-viewport]");
 	}
 
 	function createScrollCallback(step) {
