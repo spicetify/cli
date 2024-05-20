@@ -4,12 +4,12 @@ import (
 	"log"
 	"os"
 
-	spotifystatus "github.com/spicetify/spicetify-cli/src/status/spotify"
+	spotifystatus "github.com/spicetify/cli/src/status/spotify"
 
-	"github.com/spicetify/spicetify-cli/src/backup"
-	"github.com/spicetify/spicetify-cli/src/preprocess"
-	backupstatus "github.com/spicetify/spicetify-cli/src/status/backup"
-	"github.com/spicetify/spicetify-cli/src/utils"
+	"github.com/spicetify/cli/src/backup"
+	"github.com/spicetify/cli/src/preprocess"
+	backupstatus "github.com/spicetify/cli/src/status/backup"
+	"github.com/spicetify/cli/src/utils"
 )
 
 // Backup stores original apps packages, extracts them and preprocesses

@@ -1,7 +1,8 @@
 # Executables
 bin
-spicetify-cli
+cli
 spicetify
+spicetify-cli
 *.exe
 
 # MacOS
