@@ -698,7 +698,10 @@ window.Spicetify = {
 
 	// classnames
 	// https://github.com/JedWatson/classnames/
-	const classnamesChunk = chunks.find(([_, value]) => value.toString().includes("[native code]") && !value.toString().includes("<anonymous>"));
+	const classnamesChunk = chunks.find(
+		([_, value]) =>
+			value.toString().includes("[native code]") && !value.toString().includes("<anonymous>") && !value.toString().includes("Super expression")
+	);
 	if (classnamesChunk && !Spicetify.classnames) {
 		Spicetify.classnames = Object.values(require(classnamesChunk[0])).find(m => typeof m === "function");
 	}
