@@ -51,8 +51,8 @@ func HandleProtocol(uri string) (string, error) {
 func hp(action string, arguments url.Values) error {
 	switch action {
 	case "add":
-		metadataURL := arguments.Get("url")
-		return module.InstallModuleRemote(metadataURL)
+		aurl := arguments.Get("url")
+		return module.InstallRemoteModule(module.ArtifactURL(aurl))
 
 	case "remove":
 		identifier := module.NewStoreIdentifier(arguments.Get("id"))

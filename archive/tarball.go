@@ -11,10 +11,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 )
 
-func UnTarGZ(r io.Reader, src *regexp.Regexp, dest string) error {
+func UnTarGZ(r io.Reader, dest string) error {
 	gzipReader, err := gzip.NewReader(r)
 	if err != nil {
 		return err
@@ -32,13 +31,7 @@ func UnTarGZ(r io.Reader, src *regexp.Regexp, dest string) error {
 			return err
 		}
 
-		nameRelToSrc := src.FindStringSubmatch(header.Name)
-
-		if nameRelToSrc == nil {
-			continue
-		}
-
-		tarEntryDest := filepath.Join(dest, nameRelToSrc[1])
+		tarEntryDest := filepath.Join(dest, header.Name)
 
 		switch header.Typeflag {
 		case tar.TypeDir:
