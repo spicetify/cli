@@ -35,17 +35,16 @@ func HandleProtocol(uri string) (string, error) {
 	if err != nil || u.Scheme != "spicetify" {
 		return "", err
 	}
-	uuid := u.Fragment
-	response := "spotify:app:rpc:spicetify:" + uuid
+	response := "spotify:app:rpc:" + u.Scheme + ":"
 	action := u.Opaque
 	arguments := u.Query()
 	err = hp(action, arguments)
 	if err == nil {
-		response += ":1"
+		response += "1"
 	} else {
-		response += ":0"
+		response += "0"
 	}
-	return response, err
+	return response + u.RawFragment, err
 }
 
 func hp(action string, arguments url.Values) error {
