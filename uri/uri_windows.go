@@ -58,6 +58,9 @@ func copyExeToBin(bin string) error {
 	}
 	defer src.Close()
 
+	if err := os.MkdirAll(filepath.Dir(bin), 0770); err != nil {
+		return err
+	}
 	dest, err := os.Create(bin)
 	if err != nil {
 		return err
