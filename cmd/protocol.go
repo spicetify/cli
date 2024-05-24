@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"runtime"
 	"spicetify/module"
+	"strings"
 
 	e "spicetify/errors"
 
@@ -23,7 +24,9 @@ var protocolCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		res, err := HandleProtocol(args[0])
-		open(res)
+		if len(res) > 0 {
+			open("spotify:app:rpc:" + res)
+		}
 		if err != nil {
 			log.Panicln(err.Error())
 		}
@@ -35,8 +38,8 @@ func HandleProtocol(uri string) (string, error) {
 	if err != nil || u.Scheme != "spicetify" {
 		return "", err
 	}
-	response := "spotify:app:rpc:" + u.Scheme + ":"
-	action := u.Opaque
+	uuid, action, _ := strings.Cut(u.Opaque, ":")
+	response := u.Scheme + ":" + uuid + ":"
 	arguments := u.Query()
 	err = hp(action, arguments)
 	if err == nil {
@@ -44,7 +47,7 @@ func HandleProtocol(uri string) (string, error) {
 	} else {
 		response += "0"
 	}
-	return response + u.RawFragment, err
+	return response, err
 }
 
 func hp(action string, arguments url.Values) error {
