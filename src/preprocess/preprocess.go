@@ -537,7 +537,8 @@ func exposeAPIs_main(input string) string {
 			return fmt.Sprintf("%sSpicetify.Snackbar.enqueueCustomSnackbar=%s;", submatches[0], submatches[1])
 		})
 
-	utils.Replace( // >= 1.2.38 fix
+	// >= 1.2.38
+	utils.Replace(
 		&input,
 		`(=)[^=]*\(\)\.enqueueCustomSnackbar;`,
 		func(submatches ...string) string {
