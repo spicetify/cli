@@ -15,9 +15,8 @@ import (
 var useLocalPath bool
 
 var pkgCmd = &cobra.Command{
-	Use:   "pkg action",
+	Use:   "pkg",
 	Short: "Manage modules",
-	Run:   func(cmd *cobra.Command, args []string) {},
 }
 
 var pkgInstallCmd = &cobra.Command{
