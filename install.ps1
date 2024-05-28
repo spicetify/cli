@@ -27,7 +27,7 @@ function Test-Admin {
   [CmdletBinding()]
   param ()
   begin {
-    Write-Host -Object "Checking if the script wasn't ran as Administrator..." -NoNewline
+    Write-Host -Object "Checking if the script is not being run as administrator..." -NoNewline
   }
   process {
     $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -64,8 +64,8 @@ function Get-Spicetify {
   [CmdletBinding()]
   param ()
   begin {
-    if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') { 
-      $architecture = 'x64' 
+    if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
+      $architecture = 'x64'
     }
     elseif ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
       $architecture = 'arm64'
@@ -165,13 +165,13 @@ else {
 }
 if (-not (Test-Admin)) {
   Write-Unsuccess
-  Write-Warning -Message "The script was ran as Administrator which isn't recommended"
+  Write-Warning -Message "The script was run as administrator. This can result in problems with the installation process or unexpected behavior. Do not continue if you do not know what you are doing."
   $Host.UI.RawUI.Flushinputbuffer()
   $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
     (New-Object System.Management.Automation.Host.ChoiceDescription '&Yes', 'Abort installation.'),
     (New-Object System.Management.Automation.Host.ChoiceDescription '&No', 'Resume installation.')
   )
-  $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process to avoid any issues?', $choices, 0)
+  $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process?', $choices, 0)
   if ($choice -eq 0) {
     Write-Host -Object 'spicetify installation aborted' -ForegroundColor 'Yellow'
     Pause
@@ -197,7 +197,7 @@ $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
     (New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Install Spicetify Marketplace."),
     (New-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not install Spicetify Marketplace.")
 )
-$choice = $Host.UI.PromptForChoice('', "`nDo you want to install Spicetify Marketplace?", $choices, 0)
+$choice = $Host.UI.PromptForChoice('', "`nDo you also want to install Spicetify Marketplace? It will become available within the Spotify client, where you can easily install themes and extensions.", $choices, 0)
 if ($choice -eq 1) {
   Write-Host -Object 'spicetify Marketplace installation aborted' -ForegroundColor 'Yellow'
 }

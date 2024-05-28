@@ -24,9 +24,9 @@ is_root() {
 }
 
 if ! is_root && [ "${override_root:-0}" -eq 0 ]; then
-    echo "The script was ran as root. Script will now exit"
-    echo "If you did not intend to do this, please run the script without root permissions to avoid issues with Spicetify"
-    echo "You can override this behavior by passing '--root' flag to this script"
+    echo "The script was ran under sudo or as root. The script will now exit"
+    echo "If you hadn't intended to do this, please execute the script without root access to avoid problems with spicetify"
+    echo "To override this behavior, pass the '--root' parameter to this script"
     exit
 fi
 
