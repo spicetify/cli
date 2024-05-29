@@ -529,11 +529,20 @@ func exposeAPIs_main(input string) string {
 			return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
 		})
 
+	// Spotify Custom Snackbar Interfaces
 	utils.Replace(
 		&input,
 		`\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;`,
 		func(submatches ...string) string {
 			return fmt.Sprintf("%sSpicetify.Snackbar.enqueueCustomSnackbar=%s;", submatches[0], submatches[1])
+		})
+
+	// >= 1.2.38
+	utils.Replace(
+		&input,
+		`(=)[^=]*\(\)\.enqueueCustomSnackbar;`,
+		func(submatches ...string) string {
+			return fmt.Sprintf("=Spicetify.Snackbar.enqueueCustomSnackbar%s;", submatches[0])
 		})
 
 	utils.Replace(
