@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"runtime"
 	"spicetify/module"
+	"strings"
 
 	e "spicetify/errors"
 
@@ -23,7 +24,9 @@ var protocolCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		res, err := HandleProtocol(args[0])
-		open(res)
+		if len(res) > 0 {
+			open("spotify:app:rpc:" + res)
+		}
 		if err != nil {
 			log.Panicln(err.Error())
 		}
@@ -35,15 +38,14 @@ func HandleProtocol(uri string) (string, error) {
 	if err != nil || u.Scheme != "spicetify" {
 		return "", err
 	}
-	uuid := u.Fragment
-	response := "spotify:app:rpc:spicetify:" + uuid
-	action := u.Opaque
+	uuid, action, _ := strings.Cut(u.Opaque, ":")
+	response := u.Scheme + ":" + uuid + ":"
 	arguments := u.Query()
 	err = hp(action, arguments)
 	if err == nil {
-		response += ":1"
+		response += "1"
 	} else {
-		response += ":0"
+		response += "0"
 	}
 	return response, err
 }
@@ -51,8 +53,8 @@ func HandleProtocol(uri string) (string, error) {
 func hp(action string, arguments url.Values) error {
 	switch action {
 	case "add":
-		metadataURL := arguments.Get("url")
-		return module.InstallModuleRemote(metadataURL)
+		aurl := arguments.Get("url")
+		return module.InstallRemoteModule(module.ArtifactURL(aurl))
 
 	case "remove":
 		identifier := module.NewStoreIdentifier(arguments.Get("id"))

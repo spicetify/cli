@@ -15,9 +15,8 @@ import (
 var useLocalPath bool
 
 var pkgCmd = &cobra.Command{
-	Use:   "pkg action",
+	Use:   "pkg",
 	Short: "Manage modules",
-	Run:   func(cmd *cobra.Command, args []string) {},
 }
 
 var pkgInstallCmd = &cobra.Command{
@@ -25,13 +24,13 @@ var pkgInstallCmd = &cobra.Command{
 	Short: "Install module",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		metadataURL := args[0]
+		url := args[0]
 
 		var err error
 		if useLocalPath {
-			err = module.InstallModuleLocal(metadataURL)
+			err = module.InstallLocalModule(module.LocalMetadataURL(url))
 		} else {
-			err = module.InstallModuleRemote(metadataURL)
+			err = module.InstallRemoteModule(module.ArtifactURL(url))
 		}
 
 		if err != nil {

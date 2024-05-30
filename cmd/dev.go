@@ -39,14 +39,14 @@ func execDev() error {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(file)
 	content := buf.String()
-	firstLocation := strings.Index(content, "app-developer")
-	firstPatchLocation := int64(firstLocation + 14)
 
-	secondLocation := strings.LastIndex(content, "app-developer")
-	secondPatchLocation := int64(secondLocation + 15)
+	if i := strings.Index(content, "app-developer"); i != -1 {
+		file.WriteAt([]byte("2"), int64(i+14))
+	}
+	if i := strings.LastIndex(content, "app-developer"); i != -1 {
+		file.WriteAt([]byte("2"), int64(i+15))
+	}
 
-	file.WriteAt([]byte{50}, firstPatchLocation)
-	file.WriteAt([]byte{50}, secondPatchLocation)
 	return nil
 }
 

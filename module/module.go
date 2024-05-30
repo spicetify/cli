@@ -6,241 +6,32 @@
 package module
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"path/filepath"
-	"regexp"
-	"slices"
 	"spicetify/archive"
 	"spicetify/paths"
-
-	"github.com/google/go-github/github"
+	"strings"
 )
 
-var client = github.NewClient(nil)
+type ArtifactURL string
+type MetadataURL string
+type LocalMetadataURL string
 
-type Metadata struct {
-	Name        string   `json:"name"`
-	Version     string   `json:"version"`
-	Authors     []string `json:"authors"`
-	Description string   `json:"description"`
-	Tags        []string `json:"tags"`
-	Entries     struct {
-		Js    string `json:"js"`
-		Css   string `json:"css"`
-		Mixin string `json:"mixin"`
-	} `json:"entries"`
-	Dependencies map[string]string `json:"dependencies"`
-}
-
-func (m *Metadata) getAuthor() string {
-	return m.Authors[0]
-}
-
-func (m *Metadata) getModuleIdentifier() ModuleIdentifier {
-	return ModuleIdentifier{
-		Author: Author(m.getAuthor()),
-		Name:   Name(m.Name),
+func (a ArtifactURL) getMetdataURL() MetadataURL {
+	b, found := strings.CutSuffix(string(a), ".zip")
+	if !found {
+		panic("artifact urls must end with .zip")
 	}
-}
-
-func (m *Metadata) getStoreIdentifier() StoreIdentifier {
-	return StoreIdentifier{
-		ModuleIdentifier: m.getModuleIdentifier(),
-		Version:          Version(m.Version),
-	}
-}
-
-type GithubPathVersion struct {
-	__type string
-	commit string
-	tag    string
-	branch string
-}
-
-type VersionedGithubPath struct {
-	owner   string
-	repo    string
-	version GithubPathVersion
-	path    string
-}
-
-var githubRawRe = regexp.MustCompile(`https://raw.githubusercontent.com/(?<owner>[^/]+)/(?<repo>[^/]+)/(?<version>[^/]+)/(?<dirname>.*?)/?(?<basename>[^/])+$`)
-
-func (ghp VersionedGithubPath) getRepoArchiveLink() string {
-	url := "https://github.com/" + ghp.owner + "/" + ghp.repo + "/archive/"
-
-	switch ghp.version.__type {
-	case "commit":
-		url += ghp.version.commit
-
-	case "tag":
-		url += "refs/tags/" + ghp.version.tag
-
-	case "branch":
-		url += "refs/heads/" + ghp.version.branch
-
-	}
-
-	url += ".tar.gz"
-
-	return url
-}
-
-type Store struct {
-	Installed bool        `json:"installed"`
-	Metadatas []RemoteURL `json:"metadatas"`
-}
-
-type Author string
-type Name string
-type Version string
-type ModuleIdentifierStr string
-
-type Module struct {
-	Enabled Version           `json:"enabled"`
-	Remotes []string          `json:"remotes"`
-	V       map[Version]Store `json:"v"`
-}
-type Vault struct {
-	Modules map[ModuleIdentifierStr]Module `json:"modules"`
-}
-
-func (v *Vault) getModule(identifier ModuleIdentifierStr) *Module {
-	module, ok := v.Modules[identifier]
-	if !ok {
-		module = Module{
-			Enabled: "",
-			V:       map[Version]Store{},
-		}
-		v.Modules[identifier] = module
-	}
-	return &module
-}
-
-func (v *Vault) setModule(identifier ModuleIdentifierStr, module *Module) {
-	v.Modules[identifier] = *module
-}
-
-func (v *Vault) getEnabledStore(identifier ModuleIdentifierStr) (*Store, bool) {
-	module := Store{}
-	versions := v.getModule(identifier)
-	module, ok := versions.V[versions.Enabled]
-	return &module, ok
-}
-
-func (v *Vault) getStore(m *Metadata) (*Store, bool) {
-	moduleIdentifier := m.getModuleIdentifier()
-	versions := v.getModule(moduleIdentifier.toPath())
-	store, ok := versions.V[Version(m.Version)]
-	return &store, ok
-}
-
-func (v *Vault) setStore(identifier StoreIdentifier, module *Store) bool {
-	if len(string(identifier.Version)) == 0 {
-		return false
-	}
-	versions := v.getModule(identifier.ModuleIdentifier.toPath())
-	versions.V[identifier.Version] = *module
-	return true
-}
-
-// https://raw.githubusercontent.com/<owner>/<repo>/<branch|tag|commit>/path/to/module/metadata.json
-type RemoteURL = string
-type LocalURL = string
-
-type ModuleIdentifier struct {
-	Author
-	Name
-}
-
-// <owner>/<module>
-var moduleIdentifierRe = regexp.MustCompile(`^(?<author>[^/]+)/(?<name>[^/]+)$`)
-
-func NewModuleIdentifier(identifier string) ModuleIdentifier {
-	parts := moduleIdentifierRe.FindStringSubmatch(identifier)
-	return ModuleIdentifier{
-		Author: Author(parts[1]),
-		Name:   Name(parts[2]),
-	}
-}
-
-func (mi *ModuleIdentifier) toPath() ModuleIdentifierStr {
-	return ModuleIdentifierStr(path.Join(string(mi.Author), string(mi.Name)))
-}
-
-func (mi *ModuleIdentifier) toFilePath() string {
-	return filepath.Join(modulesFolder, string(mi.Author), string(mi.Name))
-}
-
-type StoreIdentifier struct {
-	ModuleIdentifier
-	Version
-}
-
-// <owner>/<module>/<version>
-var storeIdentifierRe = regexp.MustCompile(`^(?<identifier>[^/]+/[^/]+)/(?<version>[^/]*)$`)
-
-func NewStoreIdentifier(identifier string) StoreIdentifier {
-	parts := storeIdentifierRe.FindStringSubmatch(identifier)
-	return StoreIdentifier{
-		ModuleIdentifier: NewModuleIdentifier(parts[1]),
-		Version:          Version(parts[2]),
-	}
-}
-
-func (si *StoreIdentifier) toPath() string {
-	return filepath.Join(string(si.Author), string(si.Name), string(si.Version))
-}
-
-func (si *StoreIdentifier) toFilePath() string {
-	return filepath.Join(storeFolder, string(si.Author), string(si.Name), string(si.Version))
+	return MetadataURL(b + ".metadata.json")
 }
 
 var modulesFolder = filepath.Join(paths.ConfigPath, "modules")
 var storeFolder = filepath.Join(paths.ConfigPath, "store")
 var vaultPath = filepath.Join(modulesFolder, "vault.json")
-
-func GetVault() (*Vault, error) {
-	file, err := os.Open(vaultPath)
-	if err != nil {
-		return &Vault{}, err
-	}
-	defer file.Close()
-
-	var vault Vault
-	err = json.NewDecoder(file).Decode(&vault)
-	return &vault, err
-}
-
-func SetVault(vault *Vault) error {
-	vaultJson, err := json.Marshal(vault)
-	if err != nil {
-		return err
-	}
-
-	os.MkdirAll(modulesFolder, os.ModePerm)
-	return os.WriteFile(vaultPath, vaultJson, 0700)
-}
-
-func MutateVault(mutate func(*Vault) bool) error {
-	vault, err := GetVault()
-	if err != nil {
-		return err
-	}
-
-	if ok := mutate(vault); !ok {
-		return errors.New("failed to mutate vault")
-	}
-
-	return SetVault(vault)
-}
 
 func parseMetadata(r io.Reader) (Metadata, error) {
 	var metadata Metadata
@@ -250,8 +41,8 @@ func parseMetadata(r io.Reader) (Metadata, error) {
 	return metadata, nil
 }
 
-func fetchRemoteMetadata(metadataURL RemoteURL) (Metadata, error) {
-	res, err := http.Get(metadataURL)
+func fetchRemoteMetadata(murl MetadataURL) (Metadata, error) {
+	res, err := http.Get(string(murl))
 	if err != nil {
 		return Metadata{}, err
 	}
@@ -260,8 +51,8 @@ func fetchRemoteMetadata(metadataURL RemoteURL) (Metadata, error) {
 	return parseMetadata(res.Body)
 }
 
-func fetchLocalMetadata(metadataURL LocalURL) (Metadata, error) {
-	file, err := os.Open(metadataURL)
+func fetchLocalMetadata(murl LocalMetadataURL) (Metadata, error) {
+	file, err := os.Open(string(murl))
 	if err != nil {
 		return Metadata{}, err
 	}
@@ -270,75 +61,14 @@ func fetchLocalMetadata(metadataURL LocalURL) (Metadata, error) {
 	return parseMetadata(file)
 }
 
-func parseGithubRawLink(metadataURL RemoteURL) (VersionedGithubPath, error) {
-
-	submatches := githubRawRe.FindStringSubmatch(metadataURL)
-	if submatches == nil {
-		return VersionedGithubPath{}, errors.New("URL cannot be parsed")
-	}
-
-	owner := submatches[1]
-	repo := submatches[2]
-	v := submatches[3]
-	path := submatches[4]
-
-	branches, _, err := client.Repositories.ListBranches(context.Background(), owner, repo, &github.ListOptions{})
-	if err != nil {
-		return VersionedGithubPath{}, err
-	}
-
-	branchNames := []string{}
-
-	for branch := range branches {
-		branchNames = append(branchNames, branches[branch].GetName())
-	}
-
-	var version GithubPathVersion
-	if len(v) == 40 {
-		version = GithubPathVersion{
-			__type: "commit",
-			commit: v,
-		}
-	} else if slices.Contains(branchNames, v) {
-		version = GithubPathVersion{
-			__type: "branch",
-			branch: v,
-		}
-	} else {
-		tag, err := url.QueryUnescape(v)
-		if err != nil {
-			return VersionedGithubPath{}, err
-		}
-
-		version = GithubPathVersion{
-			__type: "tag",
-			tag:    tag,
-		}
-	}
-
-	return VersionedGithubPath{
-		owner,
-		repo,
-		version,
-		path,
-	}, nil
-}
-
-func downloadModuleInStore(metadataURL RemoteURL, storeIdentifier StoreIdentifier) error {
-	githubPath, err := parseGithubRawLink(metadataURL)
-	if err != nil {
-		return err
-	}
-
-	res, err := http.Get(githubPath.getRepoArchiveLink())
+func downloadModuleInStore(aurl ArtifactURL, storeIdentifier StoreIdentifier) error {
+	res, err := http.Get(string(aurl))
 	if err != nil {
 		return err
 	}
 	defer res.Body.Close()
 
-	srcRe := regexp.MustCompile(`^[^/]+/` + githubPath.path + "(.*)")
-
-	return archive.UnTarGZ(res.Body, srcRe, storeIdentifier.toFilePath())
+	return archive.UnTarGZ(res.Body, storeIdentifier.toFilePath())
 }
 
 func deleteModuleInStore(identifier StoreIdentifier) error {
@@ -397,39 +127,39 @@ func RemoveModuleInVault(identifier StoreIdentifier) error {
 	})
 }
 
-func InstallModuleRemote(metadataURL RemoteURL) error {
-	metadata, err := fetchRemoteMetadata(metadataURL)
+func InstallRemoteModule(aurl ArtifactURL) error {
+	metadata, err := fetchRemoteMetadata(aurl.getMetdataURL())
 	if err != nil {
 		return err
 	}
 
 	storeIdentifier := metadata.getStoreIdentifier()
 
-	err = downloadModuleInStore(metadataURL, storeIdentifier)
+	err = downloadModuleInStore(aurl, storeIdentifier)
 	if err != nil {
 		return err
 	}
 
 	return AddModuleInVault(&metadata, &Store{
 		Installed: true,
-		Metadatas: []string{metadataURL},
+		Artifacts: []ArtifactURL{aurl},
 	})
 }
 
-func InstallModuleLocal(metadataURL LocalURL) error {
-	metadata, err := fetchLocalMetadata(metadataURL)
+func InstallLocalModule(murl LocalMetadataURL) error {
+	metadata, err := fetchLocalMetadata(murl)
 	if err != nil {
 		return err
 	}
 
 	storeIdentifier := metadata.getStoreIdentifier()
-	if err := ensureSymlink(filepath.Dir(metadataURL), storeIdentifier.toFilePath()); err != nil {
+	if err := ensureSymlink(filepath.Dir(string(murl)), storeIdentifier.toFilePath()); err != nil {
 		return err
 	}
 
 	return AddModuleInVault(&metadata, &Store{
 		Installed: true,
-		Metadatas: []string{},
+		Artifacts: []ArtifactURL{},
 	})
 }
 
