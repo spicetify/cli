@@ -5,6 +5,8 @@
 
 package module
 
+import "path"
+
 type Metadata struct {
 	Name        string   `json:"name"`
 	Version     string   `json:"version"`
@@ -24,10 +26,7 @@ func (m *Metadata) getAuthor() string {
 }
 
 func (m *Metadata) getModuleIdentifier() ModuleIdentifier {
-	return ModuleIdentifier{
-		Author: Author(m.getAuthor()),
-		Name:   Name(m.Name),
-	}
+	return ModuleIdentifier(path.Join(m.getAuthor(), m.Name))
 }
 
 func (m *Metadata) getStoreIdentifier() StoreIdentifier {

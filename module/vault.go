@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 )
@@ -22,7 +21,11 @@ type Store struct {
 type Author string
 type Name string
 type Version string
-type ModuleIdentifierStr string
+type ModuleIdentifier string
+
+func (mi ModuleIdentifier) toFilePath() string {
+	return filepath.Join(modulesFolder, string(mi))
+}
 
 type Module struct {
 	Enabled Version           `json:"enabled"`
@@ -30,14 +33,15 @@ type Module struct {
 	V       map[Version]Store `json:"v"`
 }
 type Vault struct {
-	Modules map[ModuleIdentifierStr]Module `json:"modules"`
+	Modules map[ModuleIdentifier]Module `json:"modules"`
 }
 
-func (v *Vault) getModule(identifier ModuleIdentifierStr) *Module {
+func (v *Vault) getModule(identifier ModuleIdentifier) *Module {
 	module, ok := v.Modules[identifier]
 	if !ok {
 		module = Module{
 			Enabled: "",
+			Remotes: []string{},
 			V:       map[Version]Store{},
 		}
 		v.Modules[identifier] = module
@@ -45,11 +49,11 @@ func (v *Vault) getModule(identifier ModuleIdentifierStr) *Module {
 	return &module
 }
 
-func (v *Vault) setModule(identifier ModuleIdentifierStr, module *Module) {
+func (v *Vault) setModule(identifier ModuleIdentifier, module *Module) {
 	v.Modules[identifier] = *module
 }
 
-func (v *Vault) getEnabledStore(identifier ModuleIdentifierStr) (*Store, bool) {
+func (v *Vault) getEnabledStore(identifier ModuleIdentifier) (*Store, bool) {
 	module := Store{}
 	versions := v.getModule(identifier)
 	module, ok := versions.V[versions.Enabled]
@@ -58,7 +62,7 @@ func (v *Vault) getEnabledStore(identifier ModuleIdentifierStr) (*Store, bool) {
 
 func (v *Vault) getStore(m *Metadata) (*Store, bool) {
 	moduleIdentifier := m.getModuleIdentifier()
-	versions := v.getModule(moduleIdentifier.toPath())
+	versions := v.getModule(moduleIdentifier)
 	store, ok := versions.V[Version(m.Version)]
 	return &store, ok
 }
@@ -67,7 +71,7 @@ func (v *Vault) setStore(identifier StoreIdentifier, module *Store) bool {
 	if len(string(identifier.Version)) == 0 {
 		return false
 	}
-	versions := v.getModule(identifier.ModuleIdentifier.toPath())
+	versions := v.getModule(identifier.ModuleIdentifier)
 	versions.V[identifier.Version] = *module
 	return true
 }
@@ -107,50 +111,26 @@ func MutateVault(mutate func(*Vault) bool) error {
 	return SetVault(vault)
 }
 
-type ModuleIdentifier struct {
-	Author
-	Name
-}
-
-// <owner>/<module>
-var moduleIdentifierRe = regexp.MustCompile(`^(?<author>[^/]+)/(?<name>[^/]+)$`)
-
-func NewModuleIdentifier(identifier string) ModuleIdentifier {
-	parts := moduleIdentifierRe.FindStringSubmatch(identifier)
-	return ModuleIdentifier{
-		Author: Author(parts[1]),
-		Name:   Name(parts[2]),
-	}
-}
-
-func (mi *ModuleIdentifier) toPath() ModuleIdentifierStr {
-	return ModuleIdentifierStr(path.Join(string(mi.Author), string(mi.Name)))
-}
-
-func (mi *ModuleIdentifier) toFilePath() string {
-	return filepath.Join(modulesFolder, string(mi.Author), string(mi.Name))
-}
-
 type StoreIdentifier struct {
 	ModuleIdentifier
 	Version
 }
 
-// <owner>/<module>/<version>
-var storeIdentifierRe = regexp.MustCompile(`^(?<identifier>[^/]+/[^/]+)/(?<version>[^/]*)$`)
+// <module_identifier>@<version>
+var storeIdentifierRe = regexp.MustCompile(`^(?<module_identifier>[^@]+)@(?<version>[^@]*)$`)
 
 func NewStoreIdentifier(identifier string) StoreIdentifier {
 	parts := storeIdentifierRe.FindStringSubmatch(identifier)
 	return StoreIdentifier{
-		ModuleIdentifier: NewModuleIdentifier(parts[1]),
+		ModuleIdentifier: ModuleIdentifier(parts[1]),
 		Version:          Version(parts[2]),
 	}
 }
 
 func (si *StoreIdentifier) toPath() string {
-	return filepath.Join(string(si.Author), string(si.Name), string(si.Version))
+	return string(si.ModuleIdentifier) + "@" + string(si.Version)
 }
 
 func (si *StoreIdentifier) toFilePath() string {
-	return filepath.Join(storeFolder, string(si.Author), string(si.Name), string(si.Version))
+	return filepath.Join(storeFolder, string(si.ModuleIdentifier), string(si.Version))
 }

@@ -19,14 +19,19 @@ import (
 
 type ArtifactURL string
 type MetadataURL string
+type LocalModuleURL string
 type LocalMetadataURL string
 
-func (a ArtifactURL) getMetdataURL() MetadataURL {
-	b, found := strings.CutSuffix(string(a), ".zip")
+func (u ArtifactURL) getMetdataURL() MetadataURL {
+	b, found := strings.CutSuffix(string(u), ".zip")
 	if !found {
 		panic("artifact urls must end with .zip")
 	}
 	return MetadataURL(b + ".metadata.json")
+}
+
+func (u LocalModuleURL) getLocalMetdataURL() LocalMetadataURL {
+	return LocalMetadataURL(filepath.Join(string(u), "metadata.json"))
 }
 
 var modulesFolder = filepath.Join(paths.ConfigPath, "modules")
@@ -87,7 +92,7 @@ func ToggleModuleInVault(identifier StoreIdentifier) error {
 		return err
 	}
 
-	module := vault.getModule(identifier.ModuleIdentifier.toPath())
+	module := vault.getModule(identifier.ModuleIdentifier)
 
 	if module.Enabled == identifier.Version {
 		return nil
@@ -100,7 +105,7 @@ func ToggleModuleInVault(identifier StoreIdentifier) error {
 	}
 
 	module.Enabled = identifier.Version
-	vault.setModule(identifier.ModuleIdentifier.toPath(), module)
+	vault.setModule(identifier.ModuleIdentifier, module)
 
 	destroySymlink(identifier.ModuleIdentifier)
 	if len(module.Enabled) > 0 {
@@ -114,7 +119,7 @@ func ToggleModuleInVault(identifier StoreIdentifier) error {
 
 func RemoveModuleInVault(identifier StoreIdentifier) error {
 	return MutateVault(func(vault *Vault) bool {
-		module := vault.getModule(identifier.ModuleIdentifier.toPath())
+		module := vault.getModule(identifier.ModuleIdentifier)
 
 		if module.Enabled == identifier.Version {
 			module.Enabled = ""
@@ -122,7 +127,7 @@ func RemoveModuleInVault(identifier StoreIdentifier) error {
 		}
 
 		delete(module.V, identifier.Version)
-		vault.setModule(identifier.ModuleIdentifier.toPath(), module)
+		vault.setModule(identifier.ModuleIdentifier, module)
 		return true
 	})
 }
@@ -146,14 +151,14 @@ func InstallRemoteModule(aurl ArtifactURL) error {
 	})
 }
 
-func InstallLocalModule(murl LocalMetadataURL) error {
-	metadata, err := fetchLocalMetadata(murl)
+func InstallLocalModule(murl LocalModuleURL) error {
+	metadata, err := fetchLocalMetadata(murl.getLocalMetdataURL())
 	if err != nil {
 		return err
 	}
 
 	storeIdentifier := metadata.getStoreIdentifier()
-	if err := ensureSymlink(filepath.Dir(string(murl)), storeIdentifier.toFilePath()); err != nil {
+	if err := ensureSymlink(string(murl), storeIdentifier.toFilePath()); err != nil {
 		return err
 	}
 

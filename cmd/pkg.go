@@ -28,7 +28,7 @@ var pkgInstallCmd = &cobra.Command{
 
 		var err error
 		if useLocalPath {
-			err = module.InstallLocalModule(module.LocalMetadataURL(url))
+			err = module.InstallLocalModule(module.LocalModuleURL(url))
 		} else {
 			err = module.InstallRemoteModule(module.ArtifactURL(url))
 		}

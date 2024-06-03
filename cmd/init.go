@@ -6,9 +6,9 @@
 package cmd
 
 import (
+	"log"
 	"spicetify/module"
 	"spicetify/uri"
-	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -34,9 +34,11 @@ func execInit() error {
 		log.Println(err.Error())
 	}
 
-	return module.SetVault(&module.Vault{Modules: map[module.ModuleIdentifierStr]module.Module{
+	return module.SetVault(&module.Vault{Modules: map[module.ModuleIdentifier]module.Module{
 		"official/stdlib": {
+			Enabled: "",
 			Remotes: []string{"https://github.com/spicetify/stdlib/repo.json"},
+			V:       map[module.Version]module.Store{},
 		},
 	}})
 }

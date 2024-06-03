@@ -63,7 +63,6 @@ func hp(action string, arguments url.Values) error {
 	case "enable":
 		identifier := module.NewStoreIdentifier(arguments.Get("id"))
 		return module.ToggleModuleInVault(identifier)
-
 	}
 	return e.ErrUnsupportedOperation
 }
