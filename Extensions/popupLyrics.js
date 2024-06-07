@@ -80,18 +80,19 @@ function PopupLyrics() {
 
 	const LyricProviders = {
 		async fetchSpotify(info) {
-			const baseURL = "https://spclient.wg.spotify.com/lyrics/v1/track/";
+			const baseURL = "https://spclient.wg.spotify.com/color-lyrics/v2/track/";
 			const id = info.uri.split(":")[2];
-			const body = await CosmosAsync.get(baseURL + id);
+			const body = await CosmosAsync.get(`${baseURL + id}?format=json&vocalRemoval=false&market=from_token`);
 
-			const lines = body.lines;
-			if (!lines || !lines.length || typeof lines[0].time !== "number") {
+			const lyricsData = body.lyrics;
+			if (!lyricsData || lyricsData.syncType !== "LINE_SYNCED") {
 				return { error: "No lyrics" };
 			}
 
+			const lines = lyricsData.lines;
 			const lyrics = lines.map(a => ({
-				startTime: a.time / 1000,
-				text: a.words.map(b => b.string).join(" ")
+				startTime: a.startTimeMs / 1000,
+				text: a.words
 			}));
 
 			return { lyrics };

@@ -9,33 +9,34 @@ const Providers = {
 			copyright: null
 		};
 
-		const baseURL = "https://spclient.wg.spotify.com/lyrics/v1/track/";
+		const baseURL = "https://spclient.wg.spotify.com/color-lyrics/v2/track/";
 		const id = info.uri.split(":")[2];
 		let body;
 		try {
-			body = await Spicetify.CosmosAsync.get(baseURL + id);
+			body = await Spicetify.CosmosAsync.get(`${baseURL + id}?format=json&vocalRemoval=false&market=from_token`);
 		} catch {
 			return { error: "Request error", uri: info.uri };
 		}
 
-		const lines = body.lines;
-		if (!lines || !lines.length) {
+		const lyrics = body.lyrics;
+		if (!lyrics) {
 			return { error: "No lyrics", uri: info.uri };
 		}
 
-		if (typeof lines[0].time === "number") {
+		const lines = lyrics.lines;
+		if (lyrics.syncType === "LINE_SYNCED") {
 			result.synced = lines.map(line => ({
-				startTime: line.time,
-				text: line.words.map(b => b.string).join(" ")
+				startTime: line.startTimeMs,
+				text: line.words
 			}));
 			result.unsynced = result.synced;
 		} else {
-			result.unsynced = lines.map(line => ({
-				text: line.words.map(b => b.string).join(" ")
+			result.unsynced = lyrics.map(line => ({
+				text: line.words
 			}));
 		}
 
-		result.provider = body.provider;
+		result.provider = lyrics.provider;
 
 		return result;
 	},
