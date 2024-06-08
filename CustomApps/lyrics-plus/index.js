@@ -72,6 +72,11 @@ const CONFIG = {
 			desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
 			modes: [KARAOKE, SYNCED, UNSYNCED]
 		},
+		lrclib: {
+			on: getConfig("lyrics-plus:provider:lrclib:on"),
+			desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
+			modes: [SYNCED, UNSYNCED]
+		},
 		genius: {
 			on: spotifyVersion >= "1.2.31" ? false : getConfig("lyrics-plus:provider:genius:on"),
 			desc: "Provide unsynced lyrics with insights from artists themselves. Genius is disabled and cannot be used as a provider on <code>1.2.31</code> and higher.",

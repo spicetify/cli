@@ -71,6 +71,7 @@
 		"ProviderNetease.js",
 		"ProviderMusixmatch.js",
 		"ProviderGenius.js",
+		"ProviderLRCLIB.js",
 		"Providers.js",
 		"Pages.js",
 		"OptionsMenu.js",
