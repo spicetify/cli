@@ -107,7 +107,7 @@
 	// Functions
 	function focusOnApp() {
 		return document.querySelector(
-			".Root__main-view .os-viewport, .Root__main-view .main-view-container__scroll-node, .Root__main-view .main-view-container__scroll-node > [data-overlayscrollbars-viewport]"
+			".Root__main-view .os-viewport, .Root__main-view .main-view-container > .main-view-container__scroll-node:not([data-overlayscrollbars-initialize]), .Root__main-view .main-view-container__scroll-node > [data-overlayscrollbars-viewport]"
 		);
 	}
 
