@@ -25,7 +25,7 @@ var protocolCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		res, err := HandleProtocol(args[0])
 		if len(res) > 0 {
-			open("spotify:app:rpc:" + res)
+			open("spotify:app:spicetify:" + res)
 		}
 		if err != nil {
 			log.Panicln(err.Error())
