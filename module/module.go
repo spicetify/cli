@@ -18,6 +18,7 @@ import (
 )
 
 type ArtifactURL string
+type ProviderURL string
 type MetadataURL string
 type LocalModuleURL string
 type LocalMetadataURL string
@@ -148,6 +149,7 @@ func InstallRemoteModule(aurl ArtifactURL) error {
 	return AddModuleInVault(&metadata, &Store{
 		Installed: true,
 		Artifacts: []ArtifactURL{aurl},
+		Providers: []ProviderURL{},
 	})
 }
 
@@ -165,6 +167,7 @@ func InstallLocalModule(murl LocalModuleURL) error {
 	return AddModuleInVault(&metadata, &Store{
 		Installed: true,
 		Artifacts: []ArtifactURL{},
+		Providers: []ProviderURL{},
 	})
 }
 

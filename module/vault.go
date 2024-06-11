@@ -16,6 +16,7 @@ import (
 type Store struct {
 	Installed bool          `json:"installed"`
 	Artifacts []ArtifactURL `json:"artifacts"`
+	Providers []ProviderURL `json:"providers"`
 }
 
 type Author string
@@ -29,7 +30,6 @@ func (mi ModuleIdentifier) toFilePath() string {
 
 type Module struct {
 	Enabled Version           `json:"enabled"`
-	Remotes []string          `json:"remotes"`
 	V       map[Version]Store `json:"v"`
 }
 type Vault struct {
@@ -41,7 +41,6 @@ func (v *Vault) getModule(identifier ModuleIdentifier) *Module {
 	if !ok {
 		module = Module{
 			Enabled: "",
-			Remotes: []string{},
 			V:       map[Version]Store{},
 		}
 		v.Modules[identifier] = module
