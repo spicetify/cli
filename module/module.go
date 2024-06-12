@@ -10,6 +10,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"spicetify/archive"
@@ -17,22 +18,53 @@ import (
 	"strings"
 )
 
-type ArtifactURL string
+type AURL interface {
+	GetMetdata() (Metadata, error)
+	install(storeIdentifier StoreIdentifier) error
+}
+
 type ProviderURL string
-type MetadataURL string
-type LocalModuleURL string
+type ArtifactURL string
+type RemoteArtifactURL string
+type RemoteMetadataURL string
+type LocalArtifactURL string
 type LocalMetadataURL string
 
-func (u ArtifactURL) getMetdataURL() MetadataURL {
+func isUrl(str string) bool {
+	u, err := url.Parse(str)
+	return err == nil && u.Scheme != "" && u.Host != ""
+}
+
+func (u ArtifactURL) Parse() AURL {
+	if isUrl(string(u)) {
+		return RemoteArtifactURL(u)
+	}
+	return LocalArtifactURL(u)
+}
+
+func (u RemoteArtifactURL) GetMetdata() (Metadata, error) {
 	b, found := strings.CutSuffix(string(u), ".zip")
 	if !found {
 		panic("artifact urls must end with .zip")
 	}
-	return MetadataURL(b + ".metadata.json")
+
+	murl := RemoteMetadataURL(b + ".metadata.json")
+
+	return fetchRemoteMetadata(murl)
 }
 
-func (u LocalModuleURL) getLocalMetdataURL() LocalMetadataURL {
-	return LocalMetadataURL(filepath.Join(string(u), "metadata.json"))
+func (u RemoteArtifactURL) install(storeIdentifier StoreIdentifier) error {
+	return downloadModuleInStore(u, storeIdentifier)
+}
+
+func (u LocalArtifactURL) GetMetdata() (Metadata, error) {
+	murl := LocalMetadataURL(filepath.Join(string(u), "metadata.json"))
+
+	return fetchLocalMetadata(murl)
+}
+
+func (u LocalArtifactURL) install(storeIdentifier StoreIdentifier) error {
+	return ensureSymlink(string(u), storeIdentifier.toFilePath())
 }
 
 var modulesFolder = filepath.Join(paths.ConfigPath, "modules")
@@ -47,7 +79,7 @@ func parseMetadata(r io.Reader) (Metadata, error) {
 	return metadata, nil
 }
 
-func fetchRemoteMetadata(murl MetadataURL) (Metadata, error) {
+func fetchRemoteMetadata(murl RemoteMetadataURL) (Metadata, error) {
 	res, err := http.Get(string(murl))
 	if err != nil {
 		return Metadata{}, err
@@ -67,7 +99,7 @@ func fetchLocalMetadata(murl LocalMetadataURL) (Metadata, error) {
 	return parseMetadata(file)
 }
 
-func downloadModuleInStore(aurl ArtifactURL, storeIdentifier StoreIdentifier) error {
+func downloadModuleInStore(aurl RemoteArtifactURL, storeIdentifier StoreIdentifier) error {
 	res, err := http.Get(string(aurl))
 	if err != nil {
 		return err
@@ -81,13 +113,30 @@ func deleteModuleInStore(identifier StoreIdentifier) error {
 	return os.RemoveAll(identifier.toFilePath())
 }
 
-func AddModuleInVault(metadata *Metadata, module *Store) error {
+func AddStoreInVault(storeIdentifier StoreIdentifier, store *Store) error {
 	return MutateVault(func(vault *Vault) bool {
-		return vault.setStore(metadata.getStoreIdentifier(), module)
+		return vault.setStore(storeIdentifier, store)
 	})
 }
 
-func ToggleModuleInVault(identifier StoreIdentifier) error {
+func InstallModule(storeIdentifier StoreIdentifier) error {
+	vault, err := GetVault()
+	if err != nil {
+		return err
+	}
+
+	store, ok := vault.getStore(storeIdentifier)
+	if !ok {
+		return errors.New("Can't find store " + storeIdentifier.toPath())
+	}
+
+	// TODO: add more options
+	aurl := store.Artifacts[0]
+
+	return aurl.Parse().install(storeIdentifier)
+}
+
+func EnableModuleInVault(identifier StoreIdentifier) error {
 	vault, err := GetVault()
 	if err != nil {
 		return err
@@ -118,7 +167,25 @@ func ToggleModuleInVault(identifier StoreIdentifier) error {
 	return SetVault(vault)
 }
 
-func RemoveModuleInVault(identifier StoreIdentifier) error {
+func DeleteModule(identifier StoreIdentifier) error {
+	if err := MutateVault(func(vault *Vault) bool {
+		module := vault.getModule(identifier.ModuleIdentifier)
+
+		if module.Enabled == identifier.Version {
+			module.Enabled = ""
+			destroySymlink(identifier.ModuleIdentifier)
+		}
+
+		vault.setModule(identifier.ModuleIdentifier, module)
+		return true
+	}); err != nil {
+		return err
+	}
+
+	return deleteModuleInStore(identifier)
+}
+
+func RemoveStoreInVault(identifier StoreIdentifier) error {
 	return MutateVault(func(vault *Vault) bool {
 		module := vault.getModule(identifier.ModuleIdentifier)
 
@@ -131,51 +198,6 @@ func RemoveModuleInVault(identifier StoreIdentifier) error {
 		vault.setModule(identifier.ModuleIdentifier, module)
 		return true
 	})
-}
-
-func InstallRemoteModule(aurl ArtifactURL) error {
-	metadata, err := fetchRemoteMetadata(aurl.getMetdataURL())
-	if err != nil {
-		return err
-	}
-
-	storeIdentifier := metadata.getStoreIdentifier()
-
-	err = downloadModuleInStore(aurl, storeIdentifier)
-	if err != nil {
-		return err
-	}
-
-	return AddModuleInVault(&metadata, &Store{
-		Installed: true,
-		Artifacts: []ArtifactURL{aurl},
-		Providers: []ProviderURL{},
-	})
-}
-
-func InstallLocalModule(murl LocalModuleURL) error {
-	metadata, err := fetchLocalMetadata(murl.getLocalMetdataURL())
-	if err != nil {
-		return err
-	}
-
-	storeIdentifier := metadata.getStoreIdentifier()
-	if err := ensureSymlink(string(murl), storeIdentifier.toFilePath()); err != nil {
-		return err
-	}
-
-	return AddModuleInVault(&metadata, &Store{
-		Installed: true,
-		Artifacts: []ArtifactURL{},
-		Providers: []ProviderURL{},
-	})
-}
-
-func DeleteModule(identifier StoreIdentifier) error {
-	if err := RemoveModuleInVault(identifier); err != nil {
-		return err
-	}
-	return deleteModuleInStore(identifier)
 }
 
 func ensureSymlink(oldname string, newname string) error {

@@ -25,13 +25,15 @@ func (m *Metadata) getAuthor() string {
 	return m.Authors[0]
 }
 
-func (m *Metadata) getModuleIdentifier() ModuleIdentifier {
+// TODO: avoid usage
+func (m *Metadata) GetModuleIdentifier() ModuleIdentifier {
 	return ModuleIdentifier(path.Join(m.getAuthor(), m.Name))
 }
 
-func (m *Metadata) getStoreIdentifier() StoreIdentifier {
+// TODO: avoid usage
+func (m *Metadata) GetStoreIdentifier() StoreIdentifier {
 	return StoreIdentifier{
-		ModuleIdentifier: m.getModuleIdentifier(),
+		ModuleIdentifier: m.GetModuleIdentifier(),
 		Version:          Version(m.Version),
 	}
 }

@@ -53,16 +53,41 @@ func HandleProtocol(uri string) (string, error) {
 func hp(action string, arguments url.Values) error {
 	switch action {
 	case "add":
-		aurl := arguments.Get("url")
-		return module.InstallRemoteModule(module.ArtifactURL(aurl))
+		_artifacts := arguments["artifacts"]
+		_providers := arguments["providers"]
 
-	case "remove":
 		identifier := module.NewStoreIdentifier(arguments.Get("id"))
-		return module.DeleteModule(identifier)
+		artifacts := make([]module.ArtifactURL, len(_artifacts))
+		for i, a := range _artifacts {
+			artifacts[i] = module.ArtifactURL(a)
+		}
+		providers := make([]module.ProviderURL, len(_providers))
+		for i, p := range _providers {
+			providers[i] = module.ProviderURL(p)
+		}
+
+		return module.AddStoreInVault(identifier, &module.Store{
+			Installed: false,
+			Artifacts: artifacts,
+			Providers: providers,
+		})
+
+	case "install":
+		identifier := module.NewStoreIdentifier(arguments.Get("id"))
+		return module.InstallModule(identifier)
 
 	case "enable":
 		identifier := module.NewStoreIdentifier(arguments.Get("id"))
-		return module.ToggleModuleInVault(identifier)
+		return module.EnableModuleInVault(identifier)
+
+	case "delete":
+		identifier := module.NewStoreIdentifier(arguments.Get("id"))
+		return module.DeleteModule(identifier)
+
+	case "remove":
+		identifier := module.NewStoreIdentifier(arguments.Get("id"))
+		return module.RemoveStoreInVault(identifier)
+
 	}
 	return e.ErrUnsupportedOperation
 }

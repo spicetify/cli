@@ -32,9 +32,15 @@ func GetPlatformSpotifyPath() (string, error) {
 		"/var/lib/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		paths = append(paths, filepath.Join(home, ".local/share/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/"), filepath.Join(home, ".local/share/spotify-launcher/install/usr/share/spotify/"))
+	homeRelativePaths := []string{
+		".local/share/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
+		".local/share/spotify-launcher/install/usr/share/spotify/",
+	}
+
+	if home, err := os.UserHomeDir(); err != nil {
+		for _, path := range homeRelativePaths {
+			paths = append(paths, filepath.Join(home, path))
+		}
 	}
 
 	for _, path := range paths {

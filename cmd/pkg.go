@@ -12,8 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var useLocalPath bool
-
 var pkgCmd = &cobra.Command{
 	Use:   "pkg",
 	Short: "Manage modules",
@@ -25,16 +23,29 @@ var pkgInstallCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		url := args[0]
+		aurl := module.ArtifactURL(url)
+		paurl := aurl.Parse()
 
-		var err error
-		if useLocalPath {
-			err = module.InstallLocalModule(module.LocalModuleURL(url))
-		} else {
-			err = module.InstallRemoteModule(module.ArtifactURL(url))
-		}
-
+		metadata, err := paurl.GetMetdata()
 		if err != nil {
 			log.Fatalln(err.Error())
+			return
+		}
+
+		storeIdentifier := metadata.GetStoreIdentifier()
+
+		if err := module.AddStoreInVault(storeIdentifier, &module.Store{
+			Installed: false,
+			Artifacts: []module.ArtifactURL{aurl},
+			Providers: []module.ProviderURL{},
+		}); err != nil {
+			log.Fatalln(err.Error())
+			return
+		}
+
+		if err := module.InstallModule(storeIdentifier); err != nil {
+			log.Fatalln(err.Error())
+			return
 		}
 	},
 }
@@ -47,6 +58,12 @@ var pkgDeleteCmd = &cobra.Command{
 		identifier := module.NewStoreIdentifier(args[0])
 		if err := module.DeleteModule(identifier); err != nil {
 			log.Fatalln(err.Error())
+			return
+		}
+
+		if err := module.RemoveStoreInVault(identifier); err != nil {
+			log.Fatalln(err.Error())
+			return
 		}
 	},
 }
@@ -57,7 +74,7 @@ var pkgEnableCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		identifier := module.NewStoreIdentifier(args[0])
-		if err := module.ToggleModuleInVault(identifier); err != nil {
+		if err := module.EnableModuleInVault(identifier); err != nil {
 			log.Fatalln(err.Error())
 		}
 	},
@@ -67,6 +84,4 @@ func init() {
 	rootCmd.AddCommand(pkgCmd)
 
 	pkgCmd.AddCommand(pkgInstallCmd, pkgDeleteCmd, pkgEnableCmd)
-
-	pkgInstallCmd.Flags().BoolVar(&useLocalPath, "local", false, "Use local path")
 }

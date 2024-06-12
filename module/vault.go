@@ -59,10 +59,9 @@ func (v *Vault) getEnabledStore(identifier ModuleIdentifier) (*Store, bool) {
 	return &module, ok
 }
 
-func (v *Vault) getStore(m *Metadata) (*Store, bool) {
-	moduleIdentifier := m.getModuleIdentifier()
-	versions := v.getModule(moduleIdentifier)
-	store, ok := versions.V[Version(m.Version)]
+func (v *Vault) getStore(identifier StoreIdentifier) (*Store, bool) {
+	versions := v.getModule(identifier.ModuleIdentifier)
+	store, ok := versions.V[identifier.Version]
 	return &store, ok
 }
 
