@@ -36,7 +36,7 @@ const ProviderLRCLIB = (() => {
 
 		if (!unsyncedLyrics) return null;
 
-		return unsyncedLyrics.split("\n").map(text => ({ text }));
+		return Utils.parseLocalLyrics(syncedLyrics).unsynced;
 	}
 
 	function getSynced(body) {
