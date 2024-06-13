@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"spicetify/paths"
@@ -27,7 +28,7 @@ var daemonCmd = &cobra.Command{
 	Short: "Run daemon",
 	Run: func(cmd *cobra.Command, args []string) {
 		if daemon {
-			log.Println("Starting daemon")
+			fmt.Println("Starting daemon")
 			startDaemon()
 		}
 	},
@@ -37,7 +38,7 @@ var daemonStartCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start daemon",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Starting daemon")
+		fmt.Println("Starting daemon")
 		startDaemon()
 	},
 }
@@ -47,9 +48,10 @@ var daemonEnableCmd = &cobra.Command{
 	Short: "Enable daemon",
 	Run: func(cmd *cobra.Command, args []string) {
 		if daemon {
-			log.Panicln("Daemon already enabled")
+			fmt.Println("Daemon already enabled")
+			return
 		}
-		log.Println("Enabling daemon")
+		fmt.Println("Enabling daemon")
 		daemon = true
 		viper.Set("daemon", daemon)
 		viper.WriteConfig()
@@ -60,7 +62,7 @@ var daemonDisableCmd = &cobra.Command{
 	Use:   "disable",
 	Short: "Disable daemon",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Disabling daemon")
+		fmt.Println("Disabling daemon")
 		daemon = false
 		viper.Set("daemon", daemon)
 		viper.WriteConfig()
@@ -105,7 +107,7 @@ func startDaemon() {
 				if event.Has(fsnotify.Create) {
 					if strings.HasSuffix(event.Name, "xpui.spa") {
 						if err := execApply(); err != nil {
-							log.Println(err.Error())
+							log.Println(err)
 						}
 					}
 				}
@@ -123,8 +125,7 @@ func startDaemon() {
 		}
 	}()
 
-	err = watcher.Add(paths.GetSpotifyAppsPath(spotifyDataPath))
-	if err != nil {
+	if err := watcher.Add(paths.GetSpotifyAppsPath(spotifyDataPath)); err != nil {
 		log.Fatalln(err)
 	}
 

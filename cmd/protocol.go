@@ -6,7 +6,7 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"net/url"
 	"os/exec"
 	"runtime"
@@ -28,7 +28,7 @@ var protocolCmd = &cobra.Command{
 			open("spotify:app:spicetify:" + res)
 		}
 		if err != nil {
-			log.Panicln(err.Error())
+			fmt.Println(err)
 		}
 	},
 }

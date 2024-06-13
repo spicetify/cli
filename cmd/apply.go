@@ -6,7 +6,7 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"path/filepath"
 	"spicetify/archive"
@@ -22,7 +22,7 @@ var applyCmd = &cobra.Command{
 	Short: "Apply spicetify patches on Spotify",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := execApply(); err != nil {
-			log.Panicln(err.Error())
+			fmt.Println(err)
 		}
 	},
 }
@@ -40,13 +40,13 @@ func getApps() (src string, dest string) {
 func extractSpa(spa string, destFolder string) error {
 	basename := filepath.Base(spa)
 	extractDest := filepath.Join(destFolder, strings.TrimSuffix(basename, ".spa"))
-	log.Println("Extracting", spa, "->", extractDest)
+	fmt.Println("Extracting", spa, "->", extractDest)
 	if err := archive.UnZip(spa, extractDest); err != nil {
 		return err
 	}
 	if !mirror {
 		spaBak := spa + ".bak"
-		log.Println("Moving", spa, "->", spaBak)
+		fmt.Println("Moving", spa, "->", spaBak)
 		if err := os.Rename(spa, spaBak); err != nil {
 			return err
 		}
@@ -66,7 +66,7 @@ func patchFile(path string, patch func(string) string) error {
 }
 
 func patchIndexHtml(destXpuiPath string) error {
-	log.Println("Patching xpui/index.html")
+	fmt.Println("Patching xpui/index.html")
 	return patchFile(filepath.Join(destXpuiPath, "index.html"), func(s string) string {
 		return strings.Replace(s, `<script defer="defer" src="/vendor~xpui.js"></script><script defer="defer" src="/xpui.js"></script>`, `<script type="module" src="/hooks/index.js"></script>`, 1)
 	})
@@ -77,7 +77,7 @@ func linkFiles(destXpuiPath string) error {
 	for _, folder := range folders {
 		folderSrcPath := filepath.Join(paths.ConfigPath, folder)
 		folderDestPath := filepath.Join(destXpuiPath, folder)
-		log.Println("Linking", folderDestPath, "->", folderSrcPath)
+		fmt.Println("Linking", folderDestPath, "->", folderSrcPath)
 		if err := link.Create(folderSrcPath, folderDestPath); err != nil {
 			return err
 		}
@@ -86,7 +86,7 @@ func linkFiles(destXpuiPath string) error {
 }
 
 func execApply() error {
-	log.Println("Initializing spicetify")
+	fmt.Println("Initializing spicetify")
 	src, dest := getApps()
 
 	spa := filepath.Join(src, "xpui.spa")

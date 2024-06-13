@@ -7,7 +7,7 @@ package cmd
 
 import (
 	"bytes"
-	"log"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,11 +19,12 @@ var devCmd = &cobra.Command{
 	Use:   "dev",
 	Short: "Patch Spotify to open in app-developer mode next time it launches",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := execDev(); err == nil {
-			log.Println("Mode app-developer enabled for next launch")
-		} else {
-			log.Fatalln(err.Error())
+		if err := execDev(); err != nil {
+			fmt.Println(err)
+			return
 		}
+		fmt.Println("Mode app-developer enabled for next launch")
+
 	},
 }
 

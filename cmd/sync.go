@@ -6,7 +6,7 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"spicetify/archive"
@@ -20,8 +20,10 @@ var syncCmd = &cobra.Command{
 	Short: "Update spicetify hooks from GitHub",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := installHooks(); err != nil {
-			log.Panicln(err.Error())
+			fmt.Println(err)
+			return
 		}
+		fmt.Println("Hooks updated successfully")
 	},
 }
 

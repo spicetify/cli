@@ -55,7 +55,7 @@ func (u RemoteArtifactURL) GetMetdata() (Metadata, error) {
 }
 
 func (u RemoteArtifactURL) install(storeIdentifier StoreIdentifier) error {
-	return downloadModuleInStore(u, storeIdentifier)
+	return downloadModuleToStore(u, storeIdentifier)
 }
 
 func (u LocalArtifactURL) GetMetdata() (Metadata, error) {
@@ -100,7 +100,7 @@ func fetchLocalMetadata(murl LocalMetadataURL) (Metadata, error) {
 	return parseMetadata(file)
 }
 
-func downloadModuleInStore(aurl RemoteArtifactURL, storeIdentifier StoreIdentifier) error {
+func downloadModuleToStore(aurl RemoteArtifactURL, storeIdentifier StoreIdentifier) error {
 	res, err := http.Get(string(aurl))
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func downloadModuleInStore(aurl RemoteArtifactURL, storeIdentifier StoreIdentifi
 	return archive.UnTarGZ(res.Body, storeIdentifier.toFilePath())
 }
 
-func deleteModuleInStore(identifier StoreIdentifier) error {
+func deleteModuleFromStore(identifier StoreIdentifier) error {
 	return os.RemoveAll(identifier.toFilePath())
 }
 
@@ -140,7 +140,7 @@ func InstallModule(storeIdentifier StoreIdentifier) error {
 
 	store.Installed = true
 	vault.setStore(storeIdentifier, store)
-	return nil
+	return SetVault(vault)
 }
 
 func EnableModuleInVault(identifier StoreIdentifier) error {
@@ -194,7 +194,7 @@ func DeleteModule(identifier StoreIdentifier) error {
 		return err
 	}
 
-	return deleteModuleInStore(identifier)
+	return deleteModuleFromStore(identifier)
 }
 
 func RemoveStoreInVault(identifier StoreIdentifier) error {

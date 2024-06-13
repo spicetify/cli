@@ -114,7 +114,6 @@ type StoreIdentifier struct {
 	Version
 }
 
-// <module_identifier>@<version>
 var storeIdentifierRe = regexp.MustCompile(`^(?<module_identifier>[^@]+)@(?<version>[^@]*)$`)
 
 func NewStoreIdentifier(identifier string) StoreIdentifier {

@@ -6,7 +6,7 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"spicetify/module"
 
 	"github.com/spf13/cobra"
@@ -18,64 +18,67 @@ var pkgCmd = &cobra.Command{
 }
 
 var pkgInstallCmd = &cobra.Command{
-	Use:   "install murl",
-	Short: "Install module",
+	Use:   "install url",
+	Short: "Add and Install module",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		url := args[0]
 		aurl := module.ArtifactURL(url)
-		paurl := aurl.Parse()
-
-		metadata, err := paurl.GetMetdata()
-		if err != nil {
-			log.Fatalln(err.Error())
-			return
-		}
-
-		storeIdentifier := metadata.GetStoreIdentifier()
-
-		if err := module.AddStoreInVault(storeIdentifier, &module.Store{
-			Installed: false,
-			Artifacts: []module.ArtifactURL{aurl},
-			Providers: []module.ProviderURL{},
-		}); err != nil {
-			log.Fatalln(err.Error())
-			return
-		}
-
-		if err := module.InstallModule(storeIdentifier); err != nil {
-			log.Fatalln(err.Error())
-			return
+		if err := addAndInstall(aurl); err != nil {
+			fmt.Println(err)
 		}
 	},
+}
+
+func addAndInstall(aurl module.ArtifactURL) error {
+	paurl := aurl.Parse()
+
+	metadata, err := paurl.GetMetdata()
+	if err != nil {
+		return err
+	}
+
+	storeIdentifier := metadata.GetStoreIdentifier()
+
+	if err := module.AddStoreInVault(storeIdentifier, &module.Store{
+		Installed: false,
+		Artifacts: []module.ArtifactURL{aurl},
+		Providers: []module.ProviderURL{},
+	}); err != nil {
+		return err
+	}
+
+	return module.InstallModule(storeIdentifier)
 }
 
 var pkgDeleteCmd = &cobra.Command{
 	Use:   "delete id",
-	Short: "Uninstall module",
+	Short: "Delete and Remove module",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		identifier := module.NewStoreIdentifier(args[0])
-		if err := module.DeleteModule(identifier); err != nil {
-			log.Fatalln(err.Error())
-			return
-		}
-
-		if err := module.RemoveStoreInVault(identifier); err != nil {
-			log.Fatalln(err.Error())
-			return
+		if err := deleteAndRemove(identifier); err != nil {
+			fmt.Println(err)
 		}
 	},
 }
 
+func deleteAndRemove(identifier module.StoreIdentifier) error {
+	if err := module.DeleteModule(identifier); err != nil {
+		return err
+	}
+
+	return module.RemoveStoreInVault(identifier)
+}
+
 var pkgEnableCmd = &cobra.Command{
 	Use:   "enable id",
-	Short: "Enable installed module",
+	Short: "Enable or Disable module",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		identifier := module.NewStoreIdentifier(args[0])
 		if err := module.EnableModuleInVault(identifier); err != nil {
-			log.Fatalln(err.Error())
+			fmt.Println(err)
 		}
 	},
 }

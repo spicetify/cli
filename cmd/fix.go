@@ -6,7 +6,7 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"path/filepath"
 	"spicetify/paths"
@@ -19,7 +19,7 @@ var fixCmd = &cobra.Command{
 	Use:   "fix",
 	Short: "Fix your spotify installation",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Restoring Spotify to stock state")
+		fmt.Println("Restoring Spotify to stock state")
 		execFix()
 	},
 }
@@ -31,10 +31,10 @@ func execFix() {
 		spaBakGlob := filepath.Join(paths.GetSpotifyAppsPath(spotifyDataPath), "*.spa.bak")
 		spaBaks, err := filepath.Glob(spaBakGlob)
 		if err != nil {
-			log.Fatalln(err.Error())
+			fmt.Println(err)
 		}
 		if len(spaBaks) == 0 {
-			log.Println("Spotify is already in stock state!")
+			fmt.Println("Spotify is already in stock state!")
 			return
 		}
 
@@ -42,11 +42,11 @@ func execFix() {
 			spa := strings.TrimSuffix(spaBak, ".bak")
 			err = os.RemoveAll(strings.TrimSuffix(spa, ".spa"))
 			if err != nil {
-				log.Println(err.Error())
+				fmt.Println(err)
 			}
 			err = os.Rename(spaBak, spa)
 			if err != nil {
-				log.Println(err.Error())
+				fmt.Println(err)
 			}
 		}
 	}
