@@ -31,7 +31,7 @@ const Providers = {
 			}));
 			result.unsynced = result.synced;
 		} else {
-			result.unsynced = lyrics.map(line => ({
+			result.unsynced = lines.map(line => ({
 				text: line.words
 			}));
 		}
@@ -40,7 +40,6 @@ const Providers = {
 
 		return result;
 	},
-
 	musixmatch: async info => {
 		const result = {
 			error: null,
@@ -91,7 +90,6 @@ const Providers = {
 
 		return result;
 	},
-
 	netease: async info => {
 		const result = {
 			uri: info.uri,
@@ -126,6 +124,37 @@ const Providers = {
 		const translation = ProviderNetease.getTranslation(list);
 		if (translation) {
 			result.neteaseTranslation = translation;
+		}
+
+		return result;
+	},
+	lrclib: async info => {
+		const result = {
+			uri: info.uri,
+			karaoke: null,
+			synced: null,
+			unsynced: null,
+			provider: "lrclib",
+			copyright: null
+		};
+
+		let list;
+		try {
+			list = await ProviderLRCLIB.findLyrics(info);
+		} catch {
+			result.error = "No lyrics";
+			return result;
+		}
+
+		const synced = ProviderLRCLIB.getSynced(list);
+		if (synced) {
+			result.synced = synced;
+		}
+
+		const unsynced = synced || ProviderLRCLIB.getUnsynced(list);
+
+		if (unsynced) {
+			result.unsynced = unsynced;
 		}
 
 		return result;
