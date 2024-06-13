@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"spicetify/archive"
+	"spicetify/link"
 	"spicetify/paths"
 	"strings"
 )
@@ -133,7 +134,13 @@ func InstallModule(storeIdentifier StoreIdentifier) error {
 	// TODO: add more options
 	aurl := store.Artifacts[0]
 
-	return aurl.Parse().install(storeIdentifier)
+	if err := aurl.Parse().install(storeIdentifier); err != nil {
+		return err
+	}
+
+	store.Installed = true
+	vault.setStore(storeIdentifier, store)
+	return nil
 }
 
 func EnableModuleInVault(identifier StoreIdentifier) error {
@@ -176,6 +183,11 @@ func DeleteModule(identifier StoreIdentifier) error {
 			destroySymlink(identifier.ModuleIdentifier)
 		}
 
+		store, ok := module.V[identifier.Version]
+		if ok {
+			store.Installed = false
+		}
+
 		vault.setModule(identifier.ModuleIdentifier, module)
 		return true
 	}); err != nil {
@@ -189,11 +201,6 @@ func RemoveStoreInVault(identifier StoreIdentifier) error {
 	return MutateVault(func(vault *Vault) bool {
 		module := vault.getModule(identifier.ModuleIdentifier)
 
-		if module.Enabled == identifier.Version {
-			module.Enabled = ""
-			destroySymlink(identifier.ModuleIdentifier)
-		}
-
 		delete(module.V, identifier.Version)
 		vault.setModule(identifier.ModuleIdentifier, module)
 		return true
@@ -204,7 +211,7 @@ func ensureSymlink(oldname string, newname string) error {
 	if err := os.MkdirAll(filepath.Dir(newname), 0755); err != nil {
 		return err
 	}
-	return os.Symlink(oldname, newname)
+	return link.Create(oldname, newname)
 }
 
 func createSymlink(identifier StoreIdentifier) error {
