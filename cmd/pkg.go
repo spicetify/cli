@@ -18,29 +18,22 @@ var pkgCmd = &cobra.Command{
 }
 
 var pkgInstallCmd = &cobra.Command{
-	Use:   "install url",
+	Use:   "install id url",
 	Short: "Add and Install module",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		url := args[0]
+		id := args[0]
+		url := args[1]
+		identifier := module.NewStoreIdentifier(id)
 		aurl := module.ArtifactURL(url)
-		if err := addAndInstall(aurl); err != nil {
+		if err := addAndInstall(aurl, identifier); err != nil {
 			fmt.Println(err)
 		}
 	},
 }
 
-func addAndInstall(aurl module.ArtifactURL) error {
-	paurl := aurl.Parse()
-
-	metadata, err := paurl.GetMetdata()
-	if err != nil {
-		return err
-	}
-
-	storeIdentifier := metadata.GetStoreIdentifier()
-
-	if err := module.AddStoreInVault(storeIdentifier, &module.Store{
+func addAndInstall(aurl module.ArtifactURL, identifier module.StoreIdentifier) error {
+	if err := module.AddStoreInVault(identifier, &module.Store{
 		Installed: false,
 		Artifacts: []module.ArtifactURL{aurl},
 		Providers: []module.ProviderURL{},
@@ -48,7 +41,7 @@ func addAndInstall(aurl module.ArtifactURL) error {
 		return err
 	}
 
-	return module.InstallModule(storeIdentifier)
+	return module.InstallModule(identifier)
 }
 
 var pkgDeleteCmd = &cobra.Command{
