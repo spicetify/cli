@@ -6,6 +6,7 @@
 package module
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"errors"
 	"io"
@@ -17,6 +18,9 @@ import (
 	"spicetify/link"
 	"spicetify/paths"
 	"strings"
+
+	bufra "github.com/avvmoto/buf-readerat"
+	"github.com/snabb/httpreaderat"
 )
 
 type AURL interface {
@@ -101,13 +105,20 @@ func fetchLocalMetadata(murl LocalMetadataURL) (Metadata, error) {
 }
 
 func downloadModuleToStore(aurl RemoteArtifactURL, storeIdentifier StoreIdentifier) error {
-	res, err := http.Get(string(aurl))
+	req, _ := http.NewRequest("GET", string(aurl), nil)
+
+	htrdr, err := httpreaderat.New(nil, req, nil)
+	if err != nil {
+		panic(err)
+	}
+	bhtrdr := bufra.NewBufReaderAt(htrdr, 1024*1024)
+
+	zrdr, err := zip.NewReader(bhtrdr, htrdr.Size())
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
 
-	return archive.UnTarGZ(res.Body, storeIdentifier.toFilePath())
+	return archive.UnZip(zrdr, storeIdentifier.toFilePath())
 }
 
 func deleteModuleFromStore(identifier StoreIdentifier) error {

@@ -11,6 +11,12 @@ require (
 )
 
 require (
+	github.com/avvmoto/buf-readerat v0.0.0-20171115124131-a17c8cb89270 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/snabb/httpreaderat v1.0.1 // indirect
+)
+
+require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230828082145-3c4c8a2d2371 // indirect

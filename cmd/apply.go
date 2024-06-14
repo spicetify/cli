@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"archive/zip"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,8 +42,15 @@ func extractSpa(spa string, destFolder string) error {
 	basename := filepath.Base(spa)
 	extractDest := filepath.Join(destFolder, strings.TrimSuffix(basename, ".spa"))
 	fmt.Println("Extracting", spa, "->", extractDest)
-	if err := archive.UnZip(spa, extractDest); err != nil {
+	r, err := zip.OpenReader(spa)
+	if err != nil {
 		return err
+	}
+	if err := archive.UnZip(&r.Reader, extractDest); err != nil {
+		return err
+	}
+	if err := r.Close(); err != nil {
+		panic(err)
 	}
 	if !mirror {
 		spaBak := spa + ".bak"
@@ -73,7 +81,7 @@ func patchIndexHtml(destXpuiPath string) error {
 }
 
 func linkFiles(destXpuiPath string) error {
-	folders := []string{"hooks", "modules"}
+	folders := []string{"hooks", "modules", "store"}
 	for _, folder := range folders {
 		folderSrcPath := filepath.Join(paths.ConfigPath, folder)
 		folderDestPath := filepath.Join(destXpuiPath, folder)

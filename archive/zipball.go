@@ -15,17 +15,7 @@ import (
 )
 
 // pasta from https://stackoverflow.com/a/24792688
-func UnZip(src, dest string) error {
-	r, err := zip.OpenReader(src)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := r.Close(); err != nil {
-			panic(err)
-		}
-	}()
-
+func UnZip(r *zip.Reader, dest string) error {
 	os.MkdirAll(dest, 0755)
 
 	// Closure to address file descriptors issue with all the deferred .Close() methods
