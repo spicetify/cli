@@ -39,7 +39,7 @@ func HandleProtocol(uri string) (string, error) {
 		return "", err
 	}
 	uuid, action, _ := strings.Cut(u.Opaque, ":")
-	response := u.Scheme + ":" + uuid + ":"
+	response := uuid + ":"
 	arguments := u.Query()
 	err = hp(action, arguments)
 	if err == nil {
