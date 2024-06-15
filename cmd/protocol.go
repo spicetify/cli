@@ -25,7 +25,7 @@ var protocolCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		res, err := HandleProtocol(args[0])
 		if len(res) > 0 {
-			open("spotify:app:spicetify:" + res)
+			open("spotify:app:rpc:" + res)
 		}
 		if err != nil {
 			fmt.Println(err)
@@ -39,7 +39,7 @@ func HandleProtocol(uri string) (string, error) {
 		return "", err
 	}
 	uuid, action, _ := strings.Cut(u.Opaque, ":")
-	response := uuid + ":"
+	response := u.Scheme + ":" + uuid + ":"
 	arguments := u.Query()
 	err = hp(action, arguments)
 	if err == nil {
