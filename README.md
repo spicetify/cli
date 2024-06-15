@@ -11,7 +11,7 @@
 
 ## Setup
 
-Note: On windows, use `pwsh` and not `cmd` as shell!
+Note: On Windows, only use `pwsh` (not `cmd`, not `powershell`) as shell!
 
 ### Part 1: Installation
 
@@ -31,7 +31,7 @@ Note: On windows, use `pwsh` and not `cmd` as shell!
         ```zsh
         echo "$HOME/Library/Application Support/spicetify/bin" >> /etc/paths
         ```
-    - On other platforms you can perform a simple search on how to set the PATH environment variable
+    - On other platforms, you can perform a simple search on how to set the PATH environment variable
 
 ### Part 2: Patching
 
@@ -41,12 +41,25 @@ Note: On windows, use `pwsh` and not `cmd` as shell!
 
 You can always revert this by running `spicetify fix`.
 
+You can further improve your experience by installing modules:
+```sh
+spicetify pkg install official/stdlib@0.1.0-beta https://github.com/spicetify/modules/releases/download/v0.1.0-beta/stdlib.zip
+spicetify pkg install official/palette-manager@0.1.0-beta https://github.com/spicetify/modules/releases/download/v0.1.0-beta/palette-manager.zip
+spicetify pkg install Delusoire/marketplace@0.0.0-1 https://github.com/Delusoire/bespoke-modules/releases/download/v0.0.0-1/Delusoire.marketplace@v0.1.0-beta+sp-1.2.38-cm-1675203200.zip
+```
+And enabling them:
+```sh
+spicetify pkg enable official/stdlib@0.1.0-beta
+spicetify pkg enable official/palette-manager@0.1.0-beta
+spicetify pkg enable Delusoire/marketplace@0.0.0-1
+```
+
 ## Caveats
 
-If your Spotify installation is somewhat unusual, then you have to specify the paths to the Spotify data and Spotify config folders manually.
+If your Spotify installation is somewhat unusual, you must manually specify the paths to the Spotify data and Spotify config folders.
 You can do that by creating a `config.yaml` file and adding a `spotify-data: path/to/spotify/data/`
 (and optionally a `spotify-config: path/to/spotify/config/` for more advanced dev workflows)
-Furthermore, if the Spotify folder is Frozen (like the Microsoft Store version of Spotify), you have must tell spicetify to use mirror mode.
+Furthermore, if the Spotify folder is Frozen (like the Microsoft Store version of Spotify), you must tell spicetify to use mirror mode.
 For the Microsoft Store version of Spotify, this would be enough:
 
 ```
@@ -63,35 +76,16 @@ GPLv3. See [COPYING](COPYING).
 
 ## Todos
 
--    Create new cssmap.json [incremental]
--    Refactor stdlib (breakdown & modularize the S object)
 -    Refine CLI output, add TUI
-
-
----
-
--   Add a "spotify.version" semver prop to Metadata.json that will be used to disable non-conforming modules
+-    Map more CSS classes
 
 ---
 
--   Improve spotify paths recognition on Linux
--   Add linux desktop entry (for custom url scheme)
--   Package the executable into a `.app` for MacOS
+-   Add Linux desktop entry (for custom URL scheme)
 
 ## Advanced Usage
 
-// TODO
 `spicetify daemon [action]`
 `spicetify pkg action`
 `spicetify update on|off`
-
-## Dev Setup (hooks)
-
-```pwsh
-cd $env.LOCALAPPDATA/spicetify/
-rm -r hooks/
-git clone github.com/spicetify/hooks hooks/
-cd hooks/
-npm install -g typescript
-tsc
-```
+// TODO
