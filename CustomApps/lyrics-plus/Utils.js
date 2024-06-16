@@ -134,32 +134,58 @@ const Utils = {
 	},
 	processTranslatedLyrics(result, lyricsToTranslate, { state, stateName }) {
 		const translatedLines = result.split("\n");
-
 		state[stateName] = [];
-
-		for (let i = 0; i < lyricsToTranslate.length; i++)
-			state[stateName].push({
+		for (let i = 0; i < lyricsToTranslate.length; i++) {
+			const lyric = {
 				startTime: lyricsToTranslate[i].startTime || 0,
 				text: this.rubyTextToReact(translatedLines[i])
-			});
+			};
+			state[stateName].push(lyric);
+		}
+	},
+	processTranslatedOriginalLyrics(lyrics, synced) {
+		const data = [];
+		const dataSouce = {};
+
+		for (const item of lyrics) {
+			dataSouce[item.startTime] = { translate: item.text };
+		}
+
+		for (const time in synced) {
+			dataSouce[item.startTime] = {
+				...dataSouce[item.startTime],
+				text: item.text
+			};
+		}
+
+		for (const time in dataSouce) {
+			const item = dataSouce[time];
+			const lyric = {
+				startTime: time || 0,
+				text: this.rubyTextToOriginalReact(item.translate || item.text, item.text || item.translate)
+			};
+			data.push(lyric);
+		}
+
+		return data;
+	},
+	rubyTextToOriginalReact(translated, syncedText) {
+		const react = Spicetify.React;
+		return react.createElement("p1", null, [react.createElement("ruby", {}, syncedText, react.createElement("rt", null, translated))]);
 	},
 	rubyTextToReact(s) {
 		const react = Spicetify.React;
-
 		const rubyElems = s.split("<ruby>");
 		const reactChildren = [];
 
 		reactChildren.push(rubyElems[0]);
-
 		for (let i = 1; i < rubyElems.length; i++) {
 			const kanji = rubyElems[i].split("<rp>")[0];
 			const furigana = rubyElems[i].split("<rt>")[1].split("</rt>")[0];
-
 			reactChildren.push(react.createElement("ruby", null, kanji, react.createElement("rt", null, furigana)));
 
 			reactChildren.push(rubyElems[i].split("</ruby>")[1]);
 		}
-
 		return react.createElement("p1", null, reactChildren);
 	},
 	formatTime(timestamp) {
