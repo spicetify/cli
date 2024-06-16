@@ -512,10 +512,11 @@ window.Spicetify = {
 		ReactJSX: cache.find(m => m?.jsx),
 		ReactDOM: cache.find(m => m?.createPortal),
 		ReactDOMServer: cache.find(m => m?.renderToString),
-		// classnames for 1.2.13
-		classnames: cache
-			.filter(module => typeof module === "function")
-			.find(module => module.toString().includes('"string"') && module.toString().includes("[native code]")),
+		// https://github.com/JedWatson/classnames/
+		classnames: chunks
+			.filter(([_, v]) => v.toString().includes("[native code]"))
+			.map(([i]) => require(i))
+			.find(e => typeof e === "function"),
 		Color: functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
 		Player: {
 			...Spicetify.Player,
@@ -695,16 +696,6 @@ window.Spicetify = {
 			return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue;
 		}
 	});
-
-	// classnames
-	// https://github.com/JedWatson/classnames/
-	const classnamesChunk = chunks.find(
-		([_, value]) =>
-			value.toString().includes("[native code]") && !value.toString().includes("<anonymous>") && !value.toString().includes("Super expression")
-	);
-	if (classnamesChunk && !Spicetify.classnames) {
-		Spicetify.classnames = Object.values(require(classnamesChunk[0])).find(m => typeof m === "function");
-	}
 
 	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
 	if (contextMenuChunk) {
@@ -1045,7 +1036,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		}
 	}
 
-	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "$hasFocus", ""];
+	const excludedKeys = ["children", "className", "style", "dir", "key", "ref", "as", "$autoMirror", "autoMirror", "$hasFocus", ""];
 	const excludedPrefix = ["aria-"];
 
 	const childrenProps = ["iconLeading", "iconTrailing", "iconOnly", "$iconOnly", "$iconLeading", "$iconTrailing"];
