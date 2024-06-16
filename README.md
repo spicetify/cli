@@ -62,7 +62,7 @@ And enabling them:
 ```sh
 spicetify pkg enable official/stdlib@0.1.1
 spicetify pkg enable official/palette-manager@0.1.1
-spicetify pkg enable Delusoire/marketplace@0.0.0-1
+spicetify pkg enable Delusoire/marketplace@0.1.1
 ```
 
 ## Caveats
