@@ -132,13 +132,13 @@ const Utils = {
 
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";
 	},
-	processTranslatedLyrics(result, lyricsToTranslate, {state, stateName}) {
+	processTranslatedLyrics(result, lyricsToTranslate, { state, stateName }) {
 		const translatedLines = result.split("\n");
 		state[stateName] = [];
 		for (let i = 0; i < lyricsToTranslate.length; i++) {
 			const lyric = {
 				startTime: lyricsToTranslate[i].startTime || 0,
-				text: this.rubyTextToReact(translatedLines[i]),
+				text: this.rubyTextToReact(translatedLines[i])
 			};
 			state[stateName].push(lyric);
 		}
@@ -147,42 +147,44 @@ const Utils = {
 		const data = [];
 		const dataSouce = {};
 
-		lyrics.forEach((item) => {
+		for (const item of lyrics) {
 			dataSouce[item.startTime] = { translate: item.text };
-		});
+		}
 
-		synced.forEach((item) => {
+		for (const time in synced) {
 			dataSouce[item.startTime] = {
 				...dataSouce[item.startTime],
-				text: item.text,
+				text: item.text
 			};
-		});
+		}
 
-		Object.keys(dataSouce).forEach((time) => {
+		for (const time in dataSouce) {
 			const item = dataSouce[time];
 			const lyric = {
 				startTime: time || 0,
-				text: this.rubyTextToOriginalReact(
-					item.translate || item.text,
-					item.text || item.translate
-				),
+				text: this.rubyTextToOriginalReact(item.translate || item.text, item.text || item.translate)
 			};
 			data.push(lyric);
-		});
+		}
 
 		return data;
 	},
 	rubyTextToOriginalReact(translated, syncedText) {
 		const react = Spicetify.React;
-		return react.createElement("p1", null,
-			[
-				react.createElement("ruby", {}, syncedText,
-					react.createElement("rt", {
-						style: {textAlign: "center", letterSpacing: 10, fontSize: `60%`}
-					}, translated)
+		return react.createElement("p1", null, [
+			react.createElement(
+				"ruby",
+				{},
+				syncedText,
+				react.createElement(
+					"rt",
+					{
+						style: { textAlign: "center", letterSpacing: 10, fontSize: "60%" }
+					},
+					translated
 				)
-			]
-		);
+			)
+		]);
 	},
 	rubyTextToReact(s) {
 		const react = Spicetify.React;
@@ -271,7 +273,7 @@ const Utils = {
 			for (const match of karaoke) {
 				const word = match[1];
 				const time = match[2];
-				karaokeLine.push({word, time: timestampToMs(time) - wordTime});
+				karaokeLine.push({ word, time: timestampToMs(time) - wordTime });
 				wordTime = timestampToMs(time);
 			}
 			return karaokeLine;
@@ -290,14 +292,14 @@ const Utils = {
 						lyricContent += `<${endTime}>`;
 					}
 					const karaokeLine = parseKaraokeLine(lyricContent, time);
-					karaoke.push({text: karaokeLine, startTime: timestampToMs(time)});
+					karaoke.push({ text: karaokeLine, startTime: timestampToMs(time) });
 				}
-				isSynced && time && synced.push({text: lyric || "♪", startTime: timestampToMs(time)});
-				unsynced.push({text: lyric || "♪"});
+				isSynced && time && synced.push({ text: lyric || "♪", startTime: timestampToMs(time) });
+				unsynced.push({ text: lyric || "♪" });
 			}
 		}
 
-		return {synced, unsynced, karaoke};
+		return { synced, unsynced, karaoke };
 	},
 	processLyrics(lyrics) {
 		return lyrics
