@@ -171,20 +171,7 @@ const Utils = {
 	},
 	rubyTextToOriginalReact(translated, syncedText) {
 		const react = Spicetify.React;
-		return react.createElement("p1", null, [
-			react.createElement(
-				"ruby",
-				{},
-				syncedText,
-				react.createElement(
-					"rt",
-					{
-						style: { textAlign: "center", letterSpacing: 10, fontSize: "60%" }
-					},
-					translated
-				)
-			)
-		]);
+		return react.createElement("p1", null, [react.createElement("ruby", {}, syncedText, react.createElement("rt", null, translated))]);
 	},
 	rubyTextToReact(s) {
 		const react = Spicetify.React;
