@@ -20,15 +20,8 @@ const ProviderNetease = (() => {
 		const neAlbumName = Utils.normalize(info.album);
 		const expectedAlbumName = Utils.containsHanCharacter(neAlbumName) ? await Utils.toSimplifiedChinese(neAlbumName) : neAlbumName;
 		let itemId = items.findIndex(val => Utils.normalize(val.album.name) === expectedAlbumName);
-
-        if (itemId === -1) {
-            itemId = items.findIndex(val => Math.abs(info.duration - val.duration) < 3000);
-        }
-
-        if (itemId === -1) {
-            itemId = items.findIndex(val => val.name === cleanTitle);
-        }
-
+		if (itemId === -1) itemId = items.findIndex(val => Math.abs(info.duration - val.duration) < 3000);
+		if (itemId === -1) itemId = items.findIndex(val => val.name === cleanTitle);
 		if (itemId === -1) throw "Cannot find track";
 
 		return await Spicetify.CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
