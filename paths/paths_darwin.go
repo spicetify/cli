@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 )
 
-func GetPlatformSpotifyPath() (string, error) {
+func GetPlatformSpotifyDataPath() (string, error) {
 	return "/Applications/Spotify.app/Contents/Resources", nil
 }
 

@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"spicetify/paths"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -32,9 +31,7 @@ var updateCmd = &cobra.Command{
 }
 
 func toggleUpdates(b bool) error {
-	exe := paths.GetSpotifyExecPath(spotifyDataPath)
-
-	file, err := os.OpenFile(exe, os.O_RDWR, 0644)
+	file, err := os.OpenFile(spotifyExecPath, os.O_RDWR, 0644)
 	if err != nil {
 		return err
 	}

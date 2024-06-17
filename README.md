@@ -69,18 +69,20 @@ spicetify pkg enable Delusoire/marketplace@0.1.1
 
 If your Spotify installation is somewhat unusual, you must manually specify the
 paths to the Spotify data and Spotify config folders. You can do that by
-creating a `config.yaml` file and adding a `spotify-data: path/to/spotify/data/`
-(and optionally a `spotify-config: path/to/spotify/config/` for more advanced
-dev workflows) Furthermore, if the Spotify folder is Frozen (like the Microsoft
-Store version of Spotify), you must tell spicetify to use mirror mode. For the
-Microsoft Store version of Spotify, this would be enough:
+creating a `config.yaml` file and adding a
+`spotify-data-path: path/to/spotify/data/` (and optionally a
+`spotify-config-path: path/to/spotify/config/` for more advanced dev workflows)
+Furthermore, if the Spotify folder is Frozen (like the Microsoft Store version
+of Spotify), you must tell spicetify to use mirror mode. For the Microsoft Store
+version of Spotify, this would be enough:
 
 ```
 $configPath = "$env:LOCALAPPDATA\spicetify\config.yaml"
 $spotifyPackage = Get-AppxPackage | Where-Object -Property Name -Eq "SpotifyAB.SpotifyMusic"
 "mirror: true" >> $configPath
-"spotify-data: $($spotifyPackage.InstallLocation)" >> $configPath
-"spotify-config: $env:LOCALAPPDATA\Packages\$($spotifyPackage.PackageFamilyName)\LocalState\Spotify\" >> $configPath
+"spotify-data-path: $($spotifyPackage.InstallLocation)" >> $configPath
+"spotify-exec-path: $env:LOCALAPPDATA\Microsoft\WindowsApps\Spotify.exe" >> $configPath
+"spotify-config-path: $env:LOCALAPPDATA\Packages\$($spotifyPackage.PackageFamilyName)\LocalState\Spotify\" >> $configPath
 ```
 
 ## License
@@ -89,12 +91,7 @@ GPLv3. See [COPYING](COPYING).
 
 ## Todos
 
-- Refine CLI output, add TUI
 - Map more CSS classes
-
----
-
-- Add Linux desktop entry (for custom URL scheme)
 
 ## Advanced Usage
 

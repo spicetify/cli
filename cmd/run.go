@@ -11,7 +11,6 @@ import (
 
 	"spicetify/paths"
 
-	"github.com/adrg/xdg"
 	"github.com/spf13/cobra"
 )
 
@@ -30,14 +29,10 @@ func prepend[Type any](slice []Type, elems ...Type) []Type {
 func execRun(args []string) {
 	defaultArgs := []string{ /*"--disable-web-security",*/ }
 	args = prepend(args, defaultArgs...)
-	var execPath string
 	if mirror {
-		execPath = filepath.Join(xdg.ConfigHome, "Microsoft", "WindowsApps", "Spotify.exe")
 		args = prepend(args, "--app-directory="+filepath.Join(paths.ConfigPath, "apps"))
-	} else {
-		execPath = paths.GetSpotifyExecPath(spotifyDataPath)
 	}
-	exec.Command(execPath, args...).Start()
+	exec.Command(spotifyExecPath, args...).Start()
 }
 
 func init() {

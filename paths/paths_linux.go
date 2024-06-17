@@ -23,7 +23,7 @@ func isSpotifyInstallation(path string) bool {
 	return err1 == nil && err2 == nil
 }
 
-func GetPlatformSpotifyPath() (string, error) {
+func GetPlatformSpotifyDataPath() (string, error) {
 	paths := []string{
 		"/opt/spotify/",
 		"/opt/spotify/spotify-client/",
@@ -52,8 +52,8 @@ func GetPlatformSpotifyPath() (string, error) {
 	return "", e.ErrPathNotFound
 }
 
-func GetPlatformSpotifyExecPath(spotifyPath string) string {
-	return filepath.Join(spotifyPath, "spotify")
+func GetPlatformSpotifyExecPath(spotifyDataPath string) string {
+	return filepath.Join(spotifyDataPath, "spotify")
 }
 
 func GetPlatformSpotifyConfigPath() (string, error) {
