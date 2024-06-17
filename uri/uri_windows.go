@@ -61,11 +61,23 @@ func copyExeToBin(bin string) error {
 	if err := os.MkdirAll(filepath.Dir(bin), 0770); err != nil {
 		return err
 	}
-	dest, err := os.Create(bin)
+	dest, err := os.OpenFile(bin, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
 	defer dest.Close()
+
+	exeFi, err := src.Stat()
+	if err != nil {
+		return err
+	}
+	binFi, err := src.Stat()
+	if err != nil {
+		return err
+	}
+	if os.SameFile(exeFi, binFi) {
+		return nil
+	}
 
 	_, err = io.Copy(dest, src)
 	return err
