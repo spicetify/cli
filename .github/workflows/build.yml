@@ -27,7 +27,7 @@ jobs:
   release:
     permissions:
       id-token: write
-      contents: read
+      contents: write
       attestations: write
     name: Release
     strategy:
