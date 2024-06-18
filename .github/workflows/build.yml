@@ -25,6 +25,10 @@ jobs:
           if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
 
   release:
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     name: Release
     strategy:
       matrix:
