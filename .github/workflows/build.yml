@@ -62,7 +62,8 @@ jobs:
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
 
-      - uses: actions/attest-build-provenance@v1
+      - name: Attest output
+        uses: actions/attest-build-provenance@v1
         with:
           subject-path: './spicetify${{ matrix.os == 'windows' && '.exe' || '' }}'
           subject-name: 'spicetify v${{ env.TAG }} (${{ matrix.os }}, ${{ (matrix.os == 'windows' && matrix.arch == 'amd64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }})'
