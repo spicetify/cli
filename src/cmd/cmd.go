@@ -281,6 +281,6 @@ func CheckUpdate(version string) {
 		utils.PrintInfo("Spicetify up-to-date")
 	} else {
 		utils.PrintWarning("New version available: v" + latestTag + " (currently on: v" + version + ")")
-		utils.PrintWarning(`Run "spicetify update" or using package manager to update spicetify`)
+		utils.PrintWarning(`Run "spicetify update" or use a package manager to update spicetify`)
 	}
 }
