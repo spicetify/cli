@@ -1,0 +1,80 @@
+name: Build
+
+on: [pull_request, push]
+
+jobs:
+   build:
+      name: Build
+      runs-on: ubuntu-latest
+
+      steps:
+      -  name: Checkout
+         uses: actions/checkout@v4
+
+      -  name: Setup Go
+         uses: actions/setup-go@v5
+         with:
+            go-version-file: "go.mod"
+
+      -  name: Build
+         run: go build .
+
+      -  name: Format
+         run: |
+            gofmt -s -l .
+            if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
+
+   release:
+      permissions:
+         id-token: write
+         contents: write
+         attestations: write
+      name: Release
+      strategy:
+         matrix:
+            os: ["linux", "darwin", "windows"]
+            arch: ["amd64", "arm64", "386"]
+      runs-on: ubuntu-latest
+      if: startsWith(github.ref, 'refs/tags/')
+      needs: build
+
+      steps:
+      -  name: Checkout
+         uses: actions/checkout@v4
+
+      -  name: Set Env
+         run: |
+            echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
+            echo "IS_UNIX=${{ matrix.os != 'windows' && matrix.arch != '386' }}" >> $GITHUB_ENV
+            echo "IS_WIN=${{ matrix.os == 'windows' }}" >> $GITHUB_ENV
+            echo "BINARY=spicetify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}" >> $GITHUB_ENV
+
+      -  name: Setup Go
+         uses: actions/setup-go@v5
+         with:
+            go-version-file: "go.mod"
+
+      -  name: Build
+         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
+         run: |
+            go build -ldflags "-X main.version=${{ env.TAG }}" -o "${{ env.BINARY }}"
+            chmod +x "${{ env.BINARY }}"
+         env:
+            GOOS: ${{ matrix.os }}
+            GOARCH: ${{ matrix.arch }}
+            CGO_ENABLED: 0
+
+      -  name: Attest output
+         uses: actions/attest-build-provenance@v1
+         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
+         with:
+            subject-path: "${{ env.BINARY }}"
+            subject-name: "spicetify v${{ env.TAG }} (${{ matrix.os }}, ${{ matrix.arch }})"
+
+      -  name: Release
+         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
+         uses: softprops/action-gh-release@v2
+         with:
+            files: "${{ env.BINARY }}"
+         env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -74,7 +74,7 @@ function Get-Binary {
          $architecture = 'arm64'
       }
       else {
-         $architecture = 'i386'
+         $architecture = '386'
       }
       if ($v) {
          if ($v -match '^\d+\.\d+\.\d+$') {
