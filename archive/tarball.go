@@ -22,6 +22,7 @@ func UnTarGZ(r io.Reader, dest string) error {
 
 	tarReader := tar.NewReader(gzipReader)
 
+	os.MkdirAll(dest, 0755)
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
