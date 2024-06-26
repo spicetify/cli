@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 
-osacompile -o spicetify.app main.applescript
-rm -rf spicetify.app/_CodeSignature
-go build -C ../../ -o spicetify.app/Contents/MacOS/bin/spicetify
+osacompile -o Spicetify.app main.applescript
+rm -rf Spicetify.app/_CodeSignature
+go build -C ../../ -o Spicetify.app/Contents/MacOS/bin/spicetify
 
 brew install xmlstarlet
 
@@ -21,4 +21,12 @@ xmlstarlet ed -L \
   -s "//plist/dict/key[text()='CFBundleURLTypes']/following-sibling::array[1]/dict" -t elem -n key -v "CFBundleURLSchemes" \
   -a "//plist/dict/key[text()='CFBundleURLTypes']/following-sibling::array[1]/dict/key[text()='CFBundleURLSchemes']" -t elem -n array \
   -s "//plist/dict/key[text()='CFBundleURLTypes']/following-sibling::array[1]/dict/key[text()='CFBundleURLSchemes']/following-sibling::array[1]" -t elem -n string -v "spicetify" \
-  spicetify.app/Contents/Info.plist
+  Spicetify.app/Contents/Info.plist
+
+pkgbuild \
+  --root Spicetify.app \
+  --scripts scripts \
+  --identifier "app.spicetify.cli" \
+  --version 3.0.0 \
+  --install-location /Applications \
+  Spicetify.pkg
