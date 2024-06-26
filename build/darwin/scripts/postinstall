@@ -1,1 +1,7 @@
 #!/usr/bin/env sh
+
+BIN="$HOME/Library/Application Support/spicetify/bin"
+echo "$BIN" >> /etc/paths
+"$BIN/spicetify" init
+"$BIN/spicetify" sync
+"$BIN/spicetify" apply
