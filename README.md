@@ -49,6 +49,8 @@ Note: On Windows, only use `pwsh` (not `cmd`, not `powershell`) as shell!
 
 You can always revert this by running `spicetify fix`.
 
+### Part 3: Managing modules
+
 You can further improve your experience by installing modules:
 
 ```sh
