@@ -175,10 +175,12 @@ func EnableModuleInVault(identifier StoreIdentifier) error {
 	module.Enabled = identifier.Version
 	vault.setModule(identifier.ModuleIdentifier, module)
 
-	destroySymlink(identifier.ModuleIdentifier)
-	if len(module.Enabled) > 0 {
-		if err := createSymlink(identifier); err != nil {
-			return err
+	if len(string(identifier.ModuleIdentifier)) > 0 {
+		destroySymlink(identifier.ModuleIdentifier)
+		if len(string(module.Enabled)) > 0 {
+			if err := createSymlink(identifier); err != nil {
+				return err
+			}
 		}
 	}
 
