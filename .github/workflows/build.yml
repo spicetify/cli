@@ -110,7 +110,7 @@ jobs:
           url: https://vps.itsmeow.dev/spicetify-update
           method: GET
       - name: Update Winget package
-        uses: vedantmgoyal2009/winget-releaser@v2
+        uses: vedantmgoyal9/winget-releaser@main
         with:
           identifier: Spicetify.Spicetify
           installers-regex: '-windows-\w+\.zip$'
