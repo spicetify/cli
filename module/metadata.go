@@ -14,10 +14,10 @@ type Metadata struct {
 	Description string   `json:"description"`
 	Tags        []string `json:"tags"`
 	Entries     struct {
-		Js    string `json:"js"`
-		Css   string `json:"css"`
-		Mixin string `json:"mixin"`
+		Js  string `json:"js"`
+		Css string `json:"css"`
 	} `json:"entries"`
+	HasMixins    bool              `json:"hasMixins"`
 	Dependencies map[string]string `json:"dependencies"`
 }
 
