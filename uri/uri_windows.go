@@ -71,7 +71,7 @@ func copyExeToBin(bin string) error {
 	if err != nil {
 		return err
 	}
-	binFi, err := src.Stat()
+	binFi, err := dest.Stat()
 	if err != nil {
 		return err
 	}
