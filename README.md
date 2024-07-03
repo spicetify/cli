@@ -54,17 +54,17 @@ You can always revert this by running `spicetify fix`.
 You can further improve your experience by installing modules:
 
 ```sh
-spicetify pkg install official/stdlib@0.1.1 https://github.com/spicetify/modules/releases/download/v0.1.1/stdlib.zip
-spicetify pkg install official/palette-manager@0.1.1 https://github.com/spicetify/modules/releases/download/v0.1.1/palette-manager.zip
-spicetify pkg install Delusoire/marketplace@0.1.1 https://github.com/Delusoire/bespoke-modules/releases/download/v0.1.1/Delusoire.marketplace@v0.1.1+sp-1.2.38-cm-1675203200.zip
+spicetify pkg install /official/stdlib@0.2.2 https://github.com/spicetify/modules/releases/download/2024-07-02/official.stdlib@v0.2.2+sp-1.2.40-cm-1906ea8d2e9.zip
+spicetify pkg install /official/palette-manager@0.2.1 https://github.com/spicetify/modules/releases/download/2024-07-02/official.palette-manager@v0.2.1+sp-1.2.40-cm-1906ea8d2e9.zip
+spicetify pkg install /Delusoire/marketplace@0.1.3 https://github.com/Delusoire/bespoke-modules/releases/download/2024-07-02/Delusoire.marketplace@v0.1.3+sp-1.2.40-cm-1906ea8d2e9.zip
 ```
 
 And enabling them:
 
 ```sh
-spicetify pkg enable official/stdlib@0.1.1
-spicetify pkg enable official/palette-manager@0.1.1
-spicetify pkg enable Delusoire/marketplace@0.1.1
+spicetify pkg enable /official/stdlib@0.2.2
+spicetify pkg enable /official/palette-manager@0.2.1
+spicetify pkg enable /Delusoire/marketplace@0.1.3
 ```
 
 ## Caveats
@@ -90,10 +90,6 @@ $spotifyPackage = Get-AppxPackage | Where-Object -Property Name -Eq "SpotifyAB.S
 ## License
 
 GPLv3. See [COPYING](COPYING).
-
-## Todos
-
-- Map more CSS classes
 
 ## Advanced Usage
 
