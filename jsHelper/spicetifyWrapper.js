@@ -699,6 +699,13 @@ window.Spicetify = {
 		}
 	});
 
+	const confirmDialogChunk = chunks.find(
+		([, value]) => value.toString().includes("confirmDialog") && value.toString().includes("shouldCloseOnEsc") && value.toString().includes("isOpen")
+	);
+	if (!Spicetify.ReactComponent?.ConfirmDialog && confirmDialogChunk) {
+		Spicetify.ReactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find(m => typeof m === "object");
+	}
+
 	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
 	if (contextMenuChunk) {
 		Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find(m => typeof m === "function");
