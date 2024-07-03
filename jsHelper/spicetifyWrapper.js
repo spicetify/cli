@@ -310,10 +310,12 @@ window.Spicetify = {
 };
 
 (function addProxyCosmos() {
-	if (!Spicetify.Player.origin?._cosmos) {
+	if (!Spicetify.Player.origin?._cosmos && !Spicetify.Platform?.Registry) {
 		setTimeout(addProxyCosmos, 50);
 		return;
 	}
+
+	const _cosmos = Spicetify.Player.origin?._cosmos ?? Spicetify.Platform?.Registry._map.get(Symbol.for("Cosmos")).instance;
 
 	const corsProxyURL = "https://cors-proxy.spicetify.app";
 	const allowedMethodsMap = {
@@ -394,7 +396,7 @@ window.Spicetify = {
 		}
 	};
 
-	Spicetify.Player.origin._cosmos = new Proxy(Spicetify.Player.origin._cosmos, handler);
+	Spicetify.Player.origin._cosmos = new Proxy(_cosmos, handler);
 	Object.defineProperty(Spicetify, "CosmosAsync", {
 		get: () => {
 			return Spicetify.Player.origin?._cosmos;
@@ -696,6 +698,13 @@ window.Spicetify = {
 			return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue;
 		}
 	});
+
+	const confirmDialogChunk = chunks.find(
+		([, value]) => value.toString().includes("confirmDialog") && value.toString().includes("shouldCloseOnEsc") && value.toString().includes("isOpen")
+	);
+	if (!Spicetify.ReactComponent?.ConfirmDialog && confirmDialogChunk) {
+		Spicetify.ReactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find(m => typeof m === "object");
+	}
 
 	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
 	if (contextMenuChunk) {
