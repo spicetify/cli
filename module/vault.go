@@ -15,8 +15,8 @@ import (
 
 type Store struct {
 	Installed bool          `json:"installed"`
-	Artifacts []ArtifactURL `json:"artifacts"`
-	Providers []ProviderURL `json:"providers"`
+	Artifacts []ArtifactURL `json:"artifact"`
+	Checksum  string        `json:"checksum"`
 }
 
 type Author string
@@ -24,7 +24,7 @@ type Name string
 type Version string
 type ModuleIdentifier string
 
-func (mi ModuleIdentifier) toFilePath() string {
+func (mi ModuleIdentifier) toPath() string {
 	return filepath.Join(modulesFolder, string(mi))
 }
 
@@ -124,10 +124,10 @@ func NewStoreIdentifier(identifier string) StoreIdentifier {
 	}
 }
 
-func (si *StoreIdentifier) toPath() string {
+func (si *StoreIdentifier) toString() string {
 	return string(si.ModuleIdentifier) + "@" + string(si.Version)
 }
 
-func (si *StoreIdentifier) toFilePath() string {
+func (si *StoreIdentifier) toPath() string {
 	return filepath.Join(storeFolder, string(si.ModuleIdentifier), string(si.Version))
 }

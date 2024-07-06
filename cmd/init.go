@@ -35,15 +35,5 @@ func execInit() error {
 		fmt.Println(err)
 	}
 
-	return module.SetVault(&module.Vault{Modules: map[module.ModuleIdentifier]module.Module{
-		"": {
-			Enabled: "0.0.0",
-			V: map[module.Version]module.Store{
-				"0.0.0": {
-					Installed: false,
-					Artifacts: []module.ArtifactURL{},
-					Providers: []module.ProviderURL{"https://raw.githubusercontent.com/spicetify/pkgs/main/vault.json"},
-				},
-			},
-		}}})
+	return module.SetVault(&module.Vault{Modules: map[module.ModuleIdentifier]module.Module{}})
 }
