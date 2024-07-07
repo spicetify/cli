@@ -15,7 +15,7 @@ import (
 
 type Store struct {
 	Installed bool          `json:"installed"`
-	Artifacts []ArtifactURL `json:"artifact"`
+	Artifacts []ArtifactURL `json:"artifacts"`
 	Checksum  string        `json:"checksum"`
 }
 
