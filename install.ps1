@@ -1,3 +1,13 @@
+[CmdletBinding()]
+param (
+    [Parameter(
+        Mandatory = $false,
+        Position = 0,
+        HelpMessage = "Specify the version of Spicetify to install (format: x.y.z). If not specified, the latest version will be installed."
+    )]
+    [string]$v
+)
+
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
