@@ -94,6 +94,13 @@ func startDaemon() {
 	}
 	defer watcher.Close()
 
+	if err := watcher.Add(paths.GetSpotifyAppsPath(spotifyDataPath)); err != nil {
+		log.Fatalln(err)
+	}
+
+	http.HandleFunc("/rpc", handleWebSocketProtocol)
+	log.Panicln(http.ListenAndServe("localhost:7967", nil))
+
 	c := make(chan struct{})
 
 	go func() {
@@ -124,13 +131,6 @@ func startDaemon() {
 
 		}
 	}()
-
-	if err := watcher.Add(paths.GetSpotifyAppsPath(spotifyDataPath)); err != nil {
-		log.Fatalln(err)
-	}
-
-	http.HandleFunc("/rpc", handleWebSocketProtocol)
-	log.Panicln(http.ListenAndServe("localhost:7967", nil))
 
 	<-c
 }
@@ -166,37 +166,3 @@ func handleWebSocketProtocol(w http.ResponseWriter, r *http.Request) {
 		c.WriteMessage(websocket.TextMessage, []byte(res))
 	}
 }
-
-/*
-func startDaemon() {
-	viper.OnConfigChange(func(in fsnotify.Event) {
-		daemon = viper.GetBool("daemon")
-	})
-	go viper.WatchConfig()
-
-	ticker := time.NewTicker(5 * time.Minute)
-	stop := make(chan bool)
-
-	_, apps := getApps()
-	xpuiIndex := filepath.Join(apps, "xpui", "index.html")
-
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				if _, err := os.Stat(xpuiIndex); err == nil {
-					continue
-				}
-				execApply()
-			default:
-				if !daemon {
-					stop <- true
-					return
-				}
-			}
-		}
-	}()
-
-	<-stop
-}
-*/

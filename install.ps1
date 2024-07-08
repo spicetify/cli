@@ -1,11 +1,11 @@
 [CmdletBinding()]
 param (
-    [Parameter(
-        Mandatory = $false,
-        Position = 0,
-        HelpMessage = "Specify the version of Spicetify to install (format: x.y.z). If not specified, the latest version will be installed."
-    )]
-    [string]$v
+   [Parameter(
+      Mandatory = $false,
+      Position = 0,
+      HelpMessage = "Specify the version of Spicetify to install (format: x.y.z). If not specified, the latest version will be installed."
+   )]
+   [string]$v
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,7 +60,7 @@ function Add-Folder {
    [CmdletBinding()]
    param ()
    begin {
-      Write-Host -Object 'Creating spicetify folder...' -NoNewline
+      Write-Host -Object 'Creating Spicetify folder...' -NoNewline
    }
    process {
       if (Test-Path -Path $spicetifyFolderPath) {
@@ -91,13 +91,13 @@ function Get-Binary {
             $targetVersion = "v$v"
          }
          else {
-            Write-Warning -Message "You have spicefied an invalid spicetify version: $v `nThe version must be in the following format: 1.2.3"
+            Write-Warning -Message "You have spicefied an invalid Spicetify version: $v `nThe version must be in the following format: 1.2.3"
             Pause
             exit
          }
       }
       else {
-         Write-Host -Object 'Fetching the latest spicetify version...' -NoNewline
+         Write-Host -Object 'Fetching the latest Spicetify version...' -NoNewline
          $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest'
          $targetVersion = $latestRelease.tag_name
          Write-Ok
@@ -123,7 +123,7 @@ function Add-SpicetifyToPath {
    [CmdletBinding()]
    param ()
    begin {
-      Write-Host -Object 'Making spicetify available in the PATH...' -NoNewline
+      Write-Host -Object 'Making Spicetify available in the PATH...' -NoNewline
       $user = [EnvironmentVariableTarget]::User
       $path = [Environment]::GetEnvironmentVariable('PATH', $user)
    }
@@ -143,18 +143,59 @@ function Install-Binary {
    [CmdletBinding()]
    param ()
    begin {
-      Write-Host -Object 'Installing spicetify...'
+      Write-Host -Object 'Installing Spicetify...'
    }
    process {
       $spicetifyBinaryPath = Get-Binary
-      Write-Host -Object 'Extracting spicetify...' -NoNewline
+      Write-Host -Object 'Extracting Spicetify...' -NoNewline
       New-Item -Path "$spicetifyFolderPath\bin" -ItemType 'Directory' -Force
       Move-Item -Path $spicetifyBinaryPath -DestinationPath "$spicetifyFolderPath\bin" -Force
       Write-Ok
       Add-SpicetifyToPath
    }
    end {
-      Write-Host -Object 'spicetify was successfully installed!' -ForegroundColor 'Green'
+      Write-Host -Object 'Spicetify was successfully installed!' -ForegroundColor 'Green'
+   }
+}
+
+function Initialize-Daemon {
+   [CmdletBinding()]
+   param ()
+   begin {
+      Write-Host -Object 'Creating Spicetify daemon task...' -NoNewline
+   }
+   process {
+      $initTask = {
+         $taskName = "Spicetify daemon"
+         $description = "Launches Spicetify daemon at startup"
+         $command = "spicetify.exe"
+         $arguments = "daemon"
+
+         $action = New-ScheduledTaskAction -Execute $command -Argument $arguments
+         $trigger = New-ScheduledTaskTrigger -AtStartup
+         $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Seconds 0)
+         $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+
+         $task = New-ScheduledTask -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Description $description
+
+         Register-ScheduledTask -TaskName $taskName -InputObject $task
+         Start-ScheduledTask -TaskName $taskName
+      }
+
+      if (Test-Admin) {
+         Invoke-Expression $initTask
+      }
+      else {
+         Write-Host -Object 'Running the task as administrator...' -NoNewline
+         $tempFile = [System.IO.Path]::GetTempFileName()
+         $tempFile += ".ps1"
+         $initTask | Out-File -FilePath $tempFile -Encoding UTF8
+         Start-Process powershell "-NoProfile -ExecutionPolicy Bypass -File `"$tempFile`"" -PassThru -Verb RunAs -WindowStyle Hidden -Wait
+         Write-Ok
+      }
+   }
+   end {
+      Write-Host -Object 'Deamon task was successfully created!' -ForegroundColor 'Green'
    }
 }
 #endregion Functions
@@ -185,7 +226,7 @@ if (-not (Test-Admin)) {
    )
    $choice = $Host.UI.PromptForChoice('', 'Do you want to abort the installation process?', $choices, 0)
    if ($choice -eq 0) {
-      Write-Host -Object 'spicetify installation aborted' -ForegroundColor 'Yellow'
+      Write-Host -Object 'Spicetify installation aborted' -ForegroundColor 'Yellow'
       Pause
       exit
    }
@@ -198,6 +239,7 @@ else {
 #region Spicetify
 Add-Folder
 Install-Binary
+Initialize-Daemon
 Write-Host -Object "`nRun" -NoNewline
 Write-Host -Object ' spicetify -h ' -NoNewline -ForegroundColor 'Cyan'
 Write-Host -Object 'to get started'
