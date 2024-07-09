@@ -168,7 +168,7 @@ function Initialize-Daemon {
       $initTask = {
          $taskName = "Spicetify daemon"
          $description = "Launches Spicetify daemon at startup"
-         $command = "spicetify.exe"
+         $command = "$env:LOCALAPPDATA\spicetify\bin\spicetify.exe"
          $arguments = "daemon"
 
          $action = New-ScheduledTaskAction -Execute $command -Argument $arguments
