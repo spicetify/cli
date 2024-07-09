@@ -13,6 +13,7 @@ $ErrorActionPreference = 'Stop'
 
 #region Variables
 $spicetifyFolderPath = "$env:LOCALAPPDATA\spicetify"
+$spicetifyExecutablePath = "$spicetifyFolderPath\bin\spicetify.exe"
 #endregion Variables
 
 #region Functions
@@ -144,6 +145,7 @@ function Install-Binary {
    param ()
    begin {
       Write-Host -Object 'Installing Spicetify...'
+      Add-Folder
    }
    process {
       $spicetifyBinaryPath = Get-Binary
@@ -168,7 +170,7 @@ function Initialize-Daemon {
       $initTask = {
          $taskName = "Spicetify daemon"
          $description = "Launches Spicetify daemon at startup"
-         $command = "$env:LOCALAPPDATA\spicetify\bin\spicetify.exe"
+         $command = $spicetifyExecutablePath
          $arguments = "daemon"
 
          $action = New-ScheduledTaskAction -Execute $command -Argument $arguments
@@ -196,6 +198,26 @@ function Initialize-Daemon {
    }
    end {
       Write-Host -Object 'Deamon task was successfully created!' -ForegroundColor 'Green'
+   }
+}
+
+function Register-URIScheme {
+   [CmdletBinding()]
+   param ()
+   begin {
+      Write-Host -Object 'Registering Spicetify URI scheme...' -NoNewline
+   }
+   process {
+      $scheme = "spicetify"
+      $command = "`"$spicetifyExecutablePath`" protocol `"%1`""
+
+      $K = New-Item -Path "HKCU:\Software\Classes\$scheme" -Force
+      $K.SetValue("", "URL:$scheme Protocol", [Microsoft.Win32.RegistryValueKind]::String)
+      $K = $K.CreateSubKey("shell\open\command")
+      $K.SetValue("", "$command", [Microsoft.Win32.RegistryValueKind]::String)
+   }
+   end {
+      Write-Host -Object 'URI scheme was successfully registered!' -ForegroundColor 'Green'
    }
 }
 #endregion Functions
@@ -237,9 +259,9 @@ else {
 #endregion Checks
 
 #region Spicetify
-Add-Folder
 Install-Binary
 Initialize-Daemon
+Register-URIScheme
 Write-Host -Object "`nRun" -NoNewline
 Write-Host -Object ' spicetify -h ' -NoNewline -ForegroundColor 'Cyan'
 Write-Host -Object 'to get started'

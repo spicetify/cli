@@ -8,7 +8,6 @@ package cmd
 import (
 	"fmt"
 	"spicetify/module"
-	"spicetify/uri"
 
 	"github.com/spf13/cobra"
 )
@@ -31,9 +30,5 @@ func init() {
 }
 
 func execInit() error {
-	if err := uri.RegisterURIScheme(); err != nil {
-		fmt.Println(err)
-	}
-
 	return module.SetVault(&module.Vault{Modules: map[module.ModuleIdentifier]module.Module{}})
 }
