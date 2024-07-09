@@ -20,7 +20,8 @@ import (
 )
 
 var (
-	daemon bool
+	DaemonAddr string = "localhost:7967"
+	daemon     bool
 )
 
 var daemonCmd = &cobra.Command{
@@ -47,10 +48,6 @@ var daemonEnableCmd = &cobra.Command{
 	Use:   "enable",
 	Short: "Enable daemon",
 	Run: func(cmd *cobra.Command, args []string) {
-		if daemon {
-			fmt.Println("Daemon already enabled")
-			return
-		}
 		fmt.Println("Enabling daemon")
 		daemon = true
 		viper.Set("daemon", daemon)
@@ -83,27 +80,27 @@ func init() {
 }
 
 func startDaemon() {
+	c := make(chan struct{})
+
 	viper.OnConfigChange(func(in fsnotify.Event) {
 		daemon = viper.GetBool("daemon")
+		if !daemon {
+			close(c)
+		}
 	})
 	go viper.WatchConfig()
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer watcher.Close()
-
-	if err := watcher.Add(paths.GetSpotifyAppsPath(spotifyDataPath)); err != nil {
-		log.Fatalln(err)
-	}
-
-	http.HandleFunc("/rpc", handleWebSocketProtocol)
-	log.Panicln(http.ListenAndServe("localhost:7967", nil))
-
-	c := make(chan struct{})
-
 	go func() {
+		watcher, err := fsnotify.NewWatcher()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		defer watcher.Close()
+
+		if err := watcher.Add(paths.GetSpotifyAppsPath(spotifyDataPath)); err != nil {
+			log.Fatalln(err)
+		}
+
 		for {
 			select {
 			case event, ok := <-watcher.Events:
@@ -123,13 +120,13 @@ func startDaemon() {
 					continue
 				}
 				log.Println("error:", err)
-			default:
-				if !daemon {
-					close(c)
-				}
 			}
-
 		}
+	}()
+
+	go func() {
+		http.HandleFunc("/rpc", handleWebSocketProtocol)
+		log.Panicln(http.ListenAndServe(DaemonAddr, nil))
 	}()
 
 	<-c

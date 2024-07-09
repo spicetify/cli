@@ -1,3 +1,8 @@
 {
-   "recommendations": ["golang.go", "timonwong.shellcheck"]
+   "recommendations": [
+      "golang.go",
+      "timonwong.shellcheck",
+      "ms-vscode.powershell",
+      "idleberg.applescript",
+   ]
 }
