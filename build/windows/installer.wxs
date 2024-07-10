@@ -51,6 +51,7 @@
       <DirectoryRef Id="BinDir">
          <Component Id="Component_Files" Guid="{8e24c2f7-85f7-4db1-8277-85bdc0d2d686}">
             <File Id="SpicetifyExe" Source=".\bin\spicetify.exe" />
+            <File Id="StDaemonXml" Source=".\bin\st-daemon.xml" />
          </Component>
       </DirectoryRef>
 
@@ -62,7 +63,7 @@
                <RegistryValue Name="URL Protocol" Type="string" Value="" />
                <RegistryKey Key="shell\open\command">
                   <RegistryValue Type="string"
-                     Value="&quot;[INSTALLDIR]bin\spicetify.exe&quot; protocol &quot;%1&quot;" />
+                     Value='"[INSTALLDIR]bin\spicetify.exe" protocol "%1"' />
                </RegistryKey>
             </RegistryKey>
             <Environment Id="SpicetifyPathEntry" Action="set" Part="last" Name="PATH" Permanent="no"
@@ -77,23 +78,33 @@
          <ComponentRef Id="Component_Environment" />
       </Feature>
 
+      <CustomAction Id="InitSpicetify" Directory="INSTALLDIR" Execute="deferred"
+         Impersonate="yes" Return="check"
+         ExeCommand='"[#SpicetifyExe]" init' />
+
       <CustomAction Id="CreateScheduledTask" Directory="INSTALLDIR" Execute="deferred"
          Impersonate="no" Return="check"
-         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Create /RU SYSTEM /SC ONLOGON /TN &quot;Spicetify daemon&quot; /TR &quot;\&quot;[#SpicetifyExe]\&quot; daemon&quot; /NP /F" />
+         ExeCommand='"[SystemFolder]SCHTASKS.EXE" /Create /TN "Spicetify daemon" /XML "[#StDaemonXml]" /F' />
+
+      <CustomAction Id="ChangeScheduledTask" Directory="INSTALLDIR" Execute="deferred"
+         Impersonate="no" Return="check"
+         ExeCommand='"[SystemFolder]SCHTASKS.EXE" /Change /TN "Spicetify daemon" /TR "\"[#SpicetifyExe]\" daemon"' />
 
       <CustomAction Id="RunScheduledTask" Directory="INSTALLDIR" Execute="deferred" Impersonate="no"
          Return="check"
-         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Run /TN &quot;Spicetify daemon&quot;" />
+         ExeCommand='"[SystemFolder]SCHTASKS.EXE" /Run /TN "Spicetify daemon"' />
 
       <CustomAction Id="DeleteScheduledTask" Directory="INSTALLDIR" Execute="deferred"
          Impersonate="no" Return="check"
-         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Delete /TN &quot;Spicetify daemon&quot; /F" />
+         ExeCommand='"[SystemFolder]SCHTASKS.EXE" /Delete /TN "Spicetify daemon" /F' />
 
       <!-- Update the environment -->
       <InstallExecuteSequence>
          <Custom Action="SetApplicationRootDirectory" Before="InstallFinalize" />
-         <Custom Action="CreateScheduledTask" After="InstallFiles" Condition="NOT Installed" />
-         <Custom Action="RunScheduledTask" After="CreateScheduledTask" Condition="NOT Installed" />
+         <Custom Action="InitSpicetify" After="InstallFiles" Condition="NOT Installed" />
+         <Custom Action="CreateScheduledTask" After="InitSpicetify" Condition="NOT Installed" />
+         <Custom Action="ChangeScheduledTask" After="CreateScheduledTask" Condition="NOT Installed" />
+         <Custom Action="RunScheduledTask" After="ChangeScheduledTask" Condition="NOT Installed" />
          <Custom Action="DeleteScheduledTask" Before="RemoveFiles" Condition="Installed" />
       </InstallExecuteSequence>
 

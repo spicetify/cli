@@ -6,13 +6,12 @@
 package paths
 
 import (
+	"os"
 	"path/filepath"
-
-	"github.com/adrg/xdg"
 )
 
 var (
-	ConfigPath = filepath.Join(xdg.ConfigHome, "spicetify")
+	ConfigPath string
 )
 
 func GetDefaultSpotifyDataPath() string {
@@ -31,4 +30,16 @@ func GetDefaultSpotifyConfigPath() string {
 
 func GetSpotifyAppsPath(spotifyPath string) string {
 	return filepath.Join(spotifyPath, "Apps")
+}
+
+func init() {
+	exe, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	realExe, err := filepath.EvalSymlinks(exe)
+	if err != nil {
+		panic(err)
+	}
+	ConfigPath = filepath.Dir(filepath.Dir(realExe))
 }

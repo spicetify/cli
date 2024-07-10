@@ -93,12 +93,13 @@ func startDaemon() {
 	go func() {
 		watcher, err := fsnotify.NewWatcher()
 		if err != nil {
-			log.Fatalln(err)
+			log.Panicln(err)
 		}
 		defer watcher.Close()
 
+		log.Println("Watching:", paths.GetSpotifyAppsPath(spotifyDataPath))
 		if err := watcher.Add(paths.GetSpotifyAppsPath(spotifyDataPath)); err != nil {
-			log.Fatalln(err)
+			log.Panicln(err)
 		}
 
 		for {
@@ -126,7 +127,8 @@ func startDaemon() {
 
 	go func() {
 		http.HandleFunc("/rpc", handleWebSocketProtocol)
-		log.Panicln(http.ListenAndServe(DaemonAddr, nil))
+		err := http.ListenAndServe(DaemonAddr, nil)
+		log.Panicln(err)
 	}()
 
 	<-c
