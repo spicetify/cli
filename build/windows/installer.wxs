@@ -1,5 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
 <?ifndef ProductVersion?>
 <?error ProductVersion property not defined?>
 <?endif?>
@@ -21,133 +19,95 @@
 
 <?define Scheme = "spicetify"?>
 
-<Wix xmlns="http://wixtoolset.org/schemas/v5/wxs">
-   <Package
-      Language="1033"
-      Manufacturer="https://spicetify.app"
-      Name="Spicetify CLI"
-      UpgradeCode="$(var.UpgradeCode)"
-      Version="$(var.ProductVersion)"
-      Scope="perUser"
-      Compressed="yes"
-      UpgradeStrategy="majorUpgrade"
-      InstallerVersion="$(var.InstallerVersion)"
-   >
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+   xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+   <Package Name="Spicetify" Language="1033" Version="$(var.ProductVersion)"
+      Manufacturer="https://spicetify.app" UpgradeCode="$(var.UpgradeCode)"
+      InstallerVersion="$(var.InstallerVersion)">
       <Property Id="ARPHELPLINK" Value="https://spicetify.app/docs/faq" />
       <Property Id="ARPREADME" Value="https://https://spicetify.app/docs/getting-started" />
       <Property Id="ARPURLINFOABOUT" Value="https://spicetify.app" />
-      <Icon Id="spicetify.ico" SourceFile="images\spicetify.ico" />
+      <Icon Id="spicetify.ico" SourceFile="installer\spicetify.ico" />
       <Property Id="ARPPRODUCTICON" Value="spicetify.ico" />
 
       <MediaTemplate EmbedCab="yes" CompressionLevel="high" MaximumUncompressedMediaSize="10" />
-      <Condition Message="Windows 10 or greater required."> (VersionNT >= 603) </Condition>
+      <Launch Condition="(VersionNT &gt;= 603)" Message="Windows 10 or greater required." />
       <MajorUpgrade AllowDowngrades="yes" />
 
-      <CustomAction
-         Id="SetApplicationRootDirectory"
-         Property="ARPINSTALLLOCATION"
+      <CustomAction Id="SetApplicationRootDirectory" Property="ARPINSTALLLOCATION"
          Value="[INSTALLDIR]" />
 
       <!-- Define the directory structure and environment variables -->
-      <Directory Id="TARGETDIR" Name="SourceDir">
-         <Directory Id="LocalAppDataFolder">
-            <Directory Id="INSTALLDIR" Name="Spicetify" />
+      <StandardDirectory Id="LocalAppDataFolder">
+         <Directory Id="INSTALLDIR" Name="Spicetify">
+            <Directory Id="BinDir" Name="bin" />
          </Directory>
-         <Directory Id="EnvironmentEntries">
-            <Directory Id="AppEnvironmentEntries" Name="Spicetify" />
-         </Directory>
+      </StandardDirectory>
+      <Directory Id="EnvironmentEntries">
+         <Directory Id="AppEnvironmentEntries" Name="Spicetify" />
       </Directory>
 
       <!-- Registry & Environment Settings -->
+      <DirectoryRef Id="BinDir">
+         <Component Id="Component_Files" Guid="{8e24c2f7-85f7-4db1-8277-85bdc0d2d686}">
+            <File Id="SpicetifyExe" Source=".\bin\spicetify.exe" />
+            <File Id="StDaemonXml" Source=".\bin\st-daemon.xml" />
+         </Component>
+      </DirectoryRef>
+
       <DirectoryRef Id="AppEnvironmentEntries">
          <Component Id="Component_Environment" Guid="{6db29a43-fa14-4b8b-9905-9df5e3544d3a}">
-            <RegistryKey
-               Root="HKCU"
-               Key="Software\Classes\Spicetify"
-               Action="createAndRemoveOnUninstall"
-            >
-               <RegistryValue
-                  Type="string"
-                  Value="URL:$(var.Scheme)" />
-               <RegistryValue
-                  Name="URL Protocol"
-                  Type="string"
-                  Value="" />
-               <RegistryKey
-                  Root="HKCU"
-                  Key="shell\open\command">
-                  <RegistryValue
-                     Name=""
-                     Type="string"
-                     Value='"[INSTALLDIR]bin\spicetify.exe" protocol "%1"' />
+            <RegistryKey Root="HKCU" Key="Software\Classes\Spicetify" ForceCreateOnInstall="yes"
+               ForceDeleteOnUninstall="yes">
+               <RegistryValue Type="string" Value="URL:$(var.Scheme)" />
+               <RegistryValue Name="URL Protocol" Type="string" Value="" />
+               <RegistryKey Key="shell\open\command">
+                  <RegistryValue Type="string"
+                     Value="&quot;[INSTALLDIR]bin\spicetify.exe&quot; protocol &quot;%1&quot;" />
                </RegistryKey>
             </RegistryKey>
-            <Environment
-               Id="SpicetifyPathEntry"
-               Action="set"
-               Part="last"
-               Name="PATH"
-               Permanent="no"
+            <Environment Id="SpicetifyPathEntry" Action="set" Part="last" Name="PATH" Permanent="no"
                Value="[INSTALLDIR]bin" />
-            <RemoveFolder
-               Id="AppEnvironmentEntries"
-               On="uninstall" />
+            <RemoveFolder Id="AppEnvironmentEntries" On="uninstall" />
          </Component>
       </DirectoryRef>
 
       <!-- Install the files -->
-      <Feature
-         Id="SpicetifyFiles"
-         Title="Spicetify"
-         Level="1">
+      <Feature Id="SpicetifyFiles" Title="Spicetify" Level="1">
+         <ComponentRef Id="Component_Files" />
          <ComponentRef Id="Component_Environment" />
-         <ComponentGroupRef Id="AppFiles" />
       </Feature>
 
-      <!-- Define files and custom actions for SCHTASKS.EXE -->
-      <File Id="SCHTASKS_EXE" Source="[SystemFolder]SCHTASKS.EXE" />
+      <CustomAction Id="CreateScheduledTask" Directory="INSTALLDIR" Execute="deferred"
+         Impersonate="no" Return="check"
+         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Create /RU &quot;[USERNAME]&quot; /TN &quot;Spicetify daemon&quot; /IT /XML &quot;[#StDaemonXml]&quot;" />
 
-      <CustomAction Id="CreateScheduledTask"
-         Execute="deferred"
-         Impersonate="no"
-         Return="ignore"
-         FileKey="SCHTASKS_EXE"
-         ExeCommand='/Create /RU "[USERNAME]" /TN "Spicetify daemon" /TR "[INSTALLDIR]bin\spicetify.exe daemon" /IT /XML "[INSTALLDIR]installer\st-daemon.xml"' />
+      <CustomAction Id="RunScheduledTask" Directory="INSTALLDIR" Execute="deferred" Impersonate="no"
+         Return="check"
+         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Run /TN &quot;Spicetify daemon" />
 
-      <CustomAction Id="RunScheduledTask"
-         Execute="deferred"
-         Impersonate="no"
-         Return="ignore"
-         FileKey="SCHTASKS_EXE"
-         ExeCommand='/Run /TN "Spicetify daemon' />
-
-      <CustomAction Id="DeleteScheduledTask"
-         Execute="deferred"
-         Impersonate="no"
-         Return="ignore"
-         FileKey="SCHTASKS_EXE"
-         ExeCommand='/Delete /TN "Spicetify daemon" /F' />
-
+      <CustomAction Id="DeleteScheduledTask" Directory="INSTALLDIR" Execute="deferred"
+         Impersonate="no" Return="check"
+         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Delete /TN &quot;Spicetify daemon&quot; /F" />
 
       <!-- Update the environment -->
       <InstallExecuteSequence>
          <Custom Action="SetApplicationRootDirectory" Before="InstallFinalize" />
-         <Custom Action="CreateScheduledTask" After="InstallFiles">NOT Installed</Custom>
-         <Custom Action="RunScheduledTask" After="CreateScheduledTask">NOT Installed</Custom>
-         <Custom Action="DeleteScheduledTask" Before="RemoveFiles">Installed </Custom>
+         <Custom Action="CreateScheduledTask" After="InstallFiles" Condition="NOT Installed" />
+         <Custom Action="RunScheduledTask" After="CreateScheduledTask" Condition="NOT Installed" />
+         <Custom Action="DeleteScheduledTask" Before="RemoveFiles" Condition="Installed" />
       </InstallExecuteSequence>
 
       <!-- Broadcast environment variable changes -->
-      <CustomActionRef Id="WixBroadcastEnvironmentChange" />
+      <util:BroadcastEnvironmentChange />
 
       <!-- Include the user interface -->
-      <!--
-      <WixVariable Id="WixUIBannerBmp" Value="images\Banner.jpg" />
+
+      <!-- <WixVariable Id="WixUIBannerBmp" Value="images\Banner.jpg" />
       <WixVariable Id="WixUIDialogBmp" Value="images\Dialog.jpg" /> -->
       <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
       <UIRef Id="App_InstallDir" />
       <UIRef Id="WixUI_ErrorProgressText" />
-
    </Package>
    <Fragment>
       <UI Id="App_InstallDir">
@@ -172,51 +132,51 @@
          <DialogRef Id="UserExit" />
 
          <!-- wizard steps -->
-         <Publish Dialog="BrowseDlg" Control="OK" Event="DoAction" Value="WixUIValidatePath"
-            Order="3">1</Publish>
+         <Publish Dialog="BrowseDlg" Control="OK" Event="DoAction"
+            Value="WixUIValidatePath_$(sys.BUILDARCHSHORT)" Order="3" />
          <Publish Dialog="BrowseDlg" Control="OK" Event="SpawnDialog" Value="InvalidDirDlg"
-            Order="4"><![CDATA[NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID<>"1"]]></Publish>
+            Order="4"
+            Condition="NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID&lt;&gt;&quot;1&quot;" />
 
-         <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999">
-            1
-         </Publish>
+         <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
 
-         <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg">NOT
-            Installed</Publish>
-         <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">Installed
-            AND PATCH</Publish>
+         <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg"
+            Condition="NOT Installed" />
+         <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg"
+            Condition="Installed AND PATCH" />
 
-         <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog"
-            Value="WelcomeDlg">1</Publish>
+         <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" />
          <Publish Dialog="InstallDirDlg" Control="Next" Event="SetTargetPath"
-            Value="[WIXUI_INSTALLDIR]" Order="1">1</Publish>
-         <Publish Dialog="InstallDirDlg" Control="Next" Event="DoAction" Value="WixUIValidatePath"
-            Order="2">NOT WIXUI_DONTVALIDATEPATH</Publish>
+            Value="[WIXUI_INSTALLDIR]" Order="1" />
+         <Publish Dialog="InstallDirDlg" Control="Next" Event="DoAction"
+            Value="WixUIValidatePath_$(sys.BUILDARCHSHORT)" Order="2"
+            Condition="NOT WIXUI_DONTVALIDATEPATH" />
          <Publish Dialog="InstallDirDlg" Control="Next" Event="SpawnDialog" Value="InvalidDirDlg"
-            Order="3"><![CDATA[NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID<>"1"]]></Publish>
+            Order="3"
+            Condition="NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID&lt;&gt;&quot;1&quot;" />
          <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg"
-            Order="4">WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID="1"</Publish>
+            Order="4" Condition="WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID=&quot;1&quot;" />
          <Publish Dialog="InstallDirDlg" Control="ChangeFolder" Property="_BrowseProperty"
-            Value="[WIXUI_INSTALLDIR]" Order="1">1</Publish>
+            Value="[WIXUI_INSTALLDIR]" Order="1" />
          <Publish Dialog="InstallDirDlg" Control="ChangeFolder" Event="SpawnDialog"
-            Value="BrowseDlg" Order="2">1</Publish>
+            Value="BrowseDlg" Order="2" />
 
          <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg"
-            Order="1">NOT Installed</Publish>
+            Order="1" Condition="NOT Installed" />
          <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog"
-            Value="MaintenanceTypeDlg" Order="2">Installed AND NOT PATCH</Publish>
+            Value="MaintenanceTypeDlg" Order="2" Condition="Installed AND NOT PATCH" />
          <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg"
-            Order="2">Installed AND PATCH</Publish>
+            Order="2" Condition="Installed AND PATCH" />
 
          <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog"
-            Value="MaintenanceTypeDlg">1</Publish>
+            Value="MaintenanceTypeDlg" />
 
          <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog"
-            Value="VerifyReadyDlg">1</Publish>
+            Value="VerifyReadyDlg" />
          <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog"
-            Value="VerifyReadyDlg">1</Publish>
+            Value="VerifyReadyDlg" />
          <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog"
-            Value="MaintenanceWelcomeDlg">1</Publish>
+            Value="MaintenanceWelcomeDlg" />
 
          <Property Id="ARPNOMODIFY" Value="1" />
       </UI>
