@@ -36,7 +36,6 @@ func addAndInstall(aurl module.ArtifactURL, identifier module.StoreIdentifier) e
 	if err := module.AddStoreInVault(identifier, &module.Store{
 		Installed: false,
 		Artifacts: []module.ArtifactURL{aurl},
-		Providers: []module.ProviderURL{},
 	}); err != nil {
 		return err
 	}

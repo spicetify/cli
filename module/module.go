@@ -25,7 +25,7 @@ import (
 
 type AURL interface {
 	GetMetdata() (Metadata, error)
-	install(storeIdentifier StoreIdentifier) error
+	install(storeIdentifier StoreIdentifier, checksum string) error
 }
 
 type ProviderURL string
@@ -58,8 +58,8 @@ func (u RemoteArtifactURL) GetMetdata() (Metadata, error) {
 	return fetchRemoteMetadata(murl)
 }
 
-func (u RemoteArtifactURL) install(storeIdentifier StoreIdentifier) error {
-	return downloadModuleToStore(u, storeIdentifier)
+func (u RemoteArtifactURL) install(storeIdentifier StoreIdentifier, checksum string) error {
+	return downloadModuleToStore(u, storeIdentifier, checksum)
 }
 
 func (u LocalArtifactURL) GetMetdata() (Metadata, error) {
@@ -68,8 +68,8 @@ func (u LocalArtifactURL) GetMetdata() (Metadata, error) {
 	return fetchLocalMetadata(murl)
 }
 
-func (u LocalArtifactURL) install(storeIdentifier StoreIdentifier) error {
-	return ensureSymlink(string(u), storeIdentifier.toFilePath())
+func (u LocalArtifactURL) install(storeIdentifier StoreIdentifier, checksum string) error {
+	return ensureSymlink(string(u), storeIdentifier.toPath())
 }
 
 var modulesFolder = filepath.Join(paths.ConfigPath, "modules")
@@ -104,7 +104,7 @@ func fetchLocalMetadata(murl LocalMetadataURL) (Metadata, error) {
 	return parseMetadata(file)
 }
 
-func downloadModuleToStore(aurl RemoteArtifactURL, storeIdentifier StoreIdentifier) error {
+func downloadModuleToStore(aurl RemoteArtifactURL, storeIdentifier StoreIdentifier, checksum string) error {
 	req, _ := http.NewRequest("GET", string(aurl), nil)
 
 	htrdr, err := httpreaderat.New(nil, req, nil)
@@ -118,11 +118,12 @@ func downloadModuleToStore(aurl RemoteArtifactURL, storeIdentifier StoreIdentifi
 		return err
 	}
 
-	return archive.UnZip(zrdr, storeIdentifier.toFilePath())
+	// TODO: verify checksum
+	return archive.UnZip(zrdr, storeIdentifier.toPath())
 }
 
 func deleteModuleFromStore(identifier StoreIdentifier) error {
-	return os.RemoveAll(identifier.toFilePath())
+	return os.RemoveAll(identifier.toPath())
 }
 
 func AddStoreInVault(storeIdentifier StoreIdentifier, store *Store) error {
@@ -139,13 +140,13 @@ func InstallModule(storeIdentifier StoreIdentifier) error {
 
 	store, ok := vault.getStore(storeIdentifier)
 	if !ok {
-		return errors.New("Can't find store " + storeIdentifier.toPath())
+		return errors.New("Can't find store " + storeIdentifier.toString())
 	}
 
 	// TODO: add more options
 	aurl := store.Artifacts[0]
 
-	if err := aurl.Parse().install(storeIdentifier); err != nil {
+	if err := aurl.Parse().install(storeIdentifier, store.Checksum); err != nil {
 		return err
 	}
 
@@ -168,17 +169,19 @@ func EnableModuleInVault(identifier StoreIdentifier) error {
 
 	if len(string(identifier.Version)) > 0 {
 		if _, ok := module.V[identifier.Version]; !ok {
-			return errors.New("Can't find matching " + identifier.toPath())
+			return errors.New("Can't find matching " + identifier.toString())
 		}
 	}
 
 	module.Enabled = identifier.Version
 	vault.setModule(identifier.ModuleIdentifier, module)
 
-	destroySymlink(identifier.ModuleIdentifier)
-	if len(module.Enabled) > 0 {
-		if err := createSymlink(identifier); err != nil {
-			return err
+	if len(string(identifier.ModuleIdentifier)) > 0 {
+		destroySymlink(identifier.ModuleIdentifier)
+		if len(string(module.Enabled)) > 0 {
+			if err := createSymlink(identifier); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -226,9 +229,9 @@ func ensureSymlink(oldname string, newname string) error {
 }
 
 func createSymlink(identifier StoreIdentifier) error {
-	return ensureSymlink(identifier.toFilePath(), identifier.ModuleIdentifier.toFilePath())
+	return ensureSymlink(identifier.toPath(), identifier.ModuleIdentifier.toPath())
 }
 
 func destroySymlink(identifier ModuleIdentifier) error {
-	return os.Remove(identifier.toFilePath())
+	return os.Remove(identifier.toPath())
 }
