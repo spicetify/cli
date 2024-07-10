@@ -51,7 +51,6 @@
       <DirectoryRef Id="BinDir">
          <Component Id="Component_Files" Guid="{8e24c2f7-85f7-4db1-8277-85bdc0d2d686}">
             <File Id="SpicetifyExe" Source=".\bin\spicetify.exe" />
-            <File Id="StDaemonXml" Source=".\bin\st-daemon.xml" />
          </Component>
       </DirectoryRef>
 
@@ -80,11 +79,11 @@
 
       <CustomAction Id="CreateScheduledTask" Directory="INSTALLDIR" Execute="deferred"
          Impersonate="no" Return="check"
-         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Create /TN &quot;Spicetify daemon&quot; /NP /XML &quot;[#StDaemonXml]&quot;" />
+         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Create /RU SYSTEM /SC ONLOGON /TN &quot;Spicetify daemon&quot; /TR &quot;\&quot;[#SpicetifyExe]\&quot; daemon&quot; /NP /F" />
 
       <CustomAction Id="RunScheduledTask" Directory="INSTALLDIR" Execute="deferred" Impersonate="no"
          Return="check"
-         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Run /TN &quot;Spicetify daemon" />
+         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Run /TN &quot;Spicetify daemon&quot;" />
 
       <CustomAction Id="DeleteScheduledTask" Directory="INSTALLDIR" Execute="deferred"
          Impersonate="no" Return="check"
