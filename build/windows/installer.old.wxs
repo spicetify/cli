@@ -21,18 +21,20 @@
 
 <?define Scheme = "spicetify"?>
 
-<Wix xmlns="http://wixtoolset.org/schemas/v5/wxs">
-   <Package
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+   <Product
+      Id="*"
+      Name="Spicetify"
       Language="1033"
-      Manufacturer="https://spicetify.app"
-      Name="Spicetify CLI"
-      UpgradeCode="$(var.UpgradeCode)"
       Version="$(var.ProductVersion)"
-      Scope="perUser"
-      Compressed="yes"
-      UpgradeStrategy="majorUpgrade"
-      InstallerVersion="$(var.InstallerVersion)"
-   >
+      Manufacturer="https://spicetify.app"
+      UpgradeCode="$(var.UpgradeCode)">
+
+      <Package
+         Compressed="yes"
+         InstallerVersion="$(var.InstallerVersion)"
+         InstallScope="perUser" />
+
       <Property Id="ARPHELPLINK" Value="https://spicetify.app/docs/faq" />
       <Property Id="ARPREADME" Value="https://https://spicetify.app/docs/getting-started" />
       <Property Id="ARPURLINFOABOUT" Value="https://spicetify.app" />
@@ -148,7 +150,7 @@
       <UIRef Id="App_InstallDir" />
       <UIRef Id="WixUI_ErrorProgressText" />
 
-   </Package>
+   </Product>
    <Fragment>
       <UI Id="App_InstallDir">
          <!-- style -->
