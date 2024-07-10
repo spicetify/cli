@@ -80,7 +80,7 @@
 
       <CustomAction Id="CreateScheduledTask" Directory="INSTALLDIR" Execute="deferred"
          Impersonate="no" Return="check"
-         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Create /RU &quot;[USERNAME]&quot; /TN &quot;Spicetify daemon&quot; /IT /XML &quot;[#StDaemonXml]&quot;" />
+         ExeCommand="&quot;[SystemFolder]SCHTASKS.EXE&quot; /Create /TN &quot;Spicetify daemon&quot; /NP /XML &quot;[#StDaemonXml]&quot;" />
 
       <CustomAction Id="RunScheduledTask" Directory="INSTALLDIR" Execute="deferred" Impersonate="no"
          Return="check"
