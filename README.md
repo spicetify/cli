@@ -11,7 +11,7 @@
 
 ## Setup
 
-Note: On Windows, only use `pwsh` (not `cmd`, not `powershell`) as shell!
+Note: On **Windows**, only use `pwsh` as shell! (not `cmd`, not `powershell`)
 
 ### Part 1: Installation
 
@@ -25,14 +25,14 @@ Note: On Windows, only use `pwsh` (not `cmd`, not `powershell`) as shell!
    Administrator)
 4. [optional] Add the `spicetify` executable to your PATH variable for ease of
    access.
-   - On Windows, run the following in pwsh:
+   - On **Windows**, run the following in pwsh:
      ```pwsh
      $user = [EnvironmentVariableTarget]::User
      $path = [Environment]::GetEnvironmentVariable('PATH', $user)
      $path = "$path;$env:LOCALAPPDATA\spicetify\bin"
      [Environment]::SetEnvironmentVariable('PATH', $path, $user)
      ```
-   - On a default macOS installation, run the following:
+   - On a default **macOS** installation, run the following:
      ```zsh
      echo "$HOME/Library/Application Support/spicetify/bin" >> /etc/paths
      ```
