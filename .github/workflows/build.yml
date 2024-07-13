@@ -102,6 +102,7 @@ jobs:
   trigger-release:
     name: Trigger Homebrew/AUR Release
     runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.ref, 'refs/tags/v3') }}
     needs: release
     steps:
       - name: Update AUR package
