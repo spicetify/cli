@@ -26,6 +26,9 @@ jobs:
             echo "IS_WIN=${{ matrix.os == 'windows' }}" >> $GITHUB_ENV
             echo "BINARY=spicetify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}" >> $GITHUB_ENV
 
+      -  name: Checkout
+         uses: actions/checkout@v4
+
       -  name: Setup Go
          uses: actions/setup-go@v5
          with:
