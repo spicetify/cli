@@ -93,5 +93,10 @@ GPLv3. See [COPYING](COPYING).
 
 ## Advanced Usage
 
-`spicetify daemon [action]` `spicetify pkg action` `spicetify update on|off` //
-TODO
+`spicetify daemon [action]`
+
+`spicetify pkg action`
+
+`spicetify update on|off`
+
+// TODO
