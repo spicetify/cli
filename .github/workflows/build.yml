@@ -1,6 +1,14 @@
 name: Build
 
-on: [pull_request, push]
+on:
+   pull_request:
+      branches:
+         - next
+         - "*/next/**"
+   push:
+      branches:
+         - next
+         - "*/next/**"
 
 jobs:
    build:
@@ -39,9 +47,6 @@ jobs:
       needs: build
 
       steps:
-      -  name: Checkout
-         uses: actions/checkout@v4
-
       -  name: Set Env
          run: |
             echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
