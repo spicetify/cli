@@ -1,6 +1,14 @@
 name: Code quality
 
-on: [push, pull_request]
+on:
+  pull_request:
+    branches:
+      - main
+      - "*/main/**"
+  push:
+    branches:
+      - main
+      - "*/main/**"
 
 jobs:
   linter:
