@@ -331,7 +331,8 @@ window.Spicetify = {
 		setTimeout(addMissingPlatformAPIs, 50);
 		return;
 	}
-	if (Spicetify.Platform.version < "1.2.38") return;
+	const version = Spicetify.Platform.version.split(".").map(i => Number.parseInt(i));
+	if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
 
 	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
 		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
@@ -371,7 +372,9 @@ window.Spicetify = {
 		get: (target, prop, receiver) => {
 			const internalFetch = Reflect.get(target, prop, receiver);
 
-			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop) || Spicetify.Platform.version < "1.2.31") return internalFetch;
+			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop)) return internalFetch;
+			const version = Spicetify.Platform.version.split(".").map(i => Number.parseInt(i));
+			if (version[0] === 1 && version[1] === 2 && version[2] < 31) return internalFetch;
 
 			return async function (url, body) {
 				const urlObj = new URL(url);
