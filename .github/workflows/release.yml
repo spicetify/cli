@@ -14,47 +14,15 @@ jobs:
       strategy:
          matrix:
             os: ["linux", "darwin", "windows"]
-            arch: ["amd64", "arm64", "386"]
       runs-on: ubuntu-latest
       if: startsWith(github.ref, 'refs/tags/v3')
 
       steps:
       -  name: Set Env
-         run: |
-            echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
-            echo "IS_UNIX=${{ matrix.os != 'windows' && matrix.arch != '386' }}" >> $GITHUB_ENV
-            echo "IS_WIN=${{ matrix.os == 'windows' }}" >> $GITHUB_ENV
-            echo "BINARY=spicetify-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.os == 'windows' && '.exe' || '' }}" >> $GITHUB_ENV
+         run: echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
 
-      -  name: Checkout
-         uses: actions/checkout@v4
-
-      -  name: Setup Go
-         uses: actions/setup-go@v5
+      -  uses: ./.github/actions/release
          with:
-            go-version-file: "go.mod"
-
-      -  name: Build
-         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
-         run: |
-            go build -ldflags "-X main.version=${{ env.TAG }}" -o "${{ env.BINARY }}"
-            chmod +x "${{ env.BINARY }}"
-         env:
-            GOOS: ${{ matrix.os }}
-            GOARCH: ${{ matrix.arch }}
-            CGO_ENABLED: 0
-
-      -  name: Attest output
-         uses: actions/attest-build-provenance@v1
-         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
-         with:
-            subject-path: "${{ env.BINARY }}"
-            subject-name: "spicetify v${{ env.TAG }} (${{ matrix.os }}, ${{ matrix.arch }})"
-
-      -  name: Release
-         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
-         uses: softprops/action-gh-release@v2
-         with:
-            files: "${{ env.BINARY }}"
-         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            platform: ${{ matrix.os }}
+            tag: ${{ env.TAG }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

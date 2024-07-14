@@ -1,0 +1,37 @@
+name: Release
+inputs:
+   platform:
+      description: Platform
+      required: true
+      type: string
+   tag:
+      description: Tag
+      required: true
+      type: string
+   GH_TOKEN:
+      description: GitHub token
+      required: true
+      type: string
+runs:
+   using: composite
+   steps:
+      -  name: Release darwin
+         uses: ./.github/actions/release/darwin
+         if: inputs.platform == 'darwin'
+         with:
+            tag: ${{ inputs.tag }}
+            GH_TOKEN: ${{ inputs.GH_TOKEN }}
+
+      -  name: Release linux
+         uses: ./.github/actions/release/linux
+         if: inputs.platform == 'linux'
+         with:
+            tag: ${{ inputs.tag }}
+            GH_TOKEN: ${{ inputs.GH_TOKEN }}
+
+      -  name: Release windows
+         uses: ./.github/actions/release/windows
+         if: inputs.platform == 'windows'
+         with:
+            tag: ${{ inputs.tag }}
+            GH_TOKEN: ${{ inputs.GH_TOKEN }}

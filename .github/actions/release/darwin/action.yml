@@ -1,0 +1,41 @@
+name: Release for darwin
+inputs:
+   tag:
+      description: Tag
+      required: true
+      type: string
+   GH_TOKEN:
+      description: GitHub token
+      required: true
+      type: string
+runs:
+   using: composite
+   steps:
+      -  name: Checkout
+         uses: actions/checkout@v4
+
+      -  name: Setup Go
+         uses: actions/setup-go@v5
+         with:
+            go-version-file: "go.mod"
+
+      - name: Setup xmlstarlet
+         run: brew install xmlstarlet
+
+      -  name: Setup create-dmg
+         run: brew install create-dmg
+
+      -  name: Build
+         shell: bash
+         run: |
+            set -e
+            cd build/darwin
+            ./build.sh ${{ inputs.tag }}
+            mv spicetify.dmg ../../dist/spicetify.dmg
+
+      -  name: Release
+         uses: softprops/action-gh-release@v2
+         with:
+            files: "dist/*"
+         env:
+            GITHUB_TOKEN: ${{ inputs.GH_TOKEN }}
