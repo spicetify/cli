@@ -25,6 +25,8 @@ jobs:
       needs: release
       runs-on: macos-latest
       steps:
+      -  name: Checkout
+         uses: actions/checkout@v4
       -  uses: ./.github/actions/release/macos
          with:
             tag: ${{ needs.release.outputs.tag }}
@@ -35,6 +37,8 @@ jobs:
       needs: release
       runs-on: ubuntu-latest
       steps:
+      -  name: Checkout
+         uses: actions/checkout@v4
       -  uses: ./.github/actions/release/linux
          with:
             tag: ${{ needs.release.outputs.tag }}
@@ -46,6 +50,8 @@ jobs:
       needs: release
       runs-on: windows-latest
       steps:
+      -  name: Checkout
+         uses: actions/checkout@v4
       -  uses: ./.github/actions/release/windows
          with:
             tag: ${{ needs.release.outputs.tag }}
