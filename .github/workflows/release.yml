@@ -11,21 +11,42 @@ jobs:
          contents: write
          attestations: write
       name: Release
-      strategy:
-         matrix:
-            os: ["linux", "darwin", "windows"]
       runs-on: ubuntu-latest
       if: startsWith(github.ref, 'refs/tags/v3')
-
+      outputs:
+         tag: ${{ steps.set-env.outputs.tag }}
       steps:
-      -  name: Set Env
-         run: echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
+      -  id: set-env
+         name: Set Env
+         run: echo "tag=${GITHUB_REF#refs/*/v}" >> "$GITHUB_OUTPUT"
 
-      -  name: Checkout
-         uses: actions/checkout@v4
-
-      -  uses: ./.github/actions/release
+   macos:
+      name: Release for macos
+      needs: release
+      runs-on: macos-latest
+      steps:
+      -  uses: ./.github/actions/release/macos
          with:
-            platform: ${{ matrix.os }}
-            tag: ${{ env.TAG }}
+            tag: ${{ needs.release.outputs.tag }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+   linux:
+      name: Release for linux
+      needs: release
+      runs-on: ubuntu-latest
+      steps:
+      -  uses: ./.github/actions/release/linux
+         with:
+            tag: ${{ needs.release.outputs.tag }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+   windows:
+      name: Release for windows
+      needs: release
+      runs-on: windows-latest
+      steps:
+      -  uses: ./.github/actions/release/windows
+         with:
+            tag: ${{ needs.release.outputs.tag }}
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

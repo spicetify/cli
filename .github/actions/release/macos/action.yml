@@ -1,4 +1,4 @@
-name: Release for darwin
+name: Release for macos
 inputs:
    tag:
       description: Tag
@@ -29,7 +29,7 @@ runs:
          shell: bash
          run: |
             set -e
-            cd build/darwin
+            cd build/macos
             ./build.sh ${{ inputs.tag }}
             mv spicetify.dmg ../../dist/spicetify.dmg
 
