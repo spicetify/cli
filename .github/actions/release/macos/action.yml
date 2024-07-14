@@ -27,6 +27,7 @@ runs:
          run: |
             set -e
             cd build/macos
+            chmod +x build.sh
             ./build.sh ${{ inputs.tag }}
             mv spicetify.dmg ../../dist/spicetify.dmg
 

@@ -19,6 +19,7 @@ runs:
       -  name: Setup Wix
          shell: pwsh
          run: |
+            $ErrorActionPreference = 'Stop'
             dotnet tool install -g wix
             wix extension add -g WixToolset.Util.wixext
             wix extension add -g WixToolset.UI.wixext
@@ -29,6 +30,7 @@ runs:
       -  name: Build
          shell: pwsh
          run: |
+            $ErrorActionPreference = 'Stop'
             cd build\windows
             .\build.ps1 -version ${{ inputs.tag }} -platform amd64
             .\build.ps1 -version ${{ inputs.tag }} -platform arm64
