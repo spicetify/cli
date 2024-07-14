@@ -9,12 +9,12 @@ on setupEnvironment(binFolder, binPath, launchAgentName)
    set exportString to "export PATH=\"$PATH:" & binFolder & "\""
 
    if not (fileContains(bashProfilePath, exportString)) then
-      do shell script "echo '" & exportString & "' >> " & bashProfilePath
+      do shell script "echo '" & exportString & " # Added by Spicetify' >> " & bashProfilePath
       do shell script "source " & bashProfilePath
    end if
 
    if not (fileContains(zshrcPath, exportString)) then
-      do shell script "echo '" & exportString & "' >> " & zshrcPath
+      do shell script "echo '" & exportString & " # Added by Spicetify' >> " & zshrcPath
       do shell script "source " & zshrcPath
    end if
 
