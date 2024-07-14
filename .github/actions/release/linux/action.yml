@@ -21,8 +21,6 @@ runs:
 
       -  name: Build
          shell: bash
-         matrix:
-            arch: [amd64, arm64]
          run: |
             set -e
             cd build/linux
