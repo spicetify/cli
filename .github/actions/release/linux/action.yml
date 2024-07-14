@@ -19,7 +19,7 @@ runs:
          with:
             go-version-file: "go.mod"
 
-      - name: Build
+      -  name: Build
          shell: bash
          matrix:
             arch: [amd64, arm64]
