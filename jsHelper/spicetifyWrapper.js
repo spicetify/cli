@@ -338,12 +338,8 @@ window.Spicetify = {
 		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
 		const symbolName = key.description;
 		if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
-		try {
-			Spicetify.Platform[symbolName] = Spicetify.Platform.Registry.resolve(key);
-			console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
-		} catch (e) {
-			console.error(`[spicetifyWrapper] Failed to resolve PlatformAPI from Registry: ${symbolName}\n`, e);
-		}
+		Spicetify.Platform[symbolName] = Spicetify.Platform.Registry.resolve(key);
+		console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
 	}
 
 	if (Spicetify.Events.platformLoaded.callbacks.length) Spicetify.Events.platformLoaded.fire();
