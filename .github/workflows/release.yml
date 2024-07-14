@@ -21,6 +21,9 @@ jobs:
       -  name: Set Env
          run: echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
 
+      -  name: Checkout
+         uses: actions/checkout@v4
+
       -  uses: ./.github/actions/release
          with:
             platform: ${{ matrix.os }}
