@@ -23,8 +23,9 @@ runs:
             cd build/linux
             chmod +x build.sh
             ./build.sh ${{ inputs.tag }} amd64
+            mv spicetify ../../dist/spicetify-${{ inputs.tag }}-linux-amd64
             ./build.sh ${{ inputs.tag }} arm64
-            mv spicetify ../../dist/spicetify-${{ inputs.tag }}-linux-${{ matrix.arch }}
+            mv spicetify ../../dist/spicetify-${{ inputs.tag }}-linux-arm64
 
       -  name: Release
          uses: softprops/action-gh-release@v2

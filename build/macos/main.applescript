@@ -1,9 +1,9 @@
-on setupEnvironment(binFolder, binPath, launchAgentName)
-   on fileContains(filePath, searchString)
-      set fileContent to do shell script "cat " & filePath
-      return (fileContent contains searchString)
-   end fileContains
+on fileContains(filePath, searchString)
+   set fileContent to do shell script "cat " & filePath
+   return (fileContent contains searchString)
+end fileContains
 
+on setupEnvironment(binFolder, binPath, launchAgentName)
    set bashProfilePath to "~/.bash_profile"
    set zshrcPath to "~/.zshrc"
    set exportString to "export PATH=\"$PATH:" & binFolder & "\""

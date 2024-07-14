@@ -4,4 +4,4 @@ set -e
 version=$1
 arch=$2
 
-GOARCH=$arch go build -C ../../ -o spicetify -ldflags "-X main.version=$version"
+GOARCH=$arch go build -C ../../ -o build/linux/spicetify -ldflags "-X main.version=$version"

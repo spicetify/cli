@@ -33,9 +33,11 @@ runs:
             $ErrorActionPreference = 'Stop'
             cd build\windows
             .\build.ps1 -version ${{ inputs.tag }} -platform amd64
+            mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-amd64.msi
             .\build.ps1 -version ${{ inputs.tag }} -platform arm64
+            mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-arm64.msi
             .\build.ps1 -version ${{ inputs.tag }} -platform 386
-            mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-${{ matrix.arch }}.msi
+            mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-386.msi
 
       -  name: Release
          uses: softprops/action-gh-release@v2

@@ -15,7 +15,7 @@ param (
 $ErrorActionPreference = 'Stop'
 
 $env:GOARCH = $platform
-go build -C ..\..\ -o bin\spicetify.exe -ldflags "-X main.version=$version"
+go build -C ..\..\ -o build\windows\bin\spicetify.exe -ldflags "-X main.version=$version"
 
 $platform = $platform -replace 'amd64', 'x64' -replace 'arm64', 'arm' -replace '386', 'x86'
 wix build -d ProductVersion=$version -d Platform=$platform -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext .\installer.wxs -o .\spicetify.msi

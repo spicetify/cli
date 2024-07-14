@@ -6,8 +6,8 @@ version=$1
 osacompile -o Spicetify.app main.applescript
 rm -rf Spicetify.app/_CodeSignature
 
-GOARCH="amd64" go build -C ../../ -o spicetify-amd64 -ldflags "-X main.version=$version"
-GOARCH="arm64" go build -C ../../ -o spicetify-arm64 -ldflags "-X main.version=$version"
+GOARCH="amd64" go build -C ../../ -o build/macos/spicetify-amd64 -ldflags "-X main.version=$version"
+GOARCH="arm64" go build -C ../../ -o build/macos/spicetify-arm64 -ldflags "-X main.version=$version"
 mkdir -p Spicetify.app/Contents/MacOS/bin
 lipo -create -output Spicetify.app/Contents/MacOS/bin/spicetify spicetify-amd64 spicetify-arm64
 
