@@ -338,7 +338,13 @@ window.Spicetify = {
 		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
 		const symbolName = key.description;
 		if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
-		Spicetify.Platform[symbolName] = Spicetify.Platform.Registry.resolve(key);
+		const resolvedAPI = Spicetify.Platform.Registry.resolve(key);
+		if (!resolvedAPI) {
+			console.warn(`[spicetifyWrapper] Failed to resolve PlatformAPI from Registry: ${symbolName}`);
+			continue;
+		}
+
+		Spicetify.Platform[symbolName] = resolvedAPI;
 		console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
 	}
 
