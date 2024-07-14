@@ -29,6 +29,8 @@ runs:
             cd build/macos
             chmod +x build.sh
             ./build.sh ${{ inputs.tag }}
+            echo $PWD
+            ls
             mv spicetify.dmg ../../dist/spicetify.dmg
 
       -  name: Release
