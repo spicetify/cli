@@ -19,7 +19,7 @@ runs:
          with:
             go-version-file: "go.mod"
 
-      - name: Setup xmlstarlet
+      -  name: Setup xmlstarlet
          run: brew install xmlstarlet
 
       -  name: Setup create-dmg
