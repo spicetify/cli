@@ -26,15 +26,16 @@ runs:
             wix extension add -g WixToolset.Util.wixext
             wix extension add -g WixToolset.UI.wixext
 
-      - run: mkdir dist
+      -  shell: pwsh
+         run: mkdir dist
 
       -  name: Build
          shell: pwsh
-         matrix:
-            arch: [amd64, arm64, 386]
          run: |
             cd build\windows
-            .\build.ps1 -version ${{ inputs.tag }} -platform ${{ matrix.arch }}
+            .\build.ps1 -version ${{ inputs.tag }} -platform amd64
+            .\build.ps1 -version ${{ inputs.tag }} -platform arm64
+            .\build.ps1 -version ${{ inputs.tag }} -platform 386
             mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-${{ matrix.arch }}.msi
 
       -  name: Release
