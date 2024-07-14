@@ -331,7 +331,6 @@ window.Spicetify = {
 		setTimeout(addMissingPlatformAPIs, 50);
 		return;
 	}
-
 	if (Spicetify.Platform.version < "1.2.38") return;
 
 	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
