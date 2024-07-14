@@ -112,9 +112,8 @@
       <util:BroadcastEnvironmentChange />
 
       <!-- Include the user interface -->
-
-      <!-- <WixVariable Id="WixUIBannerBmp" Value="images\Banner.jpg" />
-      <WixVariable Id="WixUIDialogBmp" Value="images\Dialog.jpg" /> -->
+      <WixVariable Id="WixUIBannerBmp" Value="installer\banner.jpg" />
+      <!-- <WixVariable Id="WixUIDialogBmp" Value="installer\dialog.jpg" /> -->
       <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
       <UIRef Id="App_InstallDir" />
       <UIRef Id="WixUI_ErrorProgressText" />
