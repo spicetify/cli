@@ -27,7 +27,7 @@ xmlstarlet ed -L \
   -s "//plist/dict/key[text()='CFBundleURLTypes']/following-sibling::array[1]/dict" -t elem -n key -v "CFBundleURLSchemes" \
   -a "//plist/dict/key[text()='CFBundleURLTypes']/following-sibling::array[1]/dict/key[text()='CFBundleURLSchemes']" -t elem -n array \
   -s "//plist/dict/key[text()='CFBundleURLTypes']/following-sibling::array[1]/dict/key[text()='CFBundleURLSchemes']/following-sibling::array[1]" -t elem -n string -v "spicetify" \
-  Spicetify.app/Contents/Info.plist
+  Volume/Spicetify.app/Contents/Info.plist
 
 create-dmg \
   --volname "Spicetify" \
