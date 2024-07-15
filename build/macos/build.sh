@@ -3,13 +3,14 @@ set -e
 
 version=$1
 
-osacompile -o Spicetify.app main.applescript
-rm -rf Spicetify.app/_CodeSignature
+mkdir Volume
+osacompile -o Volume/Spicetify.app main.applescript
+rm -rf Volume/Spicetify.app/_CodeSignature
 
 GOARCH="amd64" go build -C ../../ -o build/macos/spicetify-amd64 -ldflags "-X main.version=$version"
 GOARCH="arm64" go build -C ../../ -o build/macos/spicetify-arm64 -ldflags "-X main.version=$version"
-mkdir -p Spicetify.app/Contents/MacOS/bin
-lipo -create -output Spicetify.app/Contents/MacOS/bin/spicetify spicetify-amd64 spicetify-arm64
+mkdir -p Volume/Spicetify.app/Contents/MacOS/bin
+lipo -create -output Volume/Spicetify.app/Contents/MacOS/bin/spicetify spicetify-amd64 spicetify-arm64
 
 xmlstarlet ed -L \
   -d "//plist/dict/key[text()='CFBundleName']" \
@@ -31,10 +32,11 @@ xmlstarlet ed -L \
 create-dmg \
   --volname "Spicetify" \
   --volicon "installer/spicetify.icns" \
+  --background "installer/banner.png" \
   --window-pos 200 120 \
   --window-size 800 400 \
   --icon-size 100 \
   --icon "Spicetify.app" 200 190 \
   --hide-extension "Spicetify.app" \
   --app-drop-link 600 185 \
-  spicetify.dmg Spicetify.app
+  spicetify.dmg Volume/
