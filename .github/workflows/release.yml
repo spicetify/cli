@@ -23,7 +23,7 @@ jobs:
    macos:
       name: Release for macos
       needs: release
-      runs-on: macos-13
+      runs-on: macos-latest
       steps:
       -  name: Checkout
          uses: actions/checkout@v4
