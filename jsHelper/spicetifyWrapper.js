@@ -309,13 +309,55 @@ window.Spicetify = {
 	Platform: {}
 };
 
+(function waitForPlatform() {
+	if (!Spicetify._platform) {
+		setTimeout(waitForPlatform, 50);
+		return;
+	}
+	const { _platform } = Spicetify;
+	for (const key of Object.keys(_platform)) {
+		if (key.startsWith("get") && typeof _platform[key] === "function") {
+			Spicetify.Platform[key.slice(3)] = _platform[key]();
+		} else {
+			Spicetify.Platform[key] = _platform[key];
+		}
+	}
+
+	if (!Spicetify.Platform.Registry) Spicetify.Events.platformLoaded.fire();
+})();
+
+(function addMissingPlatformAPIs() {
+	if (!Spicetify.Platform?.version && !Spicetify.Platform?.Registry) {
+		setTimeout(addMissingPlatformAPIs, 50);
+		return;
+	}
+	const version = Spicetify.Platform.version.split(".").map(i => Number.parseInt(i));
+	if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
+
+	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
+		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
+		const symbolName = key.description;
+		if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
+		const resolvedAPI = Spicetify.Platform.Registry.resolve(key);
+		if (!resolvedAPI) {
+			console.warn(`[spicetifyWrapper] Failed to resolve PlatformAPI from Registry: ${symbolName}`);
+			continue;
+		}
+
+		Spicetify.Platform[symbolName] = resolvedAPI;
+		console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
+	}
+
+	if (Spicetify.Events.platformLoaded.callbacks.length) Spicetify.Events.platformLoaded.fire();
+})();
+
 (function addProxyCosmos() {
 	if (!Spicetify.Player.origin?._cosmos && !Spicetify.Platform?.Registry) {
 		setTimeout(addProxyCosmos, 50);
 		return;
 	}
 
-	const _cosmos = Spicetify.Player.origin?._cosmos ?? Spicetify.Platform?.Registry._map.get(Symbol.for("Cosmos")).instance;
+	const _cosmos = Spicetify.Player.origin?._cosmos ?? Spicetify.Platform?.Registry.resolve(Symbol.for("Cosmos"));
 
 	const corsProxyURL = "https://cors-proxy.spicetify.app";
 	const allowedMethodsMap = {
@@ -332,7 +374,9 @@ window.Spicetify = {
 		get: (target, prop, receiver) => {
 			const internalFetch = Reflect.get(target, prop, receiver);
 
-			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop) || Spicetify.Platform.version < "1.2.31") return internalFetch;
+			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop)) return internalFetch;
+			const version = Spicetify.Platform.version.split(".").map(i => Number.parseInt(i));
+			if (version[0] === 1 && version[1] === 2 && version[2] < 31) return internalFetch;
 
 			return async function (url, body) {
 				const urlObj = new URL(url);
@@ -402,22 +446,6 @@ window.Spicetify = {
 			return Spicetify.Player.origin?._cosmos;
 		}
 	});
-})();
-
-(function waitForPlatform() {
-	if (!Spicetify._platform) {
-		setTimeout(waitForPlatform, 50);
-		return;
-	}
-	const { _platform } = Spicetify;
-	for (const key of Object.keys(_platform)) {
-		if (key.startsWith("get") && typeof _platform[key] === "function") {
-			Spicetify.Platform[key.slice(3)] = _platform[key]();
-		} else {
-			Spicetify.Platform[key] = _platform[key];
-		}
-	}
-	Spicetify.Events.platformLoaded.fire();
 })();
 
 (function hotloadWebpackModules() {

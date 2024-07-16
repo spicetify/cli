@@ -1,6 +1,16 @@
 name: Build
 
-on: [pull_request, push]
+on:
+  pull_request:
+    branches:
+      - main
+      - "*/main/**"
+  push:
+    branches:
+      - main
+      - "*/main/**"
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -35,7 +45,7 @@ jobs:
         os: ["linux", "darwin", "windows"]
         arch: ["amd64", "arm64", "386"]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/v2')
     needs: build
 
     steps:
