@@ -32,7 +32,7 @@ runs:
             cd build/macos
             chmod +x build.sh
             ./build.sh ${{ inputs.tag }}
-            mv spicetify.dmg ../../dist/spicetify.dmg
+            mv spicetify.dmg ../../dist/spicetify-${{ inputs.tag }}.dmg
 
       -  name: Release
          uses: softprops/action-gh-release@v2
