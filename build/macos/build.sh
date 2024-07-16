@@ -13,12 +13,13 @@ mkdir -p Volume/Spicetify.app/Contents/MacOS/bin
 lipo -create -output Volume/Spicetify.app/Contents/MacOS/bin/spicetify spicetify-amd64 spicetify-arm64
 
 xmlstarlet ed -L \
-  -d "//plist/dict/key[text()='CFBundleName']" \
   -d "//plist/dict/key[text()='CFBundleName']/following-sibling::string[1]" \
+  -d "//plist/dict/key[text()='CFBundleName']" \
   -s "//plist/dict" -t elem -n key -v "CFBundleName" \
   -a "//plist/dict/key[text()='CFBundleName']" -t elem -n string -v "Spicetify" \
-  -d "//plist/dict/key[text()='CFBundleURLTypes']" \
+  \
   -d "//plist/dict/key[text()='CFBundleURLTypes']/following-sibling::array[1]" \
+  -d "//plist/dict/key[text()='CFBundleURLTypes']" \
   -s "//plist/dict" -t elem -n key -v "CFBundleURLTypes" \
   -a "//plist/dict/key[text()='CFBundleURLTypes']" -t elem -n array \
   -s "//plist/dict/key[text()='CFBundleURLTypes']/following-sibling::array[1]" -t elem -n dict \
