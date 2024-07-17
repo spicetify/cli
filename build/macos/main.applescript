@@ -84,8 +84,8 @@ on run
 
    setupEnvironment(binFolder, binPath, "app.spicetify.daemon")
 
-   tell application "Terminal"
-      activate
-      do script quoted form of binPath
-   end tell
+   -- tell application "Terminal"
+   --    activate
+   --    do script quoted form of binPath
+   -- end tell
 end run
