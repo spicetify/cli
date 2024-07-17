@@ -15,7 +15,7 @@ on ensureLineInFileIfExists(filePath, line)
          end repeat
          if ok is false then
             write return & line & return to file fileDescriptor starting at eof
-            set of to true
+            set ok to true
          end if
       end try
       close access fileDescriptor
