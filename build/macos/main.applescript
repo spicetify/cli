@@ -1,25 +1,19 @@
-on ensureLineInFileIfExists(filePath, line)
-   set uline to line as Unicode text
-   log "filePath=" & filePath --
-   log "uline=" & uline --
+on ensureLineInFileIfExists(filePath, lineToAdd)
    set ok to false
    try
       set fileAlias to POSIX file filePath as alias
-      log "fileAlias exists" --
       local fileDescriptor
       set fileDescriptor to open for access fileAlias with write permission
       try
-         set lns to paragraphs of (read fileDescriptor as Unicode text)
+         set lns to paragraphs of (read fileDescriptor)
          repeat with ln in lns
-            log "ln=" & ln --
-            if ln is uline then
+            if ln is lineToAdd then
                set ok to true
                exit repeat
             end if
          end repeat
          if ok is false then
-            log "line not found, adding it" --
-            write return & uline & return to fileDescriptor starting at eof
+            write return & lineToAdd & return to fileDescriptor starting at eof
             set ok to true
          end if
       end try
@@ -34,10 +28,6 @@ on setupEnvironment(binFolder, binPath, launchAgentName)
    set bashProfilePath to homeFolder & ".bash_profile"
    set zshrcPath to homeFolder & ".zshrc"
    set exportString to "export PATH=" & quote & binFolder & ":$PATH" & quote & " # Added by Spicetify"
-
-   log "binFolder=" & binFolder --
-   log "binPath=" & binPath --
-   log "exportString=" & exportString --
 
    ensureLineInFileIfExists(bashProfilePath, exportString)
    ensureLineInFileIfExists(zshrcPath, exportString)
@@ -71,21 +61,21 @@ end setupEnvironment
 
 on open location input
    set dirname to POSIX path of (path to me)
-   set binFolder to dirname & "/Contents/MacOS/bin"
-   set binPath to binFolder & "/spicetify"
+   set binFolder to dirname & "Contents/MacOS/bin/"
+   set binPath to binFolder & "spicetify"
 
    do shell script (quoted form of binPath) & " protocol " & (quoted form of input)
 end open location
 
 on run
    set dirname to POSIX path of (path to me)
-   set binFolder to dirname & "/Contents/MacOS/bin"
-   set binPath to binFolder & "/spicetify"
+   set binFolder to dirname & "Contents/MacOS/bin/"
+   set binPath to binFolder & "spicetify"
 
    setupEnvironment(binFolder, binPath, "app.spicetify.daemon")
 
-   -- tell application "Terminal"
-   --    activate
-   --    do script quoted form of binPath
-   -- end tell
+   tell application "Terminal"
+      activate
+      do script quoted form of binPath
+   end tell
 end run
