@@ -1,26 +1,38 @@
-on fileContains(filePath, searchString)
-   set fileContent to do shell script "cat " & filePath
-   return (fileContent contains searchString)
-end fileContains
+on ensureLineInFileIfExists(filePath, searchLine)
+   set ok to false
+   try
+      set fileAlias to POSIX file filePath as alias
+      local fileDescriptor
+      set fileDescriptor to open for access fileAlias with write permission
+      try
+         set lns to paragraphs of (read file srcFile as Çclass utf8È)
+         repeat with ln in lns
+            if ln is searchTerm then
+               set ok to true
+               exit repeat
+            end if
+         end repeat
+         if ok is false then
+            write searchLine to file fileDescriptor starting at eof as Çclass utf8È
+            set of to true
+         end if
+      end try
+      close access fileDescriptor
+   end try
+   return ok
+end findLineInFile
 
 on setupEnvironment(binFolder, binPath, launchAgentName)
-   set bashProfilePath to "~/.bash_profile"
-   set zshrcPath to "~/.zshrc"
-   set exportString to "export PATH=\"$PATH:" & binFolder & "\""
+   set homeFolder to POSIX path of (path to home folder)
 
-   if not (fileContains(bashProfilePath, exportString)) then
-      do shell script "echo '" & exportString & " # Added by Spicetify' >> " & bashProfilePath
-      do shell script "source " & bashProfilePath
-   end if
+   set bashProfilePath to homeFolder & ".bash_profile"
+   set zshrcPath to homeFolder & ".zshrc"
+   set exportString to "export PATH=" & quote & binFolder & ":$PATH" & quote & " # Added by Spicetify"
 
-   if not (fileContains(zshrcPath, exportString)) then
-      do shell script "echo '" & exportString & " # Added by Spicetify' >> " & zshrcPath
-      do shell script "source " & zshrcPath
-   end if
+   ensureLineInFileIfExists(bashProfilePath, exportString)
+   ensureLineInFileIfExists(zshrcPath, exportString)
 
-
-   set homeFolder to (POSIX path of (path to home folder))
-   set plistPath to homeFolder & "/Library/LaunchAgents/" & launchAgentName & ".plist"
+   set plistPathQ to quoted form of (homeFolder & "/Library/LaunchAgents/" & launchAgentName & ".plist")
    set plistContent to "
 <?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
@@ -41,17 +53,18 @@ on setupEnvironment(binFolder, binPath, launchAgentName)
    try
       do shell script "launchctl list | grep " & launchAgentName
    on error
-      do shell script "echo '" & plistContent & "' > " & plistPath
-      do shell script "launchctl load -w " & plistPath
-      do shell script binPath & " init"
+      do shell script "echo " & quoted form of plistContent & " > " & plistPathQ
+      do shell script "launchctl load -w " & plistPathQ
+      do shell script (quoted form of binPath) & " init"
    end try
 end setupEnvironment
 
 on open location input
    set dirname to POSIX path of (path to me)
-   set binary to dirname & "/Contents/MacOS/bin/spicetify"
+   set binFolder to dirname & "/Contents/MacOS/bin"
+   set binPath to binFolder & "/spicetify"
 
-   do shell script quoted form of (binary & " protocol " & input)
+   do shell script (quoted form of binPath) & " protocol " & (quoted form of input)
 end open location
 
 on run
@@ -63,6 +76,6 @@ on run
 
    tell application "Terminal"
       activate
-      do script binary
+      do script quoted form of binPath
    end tell
 end run
