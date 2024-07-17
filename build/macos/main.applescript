@@ -1,20 +1,20 @@
 on ensureLineInFileIfExists(filePath, line)
-   set line to line as Çclass utf8È
+   set uline to line as Unicode text
    set ok to false
    try
       set fileAlias to POSIX file filePath as alias
       local fileDescriptor
       set fileDescriptor to open for access fileAlias with write permission
       try
-         set lns to paragraphs of (read file srcFile as Çclass utf8È)
+         set lns to paragraphs of (read fileDescriptor as Unicode text)
          repeat with ln in lns
-            if ln is line then
+            if ln is uline then
                set ok to true
                exit repeat
             end if
          end repeat
          if ok is false then
-            write return & line & return to file fileDescriptor starting at eof
+            write return & uline & return to fileDescriptor starting at eof
             set ok to true
          end if
       end try
