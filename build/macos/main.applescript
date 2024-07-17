@@ -1,4 +1,5 @@
-on ensureLineInFileIfExists(filePath, searchLine)
+on ensureLineInFileIfExists(filePath, line)
+   set line to line as Çclass utf8È
    set ok to false
    try
       set fileAlias to POSIX file filePath as alias
@@ -7,13 +8,13 @@ on ensureLineInFileIfExists(filePath, searchLine)
       try
          set lns to paragraphs of (read file srcFile as Çclass utf8È)
          repeat with ln in lns
-            if ln is searchTerm then
+            if ln is line then
                set ok to true
                exit repeat
             end if
          end repeat
          if ok is false then
-            write searchLine to file fileDescriptor starting at eof as Çclass utf8È
+            write return & line & return to file fileDescriptor starting at eof
             set of to true
          end if
       end try
@@ -51,9 +52,9 @@ on setupEnvironment(binFolder, binPath, launchAgentName)
 </plist>"
 
    try
-      do shell script "launchctl list | grep " & launchAgentName
+      do shell script "launchctl list | grep " & (quoted form of launchAgentName)
    on error
-      do shell script "echo " & quoted form of plistContent & " > " & plistPathQ
+      do shell script "echo " & (quoted form of plistContent) & " > " & plistPathQ
       do shell script "launchctl load -w " & plistPathQ
       do shell script (quoted form of binPath) & " init"
    end try
