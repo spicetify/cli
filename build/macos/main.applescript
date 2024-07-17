@@ -1,19 +1,24 @@
 on ensureLineInFileIfExists(filePath, line)
    set uline to line as Unicode text
+   log "filePath=" & filePath --
+   log "uline=" & uline --
    set ok to false
    try
       set fileAlias to POSIX file filePath as alias
+      log "fileAlias exists" --
       local fileDescriptor
       set fileDescriptor to open for access fileAlias with write permission
       try
          set lns to paragraphs of (read fileDescriptor as Unicode text)
          repeat with ln in lns
+            log "ln=" & ln --
             if ln is uline then
                set ok to true
                exit repeat
             end if
          end repeat
          if ok is false then
+            log "line not found, adding it" --
             write return & uline & return to fileDescriptor starting at eof
             set ok to true
          end if
@@ -29,6 +34,10 @@ on setupEnvironment(binFolder, binPath, launchAgentName)
    set bashProfilePath to homeFolder & ".bash_profile"
    set zshrcPath to homeFolder & ".zshrc"
    set exportString to "export PATH=" & quote & binFolder & ":$PATH" & quote & " # Added by Spicetify"
+
+   log "binFolder=" & binFolder --
+   log "binPath=" & binPath --
+   log "exportString=" & exportString --
 
    ensureLineInFileIfExists(bashProfilePath, exportString)
    ensureLineInFileIfExists(zshrcPath, exportString)
