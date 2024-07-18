@@ -56,7 +56,7 @@ You can further improve your experience by installing modules:
 ```sh
 spicetify pkg install stdlib@0.2.2 https://github.com/spicetify/modules/releases/download/2024-07-07/spicetify.stdlib@v0.2.2+sp-1.2.40-cm-1906ea8d2e9.zip
 spicetify pkg install palette-manager@0.2.1 https://github.com/spicetify/modules/releases/download/2024-07-07/spicetify.palette-manager@v0.2.1+sp-1.2.40-cm-1906ea8d2e9.zip
-spicetify pkg install Delusoire.marketplace@0.1.3 https://github.com/Delusoire/bespoke-modules/releases/download/2024-07-07/Delusoire.marketplace@v0.1.3+sp-1.2.40-cm-1906ea8d2e9.zip
+spicetify pkg install Delusoire.marketplace@0.1.3 https://github.com/Delusoire/bespoke-modules/releases/download/2024-07-18/Delusoire.marketplace@0.1.3+sp-1.2.40-cm-1906ea8d2e9.zip
 ```
 
 And enabling them:
