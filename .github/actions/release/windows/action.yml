@@ -24,13 +24,11 @@ runs:
             wix extension add -g WixToolset.Util.wixext
             wix extension add -g WixToolset.UI.wixext
 
-      -  shell: pwsh
-         run: mkdir dist
-
       -  name: Build
          shell: pwsh
          run: |
             $ErrorActionPreference = 'Stop'
+            mkdir dist
             cd build\windows
             .\build.ps1 -version ${{ inputs.tag }} -platform amd64
             mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-amd64.msi

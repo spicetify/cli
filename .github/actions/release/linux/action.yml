@@ -16,13 +16,11 @@ runs:
          with:
             go-version-file: "go.mod"
 
-      -  shell: bash
-         run: mkdir dist
-
       -  name: Build
          shell: bash
          run: |
             set -e
+            mkdir dist
             cd build/linux
             chmod +x build.sh
             ./build.sh ${{ inputs.tag }} amd64

@@ -22,13 +22,11 @@ runs:
       -  shell: bash
          run: brew install create-dmg
 
-      -  shell: bash
-         run: mkdir dist
-
       -  name: Build
          shell: bash
          run: |
             set -e
+            mkdir dist
             cd build/macos
             chmod +x build.sh
             ./build.sh ${{ inputs.tag }}
