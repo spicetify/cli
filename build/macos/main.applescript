@@ -32,7 +32,7 @@ on setupEnvironment(binFolder, binPath, launchAgentName)
    ensureLineInFileIfExists(bashProfilePath, exportString)
    ensureLineInFileIfExists(zshrcPath, exportString)
 
-   set plistPathQ to quoted form of (homeFolder & "/Library/LaunchAgents/" & launchAgentName & ".plist")
+   set plistPathQ to quoted form of (homeFolder & "Library/LaunchAgents/" & launchAgentName & ".plist")
    set plistContent to "
 <?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
