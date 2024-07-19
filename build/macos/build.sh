@@ -44,4 +44,4 @@ create-dmg \
   --app-drop-link 600 185 \
   spicetify.dmg Volume/
 
-codesign --force --sign - --timestamp=none spicetify.dmg
+#codesign --force --sign - --timestamp=none spicetify.dmg
