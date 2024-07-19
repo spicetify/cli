@@ -30,7 +30,7 @@ xmlstarlet ed -L \
   -s "//plist/dict/key[text()='CFBundleURLTypes']/following-sibling::array[1]/dict/key[text()='CFBundleURLSchemes']/following-sibling::array[1]" -t elem -n string -v "spicetify" \
   Volume/Spicetify.app/Contents/Info.plist
 
-codesign --force --sign - --timestamp=none Volume/Spicetify.app
+codesign --deep --force --sign - --timestamp=none Volume/Spicetify.app
 
 create-dmg \
   --volname "Spicetify" \
@@ -43,5 +43,3 @@ create-dmg \
   --hide-extension "Spicetify.app" \
   --app-drop-link 600 185 \
   spicetify.dmg Volume/
-
-#codesign --force --sign - --timestamp=none spicetify.dmg
