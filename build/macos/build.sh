@@ -4,7 +4,7 @@ set -e
 version=$1
 
 mkdir Volume
-osacompile -o Volume/Spicetify.app main.applescript
+osacompile -x -o Volume/Spicetify.app main.applescript
 #rm -rf Volume/Spicetify.app/Contents/_CodeSignature
 
 GOARCH="amd64" go build -C ../../ -o build/macos/spicetify-amd64 -ldflags "-X main.version=$version"
