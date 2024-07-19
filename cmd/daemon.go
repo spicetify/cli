@@ -160,6 +160,8 @@ func handleWebSocketProtocol(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("!handle:", err)
 		}
-		c.WriteMessage(websocket.TextMessage, []byte(res))
+		if res != "" {
+			c.WriteMessage(websocket.TextMessage, []byte(res))
+		}
 	}
 }

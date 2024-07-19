@@ -24,7 +24,7 @@ var protocolCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		res, err := HandleProtocol(args[0])
-		if len(res) > 0 {
+		if res != "" {
 			open("spotify:app:rpc:" + res)
 		}
 		if err != nil {
@@ -46,6 +46,9 @@ func HandleProtocol(uri string) (string, error) {
 		response += "1"
 	} else {
 		response += "0"
+	}
+	if uuid == "0" {
+		response = ""
 	}
 	return response, err
 }
