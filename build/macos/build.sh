@@ -15,7 +15,7 @@ mkdir -p Volume/Spicetify.app/Contents/MacOS/bin
 lipo -create -output Volume/Spicetify.app/Contents/MacOS/bin/spicetify spicetify-amd64 spicetify-arm64
 
 plutil -replace CFBundleName -string "Spicetify" Volume/Spicetify.app/Contents/Info.plist
-plutil -replace CFBundleIconFile -string spicetify.icns Foo.app/Contents/Info.plist
+plutil -replace CFBundleIconFile -string spicetify.icns Volume/Spicetify.app/Contents/Info.plist
 plutil -replace CFBundleURLTypes -xml '<array><dict><key>CFBundleURLName</key><string>Spicetify</string><key>CFBundleURLSchemes</key><array><string>spicetify</string></array></dict></array>' Volume/Spicetify.app/Contents/Info.plist
 
 codesign --deep --force --sign - --timestamp=none Volume/Spicetify.app
