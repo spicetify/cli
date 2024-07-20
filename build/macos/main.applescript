@@ -22,43 +22,45 @@ on ensureLineInFileIfExists(filePath, lineToAdd)
    return ok
 end findLineInFile
 
+on addLineToShellConfigs(lineToAdd)
+   set homeFolder to POSIX path of (path to home folder)
+   set configFiles to {homeFolder & ".bash_profile", homeFolder & ".zshrc"}
+
+   repeat with configFile in configFiles
+      ensureLineInFileIfExists(configFile, lineToAdd)
+   end repeat
+end addLineToShellConfigs
+
+on launchAgentExists(agentName)
+   try
+      do shell script "launchctl list | grep " & quoted form of agentName
+      return true
+   on error
+      return false
+   end try
+end launchAgentExists
+
+on createLaunchAgent(plistPath, agentName, binPath)
+   set plistPathQ to quoted form of plistPath
+   do shell script "plutil -create xml1 " & plistPathQ
+   do shell script "plutil -insert Label -string " & quoted form of launchAgentName & " " & plistPathQ
+   do shell script "plutil -insert ProgramArguments -array -string " & quoted form of binPath & " -string daemon " & plistPathQ
+   do shell script "plutil -insert RunAtLoad -bool true " & plistPathQ
+end createLaunchAgent
+
 on setupEnvironment(binFolder, binPath, launchAgentName)
    set homeFolder to POSIX path of (path to home folder)
 
-   set bashProfilePath to homeFolder & ".bash_profile"
-   set zshrcPath to homeFolder & ".zshrc"
    set exportString to "export PATH=" & quote & binFolder & ":$PATH" & quote & " # Added by Spicetify"
-
-   ensureLineInFileIfExists(bashProfilePath, exportString)
-   ensureLineInFileIfExists(zshrcPath, exportString)
+   addLineToShellConfigs(exportString)
 
    set launchAgentsFolder to homeFolder & "Library/LaunchAgents/"
-   set plistPathQ to quoted form of (launchAgentsFolder & launchAgentName & ".plist")
-   set plistContent to "
-<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
-<plist version=\"1.0\">
-<dict>
-    <key>Label</key>
-    <string>" & launchAgentName & "</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>" & binPath & "</string>
-        <string>daemon</string>
-    </array>
-    <key>RunAtLoad</key>
-    <true/>
-</dict>
-</plist>"
-
-   try
-      do shell script "launchctl list | grep " & (quoted form of launchAgentName)
-   on error
-      do shell script "mkdir -p " & (quoted form of launchAgentsFolder)
-      do shell script "echo " & (quoted form of plistContent) & " > " & plistPathQ
-      do shell script "launchctl load -w " & plistPathQ
-      do shell script (quoted form of binPath) & " init"
-   end try
+   set plistPath to launchAgentsFolder & launchAgentName & ".plist"
+   if not launchAgentExists(launchAgentName) then
+      createLaunchAgent(plistPath, launchAgentName, binPath)
+      do shell script "launchctl load -w " & quoted form of plistPath
+      do shell script quoted form of binPath & " init"
+   end if
 end setupEnvironment
 
 on open location input
