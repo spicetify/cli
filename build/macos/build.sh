@@ -5,7 +5,6 @@ version=$1
 
 mkdir Volume
 osacompile -x -o Volume/Spicetify.app main.applescript
-#rm -rf Volume/Spicetify.app/Contents/_CodeSignature
 rm Volume/Spicetify.app/Contents/Resources/applet.icns
 cp installer/spicetify.icns Volume/Spicetify.app/Contents/Resources/spicetify.icns
 
