@@ -32,7 +32,8 @@ on setupEnvironment(binFolder, binPath, launchAgentName)
    ensureLineInFileIfExists(bashProfilePath, exportString)
    ensureLineInFileIfExists(zshrcPath, exportString)
 
-   set plistPathQ to quoted form of (homeFolder & "Library/LaunchAgents/" & launchAgentName & ".plist")
+   set launchAgentsFolder to homeFolder & "Library/LaunchAgents/"
+   set plistPathQ to quoted form of (launchAgentsFolder & launchAgentName & ".plist")
    set plistContent to "
 <?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
@@ -53,6 +54,7 @@ on setupEnvironment(binFolder, binPath, launchAgentName)
    try
       do shell script "launchctl list | grep " & (quoted form of launchAgentName)
    on error
+      do shell script "mkdir -p " & (quoted form of launchAgentsFolder)
       do shell script "echo " & (quoted form of plistContent) & " > " & plistPathQ
       do shell script "launchctl load -w " & plistPathQ
       do shell script (quoted form of binPath) & " init"
