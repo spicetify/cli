@@ -10,6 +10,7 @@ import (
 	"spicetify/module"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var initCmd = &cobra.Command{
@@ -30,5 +31,12 @@ func init() {
 }
 
 func execInit() error {
+	configFile := viper.GetViper().ConfigFileUsed()
+	if err := viper.SafeWriteConfigAs(configFile); err != nil {
+		if _, ok := err.(viper.ConfigFileAlreadyExistsError); !ok {
+			return err
+		}
+	}
+
 	return module.SetVault(&module.Vault{Modules: map[module.ModuleIdentifier]module.Module{}})
 }

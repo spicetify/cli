@@ -1,0 +1,45 @@
+name: Release for windows
+inputs:
+   tag:
+      description: Tag
+      required: true
+      type: string
+   GH_TOKEN:
+      description: GitHub token
+      required: true
+      type: string
+runs:
+   using: composite
+   steps:
+      -  name: Setup Go
+         uses: actions/setup-go@v5
+         with:
+            go-version-file: "go.mod"
+
+      -  name: Setup Wix
+         shell: pwsh
+         run: |
+            $ErrorActionPreference = 'Stop'
+            dotnet tool install -g wix
+            wix extension add -g WixToolset.Util.wixext
+            wix extension add -g WixToolset.UI.wixext
+
+      -  name: Build
+         shell: pwsh
+         run: |
+            $ErrorActionPreference = 'Stop'
+            mkdir dist
+            cd build\windows
+            .\build.ps1 -version ${{ inputs.tag }} -platform amd64
+            mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-amd64.msi
+            .\build.ps1 -version ${{ inputs.tag }} -platform arm64
+            mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-arm64.msi
+            .\build.ps1 -version ${{ inputs.tag }} -platform 386
+            mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-386.msi
+
+      -  name: Release
+         uses: softprops/action-gh-release@v2
+         with:
+            files: "dist/*"
+         env:
+            GITHUB_TOKEN: ${{ inputs.GH_TOKEN }}

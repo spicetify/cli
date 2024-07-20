@@ -1,0 +1,40 @@
+name: Release for macos
+inputs:
+   tag:
+      description: Tag
+      required: true
+      type: string
+   GH_TOKEN:
+      description: GitHub token
+      required: true
+      type: string
+runs:
+   using: composite
+   steps:
+      -  name: Setup Go
+         uses: actions/setup-go@v5
+         with:
+            go-version-file: "go.mod"
+
+      -  shell: bash
+         run: brew install xmlstarlet
+
+      -  shell: bash
+         run: brew install create-dmg
+
+      -  name: Build
+         shell: bash
+         run: |
+            set -e
+            mkdir dist
+            cd build/macos
+            chmod +x build.sh
+            ./build.sh ${{ inputs.tag }}
+            mv spicetify.dmg ../../dist/spicetify-${{ inputs.tag }}.dmg
+
+      -  name: Release
+         uses: softprops/action-gh-release@v2
+         with:
+            files: "dist/*"
+         env:
+            GITHUB_TOKEN: ${{ inputs.GH_TOKEN }}
