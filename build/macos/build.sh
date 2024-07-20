@@ -1,21 +1,17 @@
 #!/usr/bin/env sh
 set -e
 
-version=$1
+mkdir Volume && mkdir -p bin
+lipo -create -output bin/spicetify ../../artifacts/spicetify-amd64 ../../artifacts/spicetify-arm64 && echo "Built universal binary"
 
-mkdir Volume
-osacompile -x -o Volume/Spicetify.app main.applescript
-rm Volume/Spicetify.app/Contents/Resources/applet.icns
-cp installer/AppIcon.icns Volume/Spicetify.app/Contents/Resources/AppIcon.icns
-
-GOARCH="amd64" go build -C ../../ -o build/macos/spicetify-amd64 -ldflags "-X main.version=$version"
-GOARCH="arm64" go build -C ../../ -o build/macos/spicetify-arm64 -ldflags "-X main.version=$version"
-mkdir -p Volume/Spicetify.app/Contents/MacOS/bin
-lipo -create -output Volume/Spicetify.app/Contents/MacOS/bin/spicetify spicetify-amd64 spicetify-arm64
-
-plutil -replace CFBundleName -string "Spicetify" Volume/Spicetify.app/Contents/Info.plist
-plutil -replace CFBundleIconFile -string AppIcon.icns Volume/Spicetify.app/Contents/Info.plist
-plutil -replace CFBundleURLTypes -xml '<array><dict><key>CFBundleURLName</key><string>Spicetify</string><key>CFBundleURLSchemes</key><array><string>spicetify</string></array></dict></array>' Volume/Spicetify.app/Contents/Info.plist
+# Build the helper app with xcode
+git clone https://github.com/rxri/spicetify-macos-helper.git
+cd spicetify-macos-helper
+cp -r ../bin spicetify/bin
+sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+xcodebuild -project spicetify.xcodeproj -scheme spicetify -configuration Release build SYMROOT="$(pwd)/build"
+cp -r build/Release/spicetify.app ../Volume/Spicetify.app
+cd ..
 
 codesign --deep --force --sign - --timestamp=none Volume/Spicetify.app
 

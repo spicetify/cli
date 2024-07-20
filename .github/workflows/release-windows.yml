@@ -1,0 +1,51 @@
+name: Release (Windows)
+
+on:
+   release:
+      types: [published]
+
+jobs:
+   build:
+      permissions:
+         id-token: write
+         contents: write
+         attestations: write
+      name: Build (Windows)
+      strategy:
+         matrix:
+            arch: ["amd64", "arm64", "386"]
+      runs-on: windows-latest
+      if: startsWith(github.ref, 'refs/tags/v3')
+      steps:
+      -  name: Set Tag in env
+         shell: pwsh
+         run: |
+          $version = $env:GITHUB_REF -replace 'refs/.*/v', ''
+          echo "tag=$version" >> $env:GITHUB_ENV
+      -  name: Checkout
+         uses: actions/checkout@v4
+      -  name: Setup Go
+         uses: actions/setup-go@v5
+         with:
+            go-version-file: "go.mod"
+      -  name: Setup Wix
+         shell: pwsh
+         run: |
+            $ErrorActionPreference = 'Stop'
+            dotnet tool install -g wix
+            wix extension add -g WixToolset.Util.wixext
+            wix extension add -g WixToolset.UI.wixext
+      -  name: Build
+         shell: pwsh
+         run: |
+            $ErrorActionPreference = 'Stop'
+            mkdir dist
+            cd build\windows
+            .\build.ps1 -version ${{ env.tag }} -platform ${{ matrix.arch }}
+            mv spicetify.msi ..\..\dist\spicetify-${{ env.tag }}-${{ matrix.arch }}.msi
+      -  name: Upload artifact to release
+         uses: softprops/action-gh-release@v2
+         with:
+            files: "dist/*"
+         env:
+            GITHUB_TOKEN: ${{ inputs.GH_TOKEN }}
