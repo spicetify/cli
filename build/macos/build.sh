@@ -1,14 +1,18 @@
 #!/usr/bin/env sh
 set -e
 
-mkdir Volume && mkdir -p bin
+version=$1
+
+mkdir Volume
 osacompile -x -o Volume/Spicetify.app main.applescript
 rm Volume/Spicetify.app/Contents/Resources/applet.icns
 cp installer/AppIcon.icns Volume/Spicetify.app/Contents/Resources/AppIcon.icns
-lipo -create -output bin/spicetify ../../artifacts/spicetify-amd64 ../../artifacts/spicetify-arm64 && echo "Built universal binary"
 
+GOARCH="amd64" go build -C ../../ -o build/macos/spicetify-amd64 -ldflags "-X main.version=$version"
+GOARCH="arm64" go build -C ../../ -o build/macos/spicetify-arm64 -ldflags "-X main.version=$version"
 mkdir -p Volume/Spicetify.app/Contents/MacOS/bin
-cp bin/spicetify Volume/Spicetify.app/Contents/MacOS/bin/spicetify
+lipo -create -output Volume/Spicetify.app/Contents/MacOS/bin/spicetify spicetify-amd64 spicetify-arm64
+
 plutil -replace CFBundleName -string "Spicetify" Volume/Spicetify.app/Contents/Info.plist
 plutil -replace CFBundleIconFile -string AppIcon.icns Volume/Spicetify.app/Contents/Info.plist
 plutil -replace CFBundleURLTypes -xml '<array><dict><key>CFBundleURLName</key><string>Spicetify</string><key>CFBundleURLSchemes</key><array><string>spicetify</string></array></dict></array>' Volume/Spicetify.app/Contents/Info.plist

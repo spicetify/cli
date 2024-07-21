@@ -1,0 +1,36 @@
+name: Release for linux
+inputs:
+   tag:
+      description: Tag
+      required: true
+      type: string
+   GH_TOKEN:
+      description: GitHub token
+      required: true
+      type: string
+runs:
+   using: composite
+   steps:
+      -  name: Setup Go
+         uses: actions/setup-go@v5
+         with:
+            go-version-file: "go.mod"
+
+      -  name: Build
+         shell: bash
+         run: |
+            set -e
+            mkdir dist
+            cd build/linux
+            chmod +x build.sh
+            ./build.sh ${{ inputs.tag }} amd64
+            mv spicetify ../../dist/spicetify-${{ inputs.tag }}-linux-amd64
+            ./build.sh ${{ inputs.tag }} arm64
+            mv spicetify ../../dist/spicetify-${{ inputs.tag }}-linux-arm64
+
+      -  name: Release
+         uses: softprops/action-gh-release@v2
+         with:
+            files: "dist/*"
+         env:
+            GITHUB_TOKEN: ${{ inputs.GH_TOKEN }}
