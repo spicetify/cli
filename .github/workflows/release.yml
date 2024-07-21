@@ -5,11 +5,7 @@ on:
       types: [published]
 
 jobs:
-   release:
-      permissions:
-         id-token: write
-         contents: write
-         attestations: write
+   tag:
       name: Release
       runs-on: ubuntu-latest
       if: startsWith(github.ref, 'refs/tags/v3')
@@ -20,39 +16,34 @@ jobs:
          name: Set Env
          run: echo "tag=${GITHUB_REF#refs/*/v}" >> "$GITHUB_OUTPUT"
 
-   macos:
-      name: Release for macos
-      needs: release
-      runs-on: macos-latest
-      steps:
-      -  name: Checkout
-         uses: actions/checkout@v4
-      -  uses: ./.github/actions/release/macos
-         with:
-            tag: ${{ needs.release.outputs.tag }}
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+   release-linux:
+      uses: ./.github/workflows/release/linux.yml
+      needs: tag
+      strategy:
+         matrix:
+            arch: [amd64, arm64]
+      with:
+         tag: ${{ needs.tag.outputs.tag }}
+         arch: ${{ matrix.arch }}
+      secrets:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-   linux:
-      name: Release for linux
-      needs: release
-      runs-on: ubuntu-latest
-      steps:
-      -  name: Checkout
-         uses: actions/checkout@v4
-      -  uses: ./.github/actions/release/linux
-         with:
-            tag: ${{ needs.release.outputs.tag }}
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+   release-macos:
+      uses: ./.github/workflows/release/macos.yml
+      needs: tag
+      with:
+         tag: ${{ needs.tag.outputs.tag }}
+      secrets:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-
-   windows:
-      name: Release for windows
-      needs: release
-      runs-on: windows-latest
-      steps:
-      -  name: Checkout
-         uses: actions/checkout@v4
-      -  uses: ./.github/actions/release/windows
-         with:
-            tag: ${{ needs.release.outputs.tag }}
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+   release-windows:
+      uses: ./.github/workflows/release/windows.yml
+      needs: tag
+      strategy:
+         matrix:
+            arch: [386, amd64, arm64]
+      with:
+         tag: ${{ needs.tag.outputs.tag }}
+         arch: ${{ matrix.arch }}
+      secrets:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
