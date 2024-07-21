@@ -43,6 +43,11 @@ jobs:
             cd build\windows
             .\build.ps1 -version ${{ env.tag }} -platform ${{ matrix.arch }}
             mv spicetify.msi ..\..\dist\spicetify-${{ env.tag }}-${{ matrix.arch }}.msi
+      -  name: Attest output
+         uses: actions/attest-build-provenance@v1
+         with:
+            subject-path: "./build/windows/bin/spicetify.exe, ./dist/spicetify-${{ env.tag }}-${{ matrix.arch }}.msi"
+            subject-name: "spicetify v${{ env.tag }} (windows, ${{ (matrix.arch == '386' && 'x32') || matrix.arch }})"
       -  name: Upload artifact to release
          uses: softprops/action-gh-release@v2
          with:

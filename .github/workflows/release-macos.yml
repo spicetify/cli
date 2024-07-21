@@ -32,6 +32,11 @@ jobs:
             go build -o dist/spicetify-${{ matrix.arch }} -ldflags "-X main.version=${{ env.tag }}"
          env:
             GOARCH: ${{ matrix.arch }}
+      -  name: Attest output
+         uses: actions/attest-build-provenance@v1
+         with:
+            subject-path: "./dist/spicetify-${{ matrix.arch }}"
+            subject-name: "spicetify v${{ env.tag }} (macos, ${{ matrix.arch }})"
       -  name: Upload macOS artifact
          uses: actions/upload-artifact@v4
          with:
@@ -63,6 +68,11 @@ jobs:
             chmod +x build.sh
             ./build.sh ${{ env.tag }}
             mv spicetify.dmg ../../dist/spicetify-${{ env.tag }}.dmg
+      -  name: Attest DMG
+         uses: actions/attest-build-provenance@v1
+         with:
+            subject-path: "./dist/spicetify-${{ env.tag }}.dmg"
+            subject-name: "spicetify v${{ env.tag }} (macos, universal, dmg)"
       -  name: Upload final artifact to release
          uses: softprops/action-gh-release@v2
          with:
