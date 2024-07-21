@@ -17,7 +17,7 @@ jobs:
          run: echo "tag=${GITHUB_REF#refs/*/v}" >> "$GITHUB_OUTPUT"
 
    release-linux:
-      uses: ./.github/workflows/release/linux.yml
+      uses: ./.github/workflows/release-linux.yml
       needs: tag
       strategy:
          matrix:
@@ -29,7 +29,7 @@ jobs:
          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
    release-macos:
-      uses: ./.github/workflows/release/macos.yml
+      uses: ./.github/workflows/release-macos.yml
       needs: tag
       with:
          tag: ${{ needs.tag.outputs.tag }}
@@ -37,7 +37,7 @@ jobs:
          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
    release-windows:
-      uses: ./.github/workflows/release/windows.yml
+      uses: ./.github/workflows/release-windows.yml
       needs: tag
       strategy:
          matrix:

@@ -19,7 +19,7 @@ on:
 jobs:
    release-linux:
       runs-on: ubuntu-latest
-      jobs:
+      steps:
          -  name: Checkout
             uses: actions/checkout@v4
 
