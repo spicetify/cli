@@ -7,10 +7,6 @@ on:
             description: Tag
             required: true
             type: string
-      secrets:
-         GITHUB_TOKEN:
-            description: GitHub token
-            required: true
 
 jobs:
    release-macos:
