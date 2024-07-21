@@ -1,0 +1,80 @@
+name: Release (macOS)
+
+on:
+   release:
+      types: [published]
+
+jobs:
+   build:
+      permissions:
+         id-token: write
+         contents: write
+         attestations: write
+      name: Build (macOS)
+      strategy:
+         matrix:
+            arch: ["amd64", "arm64"]
+      runs-on: macos-latest
+      if: startsWith(github.ref, 'refs/tags/v3')
+      steps:
+      -  name: Set Tag in env
+         run: echo "tag=${GITHUB_REF#refs/*/v}" >> "$GITHUB_ENV"
+      -  name: Checkout
+         uses: actions/checkout@v4
+      -  name: Setup Go
+         uses: actions/setup-go@v5
+         with:
+            go-version-file: "go.mod"
+      -  name: Build
+         shell: bash
+         run: |
+            mkdir dist
+            go build -o dist/spicetify-${{ matrix.arch }} -ldflags "-X main.version=${{ env.tag }}"
+         env:
+            GOARCH: ${{ matrix.arch }}
+      -  name: Attest output
+         uses: actions/attest-build-provenance@v1
+         with:
+            subject-path: "./dist/spicetify-${{ matrix.arch }}"
+            subject-name: "spicetify v${{ env.tag }} (macos, ${{ matrix.arch }})"
+      -  name: Upload macOS artifact
+         uses: actions/upload-artifact@v4
+         with:
+            name: spicetify-${{ matrix.arch }}
+            path: dist/spicetify-${{ matrix.arch }}
+
+   build-universal:
+      name: Build universal binary and DMG
+      needs: [build]
+      runs-on: macos-latest
+      steps:
+      -  name: Set Tag in env
+         run: echo "tag=${GITHUB_REF#refs/*/v}" >> "$GITHUB_ENV"
+      -  name: Checkout
+         uses: actions/checkout@v4
+      -  name: Download macOS artifacts
+         uses: actions/download-artifact@v4
+         with:
+            path: artifacts/
+            merge-multiple: true
+      -  name: Build universal binary, helper and DMG
+         shell: bash
+         run: |
+            set -e
+            brew install create-dmg
+            mkdir dist
+            cd build/macos
+            chmod +x build.sh
+            ./build.sh ${{ env.tag }}
+            mv spicetify.dmg ../../dist/spicetify-${{ env.tag }}.dmg
+      -  name: Attest output
+         uses: actions/attest-build-provenance@v1
+         with:
+            subject-path: "./build/macos/bin/spicetify, ./dist/spicetify-${{ env.tag }}.dmg"
+            subject-name: "spicetify v${{ env.tag }} (macos, universal)"
+      -  name: Upload final artifact to release
+         uses: softprops/action-gh-release@v2
+         with:
+            files: "dist/*"
+         env:
+            GITHUB_TOKEN: ${{ inputs.GH_TOKEN }}
