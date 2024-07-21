@@ -25,16 +25,12 @@ jobs:
       with:
          tag: ${{ needs.tag.outputs.tag }}
          arch: ${{ matrix.arch }}
-      secrets:
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
    release-macos:
       uses: ./.github/workflows/release-macos.yml
       needs: tag
       with:
          tag: ${{ needs.tag.outputs.tag }}
-      secrets:
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
    release-windows:
       uses: ./.github/workflows/release-windows.yml
@@ -45,5 +41,3 @@ jobs:
       with:
          tag: ${{ needs.tag.outputs.tag }}
          arch: ${{ matrix.arch }}
-      secrets:
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
