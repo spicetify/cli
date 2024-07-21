@@ -17,7 +17,7 @@ plutil -replace CFBundleName -string "Spicetify" Volume/Spicetify.app/Contents/I
 plutil -replace CFBundleIconFile -string AppIcon.icns Volume/Spicetify.app/Contents/Info.plist
 plutil -replace CFBundleURLTypes -xml '<array><dict><key>CFBundleURLName</key><string>Spicetify</string><key>CFBundleURLSchemes</key><array><string>spicetify</string></array></dict></array>' Volume/Spicetify.app/Contents/Info.plist
 
-codesign --deep --force --sign --timestamp=none Volume/Spicetify.app
+codesign --deep --force --sign - --timestamp=none Volume/Spicetify.app
 
 create-dmg \
   --volname "Spicetify" \
