@@ -18,6 +18,10 @@ jobs:
 
    build-linux:
       uses: ./.github/workflows/build-linux.yml
+      permissions:
+         id-token: write
+         contents: write
+         attestations: write
       needs: setup
       strategy:
          matrix:
@@ -28,12 +32,20 @@ jobs:
 
    build-macos:
       uses: ./.github/workflows/build-macos.yml
+      permissions:
+         id-token: write
+         contents: write
+         attestations: write
       needs: setup
       with:
          tag: ${{ needs.setup.outputs.tag }}
 
    build-windows:
       uses: ./.github/workflows/build-windows.yml
+      permissions:
+         id-token: write
+         contents: write
+         attestations: write
       needs: setup
       strategy:
          matrix:

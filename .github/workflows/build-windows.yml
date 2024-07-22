@@ -45,7 +45,6 @@ jobs:
             uses: actions/attest-build-provenance@v1
             with:
                subject-path: "dist/*"
-               github-token: ${{ secrets.GITHUB_TOKEN }}
 
          -  name: Upload
             uses: actions/upload-artifact@v4
