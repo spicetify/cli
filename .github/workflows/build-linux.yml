@@ -32,7 +32,7 @@ jobs:
                cd build/linux
                chmod +x build.sh
                ./build.sh ${{ inputs.tag }} ${{ inputs.arch }}
-               mv spicetify "../../dist/spicetify-linux-${{ inputs.arch }}
+               mv spicetify "../../dist/spicetify-linux-${{ inputs.arch }}"
 
          -  name: Attest
             uses: actions/attest-build-provenance@v1
