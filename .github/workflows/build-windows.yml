@@ -38,8 +38,8 @@ jobs:
                $ErrorActionPreference = 'Stop'
                mkdir dist
                cd build\windows
-               .\build.ps1 -version ${{ inputs.tag }} -platform ${{ inputs.arch }}
-               mv spicetify.msi ..\..\dist\spicetify-${{ inputs.arch }}.msi
+               .\build.ps1 -version "${{ inputs.tag }}"-platform "${{ inputs.arch }}"
+               mv spicetify.msi "..\..\dist\spicetify-windows-${{ inputs.arch }}.msi"
 
          -  name: Attest
             uses: actions/attest-build-provenance@v1

@@ -30,8 +30,8 @@ jobs:
                mkdir dist
                cd build/macos
                chmod +x build.sh
-               ./build.sh ${{ inputs.tag }}
-               mv spicetify.dmg ../../dist/spicetify.dmg
+               ./build.sh "${{ inputs.tag }}"
+               mv spicetify.dmg "../../dist/spicetify-macos.dmg"
 
          -  name: Attest
             uses: actions/attest-build-provenance@v1
