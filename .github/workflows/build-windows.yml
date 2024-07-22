@@ -39,7 +39,7 @@ jobs:
                mkdir dist
                cd build\windows
                .\build.ps1 -version ${{ inputs.tag }} -platform ${{ inputs.arch }}
-               mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-${{ inputs.arch }}.msi
+               mv spicetify.msi ..\..\dist\spicetify-${{ inputs.arch }}.msi
 
          -  name: Attest
             uses: actions/attest-build-provenance@v1
@@ -49,4 +49,5 @@ jobs:
          -  name: Upload
             uses: actions/upload-artifact@v4
             with:
+               name: spicetify-windows-${{ inputs.arch }}
                path: "dist/*"

@@ -31,7 +31,7 @@ jobs:
                cd build/macos
                chmod +x build.sh
                ./build.sh ${{ inputs.tag }}
-               mv spicetify.dmg ../../dist/spicetify-${{ inputs.tag }}.dmg
+               mv spicetify.dmg ../../dist/spicetify.dmg
 
          -  name: Attest
             uses: actions/attest-build-provenance@v1
@@ -41,4 +41,5 @@ jobs:
          -  name: Upload
             uses: actions/upload-artifact@v4
             with:
+               name: spicetify-macos
                path: "dist/*"
