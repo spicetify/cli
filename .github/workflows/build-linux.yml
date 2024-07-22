@@ -1,4 +1,4 @@
-name: Release for Linux
+name: Build for Linux
 
 on:
    workflow_call:
@@ -13,7 +13,7 @@ on:
             type: string
 
 jobs:
-   release-linux:
+   build-linux:
       runs-on: ubuntu-latest
       steps:
          -  name: Checkout
@@ -32,11 +32,14 @@ jobs:
                cd build/linux
                chmod +x build.sh
                ./build.sh ${{ inputs.tag }} ${{ inputs.arch }}
-               mv spicetify ../../dist/spicetify-${{ inputs.tag }}-linux-${{ inputs.arch }}
+               mv spicetify "../../dist/spicetify-${{ inputs.arch }}-linux-${{ inputs.tag }}"
 
-         -  name: Release
-            uses: softprops/action-gh-release@v2
+         -  name: Attest
+            uses: actions/attest-build-provenance@v1
             with:
-               files: "dist/*"
-            env:
-               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+               subject-path: "dist/*"
+
+         -  name: Upload
+            uses: actions/upload-artifact@v4
+            with:
+               path: "dist/*"

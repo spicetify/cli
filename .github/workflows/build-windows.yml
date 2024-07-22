@@ -1,4 +1,4 @@
-name: Release for Windows
+name: Build for Windows
 
 on:
    workflow_call:
@@ -13,7 +13,7 @@ on:
             type: string
 
 jobs:
-   release-windows:
+   build-windows:
       runs-on: windows-latest
       steps:
          -  name: Checkout
@@ -40,6 +40,16 @@ jobs:
                cd build\windows
                .\build.ps1 -version ${{ inputs.tag }} -platform ${{ inputs.arch }}
                mv spicetify.msi ..\..\dist\spicetify-${{ inputs.tag }}-${{ inputs.arch }}.msi
+
+         -  name: Attest
+            uses: actions/attest-build-provenance@v1
+            with:
+               subject-path: "dist/*"
+
+         -  name: Upload
+            uses: actions/upload-artifact@v4
+            with:
+               path: "dist/*"
 
          -  name: Release
             uses: softprops/action-gh-release@v2

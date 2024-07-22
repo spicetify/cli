@@ -1,4 +1,4 @@
-name: Release for macOS
+name: Build for macOS
 
 on:
    workflow_call:
@@ -9,7 +9,7 @@ on:
             type: string
 
 jobs:
-   release-macos:
+   build-macos:
       runs-on: macos-latest
       steps:
          -  name: Checkout
@@ -33,9 +33,12 @@ jobs:
                ./build.sh ${{ inputs.tag }}
                mv spicetify.dmg ../../dist/spicetify-${{ inputs.tag }}.dmg
 
-         -  name: Release
-            uses: softprops/action-gh-release@v2
+         -  name: Attest
+            uses: actions/attest-build-provenance@v1
             with:
-               files: "dist/*"
-            env:
-               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+               subject-path: "dist/*"
+
+         -  name: Upload
+            uses: actions/upload-artifact@v4
+            with:
+               path: "dist/*"
