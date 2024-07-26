@@ -5,7 +5,9 @@
 /// <reference path="../globals.d.ts" />
 
 (function TrashBin() {
-	const skipBackBtn = document.querySelector(".main-skipBackButton-button");
+	const skipBackBtn =
+		document.querySelector(".main-skipBackButton-button") ??
+		document.querySelector(".player-controls__left > button[data-encore-id='buttonTertiary']");
 	if (!Spicetify.Player.data || !Spicetify.LocalStorage || !skipBackBtn) {
 		setTimeout(TrashBin, 1000);
 		return;
