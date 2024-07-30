@@ -616,9 +616,14 @@ func exposeAPIs_vendor(input string) string {
 		}
 	}
 
+	// for >=1.2.43
+	utils.ReplaceOnce(&input, `,(\w+)=(function\(\w+\)\{[^}]*?case"ballad"[^}]*?\})`, func(submatches ...string) string {
+		return fmt.Sprintf(",%s=Spicetify._fontStyleList=%s", submatches[1], submatches[2])
+	})
+
 	utils.ReplaceOnce(
 		&input,
-		`\(function\(\w+\)\{return \w+\.\$?variant\?function\(\w+\)\{`,
+		`\(function\(\w+\)\{return \w+\.\$?variant\?(\s*\w+\(\w+\.\$variant\)|function\(\w+\)\{)`,
 		func(submatches ...string) string {
 			return fmt.Sprintf("Spicetify._fontStyle=%s", submatches[0])
 		})

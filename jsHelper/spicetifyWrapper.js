@@ -1468,10 +1468,7 @@ Spicetify.SVGIcons = {
 		setTimeout(appendAllFontStyle, 1000);
 		return;
 	}
-	const fontList = Spicetify._fontStyle
-		.toString()
-		.match(/"\w+"/g)
-		.map(font => font.replaceAll('"', ""));
+	const fontList = (Spicetify._fontStyleList?.toString() ?? Spicetify._fontStyle.toString()).match(/"\w+"/g).map(font => font.replace(/"/g, ""));
 	const fontStyle = document.createElement("style");
 	fontStyle.className = "spicetify-font";
 	for (const font of fontList) {
