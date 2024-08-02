@@ -9,7 +9,7 @@ const reactDOM = Spicetify.ReactDOM;
 const {
 	URI,
 	React: { useState, useEffect, useCallback },
-	Platform: { History }
+	Platform: { History },
 } = Spicetify;
 
 // Define a function called "render" to specify app entry point
@@ -23,10 +23,10 @@ const CONFIG = {
 		type: localStorage.getItem("reddit:type") === "true",
 		upvotes: localStorage.getItem("reddit:upvotes") === "true",
 		followers: localStorage.getItem("reddit:followers") === "true",
-		longDescription: localStorage.getItem("reddit:longDescription") === "true"
+		longDescription: localStorage.getItem("reddit:longDescription") === "true",
 	},
 	services: localStorage.getItem("reddit:services") || `["spotify","makemeaplaylist","SpotifyPlaylists","music","edm","popheads"]`,
-	lastService: localStorage.getItem("reddit:last-service")
+	lastService: localStorage.getItem("reddit:last-service"),
 };
 
 try {
@@ -44,7 +44,7 @@ if (!CONFIG.lastService || !CONFIG.services.includes(CONFIG.lastService)) {
 }
 const sortConfig = {
 	by: localStorage.getItem("reddit:sort-by") || "top",
-	time: localStorage.getItem("reddit:sort-time") || "month"
+	time: localStorage.getItem("reddit:sort-time") || "month",
 };
 let cardList = [];
 let endOfList = false;
@@ -58,7 +58,7 @@ let gridUpdatePostsVisual;
 const typesLocale = {
 	album: Spicetify.Locale.get("album"),
 	song: Spicetify.Locale.get("song"),
-	playlist: Spicetify.Locale.get("playlist")
+	playlist: Spicetify.Locale.get("playlist"),
 };
 
 class Grid extends react.Component {
@@ -71,7 +71,7 @@ class Grid extends react.Component {
 			cards: [],
 			tabs: CONFIG.services,
 			rest: true,
-			endOfList: endOfList
+			endOfList: endOfList,
 		};
 	}
 
@@ -103,7 +103,7 @@ class Grid extends react.Component {
 		this.setState({
 			cards: [],
 			rest: false,
-			endOfList: false
+			endOfList: false,
 		});
 		endOfList = false;
 
@@ -112,12 +112,12 @@ class Grid extends react.Component {
 
 	updateTabs() {
 		this.setState({
-			tabs: [...CONFIG.services]
+			tabs: [...CONFIG.services],
 		});
 	}
 
 	updatePostsVisual() {
-		cardList = cardList.map(card => {
+		cardList = cardList.map((card) => {
 			return react.createElement(Card, card.props);
 		});
 		this.setState({ cards: [...cardList] });
@@ -131,7 +131,7 @@ class Grid extends react.Component {
 		this.setState({
 			cards: [],
 			rest: false,
-			endOfList: false
+			endOfList: false,
 		});
 		endOfList = false;
 
@@ -183,7 +183,7 @@ class Grid extends react.Component {
 		}
 
 		if (requestAfter === -1) {
-			requestQueue = requestQueue.filter(a => a !== queue);
+			requestQueue = requestQueue.filter((a) => a !== queue);
 			return;
 		}
 
@@ -240,17 +240,17 @@ class Grid extends react.Component {
 		return react.createElement(
 			"section",
 			{
-				className: "contentSpacing"
+				className: "contentSpacing",
 			},
 			react.createElement(
 				"div",
 				{
-					className: "reddit-header"
+					className: "reddit-header",
 				},
 				react.createElement("h1", null, this.props.title),
 				react.createElement(SortBox, {
 					onChange: this.updateSort.bind(this),
-					onServicesChange: this.updateTabs.bind(this)
+					onServicesChange: this.updateTabs.bind(this),
 				})
 			),
 			react.createElement(
@@ -262,8 +262,8 @@ class Grid extends react.Component {
 						"--minimumColumnWidth": "180px",
 						"--column-width": "minmax(var(--minimumColumnWidth),1fr)",
 						"--column-count": "auto-fill",
-						"--grid-gap": "24px"
-					}
+						"--grid-gap": "24px",
+					},
 				},
 				[...cardList]
 			),
@@ -272,8 +272,8 @@ class Grid extends react.Component {
 				{
 					style: {
 						margin: "auto",
-						textAlign: "center"
-					}
+						textAlign: "center",
+					},
 				},
 				!this.state.endOfList &&
 					(this.state.rest ? react.createElement(LoadMoreIcon, { onClick: this.loadMore.bind(this) }) : react.createElement(LoadingIcon))
@@ -282,7 +282,7 @@ class Grid extends react.Component {
 				react.createElement(TopBarContent, {
 					switchCallback: this.switchTo.bind(this),
 					links: CONFIG.services,
-					activeLink: CONFIG.lastService
+					activeLink: CONFIG.lastService,
 				})
 		);
 	}
@@ -298,7 +298,7 @@ async function getSubreddit(after = "") {
 		url += `&t=${sortConfig.time}`;
 	}
 
-	return await fetch(url, { method: "GET" }).then(res => res.json());
+	return await fetch(url, { method: "GET" }).then((res) => res.json());
 }
 
 async function fetchPlaylist(post) {
@@ -307,8 +307,8 @@ async function fetchPlaylist(post) {
 			policy: {
 				name: true,
 				picture: true,
-				followers: true
-			}
+				followers: true,
+			},
 		});
 
 		const { metadata } = res;
@@ -319,7 +319,7 @@ async function fetchPlaylist(post) {
 			subtitle: post.title,
 			imageURL: metadata.picture,
 			upvotes: post.upvotes,
-			followersCount: metadata.followers
+			followersCount: metadata.followers,
 		};
 	} catch {
 		return null;
@@ -330,16 +330,21 @@ async function fetchAlbum(post) {
 	const { getAlbum } = Spicetify.GraphQL.Definitions;
 
 	try {
-		const { data } = await Spicetify.GraphQL.Request(getAlbum, { uri: post.uri, locale: Spicetify.Locale.getLocale(), offset: 0, limit: 10 });
+		const { data } = await Spicetify.GraphQL.Request(getAlbum, {
+			uri: post.uri,
+			locale: Spicetify.Locale.getLocale(),
+			offset: 0,
+			limit: 10,
+		});
 		const metadata = data.albumUnion;
 
 		return {
 			type: typesLocale.album,
 			uri: post.uri,
 			title: metadata.name,
-			subtitle: metadata.artists.items.map(artist => artist.profile.name).join(", "),
+			subtitle: metadata.artists.items.map((artist) => artist.profile.name).join(", "),
 			imageURL: metadata.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url,
-			upvotes: post.upvotes
+			upvotes: post.upvotes,
 		};
 	} catch {
 		return null;
@@ -356,7 +361,7 @@ async function fetchTrack(post) {
 			title: metadata.name,
 			subtitle: metadata.artists,
 			imageURL: metadata.album.images[0].url,
-			upvotes: post.upvotes
+			upvotes: post.upvotes,
 		};
 	} catch {
 		return null;
@@ -372,7 +377,7 @@ function postMapper(posts) {
 				uri: uri.toURI(),
 				type: uri.type,
 				title: post.data.title,
-				upvotes: post.data.ups
+				upvotes: post.data.ups,
 			});
 		}
 	}

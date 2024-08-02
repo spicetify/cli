@@ -96,8 +96,8 @@
 				viewBox: "0 0 16 16",
 				fill: "currentColor",
 				dangerouslySetInnerHTML: {
-					__html: icon
-				}
+					__html: icon,
+				},
 			});
 		}
 
@@ -119,7 +119,7 @@
 								setValue(!value);
 								saveConfig();
 								onclickFun();
-							}
+							},
 						},
 						React.createElement(DisplayIcon, { icon: Spicetify.SVGIcons.check, size: 16 })
 					)
@@ -140,18 +140,18 @@
 						"select",
 						{
 							value,
-							onChange: e => {
+							onChange: (e) => {
 								setValue(e.target.value);
 								CONFIG[field] = e.target.value;
 								saveConfig();
 								onclickFun();
-							}
+							},
 						},
-						Object.keys(options).map(item =>
+						Object.keys(options).map((item) =>
 							React.createElement(
 								"option",
 								{
-									value: item
+									value: item,
 								},
 								options[item]
 							)
@@ -175,24 +175,24 @@
 					album: "Albums",
 					single: "Singles & EP",
 					likedSongArtist: "Artist's Liked Songs",
-					topTen: "Top 10 Songs"
-				}
+					topTen: "Top 10 Songs",
+				},
 			}),
 			React.createElement(checkBoxItem, {
 				name: "Chosen artist must be included",
-				field: "artistNameMust"
+				field: "artistNameMust",
 			}),
 			React.createElement(checkBoxItem, {
 				name: "Enable Shuffle+ Queue Tracks button in Playbar",
 				field: "enableQueueButton",
-				onclickFun: () => renderQueuePlaybarButton()
+				onclickFun: () => renderQueuePlaybarButton(),
 			})
 		);
 
 		Spicetify.PopupModal.display({
 			title: "Shuffle+",
 			content: settingsDOMContent,
-			isLarge: true
+			isLarge: true,
 		});
 	}
 
@@ -243,7 +243,7 @@
 
 	new Spicetify.ContextMenu.Item(
 		"Play with Shuffle+",
-		async uri => {
+		async (uri) => {
 			if (uri.length === 1) {
 				await fetchAndPlay(uri[0]);
 				return;
@@ -256,7 +256,7 @@
 
 	new Spicetify.ContextMenu.Item(
 		"Shuffle+ Liked Songs",
-		async uri => {
+		async (uri) => {
 			await fetchAndPlay(uri[0]);
 		},
 		shouldAddShufflePlusLiked,
@@ -265,7 +265,7 @@
 
 	new Spicetify.ContextMenu.Item(
 		"Shuffle+ Local Files",
-		async uri => {
+		async (uri) => {
 			await fetchAndPlay(uri[0]);
 		},
 		shouldAddShufflePlusLocal,
@@ -292,9 +292,9 @@
 
 	async function fetchPlaylistTracks(uri) {
 		const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/spotify:playlist:${uri}/rows`, {
-			policy: { link: true, playable: true }
+			policy: { link: true, playable: true },
 		});
-		return res.rows.filter(track => track.playable).map(track => track.link);
+		return res.rows.filter((track) => track.playable).map((track) => track.link);
 	}
 
 	function searchFolder(rows, uri) {
@@ -310,7 +310,7 @@
 
 	async function fetchFolderTracks(uri) {
 		const res = await Spicetify.CosmosAsync.get("sp://core-playlist/v1/rootlist", {
-			policy: { folder: { rows: true, link: true } }
+			policy: { folder: { rows: true, link: true } },
 		});
 
 		const requestFolder = searchFolder(res.rows, uri);
@@ -360,7 +360,7 @@
 			Spicetify.showNotification(`${artistFetchTypeCount[type]} / ${res.length} ${type}s`);
 
 			for (const track of albumRes) {
-				if (!CONFIG.artistNameMust || track.artists.items.some(artist => artist.profile.name === artistName)) allTracks.push(track.uri);
+				if (!CONFIG.artistNameMust || track.artists.items.some((artist) => artist.profile.name === artistName)) allTracks.push(track.uri);
 			}
 		}
 
@@ -374,29 +374,29 @@
 			name: "queryArtistOverview",
 			operation: "query",
 			sha256Hash: "35648a112beb1794e39ab931365f6ae4a8d45e65396d641eeda94e4003d41497",
-			value: null
+			value: null,
 		};
 
 		const discography = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
 			uri,
 			offset: 0,
 			// Limit 100 since GraphQL has resource limit
-			limit: 100
+			limit: 100,
 		});
 		if (discography.errors) throw discography.errors[0].message;
 
 		const overview = await Spicetify.GraphQL.Request(queryArtistOverview, {
 			uri,
 			locale: Spicetify.Locale.getLocale(),
-			includePrerelease: false
+			includePrerelease: false,
 		});
 		if (overview.errors) throw overview.errors[0].message;
 
 		const artistName = overview.data.artistUnion.profile.name;
 		const releases = discography.data.artistUnion.discography.all.items.flatMap(({ releases }) => releases.items);
 
-		const artistAlbums = releases.filter(album => album.type === "ALBUM");
-		const artistSingles = releases.filter(album => album.type === "SINGLE" || album.type === "EP");
+		const artistAlbums = releases.filter((album) => album.type === "ALBUM");
+		const artistSingles = releases.filter((album) => album.type === "SINGLE" || album.type === "EP");
 
 		if (artistAlbums.length === 0 && artistSingles.length === 0) throw "Artist has no releases";
 
@@ -409,7 +409,7 @@
 	async function fetchArtistLikedTracks(uri) {
 		const artistRes = await Spicetify.CosmosAsync.get(`sp://core-collection/unstable/@/list/tracks/artist/${uri}?responseFormat=protobufJson`);
 
-		const allTracks = artistRes.item?.map(artistTrack => {
+		const allTracks = artistRes.item?.map((artistTrack) => {
 			if (artistTrack.trackMetadata.playable) return artistTrack.trackMetadata.link;
 		});
 
@@ -421,7 +421,7 @@
 		const { data, errors } = await Spicetify.GraphQL.Request(queryArtistOverview, {
 			uri,
 			locale: Spicetify.Locale.getLocale(),
-			includePrerelease: false
+			includePrerelease: false,
 		});
 		if (errors) throw errors[0].message;
 		return data.artistUnion.discography.topTracks.items.map(({ track }) => track.uri);
@@ -430,19 +430,19 @@
 	async function fetchLikedTracks() {
 		const res = await Spicetify.CosmosAsync.get("sp://core-collection/unstable/@/list/tracks/all?responseFormat=protobufJson");
 
-		return res.item.filter(track => track.trackMetadata.playable).map(track => track.trackMetadata.link);
+		return res.item.filter((track) => track.trackMetadata.playable).map((track) => track.trackMetadata.link);
 	}
 
 	async function fetchLocalTracks() {
 		const res = await Spicetify.Platform.LocalFilesAPI.getTracks();
 
-		return res.map(track => track.uri);
+		return res.map((track) => track.uri);
 	}
 
 	function fetchQueue() {
 		const { _queueState } = Spicetify.Platform.PlayerAPI._queue;
-		const nextUp = _queueState.nextUp.map(track => track.uri);
-		const queued = _queueState.queued.map(track => track.uri);
+		const nextUp = _queueState.nextUp.map((track) => track.uri);
+		const queued = _queueState.queued.map((track) => track.uri);
 		const array = [...new Set([...nextUp, ...queued])];
 		const current = _queueState.current?.uri;
 		if (current) array.push(current);
@@ -475,7 +475,7 @@
 
 	async function fetchShows(uri) {
 		const res = await Spicetify.CosmosAsync.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`);
-		return res.items.filter(track => track.episodePlayState.isPlayable).map(track => track.episodeMetadata.link);
+		return res.items.filter((track) => track.episodePlayState.isPlayable).map((track) => track.episodeMetadata.link);
 	}
 
 	function shuffle(array) {
@@ -508,24 +508,24 @@
 		const { prevTracks, queueRevision } = _queue;
 
 		// Format tracks with default values
-		const nextTracks = list.map(uri => ({
+		const nextTracks = list.map((uri) => ({
 			contextTrack: {
 				uri,
 				uid: "",
 				metadata: {
-					is_queued: "false"
-				}
+					is_queued: "false",
+				},
 			},
 			removed: [],
 			blocked: [],
-			provider: "context"
+			provider: "context",
 		}));
 
 		// Lowest level setQueue method from vendor~xpui.js
 		_client.setQueue({
 			nextTracks,
 			prevTracks,
-			queueRevision
+			queueRevision,
 		});
 
 		if (context) {

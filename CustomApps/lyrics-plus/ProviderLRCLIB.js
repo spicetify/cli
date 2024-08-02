@@ -6,23 +6,23 @@ const ProviderLRCLIB = (() => {
 			track_name: info.title,
 			artist_name: info.artist,
 			album_name: info.album,
-			duration: durr
+			duration: durr,
 		};
 
 		const finalURL = `${baseURL}?${Object.keys(params)
-			.map(key => `${key}=${encodeURIComponent(params[key])}`)
+			.map((key) => `${key}=${encodeURIComponent(params[key])}`)
 			.join("&")}`;
 
 		const body = await fetch(finalURL, {
 			headers: {
-				"user-agent": `spicetify v${Spicetify.Config.version} (https://github.com/spicetify/cli)`
-			}
+				"user-agent": `spicetify v${Spicetify.Config.version} (https://github.com/spicetify/cli)`,
+			},
 		});
 
 		if (body.status !== 200) {
 			return {
 				error: "Request error: Track wasn't found",
-				uri: info.uri
+				uri: info.uri,
 			};
 		}
 

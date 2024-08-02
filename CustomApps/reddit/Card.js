@@ -33,17 +33,17 @@ class Card extends react.Component {
 	getSubtitle() {
 		let subtitle;
 		if ((this.uriType === URI.Type.ALBUM || this.uriType === URI.Type.TRACK) && Array.isArray(this.subtitle)) {
-			subtitle = this.subtitle.map(artist => {
+			subtitle = this.subtitle.map((artist) => {
 				const artistHref = URI.fromString(artist.uri).toURLPath(true);
 				return react.createElement(
 					"a",
 					{
 						href: artistHref,
-						onClick: event => {
+						onClick: (event) => {
 							event.preventDefault();
 							event.stopPropagation();
 							History.push(artistHref);
-						}
+						},
 					},
 					react.createElement("span", null, artist.name)
 				);
@@ -55,7 +55,7 @@ class Card extends react.Component {
 				"div",
 				{
 					className: `${this.visual.longDescription ? "reddit-longDescription " : ""}main-cardSubHeader-root main-type-mesto reddit-cardSubHeader`,
-					as: "div"
+					as: "div",
 				},
 				react.createElement("span", null, this.subtitle)
 			);
@@ -63,7 +63,7 @@ class Card extends react.Component {
 		return react.createElement(
 			"div",
 			{
-				className: "reddit-cardSubHeader main-type-mesto"
+				className: "reddit-cardSubHeader main-type-mesto",
 			},
 			subtitle
 		);
@@ -75,7 +75,7 @@ class Card extends react.Component {
 				"div",
 				{
 					className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
-					as: "div"
+					as: "div",
 				},
 				react.createElement("span", null, Spicetify.Locale.get("user.followers", this.followersCount))
 			);
@@ -90,32 +90,32 @@ class Card extends react.Component {
 		return react.createElement(
 			Spicetify.ReactComponent.RightClickMenu || "div",
 			{
-				menu: react.createElement(this.menuType, { uri: this.uri })
+				menu: react.createElement(this.menuType, { uri: this.uri }),
 			},
 			react.createElement(
 				"div",
 				{
 					className: "main-card-card",
-					onClick: event => {
+					onClick: (event) => {
 						History.push(this.href);
 						event.preventDefault();
-					}
+					},
 				},
 				react.createElement(
 					"div",
 					{
 						className: "main-card-draggable",
-						draggable: "true"
+						draggable: "true",
 					},
 					react.createElement(
 						"div",
 						{
-							className: "main-card-imageContainer"
+							className: "main-card-imageContainer",
 						},
 						react.createElement(
 							"div",
 							{
-								className: "main-cardImage-imageWrapper"
+								className: "main-cardImage-imageWrapper",
 							},
 							react.createElement(
 								"div",
@@ -125,14 +125,14 @@ class Card extends react.Component {
 									draggable: "false",
 									loading: "lazy",
 									src: this.imageURL,
-									className: "main-image-image main-cardImage-image"
+									className: "main-image-image main-cardImage-image",
 								})
 							)
 						),
 						react.createElement(
 							"div",
 							{
-								className: "main-card-PlayButtonContainer"
+								className: "main-card-PlayButtonContainer",
 							},
 							react.createElement(
 								"div",
@@ -140,7 +140,7 @@ class Card extends react.Component {
 									className: "main-playButton-PlayButton main-playButton-primary",
 									"aria-label": Spicetify.Locale.get("play"),
 									style: { "--size": "40px" },
-									onClick: this.play.bind(this)
+									onClick: this.play.bind(this),
 								},
 								react.createElement(
 									"button",
@@ -155,11 +155,11 @@ class Card extends react.Component {
 												role: "img",
 												width: "24",
 												viewBox: "0 0 24 24",
-												"aria-hidden": "true"
+												"aria-hidden": "true",
 											},
 											react.createElement("polygon", {
 												points: "21.57 12 5.98 3 5.98 21 21.57 12",
-												fill: "currentColor"
+												fill: "currentColor",
 											})
 										)
 									)
@@ -170,7 +170,7 @@ class Card extends react.Component {
 					react.createElement(
 						"div",
 						{
-							className: "main-card-cardMetadata"
+							className: "main-card-cardMetadata",
 						},
 						react.createElement(
 							"a",
@@ -179,13 +179,13 @@ class Card extends react.Component {
 								title: this.title,
 								className: "main-cardHeader-link",
 								dir: "auto",
-								href: this.href
+								href: this.href,
 							},
 							react.createElement(
 								"div",
 								{
 									className: "main-cardHeader-text main-type-balladBold",
-									as: "div"
+									as: "div",
 								},
 								this.title
 							)
@@ -195,7 +195,7 @@ class Card extends react.Component {
 								"div",
 								{
 									className: "main-cardSubHeader-root main-type-mestoBold reddit-cardSubHeader",
-									as: "div"
+									as: "div",
 								},
 								react.createElement("span", null, detail.join(" ‒ "))
 							),

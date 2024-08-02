@@ -28,11 +28,11 @@
 	style.classList.add("lyrics-plus:visual:playbar-button");
 
 	if (Spicetify.LocalStorage.get("lyrics-plus:visual:playbar-button") === "true") setPlaybarButton();
-	window.addEventListener("lyrics-plus", event => {
+	window.addEventListener("lyrics-plus", (event) => {
 		if (event.detail?.name === "playbar-button") event.detail.value ? setPlaybarButton() : removePlaybarButton();
 	});
 
-	Spicetify.Platform.History.listen(location => {
+	Spicetify.Platform.History.listen((location) => {
 		button.active = location.pathname === "/lyrics-plus";
 	});
 

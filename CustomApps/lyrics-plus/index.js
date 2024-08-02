@@ -53,44 +53,44 @@ const CONFIG = {
 		"synced-compact": getConfig("lyrics-plus:visual:synced-compact"),
 		"dual-genius": getConfig("lyrics-plus:visual:dual-genius"),
 		"global-delay": Number(localStorage.getItem("lyrics-plus:visual:global-delay")) || 0,
-		delay: 0
+		delay: 0,
 	},
 	providers: {
 		musixmatch: {
 			on: getConfig("lyrics-plus:provider:musixmatch:on"),
 			desc: "Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button.",
 			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
-			modes: [KARAOKE, SYNCED, UNSYNCED]
+			modes: [KARAOKE, SYNCED, UNSYNCED],
 		},
 		spotify: {
 			on: getConfig("lyrics-plus:provider:spotify:on"),
 			desc: "Lyrics sourced from official Spotify API.",
-			modes: [SYNCED, UNSYNCED]
+			modes: [SYNCED, UNSYNCED],
 		},
 		netease: {
 			on: getConfig("lyrics-plus:provider:netease:on"),
 			desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
-			modes: [KARAOKE, SYNCED, UNSYNCED]
+			modes: [KARAOKE, SYNCED, UNSYNCED],
 		},
 		lrclib: {
 			on: getConfig("lyrics-plus:provider:lrclib:on"),
 			desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
-			modes: [SYNCED, UNSYNCED]
+			modes: [SYNCED, UNSYNCED],
 		},
 		genius: {
 			on: spotifyVersion >= "1.2.31" ? false : getConfig("lyrics-plus:provider:genius:on"),
 			desc: "Provide unsynced lyrics with insights from artists themselves. Genius is disabled and cannot be used as a provider on <code>1.2.31</code> and higher.",
-			modes: [GENIUS]
+			modes: [GENIUS],
 		},
 		local: {
 			on: getConfig("lyrics-plus:provider:local:on"),
 			desc: "Provide lyrics from cache/local files loaded from previous Spotify sessions.",
-			modes: [KARAOKE, SYNCED, UNSYNCED]
-		}
+			modes: [KARAOKE, SYNCED, UNSYNCED],
+		},
 	},
 	providersOrder: localStorage.getItem("lyrics-plus:services-order"),
 	modes: ["karaoke", "synced", "unsynced", "genius"],
-	locked: localStorage.getItem("lyrics-plus:lock-mode") || "-1"
+	locked: localStorage.getItem("lyrics-plus:lock-mode") || "-1",
 };
 
 try {
@@ -118,7 +118,7 @@ const emptyState = {
 	unsynced: null,
 	genius: null,
 	genius2: null,
-	currentLyrics: null
+	currentLyrics: null,
 };
 
 let lyricContainerUpdate;
@@ -152,7 +152,7 @@ class LyricsContainer extends react.Component {
 			provider: "",
 			colors: {
 				background: "",
-				inactive: ""
+				inactive: "",
 			},
 			tempo: "0.25s",
 			explicitMode: -1,
@@ -163,7 +163,7 @@ class LyricsContainer extends react.Component {
 			versionIndex2: 0,
 			isFullscreen: false,
 			isFADMode: false,
-			isCached: false
+			isCached: false,
 		};
 		this.currentTrackUri = "";
 		this.nextTrackUri = "";
@@ -191,7 +191,7 @@ class LyricsContainer extends react.Component {
 			artist: meta.artist_name,
 			title: meta.title,
 			uri: track.uri,
-			image: meta.image_url
+			image: meta.image_url,
 		};
 	}
 
@@ -205,7 +205,7 @@ class LyricsContainer extends react.Component {
 				vibrant = Number.parseInt(hex.replace("#", ""), 16);
 			} catch {
 				const colors = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/colorextractor/v1/extract-presets?uri=${uri}&format=json`);
-				vibrant = colors.entries[0].color_swatches.find(color => color.preset === "VIBRANT_NON_ALARMING").color;
+				vibrant = colors.entries[0].color_swatches.find((color) => color.preset === "VIBRANT_NON_ALARMING").color;
 			}
 		} catch {
 			vibrant = 8747370;
@@ -214,8 +214,8 @@ class LyricsContainer extends react.Component {
 		this.setState({
 			colors: {
 				background: Utils.convertIntToRGB(vibrant),
-				inactive: Utils.convertIntToRGB(vibrant, 3)
-			}
+				inactive: Utils.convertIntToRGB(vibrant, 3),
+			},
 		});
 	}
 
@@ -234,7 +234,7 @@ class LyricsContainer extends react.Component {
 		period = Math.round(period * 100) / 100;
 
 		this.setState({
-			tempo: `${String(period)}s`
+			tempo: `${String(period)}s`,
 		});
 	}
 
@@ -283,9 +283,10 @@ class LyricsContainer extends react.Component {
 			}
 
 			if (finalData.musixmatchTranslation && typeof finalData.musixmatchTranslation[0].startTime === "undefined" && finalData.synced) {
-				finalData.musixmatchTranslation = finalData.synced.map(line => ({
+				finalData.musixmatchTranslation = finalData.synced.map((line) => ({
 					...line,
-					text: finalData.musixmatchTranslation.find(l => Utils.processLyrics(l.originalText) === Utils.processLyrics(line.text))?.text ?? line.text
+					text:
+						finalData.musixmatchTranslation.find((l) => Utils.processLyrics(l.originalText) === Utils.processLyrics(line.text))?.text ?? line.text,
 				}));
 			}
 
@@ -440,10 +441,10 @@ class LyricsContainer extends react.Component {
 			["romaji", "spaced", "romaji"],
 			["hiragana", "furigana", "furigana"],
 			["hiragana", "normal", "hiragana"],
-			["katakana", "normal", "katakana"]
+			["katakana", "normal", "katakana"],
 		]) {
 			if (language !== "ja") continue;
-			Promise.all(lyrics.map(lyric => this.translator.romajifyText(lyric.text, params[0], params[1]))).then(results => {
+			Promise.all(lyrics.map((lyric) => this.translator.romajifyText(lyric.text, params[0], params[1]))).then((results) => {
 				const result = results.join("\n");
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[2] });
 				showNotification(200);
@@ -453,10 +454,10 @@ class LyricsContainer extends react.Component {
 
 		for (const params of [
 			["hangul", "hangul"],
-			["romaja", "romaja"]
+			["romaja", "romaja"],
 		]) {
 			if (language !== "ko") continue;
-			Promise.all(lyrics.map(lyric => this.translator.convertToRomaja(lyric.text, params[1]))).then(results => {
+			Promise.all(lyrics.map((lyric) => this.translator.convertToRomaja(lyric.text, params[1]))).then((results) => {
 				const result = results.join("\n");
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
 				showNotification(200);
@@ -469,10 +470,10 @@ class LyricsContainer extends react.Component {
 			["cn", "tw"],
 			["t", "cn"],
 			["t", "hk"],
-			["t", "tw"]
+			["t", "tw"],
 		]) {
 			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) continue;
-			Promise.all(lyrics.map(lyric => this.translator.convertChinese(lyric.text, params[0], params[1]))).then(results => {
+			Promise.all(lyrics.map((lyric) => this.translator.convertChinese(lyric.text, params[0], params[1]))).then((results) => {
 				const result = results.join("\n");
 				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
 				showNotification(200);
@@ -490,13 +491,13 @@ class LyricsContainer extends react.Component {
 			this.setState({
 				...emptyLine,
 				genius2: this.state.genius2,
-				isLoading: true
+				isLoading: true,
 			});
 			const lyrics = await ProviderGenius.fetchLyricsVersion(items, index);
 			this.setState({
 				genius: lyrics,
 				versionIndex: index,
-				isLoading: false
+				isLoading: false,
 			});
 		}
 	}
@@ -506,22 +507,22 @@ class LyricsContainer extends react.Component {
 			this.setState({
 				...emptyLine,
 				genius: this.state.genius,
-				isLoading: true
+				isLoading: true,
 			});
 			const lyrics = await ProviderGenius.fetchLyricsVersion(items, index);
 			this.setState({
 				genius2: lyrics,
 				versionIndex2: index,
-				isLoading: false
+				isLoading: false,
 			});
 		}
 	}
 
 	saveLocalLyrics(uri, lyrics) {
 		if (lyrics.genius) {
-			lyrics.unsynced = lyrics.genius.split("<br>").map(lyc => {
+			lyrics.unsynced = lyrics.genius.split("<br>").map((lyc) => {
 				return {
-					text: lyc.replace(/<[^>]*>/g, "")
+					text: lyc.replace(/<[^>]*>/g, ""),
 				};
 			});
 			lyrics.genius = null;
@@ -548,13 +549,13 @@ class LyricsContainer extends react.Component {
 			return;
 		}
 
-		reader.onload = e => {
+		reader.onload = (e) => {
 			try {
 				const localLyrics = Utils.parseLocalLyrics(e.target.result);
 				const parsedKeys = Object.keys(localLyrics)
-					.filter(key => localLyrics[key])
-					.map(key => key[0].toUpperCase() + key.slice(1))
-					.map(key => `<strong>${key}</strong>`);
+					.filter((key) => localLyrics[key])
+					.map((key) => key[0].toUpperCase() + key.slice(1))
+					.map((key) => `<strong>${key}</strong>`);
 
 				if (!parsedKeys.length) {
 					Spicetify.showNotification("Nothing to load", true);
@@ -572,7 +573,7 @@ class LyricsContainer extends react.Component {
 			}
 		};
 
-		reader.onerror = e => {
+		reader.onerror = (e) => {
 			console.error(e);
 			Spicetify.showNotification("Failed to read file", true);
 		};
@@ -617,7 +618,7 @@ class LyricsContainer extends react.Component {
 		this.configButton = new Spicetify.Menu.Item("Lyrics Plus config", false, openConfig, "lyrics");
 		this.configButton.register();
 
-		this.onFontSizeChange = event => {
+		this.onFontSizeChange = (event) => {
 			if (!event.ctrlKey) return;
 			const dir = event.deltaY < 0 ? 1 : -1;
 			let temp = CONFIG.visual["font-size"] + dir * fontSizeLimit.step;
@@ -644,7 +645,7 @@ class LyricsContainer extends react.Component {
 			}
 
 			this.setState({
-				isFullscreen: isEnabled
+				isFullscreen: isEnabled,
 			});
 		};
 		this.mousetrap.reset();
@@ -661,7 +662,7 @@ class LyricsContainer extends react.Component {
 
 	updateVisualOnConfigChange() {
 		this.availableModes = CONFIG.modes.filter((_, id) => {
-			return Object.values(CONFIG.providers).some(p => p.on && p.modes.includes(id));
+			return Object.values(CONFIG.providers).some((p) => p.on && p.modes.includes(id));
 		});
 
 		if (!CONFIG.visual.colorful) {
@@ -670,7 +671,7 @@ class LyricsContainer extends react.Component {
 				"--lyrics-color-inactive": CONFIG.visual["inactive-color"],
 				"--lyrics-color-background": CONFIG.visual["background-color"],
 				"--lyrics-highlight-background": CONFIG.visual["highlight-color"],
-				"--lyrics-background-noise": CONFIG.visual.noise ? "var(--background-noise)" : "unset"
+				"--lyrics-background-noise": CONFIG.visual.noise ? "var(--background-noise)" : "unset",
 			};
 		}
 
@@ -678,7 +679,7 @@ class LyricsContainer extends react.Component {
 			...this.styleVariables,
 			"--lyrics-align-text": CONFIG.visual.alignment,
 			"--lyrics-font-size": `${CONFIG.visual["font-size"]}px`,
-			"--animation-tempo": this.state.tempo
+			"--animation-tempo": this.state.tempo,
 		};
 
 		this.mousetrap.reset();
@@ -737,7 +738,7 @@ class LyricsContainer extends react.Component {
 				"--lyrics-color-inactive": this.state.colors.inactive,
 				"--lyrics-color-background": this.state.colors.background || "transparent",
 				"--lyrics-highlight-background": this.state.colors.inactive,
-				"--lyrics-background-noise": CONFIG.visual.noise ? "var(--background-noise)" : "unset"
+				"--lyrics-background-noise": CONFIG.visual.noise ? "var(--background-noise)" : "unset",
 			};
 		}
 
@@ -745,7 +746,7 @@ class LyricsContainer extends react.Component {
 			...this.styleVariables,
 			"--lyrics-align-text": CONFIG.visual.alignment,
 			"--lyrics-font-size": `${CONFIG.visual["font-size"]}px`,
-			"--animation-tempo": this.state.tempo
+			"--animation-tempo": this.state.tempo,
 		};
 
 		let mode = -1;
@@ -785,21 +786,21 @@ class LyricsContainer extends react.Component {
 					trackUri: this.state.uri,
 					lyrics: this.state.karaoke,
 					provider: this.state.provider,
-					copyright: this.state.copyright
+					copyright: this.state.copyright,
 				});
 			} else if (mode === SYNCED && this.state.synced) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					trackUri: this.state.uri,
 					lyrics: CONFIG.visual.translate && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
-					copyright: this.state.copyright
+					copyright: this.state.copyright,
 				});
 			} else if (mode === UNSYNCED && this.state.unsynced) {
 				activeItem = react.createElement(UnsyncedLyricsPage, {
 					trackUri: this.state.uri,
 					lyrics: CONFIG.visual.translate && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
-					copyright: this.state.copyright
+					copyright: this.state.copyright,
 				});
 			} else if (mode === GENIUS && this.state.genius) {
 				activeItem = react.createElement(GeniusPage, {
@@ -813,7 +814,7 @@ class LyricsContainer extends react.Component {
 					onVersionChange: this.onVersionChange.bind(this),
 					lyrics2: this.state.genius2,
 					versionIndex2: this.state.versionIndex2,
-					onVersionChange2: this.onVersionChange2.bind(this)
+					onVersionChange2: this.onVersionChange2.bind(this),
 				});
 			}
 		}
@@ -822,12 +823,12 @@ class LyricsContainer extends react.Component {
 			activeItem = react.createElement(
 				"div",
 				{
-					className: "lyrics-lyricsContainer-LyricsUnavailablePage"
+					className: "lyrics-lyricsContainer-LyricsUnavailablePage",
 				},
 				react.createElement(
 					"span",
 					{
-						className: "lyrics-lyricsContainer-LyricsUnavailableMessage"
+						className: "lyrics-lyricsContainer-LyricsUnavailableMessage",
 					},
 					this.state.isLoading ? LoadingIcon : "(• _ • )"
 				)
@@ -843,32 +844,32 @@ class LyricsContainer extends react.Component {
 					fadLyricsContainer ? " fad-enabled" : ""
 				}`,
 				style: this.styleVariables,
-				ref: el => {
+				ref: (el) => {
 					if (!el) return;
 					el.onmousewheel = this.onFontSizeChange;
-				}
+				},
 			},
 			react.createElement("div", {
-				className: "lyrics-lyricsContainer-LyricsBackground"
+				className: "lyrics-lyricsContainer-LyricsBackground",
 			}),
 			react.createElement(
 				"div",
 				{
-					className: "lyrics-config-button-container"
+					className: "lyrics-config-button-container",
 				},
 				showTranslationButton &&
 					react.createElement(TranslationMenu, {
 						friendlyLanguage,
 						hasTranslation: {
 							musixmatch: this.state.musixmatchTranslation !== null,
-							netease: this.state.neteaseTranslation !== null
-						}
+							netease: this.state.neteaseTranslation !== null,
+						},
 					}),
 				react.createElement(AdjustmentsMenu, { mode }),
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics"
+						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics",
 					},
 					react.createElement(
 						"button",
@@ -883,7 +884,7 @@ class LyricsContainer extends react.Component {
 
 								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke, genius });
 								Spicetify.showNotification("Lyrics cached");
-							}
+							},
 						},
 						react.createElement("svg", {
 							width: 16,
@@ -891,15 +892,15 @@ class LyricsContainer extends react.Component {
 							viewBox: "0 0 16 16",
 							fill: "currentColor",
 							dangerouslySetInnerHTML: {
-								__html: Spicetify.SVGIcons[this.state.isCached ? "downloaded" : "download"]
-							}
+								__html: Spicetify.SVGIcons[this.state.isCached ? "downloaded" : "download"],
+							},
 						})
 					)
 				),
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
-						label: "Load lyrics from file"
+						label: "Load lyrics from file",
 					},
 					react.createElement(
 						"button",
@@ -907,7 +908,7 @@ class LyricsContainer extends react.Component {
 							className: "lyrics-config-button",
 							onClick: () => {
 								document.getElementById("lyrics-file-input").click();
-							}
+							},
 						},
 						react.createElement("input", {
 							type: "file",
@@ -915,8 +916,8 @@ class LyricsContainer extends react.Component {
 							accept: ".lrc,.txt",
 							onChange: this.processLyricsFromFile.bind(this),
 							style: {
-								display: "none"
-							}
+								display: "none",
+							},
 						}),
 						react.createElement("svg", {
 							width: 16,
@@ -924,8 +925,8 @@ class LyricsContainer extends react.Component {
 							viewBox: "0 0 16 16",
 							fill: "currentColor",
 							dangerouslySetInnerHTML: {
-								__html: Spicetify.SVGIcons["plus-alt"]
-							}
+								__html: Spicetify.SVGIcons["plus-alt"],
+							},
 						})
 					)
 				)
@@ -936,15 +937,15 @@ class LyricsContainer extends react.Component {
 					links: this.availableModes,
 					activeLink: CONFIG.modes[mode],
 					lockLink: CONFIG.modes[this.state.lockMode],
-					switchCallback: label => {
-						const mode = CONFIG.modes.findIndex(a => a === label);
+					switchCallback: (label) => {
+						const mode = CONFIG.modes.findIndex((a) => a === label);
 						if (mode !== this.state.mode) {
 							this.setState({ explicitMode: mode });
 							this.state.provider !== "local" && this.fetchLyrics(Spicetify.Player.data.item, mode);
 						}
 					},
-					lockCallback: label => {
-						let mode = CONFIG.modes.findIndex(a => a === label);
+					lockCallback: (label) => {
+						let mode = CONFIG.modes.findIndex((a) => a === label);
 						if (mode === this.state.lockMode) {
 							mode = -1;
 						}
@@ -952,7 +953,7 @@ class LyricsContainer extends react.Component {
 						this.fetchLyrics(Spicetify.Player.data.item, mode);
 						CONFIG.locked = mode;
 						localStorage.setItem("lyrics-plus:lock-mode", mode);
-					}
+					},
 				})
 		);
 

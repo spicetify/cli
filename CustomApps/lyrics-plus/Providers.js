@@ -1,12 +1,12 @@
 const Providers = {
-	spotify: async info => {
+	spotify: async (info) => {
 		const result = {
 			uri: info.uri,
 			karaoke: null,
 			synced: null,
 			unsynced: null,
 			provider: "Spotify",
-			copyright: null
+			copyright: null,
 		};
 
 		const baseURL = "https://spclient.wg.spotify.com/color-lyrics/v2/track/";
@@ -25,14 +25,14 @@ const Providers = {
 
 		const lines = lyrics.lines;
 		if (lyrics.syncType === "LINE_SYNCED") {
-			result.synced = lines.map(line => ({
+			result.synced = lines.map((line) => ({
 				startTime: line.startTimeMs,
-				text: line.words
+				text: line.words,
 			}));
 			result.unsynced = result.synced;
 		} else {
-			result.unsynced = lines.map(line => ({
-				text: line.words
+			result.unsynced = lines.map((line) => ({
+				text: line.words,
 			}));
 		}
 
@@ -40,7 +40,7 @@ const Providers = {
 
 		return result;
 	},
-	musixmatch: async info => {
+	musixmatch: async (info) => {
 		const result = {
 			error: null,
 			uri: info.uri,
@@ -49,7 +49,7 @@ const Providers = {
 			unsynced: null,
 			musixmatchTranslation: null,
 			provider: "Musixmatch",
-			copyright: null
+			copyright: null,
 		};
 
 		let list;
@@ -81,16 +81,16 @@ const Providers = {
 		const translation = await ProviderMusixmatch.getTranslation(list);
 		if ((synced || unsynced) && translation) {
 			const baseLyrics = synced ?? unsynced;
-			result.musixmatchTranslation = baseLyrics.map(line => ({
+			result.musixmatchTranslation = baseLyrics.map((line) => ({
 				...line,
-				text: translation.find(t => t.matchedLine === line.text)?.translation ?? line.text,
-				originalText: line.text
+				text: translation.find((t) => t.matchedLine === line.text)?.translation ?? line.text,
+				originalText: line.text,
 			}));
 		}
 
 		return result;
 	},
-	netease: async info => {
+	netease: async (info) => {
 		const result = {
 			uri: info.uri,
 			karaoke: null,
@@ -98,7 +98,7 @@ const Providers = {
 			unsynced: null,
 			neteaseTranslation: null,
 			provider: "Netease",
-			copyright: null
+			copyright: null,
 		};
 
 		let list;
@@ -128,14 +128,14 @@ const Providers = {
 
 		return result;
 	},
-	lrclib: async info => {
+	lrclib: async (info) => {
 		const result = {
 			uri: info.uri,
 			karaoke: null,
 			synced: null,
 			unsynced: null,
 			provider: "lrclib",
-			copyright: null
+			copyright: null,
 		};
 
 		let list;
@@ -159,7 +159,7 @@ const Providers = {
 
 		return result;
 	},
-	genius: async info => {
+	genius: async (info) => {
 		const { lyrics, versions } = await ProviderGenius.fetchLyrics(info);
 
 		let versionIndex2 = 0;
@@ -181,16 +181,16 @@ const Providers = {
 			versions,
 			versionIndex: 0,
 			genius2,
-			versionIndex2
+			versionIndex2,
 		};
 	},
-	local: info => {
+	local: (info) => {
 		let result = {
 			uri: info.uri,
 			karaoke: null,
 			synced: null,
 			unsynced: null,
-			provider: "local"
+			provider: "local",
 		};
 
 		try {
@@ -202,12 +202,12 @@ const Providers = {
 
 			result = {
 				...result,
-				...lyrics
+				...lyrics,
 			};
 		} catch {
 			result.error = "No lyrics";
 		}
 
 		return result;
-	}
+	},
 };
