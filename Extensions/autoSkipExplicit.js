@@ -12,7 +12,7 @@
 
 	let isEnabled = Spicetify.LocalStorage.get("ChristianMode") === "1";
 
-	new Spicetify.Menu.Item("Christian mode", isEnabled, self => {
+	new Spicetify.Menu.Item("Christian mode", isEnabled, (self) => {
 		isEnabled = !isEnabled;
 		Spicetify.LocalStorage.set("ChristianMode", isEnabled ? "1" : "0");
 		self.setState(isEnabled);

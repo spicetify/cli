@@ -1,7 +1,7 @@
 const ProviderMusixmatch = (() => {
 	const headers = {
 		authority: "apic-desktop.musixmatch.com",
-		cookie: "x-mxm-token-guid="
+		cookie: "x-mxm-token-guid=",
 	};
 
 	async function findLyrics(info) {
@@ -18,13 +18,13 @@ const ProviderMusixmatch = (() => {
 			track_spotify_id: info.uri,
 			q_duration: durr,
 			f_subtitle_length: Math.floor(durr),
-			usertoken: CONFIG.providers.musixmatch.token
+			usertoken: CONFIG.providers.musixmatch.token,
 		};
 
 		const finalURL =
 			baseURL +
 			Object.keys(params)
-				.map(key => `${key}=${encodeURIComponent(params[key])}`)
+				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
 				.join("&");
 
 		let body = await Spicetify.CosmosAsync.get(finalURL, null, headers);
@@ -34,13 +34,13 @@ const ProviderMusixmatch = (() => {
 		if (body["matcher.track.get"].message.header.status_code !== 200) {
 			return {
 				error: `Requested error: ${body["matcher.track.get"].message.header.mode}`,
-				uri: info.uri
+				uri: info.uri,
 			};
 		}
 		if (body["track.lyrics.get"]?.message?.body?.lyrics?.restricted) {
 			return {
 				error: "Unfortunately we're not authorized to show these lyrics.",
-				uri: info.uri
+				uri: info.uri,
 			};
 		}
 
@@ -63,13 +63,13 @@ const ProviderMusixmatch = (() => {
 			f_subtitle_length: meta.track.track_length,
 			q_duration: meta.track.track_length,
 			commontrack_id: meta.track.commontrack_id,
-			usertoken: CONFIG.providers.musixmatch.token
+			usertoken: CONFIG.providers.musixmatch.token,
 		};
 
 		const finalURL =
 			baseURL +
 			Object.keys(params)
-				.map(key => `${key}=${encodeURIComponent(params[key])}`)
+				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
 				.join("&");
 
 		let result = await Spicetify.CosmosAsync.get(finalURL, null, headers);
@@ -80,7 +80,7 @@ const ProviderMusixmatch = (() => {
 
 		result = result.message.body;
 
-		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map(line => {
+		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map((line) => {
 			const startTime = line.ts * 1000;
 			const endTime = line.te * 1000;
 			const words = line.l;
@@ -94,12 +94,12 @@ const ProviderMusixmatch = (() => {
 
 				return {
 					word: wordText,
-					time
+					time,
 				};
 			});
 			return {
 				startTime,
-				text
+				text,
 			};
 		});
 
@@ -125,9 +125,9 @@ const ProviderMusixmatch = (() => {
 				return null;
 			}
 
-			return JSON.parse(subtitle.subtitle_body).map(line => ({
+			return JSON.parse(subtitle.subtitle_body).map((line) => ({
 				text: line.text || "♪",
-				startTime: line.time.total * 1000
+				startTime: line.time.total * 1000,
 			}));
 		}
 
@@ -152,7 +152,7 @@ const ProviderMusixmatch = (() => {
 			if (!lyrics) {
 				return null;
 			}
-			return lyrics.split("\n").map(text => ({ text }));
+			return lyrics.split("\n").map((text) => ({ text }));
 		}
 
 		return null;
@@ -167,13 +167,13 @@ const ProviderMusixmatch = (() => {
 
 		const params = {
 			track_id,
-			usertoken: CONFIG.providers.musixmatch.token
+			usertoken: CONFIG.providers.musixmatch.token,
 		};
 
 		const finalURL =
 			baseURL +
 			Object.keys(params)
-				.map(key => `${key}=${encodeURIComponent(params[key])}`)
+				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
 				.join("&");
 
 		let result = await Spicetify.CosmosAsync.get(finalURL, null, headers);

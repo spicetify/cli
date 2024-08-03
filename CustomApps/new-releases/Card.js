@@ -3,7 +3,7 @@ function DraggableComponent({ uri, title, children }) {
 	return dragHandler
 		? react.cloneElement(children, {
 				onDragStart: dragHandler,
-				draggable: "true"
+				draggable: "true",
 			})
 		: children;
 }
@@ -40,19 +40,19 @@ class Card extends react.Component {
 							leading: Spicetify.ReactComponent.Snackbar.styledImage({
 								src: this.props.imageURL,
 								imageHeight: "24px",
-								imageWidth: "24px"
+								imageWidth: "24px",
 							}),
 							center: Spicetify.React.createElement("div", {
 								dangerouslySetInnerHTML: {
-									__html: `Dismissed <b>${this.title}</b>.`
-								}
+									__html: `Dismissed <b>${this.title}</b>.`,
+								},
 							}),
 							trailing: Spicetify.ReactComponent.Snackbar.ctaText({
 								ctaText: "Undo",
-								onCtaClick: () => removeCards(this.props.uri, "undo")
-							})
-						})
-					})
+								onCtaClick: () => removeCards(this.props.uri, "undo"),
+							}),
+						}),
+					}),
 				})
 			: Spicetify.showNotification(`Dismissed <b>${this.title}</b> from <br>${this.artist.name}</b>`);
 
@@ -69,37 +69,37 @@ class Card extends react.Component {
 		return react.createElement(
 			Spicetify.ReactComponent.RightClickMenu || "div",
 			{
-				menu: react.createElement(this.menuType, { uri: this.uri })
+				menu: react.createElement(this.menuType, { uri: this.uri }),
 			},
 			react.createElement(
 				"div",
 				{
 					className: "main-card-card",
-					onClick: event => {
+					onClick: (event) => {
 						History.push(this.href);
 						event.preventDefault();
-					}
+					},
 				},
 				react.createElement(
 					DraggableComponent,
 					{
 						uri: this.uri,
-						title: this.title
+						title: this.title,
 					},
 					react.createElement(
 						"div",
 						{
-							className: "main-card-draggable"
+							className: "main-card-draggable",
 						},
 						react.createElement(
 							"div",
 							{
-								className: "main-card-imageContainer"
+								className: "main-card-imageContainer",
 							},
 							react.createElement(
 								"div",
 								{
-									className: "main-cardImage-imageWrapper"
+									className: "main-cardImage-imageWrapper",
 								},
 								react.createElement(
 									"div",
@@ -109,14 +109,14 @@ class Card extends react.Component {
 										draggable: "false",
 										loading: "lazy",
 										src: this.imageURL,
-										className: "main-image-image main-cardImage-image"
+										className: "main-image-image main-cardImage-image",
 									})
 								)
 							),
 							react.createElement(
 								"div",
 								{
-									className: "main-card-PlayButtonContainer"
+									className: "main-card-PlayButtonContainer",
 								},
 								react.createElement(
 									"div",
@@ -124,7 +124,7 @@ class Card extends react.Component {
 										className: "main-playButton-PlayButton main-playButton-primary",
 										"aria-label": Spicetify.Locale.get("play"),
 										style: { "--size": "40px" },
-										onClick: this.play.bind(this)
+										onClick: this.play.bind(this),
 									},
 									react.createElement(
 										"button",
@@ -139,11 +139,11 @@ class Card extends react.Component {
 													role: "img",
 													width: "24",
 													viewBox: "0 0 24 24",
-													"aria-hidden": "true"
+													"aria-hidden": "true",
 												},
 												react.createElement("polygon", {
 													points: "21.57 12 5.98 3 5.98 21 21.57 12",
-													fill: "currentColor"
+													fill: "currentColor",
 												})
 											)
 										)
@@ -157,7 +157,7 @@ class Card extends react.Component {
 									"button",
 									{
 										className: "main-card-closeButton",
-										onClick: this.closeButtonClicked.bind(this)
+										onClick: this.closeButtonClicked.bind(this),
 									},
 									react.createElement(
 										"svg",
@@ -166,12 +166,12 @@ class Card extends react.Component {
 											height: "16",
 											viewBox: "0 0 16 16",
 											xmlns: "http://www.w3.org/2000/svg",
-											className: "main-card-closeButton-svg"
+											className: "main-card-closeButton-svg",
 										},
 										react.createElement("path", {
 											d: "M2.47 2.47a.75.75 0 0 1 1.06 0L8 6.94l4.47-4.47a.75.75 0 1 1 1.06 1.06L9.06 8l4.47 4.47a.75.75 0 1 1-1.06 1.06L8 9.06l-4.47 4.47a.75.75 0 0 1-1.06-1.06L6.94 8 2.47 3.53a.75.75 0 0 1 0-1.06Z",
 											fill: "var(--spice-text)",
-											fillRule: "evenodd"
+											fillRule: "evenodd",
 										})
 									)
 								)
@@ -180,7 +180,7 @@ class Card extends react.Component {
 						react.createElement(
 							"div",
 							{
-								className: "main-card-cardMetadata"
+								className: "main-card-cardMetadata",
 							},
 							react.createElement(
 								"a",
@@ -189,12 +189,12 @@ class Card extends react.Component {
 									title: this.title,
 									className: "main-cardHeader-link",
 									dir: "auto",
-									href: this.href
+									href: this.href,
 								},
 								react.createElement(
 									"div",
 									{
-										className: "main-cardHeader-text main-type-balladBold"
+										className: "main-cardHeader-text main-type-balladBold",
 									},
 									this.title
 								)
@@ -203,7 +203,7 @@ class Card extends react.Component {
 								react.createElement(
 									"div",
 									{
-										className: "main-cardSubHeader-root main-type-mestoBold new-releases-cardSubHeader"
+										className: "main-cardSubHeader-root main-type-mestoBold new-releases-cardSubHeader",
 									},
 									react.createElement("span", null, detail.join(" • "))
 								),
@@ -211,25 +211,25 @@ class Card extends react.Component {
 								DraggableComponent,
 								{
 									uri: this.artist.uri,
-									title: this.artist.name
+									title: this.artist.name,
 								},
 								react.createElement(
 									"a",
 									{
 										className: "main-cardSubHeader-root main-type-mesto new-releases-cardSubHeader",
 										href: this.artistHref,
-										onClick: event => {
+										onClick: (event) => {
 											History.push(this.artistHref);
 											event.stopPropagation();
 											event.preventDefault();
-										}
+										},
 									},
 									react.createElement("span", null, this.artist.name)
 								)
 							)
 						),
 						react.createElement("div", {
-							className: "main-card-cardLink"
+							className: "main-card-cardLink",
 						})
 					)
 				)

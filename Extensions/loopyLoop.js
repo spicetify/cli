@@ -55,7 +55,7 @@
 	}
 
 	let debouncing = 0;
-	Spicetify.Player.addEventListener("onprogress", event => {
+	Spicetify.Player.addEventListener("onprogress", (event) => {
 		if (start != null && end != null) {
 			if (debouncing) {
 				if (event.timeStamp - debouncing > 1000) {
@@ -83,7 +83,7 @@
 					onClick: () => {
 						contextMenu.hidden = true;
 						callback?.();
-					}
+					},
 				},
 				title
 			),
@@ -121,7 +121,7 @@
 		contextMenu.hidden = true;
 	});
 
-	bar.oncontextmenu = event => {
+	bar.oncontextmenu = (event) => {
 		const { x, width } = bar.firstElementChild.getBoundingClientRect();
 		mouseOnBarPercent = (event.clientX - x) / width;
 		contextMenu.style.transform = `translate(${event.clientX}px,${event.clientY - contextMenuHeight}px)`;

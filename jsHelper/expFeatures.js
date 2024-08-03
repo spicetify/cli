@@ -15,14 +15,18 @@
 		prevSessionOverrideList = [];
 	}
 
-	Spicetify.expFeatureOverride = feature => {
+	Spicetify.expFeatureOverride = (feature) => {
 		hooksPatched = true;
 		newFeatures.push(feature.name);
 
 		switch (feature.type) {
 			case "enum":
 				if (!overrideList[feature.name]) {
-					overrideList[feature.name] = { description: feature.description, value: feature.default, values: feature.values };
+					overrideList[feature.name] = {
+						description: feature.description,
+						value: feature.default,
+						values: feature.values,
+					};
 				}
 				feature.default = overrideList[feature.name].value;
 				break;
@@ -196,7 +200,7 @@
 <label class="col description">${desc}</label>
 <div class="col action">
 <select class="dropdown main-dropDown-dropDown">
-    ${options.map(option => `<option value="${option}">${option}</option>`).join("")}
+    ${options.map((option) => `<option value="${option}">${option}</option>`).join("")}
 </select>
 </div>`;
 			const dropdown = container.querySelector("select");
@@ -269,7 +273,7 @@ ${Spicetify.SVGIcons.search}
 		setOverrides(Spicetify.createInternalMap?.(featureMap));
 	})();
 
-	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
+	await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
 
 	new Spicetify.Menu.Item(
 		"Experimental features",
@@ -278,7 +282,7 @@ ${Spicetify.SVGIcons.search}
 			Spicetify.PopupModal.display({
 				title: "Experimental features",
 				content,
-				isLarge: true
+				isLarge: true,
 			});
 			if (!isFallback) return;
 
@@ -287,7 +291,7 @@ ${Spicetify.SVGIcons.search}
 
 			if (closeButton && modalOverlay) {
 				closeButton.onclick = () => location.reload();
-				modalOverlay.onclick = e => {
+				modalOverlay.onclick = (e) => {
 					// If clicked on overlay, also reload
 					if (e.target === modalOverlay) {
 						location.reload();

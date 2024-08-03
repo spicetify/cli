@@ -40,7 +40,7 @@
 			this.items.append(createMenuItem("Track with timestamp", storeTrackWithTime));
 
 			const select = createSortSelect(this.filter);
-			select.onchange = event => {
+			select.onchange = (event) => {
 				this.filter = event.srcElement.selectedIndex;
 				this.apply();
 			};
@@ -87,7 +87,7 @@
 		}
 
 		removeFromStorage(id) {
-			const storage = this.getStorage().filter(item => item.id !== id);
+			const storage = this.getStorage().filter((item) => item.id !== id);
 
 			LocalStorage.set(STORAGE_KEY, JSON.stringify(storage));
 			this.apply();
@@ -161,7 +161,7 @@
 			if (isPlayable) {
 				/** @type {HTMLButtonElement} */
 				const playButton = this.querySelector("button.main-playButton-PlayButton");
-				playButton.onclick = event => {
+				playButton.onclick = (event) => {
 					onPlayClick(info);
 					event.stopPropagation();
 				};
@@ -169,7 +169,7 @@
 
 			/** @type {HTMLDivElement} */
 			const controls = this.querySelector(".bookmark-controls");
-			controls.onclick = event => {
+			controls.onclick = (event) => {
 				LIST.removeFromStorage(info.id);
 				event.stopPropagation();
 			};
@@ -185,7 +185,7 @@
 	new Spicetify.Topbar.Button(
 		BUTTON_NAME_TEXT,
 		`<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M 13.350175,0.37457282 C 9.7802043,0.37457282 6.2102339,0.37457282 2.6402636,0.37457282 2.1901173,0.43000784 2.3537108,0.94911284 2.3229329,1.2621688 2.3229329,5.9446788 2.3229329,10.62721 2.3229329,15.309742 2.4084662,15.861041 2.9630936,15.536253 3.1614158,15.248148 4.7726941,13.696623 6.3839408,12.145098 7.9952191,10.593573 9.7069009,12.241789 11.418583,13.890005 13.130265,15.53822 13.626697,15.863325 13.724086,15.200771 13.667506,14.853516 13.667506,10.132999 13.667506,5.4124518 13.667506,0.69190384 13.671726,0.52196684 13.520105,0.37034182 13.350175,0.37457282 Z M 13.032844,14.563698 C 11.426929,13.017345 9.8210448,11.470993 8.2151293,9.9246401 7.8614008,9.6568761 7.6107412,10.12789 7.3645243,10.320193 5.8955371,11.734694 4.4265815,13.149196 2.9575943,14.563698 2.9575943,10.045543 2.9575943,5.5273888 2.9575943,1.0092338 6.3160002,1.0092338 9.674438,1.0092338 13.032844,1.0092338 13.032844,5.5273888 13.032844,10.045543 13.032844,14.563698 Z"></path></svg>`,
-		self => {
+		(self) => {
 			const bound = self.element.getBoundingClientRect();
 			LIST.changePosition(bound.left, bound.top);
 			document.body.append(LIST.container);
@@ -206,7 +206,7 @@
 				{
 					onClick: () => {
 						callback?.();
-					}
+					},
 				},
 				title
 			),
@@ -226,7 +226,7 @@
 		const trackOpt = document.createElement("option");
 		trackOpt.text = "Track";
 
-		select.onclick = ev => ev.stopPropagation();
+		select.onclick = (ev) => ev.stopPropagation();
 		select.append(allOpt, pageOpt, trackOpt);
 		select.options[defaultOpt].selected = true;
 
@@ -282,14 +282,14 @@
 			title,
 			description,
 			imageUrl,
-			context
+			context,
 		});
 	}
 
 	function getTrackMeta() {
 		const meta = {
 			title: Player.data.item.metadata.title,
-			imageUrl: Player.data.item.metadata.image_url
+			imageUrl: Player.data.item.metadata.image_url,
 		};
 		meta.uri = Player.data.item.uri;
 		if (URI.isEpisode(meta.uri)) {
@@ -319,7 +319,7 @@
 
 	// Utilities
 	function idToProperName(id) {
-		const newId = id.replace(/\-/g, " ").replace(/^.|\s./g, char => char.toUpperCase());
+		const newId = id.replace(/\-/g, " ").replace(/^.|\s./g, (char) => char.toUpperCase());
 
 		return newId;
 	}
@@ -437,7 +437,7 @@
 		const menu = document.createElement("ul");
 		menu.id = "bookmark-menu";
 		menu.className = "main-contextMenu-menu";
-		menu.onclick = e => e.stopPropagation();
+		menu.onclick = (e) => e.stopPropagation();
 
 		container.append(style, menu);
 
@@ -474,37 +474,42 @@
 		Spicetify.Player.playUri(uri, {}, options);
 	}
 
-	const fetchAlbum = async uri => {
+	const fetchAlbum = async (uri) => {
 		const { getAlbum } = Spicetify.GraphQL.Definitions;
-		const { data } = await Spicetify.GraphQL.Request(getAlbum, { uri, locale: Spicetify.Locale.getLocale(), offset: 0, limit: 10 });
+		const { data } = await Spicetify.GraphQL.Request(getAlbum, {
+			uri,
+			locale: Spicetify.Locale.getLocale(),
+			offset: 0,
+			limit: 10,
+		});
 		const res = data.albumUnion;
 		return {
 			uri,
 			title: res.name,
 			description: "Album",
-			imageUrl: res.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url
+			imageUrl: res.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url,
 		};
 	};
 
-	const fetchShow = async uri => {
+	const fetchShow = async (uri) => {
 		const base62 = uri.split(":")[2];
 		const res = await CosmosAsync.get(`sp://core-show/v1/shows/${base62}?responseFormat=protobufJson`, {
-			policy: { list: { index: true } }
+			policy: { list: { index: true } },
 		});
 		return {
 			uri,
 			title: res.header.showMetadata.name,
 			description: "Podcast",
-			imageUrl: res.header.showMetadata.covers.standardLink
+			imageUrl: res.header.showMetadata.covers.standardLink,
 		};
 	};
 
-	const fetchArtist = async uri => {
+	const fetchArtist = async (uri) => {
 		const { queryArtistOverview } = Spicetify.GraphQL.Definitions;
 		const { data } = await Spicetify.GraphQL.Request(queryArtistOverview, {
 			uri,
 			locale: Spicetify.Locale.getLocale(),
-			includePrerelease: false
+			includePrerelease: false,
 		});
 		const res = data.artistUnion;
 		return {
@@ -513,7 +518,7 @@
 			description: "Artist",
 			imageUrl:
 				res.visuals.avatarImage?.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url ||
-				res.visuals.headerImage?.sources[0].url
+				res.visuals.headerImage?.sources[0].url,
 		};
 	};
 
@@ -529,11 +534,11 @@
 			title: res.name,
 			description: res.artists[0].name,
 			imageUrl: res.album.images[0].url,
-			context: newContext ?? context
+			context: newContext ?? context,
 		};
 	};
 
-	const fetchEpisode = async uri => {
+	const fetchEpisode = async (uri) => {
 		const base62 = uri.split(":")[2];
 		const res = await CosmosAsync.get(`https://api.spotify.com/v1/episodes/${base62}`);
 		console.log(res);
@@ -541,19 +546,19 @@
 			uri,
 			title: res.name,
 			description: `${res.show.name} episode`,
-			imageUrl: res.show.images[0].url
+			imageUrl: res.show.images[0].url,
 		};
 	};
 
-	const fetchPlaylist = async uri => {
+	const fetchPlaylist = async (uri) => {
 		const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/${uri}/metadata`, {
-			policy: { picture: true, name: true }
+			policy: { picture: true, name: true },
 		});
 		return {
 			uri,
 			title: res.metadata.name,
 			description: "Playlist",
-			imageUrl: res.metadata.picture
+			imageUrl: res.metadata.picture,
 		};
 	};
 

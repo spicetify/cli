@@ -4,7 +4,7 @@ const LoadingIcon = react.createElement(
 		width: "100px",
 		height: "100px",
 		viewBox: "0 0 100 100",
-		preserveAspectRatio: "xMidYMid"
+		preserveAspectRatio: "xMidYMid",
 	},
 	react.createElement(
 		"circle",
@@ -14,7 +14,7 @@ const LoadingIcon = react.createElement(
 			r: "0",
 			fill: "none",
 			stroke: "currentColor",
-			"stroke-width": "2"
+			"stroke-width": "2",
 		},
 		react.createElement("animate", {
 			attributeName: "r",
@@ -24,7 +24,7 @@ const LoadingIcon = react.createElement(
 			keyTimes: "0;1",
 			keySplines: "0 0.2 0.8 1",
 			calcMode: "spline",
-			begin: "0s"
+			begin: "0s",
 		}),
 		react.createElement("animate", {
 			attributeName: "opacity",
@@ -34,7 +34,7 @@ const LoadingIcon = react.createElement(
 			keyTimes: "0;1",
 			keySplines: "0.2 0 0.8 1",
 			calcMode: "spline",
-			begin: "0s"
+			begin: "0s",
 		})
 	),
 	react.createElement(
@@ -45,7 +45,7 @@ const LoadingIcon = react.createElement(
 			r: "0",
 			fill: "none",
 			stroke: "currentColor",
-			"stroke-width": "2"
+			"stroke-width": "2",
 		},
 		react.createElement("animate", {
 			attributeName: "r",
@@ -55,7 +55,7 @@ const LoadingIcon = react.createElement(
 			keyTimes: "0;1",
 			keySplines: "0 0.2 0.8 1",
 			calcMode: "spline",
-			begin: "-0.5s"
+			begin: "-0.5s",
 		}),
 		react.createElement("animate", {
 			attributeName: "opacity",
@@ -65,7 +65,7 @@ const LoadingIcon = react.createElement(
 			keyTimes: "0;1",
 			keySplines: "0.2 0 0.8 1",
 			calcMode: "spline",
-			begin: "-0.5s"
+			begin: "-0.5s",
 		})
 	)
 );
@@ -75,15 +75,15 @@ class LoadMoreIcon extends react.Component {
 		return react.createElement(
 			"div",
 			{
-				onClick: this.props.onClick
+				onClick: this.props.onClick,
 			},
 			react.createElement(
 				"p",
 				{
 					style: {
 						fontSize: 100,
-						lineHeight: "65px"
-					}
+						lineHeight: "65px",
+					},
 				},
 				"»"
 			),
@@ -91,8 +91,8 @@ class LoadMoreIcon extends react.Component {
 				"span",
 				{
 					style: {
-						fontSize: 20
-					}
+						fontSize: 20,
+					},
 				},
 				"Load more"
 			)

@@ -6,7 +6,7 @@ window.Spicetify = {
 			}
 			Spicetify.Player.eventListeners[type].push(callback);
 		},
-		dispatchEvent: event => {
+		dispatchEvent: (event) => {
 			if (!(event.type in Spicetify.Player.eventListeners)) {
 				return true;
 			}
@@ -19,18 +19,16 @@ window.Spicetify = {
 			return !event.defaultPrevented;
 		},
 		eventListeners: {},
-		seek: p => {
-			if (p <= 1) {
-				p = Math.round(p * Spicetify.Player.origin._state.duration);
-			}
-			Spicetify.Player.origin.seekTo(p);
+		seek: (p) => {
+			const duration = p <= 1 ? Math.round(p * Spicetify.Player.origin._state.duration) : p;
+			Spicetify.Player.origin.seekTo(duration);
 		},
 		getProgress: () =>
 			(Spicetify.Player.origin._state.isPaused ? 0 : Date.now() - Spicetify.Player.origin._state.timestamp) +
 			Spicetify.Player.origin._state.positionAsOfTimestamp,
 		getProgressPercent: () => Spicetify.Player.getProgress() / Spicetify.Player.origin._state.duration,
 		getDuration: () => Spicetify.Player.origin._state.duration,
-		setVolume: v => {
+		setVolume: (v) => {
 			Spicetify.Platform.PlaybackAPI.setVolume(v);
 		},
 		increaseVolume: () => {
@@ -54,26 +52,26 @@ window.Spicetify = {
 			Spicetify.Player.origin.setShuffle(!Spicetify.Player.origin._state.shuffle);
 		},
 		getShuffle: () => Spicetify.Player.origin._state.shuffle,
-		setShuffle: b => {
+		setShuffle: (b) => {
 			Spicetify.Player.origin.setShuffle(b);
 		},
 		toggleRepeat: () => {
 			Spicetify.Player.origin.setRepeat((Spicetify.Player.origin._state.repeat + 1) % 3);
 		},
 		getRepeat: () => Spicetify.Player.origin._state.repeat,
-		setRepeat: r => {
+		setRepeat: (r) => {
 			Spicetify.Player.origin.setRepeat(r);
 		},
 		getMute: () => Spicetify.Player.getVolume() === 0,
 		toggleMute: () => {
 			Spicetify.Player.setMute(!Spicetify.Player.getMute());
 		},
-		setMute: b => {
+		setMute: (b) => {
 			if (b !== Spicetify.Player.getMute()) {
 				document.querySelector(".volume-bar__icon-button")?.click();
 			}
 		},
-		formatTime: ms => {
+		formatTime: (ms) => {
 			let seconds = Math.floor(ms / 1e3);
 			const minutes = Math.floor(seconds / 60);
 			seconds -= minutes * 60;
@@ -105,7 +103,7 @@ window.Spicetify = {
 		skipForward: (amount = 15e3) => {
 			Spicetify.Player.origin.seekForward(amount);
 		},
-		setHeart: b => {
+		setHeart: (b) => {
 			const uris = [Spicetify.Player.origin._state.item.uri];
 			if (b) {
 				Spicetify.Platform.LibraryAPI.add({ uris });
@@ -115,7 +113,7 @@ window.Spicetify = {
 		},
 		toggleHeart: () => {
 			Spicetify.Player.setHeart(!Spicetify.Player.getHeart());
-		}
+		},
 	},
 	test: () => {
 		function checkObject(object) {
@@ -166,8 +164,6 @@ window.Spicetify = {
 					"test",
 					"Platform",
 					"_platform",
-					"getFontStyle",
-					"_fontStyle",
 					"Config",
 					"expFeatureOverride",
 					"createInternalMap",
@@ -188,8 +184,8 @@ window.Spicetify = {
 					"Snackbar",
 					"ContextMenuV2",
 					"ReactJSX",
-					"_renderNavLinks"
-				])
+					"_renderNavLinks",
+				]),
 			},
 			{
 				objectToCheck: Spicetify.Player,
@@ -230,8 +226,8 @@ window.Spicetify = {
 					"toggleShuffle",
 					"origin",
 					"playUri",
-					"setHeart"
-				])
+					"setHeart",
+				]),
 			},
 			{
 				objectToCheck: Spicetify.ReactComponent,
@@ -267,8 +263,8 @@ window.Spicetify = {
 					"Dropdown",
 					"MenuSubMenuItem",
 					"Navigation",
-					"ScrollableContainer"
-				])
+					"ScrollableContainer",
+				]),
 			},
 			{
 				objectToCheck: Spicetify.ReactComponent.Cards,
@@ -285,14 +281,14 @@ window.Spicetify = {
 					"Profile",
 					"Show",
 					"Track",
-					"FeatureCard"
-				])
+					"FeatureCard",
+				]),
 			},
 			{
 				objectToCheck: Spicetify.ReactHook,
 				name: "Spicetify.ReactHook",
-				methods: new Set(["DragHandler", "useExtractedColor"])
-			}
+				methods: new Set(["DragHandler", "useExtractedColor"]),
+			},
 		]);
 
 		for (const object of objectsToCheck) {
@@ -300,13 +296,13 @@ window.Spicetify = {
 		}
 	},
 	GraphQL: {
-		Definitions: {}
+		Definitions: {},
 	},
 	ReactComponent: {},
 	ReactHook: {},
 	ReactFlipToolkit: {},
 	Snackbar: {},
-	Platform: {}
+	Platform: {},
 };
 
 (function waitForPlatform() {
@@ -331,7 +327,7 @@ window.Spicetify = {
 		setTimeout(addMissingPlatformAPIs, 50);
 		return;
 	}
-	const version = Spicetify.Platform.version.split(".").map(i => Number.parseInt(i));
+	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
 	if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
 
 	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
@@ -365,7 +361,7 @@ window.Spicetify = {
 		post: "post",
 		del: "delete",
 		put: "put",
-		patch: "patch"
+		patch: "patch",
 	};
 	const allowedMethodsSet = new Set(Object.keys(allowedMethodsMap));
 	const internalEndpoints = new Set(["sp:", "wg:"]);
@@ -375,7 +371,7 @@ window.Spicetify = {
 			const internalFetch = Reflect.get(target, prop, receiver);
 
 			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop)) return internalFetch;
-			const version = Spicetify.Platform.version.split(".").map(i => Number.parseInt(i));
+			const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
 			if (version[0] === 1 && version[1] === 2 && version[2] < 31) return internalFetch;
 
 			return async function (url, body) {
@@ -390,13 +386,13 @@ window.Spicetify = {
 
 				const method = allowedMethodsMap[prop.toLowerCase()];
 				const headers = {
-					"Content-Type": "application/json"
+					"Content-Type": "application/json",
 				};
 
 				const options = {
 					method,
 					headers,
-					timeout: 1000 * 15
+					timeout: 1000 * 15,
 				};
 
 				let finalURL = urlObj.toString();
@@ -415,13 +411,13 @@ window.Spicetify = {
 					injectedHeaders = {
 						Authorization,
 						"Spotify-App-Version": Spicetify.Platform.version,
-						"App-Platform": Spicetify.Platform.PlatformData.app_platform
+						"App-Platform": Spicetify.Platform.PlatformData.app_platform,
 					};
 				}
 				Object.assign(options.headers, injectedHeaders);
 
 				try {
-					return fetch(finalURL, options).then(res => {
+					return fetch(finalURL, options).then((res) => {
 						if (!res.ok) return { code: res.status, error: res.statusText, message: "Failed to fetch", stack: undefined };
 						try {
 							return res.clone().json();
@@ -437,14 +433,14 @@ window.Spicetify = {
 					console.error(e);
 				}
 			};
-		}
+		},
 	};
 
 	Spicetify.Player.origin._cosmos = new Proxy(_cosmos, handler);
 	Object.defineProperty(Spicetify, "CosmosAsync", {
 		get: () => {
 			return Spicetify.Player.origin?._cosmos;
-		}
+		},
 	});
 })();
 
@@ -454,16 +450,16 @@ window.Spicetify = {
 		return;
 	}
 	// Force all webpack modules to load
-	const require = webpackChunkclient_web.push([[Symbol()], {}, re => re]);
+	const require = webpackChunkclient_web.push([[Symbol()], {}, (re) => re]);
 	const chunks = require.m ? Object.entries(require.m) : [];
 	if (!chunks) {
 		setTimeout(hotloadWebpackModules, 50);
 		return;
 	}
-	const cache = Object.keys(require.m).map(id => require(id));
+	const cache = Object.keys(require.m).map((id) => require(id));
 	const modules = cache
-		.filter(module => typeof module === "object")
-		.flatMap(module => {
+		.filter((module) => typeof module === "object")
+		.flatMap((module) => {
 			try {
 				return Object.values(module);
 			} catch {}
@@ -477,15 +473,15 @@ window.Spicetify = {
 			return a;
 		}, {});
 	};
-	const functionModules = modules.filter(module => typeof module === "function");
-	const exportedReactObjects = groupBy(modules.filter(Boolean), x => x.$$typeof);
+	const functionModules = modules.filter((module) => typeof module === "function");
+	const exportedReactObjects = groupBy(modules.filter(Boolean), (x) => x.$$typeof);
 	const exportedMemos = exportedReactObjects[Symbol.for("react.memo")];
 	const exportedForwardRefs = exportedReactObjects[Symbol.for("react.forward_ref")];
-	const exportedMemoFRefs = exportedMemos.filter(m => m.type.$$typeof === Symbol.for("react.forward_ref"));
+	const exportedMemoFRefs = exportedMemos.filter((m) => m.type.$$typeof === Symbol.for("react.forward_ref"));
 	const exposeReactComponentsUI = ({ modules, functionModules, exportedForwardRefs }) => {
-		const componentNames = Object.keys(modules.filter(Boolean).find(e => e.BrowserDefaultFocusStyleProvider));
-		const componentRegexes = componentNames.map(n => new RegExp(`"data-encore-id":(?:[a-zA-Z_\$][\w\$]*\\.){2}${n}\\b`));
-		const componentPairs = [functionModules.map(f => [f, f]), exportedForwardRefs.map(f => [f.render, f])]
+		const componentNames = Object.keys(modules.filter(Boolean).find((e) => e.BrowserDefaultFocusStyleProvider));
+		const componentRegexes = componentNames.map((n) => new RegExp(`"data-encore-id":(?:[a-zA-Z_\$][\w\$]*\\.){2}${n}\\b`));
+		const componentPairs = [functionModules.map((f) => [f, f]), exportedForwardRefs.map((f) => [f.render, f])]
 			.flat()
 			.map(([s, f]) => [componentNames.find((_, i) => s.toString().match(componentRegexes[i])), f]);
 		return Object.fromEntries(componentPairs);
@@ -494,9 +490,9 @@ window.Spicetify = {
 
 	const knownMenuTypes = ["album", "show", "artist", "track"];
 	const menus = modules
-		.map(m => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m.type.toString().match(/value:"[\w-]+"/g)])
+		.map((m) => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m.type.toString().match(/value:"[\w-]+"/g)])
 		.filter(Boolean)
-		.filter(m => m[1] !== 'value:"row"')
+		.filter((m) => m[1] !== 'value:"row"')
 		.map(([module, type]) => {
 			type = type.match(/value:"([\w-]+)"/)[1];
 
@@ -505,7 +501,7 @@ window.Spicetify = {
 
 			type = `${type
 				.split("-")
-				.map(str => str[0].toUpperCase() + str.slice(1))
+				.map((str) => str[0].toUpperCase() + str.slice(1))
 				.join("")}Menu`;
 			return [type, module];
 		})
@@ -514,8 +510,8 @@ window.Spicetify = {
 	const cardTypesToFind = ["album", "artist", "audiobook", "episode", "playlist", "profile", "show", "track"];
 	const cards = [
 		...functionModules
-			.flatMap(m => {
-				return cardTypesToFind.map(type => {
+			.flatMap((m) => {
+				return cardTypesToFind.map((type) => {
 					if (m.toString().includes(`featureIdentifier:"${type}"`)) {
 						cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
 						return [type[0].toUpperCase() + type.slice(1), m];
@@ -524,8 +520,8 @@ window.Spicetify = {
 			})
 			.filter(Boolean),
 		...modules
-			.flatMap(m => {
-				return cardTypesToFind.map(type => {
+			.flatMap((m) => {
+				return cardTypesToFind.map((type) => {
 					try {
 						if (m?.type?.toString().includes(`featureIdentifier:"${type}"`)) {
 							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
@@ -534,118 +530,118 @@ window.Spicetify = {
 					} catch {}
 				});
 			})
-			.filter(Boolean)
+			.filter(Boolean),
 	];
 
 	Object.assign(Spicetify, {
-		React: cache.find(m => m?.useMemo),
-		ReactJSX: cache.find(m => m?.jsx),
-		ReactDOM: cache.find(m => m?.createPortal),
-		ReactDOMServer: cache.find(m => m?.renderToString),
+		React: cache.find((m) => m?.useMemo),
+		ReactJSX: cache.find((m) => m?.jsx),
+		ReactDOM: cache.find((m) => m?.createPortal),
+		ReactDOMServer: cache.find((m) => m?.renderToString),
 		// https://github.com/JedWatson/classnames/
 		classnames: chunks
 			.filter(([_, v]) => v.toString().includes("[native code]"))
 			.map(([i]) => require(i))
-			.find(e => typeof e === "function"),
-		Color: functionModules.find(m => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
+			.find((e) => typeof e === "function"),
+		Color: functionModules.find((m) => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
 		Player: {
 			...Spicetify.Player,
 			get origin() {
 				return Spicetify.Platform?.PlayerAPI;
-			}
+			},
 		},
 		GraphQL: {
 			...Spicetify.GraphQL,
 			get Request() {
 				return Spicetify.Platform?.GraphQLLoader || Spicetify.GraphQL.Handler?.(Spicetify.GraphQL.Context);
 			},
-			Context: functionModules.find(m => m.toString().includes("subscription") && m.toString().includes("mutation")),
-			Handler: functionModules.find(m => m.toString().includes("GraphQL subscriptions are not supported"))
+			Context: functionModules.find((m) => m.toString().includes("subscription") && m.toString().includes("mutation")),
+			Handler: functionModules.find((m) => m.toString().includes("GraphQL subscriptions are not supported")),
 		},
 		ReactComponent: {
 			...Spicetify.ReactComponent,
-			TextComponent: modules.find(m => m?.h1 && m?.render),
+			TextComponent: modules.find((m) => m?.h1 && m?.render),
 			ConfirmDialog: functionModules.find(
-				m => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc") && m.toString().includes("onClose")
+				(m) => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc") && m.toString().includes("onClose")
 			),
-			Menu: functionModules.find(m => m.toString().includes("getInitialFocusElement") && m.toString().includes("children")),
-			MenuItem: functionModules.find(m => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
-			MenuSubMenuItem: functionModules.find(f => f.toString().includes("subMenuIcon")),
-			Slider: wrapProvider(functionModules.find(m => m.toString().includes("onStepBackward") && !m.toString().includes("volume"))),
-			RemoteConfigProvider: functionModules.find(m => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
+			Menu: functionModules.find((m) => m.toString().includes("getInitialFocusElement") && m.toString().includes("children")),
+			MenuItem: functionModules.find((m) => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
+			MenuSubMenuItem: functionModules.find((f) => f.toString().includes("subMenuIcon")),
+			Slider: wrapProvider(functionModules.find((m) => m.toString().includes("onStepBackward") && !m.toString().includes("volume"))),
+			RemoteConfigProvider: functionModules.find((m) => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
 			RightClickMenu: functionModules.find(
-				m =>
+				(m) =>
 					m.toString().includes("action") && m.toString().includes("open") && m.toString().includes("trigger") && m.toString().includes("right-click")
 			),
-			TooltipWrapper: functionModules.find(m => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
+			TooltipWrapper: functionModules.find((m) => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
 			ButtonPrimary: reactComponentsUI.ButtonPrimary,
 			ButtonSecondary: reactComponentsUI.ButtonSecondary,
 			ButtonTertiary: reactComponentsUI.ButtonTertiary,
 			Snackbar: {
-				wrapper: functionModules.find(m => m.toString().includes("encore-light-theme") && m.toString().includes("elevated")),
-				simpleLayout: functionModules.find(m => ["leading", "center", "trailing"].every(keyword => m.toString().includes(keyword))),
-				ctaText: functionModules.find(m => m.toString().includes("ctaText")),
-				styledImage: functionModules.find(m => m.toString().includes("placeholderSrc"))
+				wrapper: functionModules.find((m) => m.toString().includes("encore-light-theme") && m.toString().includes("elevated")),
+				simpleLayout: functionModules.find((m) => ["leading", "center", "trailing"].every((keyword) => m.toString().includes(keyword))),
+				ctaText: functionModules.find((m) => m.toString().includes("ctaText")),
+				styledImage: functionModules.find((m) => m.toString().includes("placeholderSrc")),
 			},
 			Chip: reactComponentsUI.Chip,
-			Toggle: functionModules.find(m => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
+			Toggle: functionModules.find((m) => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
 			Cards: {
 				Default: reactComponentsUI.Card,
 				FeatureCard: functionModules.find(
-					m => m.toString().includes("?highlight") && m.toString().includes("headerText") && m.toString().includes("imageContainer")
+					(m) => m.toString().includes("?highlight") && m.toString().includes("headerText") && m.toString().includes("imageContainer")
 				),
-				Hero: functionModules.find(m => m?.toString().includes('"herocard-click-handler"')),
+				Hero: functionModules.find((m) => m?.toString().includes('"herocard-click-handler"')),
 				CardImage: functionModules.find(
-					m =>
+					(m) =>
 						m.toString().includes("isHero") &&
 						(m.toString().includes("withWaves") || m.toString().includes("isCircular")) &&
 						m.toString().includes("imageWrapper")
 				),
-				...Object.fromEntries(cards)
+				...Object.fromEntries(cards),
 			},
-			Router: functionModules.find(m => m.toString().includes("navigationType") && m.toString().includes("static")),
-			Routes: functionModules.find(m => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
-			Route: functionModules.find(m => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
-			StoreProvider: functionModules.find(m => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
-			Navigation: exportedMemoFRefs.find(m => m.type.render.toString().includes("navigationalRoot")),
-			ScrollableContainer: functionModules.find(m => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")),
+			Router: functionModules.find((m) => m.toString().includes("navigationType") && m.toString().includes("static")),
+			Routes: functionModules.find((m) => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
+			Route: functionModules.find((m) => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
+			StoreProvider: functionModules.find((m) => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
+			Navigation: exportedMemoFRefs.find((m) => m.type.render.toString().includes("navigationalRoot")),
+			ScrollableContainer: functionModules.find((m) => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")),
 			IconComponent: reactComponentsUI.Icon,
-			...Object.fromEntries(menus)
+			...Object.fromEntries(menus),
 		},
 		ReactHook: {
-			DragHandler: functionModules.find(m => m.toString().includes("dataTransfer") && m.toString().includes("data-dragging")),
+			DragHandler: functionModules.find((m) => m.toString().includes("dataTransfer") && m.toString().includes("data-dragging")),
 			useExtractedColor: functionModules.find(
-				m => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
-			)
+				(m) => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
+			),
 		},
 		// React Query
 		// https://github.com/TanStack/query
 		// v3 until Spotify v1.2.29
 		// v5 since Spotify v1.2.30
-		ReactQuery: cache.find(module => module.useQuery) || {
-			PersistQueryClientProvider: functionModules.find(m => m.toString().includes("persistOptions")),
-			QueryClient: functionModules.find(m => m.toString().includes("defaultMutationOptions")),
-			QueryClientProvider: functionModules.find(m => m.toString().includes("use QueryClientProvider")),
-			notifyManager: modules.find(m => m?.setBatchNotifyFunction),
-			useMutation: functionModules.find(m => m.toString().includes("mutateAsync")),
-			useQuery: functionModules.find(m =>
+		ReactQuery: cache.find((module) => module.useQuery) || {
+			PersistQueryClientProvider: functionModules.find((m) => m.toString().includes("persistOptions")),
+			QueryClient: functionModules.find((m) => m.toString().includes("defaultMutationOptions")),
+			QueryClientProvider: functionModules.find((m) => m.toString().includes("use QueryClientProvider")),
+			notifyManager: modules.find((m) => m?.setBatchNotifyFunction),
+			useMutation: functionModules.find((m) => m.toString().includes("mutateAsync")),
+			useQuery: functionModules.find((m) =>
 				m.toString().match(/^function [\w_$]+\(([\w_$]+),([\w_$]+)\)\{return\(0,[\w_$]+\.[\w_$]+\)\(\1,[\w_$]+\.[\w_$]+,\2\)\}$/)
 			),
 			useQueryClient: functionModules.find(
-				m => m.toString().includes("client") && m.toString().includes("Provider") && m.toString().includes("mount")
+				(m) => m.toString().includes("client") && m.toString().includes("Provider") && m.toString().includes("mount")
 			),
 			useSuspenseQuery: functionModules.find(
-				m => m.toString().includes("throwOnError") && m.toString().includes("suspense") && m.toString().includes("enabled")
-			)
+				(m) => m.toString().includes("throwOnError") && m.toString().includes("suspense") && m.toString().includes("enabled")
+			),
 		},
 		ReactFlipToolkit: {
 			...Spicetify.ReactFlipToolkit,
-			Flipper: functionModules.find(m => m?.prototype?.getSnapshotBeforeUpdate),
-			Flipped: functionModules.find(m => m.displayName === "Flipped")
+			Flipper: functionModules.find((m) => m?.prototype?.getSnapshotBeforeUpdate),
+			Flipped: functionModules.find((m) => m.displayName === "Flipped"),
 		},
-		_reservedPanelIds: modules.find(m => m?.BuddyFeed),
-		Mousetrap: cache.find(m => m?.addKeycodes),
-		Locale: modules.find(m => m?._dictionary)
+		_reservedPanelIds: modules.find((m) => m?.BuddyFeed),
+		Mousetrap: cache.find((m) => m?.addKeycodes),
+		Locale: modules.find((m) => m?._dictionary),
 	});
 
 	if (!Spicetify.ContextMenuV2._context) Spicetify.ContextMenuV2._context = Spicetify.React.createContext({});
@@ -659,15 +655,15 @@ window.Spicetify = {
 		// https://github.com/iamhosseindhv/notistack
 		Spicetify.Snackbar = {
 			...Spicetify.Snackbar,
-			SnackbarProvider: functionModules.find(m => m.toString().includes("enqueueSnackbar called with invalid argument")),
-			useSnackbar: functionModules.find(m => m.toString().match(/^function\(\)\{return\(0,[\w$]+\.useContext\)\([\w$]+\)\}$/))
+			SnackbarProvider: functionModules.find((m) => m.toString().includes("enqueueSnackbar called with invalid argument")),
+			useSnackbar: functionModules.find((m) => m.toString().match(/^function\(\)\{return\(0,[\w$]+\.useContext\)\([\w$]+\)\}$/)),
 		};
 	})();
 
-	const localeModule = modules.find(m => m?.getTranslations);
+	const localeModule = modules.find((m) => m?.getTranslations);
 	if (localeModule) {
 		const createUrlLocale = functionModules.find(
-			m => m.toString().includes("has") && m.toString().includes("baseName") && m.toString().includes("language")
+			(m) => m.toString().includes("has") && m.toString().includes("baseName") && m.toString().includes("language")
 		);
 		Spicetify.Locale = {
 			get _relativeTimeFormat() {
@@ -690,75 +686,77 @@ window.Spicetify = {
 			formatNumber: (number, options) => localeModule.formatNumber(number, options),
 			formatNumberCompact: (number, options) => localeModule.formatNumberCompact(number, options),
 			get: (key, children) => localeModule.get(key, children),
-			getDateTimeFormat: options => localeModule.getDateTimeFormat(options),
+			getDateTimeFormat: (options) => localeModule.getDateTimeFormat(options),
 			getDictionary: () => localeModule.getTranslations(),
 			getLocale: () => localeModule._localeForTranslation.baseName,
 			getSmartlingLocale: () => localeModule.getLocaleForSmartling(),
 			getUrlLocale: () => localeModule.getLocaleForURLPath(),
 			getRelativeTimeFormat: () => localeModule.getRelativeTimeFormat(),
 			getSeparator: () => localeModule.getSeparator(),
-			setLocale: locale => {
+			setLocale: (locale) => {
 				return localeModule.initialize({
 					localeForTranslation: locale,
 					localeForFormatting: localeModule._localeForFormatting.baseName,
-					translations: localeModule._translations
+					translations: localeModule._translations,
 				});
 			},
-			setUrlLocale: locale => {
+			setUrlLocale: (locale) => {
 				if (createUrlLocale) localeModule._localeForURLPath = createUrlLocale(locale);
 			},
-			setDictionary: dictionary => {
+			setDictionary: (dictionary) => {
 				return localeModule.initialize({
 					localeForTranslation: localeModule._localeForTranslation.baseName,
 					localeForFormatting: localeModule._localeForFormatting.baseName,
-					translations: dictionary
+					translations: dictionary,
 				});
 			},
-			toLocaleLowerCase: text => localeModule.toLocaleLowerCase(text),
-			toLocaleUpperCase: text => localeModule.toLocaleUpperCase(text)
+			toLocaleLowerCase: (text) => localeModule.toLocaleLowerCase(text),
+			toLocaleUpperCase: (text) => localeModule.toLocaleUpperCase(text),
 		};
 	}
 
-	if (Spicetify.Locale) Spicetify.Locale._supportedLocales = cache.find(m => typeof m?.ja === "string");
+	if (Spicetify.Locale) Spicetify.Locale._supportedLocales = cache.find((m) => typeof m?.ja === "string");
 
 	Object.defineProperty(Spicetify, "Queue", {
 		get() {
 			return Spicetify.Player.origin?._queue?._state ?? Spicetify.Player.origin?._queue?._queue;
-		}
+		},
 	});
 
 	const confirmDialogChunk = chunks.find(
 		([, value]) => value.toString().includes("confirmDialog") && value.toString().includes("shouldCloseOnEsc") && value.toString().includes("isOpen")
 	);
 	if (!Spicetify.ReactComponent?.ConfirmDialog && confirmDialogChunk) {
-		Spicetify.ReactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find(m => typeof m === "object");
+		Spicetify.ReactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find((m) => typeof m === "object");
 	}
 
 	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
 	if (contextMenuChunk) {
-		Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find(m => typeof m === "function");
+		Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find((m) => typeof m === "function");
 	}
 
 	const playlistMenuChunk = chunks.find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
 	if (playlistMenuChunk) {
-		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(m => typeof m === "function" || typeof m === "object");
+		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(
+			(m) => typeof m === "function" || typeof m === "object"
+		);
 	}
 
 	const dropdownChunk = chunks.find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
 	if (dropdownChunk) {
-		Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find(m => typeof m === "function");
+		Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find((m) => typeof m === "function");
 	}
 
 	const infiniteQueryChunk = chunks.find(
 		([_, value]) => value.toString().includes("fetchPreviousPage") && value.toString().includes("getOptimisticResult")
 	);
 	if (infiniteQueryChunk) {
-		Spicetify.ReactQuery.useInfiniteQuery = Object.values(require(infiniteQueryChunk[0])).find(m => typeof m === "function");
+		Spicetify.ReactQuery.useInfiniteQuery = Object.values(require(infiniteQueryChunk[0])).find((m) => typeof m === "function");
 	}
 
-	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find(m => m?.RGBA);
+	if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find((m) => m?.RGBA);
 
 	// Combine snackbar and notification
 	(function bindShowNotification() {
@@ -771,7 +769,7 @@ window.Spicetify = {
 			Spicetify.showNotification = (message, isError, msTimeout) => {
 				Spicetify.Snackbar.enqueueSnackbar(message, {
 					variant: isError ? "error" : "default",
-					autoHideDuration: msTimeout
+					autoHideDuration: msTimeout,
 				});
 			};
 
@@ -790,8 +788,8 @@ window.Spicetify = {
 			setTimeout(bindColorExtractor, 10);
 			return;
 		}
-		let imageAnalysis = functionModules.find(m => m.toString().match(/\![\w$]+\.isFallback|\{extractColor/g));
-		const fallbackPreset = modules.find(m => m?.colorDark);
+		let imageAnalysis = functionModules.find((m) => m.toString().match(/\![\w$]+\.isFallback|\{extractColor/g));
+		const fallbackPreset = modules.find((m) => m?.colorDark);
 
 		// Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features
 		if (!imageAnalysis) {
@@ -800,13 +798,13 @@ window.Spicetify = {
 					(value.toString().match(/[\w$]+\.isFallback/g) || value.toString().includes("colorRaw:")) && value.toString().match(/.extractColor/g)
 			);
 			if (!chunk) {
-				await new Promise(resolve => setTimeout(resolve, 100));
+				await new Promise((resolve) => setTimeout(resolve, 100));
 				chunk = chunks.find(([, value]) => value.toString().match(/[\w$]+\.isFallback/g) && value.toString().match(/.extractColor/g));
 			}
-			imageAnalysis = Object.values(require(chunk[0])).find(m => typeof m === "function");
+			imageAnalysis = Object.values(require(chunk[0])).find((m) => typeof m === "function");
 		}
 
-		Spicetify.extractColorPreset = async image => {
+		Spicetify.extractColorPreset = async (image) => {
 			const analysis = await imageAnalysis(Spicetify.GraphQL.Request, image);
 			for (const result of analysis) {
 				if ("isFallback" in result === false) result.isFallback = fallbackPreset === result;
@@ -818,7 +816,7 @@ window.Spicetify = {
 
 	function wrapProvider(component) {
 		if (!component) return null;
-		return props =>
+		return (props) =>
 			Spicetify.React.createElement(
 				Spicetify.ReactComponent.RemoteConfigProvider,
 				{ configuration: Spicetify.Platform.RemoteConfiguration },
@@ -836,12 +834,12 @@ window.Spicetify = {
 		if (Spicetify.URI.Type) return;
 
 		const URIChunk = cache
-			.filter(module => typeof module === "object")
-			.find(m => {
+			.filter((module) => typeof module === "object")
+			.find((m) => {
 				// Avoid creating 2 arrays of the same values
 				try {
 					const values = Object.values(m);
-					return values.some(m => typeof m === "function") && values.some(m => m?.AD);
+					return values.some((m) => typeof m === "function") && values.some((m) => m?.AD);
 				} catch {
 					return false;
 				}
@@ -849,16 +847,16 @@ window.Spicetify = {
 		const URIModules = Object.values(URIChunk);
 
 		// URI.Type
-		Spicetify.URI.Type = URIModules.find(m => m?.AD);
+		Spicetify.URI.Type = URIModules.find((m) => m?.AD);
 
 		// Parse functions
-		Spicetify.URI.from = URIModules.find(m => typeof m === "function" && m.toString().includes("allowedTypes"));
-		Spicetify.URI.fromString = URIModules.find(m => typeof m === "function" && m.toString().includes("Argument `uri`"));
+		Spicetify.URI.from = URIModules.find((m) => typeof m === "function" && m.toString().includes("allowedTypes"));
+		Spicetify.URI.fromString = URIModules.find((m) => typeof m === "function" && m.toString().includes("Argument `uri`"));
 
 		// createURI functions
-		const createURIFunctions = URIModules.filter(m => typeof m === "function" && m.toString().match(/\([\w$]+\./));
+		const createURIFunctions = URIModules.filter((m) => typeof m === "function" && m.toString().match(/\([\w$]+\./));
 		for (const type of Object.keys(Spicetify.URI.Type)) {
-			const func = createURIFunctions.find(m => m.toString().match(new RegExp(`\\([\\w$]+\\.${type}\(?!_\)`)));
+			const func = createURIFunctions.find((m) => m.toString().match(new RegExp(`\\([\\w$]+\\.${type}\(?!_\)`)));
 			if (!func) continue;
 
 			const camelCaseType = type
@@ -873,19 +871,19 @@ window.Spicetify = {
 		}
 
 		// isURI functions
-		const isURIFUnctions = URIModules.filter(m => typeof m === "function" && m.toString().match(/=[\w$]+\./));
+		const isURIFUnctions = URIModules.filter((m) => typeof m === "function" && m.toString().match(/=[\w$]+\./));
 		for (const type of Object.keys(Spicetify.URI.Type)) {
-			const func = isURIFUnctions.find(m => m.toString().match(new RegExp(`===[\\w$]+\\.${type}\(?!_\)\\}`)));
+			const func = isURIFUnctions.find((m) => m.toString().match(new RegExp(`===[\\w$]+\\.${type}\(?!_\)\\}`)));
 			const camelCaseType = type
 				.toLowerCase()
 				.split("_")
-				.map(word => word[0].toUpperCase() + word.slice(1))
+				.map((word) => word[0].toUpperCase() + word.slice(1))
 				.join("");
 
 			// Fill in missing functions, only serves as placebo as they cannot be as accurate as the original functions
 			Spicetify.URI[`is${camelCaseType}`] =
 				func ??
-				(uri => {
+				((uri) => {
 					let uriObj;
 					try {
 						uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
@@ -897,14 +895,14 @@ window.Spicetify = {
 				});
 		}
 
-		Spicetify.URI.isPlaylistV1OrV2 = uri => Spicetify.URI.isPlaylist(uri) || Spicetify.URI.isPlaylistV2(uri);
+		Spicetify.URI.isPlaylistV1OrV2 = (uri) => Spicetify.URI.isPlaylist(uri) || Spicetify.URI.isPlaylistV2(uri);
 
 		// Conversion functions
-		Spicetify.URI.idToHex = URIModules.find(m => typeof m === "function" && m.toString().includes("22==="));
-		Spicetify.URI.hexToId = URIModules.find(m => typeof m === "function" && m.toString().includes("32==="));
+		Spicetify.URI.idToHex = URIModules.find((m) => typeof m === "function" && m.toString().includes("22==="));
+		Spicetify.URI.hexToId = URIModules.find((m) => typeof m === "function" && m.toString().includes("32==="));
 
 		// isSameIdentity
-		Spicetify.URI.isSameIdentity = URIModules.find(m => typeof m === "function" && m.toString().match(/[\w$]+\.id===[\w$]+\.id/));
+		Spicetify.URI.isSameIdentity = URIModules.find((m) => typeof m === "function" && m.toString().match(/[\w$]+\.id===[\w$]+\.id/));
 	})();
 
 	Spicetify.Events.webpackLoaded.fire();
@@ -936,7 +934,7 @@ Spicetify.Events = (() => {
 
 	const playerState = {
 		cache: null,
-		current: null
+		current: null,
 	};
 
 	const interval = setInterval(() => {
@@ -990,17 +988,17 @@ Spicetify.Events = (() => {
 		}
 	}, 100);
 
-	Spicetify.addToQueue = uri => {
+	Spicetify.addToQueue = (uri) => {
 		return Spicetify.Player.origin._queue.addToQueue(uri);
 	};
-	Spicetify.removeFromQueue = uri => {
+	Spicetify.removeFromQueue = (uri) => {
 		return Spicetify.Player.origin._queue.removeFromQueue(uri);
 	};
 })();
 
-Spicetify.getAudioData = async uri => {
-	uri = uri || Spicetify.Player.data.item.uri;
-	const uriObj = Spicetify.URI.from?.(uri) ?? Spicetify.URI.fromString?.(uri);
+Spicetify.getAudioData = async (uri) => {
+	const providedURI = uri || Spicetify.Player.data.item.uri;
+	const uriObj = Spicetify.URI.from?.(providedURI) ?? Spicetify.URI.fromString?.(providedURI);
 	if (!uriObj || (uriObj.Type || uriObj.type) !== Spicetify.URI.Type.TRACK) {
 		throw "URI is invalid.";
 	}
@@ -1010,7 +1008,7 @@ Spicetify.getAudioData = async uri => {
 	);
 };
 
-Spicetify.colorExtractor = async uri => {
+Spicetify.colorExtractor = async (uri) => {
 	const body = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/colorextractor/v1/extract-presets?uri=${uri}&format=json`);
 
 	if (body.entries?.length) {
@@ -1025,9 +1023,9 @@ Spicetify.colorExtractor = async uri => {
 
 Spicetify.LocalStorage = {
 	clear: () => localStorage.clear(),
-	get: key => localStorage.getItem(key),
-	remove: key => localStorage.removeItem(key),
-	set: (key, value) => localStorage.setItem(key, value)
+	get: (key) => localStorage.getItem(key),
+	remove: (key) => localStorage.removeItem(key),
+	set: (key, value) => localStorage.setItem(key, value),
 };
 
 Spicetify._getStyledClassName = (args, component) => {
@@ -1048,19 +1046,19 @@ Spicetify._getStyledClassName = (args, component) => {
 		"$semanticColor",
 		"$buttonSize",
 		"$position",
-		"$iconSize"
+		"$iconSize",
 	];
 	const customKeys = ["blocksize"];
 	const customExactKeys = ["$padding", "$paddingBottom", "paddingBottom", "padding"];
 
 	const element = Array.from(args).find(
-		e =>
+		(e) =>
 			e?.children ||
 			e?.dangerouslySetInnerHTML ||
 			typeof e?.className !== "undefined" ||
-			includedKeys.some(key => typeof e?.[key] !== "undefined") ||
-			customExactKeys.some(key => typeof e?.[key] !== "undefined") ||
-			customKeys.some(key => Object.keys(e).some(k => k.toLowerCase().includes(key)))
+			includedKeys.some((key) => typeof e?.[key] !== "undefined") ||
+			customExactKeys.some((key) => typeof e?.[key] !== "undefined") ||
+			customKeys.some((key) => Object.keys(e).some((k) => k.toLowerCase().includes(key)))
 	);
 
 	if (!element) return;
@@ -1083,18 +1081,18 @@ Spicetify._getStyledClassName = (args, component) => {
 		if (element[key]) className += `-${sanitizedKey}`;
 	}
 
-	const booleanKeys = Object.keys(element).filter(key => typeof element[key] === "boolean" && element[key]);
+	const booleanKeys = Object.keys(element).filter((key) => typeof element[key] === "boolean" && element[key]);
 
 	for (const key of booleanKeys) {
 		if (excludedKeys.includes(key)) continue;
-		if (excludedPrefix.some(prefix => key.startsWith(prefix))) continue;
+		if (excludedPrefix.some((prefix) => key.startsWith(prefix))) continue;
 		const sanitizedKey = key.startsWith("$") ? key.slice(1) : key;
 		className += `-${sanitizedKey}`;
 	}
 
 	const customEntries = Object.entries(element).filter(
 		([key, value]) =>
-			(customKeys.some(k => key.toLowerCase().includes(k)) || customExactKeys.some(k => key === k)) && typeof value === "string" && value.length
+			(customKeys.some((k) => key.toLowerCase().includes(k)) || customExactKeys.some((k) => key === k)) && typeof value === "string" && value.length
 	);
 
 	for (const [key, value] of customEntries) {
@@ -1103,33 +1101,6 @@ Spicetify._getStyledClassName = (args, component) => {
 	}
 
 	return className;
-};
-
-Spicetify.getFontStyle = font => {
-	if (!font || !Spicetify._fontStyle) return;
-	let rawStyle = Spicetify._fontStyle({ variant: font, $variant: font })
-		.filter(style => typeof style === "string")
-		.join("");
-	// Clean up empty rulesets
-	rawStyle = rawStyle.replace(/\w+-\w+:;/g, "").trim();
-	// Split special rulesets
-	const mediaStyle = rawStyle.split("@");
-	let returnStyle = `.main-type-${font}`;
-
-	mediaStyle.map((ruleset, index) => {
-		if (index === 0) {
-			returnStyle += `{${ruleset}}`;
-			return;
-		}
-		let newRuleset;
-		if (ruleset.endsWith(";")) newRuleset = ruleset.slice(0, -1);
-		newRuleset = ruleset.split(")").join(`){.main-type-${font}`);
-		returnStyle += `@${newRuleset}}`;
-		return;
-	});
-
-	if (returnStyle.endsWith(";")) returnStyle = returnStyle.slice(0, -1);
-	return returnStyle.replaceAll(";;", ";");
 };
 
 (function waitMouseTrap() {
@@ -1243,7 +1214,7 @@ Spicetify.getFontStyle = font => {
 		"<": ",",
 		">": ".",
 		"?": "/",
-		"|": "\\"
+		"|": "\\",
 	};
 
 	function formatKeys(keys) {
@@ -1270,18 +1241,18 @@ Spicetify.getFontStyle = font => {
 		registerShortcut: (keys, callback) => {
 			Spicetify.Mousetrap.bind(formatKeys(keys), callback);
 		},
-		_deregisterShortcut: keys => {
+		_deregisterShortcut: (keys) => {
 			Spicetify.Mousetrap.unbind(formatKeys(keys));
 		},
 		changeShortcut: (keys, newKeys) => {
 			if (!keys || !newKeys) throw "Spicetify.Keyboard.changeShortcut: Invalid keys";
 
-			const callback = Object.keys(Spicetify.Mousetrap.trigger()._directMap).find(key => key.startsWith(formatKeys(keys)));
+			const callback = Object.keys(Spicetify.Mousetrap.trigger()._directMap).find((key) => key.startsWith(formatKeys(keys)));
 			if (!callback) throw "Spicetify.Keyboard.changeShortcut: Shortcut not found";
 
 			Spicetify.Keyboard.registerShortcut(newKeys, Spicetify.Mousetrap.trigger()._directMap[callback]);
 			Spicetify.Keyboard._deregisterShortcut(keys);
-		}
+		},
 	};
 	Spicetify.Keyboard.registerIsolatedShortcut = Spicetify.Keyboard.registerShortcut;
 	Spicetify.Keyboard.registerImportantShortcut = Spicetify.Keyboard.registerShortcut;
@@ -1419,7 +1390,7 @@ Spicetify.SVGIcons = {
 		'<path d="M0 11.032v-6h2.802l5.198-3v12l-5.198-3H0zm7 1.27v-8.54l-3.929 2.27H1v4h2.071L7 12.302zm4.464-2.314q.401-.925.401-1.956 0-1.032-.4-1.957-.402-.924-1.124-1.623L11 3.69q.873.834 1.369 1.957.496 1.123.496 2.385 0 1.262-.496 2.385-.496 1.123-1.369 1.956l-.659-.762q.722-.698 1.123-1.623z"/>',
 	watch:
 		'<path d="M4.347 1.122l-.403 1.899A2.25 2.25 0 002 5.25v5.5a2.25 2.25 0 001.944 2.23l.403 1.898c.14.654.717 1.122 1.386 1.122h4.535c.668 0 1.246-.468 1.385-1.122l.404-1.899A2.25 2.25 0 0014 10.75v-5.5a2.25 2.25 0 00-1.943-2.23l-.404-1.898A1.417 1.417 0 0010.267 0H5.734c-.67 0-1.247.468-1.386 1.122zM5.8 1.5h4.4l.319 1.5H5.48l.32-1.5zM10.52 13l-.319 1.5H5.8L5.481 13h5.038zM4.25 4.5h7.5a.75.75 0 01.75.75v5.5a.75.75 0 01-.75.75h-7.5a.75.75 0 01-.75-.75v-5.5a.75.75 0 01.75-.75z"/>',
-	x: '<path d="M14.354 2.353l-.708-.707L8 7.293 2.353 1.646l-.707.707L7.293 8l-5.647 5.646.707.708L8 8.707l5.646 5.647.708-.708L8.707 8z"/>'
+	x: '<path d="M14.354 2.353l-.708-.707L8 7.293 2.353 1.646l-.707.707L7.293 8l-5.647 5.646.707.708L8 8.707l5.646 5.647.708-.708L8.707 8z"/>',
 };
 
 (async function waitUserAPI() {
@@ -1437,7 +1408,7 @@ Spicetify.SVGIcons = {
 		Spicetify.Platform?.ProductStateAPI.productStateApi;
 
 	Spicetify.AppTitle = {
-		set: async name => {
+		set: async (name) => {
 			if (subRequest) subRequest.cancel();
 			await productState.putOverridesValues({ pairs: { name } });
 			subRequest = productState.subValues({ keys: ["name"] }, ({ pairs }) => {
@@ -1455,26 +1426,12 @@ Spicetify.SVGIcons = {
 			if (subRequest) subRequest.cancel();
 			await productState.delOverridesValues({ keys: ["name"] });
 		},
-		sub: callback => {
+		sub: (callback) => {
 			return productState.subValues({ keys: ["name"] }, ({ pairs }) => {
 				callback(pairs.name);
 			});
-		}
+		},
 	};
-})();
-
-(function appendAllFontStyle() {
-	if (!Spicetify._fontStyle) {
-		setTimeout(appendAllFontStyle, 1000);
-		return;
-	}
-	const fontList = (Spicetify._fontStyleList?.toString() ?? Spicetify._fontStyle.toString()).match(/"\w+"/g).map(font => font.replace(/"/g, ""));
-	const fontStyle = document.createElement("style");
-	fontStyle.className = "spicetify-font";
-	for (const font of fontList) {
-		fontStyle.innerHTML += Spicetify.getFontStyle(font);
-	}
-	return document.head.appendChild(fontStyle);
 })();
 
 function parseIcon(icon, size = 16) {
@@ -1490,8 +1447,8 @@ function createIconComponent(icon, size = 16) {
 		{
 			iconSize: size,
 			dangerouslySetInnerHTML: {
-				__html: parseIcon(icon)
-			}
+				__html: parseIcon(icon),
+			},
 		},
 		null
 	);
@@ -1555,12 +1512,12 @@ Spicetify.ContextMenuV2 = (() => {
 				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuItem, {
 					disabled: _disabled,
 					divider: _divider,
-					onClick: e => {
+					onClick: (e) => {
 						onClick(context, this, e);
 					},
 					leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
 					trailingIcon: _trailingIcon && createIconComponent(_trailingIcon),
-					children: _children
+					children: _children,
 				});
 			}, {});
 		}
@@ -1614,7 +1571,7 @@ Spicetify.ContextMenuV2 = (() => {
 	}
 
 	class ItemSubMenu {
-		static itemsToComponents = items => items.map(item => item._element);
+		static itemsToComponents = (items) => items.map((item) => item._element);
 
 		constructor({ text, disabled = false, leadingIcon, divider, items, shouldAdd = () => true }) {
 			this.shouldAdd = shouldAdd;
@@ -1654,7 +1611,7 @@ Spicetify.ContextMenuV2 = (() => {
 					onClick: () => undefined,
 					disabled: _disabled,
 					leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
-					children: ItemSubMenu.itemsToComponents(_items)
+					children: ItemSubMenu.itemsToComponents(_items),
 				});
 			}, {});
 		}
@@ -1786,14 +1743,14 @@ Spicetify.ContextMenu = (() => {
 				disabled,
 				leadingIcon: icon,
 				trailingIcon,
-				onClick: context => {
+				onClick: (context) => {
 					const [uris, uids, contextUri] = Spicetify.ContextMenuV2.parseProps(context.props);
 					onClick(uris, uids, contextUri);
 				},
-				shouldAdd: props => {
+				shouldAdd: (props) => {
 					const parsedProps = Spicetify.ContextMenuV2.parseProps(props);
 					return parsedProps && shouldAdd(...parsedProps);
-				}
+				},
 			});
 		}
 
@@ -1821,10 +1778,10 @@ Spicetify.ContextMenu = (() => {
 				disabled,
 				leadingIcon: icon,
 				items,
-				shouldAdd: props => {
+				shouldAdd: (props) => {
 					const parsedProps = Spicetify.ContextMenuV2.parseProps(props);
 					return parsedProps && shouldAdd(...parsedProps);
-				}
+				},
 			});
 		}
 
@@ -1843,7 +1800,7 @@ let navLinkFactoryCtx = null;
 let refreshNavLinks = null;
 
 Spicetify._renderNavLinks = (list, isTouchScreenUi, isPreLibX = false) => {
-	const [refreshCount, refresh] = Spicetify.React.useReducer(x => x + 1, 0);
+	const [refreshCount, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
 	refreshNavLinks = refresh;
 
 	if (
@@ -1884,33 +1841,37 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi, isPreLibX = false) => {
 		registered.push({ appProper, appRoutePath, icon, activeIcon });
 	}
 
-	const style = document.createElement("style");
-	style.innerHTML = `
-:root {
-  --max-custom-navlink-count: 4;
-}
+	(function addStyling() {
+		if (document.querySelector("style.spicetify-navlinks")) return;
+		const style = document.createElement("style");
+		style.className = "spicetify-navlinks";
+		style.innerHTML = `
+	:root {
+		--max-custom-navlink-count: 4;
+	}
 
-.custom-navlinks-scrollable_container {
-  max-width: calc(48px * var(--max-custom-navlink-count) + 8px * (var(--max-custom-navlink-count) - 1));
-  -webkit-app-region: no-drag;
-}
+	.custom-navlinks-scrollable_container {
+		max-width: calc(48px * var(--max-custom-navlink-count) + 8px * (var(--max-custom-navlink-count) - 1));
+		-webkit-app-region: no-drag;
+	}
 
-.custom-navlinks-scrollable_container div[role="presentation"] > *:not(:last-child) {
-  margin-inline-end: 8px;
-}
+	.custom-navlinks-scrollable_container div[role="presentation"] > *:not(:last-child) {
+		margin-inline-end: 8px;
+	}
 
-.custom-navlinks-scrollable_container div[role="presentation"] {
-	display: flex;
-	flex-direction: row;
-}
+	.custom-navlinks-scrollable_container div[role="presentation"] {
+		display: flex;
+		flex-direction: row;
+	}
 
-.custom-navlink {
-  -webkit-app-region: unset;
-}
-	`;
-	document.head.appendChild(style);
+	.custom-navlink {
+		-webkit-app-region: unset;
+	}
+		`;
+		document.head.appendChild(style);
+	})();
 
-	const wrapScrollableContainer = element =>
+	const wrapScrollableContainer = (element) =>
 		Spicetify.React.createElement(
 			"div",
 			{ className: "custom-navlinks-scrollable_container" },
@@ -1921,7 +1882,7 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi, isPreLibX = false) => {
 		Spicetify.React.createElement(
 			navLinkFactoryCtx.Provider,
 			{ value: navLinkFactory },
-			registered.map(NavLinkElement => Spicetify.React.createElement(NavLink, NavLinkElement, null))
+			registered.map((NavLinkElement) => Spicetify.React.createElement(NavLink, NavLinkElement, null))
 		);
 
 	return isTouchScreenUi ? wrapScrollableContainer(NavLinks()) : NavLinks();
@@ -1949,10 +1910,10 @@ const NavLinkSidebarLegacy = ({ appProper, appRoutePath, createIcon, isActive })
 					to: appRoutePath,
 					referrer: "other",
 					className: Spicetify.classnames("link-subtle", "main-navBar-navBarLink", {
-						"main-navBar-navBarLinkActive active": isActive
+						"main-navBar-navBarLinkActive active": isActive,
 					}),
 					onClick: () => undefined,
-					"aria-label": appProper
+					"aria-label": appProper,
 				},
 				createIcon(),
 				Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "mestoBold" }, appProper)
@@ -1976,10 +1937,10 @@ const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
 					to: appRoutePath,
 					referrer: "other",
 					className: Spicetify.classnames("link-subtle", "main-yourLibraryX-navLink", {
-						"main-yourLibraryX-navLinkActive": isActive
+						"main-yourLibraryX-navLinkActive": isActive,
 					}),
 					onClick: () => undefined,
-					"aria-label": appProper
+					"aria-label": appProper,
 				},
 				createIcon(),
 				!isSidebarCollapsed && Spicetify.React.createElement(Spicetify.ReactComponent.TextComponent, { variant: "balladBold" }, appProper)
@@ -1995,10 +1956,10 @@ const NavLinkGlobal = ({ appProper, appRoutePath, createIcon, isActive }) => {
 		Spicetify.React.createElement(Spicetify.ReactComponent.ButtonTertiary, {
 			iconOnly: createIcon,
 			className: Spicetify.classnames("link-subtle", "main-globalNav-navLink", "main-globalNav-link-icon", "custom-navlink", {
-				"main-globalNav-navLinkActive": isActive
+				"main-globalNav-navLinkActive": isActive,
 			}),
 			"aria-label": appProper,
-			onClick: () => Spicetify.Platform.History.push(appRoutePath)
+			onClick: () => Spicetify.Platform.History.push(appRoutePath),
 		})
 	);
 };
@@ -2030,7 +1991,7 @@ class _HTMLGenericModal extends HTMLElement {
 		const hidePopup = this.hide.bind(this);
 
 		// Listen for click events on Overlay
-		this.querySelector(".GenericModal__overlay").addEventListener("click", event => {
+		this.querySelector(".GenericModal__overlay").addEventListener("click", (event) => {
 			if (!this.querySelector(".GenericModal").contains(event.target)) hidePopup();
 		});
 
@@ -2084,9 +2045,9 @@ Object.defineProperty(Spicetify, "TippyProps", {
 				instance.popper.firstChild.classList.remove("main-contextMenu-tippyEnterActive");
 				instance.unmount();
 			});
-		}
+		},
 	},
-	writable: false
+	writable: false,
 });
 
 Spicetify.Topbar = (() => {
@@ -2105,7 +2066,7 @@ Spicetify.Topbar = (() => {
 			this.disabled = disabled;
 			this.tippy = Spicetify.Tippy?.(this.element, {
 				content: label,
-				...Spicetify.TippyProps
+				...Spicetify.TippyProps,
 			});
 			this.label = label;
 
@@ -2227,7 +2188,7 @@ Spicetify.Playbar = (() => {
 			addClassname(this.element);
 			this.tippy = Spicetify.Tippy?.(this.element, {
 				content: label,
-				...Spicetify.TippyProps
+				...Spicetify.TippyProps,
 			});
 			this.label = label;
 			registerOnCreate && this.register();
@@ -2320,7 +2281,7 @@ Spicetify.Playbar = (() => {
 			this.active = active;
 			this.tippy = Spicetify.Tippy?.(this.element, {
 				content: label,
-				...Spicetify.TippyProps
+				...Spicetify.TippyProps,
 			});
 			this.label = label;
 			registerOnCreate && this.register();
@@ -2394,7 +2355,7 @@ Spicetify.Playbar = (() => {
 			return;
 		}
 		waitForWidgetMounted();
-		const observer = new MutationObserver(mutations => {
+		const observer = new MutationObserver((mutations) => {
 			for (const mutation of mutations) {
 				if (mutation.removedNodes.length > 0) {
 					nowPlayingWidget = null;
@@ -2425,7 +2386,7 @@ Spicetify.Playbar = (() => {
 		const changelogRawDataOld = body.match(/## What's Changed([\s\S]*?)\r\n\r/)?.[1];
 		if (changelogRawDataOld) {
 			changelog = [...changelogRawDataOld.matchAll(/\r\n\*\s(.+?)\sin\shttps/g)]
-				.map(match => {
+				.map((match) => {
 					const featureData = match[1].split("@");
 					const feature = featureData[0];
 					const committerID = featureData[1];
@@ -2434,10 +2395,10 @@ Spicetify.Playbar = (() => {
 				.join("\n");
 		} else {
 			const sections = body.split("\n## ");
-			const filteredSections = sections.filter(section => !section.startsWith("Compatibility"));
+			const filteredSections = sections.filter((section) => !section.startsWith("Compatibility"));
 			const filteredText = filteredSections.join("\n## ");
 			changelog = [...filteredText.matchAll(/- (?:\*\*(.+?)\*\*:? )?(.+?) \(\[(.+?)\]\((.+?)\)\)/g)]
-				.map(match => {
+				.map((match) => {
 					const feature = match[1];
 					const description = match[2];
 					const prNumber = match[3];
@@ -2526,7 +2487,7 @@ Spicetify.Playbar = (() => {
 				const tippy = Spicetify.Tippy(content.querySelectorAll("pre"), {
 					content: "Click to copy",
 					hideOnClick: false,
-					...Spicetify.TippyProps
+					...Spicetify.TippyProps,
 				});
 
 				for (const instance of tippy) {
@@ -2541,7 +2502,7 @@ Spicetify.Playbar = (() => {
 			const updateModal = {
 				title: "Update Spicetify",
 				content,
-				isLarge: true
+				isLarge: true,
 			};
 
 			new Spicetify.Topbar.Button(

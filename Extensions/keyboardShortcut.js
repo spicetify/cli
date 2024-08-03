@@ -25,7 +25,7 @@
 		"ctrl+q": {
 			callback: () =>
 				Spicetify.CosmosAsync.post("sp://esperanto/spotify.desktop.lifecycle_esperanto.proto.DesktopLifecycle/Shutdown") &&
-				Spicetify.CosmosAsync.post("sp://desktop/v1/shutdown")
+				Spicetify.CosmosAsync.post("sp://desktop/v1/shutdown"),
 		},
 
 		// Rotate through sidebar items using Ctrl+Tab and Ctrl+Shift+Tab
@@ -64,17 +64,17 @@
 
 		// Activate Vim mode and set cancel key to 'ESCAPE'
 		f: {
-			callback: event => {
+			callback: (event) => {
 				vim.activate(event);
 				vim.setCancelKey("ESCAPE");
-			}
-		}
+			},
+		},
 	};
 
 	// Bind all the keys
 	for (const [key, { staticCondition, callback }] of Object.entries(binds)) {
 		if (typeof staticCondition === "undefined" || staticCondition) {
-			Spicetify.Mousetrap.bind(key, event => {
+			Spicetify.Mousetrap.bind(key, (event) => {
 				event.preventDefault();
 				if (!vim.isActive) {
 					callback(event);
@@ -86,7 +86,7 @@
 	// re-render vim on window resize & prevent mouse event while active
 	window.addEventListener(
 		"resize",
-		event => {
+		(event) => {
 			if (vim.isActive) {
 				vim.activate();
 			}
@@ -96,7 +96,7 @@
 
 	window.addEventListener(
 		"mousedown",
-		event => {
+		(event) => {
 			if (vim.isActive) {
 				event.stopPropagation();
 			}
@@ -348,7 +348,7 @@ function VimBind() {
 			const event = new MouseEvent("mouseover", {
 				view: window,
 				bubbles: true,
-				cancelable: true
+				cancelable: true,
 			});
 
 			element.dispatchEvent(event);

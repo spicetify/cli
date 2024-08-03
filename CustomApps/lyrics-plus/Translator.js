@@ -10,7 +10,7 @@ class Translator {
 		this.finished = {
 			ja: false,
 			ko: false,
-			zh: false
+			zh: false,
 		};
 
 		this.applyKuromojiFix();
@@ -106,7 +106,7 @@ class Translator {
 
 		return this.kuroshiro.convert(text, {
 			to: target,
-			mode: mode
+			mode: mode,
 		});
 	}
 
@@ -128,7 +128,7 @@ class Translator {
 
 		const converter = this.OpenCC.Converter({
 			from: from,
-			to: target
+			to: target,
 		});
 
 		return converter(text);
@@ -141,6 +141,6 @@ class Translator {
 	 * @returns {Promise<void>}
 	 */
 	static async #sleep(ms) {
-		return new Promise(resolve => setTimeout(resolve, ms));
+		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
 }

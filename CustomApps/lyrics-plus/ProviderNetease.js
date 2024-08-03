@@ -1,6 +1,6 @@
 const ProviderNetease = (() => {
 	const requestHeader = {
-		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0"
+		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0",
 	};
 
 	async function findLyrics(info) {
@@ -19,9 +19,9 @@ const ProviderNetease = (() => {
 		// normalized expected album name
 		const neAlbumName = Utils.normalize(info.album);
 		const expectedAlbumName = Utils.containsHanCharacter(neAlbumName) ? await Utils.toSimplifiedChinese(neAlbumName) : neAlbumName;
-		let itemId = items.findIndex(val => Utils.normalize(val.album.name) === expectedAlbumName);
-		if (itemId === -1) itemId = items.findIndex(val => Math.abs(info.duration - val.duration) < 3000);
-		if (itemId === -1) itemId = items.findIndex(val => val.name === cleanTitle);
+		let itemId = items.findIndex((val) => Utils.normalize(val.album.name) === expectedAlbumName);
+		if (itemId === -1) itemId = items.findIndex((val) => Math.abs(info.duration - val.duration) < 3000);
+		if (itemId === -1) itemId = items.findIndex((val) => val.name === cleanTitle);
 		if (itemId === -1) throw "Cannot find track";
 
 		return await Spicetify.CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
@@ -31,7 +31,7 @@ const ProviderNetease = (() => {
 		"\\s?作?\\s*词|\\s?作?\\s*曲|\\s?编\\s*曲?|\\s?监\\s*制?",
 		".*编写|.*和音|.*和声|.*合声|.*提琴|.*录|.*工程|.*工作室|.*设计|.*剪辑|.*制作|.*发行|.*出品|.*后期|.*混音|.*缩混",
 		"原唱|翻唱|题字|文案|海报|古筝|二胡|钢琴|吉他|贝斯|笛子|鼓|弦乐",
-		"lrc|publish|vocal|guitar|program|produce|write|mix"
+		"lrc|publish|vocal|guitar|program|produce|write|mix",
 	];
 	const creditInfoRegExp = new RegExp(`^(${creditInfo.join("|")}).*(:|：)`, "i");
 
@@ -51,7 +51,7 @@ const ProviderNetease = (() => {
 			return { text: line };
 		}
 
-		const textIndex = matchResult.findIndex(slice => !slice.endsWith("]"));
+		const textIndex = matchResult.findIndex((slice) => !slice.endsWith("]"));
 		let text = "";
 
 		if (textIndex > -1) {
@@ -73,7 +73,7 @@ const ProviderNetease = (() => {
 			if (components[i + 1] === " ") continue;
 			result.push({
 				word: `${components[i + 1]} `,
-				time: Number.parseInt(components[i])
+				time: Number.parseInt(components[i]),
 			});
 		}
 		return result;
@@ -86,9 +86,9 @@ const ProviderNetease = (() => {
 			return null;
 		}
 
-		const lines = lyricStr.split(/\r?\n/).map(line => line.trim());
+		const lines = lyricStr.split(/\r?\n/).map((line) => line.trim());
 		const karaoke = lines
-			.map(line => {
+			.map((line) => {
 				const { time, text } = parseTimestamp(line);
 				if (!time || !text) return null;
 
@@ -99,7 +99,7 @@ const ProviderNetease = (() => {
 					return {
 						startTime: start,
 						// endTime: start + durr,
-						text: breakdownLine(text)
+						text: breakdownLine(text),
 					};
 				}
 				return null;
@@ -121,9 +121,9 @@ const ProviderNetease = (() => {
 			return null;
 		}
 
-		const lines = lyricStr.split(/\r?\n/).map(line => line.trim());
+		const lines = lyricStr.split(/\r?\n/).map((line) => line.trim());
 		const lyrics = lines
-			.map(line => {
+			.map((line) => {
 				const { time, text } = parseTimestamp(line);
 				if (text === "纯音乐, 请欣赏") noLyrics = true;
 				if (!time || !text) return null;
@@ -133,7 +133,7 @@ const ProviderNetease = (() => {
 				if (!Number.isNaN(min) && !Number.isNaN(sec) && !containCredits(text)) {
 					return {
 						startTime: (min * 60 + sec) * 1000,
-						text: text || ""
+						text: text || "",
 					};
 				}
 				return null;
@@ -153,9 +153,9 @@ const ProviderNetease = (() => {
 			return null;
 		}
 
-		const lines = lyricStr.split(/\r?\n/).map(line => line.trim());
+		const lines = lyricStr.split(/\r?\n/).map((line) => line.trim());
 		const translation = lines
-			.map(line => {
+			.map((line) => {
 				const { time, text } = parseTimestamp(line);
 				if (!time || !text) return null;
 
@@ -164,7 +164,7 @@ const ProviderNetease = (() => {
 				if (!Number.isNaN(min) && !Number.isNaN(sec) && !containCredits(text)) {
 					return {
 						startTime: (min * 60 + sec) * 1000,
-						text: text || ""
+						text: text || "",
 					};
 				}
 				return null;
@@ -185,9 +185,9 @@ const ProviderNetease = (() => {
 			return null;
 		}
 
-		const lines = lyricStr.split(/\r?\n/).map(line => line.trim());
+		const lines = lyricStr.split(/\r?\n/).map((line) => line.trim());
 		const lyrics = lines
-			.map(line => {
+			.map((line) => {
 				const parsed = parseTimestamp(line);
 				if (parsed.text === "纯音乐, 请欣赏") noLyrics = true;
 				if (!parsed.text || containCredits(parsed.text)) return null;
