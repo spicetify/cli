@@ -38,7 +38,7 @@ class WNPReduxWebSocket {
 		volume: 100,
 		rating: 0,
 		repeat: "NONE",
-		shuffle: false
+		shuffle: false,
 	};
 
 	constructor() {

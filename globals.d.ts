@@ -1880,13 +1880,6 @@ declare namespace Spicetify {
 	const SVGIcons: Record<Icon, string>;
 
 	/**
-	 * Return font styling used by Spotify.
-	 * @param font Name of the font.
-	 * Can match any of the fonts listed in `Spicetify._fontStyle` or returns a generic style otherwise.
-	 */
-	function getFontStyle(font: Variant): string;
-
-	/**
 	 * A filtered copy of user's `config-xpui` file.
 	 */
 	namespace Config {

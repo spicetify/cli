@@ -60,7 +60,7 @@
 
 		content.appendChild(createSlider("trashbin-enabled", "Enabled", trashbinStatus, refreshEventListeners));
 		content.appendChild(
-			createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, state => {
+			createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, (state) => {
 				enableWidget = state;
 				state && trashbinStatus ? widget.register() : widget.deregister();
 			})
@@ -177,7 +177,7 @@
 		() => {
 			Spicetify.PopupModal.display({
 				title: "Trashbin Settings",
-				content
+				content,
 			});
 		},
 		trashbinIcon
@@ -186,7 +186,7 @@
 	const widget = new Spicetify.Playbar.Widget(
 		THROW_TEXT,
 		trashbinIcon,
-		self => {
+		(self) => {
 			const uri = Spicetify.Player.data.item.uri;
 			const uriObj = Spicetify.URI.fromString(uri);
 			const type = uriObj.type;
@@ -364,7 +364,7 @@
 	function exportItems() {
 		const data = {
 			songs: trashSongList,
-			artists: trashArtistList
+			artists: trashArtistList,
 		};
 		Spicetify.Platform.ClipboardAPI.copy(JSON.stringify(data));
 		Spicetify.showNotification("Copied to clipboard");
@@ -374,10 +374,10 @@
 		const input = document.createElement("input");
 		input.type = "file";
 		input.accept = ".json";
-		input.onchange = e => {
+		input.onchange = (e) => {
 			const file = e.target.files[0];
 			const reader = new FileReader();
-			reader.onload = e => {
+			reader.onload = (e) => {
 				try {
 					const data = JSON.parse(e.target.result);
 					trashSongList = data.songs;

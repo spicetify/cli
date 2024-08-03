@@ -4,7 +4,7 @@ function openConfig() {
 	if (configContainer) {
 		Spicetify.PopupModal.display({
 			title: "Reddit",
-			content: configContainer
+			content: configContainer,
 		});
 		return;
 	}
@@ -48,7 +48,7 @@ function openConfig() {
 
 	function posCallback(el, dir) {
 		const id = el.dataset.id;
-		const curPos = CONFIG.services.findIndex(val => val === id);
+		const curPos = CONFIG.services.findIndex((val) => val === id);
 		const newPos = curPos + dir;
 
 		if (CONFIG.services.length > 1) {
@@ -64,7 +64,7 @@ function openConfig() {
 
 	function removeCallback(el) {
 		const id = el.dataset.id;
-		CONFIG.services = CONFIG.services.filter(s => s !== id);
+		CONFIG.services = CONFIG.services.filter((s) => s !== id);
 		CONFIG.servicesElement[id].remove();
 
 		localStorage.setItem("reddit:services", JSON.stringify(CONFIG.services));
@@ -79,7 +79,7 @@ function openConfig() {
 
 	const serviceInput = document.createElement("input");
 	serviceInput.placeholder = "Add new subreddit";
-	serviceInput.onkeydown = event => {
+	serviceInput.onkeydown = (event) => {
 		if (event.key !== "Enter") {
 			return;
 		}
@@ -111,7 +111,7 @@ function openConfig() {
 
 	Spicetify.PopupModal.display({
 		title: "Reddit",
-		content: configContainer
+		content: configContainer,
 	});
 }
 

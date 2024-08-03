@@ -8,7 +8,7 @@ const {
 	React: { useState, useEffect, useCallback },
 	ReactDOM: reactDOM,
 	Platform: { History },
-	CosmosAsync
+	CosmosAsync,
 } = Spicetify;
 
 // Define a function called "render" to specify app entry point
@@ -27,7 +27,7 @@ const APP_NAME = "new-releases";
 const CONFIG = {
 	visual: {
 		type: getConfig("new-releases:visual:type", true),
-		count: getConfig("new-releases:visual:count", true)
+		count: getConfig("new-releases:visual:count", true),
 	},
 	podcast: getConfig("new-releases:podcast", false),
 	music: getConfig("new-releases:music", true),
@@ -37,7 +37,7 @@ const CONFIG = {
 	compilations: getConfig("new-releases:compilations", false),
 	range: localStorage.getItem("new-releases:range") || "30",
 	locale: localStorage.getItem("new-releases:locale") || navigator.language,
-	relative: getConfig("new-releases:relative", false)
+	relative: getConfig("new-releases:relative", false),
 };
 
 let dismissed;
@@ -61,10 +61,10 @@ let limitInMs = CONFIG.range * DAY_DIVIDER;
 const dateFormat = {
 	year: "numeric",
 	month: "short",
-	day: "2-digit"
+	day: "2-digit",
 };
 const relativeDateFormat = {
-	numeric: "auto"
+	numeric: "auto",
 };
 let separatedByDate = {};
 let dateList = [];
@@ -76,20 +76,20 @@ class Grid extends react.Component {
 		super();
 		this.state = {
 			cards: [],
-			rest: true
+			rest: true,
 		};
 	}
 
 	updatePostsVisual() {
 		gridList = [];
 		for (const date of dateList) {
-			if (separatedByDate[date].every(card => dismissed.includes(card.props.uri))) continue;
+			if (separatedByDate[date].every((card) => dismissed.includes(card.props.uri))) continue;
 
 			gridList.push(
 				react.createElement(
 					"div",
 					{
-						className: "new-releases-header"
+						className: "new-releases-header",
 					},
 					react.createElement("h2", null, date)
 				),
@@ -100,12 +100,12 @@ class Grid extends react.Component {
 						style: {
 							"--min-container-width": "180px",
 							"--column-count": "auto-fill",
-							"--grid-gap": "18px"
-						}
+							"--grid-gap": "18px",
+						},
 					},
 					separatedByDate[date]
-						.filter(card => !dismissed.includes(card.props.uri))
-						.map(card => react.createElement(Card, { ...card.props, key: card.props.uri }))
+						.filter((card) => !dismissed.includes(card.props.uri))
+						.map((card) => react.createElement(Card, { ...card.props, key: card.props.uri }))
 				)
 			);
 		}
@@ -121,7 +121,7 @@ class Grid extends react.Component {
 			case "undo":
 				if (!dismissed[0]) Spicetify.showNotification("Nothing to undo", true);
 				else Spicetify.showNotification("Undone dismissal");
-				dismissed = id ? dismissed.filter(item => item !== id) : dismissed.slice(0, -1);
+				dismissed = id ? dismissed.filter((item) => item !== id) : dismissed.slice(0, -1);
 				break;
 			default:
 				dismissed.push(id);
@@ -177,13 +177,13 @@ class Grid extends react.Component {
 		}
 
 		for (const date of dateList) {
-			if (separatedByDate[date].every(card => dismissed.includes(card.props.uri))) continue;
+			if (separatedByDate[date].every((card) => dismissed.includes(card.props.uri))) continue;
 
 			gridList.push(
 				react.createElement(
 					"div",
 					{
-						className: "new-releases-header"
+						className: "new-releases-header",
 					},
 					react.createElement("h2", null, date)
 				),
@@ -194,10 +194,10 @@ class Grid extends react.Component {
 						style: {
 							"--min-container-width": "180px",
 							"--column-count": "auto-fill",
-							"--grid-gap": "18px"
-						}
+							"--grid-gap": "18px",
+						},
 					},
-					separatedByDate[date].filter(card => !dismissed.includes(card.props.uri))
+					separatedByDate[date].filter((card) => !dismissed.includes(card.props.uri))
 				)
 			);
 		}
@@ -240,26 +240,26 @@ class Grid extends react.Component {
 		return react.createElement(
 			"section",
 			{
-				className: "contentSpacing"
+				className: "contentSpacing",
 			},
 			react.createElement(
 				"div",
 				{
-					className: "new-releases-header"
+					className: "new-releases-header",
 				},
 				react.createElement("h1", null, Spicetify.Locale.get("new_releases")),
 				react.createElement(
 					"div",
 					{
-						className: "new-releases-controls-container"
+						className: "new-releases-controls-container",
 					},
 					react.createElement(ButtonText, {
 						text: Spicetify.Locale.get("playlist.extender.refresh"),
-						onClick: this.reload.bind(this)
+						onClick: this.reload.bind(this),
 					}),
 					react.createElement(ButtonText, {
 						text: "undo", // no locale for this
-						onClick: this.removeCards.bind(this, null, "undo")
+						onClick: this.removeCards.bind(this, null, "undo"),
 					})
 				)
 			),
@@ -281,22 +281,22 @@ async function getArtistEverything(artist) {
 		uri: artist.uri,
 		offset: 0,
 		// Limit 100 since GraphQL has resource limit
-		limit: 100
+		limit: 100,
 	});
 	if (errors) throw errors;
 
-	const releases = data?.artistUnion.discography.all.items.flatMap(r => r.releases.items);
+	const releases = data?.artistUnion.discography.all.items.flatMap((r) => r.releases.items);
 	const items = [];
 	const types = [
-		[CONFIG.album, releases.filter(r => r.type === "ALBUM"), Spicetify.Locale.get("album")],
+		[CONFIG.album, releases.filter((r) => r.type === "ALBUM"), Spicetify.Locale.get("album")],
 		// Appears on has a separate GraphQL query but does not provide enough information (release date), which requires recursively making requests for each album
 		// [CONFIG["appears-on"], releases.appears_on?.releases, Spicetify.Locale.get("artist.appears-on")],
-		[CONFIG.compilations, releases.filter(r => r.type === "COMPILATION"), Spicetify.Locale.get("compilation")],
+		[CONFIG.compilations, releases.filter((r) => r.type === "COMPILATION"), Spicetify.Locale.get("compilation")],
 		[
 			CONFIG["single-ep"],
-			releases.filter(r => r.type === "SINGLE" || r.type === "EP"),
-			`${Spicetify.Locale.get("single")}/${Spicetify.Locale.get("ep")}`
-		]
+			releases.filter((r) => r.type === "SINGLE" || r.type === "EP"),
+			`${Spicetify.Locale.get("single")}/${Spicetify.Locale.get("ep")}`,
+		],
 	];
 	for (const type of types) {
 		if (type[0] && type[1]) {
@@ -318,7 +318,7 @@ async function getPodcastList() {
 
 async function getPodcastRelease(uri) {
 	const body = await CosmosAsync.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`, {
-		policy: { list: { link: true, name: true, publishDate: true } }
+		policy: { list: { link: true, name: true, publishDate: true } },
 	});
 	return body.items;
 }
@@ -331,11 +331,11 @@ function metaFromTrack(artist, track) {
 			title: track.name,
 			artist: {
 				name: artist.name,
-				uri: artist.uri
+				uri: artist.uri,
 			},
 			imageURL: track.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url,
 			time,
-			trackCount: track.tracks.totalCount
+			trackCount: track.tracks.totalCount,
 		};
 	}
 	return null;
@@ -353,8 +353,8 @@ async function fetchTracks() {
 	const artistList = await getArtistList();
 	Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
 
-	const requests = artistList.map(async obj => {
-		return await getArtistEverything(obj).catch(err => {
+	const requests = artistList.map(async (obj) => {
+		return await getArtistEverything(obj).catch((err) => {
 			console.debug("Could not fetch all releases", err);
 			console.debug(`Missing releases from ${count()} artists`);
 		});
@@ -385,11 +385,11 @@ async function fetchPodcasts() {
 				title: track.episodeMetadata.name,
 				artist: {
 					name: podcast.name,
-					uri: podcast.link
+					uri: podcast.link,
 				},
 				imageURL: podcast.covers.standardLink,
 				time,
-				type: itemTypeStr
+				type: itemTypeStr,
 			});
 		}
 	}

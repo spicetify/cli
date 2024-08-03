@@ -11,7 +11,7 @@ SpicetifyHomeConfig = {};
 	const statusDic = {};
 	let mounted = false;
 
-	SpicetifyHomeConfig.arrange = sections => {
+	SpicetifyHomeConfig.arrange = (sections) => {
 		mounted = true;
 		if (list) {
 			return list;
@@ -21,7 +21,7 @@ SpicetifyHomeConfig = {};
 		const stickSections = [];
 		const lowSections = [];
 		for (const uri of stickList) {
-			const index = sections.findIndex(a => a?.uri === uri);
+			const index = sections.findIndex((a) => a?.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
 				statusDic[item.uri] = STICKY;
@@ -30,7 +30,7 @@ SpicetifyHomeConfig = {};
 			}
 		}
 		for (const uri of lowList) {
-			const index = sections.findIndex(a => a?.uri === uri);
+			const index = sections.findIndex((a) => a?.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
 				statusDic[item.uri] = LOWERED;
@@ -38,9 +38,8 @@ SpicetifyHomeConfig = {};
 				sections[index] = undefined;
 			}
 		}
-		sections = sections.filter(Boolean);
 
-		list = [...stickSections, ...sections, ...lowSections];
+		list = [...stickSections, ...sections.filter(Boolean), ...lowSections];
 		return list;
 	};
 
@@ -106,11 +105,11 @@ SpicetifyHomeConfig = {};
 
 			localStorage.setItem(
 				"spicetify-home-config:stick",
-				stick.map(a => a.dataset.uri)
+				stick.map((a) => a.dataset.uri)
 			);
 			localStorage.setItem(
 				"spicetify-home-config:low",
-				low.map(a => a.dataset.uri)
+				low.map((a) => a.dataset.uri)
 			);
 
 			elem = [...stick, ...normal, ...low];
@@ -119,7 +118,7 @@ SpicetifyHomeConfig = {};
 
 		function onSwap(item, dir) {
 			container.remove();
-			const curPos = elem.findIndex(e => e === item);
+			const curPos = elem.findIndex((e) => e === item);
 			const newPos = curPos + dir;
 			if (newPos < 0 || newPos > elem.length - 1) return;
 
@@ -138,7 +137,7 @@ SpicetifyHomeConfig = {};
 		for (const el of elem) {
 			el.onmouseover = () => {
 				const status = statusDic[el.dataset.uri];
-				const index = elem.findIndex(a => a === el);
+				const index = elem.findIndex((a) => a === el);
 
 				if (!status || index === 0 || status !== statusDic[elem[index - 1]?.dataset.uri]) {
 					up.disabled = true;
@@ -171,12 +170,12 @@ SpicetifyHomeConfig = {};
 		}
 	}
 
-	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
+	await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
 
 	SpicetifyHomeConfig.menu = new Spicetify.Menu.Item(
 		"Home config",
 		false,
-		self => {
+		(self) => {
 			self.setState(!self.isEnabled);
 			if (self.isEnabled) {
 				injectInteraction();
@@ -195,7 +194,7 @@ SpicetifyHomeConfig = {};
 		SpicetifyHomeConfig.menu.deregister();
 	};
 
-	await new Promise(res => Spicetify.Events.platformLoaded.on(res));
+	await new Promise((res) => Spicetify.Events.platformLoaded.on(res));
 	// Init
 	if (Spicetify.Platform.History.location.pathname === "/") {
 		SpicetifyHomeConfig.addToMenu();

@@ -21,7 +21,7 @@
 		const newButtons = [...buttons];
 		const orderedButtons = [];
 		for (const ele of storage) {
-			const index = newButtons.findIndex(a => ele[0] === a?.dataset.id);
+			const index = newButtons.findIndex((a) => ele[0] === a?.dataset.id);
 			if (index !== -1) {
 				orderedButtons.push([newButtons[index], ele[1]]);
 				newButtons[index] = undefined;
@@ -54,7 +54,7 @@
 	}
 
 	function writeStorage() {
-		const array = ordered.map(a => [a[0].dataset.id, a[1]]);
+		const array = ordered.map((a) => [a[0].dataset.id, a[1]]);
 
 		if (isYLX) return localStorage.setItem("spicetify-sidebar-config:ylx", JSON.stringify(array));
 		return localStorage.setItem("spicetify-sidebar-config", JSON.stringify(array));
@@ -99,7 +99,7 @@ color: var(--spice-button-disabled);
 	function injectInteraction() {
 		function onSwap(item, dir) {
 			container.remove();
-			const curPos = ordered.findIndex(e => e[0] === item);
+			const curPos = ordered.findIndex((e) => e[0] === item);
 			const newPos = curPos + dir;
 			if (newPos < 0 || newPos > ordered.length - 1) return;
 
@@ -109,7 +109,7 @@ color: var(--spice-button-disabled);
 
 		function onChangeStatus(item, status) {
 			container.remove();
-			const curPos = ordered.findIndex(e => e[0] === item);
+			const curPos = ordered.findIndex((e) => e[0] === item);
 			ordered[curPos][1] = ordered[curPos][1] === status ? SHOW : status;
 			appendItems();
 		}
@@ -125,7 +125,7 @@ color: var(--spice-button-disabled);
 		for (const el of ordered) {
 			el[0].onmouseover = () => {
 				const [item, status] = el;
-				const index = ordered.findIndex(a => a === el);
+				const index = ordered.findIndex((a) => a === el);
 				if (index === 0 || ordered[index][1] !== ordered[index - 1][1]) {
 					up.disabled = true;
 				} else {
@@ -169,11 +169,11 @@ color: var(--spice-button-disabled);
 	}
 
 	(async () => {
-		await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
+		await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
 		new Spicetify.Menu.Item(
 			"Sidebar config",
 			false,
-			self => {
+			(self) => {
 				self.setState(!self.isEnabled);
 				if (self.isEnabled) {
 					injectInteraction();
@@ -240,7 +240,7 @@ color: var(--spice-button-disabled);
 				ele.dataset.id = link.pathname;
 			}
 			ele.classList.add("personal-library");
-			new MutationObserver(mutations => {
+			new MutationObserver((mutations) => {
 				for (const mutation of mutations) {
 					if (mutation.type === "attributes" && mutation.attributeName === "class") {
 						if (!mutation.target.classList.contains("personal-library")) {
@@ -258,7 +258,7 @@ color: var(--spice-button-disabled);
 			storage = JSON.parse(localStorage.getItem("spicetify-sidebar-config"));
 			if (!Array.isArray(storage)) throw "";
 		} catch {
-			storage = buttons.map(el => [el.dataset.id, STICKY]);
+			storage = buttons.map((el) => [el.dataset.id, STICKY]);
 		}
 
 		arrangeItems(storage);
@@ -302,10 +302,10 @@ color: var(--spice-button-disabled);
 			storage = JSON.parse(localStorage.getItem("spicetify-sidebar-config:ylx"));
 			if (!Array.isArray(storage)) throw "";
 		} catch {
-			storage = buttons.map(el => [el.dataset.id, STICKY]);
+			storage = buttons.map((el) => [el.dataset.id, STICKY]);
 		}
 
-		const observer = new MutationObserver(mutations => {
+		const observer = new MutationObserver((mutations) => {
 			for (const mutation of mutations) {
 				if (mutation.type === "childList" && mutation.addedNodes.length) {
 					mutation.addedNodes[0].id = "spicetify-playlist-list";
@@ -321,7 +321,7 @@ color: var(--spice-button-disabled);
 	initConfig();
 
 	// Rearrange sidebar when dynamically switching in Experimental Features
-	new MutationObserver(mutations => {
+	new MutationObserver((mutations) => {
 		for (const mutation of mutations) {
 			if (mutation.attributeName === "class") {
 				if (mutation.target.classList.contains("hasYLXSidebar") || !!mutation.target.querySelector(".main-yourLibraryX-entryPoints")) {
