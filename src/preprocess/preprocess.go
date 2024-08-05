@@ -186,7 +186,7 @@ func colorVariableReplace(content string) string {
 	utils.Replace(&content, "#121212", func(submatches ...string) string {
 		return "var(--spice-main)"
 	})
-	utils.Replace(&content, "#242424", func(submatches ...string) string {
+	utils.Replace(&content, `#(242424|1f1f1f)`, func(submatches ...string) string {
 		return "var(--spice-main-elevated)"
 	})
 
@@ -306,7 +306,7 @@ func colorVariableReplaceForJS(content string) string {
 }
 
 func disableSentry(input string) string {
-	utils.Replace(&input, `(\("[^"]+sentry.io)/`, func(submatches ...string) string {
+	utils.Replace(&input, `\(([^,]+),([^,]+),\{sampleRate:([^,]+),tracesSampleRate:([^,]+)(,.*?)?\}`, func(submatches ...string) string {
 		return fmt.Sprintf(",%s", submatches[0])
 	})
 	return input
