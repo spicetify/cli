@@ -306,8 +306,12 @@ func colorVariableReplaceForJS(content string) string {
 }
 
 func disableSentry(input string) string {
-	utils.Replace(&input, `\(([^,]+),([^,]+),\{sampleRate:([^,]+),tracesSampleRate:([^,]+)(,.*?)?\}`, func(submatches ...string) string {
-		return fmt.Sprintf(",%s", submatches[0])
+	//utils.Replace(&input, `\(([^,]+),([^,]+),\{sampleRate:([^,]+),tracesSampleRate:([^,]+)(,.*?)?\}`, func(submatches ...string) string {
+	//	return fmt.Sprintf(",%s", submatches[0])
+	//})
+	// Spotify enables sentry only for versions that are newer than 30 days old.
+	utils.Replace(&input, "/864e5<30", func(submatches ...string) string {
+		return "<0"
 	})
 	return input
 }
