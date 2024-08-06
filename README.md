@@ -17,7 +17,7 @@ Note: On **Windows**, only use `pwsh` as shell! (not `cmd`, not `powershell`)
 
 0. First and foremost install the build dependencies:
    [Git](https://git-scm.com/downloads) and [Go](https://go.dev/doc/install)
-1. Clone this repo: `git clone github.com/spicetify/cli && cd cli`
+1. Clone this repo: `git clone github.com/spicetify/cli -b next && cd cli`
 2. Run `go build`, this will create a new `spicetify` executable in the working
    directory
 3. Run `./spicetify init` to initialize the spicetify setup, this only needs to
