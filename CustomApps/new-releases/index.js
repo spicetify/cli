@@ -274,9 +274,8 @@ async function getArtistList() {
 		sortOrder: ["0"],
 		textFilter: "",
 		offset: 0,
-		limit: 0,
+		limit: (await Spicetify.Platform.LibraryAPI.getContents(config))?.totalLength ?? 0,
 	};
-	config.limit = (await Spicetify.Platform.LibraryAPI.getContents(config)).totalLength;
 	const artists = await Spicetify.Platform.LibraryAPI.getContents(config);
 	count(true);
 	return artists.items ?? [];
