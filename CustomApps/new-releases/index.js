@@ -14,11 +14,11 @@ const {
 // Define a function called "render" to specify app entry point
 // This function will be used to mount app to main view.
 function render() {
-	return react.createElement(Grid);
+	return react.createElement( Grid );
 }
 
-function getConfig(name, defaultVal = true) {
-	const value = localStorage.getItem(name);
+function getConfig( name, defaultVal = true ) {
+	const value = localStorage.getItem( name );
 	return value ? value === "true" : defaultVal;
 }
 
@@ -26,24 +26,24 @@ const APP_NAME = "new-releases";
 
 const CONFIG = {
 	visual: {
-		type: getConfig("new-releases:visual:type", true),
-		count: getConfig("new-releases:visual:count", true),
+		type: getConfig( "new-releases:visual:type", true ),
+		count: getConfig( "new-releases:visual:count", true ),
 	},
-	podcast: getConfig("new-releases:podcast", false),
-	music: getConfig("new-releases:music", true),
-	album: getConfig("new-releases:album", true),
-	"single-ep": getConfig("new-releases:single-ep", true),
+	podcast: getConfig( "new-releases:podcast", false ),
+	music: getConfig( "new-releases:music", true ),
+	album: getConfig( "new-releases:album", true ),
+	"single-ep": getConfig( "new-releases:single-ep", true ),
 	// ["appears-on"]: getConfig("new-releases:appears-on", false),
-	compilations: getConfig("new-releases:compilations", false),
-	range: localStorage.getItem("new-releases:range") || "30",
-	locale: localStorage.getItem("new-releases:locale") || navigator.language,
-	relative: getConfig("new-releases:relative", false),
+	compilations: getConfig( "new-releases:compilations", false ),
+	range: localStorage.getItem( "new-releases:range" ) || "30",
+	locale: localStorage.getItem( "new-releases:locale" ) || navigator.language,
+	relative: getConfig( "new-releases:relative", false ),
 };
 
 let dismissed;
 try {
-	dismissed = JSON.parse(Spicetify.LocalStorage.get("new-releases:dismissed"));
-	if (!Array.isArray(dismissed)) throw "";
+	dismissed = JSON.parse( Spicetify.LocalStorage.get( "new-releases:dismissed" ) );
+	if ( !Array.isArray( dismissed ) ) throw "";
 } catch {
 	dismissed = [];
 }
@@ -55,7 +55,7 @@ let gridUpdatePostsVisual;
 let removeCards;
 
 let today = Date.now();
-CONFIG.range = Number.parseInt(CONFIG.range) || 30;
+CONFIG.range = Number.parseInt( CONFIG.range ) || 30;
 const DAY_DIVIDER = 24 * 3600 * 1000;
 let limitInMs = CONFIG.range * DAY_DIVIDER;
 const dateFormat = {
@@ -70,7 +70,7 @@ let separatedByDate = {};
 let dateList = [];
 
 class Grid extends react.Component {
-	viewportSelector = document.querySelector("#main .os-viewport") ? "#main .os-viewport" : "#main .main-view-container__scroll-node";
+	viewportSelector = document.querySelector( "#main .os-viewport" ) ? "#main .os-viewport" : "#main .main-view-container__scroll-node";
 
 	constructor() {
 		super();
@@ -82,8 +82,8 @@ class Grid extends react.Component {
 
 	updatePostsVisual() {
 		gridList = [];
-		for (const date of dateList) {
-			if (separatedByDate[date].every((card) => dismissed.includes(card.props.uri))) continue;
+		for ( const date of dateList ) {
+			if ( separatedByDate[date].every( ( card ) => dismissed.includes( card.props.uri ) ) ) continue;
 
 			gridList.push(
 				react.createElement(
@@ -91,7 +91,7 @@ class Grid extends react.Component {
 					{
 						className: "new-releases-header",
 					},
-					react.createElement("h2", null, date)
+					react.createElement( "h2", null, date )
 				),
 				react.createElement(
 					"div",
@@ -104,30 +104,30 @@ class Grid extends react.Component {
 						},
 					},
 					separatedByDate[date]
-						.filter((card) => !dismissed.includes(card.props.uri))
-						.map((card) => react.createElement(Card, { ...card.props, key: card.props.uri }))
+						.filter( ( card ) => !dismissed.includes( card.props.uri ) )
+						.map( ( card ) => react.createElement( Card, { ...card.props, key: card.props.uri } ) )
 				)
 			);
 		}
-		this.setState({ cards: [...gridList] });
+		this.setState( { cards: [...gridList] } );
 	}
 
-	removeCards(id, type) {
-		switch (type) {
+	removeCards( id, type ) {
+		switch ( type ) {
 			case "reset":
-				Spicetify.showNotification("Reset dismissed releases");
+				Spicetify.showNotification( "Reset dismissed releases" );
 				dismissed = [];
 				break;
 			case "undo":
-				if (!dismissed[0]) Spicetify.showNotification("Nothing to undo", true);
-				else Spicetify.showNotification("Undone dismissal");
-				dismissed = id ? dismissed.filter((item) => item !== id) : dismissed.slice(0, -1);
+				if ( !dismissed[0] ) Spicetify.showNotification( "Nothing to undo", true );
+				else Spicetify.showNotification( "Undone dismissal" );
+				dismissed = id ? dismissed.filter( ( item ) => item !== id ) : dismissed.slice( 0, -1 );
 				break;
 			default:
-				dismissed.push(id);
+				dismissed.push( id );
 				break;
 		}
-		Spicetify.LocalStorage.set("new-releases:dismissed", JSON.stringify(dismissed));
+		Spicetify.LocalStorage.set( "new-releases:dismissed", JSON.stringify( dismissed ) );
 		this.updatePostsVisual();
 	}
 
@@ -137,47 +137,47 @@ class Grid extends react.Component {
 		dateList = [];
 
 		today = Date.now();
-		CONFIG.range = Number.parseInt(CONFIG.range) || 30;
+		CONFIG.range = Number.parseInt( CONFIG.range ) || 30;
 		limitInMs = CONFIG.range * DAY_DIVIDER;
 
-		this.setState({ rest: false });
+		this.setState( { rest: false } );
 		let items = [];
-		if (CONFIG.music) {
+		if ( CONFIG.music ) {
 			const tracks = await fetchTracks();
-			items.push(...tracks.flat());
+			items.push( ...tracks.flat() );
 		}
-		if (CONFIG.podcast) {
+		if ( CONFIG.podcast ) {
 			const episodes = await fetchPodcasts();
-			items.push(...episodes);
+			items.push( ...episodes );
 		}
 
-		items = items.filter(Boolean).sort((a, b) => b.time - a.time);
+		items = items.filter( Boolean ).sort( ( a, b ) => b.time - a.time );
 
 		let timeFormat;
-		if (CONFIG.relative) {
-			timeFormat = new Intl.RelativeTimeFormat(CONFIG.locale, relativeDateFormat);
+		if ( CONFIG.relative ) {
+			timeFormat = new Intl.RelativeTimeFormat( CONFIG.locale, relativeDateFormat );
 		} else {
-			timeFormat = new Intl.DateTimeFormat(CONFIG.locale, dateFormat);
+			timeFormat = new Intl.DateTimeFormat( CONFIG.locale, dateFormat );
 		}
 
-		for (const track of items) {
+		for ( const track of items ) {
 			track.visual = CONFIG.visual;
 			let dateStr;
-			if (CONFIG.relative) {
-				const days = Math.ceil((track.time - today) / DAY_DIVIDER);
-				dateStr = timeFormat.format(days, "day");
+			if ( CONFIG.relative ) {
+				const days = Math.ceil( ( track.time - today ) / DAY_DIVIDER );
+				dateStr = timeFormat.format( days, "day" );
 			} else {
-				dateStr = timeFormat.format(track.time);
+				dateStr = timeFormat.format( track.time );
 			}
-			if (!separatedByDate[dateStr]) {
-				dateList.push(dateStr);
+			if ( !separatedByDate[dateStr] ) {
+				dateList.push( dateStr );
 				separatedByDate[dateStr] = [];
 			}
-			separatedByDate[dateStr].push(react.createElement(Card, { ...track, key: track.uri }));
+			separatedByDate[dateStr].push( react.createElement( Card, { ...track, key: track.uri } ) );
 		}
 
-		for (const date of dateList) {
-			if (separatedByDate[date].every((card) => dismissed.includes(card.props.uri))) continue;
+		for ( const date of dateList ) {
+			if ( separatedByDate[date].every( ( card ) => dismissed.includes( card.props.uri ) ) ) continue;
 
 			gridList.push(
 				react.createElement(
@@ -185,7 +185,7 @@ class Grid extends react.Component {
 					{
 						className: "new-releases-header",
 					},
-					react.createElement("h2", null, date)
+					react.createElement( "h2", null, date )
 				),
 				react.createElement(
 					"div",
@@ -197,17 +197,17 @@ class Grid extends react.Component {
 							"--grid-gap": "18px",
 						},
 					},
-					separatedByDate[date].filter((card) => !dismissed.includes(card.props.uri))
+					separatedByDate[date].filter( ( card ) => !dismissed.includes( card.props.uri ) )
 				)
 			);
 		}
 
-		this.setState({ rest: true });
+		this.setState( { rest: true } );
 	}
 
 	async componentDidMount() {
-		gridUpdatePostsVisual = this.updatePostsVisual.bind(this);
-		removeCards = this.removeCards.bind(this);
+		gridUpdatePostsVisual = this.updatePostsVisual.bind( this );
+		removeCards = this.removeCards.bind( this );
 
 		this.configButton = new Spicetify.Menu.Item(
 			"New Releases config",
@@ -217,12 +217,12 @@ class Grid extends react.Component {
 		);
 		this.configButton.register();
 
-		const viewPort = document.querySelector(this.viewportSelector);
+		const viewPort = document.querySelector( this.viewportSelector );
 
-		if (gridList.length) {
+		if ( gridList.length ) {
 			// Already loaded
-			if (lastScroll > 0) {
-				viewPort.scrollTo(0, lastScroll);
+			if ( lastScroll > 0 ) {
+				viewPort.scrollTo( 0, lastScroll );
 			}
 			return;
 		}
@@ -231,7 +231,7 @@ class Grid extends react.Component {
 	}
 
 	componentWillUnmount() {
-		const viewPort = document.querySelector(this.viewportSelector);
+		const viewPort = document.querySelector( this.viewportSelector );
 		lastScroll = viewPort.scrollTop;
 		this.configButton.deregister();
 	}
@@ -247,20 +247,20 @@ class Grid extends react.Component {
 				{
 					className: "new-releases-header",
 				},
-				react.createElement("h1", null, Spicetify.Locale.get("new_releases")),
+				react.createElement( "h1", null, Spicetify.Locale.get( "new_releases" ) ),
 				react.createElement(
 					"div",
 					{
 						className: "new-releases-controls-container",
 					},
-					react.createElement(ButtonText, {
-						text: Spicetify.Locale.get("playlist.extender.refresh"),
-						onClick: this.reload.bind(this),
-					}),
-					react.createElement(ButtonText, {
+					react.createElement( ButtonText, {
+						text: Spicetify.Locale.get( "playlist.extender.refresh" ),
+						onClick: this.reload.bind( this ),
+					} ),
+					react.createElement( ButtonText, {
 						text: "undo", // no locale for this
-						onClick: this.removeCards.bind(this, null, "undo"),
-					})
+						onClick: this.removeCards.bind( this, null, "undo" ),
+					} )
 				)
 			),
 			this.state.rest ? gridList : LoadingIcon
@@ -269,42 +269,49 @@ class Grid extends react.Component {
 }
 
 async function getArtistList() {
-	const base = await Spicetify.Platform.LibraryAPI.getArtists();
-	const artists = await Spicetify.Platform.LibraryAPI.getArtists({ limit: base.totalLength });
-	count(true);
+	const config = {
+		filters: ["1"],
+		sortOrder: ["0"],
+		textFilter: "",
+		offset: 0,
+		limit: 0,
+	};
+	config.limit = ( await Spicetify.Platform.LibraryAPI.getContents( config ) ).totalLength;
+	const artists = await Spicetify.Platform.LibraryAPI.getContents( config );
+	count( true );
 	return artists.items ?? [];
 }
 
-async function getArtistEverything(artist) {
+async function getArtistEverything( artist ) {
 	const { queryArtistDiscographyAll } = Spicetify.GraphQL.Definitions;
-	const { data, errors } = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
+	const { data, errors } = await Spicetify.GraphQL.Request( queryArtistDiscographyAll, {
 		uri: artist.uri,
 		offset: 0,
 		// Limit 100 since GraphQL has resource limit
 		limit: 100,
-	});
-	if (errors) throw errors;
+	} );
+	if ( errors ) throw errors;
 
-	const releases = data?.artistUnion.discography.all.items.flatMap((r) => r.releases.items);
+	const releases = data?.artistUnion.discography.all.items.flatMap( ( r ) => r.releases.items );
 	const items = [];
 	const types = [
-		[CONFIG.album, releases.filter((r) => r.type === "ALBUM"), Spicetify.Locale.get("album")],
+		[CONFIG.album, releases.filter( ( r ) => r.type === "ALBUM" ), Spicetify.Locale.get( "album" )],
 		// Appears on has a separate GraphQL query but does not provide enough information (release date), which requires recursively making requests for each album
 		// [CONFIG["appears-on"], releases.appears_on?.releases, Spicetify.Locale.get("artist.appears-on")],
-		[CONFIG.compilations, releases.filter((r) => r.type === "COMPILATION"), Spicetify.Locale.get("compilation")],
+		[CONFIG.compilations, releases.filter( ( r ) => r.type === "COMPILATION" ), Spicetify.Locale.get( "compilation" )],
 		[
 			CONFIG["single-ep"],
-			releases.filter((r) => r.type === "SINGLE" || r.type === "EP"),
-			`${Spicetify.Locale.get("single")}/${Spicetify.Locale.get("ep")}`,
+			releases.filter( ( r ) => r.type === "SINGLE" || r.type === "EP" ),
+			`${Spicetify.Locale.get( "single" )}/${Spicetify.Locale.get( "ep" )}`,
 		],
 	];
-	for (const type of types) {
-		if (type[0] && type[1]) {
-			for (const item of type[1]) {
-				const meta = metaFromTrack(artist, item);
-				if (!meta) continue;
+	for ( const type of types ) {
+		if ( type[0] && type[1] ) {
+			for ( const item of type[1] ) {
+				const meta = metaFromTrack( artist, item );
+				if ( !meta ) continue;
 				meta.type = type[2];
-				items.push(meta);
+				items.push( meta );
 			}
 		}
 	}
@@ -312,20 +319,20 @@ async function getArtistEverything(artist) {
 }
 
 async function getPodcastList() {
-	const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/shows/all?responseFormat=protobufJson");
+	const body = await CosmosAsync.get( "sp://core-collection/unstable/@/list/shows/all?responseFormat=protobufJson" );
 	return body.item ?? [];
 }
 
-async function getPodcastRelease(uri) {
-	const body = await CosmosAsync.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`, {
+async function getPodcastRelease( uri ) {
+	const body = await CosmosAsync.get( `sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`, {
 		policy: { list: { link: true, name: true, publishDate: true } },
-	});
+	} );
 	return body.items;
 }
 
-function metaFromTrack(artist, track) {
-	const time = Date.parse(track.date.isoString);
-	if (today - time < limitInMs) {
+function metaFromTrack( artist, track ) {
+	const time = Date.parse( track.date.isoString );
+	if ( today - time < limitInMs ) {
 		return {
 			uri: track.uri,
 			title: track.name,
@@ -333,7 +340,7 @@ function metaFromTrack(artist, track) {
 				name: artist.name,
 				uri: artist.uri,
 			},
-			imageURL: track.coverArt.sources.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url,
+			imageURL: track.coverArt.sources.reduce( ( prev, curr ) => ( prev.width > curr.width ? prev : curr ) ).url,
 			time,
 			trackCount: track.tracks.totalCount,
 		};
@@ -341,46 +348,46 @@ function metaFromTrack(artist, track) {
 	return null;
 }
 
-const count = (() => {
+const count = ( () => {
 	let counter = 0;
-	return (reset = false) => {
-		if (reset) counter = 0;
+	return ( reset = false ) => {
+		if ( reset ) counter = 0;
 		else counter++;
 	};
-})();
+} )();
 
 async function fetchTracks() {
 	const artistList = await getArtistList();
-	Spicetify.showNotification(`Fetching releases from ${artistList.length} artists`);
+	Spicetify.showNotification( `Fetching releases from ${artistList.length} artists` );
 
-	const requests = artistList.map(async (obj) => {
-		return await getArtistEverything(obj).catch((err) => {
-			console.debug("Could not fetch all releases", err);
-			console.debug(`Missing releases from ${count()} artists`);
-		});
-	});
+	const requests = artistList.map( async ( obj ) => {
+		return await getArtistEverything( obj ).catch( ( err ) => {
+			console.debug( "Could not fetch all releases", err );
+			console.debug( `Missing releases from ${count()} artists` );
+		} );
+	} );
 
-	return await Promise.all(requests);
+	return await Promise.all( requests );
 }
 
 async function fetchPodcasts() {
 	const items = [];
-	const itemTypeStr = Spicetify.Locale.get("card.tag.episode");
-	for (const obj of await getPodcastList()) {
+	const itemTypeStr = Spicetify.Locale.get( "card.tag.episode" );
+	for ( const obj of await getPodcastList() ) {
 		const podcast = obj.showMetadata;
-		const id = podcast.link.replace("spotify:show:", "");
+		const id = podcast.link.replace( "spotify:show:", "" );
 
-		const tracks = await getPodcastRelease(id);
-		if (!tracks) continue;
+		const tracks = await getPodcastRelease( id );
+		if ( !tracks ) continue;
 
-		for (const track of tracks) {
-			const time = new Date(track.episodeMetadata.publishDate * 1000);
+		for ( const track of tracks ) {
+			const time = new Date( track.episodeMetadata.publishDate * 1000 );
 
-			if (today - time.getTime() > limitInMs) {
+			if ( today - time.getTime() > limitInMs ) {
 				break;
 			}
 
-			items.push({
+			items.push( {
 				uri: track.episodeMetadata.link,
 				title: track.episodeMetadata.name,
 				artist: {
@@ -390,7 +397,7 @@ async function fetchPodcasts() {
 				imageURL: podcast.covers.standardLink,
 				time,
 				type: itemTypeStr,
-			});
+			} );
 		}
 	}
 
