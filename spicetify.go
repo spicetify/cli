@@ -254,7 +254,7 @@ func main() {
 
 		spotStat := spotifystatus.Get(spotifyPath)
 		if spotStat.IsBackupable() {
-			utils.PrintInfo("spicetify is already up-to-date! If you ran this command because spicetify disappeared after Spotify updated, we'll attempt to fix it for you right now.")
+			utils.PrintNote("spicetify is already up-to-date! If you ran this command because spicetify disappeared after Spotify updated, we'll attempt to fix it for you right now.")
 			cmd.Backup(version)
 			cmd.CheckStates()
 			cmd.InitSetting()
