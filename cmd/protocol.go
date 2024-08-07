@@ -55,6 +55,7 @@ func HandleProtocol(uri string) (string, error) {
 
 func hp(action string, arguments url.Values) error {
 	switch action {
+	case "fast-install":
 	case "add":
 		_artifacts := arguments["artifacts"]
 
@@ -65,11 +66,23 @@ func hp(action string, arguments url.Values) error {
 		}
 		checksum := arguments.Get("checksum")
 
-		return module.AddStoreInVault(identifier, &module.Store{
+		if err := module.AddStoreInVault(identifier, &module.Store{
 			Installed: false,
 			Artifacts: artifacts,
 			Checksum:  checksum,
-		})
+		}); err != nil {
+			return err
+		}
+
+		if action != "fast-install" {
+			return nil
+		}
+
+		if err := module.InstallModule(identifier); err != nil {
+			return err
+		}
+
+		return module.EnableModuleInVault(identifier)
 
 	case "install":
 		identifier := module.NewStoreIdentifier(arguments.Get("id"))
@@ -85,6 +98,21 @@ func hp(action string, arguments url.Values) error {
 
 	case "remove":
 		identifier := module.NewStoreIdentifier(arguments.Get("id"))
+		return module.RemoveStoreInVault(identifier)
+
+	case "fast-delete":
+		identifier := module.NewStoreIdentifier(arguments.Get("id"))
+
+		if err := module.EnableModuleInVault(module.StoreIdentifier{
+			ModuleIdentifier: identifier.ModuleIdentifier,
+		}); err != nil {
+			return err
+		}
+
+		if err := module.DeleteModule(identifier); err != nil {
+			return err
+		}
+
 		return module.RemoveStoreInVault(identifier)
 
 	}
