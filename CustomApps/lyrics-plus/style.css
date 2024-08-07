@@ -317,7 +317,9 @@ div.lyrics-tabBar-headerItemLink {
 	-webkit-text-fill-color: transparent;
 	background-size: 225% 100%;
 	background-position: top left 100%;
-	transition: all calc(var(--word-duration) + 0.05s) linear;
+	transition-property: color, background-position;
+	transition-duration: calc(var(--word-duration) + 0.05s);
+	transition-timing-function: linear;
 }
 
 .lyrics-lyricsContainer-LyricsLine a {
