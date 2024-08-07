@@ -71,7 +71,7 @@ const KaraokeLine = ({ text, isActive, position, startTime }) => {
 				style: {
 					"--word-duration": `${time}ms`,
 					// don't animate unless we have to
-					"transition": !isWordActive ? "all 0s linear" : "",
+					transition: !isWordActive ? "all 0s linear" : "",
 				},
 			},
 			word
