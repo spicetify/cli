@@ -70,6 +70,8 @@ const KaraokeLine = ({ text, isActive, position, startTime }) => {
 				className: `lyrics-lyricsContainer-Karaoke-Word${isWordActive ? " lyrics-lyricsContainer-Karaoke-WordActive" : ""}`,
 				style: {
 					"--word-duration": `${time}ms`,
+					// don't animate unless we have to
+					"transition": !isWordActive ? "all 0s linear" : "",
 				},
 			},
 			word
