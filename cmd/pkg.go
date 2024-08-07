@@ -25,7 +25,7 @@ var pkgInstallCmd = &cobra.Command{
 		id := args[0]
 		url := args[1]
 		identifier := module.NewStoreIdentifier(id)
-		aurl := module.ArtifactURL(url)
+		aurl := module.ArtifactURL(url).Parse().ToUrl()
 		if err := addAndInstall(aurl, identifier); err != nil {
 			fmt.Println(err)
 		}

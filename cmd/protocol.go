@@ -62,7 +62,7 @@ func hp(action string, arguments url.Values) error {
 		identifier := module.NewStoreIdentifier(arguments.Get("id"))
 		artifacts := make([]module.ArtifactURL, len(_artifacts))
 		for i, a := range _artifacts {
-			artifacts[i] = module.ArtifactURL(a)
+			artifacts[i] = module.ArtifactURL(a).Parse().ToUrl()
 		}
 		checksum := arguments.Get("checksum")
 

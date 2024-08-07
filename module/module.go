@@ -23,31 +23,32 @@ import (
 	"github.com/snabb/httpreaderat"
 )
 
-type AURL interface {
+type Artifact interface {
 	GetMetdata() (Metadata, error)
 	install(storeIdentifier StoreIdentifier, checksum string) error
+	ToUrl() ArtifactURL
 }
 
 type ProviderURL string
 type ArtifactURL string
-type RemoteArtifactURL string
+type RemoteArtifact string
 type RemoteMetadataURL string
-type LocalArtifactURL string
+type LocalArtifact string
 type LocalMetadataURL string
 
 func isUrl(str string) bool {
 	u, err := url.Parse(str)
-	return err == nil && u.Scheme != "" && u.Host != ""
+	return err == nil && strings.HasPrefix(u.Scheme, "http") && u.Host != ""
 }
 
-func (u ArtifactURL) Parse() AURL {
+func (u ArtifactURL) Parse() Artifact {
 	if isUrl(string(u)) {
-		return RemoteArtifactURL(u)
+		return RemoteArtifact(u)
 	}
-	return LocalArtifactURL(u)
+	return LocalArtifact(u)
 }
 
-func (u RemoteArtifactURL) GetMetdata() (Metadata, error) {
+func (u RemoteArtifact) GetMetdata() (Metadata, error) {
 	b, found := strings.CutSuffix(string(u), ".zip")
 	if !found {
 		panic("artifact urls must end with .zip")
@@ -58,18 +59,30 @@ func (u RemoteArtifactURL) GetMetdata() (Metadata, error) {
 	return fetchRemoteMetadata(murl)
 }
 
-func (u RemoteArtifactURL) install(storeIdentifier StoreIdentifier, checksum string) error {
+func (u RemoteArtifact) install(storeIdentifier StoreIdentifier, checksum string) error {
 	return downloadModuleToStore(u, storeIdentifier, checksum)
 }
 
-func (u LocalArtifactURL) GetMetdata() (Metadata, error) {
+func (u RemoteArtifact) ToUrl() ArtifactURL {
+	return ArtifactURL(u)
+}
+
+func (u LocalArtifact) GetMetdata() (Metadata, error) {
 	murl := LocalMetadataURL(filepath.Join(string(u), "metadata.json"))
 
 	return fetchLocalMetadata(murl)
 }
 
-func (u LocalArtifactURL) install(storeIdentifier StoreIdentifier, checksum string) error {
+func (u LocalArtifact) install(storeIdentifier StoreIdentifier, checksum string) error {
 	return ensureSymlink(string(u), storeIdentifier.toPath())
+}
+
+func (u LocalArtifact) ToUrl() ArtifactURL {
+	path, err := filepath.Abs(string(u))
+	if err != nil {
+		panic(err)
+	}
+	return ArtifactURL(path)
 }
 
 var modulesFolder = filepath.Join(paths.ConfigPath, "modules")
@@ -104,7 +117,7 @@ func fetchLocalMetadata(murl LocalMetadataURL) (Metadata, error) {
 	return parseMetadata(file)
 }
 
-func downloadModuleToStore(aurl RemoteArtifactURL, storeIdentifier StoreIdentifier, checksum string) error {
+func downloadModuleToStore(aurl RemoteArtifact, storeIdentifier StoreIdentifier, checksum string) error {
 	req, _ := http.NewRequest("GET", string(aurl), nil)
 
 	htrdr, err := httpreaderat.New(nil, req, nil)
