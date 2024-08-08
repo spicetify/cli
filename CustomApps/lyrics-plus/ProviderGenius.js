@@ -104,7 +104,7 @@ const ProviderGenius = (() => {
 		let lyrics;
 		let hits;
 		for (const title of titles) {
-			const query = new URLSearchParams({ per_page: 20, q: encodeURIComponent(`${title} ${info.artist}`) });
+			const query = new URLSearchParams({ per_page: 20, q: `${info.artist} ${title}` });
 			const url = `https://genius.com/api/search/song?${query.toString()}`;
 
 			const geniusSearch = await Spicetify.CosmosAsync.get(url);
