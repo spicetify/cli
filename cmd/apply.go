@@ -86,6 +86,7 @@ func linkFiles(destXpuiPath string) error {
 		folderSrcPath := filepath.Join(paths.ConfigPath, folder)
 		folderDestPath := filepath.Join(destXpuiPath, folder)
 		fmt.Println("Linking", folderDestPath, "->", folderSrcPath)
+		os.Remove(folderDestPath)
 		if err := link.Create(folderSrcPath, folderDestPath); err != nil {
 			return err
 		}
