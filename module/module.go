@@ -238,6 +238,7 @@ func ensureSymlink(oldname string, newname string) error {
 	if err := os.MkdirAll(filepath.Dir(newname), 0755); err != nil {
 		return err
 	}
+	os.Remove(newname)
 	return link.Create(oldname, newname)
 }
 
