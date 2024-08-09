@@ -27,19 +27,17 @@ jobs:
             shell: bash
             run: |
                set -e
-               mkdir dist
                cd build/macos
                chmod +x build.sh
                ./build.sh "${{ inputs.tag }}"
-               mv spicetify.dmg "../../dist/spicetify-macos.dmg"
 
          -  name: Attest
             uses: actions/attest-build-provenance@v1
             with:
-               subject-path: "dist/*"
+               subject-path: "build/macos/dist/*"
 
          -  name: Upload
             uses: actions/upload-artifact@v4
             with:
-               name: spicetify-macos
-               path: "dist/*"
+               name: installer-macos
+               path: "build/macos/dist/*"

@@ -108,7 +108,7 @@ function Get-Binary {
 	process {
 		Write-Host -Object "Downloading spicetify $targetVersion..." -NoNewline
 		$Parameters = @{
-			Uri            = "https://github.com/spicetify/cli/releases/download/$targetVersion/spicetify-cli-$v-windows-$architecture.exe"
+			Uri            = "https://github.com/spicetify/cli/releases/download/$targetVersion/cli-$v-windows-$architecture.exe"
 			UseBasicParsin = $true
 			OutFile        = $binaryPath
 		}

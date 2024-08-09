@@ -36,18 +36,16 @@ jobs:
             shell: pwsh
             run: |
                $ErrorActionPreference = 'Stop'
-               mkdir dist
-               cd build\windows
+               cd .\build\windows
                .\build.ps1 -version "${{ inputs.tag }}"-platform "${{ inputs.arch }}"
-               mv spicetify.msi "..\..\dist\spicetify-windows-${{ inputs.arch }}.msi"
 
          -  name: Attest
             uses: actions/attest-build-provenance@v1
             with:
-               subject-path: "dist/*"
+               subject-path: "build/windows/dist/*"
 
          -  name: Upload
             uses: actions/upload-artifact@v4
             with:
-               name: spicetify-windows-${{ inputs.arch }}
-               path: "dist/*"
+               name: installer-windows-${{ inputs.arch }}
+               path: "build/windows/dist/*"

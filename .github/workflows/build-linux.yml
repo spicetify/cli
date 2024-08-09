@@ -28,19 +28,17 @@ jobs:
             shell: bash
             run: |
                set -e
-               mkdir dist
                cd build/linux
                chmod +x build.sh
                ./build.sh "${{ inputs.tag }}" "${{ inputs.arch }}"
-               mv spicetify "../../dist/spicetify-linux-${{ inputs.arch }}"
 
          -  name: Attest
             uses: actions/attest-build-provenance@v1
             with:
-               subject-path: "dist/*"
+               subject-path: "build/linux/dist/*"
 
          -  name: Upload
             uses: actions/upload-artifact@v4
             with:
-               name: spicetify-linux-${{ inputs.arch }}
-               path: "dist/*"
+               name: cli-linux-${{ inputs.arch }}
+               path: "build/linux/dist/*"
