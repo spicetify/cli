@@ -6,11 +6,18 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"net/http/cookiejar"
+	"net/http/httputil"
+	"net/url"
 	"spicetify/paths"
 	"strings"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
@@ -126,7 +133,8 @@ func startDaemon() {
 	}()
 
 	go func() {
-		http.HandleFunc("/rpc", handleWebSocketProtocol)
+		setupProxy()
+		setupWebSocket()
 		err := http.ListenAndServe(DaemonAddr, nil)
 		log.Panicln(err)
 	}()
@@ -141,29 +149,84 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func handleWebSocketProtocol(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
+func setupWebSocket() {
+	http.HandleFunc("/rpc", func(w http.ResponseWriter, r *http.Request) {
+		c, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Println("upgrade:", err)
+			return
+		}
+		defer c.Close()
+
+		for {
+			_, p, err := c.ReadMessage()
+			if err != nil {
+				log.Println("!read:", err)
+				break
+			}
+
+			incoming := string(p)
+			log.Println("recv:", incoming)
+			res, err := HandleProtocol(incoming)
+			if err != nil {
+				log.Println("!handle:", err)
+			}
+			if res != "" {
+				c.WriteMessage(websocket.TextMessage, []byte(res))
+			}
+		}
+	})
+}
+
+func setupProxy() {
+	jar, err := cookiejar.New(nil)
 	if err != nil {
-		log.Println("upgrade:", err)
-		return
+		log.Fatalf("Failed to create cookiejar: %v", err)
 	}
-	defer c.Close()
 
-	for {
-		_, p, err := c.ReadMessage()
-		if err != nil {
-			log.Println("!read:", err)
-			break
-		}
-
-		incoming := string(p)
-		log.Println("recv:", incoming)
-		res, err := HandleProtocol(incoming)
-		if err != nil {
-			log.Println("!handle:", err)
-		}
-		if res != "" {
-			c.WriteMessage(websocket.TextMessage, []byte(res))
-		}
+	client := &http.Client{
+		Jar: jar,
 	}
+
+	proxy := (&httputil.ReverseProxy{
+		Rewrite: func(r *httputil.ProxyRequest) {
+			p, ok := strings.CutPrefix(r.In.URL.Opaque, "/proxy/")
+			if !ok {
+				log.Panicln(errors.New("proxy received invalid path"))
+			}
+			u, err := url.Parse(p)
+			if err != nil {
+				log.Panicln(err)
+			}
+			r.Out.URL.Scheme = u.Scheme
+			r.Out.URL.Host = u.Host
+			r.Out.URL.Path = u.Path
+			r.Out.URL.RawPath = u.RawPath
+			xSetHeaders := r.In.Header.Get("X-Set-Headers")
+			var headers map[string]string
+			if err := json.Unmarshal([]byte(xSetHeaders), &headers); err == nil {
+				for k, v := range headers {
+					r.Out.Header.Set(k, v)
+				}
+			}
+		},
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			// Use the custom http.Client for cookie management
+			ResponseHeaderTimeout: client.Timeout,
+		},
+	})
+
+	http.HandleFunc("/proxy", func(w http.ResponseWriter, r *http.Request) {
+		proxy.ServeHTTP(w, r)
+	})
 }
