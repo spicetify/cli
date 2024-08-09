@@ -17,6 +17,18 @@ plutil -replace CFBundleName -string "Spicetify" Volume/Spicetify.app/Contents/I
 plutil -replace CFBundleIconFile -string AppIcon.icns Volume/Spicetify.app/Contents/Info.plist
 plutil -replace CFBundleURLTypes -xml '<array><dict><key>CFBundleURLName</key><string>Spicetify</string><key>CFBundleURLSchemes</key><array><string>spicetify</string></array></dict></array>' Volume/Spicetify.app/Contents/Info.plist
 
+# plutil -remove NSAppleEventsUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSAppleMusicUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSCalendarsUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSCameraUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSContactsUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSHomeKitUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSMicrophoneUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSPhotoLibraryUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSRemindersUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSSiriUsageDescription Volume/Spicetify.app/Contents/Info.plist
+# plutil -remove NSSystemAdministrationUsageDescription Volume/Spicetify.app/Contents/Info.plist
+
 codesign --deep --force --sign - --timestamp=none Volume/Spicetify.app
 
 create-dmg \

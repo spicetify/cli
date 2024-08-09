@@ -7,7 +7,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"spicetify/module"
+	"spicetify/paths"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -36,6 +39,12 @@ func execInit() error {
 		if _, ok := err.(viper.ConfigFileAlreadyExistsError); !ok {
 			return err
 		}
+	}
+
+	folders := []string{"hooks", "modules", "store"}
+	for _, folder := range folders {
+		folderPath := filepath.Join(paths.ConfigPath, folder)
+		os.Remove(folderPath)
 	}
 
 	return module.SetVault(&module.Vault{Modules: map[module.ModuleIdentifier]module.Module{}})
