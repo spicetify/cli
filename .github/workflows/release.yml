@@ -68,15 +68,6 @@ jobs:
                path: dist
                merge-multiple: true
 
-         -  name: Add version
-            shell: bash
-            run: |
-               set -e
-               cd dist
-               for file in spicetify-*; do
-                  mv "$file" "spicetify-${{ needs.setup.outputs.tag }}${file#spicetify}"
-               done
-
          -  name: Attest
             uses: actions/attest-build-provenance@v1
             with:
