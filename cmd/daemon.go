@@ -10,14 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httputil"
 	"net/url"
 	"spicetify/paths"
 	"strings"
-	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
@@ -104,7 +102,7 @@ func startDaemon() {
 		}
 		defer watcher.Close()
 
-		log.Println("Watching:", paths.GetSpotifyAppsPath(spotifyDataPath))
+		log.Println("Watcher: watching:", paths.GetSpotifyAppsPath(spotifyDataPath))
 		if err := watcher.Add(paths.GetSpotifyAppsPath(spotifyDataPath)); err != nil {
 			log.Panicln(err)
 		}
@@ -115,7 +113,7 @@ func startDaemon() {
 				if !ok {
 					continue
 				}
-				log.Println("event:", event)
+				log.Println("Watcher: event:", event)
 				if event.Has(fsnotify.Create) {
 					if strings.HasSuffix(event.Name, "xpui.spa") {
 						if err := execApply(); err != nil {
@@ -127,7 +125,7 @@ func startDaemon() {
 				if !ok {
 					continue
 				}
-				log.Println("error:", err)
+				log.Println("Watcher: !:", err)
 			}
 		}
 	}()
@@ -153,7 +151,7 @@ func setupWebSocket() {
 	http.HandleFunc("/rpc", func(w http.ResponseWriter, r *http.Request) {
 		c, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Println("upgrade:", err)
+			log.Println("WebSocket: upgrade:", err)
 			return
 		}
 		defer c.Close()
@@ -161,7 +159,7 @@ func setupWebSocket() {
 		for {
 			_, p, err := c.ReadMessage()
 			if err != nil {
-				log.Println("!read:", err)
+				log.Println("WebSocket: !read:", err)
 				break
 			}
 
@@ -169,7 +167,7 @@ func setupWebSocket() {
 			log.Println("recv:", incoming)
 			res, err := HandleProtocol(incoming)
 			if err != nil {
-				log.Println("!handle:", err)
+				log.Println("WebSocket: !handle:", err)
 			}
 			if res != "" {
 				c.WriteMessage(websocket.TextMessage, []byte(res))
@@ -179,54 +177,79 @@ func setupWebSocket() {
 }
 
 func setupProxy() {
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		log.Fatalf("Failed to create cookiejar: %v", err)
-	}
-
-	client := &http.Client{
-		Jar: jar,
-	}
-
 	proxy := (&httputil.ReverseProxy{
+		Transport: &CustomTransport{Transport: http.DefaultTransport},
 		Rewrite: func(r *httputil.ProxyRequest) {
-			p, ok := strings.CutPrefix(r.In.URL.Opaque, "/proxy/")
+			p, ok := strings.CutPrefix(r.In.URL.Path, "/proxy/")
 			if !ok {
 				log.Panicln(errors.New("proxy received invalid path"))
 			}
 			u, err := url.Parse(p)
 			if err != nil {
-				log.Panicln(err)
+				log.Panicln(fmt.Errorf("proxy received invalid path: %w", err))
 			}
-			r.Out.URL.Scheme = u.Scheme
-			r.Out.URL.Host = u.Host
-			r.Out.URL.Path = u.Path
-			r.Out.URL.RawPath = u.RawPath
+
+			r.Out.URL = u
+			r.Out.Host = ""
+
 			xSetHeaders := r.In.Header.Get("X-Set-Headers")
+			r.Out.Header.Del("X-Set-Headers")
 			var headers map[string]string
 			if err := json.Unmarshal([]byte(xSetHeaders), &headers); err == nil {
 				for k, v := range headers {
-					r.Out.Header.Set(k, v)
+					if v == "undefined" {
+						r.Out.Header.Del(k)
+					} else {
+						r.Out.Header.Set(k, v)
+					}
 				}
 			}
 		},
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			ForceAttemptHTTP2:     true,
-			MaxIdleConns:          100,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-			// Use the custom http.Client for cookie management
-			ResponseHeaderTimeout: client.Timeout,
-		},
 	})
 
-	http.HandleFunc("/proxy", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/proxy/{url}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Set-Headers")
+			w.Header().Set("Access-Control-Max-Age", "86400")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		proxy.ServeHTTP(w, r)
 	})
+}
+
+var jar, _ = cookiejar.New(nil)
+
+type CustomTransport struct {
+	Transport http.RoundTripper
+}
+
+func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if jar != nil {
+		for _, cookie := range jar.Cookies(req.URL) {
+			req.AddCookie(cookie)
+		}
+	}
+
+	resp, err := t.Transport.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if jar != nil {
+		if rc := resp.Cookies(); len(rc) > 0 {
+			jar.SetCookies(req.URL, rc)
+		}
+	}
+
+	if loc, err := resp.Location(); err == nil {
+		proxyUrl := "http://" + DaemonAddr + "/proxy/"
+		resp.Header.Set("Location", proxyUrl+url.PathEscape(loc.String()))
+	}
+
+	return resp, nil
 }
