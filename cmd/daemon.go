@@ -26,8 +26,9 @@ import (
 )
 
 var (
-	DaemonAddr string = "localhost:7967"
-	daemon     bool
+	DaemonAddr    = "localhost:7967"
+	AllowedOrigin = "https://xpui.app.spotify.com"
+	daemon        bool
 )
 
 var daemonCmd = &cobra.Command{
@@ -209,12 +210,12 @@ func setupProxy() {
 	})
 
 	http.HandleFunc("/proxy/{url}", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
 		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Origin", AllowedOrigin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Set-Headers")
 			w.Header().Set("Access-Control-Max-Age", "86400")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -246,6 +247,9 @@ func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			jar.SetCookies(req.URL, rc)
 		}
 	}
+
+	resp.Header.Set("Access-Control-Allow-Origin", AllowedOrigin)
+	resp.Header.Set("Access-Control-Allow-Credentials", "true")
 
 	if loc, err := resp.Location(); err == nil {
 		proxyUrl := "http://" + DaemonAddr + "/proxy/"
