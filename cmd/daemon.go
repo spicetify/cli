@@ -20,6 +20,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/net/publicsuffix"
 
 	"github.com/gorilla/websocket"
 )
@@ -222,7 +223,7 @@ func setupProxy() {
 	})
 }
 
-var jar, _ = cookiejar.New(nil)
+var jar, _ = cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 
 type CustomTransport struct {
 	Transport http.RoundTripper
