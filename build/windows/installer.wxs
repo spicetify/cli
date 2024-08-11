@@ -92,7 +92,7 @@
 			ExeCommand='"[SystemFolder]SCHTASKS.EXE" /Run /TN "Spicetify daemon"' />
 
 		<CustomAction Id="DeleteScheduledTask" Directory="INSTALLDIR" Execute="deferred"
-			Impersonate="no" Return="check"
+			Impersonate="no" Return="ignore"
 			ExeCommand='"[SystemFolder]SCHTASKS.EXE" /Delete /TN "Spicetify daemon" /F' />
 
 		<!-- Update the environment -->
