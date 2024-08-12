@@ -248,6 +248,65 @@ function PopupLyrics() {
 
 			return { lyrics };
 		},
+
+		async fetchLrclib(info) {
+			const baseURL = "https://lrclib.net/api/get";
+			const durr = info.duration / 1000;
+			const params = {
+				track_name: info.title,
+				artist_name: info.artist,
+				album_name: info.album,
+				duration: durr,
+			};
+
+			const finalURL = `${baseURL}?${Object.keys(params)
+				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
+				.join("&")}`;
+
+			const body = await fetch(finalURL, {
+				headers: {
+					"x-user-agent": `spicetify v${Spicetify.Config.version} (https://github.com/spicetify/cli)`,
+				},
+			});
+
+			if (body.status !== 200) {
+				return { error: "Request error: Track wasn't found" };
+			}
+
+			const meta = await body.json();
+			if (meta?.instrumental) {
+				return { error: "Instrumental" };
+			}
+			if (!meta?.plainLyrics && !meta?.syncedLyrics) {
+				return { error: "No lyrics" };
+			}
+			if (!meta?.syncedLyrics) {
+				return { error: "No synced lyrics" };
+			}
+
+			// Preprocess lyrics by removing [tags] and empty lines
+			const lines = meta?.syncedLyrics
+				.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
+				.trim()
+				.split("\n");
+
+			const syncedTimestamp = /\[([0-9:.]+)\]/;
+			const isSynced = lines[0].match(syncedTimestamp);
+
+			const lyrics = lines.map((line) => {
+				const time = line.match(syncedTimestamp)?.[1];
+				let lyricContent = line.replace(syncedTimestamp, "").trim();
+				const lyric = lyricContent.replaceAll(/\<([0-9:.]+)\>/g, "").trim();
+				const [min, sec] = time.replace(/\[\]\<\>/, "").split(":");
+
+				if (line.trim() !== "" && isSynced && time) {
+					return { text: lyric || "♪", startTime: Number(min) * 60 + Number(sec) };
+				}
+				return;
+			});
+
+			return { lyrics };
+		},
 	};
 
 	const userConfigs = {
@@ -275,6 +334,11 @@ function PopupLyrics() {
 				on: boolLocalStorage("popup-lyrics:services:spotify:on"),
 				call: LyricProviders.fetchSpotify,
 				desc: "Lyrics sourced from official Spotify API.",
+			},
+			lrclib: {
+				on: boolLocalStorage("popup-lyrics:services:lrclib:on"),
+				call: LyricProviders.fetchLrclib,
+				desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
 			},
 		},
 		servicesOrder: [],
