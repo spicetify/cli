@@ -488,7 +488,7 @@ func exposeAPIs_main(input string) string {
 	// Spicetify._platform
 	utils.Replace(
 		&input,
-		`(setTitlebarHeight[\w(){}.,&$!=;"" ]+)(\{version:[\w$]+,)`,
+		`(setTitlebarHeight[\w(){}>:.,&$!=;"" ]+)(\{version:[a-zA-Z_\$][\w\$]*,)`,
 		func(submatches ...string) string {
 			return fmt.Sprintf("%sSpicetify._platform=%s", submatches[1], submatches[2])
 		})
