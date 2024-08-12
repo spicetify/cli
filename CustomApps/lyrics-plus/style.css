@@ -303,11 +303,23 @@ div.lyrics-tabBar-headerItemLink {
 
 .lyrics-lyricsContainer-Karaoke-WordActive {
 	color: var(--lyrics-color-active) !important;
+	background-position: top left !important;
 }
 
 .lyrics-lyricsContainer-Karaoke-Word {
 	color: var(--lyrics-color-inactive);
-	transition: var(--word-duration) color ease;
+	background-image: linear-gradient(to right,
+		var(--lyrics-color-active),
+		var(--lyrics-color-active) 45%,
+		var(--lyrics-color-inactive) 55%,
+		var(--lyrics-color-inactive));
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-size: 225% 100%;
+	background-position: top left 100%;
+	transition-property: color, background-position;
+	transition-duration: calc(var(--word-duration) + 0.05s);
+	transition-timing-function: linear;
 }
 
 .lyrics-lyricsContainer-LyricsLine a {
