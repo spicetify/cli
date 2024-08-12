@@ -295,7 +295,7 @@ function PopupLyrics() {
 
 			const lyrics = lines.map((line) => {
 				const time = line.match(syncedTimestamp)?.[1];
-				let lyricContent = line.replace(syncedTimestamp, "").trim();
+				const lyricContent = line.replace(syncedTimestamp, "").trim();
 				const lyric = lyricContent.replaceAll(/\<([0-9:.]+)\>/g, "").trim();
 				const [min, sec] = time.replace(/\[\]\<\>/, "").split(":");
 
