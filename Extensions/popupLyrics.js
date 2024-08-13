@@ -277,9 +277,6 @@ function PopupLyrics() {
 			if (meta?.instrumental) {
 				return { error: "Instrumental" };
 			}
-			if (!meta?.plainLyrics && !meta?.syncedLyrics) {
-				return { error: "No lyrics" };
-			}
 			if (!meta?.syncedLyrics) {
 				return { error: "No synced lyrics" };
 			}
