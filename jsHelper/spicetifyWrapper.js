@@ -567,7 +567,7 @@ window.Spicetify = {
 			Menu: functionModules.find((m) => m.toString().includes("getInitialFocusElement") && m.toString().includes("children")),
 			MenuItem: functionModules.find((m) => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
 			MenuSubMenuItem: functionModules.find((f) => f.toString().includes("subMenuIcon")),
-			Slider: wrapProvider(functionModules.find((m) => m.toString().includes("onStepBackward") && !m.toString().includes("volume"))),
+			Slider: wrapProvider(functionModules.find((m) => m.toString().includes("progressBarRef"))),
 			RemoteConfigProvider: functionModules.find((m) => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
 			RightClickMenu: functionModules.find(
 				(m) =>
