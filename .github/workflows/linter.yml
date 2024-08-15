@@ -4,15 +4,13 @@ on:
   pull_request:
     branches:
       - "main"
-      - "**/*/main"
       - "main/*/**"
-      - "**/*/main/*/**"
+      - "*/main/*/**"
   push:
     branches:
       - "main"
-      - "**/*/main"
       - "main/*/**"
-      - "**/*/main/*/**"
+      - "*/main/*/**"
 
 jobs:
   linter:
