@@ -92,7 +92,7 @@
 			ExeCommand='"[SystemFolder]SCHTASKS.EXE" /Run /TN "Spicetify daemon"' />
 
 		<CustomAction Id="DeleteScheduledTask" Directory="INSTALLDIR" Execute="deferred"
-			Impersonate="no" Return="check"
+			Impersonate="no" Return="ignore"
 			ExeCommand='"[SystemFolder]SCHTASKS.EXE" /Delete /TN "Spicetify daemon" /F' />
 
 		<!-- Update the environment -->
@@ -109,7 +109,7 @@
 		<util:BroadcastEnvironmentChange />
 
 		<!-- Include the user interface -->
-		<WixVariable Id="WixUIBannerBmp" Value="installer\banner.png" />
+		<!-- <WixVariable Id="WixUIBannerBmp" Value="installer\top_banner.png" /> -->
 		<!-- <WixVariable Id="WixUIDialogBmp" Value="installer\dialog.jpg" /> -->
 		<Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
 		<UIRef Id="App_InstallDir" />

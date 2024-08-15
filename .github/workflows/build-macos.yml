@@ -1,0 +1,43 @@
+name: Build for macOS
+
+on:
+   workflow_call:
+      inputs:
+         tag:
+            description: Tag
+            required: true
+            type: string
+
+jobs:
+   build-macos:
+      runs-on: macos-latest
+      steps:
+         -  name: Checkout
+            uses: actions/checkout@v4
+
+         -  name: Setup Go
+            uses: actions/setup-go@v5
+            with:
+               go-version-file: "go.mod"
+
+         -  shell: bash
+            run: brew install create-dmg
+
+         -  name: Build
+            shell: bash
+            run: |
+               set -e
+               cd build/macos
+               chmod +x build.sh
+               ./build.sh "${{ inputs.tag }}"
+
+         -  name: Attest
+            uses: actions/attest-build-provenance@v1
+            with:
+               subject-path: "build/macos/dist/*"
+
+         -  name: Upload
+            uses: actions/upload-artifact@v4
+            with:
+               name: installer-macos
+               path: "build/macos/dist/*"

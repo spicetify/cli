@@ -1,0 +1,44 @@
+name: Build for Linux
+
+on:
+   workflow_call:
+      inputs:
+         tag:
+            description: Tag
+            required: true
+            type: string
+         arch:
+            description: Architecture
+            required: true
+            type: string
+
+jobs:
+   build-linux:
+      runs-on: ubuntu-latest
+      steps:
+         -  name: Checkout
+            uses: actions/checkout@v4
+
+         -  name: Setup Go
+            uses: actions/setup-go@v5
+            with:
+               go-version-file: "go.mod"
+
+         -  name: Build
+            shell: bash
+            run: |
+               set -e
+               cd build/linux
+               chmod +x build.sh
+               ./build.sh "${{ inputs.tag }}" "${{ inputs.arch }}"
+
+         -  name: Attest
+            uses: actions/attest-build-provenance@v1
+            with:
+               subject-path: "build/linux/dist/*"
+
+         -  name: Upload
+            uses: actions/upload-artifact@v4
+            with:
+               name: cli-linux-${{ inputs.arch }}
+               path: "build/linux/dist/*"
