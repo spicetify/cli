@@ -27,3 +27,5 @@ Supports Windows, MacOS and Linux.
 - [Installation](https://spicetify.app/docs/getting-started)
 - [Basic Usage](https://spicetify.app/docs/getting-started#basic-usage)
 - [FAQ](https://spicetify.app/docs/faq)
+
+t
