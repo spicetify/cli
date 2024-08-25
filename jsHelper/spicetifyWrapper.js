@@ -348,8 +348,8 @@ window.Spicetify = {
 	if (Spicetify.Events.platformLoaded.callbacks.length) Spicetify.Events.platformLoaded.fire();
 })();
 
-(function addProxyCosmos() {
-	if (!Spicetify.Player.origin || !Spicetify.Platform?.Registry) {
+(async function addProxyCosmos() {
+	if (!Spicetify.Player.origin?._cosmos && !Spicetify.Platform?.Registry) {
 		setTimeout(addProxyCosmos, 50);
 		return;
 	}
@@ -437,6 +437,7 @@ window.Spicetify = {
 		},
 	};
 
+	while (!Spicetify.Player.origin) await new Promise((r) => setTimeout(r, 50));
 	Spicetify.Player.origin._cosmos = new Proxy(_cosmos, handler);
 	Object.defineProperty(Spicetify, "CosmosAsync", {
 		get: () => {
