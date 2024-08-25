@@ -447,9 +447,8 @@ window.Spicetify = {
 })();
 
 (async function hotloadWebpackModules() {
-	if (!window?.webpackChunkclient_web) {
+	while (!window?.webpackChunkclient_web) {
 		await new Promise((r) => setTimeout(r, 50));
-		return;
 	}
 
 	// Force all webpack modules to load
