@@ -185,6 +185,7 @@ window.Spicetify = {
 					"ContextMenuV2",
 					"ReactJSX",
 					"_renderNavLinks",
+					"Events",
 				]),
 			},
 			{
@@ -347,7 +348,7 @@ window.Spicetify = {
 	if (Spicetify.Events.platformLoaded.callbacks.length) Spicetify.Events.platformLoaded.fire();
 })();
 
-(function addProxyCosmos() {
+(async function addProxyCosmos() {
 	if (!Spicetify.Player.origin?._cosmos && !Spicetify.Platform?.Registry) {
 		setTimeout(addProxyCosmos, 50);
 		return;
@@ -436,6 +437,7 @@ window.Spicetify = {
 		},
 	};
 
+	while (!Spicetify.Player.origin) await new Promise((r) => setTimeout(r, 50));
 	Spicetify.Player.origin._cosmos = new Proxy(_cosmos, handler);
 	Object.defineProperty(Spicetify, "CosmosAsync", {
 		get: () => {
@@ -444,19 +446,54 @@ window.Spicetify = {
 	});
 })();
 
-(function hotloadWebpackModules() {
+(async function hotloadWebpackModules() {
 	if (!window?.webpackChunkclient_web) {
-		setTimeout(hotloadWebpackModules, 50);
+		await new Promise((r) => setTimeout(r, 50));
 		return;
 	}
+
 	// Force all webpack modules to load
 	const require = webpackChunkclient_web.push([[Symbol()], {}, (re) => re]);
-	const chunks = require.m ? Object.entries(require.m) : [];
-	if (!chunks) {
-		setTimeout(hotloadWebpackModules, 50);
-		return;
-	}
-	const cache = Object.keys(require.m).map((id) => require(id));
+	while (!require.m) await new Promise((r) => setTimeout(r, 50));
+
+	let chunks = Object.entries(require.m);
+	let cache = Object.keys(require.m).map((id) => require(id));
+
+	// For _renderNavLinks to work
+	Spicetify.React = cache.find((m) => m?.useMemo);
+
+	// Get all script tags matching root directory
+	// Some link tags modules are not included in require.m/unused
+	const scripts = [...document.querySelectorAll("script")]
+		// Get scripts from root dir
+		.filter((script) => script.src?.includes("xpui.app.spotify.com"))
+		// Filter out non-webpack scripts
+		.filter((script) => ["extensions", "spicetify", "helper", "theme"].every((str) => !script.src?.includes(str)));
+
+	await Promise.all(
+		scripts.map(async (script) => {
+			try {
+				const res = await fetch(script.src);
+				const text = await res.text();
+				const src = script.src.split("/").pop();
+				console.log(`[spicetifyWrapper] Waiting for ${src}`);
+				for (const pack of text.match(/(?:,|{)(\d+): ?\(.,.,./g).map((str) => str.slice(0, -7).slice(1))) {
+					// console.debug(`[spicetifyWrapper] Waiting for ${pack} of ${src}`);
+					while (!require.m || !Object.keys(require.m).includes(pack)) {
+						await new Promise((r) => setTimeout(r, 100));
+					}
+				}
+				console.log(`[spicetifyWrapper] Loaded ${src}`);
+			} catch (e) {
+				return console.error(e);
+			}
+		})
+	).then(() => {
+		console.log("[spicetifyWrapper] All required webpack modules loaded");
+		chunks = Object.entries(require.m);
+		cache = Object.keys(require.m).map((id) => require(id));
+	});
+
 	const modules = cache
 		.filter((module) => typeof module === "object")
 		.flatMap((module) => {
