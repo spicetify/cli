@@ -319,8 +319,6 @@ window.Spicetify = {
 			Spicetify.Platform[key] = _platform[key];
 		}
 	}
-
-	if (!Spicetify.Platform.Registry) Spicetify.Events.platformLoaded.fire();
 })();
 
 (function addMissingPlatformAPIs() {
@@ -344,8 +342,6 @@ window.Spicetify = {
 		Spicetify.Platform[symbolName] = resolvedAPI;
 		console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
 	}
-
-	if (Spicetify.Events.platformLoaded.callbacks.length) Spicetify.Events.platformLoaded.fire();
 })();
 
 (async function addProxyCosmos() {
@@ -491,6 +487,9 @@ window.Spicetify = {
 		console.log("[spicetifyWrapper] All required webpack modules loaded");
 		chunks = Object.entries(require.m);
 		cache = Object.keys(require.m).map((id) => require(id));
+
+		// Fire platformLoaded event there because of the sleep functions before
+		Spicetify.Events.platformLoaded.fire();
 	});
 
 	const modules = cache
