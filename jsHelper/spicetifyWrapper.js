@@ -472,8 +472,8 @@ window.Spicetify = {
 				const text = await res.text();
 				const src = script.src.split("/").pop();
 				console.log(`[spicetifyWrapper] Waiting for ${src}`);
-				for (const pack of text.match(/(?:,|{)(\d+): ?\(.,.,./g).map((str) => str.slice(0, -7).slice(1))) {
-					// console.debug(`[spicetifyWrapper] Waiting for ${pack} of ${src}`);
+				for (const pack of text.match(/(?<!["'`])(?:,|{)(\d+): ?\(.,.,./g).map((str) => str.slice(0, -7).slice(1))) {
+					//console.debug(`[spicetifyWrapper] Waiting for ${pack} of ${src}`);
 					while (!require.m || !Object.keys(require.m).includes(pack)) {
 						await new Promise((r) => setTimeout(r, 100));
 					}
