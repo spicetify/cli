@@ -1019,6 +1019,21 @@ Spicetify.Events = (() => {
 		Spicetify.Platform.UserAPI._product_state_service = productStateApi;
 	})();
 
+	(async function setButtonsHeight() {
+		while (!Spicetify.CosmosAsync) {
+			await new Promise((res) => setTimeout(res, 100));
+		}
+		const expFeatures = JSON.parse(localStorage.getItem("spicetify-exp-features") || "{}");
+		const isGlobalNavbar = expFeatures?.enableGlobalNavBar?.value;
+
+		if (typeof isGlobalNavbar !== "undefined" && isGlobalNavbar === "control") {
+			await Spicetify.CosmosAsync.post("sp://messages/v1/container/control", {
+				type: "update_titlebar",
+				height: Spicetify.Platform.PlatformData.os_name === "windows" ? "40" : "42",
+			});
+		}
+	})();
+
 	setInterval(() => {
 		if (playerState.cache?.isPaused === false) {
 			const event = new Event("onprogress");
