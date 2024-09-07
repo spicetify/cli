@@ -187,82 +187,13 @@ color: var(--spice-button-disabled);
 
 	function initConfig() {
 		const libraryX = document.querySelector(".main-yourLibraryX-navItems");
-		const libraryLegacy = document.querySelector(".main-navBar-entryPoints");
 
-		if (!libraryLegacy && !libraryX) {
+		if (!libraryX) {
 			setTimeout(initConfig, 300);
 			return;
 		}
 
-		if (libraryX) InitSidebarXConfig();
-		else InitSidebarConfig();
-	}
-
-	function InitSidebarConfig() {
-		// STICKY container
-		const legacyAppItems = document.querySelector(".main-navBar-entryPoints");
-		const rootList = document.querySelector(".main-rootlist-rootlist");
-		const playlistItems = document.querySelector(".main-navBar-navBar .os-content");
-
-		if (!legacyAppItems || !playlistItems || !rootList) {
-			setTimeout(InitSidebarConfig, 300);
-			return;
-		}
-
-		appItems = legacyAppItems;
-		buttons = [];
-		ordered = [];
-		isYLX = false;
-
-		appItems.id = "spicetify-sticky-list";
-		// SHOW container
-		list = document.createElement("ul");
-		list.id = "spicetify-show-list";
-		// HIDDEN container
-		hiddenList = document.createElement("ul");
-		hiddenList.id = "spicetify-hidden-list";
-		hiddenList.classList.add("hidden-visually");
-		const playlistList = playlistItems.querySelector("ul");
-		playlistList.id = "spicetify-playlist-list";
-		playlistItems.prepend(list, hiddenList);
-
-		for (const ele of appItems.children) {
-			ele.dataset.id = ele.querySelector("a")?.pathname ?? "/add";
-			buttons.push(ele);
-		}
-
-		for (const ele of rootList.querySelectorAll("div.GlueDropTarget")) {
-			if (ele.classList.contains("GlueDropTarget--playlists")) break;
-			const link = ele.querySelector("a");
-			if (!link) {
-				ele.dataset.id = "/add";
-			} else {
-				ele.dataset.id = link.pathname;
-			}
-			ele.classList.add("personal-library");
-			new MutationObserver((mutations) => {
-				for (const mutation of mutations) {
-					if (mutation.type === "attributes" && mutation.attributeName === "class") {
-						if (!mutation.target.classList.contains("personal-library")) {
-							mutation.target.classList.add("personal-library");
-						}
-					}
-				}
-			}).observe(ele, { attributes: true, attributeFilter: ["class"] });
-
-			buttons.push(ele);
-		}
-
-		let storage = [];
-		try {
-			storage = JSON.parse(localStorage.getItem("spicetify-sidebar-config"));
-			if (!Array.isArray(storage)) throw "";
-		} catch {
-			storage = buttons.map((el) => [el.dataset.id, STICKY]);
-		}
-
-		arrangeItems(storage);
-		appendItems();
+		InitSidebarXConfig();
 	}
 
 	function InitSidebarXConfig() {
