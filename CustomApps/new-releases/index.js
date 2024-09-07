@@ -237,6 +237,13 @@ class Grid extends react.Component {
 	}
 
 	render() {
+		const expFeatures = JSON.parse(localStorage.getItem("spicetify-exp-features") || "{}");
+		const isGlobalNav = expFeatures?.enableGlobalNavBar?.value !== "control";
+		const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
+
+		const tabBarMargin = {
+			marginTop: isGlobalNav || (version[0] === 1 && version[1] === 2 && version[2] >= 45) ? "60px" : "0px",
+		};
 		return react.createElement(
 			"section",
 			{
@@ -246,6 +253,7 @@ class Grid extends react.Component {
 				"div",
 				{
 					className: "new-releases-header",
+					style: tabBarMargin,
 				},
 				react.createElement("h1", null, Spicetify.Locale.get("new_releases")),
 				react.createElement(
@@ -318,14 +326,12 @@ async function getArtistEverything(artist) {
 }
 
 async function getPodcastList() {
-	const body = await CosmosAsync.get("sp://core-collection/unstable/@/list/shows/all?responseFormat=protobufJson");
-	return body.item ?? [];
+	const body = await Spicetify.Platform.LibraryAPI.getShows({ limit: 50000 });
+	return body.items ?? [];
 }
 
 async function getPodcastRelease(uri) {
-	const body = await CosmosAsync.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`, {
-		policy: { list: { link: true, name: true, publishDate: true } },
-	});
+	const body = await Spicetify.Platform.ShowAPI.getContents(uri, { limit: 50000 });
 	return body.items;
 }
 
@@ -372,28 +378,25 @@ async function fetchTracks() {
 async function fetchPodcasts() {
 	const items = [];
 	const itemTypeStr = Spicetify.Locale.get("card.tag.episode");
-	for (const obj of await getPodcastList()) {
-		const podcast = obj.showMetadata;
-		const id = podcast.link.replace("spotify:show:", "");
-
-		const tracks = await getPodcastRelease(id);
+	for (const podcast of await getPodcastList()) {
+		const tracks = await getPodcastRelease(podcast.uri);
 		if (!tracks) continue;
 
 		for (const track of tracks) {
-			const time = new Date(track.episodeMetadata.publishDate * 1000);
+			const time = new Date(track.releaseDate.isoString);
 
 			if (today - time.getTime() > limitInMs) {
 				break;
 			}
 
 			items.push({
-				uri: track.episodeMetadata.link,
-				title: track.episodeMetadata.name,
+				uri: track.uri,
+				title: track.name,
 				artist: {
 					name: podcast.name,
-					uri: podcast.link,
+					uri: podcast.uri,
 				},
-				imageURL: podcast.covers.standardLink,
+				imageURL: track.coverArt.reduce((prev, curr) => (prev.width > curr.width ? prev : curr)).url,
 				time,
 				type: itemTypeStr,
 			});
