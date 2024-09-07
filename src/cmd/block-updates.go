@@ -11,13 +11,15 @@ import (
 )
 
 // Block spotify updates. Taken from https://github.com/Delusoire/bespoke-cli/blob/main/cmd/spotify/update.go
-func BlockSpotifyUpdates(enabled bool) {
+func BlockSpotifyUpdates(disabled bool) {
+	if runtime.GOOS == "linux" {
+		utils.PrintError("Auto-updates on linux should be disabled in package manager you installed spotify with.")
+		return
+	}
 	spotifyExecPath := GetSpotifyPath()
 	switch runtime.GOOS {
 	case "windows":
 		spotifyExecPath = filepath.Join(spotifyExecPath, "Spotify.exe")
-	case "linux":
-		spotifyExecPath = filepath.Join(spotifyExecPath, "spotify")
 	case "darwin":
 		spotifyExecPath = filepath.Join(spotifyExecPath, "Spotify")
 	}
@@ -39,12 +41,12 @@ func BlockSpotifyUpdates(enabled bool) {
 		return
 	}
 	var str, msg string
-	if enabled {
-		str = "v2/update"
-		msg = "Enabled"
-	} else {
+	if disabled {
 		str = "no/thanks"
 		msg = "Disabled"
+	} else {
+		str = "v2/update"
+		msg = "Enabled"
 	}
 	file.WriteAt([]byte(str), int64(i+15))
 	utils.PrintSuccess(msg + " Spotify updates!")

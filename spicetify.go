@@ -150,19 +150,19 @@ func main() {
 		}
 		return
 
-	case "block-updates":
+	case "spotify-updates":
 		commands = commands[1:]
 		if len(commands) == 0 {
-			utils.PrintError("No parameter given. It has to be \"on\" or \"off\".")
+			utils.PrintError("No parameter given. It has to be \"block\" or \"unblock\".")
 			return
 		}
 		param := commands[0]
-		if param == "on" {
+		if param == "block" {
 			cmd.BlockSpotifyUpdates(true)
-		} else if param == "off" {
+		} else if param == "unblock" {
 			cmd.BlockSpotifyUpdates(false)
 		} else {
-			utils.PrintError("Invalid parameter. It has to be \"on\" or \"off\".")
+			utils.PrintError("Invalid parameter. It has to be \"block\" or \"unblock\".")
 		}
 		return
 
@@ -371,7 +371,7 @@ watch               Enter watch mode.
 restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
-block-updates       Blocks Spotify updates. Patches spotify executable. Accepts "on" or "off" as parameter.
+spotify-updates       Blocks Spotify updates. Patches spotify executable. Accepts "block" or "unblock" as parameter.
 
 path                Prints path of Spotify's executable, userdata, and more.
                     1. Print executable path:
