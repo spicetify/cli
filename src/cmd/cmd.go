@@ -59,8 +59,9 @@ func InitPaths() {
 
 	spotifyPath = utils.ReplaceEnvVarsInString(spotifyPath)
 	prefsPath = utils.ReplaceEnvVarsInString(prefsPath)
+	testPath := filepath.Join(spotifyPath, "Apps")
 
-	if _, err := os.Stat(spotifyPath); err != nil {
+	if _, err := os.Stat(testPath); err != nil {
 		actualSpotifyPath := utils.FindAppPath()
 
 		if len(actualSpotifyPath) == 0 {
