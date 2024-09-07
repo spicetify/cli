@@ -237,6 +237,13 @@ class Grid extends react.Component {
 	}
 
 	render() {
+		const expFeatures = JSON.parse(localStorage.getItem("spicetify-exp-features") || "{}");
+		const isGlobalNav = expFeatures?.enableGlobalNavBar?.value !== "control";
+		const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
+
+		const tabBarMargin = {
+			marginTop: isGlobalNav || (version[0] === 1 && version[1] === 2 && version[2] >= 45) ? "60px" : "0px",
+		};
 		return react.createElement(
 			"section",
 			{
@@ -246,6 +253,7 @@ class Grid extends react.Component {
 				"div",
 				{
 					className: "reddit-header",
+					style: tabBarMargin,
 				},
 				react.createElement("h1", null, this.props.title),
 				react.createElement(SortBox, {
