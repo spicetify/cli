@@ -10,7 +10,6 @@
 	let list;
 	let hiddenList;
 
-	let isYLX;
 	let YLXSidebarState = 0;
 
 	// Store sidebar buttons
@@ -56,8 +55,7 @@
 	function writeStorage() {
 		const array = ordered.map((a) => [a[0].dataset.id, a[1]]);
 
-		if (isYLX) return localStorage.setItem("spicetify-sidebar-config:ylx", JSON.stringify(array));
-		return localStorage.setItem("spicetify-sidebar-config", JSON.stringify(array));
+		return localStorage.setItem("spicetify-sidebar-config:ylx", JSON.stringify(array));
 	}
 
 	const container = document.createElement("div");
@@ -114,10 +112,8 @@ color: var(--spice-button-disabled);
 			appendItems();
 		}
 
-		if (isYLX) {
-			YLXSidebarState = Spicetify.Platform.LocalStorageAPI.getItem("ylx-sidebar-state");
-			if (YLXSidebarState === 1) document.querySelector(".main-yourLibraryX-collapseButton > button")?.click();
-		}
+		YLXSidebarState = Spicetify.Platform.LocalStorageAPI.getItem("ylx-sidebar-state");
+		if (YLXSidebarState === 1) document.querySelector(".main-yourLibraryX-collapseButton > button")?.click();
 
 		document.documentElement.style.setProperty("--nav-bar-width", "280px");
 
@@ -155,16 +151,14 @@ color: var(--spice-button-disabled);
 		for (const a of ordered) {
 			a[0].onmouseover = undefined;
 		}
-		if (isYLX) {
-			if (YLXSidebarState === 1) document.querySelector(".main-yourLibraryX-collapseButton > button")?.click();
-			else
-				document.documentElement.style.setProperty(
-					"--nav-bar-width",
-					`${Spicetify.Platform.LocalStorageAPI.getItem(
-						YLXSidebarState === 2 ? "ylx-expanded-state-nav-bar-width" : "ylx-default-state-nav-bar-width"
-					)}px`
-				);
-		} else document.documentElement.style.setProperty("--nav-bar-width", `${Spicetify.Platform.LocalStorageAPI.getItem("nav-bar-width")}px`);
+		if (YLXSidebarState === 1) document.querySelector(".main-yourLibraryX-collapseButton > button")?.click();
+		else
+			document.documentElement.style.setProperty(
+				"--nav-bar-width",
+				`${Spicetify.Platform.LocalStorageAPI.getItem(
+					YLXSidebarState === 2 ? "ylx-expanded-state-nav-bar-width" : "ylx-default-state-nav-bar-width"
+				)}px`
+			);
 		writeStorage();
 	}
 
@@ -209,7 +203,6 @@ color: var(--spice-button-disabled);
 		appItems = YLXAppItems;
 		buttons = [];
 		ordered = [];
-		isYLX = true;
 
 		appItems.id = "spicetify-sticky-list";
 		// SHOW container
@@ -250,19 +243,6 @@ color: var(--spice-button-disabled);
 	}
 
 	initConfig();
-
-	// Rearrange sidebar when dynamically switching in Experimental Features
-	new MutationObserver((mutations) => {
-		for (const mutation of mutations) {
-			if (mutation.attributeName === "class") {
-				if (mutation.target.classList.contains("hasYLXSidebar") || !!mutation.target.querySelector(".main-yourLibraryX-entryPoints")) {
-					InitSidebarXConfig();
-				} else {
-					InitSidebarConfig();
-				}
-			}
-		}
-	}).observe(sidebar, { childList: true, attributes: true, attributeFilter: ["class"] });
 
 	const customButtonStyle = document.createElement("style");
 	customButtonStyle.innerHTML = `
