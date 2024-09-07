@@ -1029,7 +1029,7 @@ Spicetify.Events = (() => {
 		if (typeof isGlobalNavbar !== "undefined" && isGlobalNavbar === "control") {
 			await Spicetify.CosmosAsync.post("sp://messages/v1/container/control", {
 				type: "update_titlebar",
-				height: Spicetify.Platform.PlatformData.os_name === "windows" ? "40" : "42",
+				height: Spicetify.Platform.PlatformData.os_name === "osx" ? "42" : "40",
 			});
 		}
 	})();
