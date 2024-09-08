@@ -21,7 +21,7 @@ SpicetifyHomeConfig = {};
 		const stickSections = [];
 		const lowSections = [];
 		for (const uri of stickList) {
-			const index = sections.findIndex((a) => a?.uri === uri) || sections.findIndex((a) => a?.item.uri === uri);
+			const index = sections.findIndex((a) => a?.uri === uri || a?.item.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
 				statusDic[item.uri] = STICKY;
@@ -30,7 +30,7 @@ SpicetifyHomeConfig = {};
 			}
 		}
 		for (const uri of lowList) {
-			const index = sections.findIndex((a) => a?.uri === uri) || sections.findIndex((a) => a?.item.uri === uri);
+			const index = sections.findIndex((a) => a?.uri === uri || a?.item.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
 				statusDic[item.uri] = LOWERED;
@@ -90,7 +90,7 @@ SpicetifyHomeConfig = {};
 		const main = document.querySelector(".main-home-content");
 		elem = [...main.querySelectorAll("section")];
 		for (const [index, item] of elem.entries()) {
-			item.dataset.uri = list[index].uri || list[index].item.uri;
+			item.dataset.uri = list[index].uri ?? list[index].item.uri;
 		}
 
 		function appendItems() {
