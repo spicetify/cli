@@ -26,23 +26,35 @@ type Flag struct {
 
 // AdditionalOptions .
 func AdditionalOptions(appsFolderPath string, flags Flag) {
-	filesToModified := map[string]func(path string, flags Flag){
-		filepath.Join(appsFolderPath, "xpui", "index.html"):             htmlMod,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertCustomApp,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertSidebarConfig,
-		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertHomeConfig,
-		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):         insertExpFeatures,
-		filepath.Join(appsFolderPath, "xpui", "home-v2.js"):             insertHomeConfig,
-		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): insertVersionInfo,
+	filesToModified := map[string][]func(path string, flags Flag){
+		filepath.Join(appsFolderPath, "xpui", "index.html"): {
+			htmlMod,
+		},
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"): {
+			insertCustomApp,
+			insertExpFeatures,
+			insertSidebarConfig,
+			insertHomeConfig,
+		},
+		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"): {
+			insertExpFeatures,
+		},
+		filepath.Join(appsFolderPath, "xpui", "home-v2.js"): {
+			insertHomeConfig,
+		},
+		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): {
+			insertVersionInfo,
+		},
 	}
 
-	for file, call := range filesToModified {
+	for file, calls := range filesToModified {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
 			continue
 		}
 
-		call(file, flags)
+		for _, call := range calls {
+			call(file, flags)
+		}
 	}
 
 	if flags.SidebarConfig {
@@ -397,6 +409,7 @@ func insertExpFeatures(jsPath string, flags Flag) {
 			&content,
 			`(([\w$.]+\.fromJSON)\(\w+\)+;)(return ?[\w{}().,]+[\w$]+\.Provider,)(\{value:\{localConfiguration)`,
 			func(submatches ...string) string {
+				fmt.Println(submatches)
 				return fmt.Sprintf("%sSpicetify.createInternalMap=%s;%sSpicetify.RemoteConfigResolver=%s", submatches[1], submatches[2], submatches[3], submatches[4])
 			})
 		return content
