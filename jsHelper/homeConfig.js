@@ -21,7 +21,7 @@ SpicetifyHomeConfig = {};
 		const stickSections = [];
 		const lowSections = [];
 		for (const uri of stickList) {
-			const index = sections.findIndex((a) => a?.uri === uri || a?.item.uri === uri);
+			const index = sections.findIndex((a) => a?.uri === uri || a?.item?.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
 				const uri = item.item.uri || item.uri;
@@ -31,7 +31,7 @@ SpicetifyHomeConfig = {};
 			}
 		}
 		for (const uri of lowList) {
-			const index = sections.findIndex((a) => a?.uri === uri || a?.item.uri === uri);
+			const index = sections.findIndex((a) => a?.uri === uri || a?.item?.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
 				const uri = item.item.uri || item.uri;
