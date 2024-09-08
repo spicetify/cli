@@ -338,8 +338,8 @@ func insertNavLink(str string, appNameArray string) string {
 	})
 
 	// Global Navbar >= 1.2.46
-	utils.ReplaceOnce(&str, `("global-nav-bar".*?)(\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\))(\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))\s*\}\),\s*(\(0,)`, func(submatches ...string) string {
-		return fmt.Sprintf("%s[%s%s,Spicetify._renderNavLinks([%s], true)].flat()}),%s", submatches[1], submatches[2], submatches[3], appNameArray, submatches[4])
+	utils.ReplaceOnce(&str, `("global-nav-bar".*?)(\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\))(\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))`, func(submatches ...string) string {
+		return fmt.Sprintf("%s[%s%s,Spicetify._renderNavLinks([%s], true)].flat()", submatches[1], submatches[2], submatches[3], appNameArray)
 	})
 
 	return str
