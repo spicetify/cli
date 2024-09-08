@@ -21,19 +21,21 @@ SpicetifyHomeConfig = {};
 		const stickSections = [];
 		const lowSections = [];
 		for (const uri of stickList) {
-			const index = sections.findIndex((a) => a?.uri === uri);
+			const index = sections.findIndex((a) => a?.uri === uri || a?.item.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
-				statusDic[item.uri] = STICKY;
+				const uri = item.item.uri || item.uri;
+				statusDic[uri] = STICKY;
 				stickSections.push(item);
 				sections[index] = undefined;
 			}
 		}
 		for (const uri of lowList) {
-			const index = sections.findIndex((a) => a?.uri === uri);
+			const index = sections.findIndex((a) => a?.uri === uri || a?.item.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
-				statusDic[item.uri] = LOWERED;
+				const uri = item.item.uri || item.uri;
+				statusDic[uri] = LOWERED;
 				lowSections.push(item);
 				sections[index] = undefined;
 			}
@@ -90,7 +92,7 @@ SpicetifyHomeConfig = {};
 		const main = document.querySelector(".main-home-content");
 		elem = [...main.querySelectorAll("section")];
 		for (const [index, item] of elem.entries()) {
-			item.dataset.uri = list[index].uri;
+			item.dataset.uri = list[index].uri ?? list[index].item.uri;
 		}
 
 		function appendItems() {

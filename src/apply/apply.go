@@ -31,6 +31,7 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertCustomApp,
 		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertExpFeatures,
 		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertSidebarConfig,
+		filepath.Join(appsFolderPath, "xpui", "xpui.js"):                insertHomeConfig,
 		filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js"):         insertExpFeatures,
 		filepath.Join(appsFolderPath, "xpui", "home-v2.js"):             insertHomeConfig,
 		filepath.Join(appsFolderPath, "xpui", "xpui-desktop-modals.js"): insertVersionInfo,
@@ -336,6 +337,14 @@ func insertHomeConfig(jsPath string, flags Flag) {
 		utils.ReplaceOnce(
 			&content,
 			`(createDesktopHomeFeatureActivationShelfEventFactory.*?)([\w\.]+)(\.map)`,
+			func(submatches ...string) string {
+				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
+			})
+
+		// >= 1.2.45
+		utils.ReplaceOnce(
+			&content,
+			`(&&"HomeShortsSectionData".*\],)([a-zA-Z])(\}\)\()`,
 			func(submatches ...string) string {
 				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
 			})
