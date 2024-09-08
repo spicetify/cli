@@ -562,7 +562,6 @@ func exposeAPIs_main(input string) string {
 	})
 
 	croppedInput := utils.FindFirstMatch(input, `\({menu:[^,]+,.*?triggerRef:[^,]+,[^}]*}\).*value:"contextmenu"`)[0]
-	fmt.Println(croppedInput)
 
 	reactRef := utils.FindFirstMatch(croppedInput, `([\w_$]+)\.useRef`)
 	var react, menu, trigger, target string
