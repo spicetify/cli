@@ -24,7 +24,8 @@ SpicetifyHomeConfig = {};
 			const index = sections.findIndex((a) => a?.uri === uri || a?.item.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
-				statusDic[item.uri] = STICKY;
+				const uri = item.item.uri || item.uri;
+				statusDic[uri] = STICKY;
 				stickSections.push(item);
 				sections[index] = undefined;
 			}
@@ -33,7 +34,8 @@ SpicetifyHomeConfig = {};
 			const index = sections.findIndex((a) => a?.uri === uri || a?.item.uri === uri);
 			if (index !== -1) {
 				const item = sections[index];
-				statusDic[item.uri] = LOWERED;
+				const uri = item.item.uri || item.uri;
+				statusDic[uri] = LOWERED;
 				lowSections.push(item);
 				sections[index] = undefined;
 			}
