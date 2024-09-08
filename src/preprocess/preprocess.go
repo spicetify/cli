@@ -556,6 +556,14 @@ func exposeAPIs_main(input string) string {
 			return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
 		})
 
+	// Home Config >= 1.2.45
+	utils.ReplaceOnce(
+		&input,
+		`(&&"HomeShortsSectionData".*\],)([a-zA-Z])(\}\)\()`,
+		func(submatches ...string) string {
+			return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
+		})
+
 	// Menu hook
 	utils.Replace(&input, `("Menu".+?children:)([\w$][\w$\d]*)`, func(submatches ...string) string {
 		return fmt.Sprintf("%s[Spicetify.ContextMenuV2.renderItems(),%s].flat()", submatches[1], submatches[2])
