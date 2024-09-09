@@ -2151,9 +2151,9 @@ Spicetify.Topbar = (() => {
 	function waitForTopbarMounted() {
 		const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
 		leftGeneratedClassName = document.querySelector(
-			".main-globalNav-historyButtons [data-encore-id='buttonTertiary'], .main-topBar-historyButtons [data-encore-id='buttonTertiary']"
+			".main-globalNav-historyButtons button:first-child, .main-topBar-historyButtons button:first-child"
 		)?.className;
-		rightGeneratedClassName = document.querySelector(".main-actionButtons [data-encore-id='buttonTertiary']")?.className;
+		rightGeneratedClassName = document.querySelector(`[aria-label='${Spicetify.Locale?._dictionary?.['buddy-feed.friend-activity']}']`)?.className;
 		leftContainer = document.querySelector(".main-topBar-historyButtons") ?? globalHistoryButtons;
 		rightContainer = document.querySelector(".main-actionButtons");
 		if (!leftContainer || !rightContainer || !leftGeneratedClassName || !rightGeneratedClassName) {
