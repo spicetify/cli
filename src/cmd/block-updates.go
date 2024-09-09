@@ -21,7 +21,7 @@ func BlockSpotifyUpdates(disabled bool) {
 	case "windows":
 		spotifyExecPath = filepath.Join(spotifyExecPath, "Spotify.exe")
 	case "darwin":
-		spotifyExecPath = filepath.Join(spotifyExecPath, "Spotify")
+		spotifyExecPath = filepath.Join(spotifyExecPath, "..", "MacOS", "Spotify")
 	}
 
 	file, err := os.OpenFile(spotifyExecPath, os.O_RDWR, 0644)
