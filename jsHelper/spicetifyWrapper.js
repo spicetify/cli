@@ -450,6 +450,17 @@ window.Spicetify = {
 	// Force all webpack modules to load
 	const require = webpackChunkclient_web.push([[Symbol()], {}, (re) => re]);
 	while (!require.m) await new Promise((r) => setTimeout(r, 50));
+	console.log("[spicetifyWrapper] Waiting for required webpack modules to load");
+	let webpackDidCallback = false;
+	// https://github.com/webpack/webpack/blob/main/lib/runtime/OnChunksLoadedRuntimeModule.js
+	require.O(
+		null,
+		[],
+		() => {
+			webpackDidCallback = true;
+		},
+		6
+	);
 
 	let chunks = Object.entries(require.m);
 	let cache = Object.keys(require.m).map((id) => require(id));
@@ -457,44 +468,13 @@ window.Spicetify = {
 	// For _renderNavLinks to work
 	Spicetify.React = cache.find((m) => m?.useMemo);
 
-	// Get all script tags matching root directory
-	// Some link tags modules are not included in require.m/unused
-	const scripts = [...document.querySelectorAll("script")]
-		// Get scripts from root dir
-		.filter((script) => script.src?.includes("xpui.app.spotify.com"))
-		// Filter out non-webpack scripts
-		.filter((script) => ["extensions", "spicetify", "helper", "theme"].every((str) => !script.src?.includes(str)));
-
-	//console.time("sanitize");
-	await Promise.all(
-		scripts.map(async (script) => {
-			try {
-				const res = await fetch(script.src);
-				const text = await res.text();
-				// remove every string from the content
-				const sanitizedText = text.replace(/(["'`])(?:\\.|[^\\\1])*?\1/g, "");
-				const src = script.src.split("/").pop();
-				console.log(`[spicetifyWrapper] Waiting for ${src}`);
-				for (const pack of sanitizedText.match(/(?<!["'`])(?:,|{)(\d+): ?\(.,.,./g).map((str) => str.slice(0, -7).slice(1))) {
-					//console.debug(`[spicetifyWrapper] Waiting for ${pack} of ${src}`);
-					while (!require.m || !Object.keys(require.m).includes(pack)) {
-						await new Promise((r) => setTimeout(r, 100));
-					}
-				}
-				console.log(`[spicetifyWrapper] Loaded ${src}`);
-			} catch (e) {
-				return console.error(e);
-			}
-		})
-	).then(() => {
-		console.log("[spicetifyWrapper] All required webpack modules loaded");
-		//console.timeEnd("sanitize");
-		chunks = Object.entries(require.m);
-		cache = Object.keys(require.m).map((id) => require(id));
-
-		// Fire platformLoaded event there because of the sleep functions before
-		Spicetify.Events.platformLoaded.fire();
-	});
+	while (!webpackDidCallback) {
+		await new Promise((r) => setTimeout(r, 100));
+	}
+	console.log("[spicetifyWrapper] All required webpack modules loaded");
+	chunks = Object.entries(require.m);
+	cache = Object.keys(require.m).map((id) => require(id));
+	Spicetify.Events.platformLoaded.fire();
 
 	const modules = cache
 		.filter((module) => typeof module === "object")
