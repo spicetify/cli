@@ -2086,7 +2086,7 @@ Spicetify.Topbar = (() => {
 	let rightContainer;
 	const leftButtonsStash = new Set();
 	const rightButtonsStash = new Set();
-	
+
 	class Button {
 		constructor(label, icon, onClick, disabled = false, isRight = false) {
 			this.element = document.createElement("div");
@@ -2150,28 +2150,30 @@ Spicetify.Topbar = (() => {
 
 	function waitForTopbarMounted() {
 		const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
-		leftGeneratedClassName = document.querySelector(".main-globalNav-historyButtons [data-encore-id='buttonTertiary'], .main-topBar-historyButtons [data-encore-id='buttonTertiary']")?.className
-		rightGeneratedClassName = document.querySelector(".main-actionButtons [data-encore-id='buttonTertiary']")?.className
+		leftGeneratedClassName = document.querySelector(
+			".main-globalNav-historyButtons [data-encore-id='buttonTertiary'], .main-topBar-historyButtons [data-encore-id='buttonTertiary']"
+		)?.className;
+		rightGeneratedClassName = document.querySelector(".main-actionButtons [data-encore-id='buttonTertiary']")?.className;
 		leftContainer = document.querySelector(".main-topBar-historyButtons") ?? globalHistoryButtons;
 		rightContainer = document.querySelector(".main-actionButtons");
 		if (!leftContainer || !rightContainer || !leftGeneratedClassName || !rightGeneratedClassName) {
 			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
-		
+
 		if (globalHistoryButtons) globalHistoryButtons.style = "gap: 4px; padding-inline: 4px 4px";
 		for (const button of leftButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
 
 			const buttonElement = button.querySelector("button");
-			buttonElement.className = leftGeneratedClassName
+			buttonElement.className = leftGeneratedClassName;
 		}
 		leftContainer.append(...leftButtonsStash);
 		for (const button of rightButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
 
 			const buttonElement = button.querySelector("button");
-			buttonElement = rightGeneratedClassName
+			buttonElement.className = rightGeneratedClassName;
 		}
 		rightContainer.prepend(...rightButtonsStash);
 	}
