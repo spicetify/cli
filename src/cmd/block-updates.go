@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -24,6 +25,30 @@ func BlockSpotifyUpdates(disabled bool) {
 		spotifyExecPath = filepath.Join(spotifyExecPath, "..", "MacOS", "Spotify")
 	}
 
+	var str, msg string
+	if runtime.GOOS == "darwin" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			utils.PrintError("Cannot get user home directory")
+			return
+		}
+		updateDir := homeDir + "/Library/Application Support/Spotify/PersistentCache/Update"
+		if disabled {
+			exec.Command("pkill", "Spotify").Run()
+			exec.Command("mkdir", "-p", updateDir).Run()
+			exec.Command("chflags", "uchg", updateDir).Run()
+			msg = "Disabled"
+		} else {
+			exec.Command("pkill", "Spotify").Run()
+			exec.Command("mkdir", "-p", updateDir).Run()
+			exec.Command("chflags", "nouchg", updateDir).Run()
+			msg = "Enabled"
+		}
+
+		utils.PrintSuccess(msg + " Spotify updates!")
+		return
+	}
+
 	file, err := os.OpenFile(spotifyExecPath, os.O_RDWR, 0644)
 	if err != nil {
 		utils.Fatal(err)
@@ -40,7 +65,6 @@ func BlockSpotifyUpdates(disabled bool) {
 		utils.PrintError("Can't find update endpoint in executable")
 		return
 	}
-	var str, msg string
 	if disabled {
 		str = "no/thanks"
 		msg = "Disabled"
