@@ -2080,12 +2080,13 @@ Object.defineProperty(Spicetify, "TippyProps", {
 });
 
 Spicetify.Topbar = (() => {
+	let leftGeneratedClassName;
+	let rightGeneratedClassName;
 	let leftContainer;
 	let rightContainer;
 	const leftButtonsStash = new Set();
 	const rightButtonsStash = new Set();
-	const generatedClassName = "Button-medium-medium-buttonTertiary-iconOnly-condensed-disabled-isUsingKeyboard-useBrowserDefaultFocusStyle";
-
+	
 	class Button {
 		constructor(label, icon, onClick, disabled = false, isRight = false) {
 			this.element = document.createElement("div");
@@ -2100,19 +2101,12 @@ Spicetify.Topbar = (() => {
 			this.label = label;
 
 			this.element.appendChild(this.button);
-			const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
 			if (isRight) {
-				this.button.classList.add("encore-over-media-set", "main-topBar-buddyFeed");
-				if (globalHistoryButtons) this.button.classList.add("main-globalNav-buddyFeed");
-
+				this.button.className = rightGeneratedClassName;
 				rightButtonsStash.add(this.element);
 				rightContainer?.prepend(this.element);
 			} else {
-				this.button.classList.add("main-topBar-button");
-				if (globalHistoryButtons) {
-					this.button.classList.add("main-globalNav-icon", generatedClassName);
-				}
-
+				this.button.className = leftGeneratedClassName;
 				leftButtonsStash.add(this.element);
 				leftContainer?.append(this.element);
 			}
@@ -2156,31 +2150,28 @@ Spicetify.Topbar = (() => {
 
 	function waitForTopbarMounted() {
 		const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
+		leftGeneratedClassName = document.querySelector(".main-globalNav-historyButtons [data-encore-id='buttonTertiary'], .main-topBar-historyButtons [data-encore-id='buttonTertiary']")?.className
+		rightGeneratedClassName = document.querySelector(".main-actionButtons [data-encore-id='buttonTertiary']")?.className
 		leftContainer = document.querySelector(".main-topBar-historyButtons") ?? globalHistoryButtons;
 		rightContainer = document.querySelector(".main-actionButtons");
-		if (!leftContainer || !rightContainer) {
+		if (!leftContainer || !rightContainer || !leftGeneratedClassName || !rightGeneratedClassName) {
 			setTimeout(waitForTopbarMounted, 100);
 			return;
 		}
-
+		
 		if (globalHistoryButtons) globalHistoryButtons.style = "gap: 4px; padding-inline: 4px 4px";
 		for (const button of leftButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
 
 			const buttonElement = button.querySelector("button");
-			if (globalHistoryButtons) {
-				buttonElement.classList.add("main-globalNav-icon", generatedClassName);
-			} else {
-				buttonElement.classList.remove("main-globalNav-icon", generatedClassName);
-			}
+			buttonElement.className = leftGeneratedClassName
 		}
 		leftContainer.append(...leftButtonsStash);
 		for (const button of rightButtonsStash) {
 			if (button.parentNode) button.parentNode.removeChild(button);
 
 			const buttonElement = button.querySelector("button");
-			if (globalHistoryButtons) buttonElement.classList.add("main-globalNav-buddyFeed");
-			else buttonElement.classList.remove("main-globalNav-buddyFeed");
+			buttonElement = rightGeneratedClassName
 		}
 		rightContainer.prepend(...rightButtonsStash);
 	}
