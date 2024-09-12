@@ -290,13 +290,20 @@ async function getArtistList() {
 }
 
 async function getArtistEverything(artist) {
-	const { queryArtistDiscographyAll } = Spicetify.GraphQL.Definitions;
-	const { data, errors } = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
-		uri: artist.uri,
-		offset: 0,
-		// Limit 100 since GraphQL has resource limit
-		limit: 100,
-	});
+	const { data, errors } = await Spicetify.GraphQL.Request(
+		{
+			name: "queryArtistDiscographyAll",
+			operation: "query",
+			sha256Hash: "9380995a9d4663cbcb5113fef3c6aabf70ae6d407ba61793fd01e2a1dd6929b0",
+			value: null,
+		},
+		{
+			uri: artist.uri,
+			offset: 0,
+			// Limit 100 since GraphQL has resource limit
+			limit: 100,
+		}
+	);
 	if (errors) throw errors;
 
 	const releases = data?.artistUnion.discography.all.items.flatMap((r) => r.releases.items);
