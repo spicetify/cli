@@ -323,7 +323,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 
 		const progressDivRef = useRef(null);
 		const [isDragging, setIsDragging] = useState(false);
-		
+
 		useEffect(() => {
 			if (isDragging) {
 				return;
@@ -333,7 +333,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 			Spicetify.Player.addEventListener("onprogress", update);
 			return () => Spicetify.Player.removeEventListener("onprogress", update);
 		}, [isDragging]);
-	
+
 		// Handle click on progress bar to set progress
 		const handleClick = (e) => {
 			const container = progressDivRef.current;
@@ -347,7 +347,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 			Spicetify.Player.seek(newProgress);
 			setProgress(newProgress);
 		};
-	
+
 		// Handle dragging functionality
 		const handleMouseDown = () => setIsDragging(true);
 		const handleMouseMove = (e) => {
@@ -369,7 +369,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 			Spicetify.Player.seek(progress);
 			setIsDragging(false);
 		};
-	
+
 		// Attach mousemove and mouseup listeners when dragging starts
 		useEffect(() => {
 			if (isDragging) {
@@ -379,16 +379,16 @@ body.video-full-screen.video-full-screen--hide-ui {
 				window.removeEventListener("mousemove", handleMouseMove);
 				window.removeEventListener("mouseup", handleMouseUp);
 			}
-	
+
 			return () => {
 				window.removeEventListener("mousemove", handleMouseMove);
 				window.removeEventListener("mouseup", handleMouseUp);
 			};
 		}, [isDragging]);
-	
+
 		// Calculate the thumb position
 		const thumbPosition = (progress / duration) * 100;
-	
+
 		return react.createElement(
 			"div",
 			{ id: "fad-progress-container" },
@@ -406,13 +406,11 @@ body.video-full-screen.video-full-screen--hide-ui {
 				react.createElement(
 					"div",
 					{ id: "fad-progress-inner" },
-					react.createElement(
-						"div", {
-							id: "fad-thumb",
-							onMouseDown: handleMouseDown,
-						}
-					)
-				),
+					react.createElement("div", {
+						id: "fad-thumb",
+						onMouseDown: handleMouseDown,
+					})
+				)
 			),
 			react.createElement("span", { id: "fad-duration" }, Spicetify.Player.formatTime(duration))
 		);
