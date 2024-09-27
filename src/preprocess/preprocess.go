@@ -564,15 +564,20 @@ func exposeAPIs_main(input string) string {
 	croppedInput := utils.FindFirstMatch(input, `.*value:"contextmenu"`)[0]
 	react := utils.FindLastMatch(croppedInput, `([a-zA-Z_\$][\w\$]*)\.useRef`)[1]
 	candicates := utils.FindLastMatch(croppedInput, `\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)`)
+	oldCandicates := utils.FindLastMatch(croppedInput, `([a-zA-Z_\$][\w\$]*)=[\w_$]+\.menu[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.trigger[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.triggerRef`)
 	var menu, trigger, target string
-	if len(candicates) == 0 {
-		menu = "e.menu"
-		trigger = "e.trigger"
-		target = "e.triggerRef"
-	} else {
+	if len(oldCandicates) != 0 {
+		menu = oldCandicates[1]
+		trigger = oldCandicates[2]
+		target = oldCandicates[3]
+	} else if len(candicates) != 0 {
 		menu = candicates[1]
 		trigger = candicates[2]
 		target = candicates[3]
+	} else {
+		menu = "e.menu"
+		trigger = "e.trigger"
+		target = "e.triggerRef"
 	}
 
 	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, func(submatches ...string) string {
