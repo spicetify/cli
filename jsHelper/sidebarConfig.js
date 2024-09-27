@@ -166,13 +166,26 @@ color: var(--spice-button-disabled);
 	(async () => {
 		await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
 		if (document.querySelector(".Root__globalNav")) {
-			Spicetify.showNotification(
-				"Sidebar config is not supported on global navbar. Please disable it with `spicetify config sidebar_config 0` command.",
-				false,
-				7000
-			);
+			Spicetify.Snackbar?.enqueueCustomSnackbar("sidebar-config", {
+				keyPrefix: "sidebar-config",
+				autoHideDuration: 7500,
+				children: Spicetify.ReactComponent.Snackbar.wrapper({
+					children: Spicetify.ReactComponent.Snackbar.simpleLayout({
+						center: Spicetify.React.createElement("div", {
+							dangerouslySetInnerHTML: {
+								__html:
+									"Sidebar config is not supported when Global Navbar is enabled. In Powershell, please run <code>spicetify config sidebar_config 0</code> command and then re-apply spicetify with <code>spicetify apply</code>.",
+							},
+							style: {
+								"text-size": "12px",
+							},
+						}),
+					}),
+				}),
+			});
 			isGlobalNavbar = true;
 		}
+
 		if (!isGlobalNavbar) {
 			new Spicetify.Menu.Item(
 				"Sidebar config",
