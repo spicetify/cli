@@ -174,7 +174,7 @@ color: var(--spice-button-disabled);
 						center: Spicetify.React.createElement("div", {
 							dangerouslySetInnerHTML: {
 								__html:
-									"Sidebar config is not supported when Global Navbar is enabled. In Powershell, please run <code>spicetify config sidebar_config 0</code> command and then re-apply spicetify with <code>spicetify apply</code>.",
+									"Sidebar config is not supported when Global Navbar is enabled. In your terminal, please run <code>spicetify config sidebar_config 0</code> command and then re-apply spicetify with <code>spicetify apply</code>.",
 							},
 							style: {
 								"text-size": "12px",
