@@ -13,7 +13,7 @@ import (
 var (
 	configLayout = map[string]map[string]string{
 		"Setting": {
-			"spotify_path":           "/Applications/Spotify.app/Contents/Resources",
+			"spotify_path":           "",
 			"prefs_path":             "",
 			"current_theme":          "",
 			"color_scheme":           "",
