@@ -396,7 +396,7 @@ function VimBind() {
 	return this;
 }
 
-document.addEventListener('keydown', function(event) {
+document.addEventListener('keydown', (event) => {
 	if (event.key === 'Enter' && event.target.tagName === 'INPUT') {
 		event.preventDefault();
 		event.target.blur();
