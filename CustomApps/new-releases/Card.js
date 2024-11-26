@@ -30,6 +30,8 @@ class Card extends react.Component {
 	}
 
 	closeButtonClicked(event) {
+		event.stopPropagation();
+
 		removeCards(this.props.uri);
 
 		Spicetify.Snackbar.enqueueCustomSnackbar
@@ -55,8 +57,6 @@ class Card extends react.Component {
 					}),
 				})
 			: Spicetify.showNotification(`Dismissed <b>${this.title}</b> from <br>${this.artist.name}</b>`);
-
-		event.stopPropagation();
 	}
 
 	render() {
