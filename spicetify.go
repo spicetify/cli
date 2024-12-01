@@ -248,7 +248,7 @@ func main() {
 	utils.PrintBold("spicetify v" + version)
 	if slices.Contains(commands, "upgrade") || slices.Contains(commands, "update") {
 		updateStatus := cmd.Update(version)
-		spotifyPath := filepath.Join(utils.FindAppPath(), "Apps")
+		spotifyPath := filepath.Join(cmd.GetSpotifyPath(), "Apps")
 		ex, err := os.Executable()
 		if err != nil {
 			ex = "spicetify"
