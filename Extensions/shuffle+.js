@@ -338,7 +338,9 @@
 		if (errors) throw errors[0].message;
 		if (data.albumUnion.playability.playable === false) throw "Album is not playable";
 
-		return data.albumUnion.tracks.items.filter(({ track }) => track.playability.playable).map(({ track }) => (includeMetadata ? track : track.uri));
+		return (data.albumUnion?.tracksV2 ?? data.albumUnion?.tracks ?? []).items
+			.filter(({ track }) => track.playability.playable)
+			.map(({ track }) => (includeMetadata ? track : track.uri));
 	}
 
 	const artistFetchTypeCount = { album: 0, single: 0 };
@@ -368,12 +370,17 @@
 	}
 
 	async function fetchArtistTracks(uri) {
-		const { queryArtistDiscographyAll } = Spicetify.GraphQL.Definitions;
-		// Definition from older Spotify version
+		// Definitions from older Spotify version
 		const queryArtistOverview = {
 			name: "queryArtistOverview",
 			operation: "query",
 			sha256Hash: "35648a112beb1794e39ab931365f6ae4a8d45e65396d641eeda94e4003d41497",
+			value: null,
+		};
+		const queryArtistDiscographyAll = {
+			name: "queryArtistDiscographyAll",
+			operation: "query",
+			sha256Hash: "9380995a9d4663cbcb5113fef3c6aabf70ae6d407ba61793fd01e2a1dd6929b0",
 			value: null,
 		};
 
