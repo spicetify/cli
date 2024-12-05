@@ -77,7 +77,7 @@ jobs:
           CGO_ENABLED: 0
 
       - name: Attest output
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v2
         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
         with:
           subject-path: "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
