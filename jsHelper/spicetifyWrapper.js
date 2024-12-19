@@ -352,7 +352,6 @@ window.Spicetify = {
 
 	const _cosmos = Spicetify.Player.origin?._cosmos ?? Spicetify.Platform?.Registry.resolve(Symbol.for("Cosmos"));
 
-	const corsProxyURL = "https://cors-proxy.spicetify.app";
 	const allowedMethodsMap = {
 		get: "get",
 		post: "post",
@@ -374,6 +373,7 @@ window.Spicetify = {
 			return async function (url, body) {
 				const urlObj = new URL(url);
 
+				const corsProxyURLTemplate = window.localStorage.getItem("spicetify:corsProxyTemplate") ?? "https://cors-proxy.spicetify.app/{url}";
 				const isWebAPI = urlObj.hostname === "api.spotify.com";
 				const isSpClientAPI = urlObj.hostname.includes("spotify.com") && urlObj.hostname.includes("spclient");
 				const isInternalURL = internalEndpoints.has(urlObj.protocol);
@@ -396,10 +396,18 @@ window.Spicetify = {
 				if (body) {
 					if (method === "get") {
 						const params = new URLSearchParams(body);
-						finalURL += `?${params.toString()}`;
+						const useSeparator = shouldUseCORSProxy && new URL(finalURL).search.startsWith("?");
+						finalURL += `${useSeparator ? "&" : "?"}${params.toString()}`;
 					} else options.body = !Array.isArray(body) && typeof body === "object" ? JSON.stringify(body) : body;
 				}
-				if (shouldUseCORSProxy) finalURL = `${corsProxyURL}/${finalURL}`;
+				if (shouldUseCORSProxy) {
+					finalURL = corsProxyURLTemplate.replace(/{url}/, finalURL);
+					try {
+						new URL(finalURL);
+					} catch {
+						console.error("[spicetifyWrapper] Invalid CORS Proxy URL template");
+					}
+				}
 
 				const Authorization = `Bearer ${Spicetify.Platform.AuthorizationAPI.getState().token.accessToken}`;
 				let injectedHeaders = {};
@@ -459,7 +467,7 @@ window.Spicetify = {
 		() => {
 			webpackDidCallback = true;
 		},
-		6
+		12
 	);
 
 	let chunks = Object.entries(require.m);

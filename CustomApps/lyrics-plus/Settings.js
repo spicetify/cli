@@ -452,6 +452,22 @@ const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {}, 
 	});
 };
 
+const corsProxyTemplate = () => {
+	const [proxyValue, setProxyValue] = react.useState(localStorage.getItem("spicetify:corsProxyTemplate") || "https://cors-proxy.spicetify.app/{url}");
+
+	return react.createElement("input", {
+		placeholder: "CORS Proxy Template",
+		value: proxyValue,
+		onChange: (event) => {
+			const value = event.target.value;
+			setProxyValue(value);
+
+			if (value === "" || !value) return localStorage.removeItem("spicetify:corsProxyTemplate");
+			localStorage.setItem("spicetify:corsProxyTemplate", value);
+		},
+	});
+};
+
 const OptionList = ({ type, items, onChange }) => {
 	const [itemList, setItemList] = useState(items);
 	const [, forceUpdate] = useState();
@@ -645,6 +661,19 @@ function openConfig() {
 			onTokenChange: (name, value) => {
 				CONFIG.providers[name].token = value;
 				localStorage.setItem(`${APP_NAME}:provider:${name}:token`, value);
+			},
+		}),
+		react.createElement("h2", null, "CORS Proxy Template"),
+		react.createElement("span", {
+			dangerouslySetInnerHTML: {
+				__html:
+					"Use this to bypass CORS restrictions. Replace the URL with your cors proxy server of your choice. <code>{url}</code> will be replaced with the request URL.",
+			},
+		}),
+		react.createElement(corsProxyTemplate),
+		react.createElement("span", {
+			dangerouslySetInnerHTML: {
+				__html: "Spotify will reload its webview after applying. Leave empty to restore default: <code>https://cors-proxy.spicetify.app/{url}</code>",
 			},
 		})
 	);
