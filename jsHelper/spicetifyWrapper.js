@@ -467,7 +467,7 @@ window.Spicetify = {
 		() => {
 			webpackDidCallback = true;
 		},
-		12
+		1
 	);
 
 	let chunks = Object.entries(require.m);
