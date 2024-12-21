@@ -1907,8 +1907,6 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 	const [refreshCount, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
 	refreshNavLinks = refresh;
 
-	console.log(Spicetify.ReactComponent.ScrollableContainer);
-
 	if (
 		!Spicetify.ReactComponent.ButtonTertiary ||
 		!Spicetify.ReactComponent.Navigation ||
