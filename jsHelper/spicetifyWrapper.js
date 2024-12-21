@@ -673,6 +673,68 @@ window.Spicetify = {
 
 	if (!Spicetify.ContextMenuV2._context) Spicetify.ContextMenuV2._context = Spicetify.React.createContext({});
 
+	(function waitForChunks() {
+		const listOfComponents = [
+			"ScrollableContainer",
+			"Slider",
+			"Toggle",
+			"Cards.Artist",
+			"Cards.Audiobook",
+			"Cards.Profile",
+			"Cards.Show",
+			"Cards.Track",
+		];
+		if (listOfComponents.every((component) => Spicetify.ReactComponent[component] !== undefined)) return;
+		const cache = Object.keys(require.m).map((id) => require(id));
+		const modules = cache
+			.filter((module) => typeof module === "object")
+			.flatMap((module) => {
+				try {
+					return Object.values(module);
+				} catch {}
+			});
+		const functionModules = modules.filter((module) => typeof module === "function");
+		const cardTypesToFind = ["artist", "audiobook", "profile", "show", "track"];
+		const cards = [
+			...functionModules
+				.flatMap((m) => {
+					return cardTypesToFind.map((type) => {
+						if (m.toString().includes(`featureIdentifier:"${type}"`)) {
+							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+							return [type[0].toUpperCase() + type.slice(1), m];
+						}
+					});
+				})
+				.filter(Boolean),
+			...modules
+				.flatMap((m) => {
+					return cardTypesToFind.map((type) => {
+						try {
+							if (m?.type?.toString().includes(`featureIdentifier:"${type}"`)) {
+								cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+								return [type[0].toUpperCase() + type.slice(1), m];
+							}
+						} catch {}
+					});
+				})
+				.filter(Boolean),
+		];
+
+		Spicetify.ReactComponent.Slider = wrapProvider(functionModules.find((m) => m.toString().includes("progressBarRef")));
+		Spicetify.ReactComponent.Toggle = functionModules.find((m) => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"'));
+		Spicetify.ReactComponent.ScrollableContainer = functionModules.find(
+			(m) => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")
+		);
+		Object.assign(Spicetify.ReactComponent.Cards, Object.fromEntries(cards));
+
+		if (!listOfComponents.every((component) => Spicetify.ReactComponent[component] !== undefined)) {
+			setTimeout(waitForChunks, 100);
+			return;
+		}
+
+		if (Spicetify.ReactComponent.ScrollableContainer) setTimeout(refreshNavLinks?.(), 100);
+	})();
+
 	(function waitForSnackbar() {
 		if (!Object.keys(Spicetify.Snackbar).length) {
 			setTimeout(waitForSnackbar, 100);
@@ -1845,10 +1907,13 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 	const [refreshCount, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
 	refreshNavLinks = refresh;
 
+	console.log(Spicetify.ReactComponent.ScrollableContainer);
+
 	if (
 		!Spicetify.ReactComponent.ButtonTertiary ||
 		!Spicetify.ReactComponent.Navigation ||
 		!Spicetify.ReactComponent.TooltipWrapper ||
+		!Spicetify.ReactComponent.ScrollableContainer ||
 		!Spicetify.Platform.History ||
 		!Spicetify.Platform.LocalStorageAPI
 	)
