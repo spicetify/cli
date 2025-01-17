@@ -64,10 +64,22 @@ func Update(currentVersion string) bool {
 	}
 	defer out.Close()
 
-	resp2, err := http.Get(assetURL)
+	req, err := http.NewRequest("GET", assetURL, nil)
 	if err != nil {
 		utils.Fatal(err)
 	}
+
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	if githubToken != "" {
+		utils.PrintInfo("Using GITHUB_TOKEN as your PersonalAccesToken for GitHub request")
+		req.Header.Set("Authorization", "token "+githubToken)
+	}
+
+	resp2, err := http.DefaultClient.Do(req)
+	if err != nil {
+		utils.Fatal(err)
+	}
+	defer resp2.Body.Close()
 
 	_, err = io.Copy(out, resp2.Body)
 	if err != nil {
