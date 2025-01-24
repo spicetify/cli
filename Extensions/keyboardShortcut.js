@@ -54,9 +54,28 @@
 		// Forward Slash to open search page
 		"/": { callback: () => Spicetify.Platform.History.replace("/search") },
 
-		// CTRL + Arrow Left Next and CTRL + Arrow Right  Previous Song
-		"ctrl+left": { callback: () => Spicetify.Player.back() },
-		"ctrl+right": { callback: () => Spicetify.Player.next() },
+		{
+    // Skip to the next song using Ctrl+Right
+    "ctrl+right": { 
+        callback: () => {
+            try {
+                Spicetify.Player.next();
+            } catch (error) {
+                console.error("Failed to skip to the next song:", error);
+            }
+        }
+    },
+    // Skip to the previous song using Ctrl+Left
+    "ctrl+left": { 
+        callback: () => {
+            try {
+                Spicetify.Player.previous();
+            } catch (error) {
+                console.error("Failed to skip to the previous song:", error);
+            }
+        }
+    }
+}
 
 		// CTRL + Arrow Up Increase Volume CTRL + Arrow Down Decrease Volume
 		"ctrl+up": { callback: () => Spicetify.Player.setVolume(Spicetify.Player.getVolume() + 0.05) },
