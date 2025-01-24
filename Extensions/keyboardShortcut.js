@@ -55,7 +55,7 @@
 		"/": { callback: () => Spicetify.Platform.History.replace("/search") },
 
 		// CTRL + Arrow Left Next and CTRL + Arrow Right  Previous Song
-		"ctrl+left": { callback: () => Spicetify.Player.prev() },
+		"ctrl+left": { callback: () => Spicetify.Player.back() },
 		"ctrl+right": { callback: () => Spicetify.Player.next() },
 
 		// CTRL + Arrow Up Increase Volume CTRL + Arrow Down Decrease Volume
