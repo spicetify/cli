@@ -65,17 +65,30 @@ func GetSpicetifyFolder() string {
 	return result
 }
 
-func GetStateFolder() string {
-	if runtime.GOOS == "linux" {
-		result, isAvailable := os.LookupEnv("SPICETIFY_CONFIG")
-		defer func() { CheckExistAndCreate(result) }()
+func GetStateFolder(name string) string {
+	result, isAvailable := os.LookupEnv("SPICETIFY_STATE")
+	defer func() { CheckExistAndCreate(result) }()
 		
+	if isAvailable && len(result) > 0 {
+		return result
+	}
+
+	if runtime.GOOS == "windows" {
+		parent := os.Getenv("APPDATA")
+
+		result = filepath.Join(parent, "spicetify")
+	} else if runtime.GOOS == "linux" {
 		parent, isAvailable := os.LookupEnv("XDG_STATE_HOME")
 
 		if !isAvailable || len(parent) == 0 {
 			parent = filepath.Join(os.Getenv("HOME"), ".local", "state")
 			CheckExistAndCreate(parent)
 		}
+
+		result = filepath.Join(parent, "spicetify")
+	} else if runtime.GOOS == "darwin" {
+		parent := filepath.Join(os.Getenv("HOME"), ".local", "state")
+		CheckExistAndCreate(parent)
 
 		result = filepath.Join(parent, "spicetify")
 	}
