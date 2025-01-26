@@ -65,6 +65,23 @@ func GetSpicetifyFolder() string {
 	return result
 }
 
+func GetStateFolder() string {
+	if runtime.GOOS == "linux" {
+		result, isAvailable := os.LookupEnv("SPICETIFY_CONFIG")
+		defer func() { CheckExistAndCreate(result) }()
+		
+		parent, isAvailable := os.LookupEnv("XDG_STATE_HOME")
+
+		if !isAvailable || len(parent) == 0 {
+			parent = filepath.Join(os.Getenv("HOME"), ".local", "state")
+			CheckExistAndCreate(parent)
+		}
+
+		result = filepath.Join(parent, "spicetify")
+	}
+	return result
+}
+
 // getUserFolder checks if folder `name` is available in spicetifyFolder,
 // else creates then returns the path.
 func GetUserFolder(name string) string {
