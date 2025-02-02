@@ -102,16 +102,16 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 
 		let modeOptions = {};
 
-    if (hasTranslation.musixmatch) {
-      const selectedLanguage = CONFIG.visual["musixmatch-translation-language"];
-      const languageName = new Intl.DisplayNames([selectedLanguage], {
-        type: "language",
-      }).of(selectedLanguage);
-      sourceOptions = {
-        ...sourceOptions,
-        musixmatchTranslation: `${languageName} (Musixmatch)`,
-      };
-    }
+		    if (hasTranslation.musixmatch) {
+		      const selectedLanguage = CONFIG.visual["musixmatch-translation-language"];
+		      const languageName = new Intl.DisplayNames([selectedLanguage], {
+			type: "language",
+		      }).of(selectedLanguage);
+		      sourceOptions = {
+			...sourceOptions,
+			musixmatchTranslation: `${languageName} (Musixmatch)`,
+		      };
+		    }
 
 		if (hasTranslation.netease) {
 			sourceOptions = {
