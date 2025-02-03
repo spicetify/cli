@@ -15,7 +15,7 @@ import (
 var (
 	spicetifyFolder         = utils.GetSpicetifyFolder()
 	rawFolder, themedFolder = getExtractFolder()
-	backupFolder            = utils.GetUserFolder("Backup")
+	backupFolder            = utils.GetStateFolder("Backup")
 	userThemesFolder        = utils.GetUserFolder("Themes")
 	quiet                   bool
 	isAppX                  = false
@@ -205,7 +205,7 @@ func GetSpotifyPath() string {
 }
 
 func getExtractFolder() (string, string) {
-	dir := utils.GetUserFolder("Extracted")
+	dir := utils.GetStateFolder("Extracted")
 
 	raw := filepath.Join(dir, "Raw")
 	utils.CheckExistAndCreate(raw)
