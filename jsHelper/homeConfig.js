@@ -92,7 +92,7 @@ SpicetifyHomeConfig = {};
 		const main = document.querySelector(".main-home-content");
 		elem = [...main.querySelectorAll("section")];
 		for (const [index, item] of elem.entries()) {
-			item.dataset.uri = list[index].uri ?? list[index].item.uri;
+			item.dataset.uri = list[index]?.uri ?? list[index].item?.uri;
 		}
 
 		function appendItems() {
