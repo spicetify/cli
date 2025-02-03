@@ -71,7 +71,8 @@
 		header.innerText = "Local Storage";
 		content.appendChild(header);
 
-		content.appendChild(createButton("Export", "Copy all items in trashbin to clipboard, manually save to a .json file.", exportItems));
+		content.appendChild(createButton("Copy", "Copy all items in trashbin to clipboard.", copyItems));
+		content.appendChild(createButton("Export", "Save all items in trashbin to a .json file.", exportItems));
 		content.appendChild(createButton("Import", "Overwrite all items in trashbin via .json file.", importItems));
 		content.appendChild(
 			createButton("Clear ", "Clear all items from trashbin (cannot be reverted).", () => {
@@ -361,13 +362,42 @@
 		Spicetify.LocalStorage.set("TrashArtistList", JSON.stringify(trashArtistList));
 	}
 
-	function exportItems() {
+	function copyItems() {
 		const data = {
 			songs: trashSongList,
 			artists: trashArtistList,
 		};
 		Spicetify.Platform.ClipboardAPI.copy(JSON.stringify(data));
 		Spicetify.showNotification("Copied to clipboard");
+	}
+
+	async function exportItems() {
+		const data = {
+			songs: trashSongList,
+			artists: trashArtistList,
+		};
+
+		try {
+			const handle = await window.showSaveFilePicker({
+				suggestedName: "spicetify-trashbin.json",
+				types: [
+					{
+						description: "Spicetify trashbin backup",
+						accept: {
+							"application/json": [".json"],
+						},
+					},
+				],
+			});
+
+			const writable = await handle.createWritable();
+			await writable.write(JSON.stringify(data));
+			await writable.close();
+
+			Spicetify.showNotification("Backup saved succesfully.");
+		} catch {
+			Spicetify.showNotification("Failed to save, try copying trashbin contents to clipboard and creating a backup manually.");
+		}
 	}
 
 	function importItems() {
