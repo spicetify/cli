@@ -16,7 +16,7 @@ var (
 	spicetifyFolder         = utils.GetSpicetifyFolder()
 	rawFolder, themedFolder = getExtractFolder()
 	backupFolder            = utils.GetStateFolder("Backup")
-	userThemesFolder        = utils.GetUserFolder("Themes")
+	userThemesFolder        = utils.GetSubFolder(spicetifyFolder, "Themes")
 	quiet                   bool
 	isAppX                  = false
 	spotifyPath             string

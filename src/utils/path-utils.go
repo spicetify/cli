@@ -92,20 +92,21 @@ func GetStateFolder(name string) string {
 
 		result = filepath.Join(parent, "spicetify")
 	}
-	return result
+
+	return GetSubFolder(result, name)
 }
 
-// getUserFolder checks if folder `name` is available in spicetifyFolder,
+// GetSubFolder checks if folder `name` is available in specified folder,
 // else creates then returns the path.
-func GetUserFolder(name string) string {
-	dir := filepath.Join(GetSpicetifyFolder(), name)
+func GetSubFolder(folder string, name string) string {
+	dir := filepath.Join(folder, name)
 	CheckExistAndCreate(dir)
 
 	return dir
 }
 
-var userAppsFolder = GetUserFolder("CustomApps")
-var userExtensionsFolder = GetUserFolder("Extensions")
+var userAppsFolder = GetSubFolder(GetSpicetifyFolder(), "CustomApps")
+var userExtensionsFolder = GetSubFolder(GetSpicetifyFolder(), "Extensions")
 
 func GetCustomAppSubfolderPath(folderPath string) string {
 	entries, err := os.ReadDir(folderPath)
