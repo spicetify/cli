@@ -132,16 +132,33 @@
 
 	(function waitForRemoteConfigResolver() {
 		// Don't show options if hooks aren't patched/loaded
-		if (!hooksPatched || (!Spicetify.RemoteConfigResolver && !Spicetify.Platform?.RemoteConfiguration)) {
+		if (!hooksPatched || (!Spicetify.RemoteConfigResolver && !Spicetify.Platform?.RemoteConfigDebugAPI && !Spicetify.Platform?.RemoteConfiguration)) {
 			setTimeout(waitForRemoteConfigResolver, 500);
 			return;
 		}
 
 		let remoteConfiguration = Spicetify.RemoteConfigResolver?.value.remoteConfiguration || Spicetify.Platform?.RemoteConfiguration;
-		let setOverrides = () => {};
+		const setOverrides = async (overrides) => {
+			if (Spicetify.Platform?.RemoteConfigDebugAPI) {
+				for (const [name, value] of Object.entries(overrides)) {
+					const feature = overrideList[name];
+					const type = feature.values ? "enum" : typeof value === "number" ? "number" : "boolean";
+					await Spicetify.Platform.RemoteConfigDebugAPI.setOverride(
+						{
+							source: "web",
+							type,
+							name,
+						},
+						value
+					);
+				}
+			} else if (Spicetify.RemoteConfigResolver?.value?.setOverrides) {
+				Spicetify.RemoteConfigResolver.value.setOverrides(Spicetify.createInternalMap?.(overrides));
+			}
+		};
 
-		(function waitForResolver() {
-			if (!Spicetify.RemoteConfigResolver) {
+		(async function waitForResolver() {
+			if (!Spicetify.RemoteConfigResolver && !Spicetify.Platform?.RemoteConfigDebugAPI) {
 				isFallback = true;
 				notice.innerText = "⚠️ Using fallback mode. Some features may not work.";
 				setTimeout(waitForResolver, 500);
@@ -149,8 +166,7 @@
 			}
 			isFallback = false;
 			notice.remove();
-			remoteConfiguration = Spicetify.RemoteConfigResolver.value.remoteConfiguration;
-			setOverrides = Spicetify.RemoteConfigResolver.value.setOverrides;
+			remoteConfiguration = Spicetify?.RemoteConfigResolver?.remoteConfiguration ?? (await Spicetify.Platform?.RemoteConfigDebugAPI.getProperties());
 		})();
 
 		for (const key of Object.keys(overrideList)) {
@@ -165,7 +181,7 @@
 			localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
 
 			featureMap[name] = value;
-			setOverrides(Spicetify.createInternalMap?.(featureMap));
+			setOverrides({ [name]: value });
 		}
 
 		function createSlider(name, desc, defaultVal) {
@@ -254,8 +270,12 @@ ${Spicetify.SVGIcons.search}
 
 		for (const name of Object.keys(overrideList)) {
 			if (!prevSessionOverrideList.includes(name) && remoteConfiguration.values.has(name)) {
-				changeValue(name, remoteConfiguration.values.get(name));
-				console.log(name, remoteConfiguration.values.get(name), overrideList[name]);
+				const currentValue = remoteConfiguration.values.get(name);
+				overrideList[name].value = currentValue;
+				localStorage.setItem("spicetify-exp-features", JSON.stringify(overrideList));
+
+				featureMap[name] = currentValue;
+				setOverrides({ [name]: currentValue });
 			}
 
 			const feature = overrideList[name];
@@ -269,8 +289,6 @@ ${Spicetify.SVGIcons.search}
 		}
 
 		content.appendChild(resetButton);
-
-		setOverrides(Spicetify.createInternalMap?.(featureMap));
 	})();
 
 	await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
