@@ -413,12 +413,20 @@ func insertExpFeatures(jsPath string, flags Flag) {
 				return fmt.Sprintf("%s%s=Spicetify.expFeatureOverride(%s);%s", submatches[1], submatches[2], submatches[2], submatches[3])
 			})
 
+		// utils.ReplaceOnce(
+		// 	&content,
+		// 	`(\w+\.fromJSON)(\s*=\s*function\b[^{]*{[^}]*})`,
+		// 	func(submatches ...string) string {
+		// 		return fmt.Sprintf("%s=Spicetify.createInternalMap%s", submatches[1], submatches[2])
+		// 	})
+
 		utils.ReplaceOnce(
 			&content,
 			`(([\w$.]+\.fromJSON)\(\w+\)+;)(return ?[\w{}().,]+[\w$]+\.Provider,)(\{value:\{localConfiguration)`,
 			func(submatches ...string) string {
 				return fmt.Sprintf("%sSpicetify.createInternalMap=%s;%sSpicetify.RemoteConfigResolver=%s", submatches[1], submatches[2], submatches[3], submatches[4])
 			})
+
 		return content
 	})
 }
