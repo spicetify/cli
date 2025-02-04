@@ -518,10 +518,11 @@ const languageCodes =
 	);
 
 const displayNames = new Intl.DisplayNames(["en"], { type: "language" });
-const languageOptions = languageCodes.map((code) => ({
-	code,
-	name: code === "none" ? "None" : displayNames.of(code),
-}));
+const languageOptions = languageCodes.reduce((acc, code) => {
+	acc[code] = code === "none" ? "None" : displayNames.of(code);
+
+	return acc;
+}, {});
 
 const savedLanguage = localStorage.getItem(`${APP_NAME}:visual:musixmatch-translation-language`) || "none";
 CONFIG.visual["musixmatch-translation-language"] = savedLanguage;
@@ -650,7 +651,7 @@ function openConfig() {
 					info: "Choose the language you want to translate the lyrics to. Changes will take effect after the next track.",
 					key: "musixmatch-translation-language",
 					type: ConfigSelection,
-					options: options,
+					options: languageOptions,
 					defaultValue: savedLanguage,
 				},
 			],
