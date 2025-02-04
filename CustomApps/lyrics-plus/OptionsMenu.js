@@ -100,7 +100,9 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 			ko: "Korean",
 		};
 
-		let modeOptions = {};
+		let modeOptions = {
+			none : "None",
+		};
 
 		if (hasTranslation.musixmatch) {
 			const selectedLanguage = CONFIG.visual["musixmatch-translation-language"];

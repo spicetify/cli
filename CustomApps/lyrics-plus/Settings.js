@@ -527,8 +527,6 @@ const languageOptions = languageCodes.reduce((acc, code) => {
 const savedLanguage = localStorage.getItem(`${APP_NAME}:visual:musixmatch-translation-language`) || "none";
 CONFIG.visual["musixmatch-translation-language"] = savedLanguage;
 
-console.log(languageOptions);
-
 function openConfig() {
 	const configContainer = react.createElement(
 		"div",
