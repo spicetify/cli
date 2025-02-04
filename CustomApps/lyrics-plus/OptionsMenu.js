@@ -101,7 +101,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 		};
 
 		let modeOptions = {
-			none : "None",
+			none: "None",
 		};
 
 		if (hasTranslation.musixmatch) {
