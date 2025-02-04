@@ -523,6 +523,9 @@ const languageOptions = languageCodes.map((code) => ({
 	name: code === "none" ? "None" : displayNames.of(code),
 }));
 
+const savedLanguage = localStorage.getItem(`${APP_NAME}:visual:musixmatch-translation-language`) || "none";
+CONFIG.visual["musixmatch-translation-language"] = savedLanguage;
+
 console.log(languageOptions);
 
 function openConfig() {
@@ -648,8 +651,7 @@ function openConfig() {
 					key: "musixmatch-translation-language",
 					type: ConfigSelection,
 					options: options,
-					defaultValue: (CONFIG.visual["musixmatch-translation-language"] =
-						localStorage.getItem(`${APP_NAME}:visual:musixmatch-translation-language`) || "none"),
+					defaultValue: savedLanguage,
 				},
 			],
 			onChange: (name, value) => {
