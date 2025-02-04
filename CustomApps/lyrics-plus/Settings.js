@@ -512,18 +512,19 @@ const OptionList = ({ type, items, onChange }) => {
 		);
 	});
 };
-const languageCodes = [
-  "none", "en", "af", "ar", "bg", "bn", "ca", "zh", "cs", "da", "de", "el",
-  "es", "et", "fa", "fi", "fr", "gu", "he", "hi", "hr", "hu", "id", "is",
-  "it", "ja", "jv", "kn", "ko", "lt", "lv", "ml", "mr", "ms", "nl", "no",
-  "pl", "pt", "ro", "ru", "sk", "sl", "sr", "su", "sv", "ta", "te", "th",
-  "tr", "uk", "ur", "vi", "zu"
-];
-const displayNames = new Intl.DisplayNames(['en'], { type: 'language' });
-const options = languageCodes.reduce((acc, code) => {
-  acc[code] = code === "none" ? "None" : displayNames.of(code);
-  return acc;
-}, {});
+const languageCodes =
+	"none,en,af,ar,bg,bn,ca,zh,cs,da,de,el,es,et,fa,fi,fr,gu,he,hi,hr,hu,id,is,it,ja,jv,kn,ko,lt,lv,ml,mr,ms,nl,no,pl,pt,ro,ru,sk,sl,sr,su,sv,ta,te,th,tr,uk,ur,vi,zu".split(
+		","
+	);
+
+const displayNames = new Intl.DisplayNames(["en"], { type: "language" });
+const languageOptions = languageCodes.map((code) => ({
+	code,
+	name: code === "none" ? "None" : displayNames.of(code),
+}));
+
+console.log(languageOptions);
+
 function openConfig() {
 	const configContainer = react.createElement(
 		"div",
@@ -642,13 +643,14 @@ function openConfig() {
 					step: thresholdSizeLimit.step,
 				},
 				{
-desc: "Musixmatch Translation Language.",
-info: "Choose the language you want to translate the lyrics to. Changes will take effect after the next track.",
-key: "musixmatch-translation-language",
-type: ConfigSelection,
-options: options,
-defaultValue: CONFIG.visual["musixmatch-translation-language"] = localStorage.getItem(`${APP_NAME}:visual:musixmatch-translation-language`) || "none",
-},
+					desc: "Musixmatch Translation Language.",
+					info: "Choose the language you want to translate the lyrics to. Changes will take effect after the next track.",
+					key: "musixmatch-translation-language",
+					type: ConfigSelection,
+					options: options,
+					defaultValue: (CONFIG.visual["musixmatch-translation-language"] =
+						localStorage.getItem(`${APP_NAME}:visual:musixmatch-translation-language`) || "none"),
+				},
 			],
 			onChange: (name, value) => {
 				CONFIG.visual[name] = value;
