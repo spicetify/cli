@@ -111,6 +111,7 @@ func init() {
 	}
 
 	utils.MigrateConfigFolder()
+	utils.MigrateFolders()
 	cmd.InitConfig(quiet)
 
 	if len(commands) < 1 {

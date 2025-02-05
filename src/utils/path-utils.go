@@ -24,6 +24,52 @@ func MigrateConfigFolder() {
 	}
 }
 
+func MigrateFolders() {
+	backupPath := filepath.Join(GetSpicetifyFolder(), "Backup")
+	extractedPath := filepath.Join(GetSpicetifyFolder(), "Extracted")
+
+	if _, err := os.Stat(backupPath); err == nil {
+		newBackupPath := GetStateFolder("Backup")
+		oldAbs, err := filepath.Abs(backupPath)
+		if err != nil {
+			Fatal(err)
+		}
+		newAbs, err := filepath.Abs(newBackupPath)
+		if err != nil {
+			Fatal(err)
+		}
+
+		if oldAbs != newAbs {
+			PrintBold("Migrating spicetify state (Backup, Extracted) folders")
+			err := Copy(backupPath, newBackupPath, true, nil)
+			if err != nil {
+				Fatal(err)
+			}
+			os.RemoveAll(backupPath)
+		}
+	}
+
+	if _, err := os.Stat(extractedPath); err == nil {
+		newExtractedPath := GetStateFolder("Extracted")
+		oldAbs, err := filepath.Abs(extractedPath)
+		if err != nil {
+			Fatal(err)
+		}
+		newAbs, err := filepath.Abs(newExtractedPath)
+		if err != nil {
+			Fatal(err)
+		}
+		if oldAbs != newAbs {
+			PrintBold("Migrating spicetify state (Backup, Extracted) folders")
+			err := Copy(extractedPath, newExtractedPath, true, nil)
+			if err != nil {
+				Fatal(err)
+			}
+			os.RemoveAll(extractedPath)
+		}
+	}
+}
+
 func ReplaceEnvVarsInString(input string) string {
 	var replacements []string
 	for _, v := range os.Environ() {
