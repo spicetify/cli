@@ -361,10 +361,10 @@ func insertHomeConfig(jsPath string, flags Flag) {
 				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
 			})
 
-		// >= 1.2.45
+		// >= 1.2.40
 		utils.ReplaceOnce(
 			&content,
-			`(&&"HomeShortsSectionData".*\],)([a-zA-Z])(\}\)\()`,
+			`(&&"HomeShortsSectionData".*?[\],}])([a-zA-Z])(\}\)?\()`,
 			func(submatches ...string) string {
 				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
 			})
