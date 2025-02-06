@@ -41,6 +41,7 @@ const CONFIG = {
 		"lines-after": localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
 		"font-size": localStorage.getItem("lyrics-plus:visual:font-size") || "32",
 		"translate:translated-lyrics-source": localStorage.getItem("lyrics-plus:visual:translate:translated-lyrics-source") || "none",
+		"translate:display-mode": localStorage.getItem("lyrics-plus:visual:translate:display-mode") || "replace",
 		"translate:detect-language-override": localStorage.getItem("lyrics-plus:visual:translate:detect-language-override") || "off",
 		"translation-mode:japanese": localStorage.getItem("lyrics-plus:visual:translation-mode:japanese") || "furigana",
 		"translation-mode:korean": localStorage.getItem("lyrics-plus:visual:translation-mode:korean") || "hangul",
