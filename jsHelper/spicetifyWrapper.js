@@ -306,6 +306,51 @@ window.Spicetify = {
 	Platform: {},
 };
 
+// Based on https://blog.aziz.tn/2025/01/spotify-fix-lagging-issue-on-scrolling.html
+function applyScrollingFix() {
+	const scrollableElements = Array.from(document.querySelectorAll("*")).filter((el) => {
+		if (
+			el.id === "context-menu" ||
+			el.closest("#context-menu") ||
+			el.getAttribute("role") === "dialog" ||
+			el.classList.contains("popup") ||
+			el.getAttribute("aria-haspopup") === "true"
+		)
+			return false;
+
+		const style = window.getComputedStyle(el);
+		return style.overflow === "auto" || style.overflow === "scroll" || style.overflowY === "auto" || style.overflowY === "scroll";
+	});
+
+	for (const el of scrollableElements) {
+		if (!el.hasAttribute("data-scroll-optimized")) {
+			el.style.willChange = "transform";
+			el.style.transform = "translate3d(0, 0, 0)";
+			el.setAttribute("data-scroll-optimized", "true");
+		}
+	}
+}
+
+const observer = new MutationObserver(applyScrollingFix);
+
+observer.observe(document.body, {
+	childList: true,
+	subtree: true,
+	attributes: false,
+});
+
+const originalPushState = history.pushState;
+history.pushState = function (...args) {
+	originalPushState.apply(this, args);
+	setTimeout(applyScrollingFix, 100);
+};
+
+window.addEventListener("popstate", () => {
+	setTimeout(applyScrollingFix, 100);
+});
+
+applyScrollingFix();
+
 (function waitForPlatform() {
 	if (!Spicetify._platform) {
 		setTimeout(waitForPlatform, 50);
