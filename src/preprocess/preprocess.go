@@ -26,6 +26,7 @@ type Flag struct {
 	RemoveRTL bool
 	// ExposeAPIs leaks some Spotify's API, functions, objects to Spicetify global object.
 	ExposeAPIs bool
+	SpotifyVer string
 }
 
 func readRemoteCssMap(tag string, cssTranslationMap *map[string]string) error {
@@ -82,6 +83,18 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 		readLocalCssMap(&cssTranslationMap)
 	}
 
+	verParts := strings.Split(flags.SpotifyVer, ".")
+	spotifyMajor, spotifyMinor, spotifyPatch := 0, 0, 0
+	if len(verParts) > 0 {
+		spotifyMajor, _ = strconv.Atoi(verParts[0])
+	}
+	if len(verParts) > 1 {
+		spotifyMinor, _ = strconv.Atoi(verParts[1])
+	}
+	if len(verParts) > 2 {
+		spotifyPatch, _ = strconv.Atoi(verParts[2])
+	}
+
 	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
 		fileName := info.Name()
 		extension := filepath.Ext(fileName)
@@ -101,8 +114,13 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 					switch fileName {
 					case "xpui.js":
 						content = exposeAPIs_main(content)
+						if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
+							content = exposeAPIs_vendor(content)
+						}
 					case "vendor~xpui.js":
-						content = exposeAPIs_vendor(content)
+						if spotifyMajor < 1 && spotifyMinor < 2 && spotifyPatch < 57 {
+							content = exposeAPIs_vendor(content)
+						}
 					}
 				}
 				for k, v := range cssTranslationMap {
