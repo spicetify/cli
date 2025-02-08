@@ -118,9 +118,7 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 							content = exposeAPIs_vendor(content)
 						}
 					case "vendor~xpui.js":
-						if spotifyMajor < 1 && spotifyMinor < 2 && spotifyPatch < 57 {
-							content = exposeAPIs_vendor(content)
-						}
+						content = exposeAPIs_vendor(content)
 					}
 				}
 				for k, v := range cssTranslationMap {
