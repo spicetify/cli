@@ -163,7 +163,6 @@ const ProviderMusixmatch = (() => {
 		if (!track_id) return null;
 
 		const selectedLanguage = CONFIG.visual["musixmatch-translation-language"] || "none";
-
 		if (selectedLanguage === "none") return null;
 
 		const baseURL =
