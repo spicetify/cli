@@ -95,8 +95,8 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 		const savedTranslationDisplay = localStorage.getItem(`${APP_NAME}:visual:translate:display-mode`) || "replace";
 		CONFIG.visual["translate:display-mode"] = savedTranslationDisplay;
 		const translationDisplayOptions = {
-			replace: "Replace",
-			below: "Below",
+			replace: "Replace original",
+			below: "Below original",
 		};
 
 		const languageOptions = {
