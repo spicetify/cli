@@ -165,9 +165,14 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				renderInline: true,
 			},
 			{
-				desc: "Display",
+				desc: "Translation Display",
 				key: "translate:display-mode",
 				type: ConfigSelection,
+				onChange: (name, value) => {
+					CONFIG.visual[name] = value;
+					localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
+					lyricContainerUpdate?.();
+				},
 				options: translationDisplayOptions,
 				defaultValue: savedTranslationDisplay,
 				renderInline: true,

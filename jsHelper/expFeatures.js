@@ -167,7 +167,7 @@
 			isFallback = false;
 			notice.remove();
 			remoteConfiguration =
-				Spicetify?.RemoteConfigResolver.value?.remoteConfiguration ?? (await Spicetify.Platform?.RemoteConfigDebugAPI.getProperties());
+				Spicetify?.RemoteConfigResolver?.value.remoteConfiguration ?? (await Spicetify.Platform?.RemoteConfigDebugAPI.getProperties());
 		})();
 
 		for (const key of Object.keys(overrideList)) {
