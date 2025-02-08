@@ -92,6 +92,13 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 			none: "None",
 		};
 
+		const savedTranslationDisplay = localStorage.getItem(`${APP_NAME}:visual:translate:display-mode`) || "replace";
+		CONFIG.visual["translate:display-mode"] = savedTranslationDisplay;
+		const translationDisplayOptions = {
+			replace: "Replace",
+			below: "Below",
+		};
+
 		const languageOptions = {
 			off: "Off",
 			"zh-hans": "Chinese (Simplified)",
@@ -155,6 +162,14 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				key: "translate:translated-lyrics-source",
 				type: ConfigSelection,
 				options: sourceOptions,
+				renderInline: true,
+			},
+			{
+				desc: "Display",
+				key: "translate:display-mode",
+				type: ConfigSelection,
+				options: translationDisplayOptions,
+				defaultValue: savedTranslationDisplay,
 				renderInline: true,
 			},
 			{
