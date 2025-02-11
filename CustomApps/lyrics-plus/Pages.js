@@ -171,7 +171,12 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 				// If we have original text and we are showing translated below, we should show the original text
 				// Otherwise we should show the translated text
 				const lineText = originalText && showTranslatedBelow ? originalText : text;
-				const belowMode = showTranslatedBelow && originalText && originalText !== text;
+
+				// Convert lyrics to text for comparison
+				const belowOrigin = typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText;
+				const belowTxt = typeof text === "object" ? text?.props?.children?.[0] : text;
+
+				const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
 				return react.createElement(
 					"div",
@@ -214,8 +219,8 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 								onContextMenu: (event) => {
 									event.preventDefault();
 									Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
-										.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-										.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+										.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
+										.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
 								},
 							},
 							text
@@ -448,7 +453,12 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 			// If we have original text and we are showing translated below, we should show the original text
 			// Otherwise we should show the translated text
 			const lineText = originalText && showTranslatedBelow ? originalText : text;
-			const belowMode = showTranslatedBelow && originalText && originalText !== text;
+
+			// Convert lyrics to text for comparison
+			const belowOrigin = typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText;
+			const belowTxt = typeof text === "object" ? text?.props?.children?.[0] : text;
+
+			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
 			return react.createElement(
 				"div",
@@ -486,8 +496,8 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 							onContextMenu: (event) => {
 								event.preventDefault();
 								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
-									.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-									.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
+									.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
 							},
 						},
 						text
@@ -519,7 +529,12 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 			// If we have original text and we are showing translated below, we should show the original text
 			// Otherwise we should show the translated text
 			const lineText = originalText && showTranslatedBelow ? originalText : text;
-			const belowMode = showTranslatedBelow && originalText && originalText !== text;
+
+			// Convert lyrics to text for comparison
+			const belowOrigin = typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText;
+			const belowTxt = typeof text === "object" ? text?.props?.children?.[0] : text;
+
+			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
 			return react.createElement(
 				"div",
@@ -548,8 +563,8 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 							onContextMenu: (event) => {
 								event.preventDefault();
 								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToUnsynced(lyrics, belowMode).conver)
-									.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-									.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
+									.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
 							},
 						},
 						text

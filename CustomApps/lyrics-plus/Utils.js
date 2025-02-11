@@ -139,10 +139,12 @@ const Utils = {
 			const lyric = {
 				startTime: lyricsToTranslate[i].startTime || 0,
 				text: this.rubyTextToReact(translatedLines[i]),
+				originalText: lyricsToTranslate[i].text,
 			};
 			state[stateName].push(lyric);
 		}
 	},
+	/** It seems that this function is not being used, but I'll keep it just in case it’s needed in the future.*/
 	processTranslatedOriginalLyrics(lyrics, synced) {
 		const data = [];
 		const dataSouce = {};
@@ -248,24 +250,24 @@ const Utils = {
 
 		if (isBelow) {
 			for (const line of lyrics) {
-				if (line.originalText !== "object") {
-					original += `${line.originalText}\n`;
-				} else {
+				if (typeof line.originalText === "object") {
 					original += `${line.originalText?.props?.children?.[0]}\n`;
+				} else {
+					original += `${line.originalText}\n`;
 				}
 
-				if (line.text !== "object") {
-					conver += `${line.text}\n`;
-				} else {
+				if (typeof line.text === "object") {
 					conver += `${line.text?.props?.children?.[0]}\n`;
+				} else {
+					conver += `${line.text}\n`;
 				}
 			}
 		} else {
 			for (const line of lyrics) {
-				if (line.text !== "object") {
-					original += `${line.text}\n`;
-				} else {
+				if (typeof line.text === "object") {
 					original += `${line.text?.props?.children?.[0]}\n`;
+				} else {
+					original += `${line.text}\n`;
 				}
 			}
 		}
