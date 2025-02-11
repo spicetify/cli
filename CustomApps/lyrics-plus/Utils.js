@@ -222,13 +222,45 @@ const Utils = {
 		}
 		return text;
 	},
-	convertParsedToLRC(lyrics) {
-		return lyrics
-			.map((line) => {
-				if (!line.startTime) return line.text;
-				return `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}`;
-			})
-			.join("\n");
+	convertParsedToLRC(lyrics, isBelow) {
+		let original = "";
+		let conver = "";
+
+		if (isBelow) {
+			lyrics.forEach((line) => {
+				original += `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.originalText, line.startTime)}\n`;
+				conver += `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}\n`;
+			});
+		} else {
+			lyrics.forEach((line) => {
+				original += `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}\n`;
+			});
+		}
+
+		return {
+			original,
+			conver,
+		};
+	},
+	convertParsedToUnsynced(lyrics, isBelow) {
+		let original = "";
+		let conver = "";
+
+		if (isBelow) {
+			lyrics.forEach((line) => {
+				typeof line.originalText !== "object" ? (original += `${line.originalText}\n`) : (original += `${line.originalText?.props?.children?.[0]}\n`);
+				typeof line.text !== "object" ? (conver += `${line.text}\n`) : (conver += `${line.text?.props?.children?.[0]}\n`);
+			});
+		} else {
+			lyrics.forEach((line) => {
+				typeof line.text !== "object" ? (original += `${line.text}\n`) : (original += `${line.text?.props?.children?.[0]}\n`);
+			});
+		}
+
+		return {
+			original,
+			conver,
+		};
 	},
 	parseLocalLyrics(lyrics) {
 		// Preprocess lyrics by removing [tags] and empty lines

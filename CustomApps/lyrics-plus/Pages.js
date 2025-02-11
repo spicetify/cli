@@ -123,8 +123,6 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 		offset += -(activeLineEle.current.offsetTop + activeLineEle.current.clientHeight / 2);
 	}
 
-	const rawLyrics = Utils.convertParsedToLRC(lyrics);
-
 	return react.createElement(
 		"div",
 		{
@@ -173,6 +171,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 				// If we have original text and we are showing translated below, we should show the original text
 				// Otherwise we should show the translated text
 				const lineText = originalText && showTranslatedBelow ? originalText : text;
+				const belowMode = showTranslatedBelow && originalText && originalText !== text;
 
 				return react.createElement(
 					"div",
@@ -192,22 +191,31 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 								Spicetify.Player.seek(startTime);
 							}
 						},
-						onContextMenu: (event) => {
-							event.preventDefault();
-							Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
-								.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-								.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-						},
 					},
-					react.createElement("p", {}, !isKara ? lineText : react.createElement(KaraokeLine, { text, startTime, position, isActive })),
-					showTranslatedBelow &&
-						originalText &&
-						originalText !== text &&
+					react.createElement(
+						"p",
+						{
+							onContextMenu: (event) => {
+								event.preventDefault();
+								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).original)
+									.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
+									.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+							},
+						},
+						!isKara ? lineText : react.createElement(KaraokeLine, { text, startTime, position, isActive })
+					),
+					belowMode &&
 						react.createElement(
 							"p",
 							{
 								style: {
 									opacity: 0.5,
+								},
+								onContextMenu: (event) => {
+									event.preventDefault();
+									Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
+										.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
+										.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
 								},
 							},
 							text
@@ -405,8 +413,6 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 		}
 	}
 
-	const rawLyrics = Utils.convertParsedToLRC(lyrics);
-
 	useEffect(() => {
 		if (activeLineRef.current && (!intialScroll[0] || isInViewport(activeLineRef.current))) {
 			activeLineRef.current.scrollIntoView({
@@ -442,6 +448,8 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 			// If we have original text and we are showing translated below, we should show the original text
 			// Otherwise we should show the translated text
 			const lineText = originalText && showTranslatedBelow ? originalText : text;
+			const belowMode = showTranslatedBelow && originalText && originalText !== text;
+
 			return react.createElement(
 				"div",
 				{
@@ -457,21 +465,30 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 							Spicetify.Player.seek(startTime);
 						}
 					},
-					onContextMenu: (event) => {
-						event.preventDefault();
-						Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
-							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-					},
 				},
-				react.createElement("p", {}, !isKara ? lineText : react.createElement(KaraokeLine, { text, startTime, position, isActive })),
-				showTranslatedBelow &&
-					originalText &&
-					originalText !== text &&
+				react.createElement(
+					"p",
+					{
+						onContextMenu: (event) => {
+							event.preventDefault();
+							Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).original)
+								.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
+								.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+						},
+					},
+					!isKara ? lineText : react.createElement(KaraokeLine, { text, startTime, position, isActive })
+				),
+				belowMode &&
 					react.createElement(
 						"p",
 						{
 							style: { opacity: 0.5 },
+							onContextMenu: (event) => {
+								event.preventDefault();
+								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
+									.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
+									.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+							},
 						},
 						text
 					)
@@ -489,8 +506,6 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 });
 
 const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
-	const rawLyrics = lyrics.map((lyrics) => (typeof lyrics.text !== "object" ? lyrics.text : lyrics.text?.props?.children?.[0])).join("\n");
-
 	return react.createElement(
 		"div",
 		{
@@ -504,6 +519,7 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 			// If we have original text and we are showing translated below, we should show the original text
 			// Otherwise we should show the translated text
 			const lineText = originalText && showTranslatedBelow ? originalText : text;
+			const belowMode = showTranslatedBelow && originalText && originalText !== text;
 
 			return react.createElement(
 				"div",
@@ -511,21 +527,30 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 					className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
 					key: index,
 					dir: "auto",
-					onContextMenu: (event) => {
-						event.preventDefault();
-						Spicetify.Platform.ClipboardAPI.copy(rawLyrics)
-							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
-					},
 				},
-				react.createElement("p", {}, lineText),
-				showTranslatedBelow &&
-					originalText &&
-					originalText !== text &&
+				react.createElement(
+					"p",
+					{
+						onContextMenu: (event) => {
+							event.preventDefault();
+							Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToUnsynced(lyrics, belowMode).original)
+								.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
+								.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+						},
+					},
+					lineText
+				),
+				belowMode &&
 					react.createElement(
 						"p",
 						{
 							style: { opacity: 0.5 },
+							onContextMenu: (event) => {
+								event.preventDefault();
+								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToUnsynced(lyrics, belowMode).conver)
+									.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
+									.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+							},
 						},
 						text
 					)
