@@ -227,14 +227,14 @@ const Utils = {
 		let conver = "";
 
 		if (isBelow) {
-			lyrics.forEach((line) => {
+			for (const line of lyrics) {
 				original += `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.originalText, line.startTime)}\n`;
 				conver += `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}\n`;
-			});
+			}
 		} else {
-			lyrics.forEach((line) => {
+			for (const line of lyrics) {
 				original += `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}\n`;
-			});
+			}
 		}
 
 		return {
@@ -247,14 +247,27 @@ const Utils = {
 		let conver = "";
 
 		if (isBelow) {
-			lyrics.forEach((line) => {
-				typeof line.originalText !== "object" ? (original += `${line.originalText}\n`) : (original += `${line.originalText?.props?.children?.[0]}\n`);
-				typeof line.text !== "object" ? (conver += `${line.text}\n`) : (conver += `${line.text?.props?.children?.[0]}\n`);
-			});
+			for (const line of lyrics) {
+				if (line.originalText !== "object") {
+					original += `${line.originalText}\n`;
+				} else {
+					original += `${line.originalText?.props?.children?.[0]}\n`;
+				}
+
+				if (line.text !== "object") {
+					conver += `${line.text}\n`;
+				} else {
+					conver += `${line.text?.props?.children?.[0]}\n`;
+				}
+			}
 		} else {
-			lyrics.forEach((line) => {
-				typeof line.text !== "object" ? (original += `${line.text}\n`) : (original += `${line.text?.props?.children?.[0]}\n`);
-			});
+			for (const line of lyrics) {
+				if (line.text !== "object") {
+					original += `${line.text}\n`;
+				} else {
+					original += `${line.text?.props?.children?.[0]}\n`;
+				}
+			}
 		}
 
 		return {
