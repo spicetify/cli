@@ -643,7 +643,7 @@ function openConfig() {
 				},
 				{
 					desc: "Musixmatch Translation Language.",
-					info: "Choose the language you want to translate the lyrics to. Changes will take effect after the next track.",
+					info: "Choose the language you want to translate the lyrics to. When the language is changed, the page reloads.",
 					key: "musixmatch-translation-language",
 					type: ConfigSelection,
 					options: languageOptions,

@@ -180,6 +180,7 @@ class LyricsContainer extends react.Component {
 		this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
 		this.languageOverride = CONFIG.visual["translate:detect-language-override"];
 		this.translate = CONFIG.visual.translate;
+		this.reRenderLyricsPage = false;
 	}
 
 	infoFromTrack(track) {
@@ -610,6 +611,7 @@ class LyricsContainer extends react.Component {
 		Utils.addQueueListener(this.onQueueChange);
 
 		lyricContainerUpdate = () => {
+			this.reRenderLyricsPage = !this.reRenderLyricsPage;
 			this.updateVisualOnConfigChange();
 			this.forceUpdate();
 		};
@@ -789,6 +791,7 @@ class LyricsContainer extends react.Component {
 					lyrics: this.state.karaoke,
 					provider: this.state.provider,
 					copyright: this.state.copyright,
+					reRenderLyricsPage: this.reRenderLyricsPage,
 				});
 			} else if (mode === SYNCED && this.state.synced) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
@@ -796,6 +799,7 @@ class LyricsContainer extends react.Component {
 					lyrics: CONFIG.visual.translate && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright,
+					reRenderLyricsPage: this.reRenderLyricsPage,
 				});
 			} else if (mode === UNSYNCED && this.state.unsynced) {
 				activeItem = react.createElement(UnsyncedLyricsPage, {
@@ -803,6 +807,7 @@ class LyricsContainer extends react.Component {
 					lyrics: CONFIG.visual.translate && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright,
+					reRenderLyricsPage: this.reRenderLyricsPage,
 				});
 			} else if (mode === GENIUS && this.state.genius) {
 				activeItem = react.createElement(GeniusPage, {
@@ -817,6 +822,7 @@ class LyricsContainer extends react.Component {
 					lyrics2: this.state.genius2,
 					versionIndex2: this.state.versionIndex2,
 					onVersionChange2: this.onVersionChange2.bind(this),
+					reRenderLyricsPage: this.reRenderLyricsPage,
 				});
 			}
 		}
