@@ -49,6 +49,7 @@ const CONFIG = {
 		translate: getConfig("lyrics-plus:visual:translate", false),
 		"ja-detect-threshold": localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
 		"hans-detect-threshold": localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
+		"musixmatch-translation-language": localStorage.getItem("lyrics-plus:visual:musixmatch-translation-language") || "none",
 		"fade-blur": getConfig("lyrics-plus:visual:fade-blur"),
 		"fullscreen-key": localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
 		"synced-compact": getConfig("lyrics-plus:visual:synced-compact"),

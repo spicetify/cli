@@ -92,8 +92,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 			none: "None",
 		};
 
-		const savedTranslationDisplay = localStorage.getItem(`${APP_NAME}:visual:translate:display-mode`) || "replace";
-		CONFIG.visual["translate:display-mode"] = savedTranslationDisplay;
 		const translationDisplayOptions = {
 			replace: "Replace original",
 			below: "Below original",
@@ -174,7 +172,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 					lyricContainerUpdate?.();
 				},
 				options: translationDisplayOptions,
-				defaultValue: savedTranslationDisplay,
 				renderInline: true,
 			},
 			{
