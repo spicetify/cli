@@ -109,6 +109,11 @@ const RefreshTokenButton = ({ setTokenCallback }) => {
 const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
 	const [active, setActive] = useState(defaultValue);
 
+	useEffect(() => {
+		setActive(defaultValue);
+		onChange(defaultValue);
+	}, [defaultValue]);
+
 	const toggleState = useCallback(() => {
 		const state = !active;
 		setActive(state);

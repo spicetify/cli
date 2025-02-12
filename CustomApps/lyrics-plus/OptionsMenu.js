@@ -227,6 +227,15 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 							type: "translation-menu",
 							items,
 							onChange: (name, value) => {
+								if (name === "translate:translated-lyrics-source") {
+									CONFIG.visual["translate"] = false;
+									localStorage.setItem(`${APP_NAME}:visual:translate`, false);
+								}
+								if (name === "translate") {
+									CONFIG.visual["translate:translated-lyrics-source"] = "none";
+									localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, "none");
+								}
+
 								CONFIG.visual[name] = value;
 								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 								lyricContainerUpdate?.();
