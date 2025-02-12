@@ -111,7 +111,6 @@ const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
 
 	useEffect(() => {
 		setActive(defaultValue);
-		onChange(defaultValue);
 	}, [defaultValue]);
 
 	const toggleState = useCallback(() => {
@@ -648,7 +647,7 @@ function openConfig() {
 				},
 				{
 					desc: "Musixmatch Translation Language.",
-					info: "Choose the language you want to translate the lyrics to. When the language is changed, the page reloads.",
+					info: "Choose the language you want to translate the lyrics to. When the language is changed, the lyrics reloads.",
 					key: "musixmatch-translation-language",
 					type: ConfigSelection,
 					options: languageOptions,
