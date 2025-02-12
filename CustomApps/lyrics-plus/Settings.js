@@ -652,7 +652,13 @@ function openConfig() {
 			onChange: (name, value) => {
 				CONFIG.visual[name] = value;
 				localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
-				lyricContainerUpdate?.();
+
+				// Reload Lyrics if translation language is changed
+				if (name === "musixmatch-translation-language") {
+					reloadLyrics?.();
+				} else {
+					lyricContainerUpdate?.();
+				}
 
 				const configChange = new CustomEvent("lyrics-plus", {
 					detail: {
@@ -662,11 +668,6 @@ function openConfig() {
 					},
 				});
 				window.dispatchEvent(configChange);
-
-				// Reload page if translation language is changed
-				if (name === "musixmatch-translation-language") {
-					window.location.reload();
-				}
 			},
 		}),
 		react.createElement("h2", null, "Providers"),
@@ -675,15 +676,17 @@ function openConfig() {
 			onListChange: (list) => {
 				CONFIG.providersOrder = list;
 				localStorage.setItem(`${APP_NAME}:services-order`, JSON.stringify(list));
+				reloadLyrics?.();
 			},
 			onToggle: (name, value) => {
 				CONFIG.providers[name].on = value;
 				localStorage.setItem(`${APP_NAME}:provider:${name}:on`, value);
-				lyricContainerUpdate?.();
+				reloadLyrics?.();
 			},
 			onTokenChange: (name, value) => {
 				CONFIG.providers[name].token = value;
 				localStorage.setItem(`${APP_NAME}:provider:${name}:token`, value);
+				reloadLyrics?.();
 			},
 		}),
 		react.createElement("h2", null, "CORS Proxy Template"),

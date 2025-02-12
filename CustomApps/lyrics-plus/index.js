@@ -112,7 +112,7 @@ CONFIG.visual["font-size"] = Number.parseInt(CONFIG.visual["font-size"]);
 CONFIG.visual["ja-detect-threshold"] = Number.parseInt(CONFIG.visual["ja-detect-threshold"]);
 CONFIG.visual["hans-detect-threshold"] = Number.parseInt(CONFIG.visual["hans-detect-threshold"]);
 
-const CACHE = {};
+let CACHE = {};
 
 const emptyState = {
 	karaoke: null,
@@ -124,6 +124,7 @@ const emptyState = {
 };
 
 let lyricContainerUpdate;
+let reloadLyrics;
 
 const fontSizeLimit = { min: 16, max: 256, step: 4 };
 
@@ -614,6 +615,13 @@ class LyricsContainer extends react.Component {
 			this.reRenderLyricsPage = !this.reRenderLyricsPage;
 			this.updateVisualOnConfigChange();
 			this.forceUpdate();
+		};
+
+		reloadLyrics = () => {
+			CACHE = {};
+			this.updateVisualOnConfigChange();
+			this.forceUpdate();
+			this.fetchLyrics(Spicetify.Player.data.item, this.state.explicitMode);
 		};
 
 		this.viewPort =
