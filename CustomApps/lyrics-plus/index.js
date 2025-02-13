@@ -49,6 +49,7 @@ const CONFIG = {
 		translate: getConfig("lyrics-plus:visual:translate", false),
 		"ja-detect-threshold": localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
 		"hans-detect-threshold": localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
+		"musixmatch-translation-language": localStorage.getItem("lyrics-plus:visual:musixmatch-translation-language") || "none",
 		"fade-blur": getConfig("lyrics-plus:visual:fade-blur"),
 		"fullscreen-key": localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
 		"synced-compact": getConfig("lyrics-plus:visual:synced-compact"),
@@ -111,7 +112,7 @@ CONFIG.visual["font-size"] = Number.parseInt(CONFIG.visual["font-size"]);
 CONFIG.visual["ja-detect-threshold"] = Number.parseInt(CONFIG.visual["ja-detect-threshold"]);
 CONFIG.visual["hans-detect-threshold"] = Number.parseInt(CONFIG.visual["hans-detect-threshold"]);
 
-const CACHE = {};
+let CACHE = {};
 
 const emptyState = {
 	karaoke: null,
@@ -123,6 +124,7 @@ const emptyState = {
 };
 
 let lyricContainerUpdate;
+let reloadLyrics;
 
 const fontSizeLimit = { min: 16, max: 256, step: 4 };
 
@@ -179,6 +181,7 @@ class LyricsContainer extends react.Component {
 		this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
 		this.languageOverride = CONFIG.visual["translate:detect-language-override"];
 		this.translate = CONFIG.visual.translate;
+		this.reRenderLyricsPage = false;
 	}
 
 	infoFromTrack(track) {
@@ -609,8 +612,16 @@ class LyricsContainer extends react.Component {
 		Utils.addQueueListener(this.onQueueChange);
 
 		lyricContainerUpdate = () => {
+			this.reRenderLyricsPage = !this.reRenderLyricsPage;
 			this.updateVisualOnConfigChange();
 			this.forceUpdate();
+		};
+
+		reloadLyrics = () => {
+			CACHE = {};
+			this.updateVisualOnConfigChange();
+			this.forceUpdate();
+			this.fetchLyrics(Spicetify.Player.data.item, this.state.explicitMode);
 		};
 
 		this.viewPort =
@@ -788,6 +799,7 @@ class LyricsContainer extends react.Component {
 					lyrics: this.state.karaoke,
 					provider: this.state.provider,
 					copyright: this.state.copyright,
+					reRenderLyricsPage: this.reRenderLyricsPage,
 				});
 			} else if (mode === SYNCED && this.state.synced) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
@@ -795,6 +807,7 @@ class LyricsContainer extends react.Component {
 					lyrics: CONFIG.visual.translate && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright,
+					reRenderLyricsPage: this.reRenderLyricsPage,
 				});
 			} else if (mode === UNSYNCED && this.state.unsynced) {
 				activeItem = react.createElement(UnsyncedLyricsPage, {
@@ -802,6 +815,7 @@ class LyricsContainer extends react.Component {
 					lyrics: CONFIG.visual.translate && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright,
+					reRenderLyricsPage: this.reRenderLyricsPage,
 				});
 			} else if (mode === GENIUS && this.state.genius) {
 				activeItem = react.createElement(GeniusPage, {
@@ -816,6 +830,7 @@ class LyricsContainer extends react.Component {
 					lyrics2: this.state.genius2,
 					versionIndex2: this.state.versionIndex2,
 					onVersionChange2: this.onVersionChange2.bind(this),
+					reRenderLyricsPage: this.reRenderLyricsPage,
 				});
 			}
 		}

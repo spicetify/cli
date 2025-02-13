@@ -92,8 +92,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 			none: "None",
 		};
 
-		const savedTranslationDisplay = localStorage.getItem(`${APP_NAME}:visual:translate:display-mode`) || "replace";
-		CONFIG.visual["translate:display-mode"] = savedTranslationDisplay;
 		const translationDisplayOptions = {
 			replace: "Replace original",
 			below: "Below original",
@@ -168,13 +166,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				desc: "Translation Display",
 				key: "translate:display-mode",
 				type: ConfigSelection,
-				onChange: (name, value) => {
-					CONFIG.visual[name] = value;
-					localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
-					lyricContainerUpdate?.();
-				},
 				options: translationDisplayOptions,
-				defaultValue: savedTranslationDisplay,
 				renderInline: true,
 			},
 			{
@@ -183,6 +175,8 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				type: ConfigSelection,
 				options: languageOptions,
 				renderInline: true,
+				// for songs in languages that support translation but not Convert (e.g., English), the option is disabled.
+				when: () => friendlyLanguage,
 			},
 			{
 				desc: "Display Mode",
@@ -190,6 +184,8 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				type: ConfigSelection,
 				options: modeOptions,
 				renderInline: true,
+				// for songs in languages that support translation but not Convert (e.g., English), the option is disabled.
+				when: () => friendlyLanguage,
 			},
 			{
 				desc: "Convert",
@@ -198,6 +194,8 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				trigger: "click",
 				action: "toggle",
 				renderInline: true,
+				// for songs in languages that support translation but not Convert (e.g., English), the option is disabled.
+				when: () => friendlyLanguage,
 			},
 		];
 	}, [friendlyLanguage]);
@@ -235,6 +233,15 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 							type: "translation-menu",
 							items,
 							onChange: (name, value) => {
+								if (name === "translate:translated-lyrics-source" && friendlyLanguage) {
+									CONFIG.visual.translate = false;
+									localStorage.setItem(`${APP_NAME}:visual:translate`, false);
+								}
+								if (name === "translate") {
+									CONFIG.visual["translate:translated-lyrics-source"] = "none";
+									localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, "none");
+								}
+
 								CONFIG.visual[name] = value;
 								localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 								lyricContainerUpdate?.();

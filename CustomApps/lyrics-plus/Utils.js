@@ -96,7 +96,7 @@ const Utils = {
 		// Should return IETF BCP 47 language tags.
 		// This should detect the song's main language.
 		// Remember there is a possibility of a song referencing something in another language and the lyrics show it in that native language!
-		const rawLyrics = lyrics.map((line) => line.text).join(" ");
+		const rawLyrics = lyrics[0].originalText ? lyrics.map((line) => line.originalText).join(" ") : lyrics.map((line) => line.text).join(" ");
 
 		const kanaRegex = /[\u3001-\u3003]|[\u3005\u3007]|[\u301d-\u301f]|[\u3021-\u3035]|[\u3038-\u303a]|[\u3040-\u30ff]|[\uff66-\uff9f]/gu;
 		const hangulRegex = /(\S*[\u3131-\u314e|\u314f-\u3163|\uac00-\ud7a3]+\S*)/g;
@@ -139,10 +139,12 @@ const Utils = {
 			const lyric = {
 				startTime: lyricsToTranslate[i].startTime || 0,
 				text: this.rubyTextToReact(translatedLines[i]),
+				originalText: lyricsToTranslate[i].text,
 			};
 			state[stateName].push(lyric);
 		}
 	},
+	/** It seems that this function is not being used, but I'll keep it just in case it’s needed in the future.*/
 	processTranslatedOriginalLyrics(lyrics, synced) {
 		const data = [];
 		const dataSouce = {};
@@ -222,13 +224,58 @@ const Utils = {
 		}
 		return text;
 	},
-	convertParsedToLRC(lyrics) {
-		return lyrics
-			.map((line) => {
-				if (!line.startTime) return line.text;
-				return `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}`;
-			})
-			.join("\n");
+	convertParsedToLRC(lyrics, isBelow) {
+		let original = "";
+		let conver = "";
+
+		if (isBelow) {
+			for (const line of lyrics) {
+				original += `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.originalText, line.startTime)}\n`;
+				conver += `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}\n`;
+			}
+		} else {
+			for (const line of lyrics) {
+				original += `[${this.formatTime(line.startTime)}]${this.formatTextWithTimestamps(line.text, line.startTime)}\n`;
+			}
+		}
+
+		return {
+			original,
+			conver,
+		};
+	},
+	convertParsedToUnsynced(lyrics, isBelow) {
+		let original = "";
+		let conver = "";
+
+		if (isBelow) {
+			for (const line of lyrics) {
+				if (typeof line.originalText === "object") {
+					original += `${line.originalText?.props?.children?.[0]}\n`;
+				} else {
+					original += `${line.originalText}\n`;
+				}
+
+				if (typeof line.text === "object") {
+					conver += `${line.text?.props?.children?.[0]}\n`;
+				} else {
+					conver += `${line.text}\n`;
+				}
+			}
+		} else {
+			for (const line of lyrics) {
+				if (typeof line.text === "object") {
+					original += `${line.text?.props?.children?.[0]}\n`;
+				} else {
+					original += `${line.text}\n`;
+				}
+			}
+		}
+
+		return {
+			original,
+			conver,
+		};
 	},
 	parseLocalLyrics(lyrics) {
 		// Preprocess lyrics by removing [tags] and empty lines
