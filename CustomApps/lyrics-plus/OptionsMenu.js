@@ -175,6 +175,8 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				type: ConfigSelection,
 				options: languageOptions,
 				renderInline: true,
+				// for songs in languages that support translation but not Convert (e.g., English), the option is disabled.
+				when: () => friendlyLanguage,
 			},
 			{
 				desc: "Display Mode",
@@ -182,6 +184,8 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				type: ConfigSelection,
 				options: modeOptions,
 				renderInline: true,
+				// for songs in languages that support translation but not Convert (e.g., English), the option is disabled.
+				when: () => friendlyLanguage,
 			},
 			{
 				desc: "Convert",
@@ -190,6 +194,8 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				trigger: "click",
 				action: "toggle",
 				renderInline: true,
+				// for songs in languages that support translation but not Convert (e.g., English), the option is disabled.
+				when: () => friendlyLanguage,
 			},
 		];
 	}, [friendlyLanguage]);
@@ -227,7 +233,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 							type: "translation-menu",
 							items,
 							onChange: (name, value) => {
-								if (name === "translate:translated-lyrics-source") {
+								if (name === "translate:translated-lyrics-source" && friendlyLanguage) {
 									CONFIG.visual.translate = false;
 									localStorage.setItem(`${APP_NAME}:visual:translate`, false);
 								}

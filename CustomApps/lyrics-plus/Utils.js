@@ -96,7 +96,7 @@ const Utils = {
 		// Should return IETF BCP 47 language tags.
 		// This should detect the song's main language.
 		// Remember there is a possibility of a song referencing something in another language and the lyrics show it in that native language!
-		const rawLyrics = lyrics.map((line) => line.text).join(" ");
+		const rawLyrics = lyrics[0].originalText ? lyrics.map((line) => line.originalText).join(" ") : lyrics.map((line) => line.text).join(" ");
 
 		const kanaRegex = /[\u3001-\u3003]|[\u3005\u3007]|[\u301d-\u301f]|[\u3021-\u3035]|[\u3038-\u303a]|[\u3040-\u30ff]|[\uff66-\uff9f]/gu;
 		const hangulRegex = /(\S*[\u3131-\u314e|\u314f-\u3163|\uac00-\ud7a3]+\S*)/g;
