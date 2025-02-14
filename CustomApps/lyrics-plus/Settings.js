@@ -51,7 +51,7 @@ const CacheButton = () => {
 	}
 
 	const [count, setCount] = useState(Object.keys(lyrics).length);
-	const text = count ? "Clear cached lyrics" : "No cached lyrics";
+	const text = count ? "Clear all cached lyrics" : "No cached lyrics";
 
 	return react.createElement(
 		"button",
@@ -103,6 +103,36 @@ const RefreshTokenButton = ({ setTokenCallback }) => {
 			disabled: buttonText !== "Refresh token",
 		},
 		buttonText
+	);
+};
+
+const ConfigButton = ({ name, text, onChange = () => {} }) => {
+	return react.createElement(
+		"div",
+		{
+			className: "setting-row",
+		},
+		react.createElement(
+			"label",
+			{
+				className: "col description",
+			},
+			name
+		),
+		react.createElement(
+			"div",
+			{
+				className: "col action",
+			},
+			react.createElement(
+				"button",
+				{
+					className: "btn",
+					onClick: onChange,
+				},
+				text
+			)
+		)
 	);
 };
 
@@ -651,6 +681,16 @@ function openConfig() {
 					key: "musixmatch-translation-language",
 					type: ConfigSelection,
 					options: languageOptions,
+				},
+				{
+					desc: "Clear Memory Cache",
+					info: "Loaded lyrics are cached in memory for faster reloading. Press this button to clear the cached lyrics from memory without restarting Spotify.",
+					key: "clear-memore-cache",
+					text: "Clear memory cache",
+					type: ConfigButton,
+					onChange: () => {
+						reloadLyrics?.();
+					},
 				},
 			],
 			onChange: (name, value) => {

@@ -377,8 +377,8 @@ class LyricsContainer extends react.Component {
 			const friendlyLanguage = language && new Intl.DisplayNames(["en"], { type: "language" }).of(language.split("-")[0])?.toLowerCase();
 			const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
 
-			const isCached = CACHE[tempState.uri]?.[targetConvert];
-			if (CONFIG.visual.translate && defaultLanguage && !isCached) {
+			const isMemorey = CACHE[tempState.uri]?.[targetConvert];
+			if (CONFIG.visual.translate && defaultLanguage && !isMemorey) {
 				this.translateLyrics(language, this.state.currentLyrics, targetConvert).then((translated) => {
 					const res = { [targetConvert]: translated };
 					// Cache translated lyrics
@@ -590,6 +590,14 @@ class LyricsContainer extends react.Component {
 		localLyrics[uri] = lyrics;
 		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
 		this.setState({ isCached: true });
+	}
+
+	deleteLocalLyrics(uri) {
+		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
+		delete localLyrics[uri];
+		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
+		console.log(localLyrics);
+		this.setState({ isCached: false });
 	}
 
 	lyricsSaved(uri) {
@@ -916,8 +924,13 @@ class LyricsContainer extends react.Component {
 									return;
 								}
 
-								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke, genius });
-								Spicetify.showNotification("Lyrics cached");
+								if (this.state.isCached) {
+									this.deleteLocalLyrics(this.currentTrackUri);
+									Spicetify.showNotification("Delete lyrics cache");
+								} else {
+									this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke, genius });
+									Spicetify.showNotification("Lyrics cached");
+								}
 							},
 						},
 						react.createElement("svg", {
