@@ -42,6 +42,21 @@ class Translator {
 		}
 	}
 
+	async awaitFinished(language) {
+		return new Promise((resolve) => {
+			const interval = setInterval(() => {
+				this.injectExternals(language);
+				this.createTranslator(language);
+
+				const lan = language.slice(0, 2);
+				if (this.finished[lan]) {
+					clearInterval(interval);
+					resolve();
+				}
+			}, 100);
+		});
+	}
+
 	/**
 	 * Fix an issue with kuromoji when loading dict from external urls
 	 * Adapted from: https://github.com/mobilusoss/textlint-browser-runner/pull/7

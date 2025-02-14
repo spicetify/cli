@@ -36,7 +36,10 @@ const Providers = {
 			}));
 		}
 
-		result.provider = lyrics.provider;
+		/**
+		 * to distinguish it from the existing Musixmatch, the provider will remain as Spotify.
+		 * if Spotify official lyrics support multiple providers besides Musixmatch in the future, please uncomment the under section. */
+		// result.provider = lyrics.provider;
 
 		return result;
 	},

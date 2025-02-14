@@ -44,7 +44,7 @@ const CONFIG = {
 		"translate:display-mode": localStorage.getItem("lyrics-plus:visual:translate:display-mode") || "replace",
 		"translate:detect-language-override": localStorage.getItem("lyrics-plus:visual:translate:detect-language-override") || "off",
 		"translation-mode:japanese": localStorage.getItem("lyrics-plus:visual:translation-mode:japanese") || "furigana",
-		"translation-mode:korean": localStorage.getItem("lyrics-plus:visual:translation-mode:korean") || "hangul",
+		"translation-mode:korean": localStorage.getItem("lyrics-plus:visual:translation-mode:korean") || "romaja",
 		"translation-mode:chinese": localStorage.getItem("lyrics-plus:visual:translation-mode:chinese") || "cn",
 		translate: getConfig("lyrics-plus:visual:translate", false),
 		"ja-detect-threshold": localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
@@ -167,6 +167,7 @@ class LyricsContainer extends react.Component {
 			isFullscreen: false,
 			isFADMode: false,
 			isCached: false,
+			language: null,
 		};
 		this.currentTrackUri = "";
 		this.nextTrackUri = "";
@@ -176,12 +177,12 @@ class LyricsContainer extends react.Component {
 		this.fullscreenContainer.id = "lyrics-fullscreen-container";
 		this.mousetrap = new Spicetify.Mousetrap();
 		this.containerRef = react.createRef(null);
-		this.translator = new Translator(CONFIG.visual["translate:detect-language-override"]);
+		this.translator = null;
 		// Cache last state
-		this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
 		this.languageOverride = CONFIG.visual["translate:detect-language-override"];
 		this.translate = CONFIG.visual.translate;
 		this.reRenderLyricsPage = false;
+		this.displayMode = null;
 	}
 
 	infoFromTrack(track) {
@@ -262,7 +263,6 @@ class LyricsContainer extends react.Component {
 			if (data.error || (!data.karaoke && !data.synced && !data.unsynced && !data.genius)) continue;
 			if (mode === -1) {
 				finalData = data;
-				CACHE[data.uri] = finalData;
 				return finalData;
 			}
 
@@ -294,27 +294,13 @@ class LyricsContainer extends react.Component {
 				}));
 			}
 
-			CACHE[data.uri] = finalData;
 			return finalData;
 		}
 
-		CACHE[trackInfo.uri] = finalData;
 		return finalData;
 	}
 
-	async fetchLyrics(track, mode = -1) {
-		this.state.furigana =
-			this.state.romaji =
-			this.state.hiragana =
-			this.state.katakana =
-			this.state.hangul =
-			this.state.romaja =
-			this.state.cn =
-			this.state.hk =
-			this.state.tw =
-			this.state.musixmatchTranslation =
-			this.state.neteaseTranslation =
-				null;
+	async fetchLyrics(track, mode = -1, refresh = false) {
 		const info = this.infoFromTrack(track);
 		if (!info) {
 			this.setState({ error: "No track info" });
@@ -328,161 +314,229 @@ class LyricsContainer extends react.Component {
 		}
 
 		this.fetchTempo(info.uri);
+		this.resetDelay();
 
-		if (mode !== -1) {
-			if (CACHE[info.uri]?.[CONFIG.modes[mode]]) {
-				this.resetDelay();
-				this.setState({ ...CACHE[info.uri], isCached });
-				{
-					let mode = -1;
-					if (this.state.explicitMode !== -1) {
-						mode = this.state.explicitMode;
-					} else if (this.state.lockMode !== -1) {
-						mode = this.state.lockMode;
-					} else {
-						// Auto switch
-						if (this.state.karaoke) {
-							mode = KARAOKE;
-						} else if (this.state.synced) {
-							mode = SYNCED;
-						} else if (this.state.unsynced) {
-							mode = UNSYNCED;
-						} else if (this.state.genius) {
-							mode = GENIUS;
-						}
-					}
-					const lyricsState = CACHE[info.uri][CONFIG.modes[mode]];
-					if (lyricsState) {
-						this.state.currentLyrics = this.state[CONFIG.visual["translate:translated-lyrics-source"]] ?? lyricsState;
-					}
-				}
-				this.translateLyrics();
-				return;
+		let tempState;
+		// if lyrics are cached
+		if ((mode === -1 && CACHE[info.uri]) || CACHE[info.uri]?.[CONFIG.modes?.[mode]]) {
+			tempState = { ...CACHE[info.uri], isCached };
+			if (CACHE[info.uri]?.mode) {
+				this.state.explicitMode = CACHE[info.uri]?.mode;
+				tempState = { ...tempState, mode: CACHE[info.uri]?.mode };
 			}
 		} else {
-			if (CACHE[info.uri]) {
-				this.resetDelay();
-				this.setState({ ...CACHE[info.uri], isCached });
-				{
-					let mode = -1;
-					if (this.state.explicitMode !== -1) {
-						mode = this.state.explicitMode;
-					} else if (this.state.lockMode !== -1) {
-						mode = this.state.lockMode;
-					} else {
-						// Auto switch
-						if (this.state.karaoke) {
-							mode = KARAOKE;
-						} else if (this.state.synced) {
-							mode = SYNCED;
-						} else if (this.state.unsynced) {
-							mode = UNSYNCED;
-						} else if (this.state.genius) {
-							mode = GENIUS;
-						}
-					}
-					const lyricsState = CACHE[info.uri][CONFIG.modes[mode]];
-					if (lyricsState) {
-						this.state.currentLyrics = this.state[CONFIG.visual["translate:translated-lyrics-source"]] ?? lyricsState;
-					}
-				}
-				this.translateLyrics();
+			this.setState({ ...emptyState, isLoading: true, isCached: false });
+
+			const resp = await this.tryServices(info, mode);
+			if (resp.provider) {
+				// Cache lyrics
+				CACHE[resp.uri] = resp;
+			}
+
+			// This True when the user presses the Cache Lyrics button and saves it to localStorage.
+			isCached = this.lyricsSaved(resp.uri);
+
+			// In case user skips tracks too fast and multiple callbacks
+			// set wrong lyrics to current track.
+			if (resp.uri === this.currentTrackUri) {
+				tempState = { ...resp, isLoading: false, isCached };
+			} else {
 				return;
 			}
 		}
 
-		this.setState({ ...emptyState, isLoading: true, isCached: false });
-		const resp = await this.tryServices(info, mode);
-
-		isCached = this.lyricsSaved(resp.uri);
-
-		// In case user skips tracks too fast and multiple callbacks
-		// set wrong lyrics to current track.
-		if (resp.uri === this.currentTrackUri) {
-			this.resetDelay();
-			this.setState({ ...resp, isLoading: false, isCached });
+		let finalMode = mode;
+		if (mode === -1) {
+			if (this.state.explicitMode !== -1) {
+				finalMode = this.state.explicitMode;
+			} else if (this.state.lockMode !== -1) {
+				finalMode = this.state.lockMode;
+			} else {
+				// Auto switch
+				if (tempState.karaoke) {
+					finalMode = KARAOKE;
+				} else if (tempState.synced) {
+					finalMode = SYNCED;
+				} else if (tempState.unsynced) {
+					finalMode = UNSYNCED;
+				} else if (tempState.genius) {
+					finalMode = GENIUS;
+				}
+			}
 		}
 
-		this.translateLyrics();
+		this.lyricsSource(tempState, finalMode);
+
+		// if song changed one time
+		if (tempState.uri !== this.state.uri || refresh) {
+			// when a song starts for the first time and language-override is selected, the lyrics are converted to the specified language.
+			// however, when switching it off again, the detected language needs to be known, so defaultLanguage has been introduced.
+			const defaultLanguage = Utils.detectLanguage(this.state.currentLyrics);
+			const language =
+				CONFIG.visual["translate:detect-language-override"] !== "off" ? CONFIG.visual["translate:detect-language-override"] : defaultLanguage;
+			const friendlyLanguage = language && new Intl.DisplayNames(["en"], { type: "language" }).of(language.split("-")[0])?.toLowerCase();
+			const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
+
+			const isMemorey = CACHE[tempState.uri]?.[targetConvert];
+			if (CONFIG.visual.translate && defaultLanguage && !isMemorey) {
+				this.translateLyrics(language, this.state.currentLyrics, targetConvert).then((translated) => {
+					const res = { [targetConvert]: translated };
+					// Cache translated lyrics
+					CACHE[tempState.uri] = { ...CACHE[tempState.uri], ...res };
+					this.setState({ ...res });
+				});
+			}
+
+			// reset and apply
+			this.setState({
+				furigana: null,
+				romaji: null,
+				hiragana: null,
+				katakana: null,
+				hangul: null,
+				romaja: null,
+				cn: null,
+				hk: null,
+				tw: null,
+				musixmatchTranslation: null,
+				neteaseTranslation: null,
+				...tempState,
+				language: defaultLanguage,
+			});
+			return;
+		}
+
+		this.setState({ ...tempState });
 	}
 
-	lyricsSource(mode) {
-		const lyricsState = this.state[CONFIG.modes[mode]];
+	lyricsSource(lyricsState, mode) {
 		if (!lyricsState) return;
-		this.state.currentLyrics = this.state[CONFIG.visual["translate:translated-lyrics-source"]] ?? lyricsState;
+
+		const lang = this.provideLanguageCode(this.state.currentLyrics);
+		const friendlyLanguage = lang && new Intl.DisplayNames(["en"], { type: "language" }).of(lang.split("-")[0])?.toLowerCase();
+
+		if (!this.displayMode) {
+			this.displayMode = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
+		}
+
+		// get original Lyrics
+		const lyrics = lyricsState[CONFIG.modes[mode]];
+
+		if (CONFIG.visual.translate) {
+			this.state.currentLyrics = lyricsState[CONFIG.visual[`translation-mode:${friendlyLanguage}`]] ?? lyrics;
+		} else {
+			this.state.currentLyrics = lyricsState[CONFIG.visual["translate:translated-lyrics-source"]] ?? lyrics;
+		}
+
+		// Convert Mode re-fresh
+		if (
+			this.translate !== CONFIG.visual.translate ||
+			this.languageOverride !== CONFIG.visual["translate:detect-language-override"] ||
+			this.displayMode !== CONFIG.visual[`translation-mode:${friendlyLanguage}`]
+		) {
+			this.translate = CONFIG.visual.translate;
+			this.languageOverride = CONFIG.visual["translate:detect-language-override"];
+			this.displayMode = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
+
+			if (CONFIG.visual.translate) {
+				const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
+				const isCached = CACHE[lyricsState.uri]?.[targetConvert];
+
+				if (!isCached) {
+					this.translateLyrics(lang, lyrics, targetConvert).then((translated) => {
+						const res = { [targetConvert]: translated };
+						// Cache translated lyrics
+						CACHE[lyricsState.uri] = { ...CACHE[lyricsState.uri], ...res };
+						this.setState({ ...this.state, ...res });
+					});
+				}
+			} else {
+				const resetCache = { furigana: null, romaji: null, hiragana: null, katakana: null, hangul: null, romaja: null, cn: null, hk: null, tw: null };
+				CACHE[lyricsState.uri] = { ...CACHE[lyricsState.uri], ...resetCache };
+			}
+		}
 	}
 
 	provideLanguageCode(lyrics) {
 		if (!lyrics) return;
 
-		if (CONFIG.visual["translate:detect-language-override"] !== "off") return CONFIG.visual["translate:detect-language-override"];
-
+		if (CONFIG.visual["translate:detect-language-override"] !== "off") {
+			return CONFIG.visual["translate:detect-language-override"];
+		}
+		if (this.state.language) {
+			return this.state.language;
+		}
 		return Utils.detectLanguage(lyrics);
 	}
 
-	async translateLyrics(silent = true) {
-		function showNotification(timeout) {
-			if (silent) return;
-			Spicetify.showNotification("Translating...", false, timeout);
+	async translateLyrics(language, lyrics, targetConvert) {
+		if (!language) return;
+
+		Spicetify.showNotification("Converting...", false, 1000);
+		if (!this.translator) {
+			this.translator = new Translator(language);
 		}
+		await this.translator.awaitFinished(language);
 
-		const lyrics = this.state.currentLyrics;
-		const language = this.provideLanguageCode(lyrics);
+		let result;
+		try {
+			if (language === "ja") {
+				// Japanese
+				const map = {
+					romaji: { target: "romaji", mode: "spaced" },
+					furigana: { target: "hiragana", mode: "furigana" },
+					hiragana: { target: "hiragana", mode: "normal" },
+					katakana: { target: "katakana", mode: "normal" },
+				};
 
-		if (!CONFIG.visual.translate || !language || typeof lyrics?.[0].text !== "string") return;
+				result = await Promise.all(
+					lyrics.map(async (lyric) => await this.translator.romajifyText(lyric.text, map[targetConvert].target, map[targetConvert].mode))
+				);
+			} else if (language === "ko") {
+				// Korean
+				result = await Promise.all(lyrics.map(async (lyric) => await this.translator.convertToRomaja(lyric.text, "romaji")));
+			} else if (language === "zh-hans") {
+				// Chinese (Simplified)
+				const map = {
+					cn: { from: "cn", target: "cn" },
+					tw: { from: "cn", target: "tw" },
+					hk: { from: "cn", target: "hk" },
+				};
 
-		if (!this.translator?.finished[language.slice(0, 2)]) {
-			this.translator.injectExternals(language);
-			this.translator.createTranslator(language);
-			showNotification(500);
-			setTimeout(this.translateLyrics.bind(this), 100, false);
-			return;
-		}
+				// prevent conversion between the same language.
+				if (targetConvert === "cn") {
+					Spicetify.showNotification("No conversion is needed", false, 1000);
+					return lyrics;
+				}
 
-		// Seemingly long delay so it can be cleared later for accurate timing
-		showNotification(10000);
-		for (const params of [
-			["romaji", "spaced", "romaji"],
-			["hiragana", "furigana", "furigana"],
-			["hiragana", "normal", "hiragana"],
-			["katakana", "normal", "katakana"],
-		]) {
-			if (language !== "ja") continue;
-			Promise.all(lyrics.map((lyric) => this.translator.romajifyText(lyric.text, params[0], params[1]))).then((results) => {
-				const result = results.join("\n");
-				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[2] });
-				showNotification(200);
-				lyricContainerUpdate?.();
-			});
-		}
+				result = await Promise.all(
+					lyrics.map(async (lyric) => await this.translator.convertChinese(lyric.text, map[targetConvert].from, map[targetConvert].target))
+				);
+			} else if (language === "zh-hant") {
+				// Chinese (Traditional)
+				const map = {
+					cn: { from: "t", target: "cn" },
+					hk: { from: "t", target: "hk" },
+					tw: { from: "t", target: "tw" },
+				};
 
-		for (const params of [
-			["hangul", "hangul"],
-			["romaja", "romaja"],
-		]) {
-			if (language !== "ko") continue;
-			Promise.all(lyrics.map((lyric) => this.translator.convertToRomaja(lyric.text, params[1]))).then((results) => {
-				const result = results.join("\n");
-				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
-				showNotification(200);
-				lyricContainerUpdate?.();
-			});
-		}
+				// prevent conversion between the same language.
+				if (targetConvert === "tw") {
+					Spicetify.showNotification("No conversion is needed", false, 1000);
+					return lyrics;
+				}
 
-		for (const params of [
-			["cn", "hk"],
-			["cn", "tw"],
-			["t", "cn"],
-			["t", "hk"],
-			["t", "tw"],
-		]) {
-			if (!language.includes("zh") || (language === "zh-hans" && params[0] === "t") || (language === "zh-hant" && params[0] === "cn")) continue;
-			Promise.all(lyrics.map((lyric) => this.translator.convertChinese(lyric.text, params[0], params[1]))).then((results) => {
-				const result = results.join("\n");
-				Utils.processTranslatedLyrics(result, lyrics, { state: this.state, stateName: params[1] });
-				showNotification(200);
-				lyricContainerUpdate?.();
-			});
+				result = await Promise.all(
+					lyrics.map(async (lyric) => await this.translator.convertChinese(lyric.text, map[targetConvert].from, map[targetConvert].target))
+				);
+			}
+
+			const res = Utils.processTranslatedLyrics(result, lyrics);
+			Spicetify.showNotification("Converting...", false, 0);
+			return res;
+		} catch (error) {
+			Spicetify.showNotification("Convert Error!", true);
+			console.error(error);
 		}
 	}
 
@@ -536,6 +590,14 @@ class LyricsContainer extends react.Component {
 		localLyrics[uri] = lyrics;
 		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
 		this.setState({ isCached: true });
+	}
+
+	deleteLocalLyrics(uri) {
+		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
+		delete localLyrics[uri];
+		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
+		console.log(localLyrics);
+		this.setState({ isCached: false });
 	}
 
 	lyricsSaved(uri) {
@@ -599,7 +661,12 @@ class LyricsContainer extends react.Component {
 			// Debounce next track fetch
 			if (!nextInfo || nextInfo.uri === this.nextTrackUri) return;
 			this.nextTrackUri = nextInfo.uri;
-			this.tryServices(nextInfo, this.state.explicitMode);
+			this.tryServices(nextInfo, this.state.explicitMode).then((resp) => {
+				if (resp.provider) {
+					// Cache lyrics
+					CACHE[resp.uri] = resp;
+				}
+			});
 		};
 
 		if (Spicetify.Player?.data?.item) {
@@ -621,7 +688,7 @@ class LyricsContainer extends react.Component {
 			CACHE = {};
 			this.updateVisualOnConfigChange();
 			this.forceUpdate();
-			this.fetchLyrics(Spicetify.Player.data.item, this.state.explicitMode);
+			this.fetchLyrics(Spicetify.Player.data.item, this.state.explicitMode, true);
 		};
 
 		this.viewPort =
@@ -698,45 +765,6 @@ class LyricsContainer extends react.Component {
 		this.mousetrap.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
 	}
 
-	componentDidUpdate() {
-		// Apparently if any of these values are changed, the cached translation will not be updated, hence the need to retranslate
-		if (
-			this.translationProvider !== CONFIG.visual["translate:translated-lyrics-source"] ||
-			this.languageOverride !== CONFIG.visual["translate:detect-language-override"] ||
-			this.translate !== CONFIG.visual.translate
-		) {
-			this.translationProvider = CONFIG.visual["translate:translated-lyrics-source"];
-			this.languageOverride = CONFIG.visual["translate:detect-language-override"];
-			this.translate = CONFIG.visual.translate;
-
-			this.translateLyrics(false);
-
-			return;
-		}
-
-		const language = this.provideLanguageCode(this.state.currentLyrics);
-
-		let isTranslated = false;
-
-		switch (language) {
-			case "zh-hans":
-			case "zh-hant": {
-				isTranslated = !!(this.state.cn || this.state.hk || this.state.tw);
-				break;
-			}
-			case "ja": {
-				isTranslated = !!(this.state.romaji || this.state.furigana || this.state.hiragana || this.state.katakana);
-				break;
-			}
-			case "ko": {
-				isTranslated = !!(this.state.hangul || this.state.romaja);
-				break;
-			}
-		}
-
-		!isTranslated && this.translateLyrics();
-	}
-
 	render() {
 		const fadLyricsContainer = document.getElementById("fad-lyrics-plus-container");
 		this.state.isFADMode = !!fadLyricsContainer;
@@ -781,16 +809,14 @@ class LyricsContainer extends react.Component {
 
 		let activeItem;
 		let showTranslationButton;
-		let friendlyLanguage;
 
+		this.lyricsSource(this.state, mode);
+		const lang = this.provideLanguageCode(this.state.currentLyrics);
+		const friendlyLanguage = lang && new Intl.DisplayNames(["en"], { type: "language" }).of(lang.split("-")[0])?.toLowerCase();
 		const hasTranslation = this.state.neteaseTranslation !== null || this.state.musixmatchTranslation !== null;
 
 		if (mode !== -1) {
-			this.lyricsSource(mode);
-			const language = this.provideLanguageCode(this.state.currentLyrics);
-			friendlyLanguage = language && new Intl.DisplayNames(["en"], { type: "language" }).of(language.split("-")[0])?.toLowerCase();
 			showTranslationButton = (friendlyLanguage || hasTranslation) && (mode === SYNCED || mode === UNSYNCED);
-			const translatedLyrics = this.state[CONFIG.visual[`translation-mode:${friendlyLanguage}`]];
 
 			if (mode === KARAOKE && this.state.karaoke) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
@@ -804,7 +830,7 @@ class LyricsContainer extends react.Component {
 			} else if (mode === SYNCED && this.state.synced) {
 				activeItem = react.createElement(CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage, {
 					trackUri: this.state.uri,
-					lyrics: CONFIG.visual.translate && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
+					lyrics: this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright,
 					reRenderLyricsPage: this.reRenderLyricsPage,
@@ -812,7 +838,7 @@ class LyricsContainer extends react.Component {
 			} else if (mode === UNSYNCED && this.state.unsynced) {
 				activeItem = react.createElement(UnsyncedLyricsPage, {
 					trackUri: this.state.uri,
-					lyrics: CONFIG.visual.translate && translatedLyrics ? translatedLyrics : this.state.currentLyrics,
+					lyrics: this.state.currentLyrics,
 					provider: this.state.provider,
 					copyright: this.state.copyright,
 					reRenderLyricsPage: this.reRenderLyricsPage,
@@ -898,8 +924,13 @@ class LyricsContainer extends react.Component {
 									return;
 								}
 
-								this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke, genius });
-								Spicetify.showNotification("Lyrics cached");
+								if (this.state.isCached) {
+									this.deleteLocalLyrics(this.currentTrackUri);
+									Spicetify.showNotification("Delete lyrics cache");
+								} else {
+									this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke, genius });
+									Spicetify.showNotification("Lyrics cached");
+								}
 							},
 						},
 						react.createElement("svg", {
@@ -956,6 +987,12 @@ class LyricsContainer extends react.Component {
 					switchCallback: (label) => {
 						const mode = CONFIG.modes.findIndex((a) => a === label);
 						if (mode !== this.state.mode) {
+							// If explicitMode is not set, moving the topBar will apply the default mode value for the selected song.
+							const info = this.infoFromTrack(Spicetify.Player.data.item);
+							if (info?.uri && CACHE[info?.uri]) {
+								CACHE[info.uri].mode = mode;
+							}
+
 							this.setState({ explicitMode: mode });
 							this.state.provider !== "local" && this.fetchLyrics(Spicetify.Player.data.item, mode);
 						}
