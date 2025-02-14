@@ -173,8 +173,8 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 				const lineText = originalText && showTranslatedBelow ? originalText : text;
 
 				// Convert lyrics to text for comparison
-				const belowOrigin = typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText;
-				const belowTxt = typeof text === "object" ? text?.props?.children?.[0] : text;
+				const belowOrigin = (typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText)?.replace(/\s+/g, "");
+				const belowTxt = (typeof text === "object" ? text?.props?.children?.[0] : text)?.replace(/\s+/g, "");
 
 				const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
@@ -455,8 +455,8 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 			const lineText = originalText && showTranslatedBelow ? originalText : text;
 
 			// Convert lyrics to text for comparison
-			const belowOrigin = typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText;
-			const belowTxt = typeof text === "object" ? text?.props?.children?.[0] : text;
+			const belowOrigin = (typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText)?.replace(/\s+/g, "");
+			const belowTxt = (typeof text === "object" ? text?.props?.children?.[0] : text)?.replace(/\s+/g, "");
 
 			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
@@ -531,8 +531,8 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 			const lineText = originalText && showTranslatedBelow ? originalText : text;
 
 			// Convert lyrics to text for comparison
-			const belowOrigin = typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText;
-			const belowTxt = typeof text === "object" ? text?.props?.children?.[0] : text;
+			const belowOrigin = (typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText)?.replace(/\s+/g, "");
+			const belowTxt = (typeof text === "object" ? text?.props?.children?.[0] : text)?.replace(/\s+/g, "");
 
 			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 

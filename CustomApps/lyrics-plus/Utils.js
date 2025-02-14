@@ -132,17 +132,12 @@ const Utils = {
 
 		return ((simpPercentage - tradPercentage + 1) / 2) * 100 >= CONFIG.visual["hans-detect-threshold"] ? "zh-hans" : "zh-hant";
 	},
-	processTranslatedLyrics(result, lyricsToTranslate, { state, stateName }) {
-		const translatedLines = result.split("\n");
-		state[stateName] = [];
-		for (let i = 0; i < lyricsToTranslate.length; i++) {
-			const lyric = {
-				startTime: lyricsToTranslate[i].startTime || 0,
-				text: this.rubyTextToReact(translatedLines[i]),
-				originalText: lyricsToTranslate[i].text,
-			};
-			state[stateName].push(lyric);
-		}
+	processTranslatedLyrics(translated, original) {
+		return original.map((lyric, index) => ({
+			startTime: lyric.startTime || 0,
+			text: this.rubyTextToReact(translated[index]),
+			originalText: lyric.text,
+		}));
 	},
 	/** It seems that this function is not being used, but I'll keep it just in case it’s needed in the future.*/
 	processTranslatedOriginalLyrics(lyrics, synced) {

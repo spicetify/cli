@@ -139,7 +139,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 			}
 			case "korean": {
 				modeOptions = {
-					hangul: "Hangul",
 					romaja: "Romaja",
 				};
 				break;
