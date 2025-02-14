@@ -422,7 +422,7 @@ class LyricsContainer extends react.Component {
 		// get original Lyrics
 		const lyrics = lyricsState[CONFIG.modes[mode]];
 
-		if (CONFIG.visual["translate"]) {
+		if (CONFIG.visual.translate) {
 			this.state.currentLyrics = lyricsState[CONFIG.visual[`translation-mode:${friendlyLanguage}`]] ?? lyrics;
 		} else {
 			this.state.currentLyrics = lyricsState[CONFIG.visual["translate:translated-lyrics-source"]] ?? lyrics;
@@ -430,15 +430,15 @@ class LyricsContainer extends react.Component {
 
 		// Convert Mode re-fresh
 		if (
-			this.translate !== CONFIG.visual["translate"] ||
+			this.translate !== CONFIG.visual.translate ||
 			this.languageOverride !== CONFIG.visual["translate:detect-language-override"] ||
 			this.displayMode !== CONFIG.visual[`translation-mode:${friendlyLanguage}`]
 		) {
-			this.translate = CONFIG.visual["translate"];
+			this.translate = CONFIG.visual.translate;
 			this.languageOverride = CONFIG.visual["translate:detect-language-override"];
 			this.displayMode = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
 
-			if (CONFIG.visual["translate"]) {
+			if (CONFIG.visual.translate) {
 				const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
 				const isCached = CACHE[lyricsState.uri]?.[targetConvert];
 
@@ -462,11 +462,11 @@ class LyricsContainer extends react.Component {
 
 		if (CONFIG.visual["translate:detect-language-override"] !== "off") {
 			return CONFIG.visual["translate:detect-language-override"];
-		} else if (this.state.language) {
-			return this.state.language;
-		} else {
-			return Utils.detectLanguage(lyrics);
 		}
+		if (this.state.language) {
+			return this.state.language;
+		}
+		return Utils.detectLanguage(lyrics);
 	}
 
 	async translateLyrics(language, lyrics, targetConvert) {
@@ -812,7 +812,7 @@ class LyricsContainer extends react.Component {
 
 		this.lyricsSource(this.state, mode);
 		const lang = this.provideLanguageCode(this.state.currentLyrics);
-		let friendlyLanguage = lang && new Intl.DisplayNames(["en"], { type: "language" }).of(lang.split("-")[0])?.toLowerCase();
+		const friendlyLanguage = lang && new Intl.DisplayNames(["en"], { type: "language" }).of(lang.split("-")[0])?.toLowerCase();
 		const hasTranslation = this.state.neteaseTranslation !== null || this.state.musixmatchTranslation !== null;
 
 		if (mode !== -1) {
