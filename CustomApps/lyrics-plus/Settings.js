@@ -699,6 +699,10 @@ function openConfig() {
 
 				// Reload Lyrics if translation language is changed
 				if (name === "musixmatch-translation-language") {
+					if (value === "none") {
+						CONFIG.visual["translate:translated-lyrics-source"] = "none";
+						localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, "none");
+					}
 					reloadLyrics?.();
 				} else {
 					lyricContainerUpdate?.();
