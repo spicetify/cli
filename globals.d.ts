@@ -540,6 +540,7 @@ declare namespace Spicetify {
 	 * @param uri Any type of URI that has artwork (playlist, track, album, artist, show, ...)
 	 */
 	function colorExtractor(uri: string): Promise<{
+		DARK_VIBRANT: string;
 		DESATURATED: string;
 		LIGHT_VIBRANT: string;
 		PROMINENT: string;
