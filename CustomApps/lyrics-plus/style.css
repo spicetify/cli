@@ -704,6 +704,9 @@ div.lyrics-tabBar-headerItemLink {
 .split .lyrics-versionSelector select {
 	width: 100%;
 }
+.main-content-view {
+	height: 100%;
+}
 
 @media (min-width: 1024px) {
 	.split .lyrics-lyricsContainer-LyricsLine {
