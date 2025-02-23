@@ -40,6 +40,9 @@ func SetDevTools() {
 				filePath = homePath + "/.cache/spotify/offline.bnk"
 			}
 
+			if _, err := os.Stat(homePath + "/.cache/spotify/offline.bnk"); err == nil {
+				filePath = homePath + "/.cache/spotify/offline.bnk"
+			}
 		}
 	case "darwin":
 		filePath = os.Getenv("HOME") + "/Library/Application Support/Spotify/PersistentCache/offline.bnk"
