@@ -25,6 +25,8 @@ if (!navigator.serviceWorker) {
 	PopupLyrics();
 }
 
+let CACHE = {};
+
 function PopupLyrics() {
 	const { Player, CosmosAsync, LocalStorage, ContextMenu } = Spicetify;
 
@@ -423,7 +425,7 @@ function PopupLyrics() {
 
 	Player.addEventListener("songchange", updateTrack);
 
-	async function updateTrack() {
+	async function updateTrack(refresh = false) {
 		if (!lyricVideoIsOpen) {
 			return;
 		}
@@ -443,20 +445,26 @@ function PopupLyrics() {
 			uri: Player.data.item.uri,
 		};
 
-		for (const name of userConfigs.servicesOrder) {
-			const service = userConfigs.services[name];
-			if (!service.on) continue;
-			sharedData = { lyrics: [] };
+		if (CACHE?.[info.uri]?.lyrics?.length && !refresh) {
+			sharedData = CACHE[info.uri];
+		} else {
+			for (const name of userConfigs.servicesOrder) {
+				const service = userConfigs.services[name];
+				if (!service.on) continue;
+				sharedData = { lyrics: [] };
 
-			try {
-				const data = await service.call(info);
-				console.log(data);
-				sharedData = data;
-				if (!sharedData.error) {
-					return;
+				try {
+					const data = await service.call(info);
+					console.log(data);
+					sharedData = data;
+					CACHE[info.uri] = sharedData;
+
+					if (!sharedData.error) {
+						return;
+					}
+				} catch (err) {
+					sharedData = { error: "No lyrics" };
 				}
-			} catch (err) {
-				sharedData = { error: "No lyrics" };
 			}
 		}
 	}
@@ -859,6 +867,27 @@ button.switch.small {
     height: 22px;
     padding: 6px;
 }
+button.btn {
+ 	font-weight: 700;
+	display: block;
+	background-color: rgba(var(--spice-rgb-shadow), .7);
+    border-radius: 500px;
+    transition-duration: 33ms;
+    transition-property: background-color, border-color, color, box-shadow, filter, transform;
+    padding-inline: 15px;
+    border: 1px solid #727272;
+    color: var(--spice-text);
+    min-block-size: 32px;
+    cursor: pointer;
+}
+button.btn:hover {
+	transform: scale(1.04);
+    border-color: var(--spice-text);
+}
+button.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 #popup-config-container select {
     color: var(--spice-text);
     background: rgba(var(--spice-rgb-shadow), .7);
@@ -975,7 +1004,7 @@ button.switch.small {
 				const id = el.dataset.id;
 				userConfigs.services[id].on = state;
 				LocalStorage.set(`popup-lyrics:services:${id}:on`, state);
-				updateTrack();
+				updateTrack(true);
 			}
 
 			function posCallback(el, dir) {
@@ -990,19 +1019,11 @@ button.switch.small {
 				LocalStorage.set("popup-lyrics:services-order", JSON.stringify(userConfigs.servicesOrder));
 
 				stackServiceElements();
-				updateTrack();
-			}
-
-			function tokenChangeCallback(el, inputEl) {
-				const newVal = inputEl.value;
-				const id = el.dataset.id;
-				userConfigs.services[id].token = newVal;
-				LocalStorage.set(`popup-lyrics:services:${id}:token`, newVal);
-				updateTrack();
+				updateTrack(true);
 			}
 
 			for (const name of userConfigs.servicesOrder) {
-				userConfigs.services[name].element = createServiceOption(name, userConfigs.services[name], switchCallback, posCallback, tokenChangeCallback);
+				userConfigs.services[name].element = createServiceOption(name, userConfigs.services[name], switchCallback, posCallback);
 			}
 			stackServiceElements();
 
@@ -1085,7 +1106,76 @@ button.switch.small {
 		return container;
 	}
 
-	function createServiceOption(id, defaultVal, switchCallback, posCallback, tokenCallback) {
+	function createButton(defaultValue, callback) {
+		const container = document.createElement("button");
+		container.innerHTML = defaultValue;
+		container.className = "btn";
+
+		container.onclick = () => {
+			callback();
+		};
+
+		return container;
+	}
+
+	function createTextfield(defaultValue, placeholder, callback) {
+		const container = document.createElement("input");
+		container.placeholder = placeholder;
+		container.value = defaultValue;
+
+		container.onchange = (e) => {
+			callback(e.target.value);
+		};
+
+		return container;
+	}
+
+	function musixmatchTokenElements(defaultVal, id) {
+		const button = createButton("Refresh token", clickRefresh);
+		button.style.marginTop = "10px";
+		const textfield = createTextfield(defaultVal.token, `Place your ${id} token here`, changeTokenfield);
+		textfield.style.marginTop = "10px";
+
+		function clickRefresh() {
+			button.innerHTML = "Refreshing token...";
+			button.disabled = true;
+
+			Spicetify.CosmosAsync.get("https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0", null, {
+				authority: "apic-desktop.musixmatch.com",
+			})
+				.then(({ message: response }) => {
+					if (response.header.status_code === 200 && response.body.user_token) {
+						button.innerHTML = "Token refreshed";
+						textfield.value = response.body.user_token;
+						textfield.dispatchEvent(new Event("change"));
+					} else if (response.header.status_code === 401) {
+						button.innerHTML = "Too many attempts";
+					} else {
+						button.innerHTML = "Failed to refresh token";
+						console.error("Failed to refresh token", response);
+					}
+					button.disabled = false;
+				})
+				.catch((error) => {
+					button.innerHTML = "Failed to refresh token";
+					console.error("Failed to refresh token", error);
+					button.disabled = false;
+				});
+		}
+
+		function changeTokenfield(value) {
+			userConfigs.services.musixmatch.token = value;
+			LocalStorage.set(`popup-lyrics:services:musixmatch:token`, value);
+			updateTrack(true);
+		}
+
+		const container = document.createElement("div");
+		container.append(button);
+		container.append(textfield);
+		return container;
+	}
+
+	function createServiceOption(id, defaultVal, switchCallback, posCallback) {
 		const name = id.replace(/^./, (c) => c.toUpperCase());
 
 		const container = document.createElement("div");
@@ -1113,12 +1203,8 @@ button.switch.small {
 </div>
 <span>${defaultVal.desc}</span>`;
 
-		if (defaultVal.token !== undefined) {
-			const input = document.createElement("input");
-			input.placeholder = `Place your ${id} token here`;
-			input.value = defaultVal.token;
-			input.onchange = () => tokenCallback(container, input);
-			container.append(input);
+		if (id === "musixmatch") {
+			container.append(musixmatchTokenElements(defaultVal));
 		}
 
 		const [up, down, slider] = container.querySelectorAll("button");
