@@ -1197,7 +1197,9 @@ button.btn:disabled {
 		return container;
 	}
 	function descriptiveElement(element, description) {
-		element.innerHTML += `<span>${description}</span>`;
+		const desc = document.createElement("span");
+		desc.innerHTML = description;
+		element.append(desc);
 		return element;
 	}
 
