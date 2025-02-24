@@ -326,7 +326,7 @@ function PopupLyrics() {
 			musixmatch: {
 				on: boolLocalStorage("popup-lyrics:services:musixmatch:on"),
 				call: LyricProviders.fetchMusixmatch,
-				desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button.`,
+				desc: "Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button.",
 				token: LocalStorage.get("popup-lyrics:services:musixmatch:token") || "2005218b74f939209bda92cb633c7380612e14cb7fe92dcd6a780f",
 			},
 			spotify: {
@@ -882,7 +882,7 @@ button.switch.small {
     padding: 6px;
 }
 button.btn {
- 	font-weight: 700;
+	font-weight: 700;
 	display: block;
 	background-color: rgba(var(--spice-rgb-shadow), .7);
     border-radius: 500px;
@@ -896,7 +896,7 @@ button.btn {
 }
 button.btn:hover {
 	transform: scale(1.04);
-    border-color: var(--spice-text);
+	border-color: var(--spice-text);
 }
 button.btn:disabled {
     opacity: 0.5;
@@ -1139,7 +1139,8 @@ button.btn:disabled {
 
 		return container;
 	}
-	function createButton(name = null, defaultValue, callback) {
+	// if name is null, the element can be used without a description.
+	function createButton(name, defaultValue, callback) {
 		let container;
 
 		if (name) {
@@ -1168,7 +1169,8 @@ button.btn:disabled {
 
 		return container;
 	}
-	function createTextfield(name = null, defaultValue, placeholder, callback) {
+	// if name is null, the element can be used without a description.
+	function createTextfield(name, defaultValue, placeholder, callback) {
 		let container;
 
 		if (name) {
@@ -1245,7 +1247,7 @@ button.btn:disabled {
 
 		function changeTokenfield(value) {
 			userConfigs.services.musixmatch.token = value;
-			LocalStorage.set(`popup-lyrics:services:musixmatch:token`, value);
+			LocalStorage.set("popup-lyrics:services:musixmatch:token", value);
 			updateTrack(true);
 		}
 
