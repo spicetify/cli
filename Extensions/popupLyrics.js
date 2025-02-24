@@ -326,7 +326,7 @@ function PopupLyrics() {
 			musixmatch: {
 				on: boolLocalStorage("popup-lyrics:services:musixmatch:on"),
 				call: LyricProviders.fetchMusixmatch,
-				desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. Follow instructions on <a href="https://spicetify.app/docs/faq#sometimes-popup-lyrics-andor-lyrics-plus-seem-to-not-work">Spicetify Docs</a>.`,
+				desc: `Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button.`,
 				token: LocalStorage.get("popup-lyrics:services:musixmatch:token") || "2005218b74f939209bda92cb633c7380612e14cb7fe92dcd6a780f",
 			},
 			spotify: {
@@ -423,7 +423,9 @@ function PopupLyrics() {
 
 	let sharedData = {};
 
-	Player.addEventListener("songchange", updateTrack);
+	Player.addEventListener("songchange", () => {
+		updateTrack();
+	});
 
 	async function updateTrack(refresh = false) {
 		if (!lyricVideoIsOpen) {
@@ -823,11 +825,20 @@ function PopupLyrics() {
 
 	function openConfig(event) {
 		event.preventDefault();
-		if (!configContainer) {
+
+		// Reset on reopen
+		if (configContainer) {
+			resetTokenButton(configContainer);
+		} else {
 			configContainer = document.createElement("div");
 			configContainer.id = "popup-config-container";
 			const style = document.createElement("style");
 			style.innerHTML = `
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+	align-items: center;
+}
 .setting-row::after {
     content: "";
     display: table;
@@ -839,13 +850,16 @@ function PopupLyrics() {
     align-items: center;
 }
 .setting-row .col.description {
-    float: left;
     padding-right: 15px;
     cursor: default;
+	width: 50%;
 }
 .setting-row .col.action {
-    float: right;
-    text-align: right;
+    justify-content: flex-end;
+	width: 50%;
+}
+.popup-config-col-margin {
+	margin-top: 10px;
 }
 button.switch {
     align-items: center;
@@ -974,6 +988,13 @@ button.btn:disabled {
 				userConfigs.delay = Number(state);
 				LocalStorage.set("popup-lyrics:delay", state);
 			});
+			const clearCache = descriptiveElement(
+				createButton("Clear Memory Cache", "Clear Memory Cache", () => {
+					CACHE = {};
+					updateTrack();
+				}),
+				"Loaded lyrics are cached in memory for faster reloading. Press this button to clear the cached lyrics from memory without restarting Spotify."
+			);
 
 			const serviceHeader = document.createElement("h2");
 			serviceHeader.innerText = "Services";
@@ -1027,7 +1048,20 @@ button.btn:disabled {
 			}
 			stackServiceElements();
 
-			configContainer.append(style, optionHeader, smooth, center, cover, blurSize, fontSize, ratio, delay, serviceHeader, serviceContainer);
+			configContainer.append(
+				style,
+				optionHeader,
+				smooth,
+				center,
+				cover,
+				blurSize,
+				fontSize,
+				ratio,
+				delay,
+				clearCache,
+				serviceHeader,
+				serviceContainer
+			);
 		}
 		Spicetify.PopupModal.display({
 			title: "Popup Lyrics",
@@ -1105,36 +1139,82 @@ button.btn:disabled {
 
 		return container;
 	}
+	function createButton(name = null, defaultValue, callback) {
+		let container;
 
-	function createButton(defaultValue, callback) {
-		const container = document.createElement("button");
-		container.innerHTML = defaultValue;
-		container.className = "btn";
+		if (name) {
+			container = document.createElement("div");
+			container.innerHTML = `
+		<div class="setting-row">
+		<label class="col description">${name}</label>
+		<div class="col action">
+			<button id="popup-lyrics-clickbutton" class="btn">${defaultValue}</button>
+		</div>
+		</div>`;
 
-		container.onclick = () => {
-			callback();
-		};
+			const button = container.querySelector("#popup-lyrics-clickbutton");
+			button.onclick = () => {
+				callback();
+			};
+		} else {
+			container = document.createElement("button");
+			container.innerHTML = defaultValue;
+			container.className = "btn ";
+
+			container.onclick = () => {
+				callback();
+			};
+		}
 
 		return container;
 	}
+	function createTextfield(name = null, defaultValue, placeholder, callback) {
+		let container;
 
-	function createTextfield(defaultValue, placeholder, callback) {
-		const container = document.createElement("input");
-		container.placeholder = placeholder;
-		container.value = defaultValue;
+		if (name) {
+			container = document.createElement("div");
+			container.className = "setting-column";
+			container.innerHTML = `
+			<label class="row-description">${name}</label>
+			<div class="popup-row-option action">
+				<input id="popup-lyrics-textfield" placeholder="${placeholder}" value="${defaultValue}" />
+			</div>`;
 
-		container.onchange = (e) => {
-			callback(e.target.value);
-		};
+			const textfield = container.querySelector("#popup-lyrics-textfield");
+			textfield.onchange = () => {
+				callback();
+			};
+		} else {
+			container = document.createElement("input");
+			container.placeholder = placeholder;
+			container.value = defaultValue;
+
+			container.onchange = (e) => {
+				callback(e.target.value);
+			};
+		}
 
 		return container;
+	}
+	function descriptiveElement(element, description) {
+		element.innerHTML += `<span>${description}</span>`;
+		return element;
+	}
+
+	function resetTokenButton(container) {
+		const button = container.querySelector("#popup-lyrics-refresh-token");
+		if (button) {
+			button.innerHTML = "Refresh token";
+			button.disabled = false;
+		}
 	}
 
 	function musixmatchTokenElements(defaultVal, id) {
-		const button = createButton("Refresh token", clickRefresh);
-		button.style.marginTop = "10px";
-		const textfield = createTextfield(defaultVal.token, `Place your ${id} token here`, changeTokenfield);
-		textfield.style.marginTop = "10px";
+		const button = createButton(null, "Refresh token", clickRefresh);
+		button.className += "popup-config-col-margin";
+		button.id = "popup-lyrics-refresh-token";
+		const textfield = createTextfield(null, defaultVal.token, `Place your ${id} token here`, changeTokenfield);
+		textfield.className += "popup-config-col-margin";
 
 		function clickRefresh() {
 			button.innerHTML = "Refreshing token...";
@@ -1154,12 +1234,10 @@ button.btn:disabled {
 						button.innerHTML = "Failed to refresh token";
 						console.error("Failed to refresh token", response);
 					}
-					button.disabled = false;
 				})
 				.catch((error) => {
 					button.innerHTML = "Failed to refresh token";
 					console.error("Failed to refresh token", error);
-					button.disabled = false;
 				});
 		}
 
