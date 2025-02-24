@@ -837,7 +837,7 @@ function PopupLyrics() {
 .setting-row {
     display: flex;
     justify-content: space-between;
-	align-items: center;
+    align-items: center;
 }
 .setting-row::after {
     content: "";
@@ -852,14 +852,14 @@ function PopupLyrics() {
 .setting-row .col.description {
     padding-right: 15px;
     cursor: default;
-	width: 50%;
+    width: 50%;
 }
 .setting-row .col.action {
     justify-content: flex-end;
-	width: 50%;
+    width: 50%;
 }
 .popup-config-col-margin {
-	margin-top: 10px;
+    margin-top: 10px;
 }
 button.switch {
     align-items: center;
@@ -882,9 +882,9 @@ button.switch.small {
     padding: 6px;
 }
 button.btn {
-	font-weight: 700;
-	display: block;
-	background-color: rgba(var(--spice-rgb-shadow), .7);
+    font-weight: 700;
+    display: block;
+    background-color: rgba(var(--spice-rgb-shadow), .7);
     border-radius: 500px;
     transition-duration: 33ms;
     transition-property: background-color, border-color, color, box-shadow, filter, transform;
@@ -895,8 +895,8 @@ button.btn {
     cursor: pointer;
 }
 button.btn:hover {
-	transform: scale(1.04);
-	border-color: var(--spice-text);
+transform: scale(1.04);
+    border-color: var(--spice-text);
 }
 button.btn:disabled {
     opacity: 0.5;
