@@ -895,7 +895,7 @@ button.btn {
     cursor: pointer;
 }
 button.btn:hover {
-transform: scale(1.04);
+    transform: scale(1.04);
     border-color: var(--spice-text);
 }
 button.btn:disabled {
