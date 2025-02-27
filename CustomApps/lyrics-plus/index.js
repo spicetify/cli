@@ -58,9 +58,14 @@ const CONFIG = {
 		delay: 0,
 	},
 	providers: {
+		lrclib: {
+			on: getConfig("lyrics-plus:provider:lrclib:on"),
+			desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
+			modes: [SYNCED, UNSYNCED],
+		},
 		musixmatch: {
 			on: getConfig("lyrics-plus:provider:musixmatch:on"),
-			desc: "Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button.",
+			desc: "Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button. You may need to be forced to use your own CORS Proxy to use this provider.",
 			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
 			modes: [KARAOKE, SYNCED, UNSYNCED],
 		},
@@ -70,14 +75,9 @@ const CONFIG = {
 			modes: [SYNCED, UNSYNCED],
 		},
 		netease: {
-			on: getConfig("lyrics-plus:provider:netease:on"),
+			on: getConfig("lyrics-plus:provider:netease:on", false),
 			desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
 			modes: [KARAOKE, SYNCED, UNSYNCED],
-		},
-		lrclib: {
-			on: getConfig("lyrics-plus:provider:lrclib:on"),
-			desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
-			modes: [SYNCED, UNSYNCED],
 		},
 		genius: {
 			on: spotifyVersion >= "1.2.31" ? false : getConfig("lyrics-plus:provider:genius:on"),
@@ -175,9 +175,10 @@ class LyricsContainer extends react.Component {
 		this.styleVariables = {};
 		this.fullscreenContainer = document.createElement("div");
 		this.fullscreenContainer.id = "lyrics-fullscreen-container";
-		this.mousetrap = new Spicetify.Mousetrap();
+		this.mousetrap = null;
 		this.containerRef = react.createRef(null);
 		this.translator = null;
+		this.initMoustrap();
 		// Cache last state
 		this.languageOverride = CONFIG.visual["translate:detect-language-override"];
 		this.translate = CONFIG.visual.translate;
@@ -646,6 +647,11 @@ class LyricsContainer extends react.Component {
 
 		reader.readAsText(file[0]);
 		event.target.value = "";
+	}
+	initMoustrap() {
+		if (!this.mousetrap && Spicetify.Mousetrap) {
+			this.mousetrap = new Spicetify.Mousetrap();
+		}
 	}
 
 	componentDidMount() {

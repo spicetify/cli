@@ -17,6 +17,7 @@ import (
 	"github.com/spicetify/cli/src/cmd"
 	spotifystatus "github.com/spicetify/cli/src/status/spotify"
 	"github.com/spicetify/cli/src/utils"
+	"golang.org/x/sys/windows"
 )
 
 var (
@@ -24,15 +25,46 @@ var (
 )
 
 var (
-	flags          = []string{}
-	commands       = []string{}
-	quiet          = false
-	extensionFocus = false
-	appFocus       = false
-	styleFocus     = false
-	noRestart      = false
-	liveRefresh    = false
+	flags            = []string{}
+	commands         = []string{}
+	quiet            = false
+	extensionFocus   = false
+	appFocus         = false
+	styleFocus       = false
+	noRestart        = false
+	liveRefresh      = false
+	bypassAdminCheck = false
 )
+
+func isAdmin(bypassAdminCheck bool) bool {
+	if bypassAdminCheck {
+		return false
+	}
+
+	switch runtime.GOOS {
+	case "windows":
+		var sid *windows.SID
+		err := windows.AllocateAndInitializeSid(
+			&windows.SECURITY_NT_AUTHORITY,
+			2,
+			windows.SECURITY_BUILTIN_DOMAIN_RID,
+			windows.DOMAIN_ALIAS_RID_ADMINS,
+			0, 0, 0, 0, 0, 0,
+			&sid)
+		if err != nil {
+			return false
+		}
+		defer windows.FreeSid(sid)
+
+		token := windows.Token(0)
+		member, err := token.IsMember(sid)
+		return err == nil && member
+
+	case "linux", "darwin":
+		return os.Geteuid() == 0
+	}
+	return false
+}
 
 func init() {
 	if runtime.GOOS != "windows" &&
@@ -66,6 +98,8 @@ func init() {
 
 	for _, v := range flags {
 		switch v {
+		case "--bypass-admin":
+			bypassAdminCheck = true
 		case "-c", "--config":
 			fmt.Println(cmd.GetConfigPath())
 			os.Exit(0)
@@ -108,6 +142,15 @@ func init() {
 	if quiet {
 		log.SetOutput(io.Discard)
 		os.Stdout = nil
+	}
+
+	if isAdmin(bypassAdminCheck) {
+		utils.PrintError("Spicetify should not be run with administrator/root privileges")
+		utils.PrintError("Running as admin can cause Spotify to show a black/blank window after applying spicetify")
+		utils.PrintError("This happens because Spotify (running as a normal user) can't access files modified with admin privileges")
+		utils.PrintInfo("If you understand the risks and need to continue anyway, you can use the '--bypass-admin' flag.")
+		utils.PrintInfo("Spicetify is now exiting...")
+		os.Exit(1)
 	}
 
 	utils.MigrateConfigFolder()
