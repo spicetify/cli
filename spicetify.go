@@ -17,7 +17,7 @@ import (
 	"github.com/spicetify/cli/src/cmd"
 	spotifystatus "github.com/spicetify/cli/src/status/spotify"
 	"github.com/spicetify/cli/src/utils"
-	"golang.org/x/sys/windows"
+	"github.com/spicetify/cli/src/utils/isAdmin"
 )
 
 var (
@@ -35,36 +35,6 @@ var (
 	liveRefresh      = false
 	bypassAdminCheck = false
 )
-
-func isAdmin(bypassAdminCheck bool) bool {
-	if bypassAdminCheck {
-		return false
-	}
-
-	switch runtime.GOOS {
-	case "windows":
-		var sid *windows.SID
-		err := windows.AllocateAndInitializeSid(
-			&windows.SECURITY_NT_AUTHORITY,
-			2,
-			windows.SECURITY_BUILTIN_DOMAIN_RID,
-			windows.DOMAIN_ALIAS_RID_ADMINS,
-			0, 0, 0, 0, 0, 0,
-			&sid)
-		if err != nil {
-			return false
-		}
-		defer windows.FreeSid(sid)
-
-		token := windows.Token(0)
-		member, err := token.IsMember(sid)
-		return err == nil && member
-
-	case "linux", "darwin":
-		return os.Geteuid() == 0
-	}
-	return false
-}
 
 func init() {
 	if runtime.GOOS != "windows" &&
@@ -144,7 +114,7 @@ func init() {
 		os.Stdout = nil
 	}
 
-	if isAdmin(bypassAdminCheck) {
+	if isAdmin.Check(bypassAdminCheck) {
 		utils.PrintError("Spicetify should not be run with administrator/root privileges")
 		utils.PrintError("Running as admin can cause Spotify to show a black/blank window after applying spicetify")
 		utils.PrintError("This happens because Spotify (running as a normal user) can't access files modified with admin privileges")
