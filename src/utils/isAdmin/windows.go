@@ -28,4 +28,4 @@ func Check(bypassAdminCheck bool) bool {
 	token := windows.Token(0)
 	member, err := token.IsMember(sid)
 	return err == nil && member
-} 
+}

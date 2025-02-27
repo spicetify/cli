@@ -10,4 +10,4 @@ func Check(bypassAdminCheck bool) bool {
 		return false
 	}
 	return os.Geteuid() == 0
-} 
+}
