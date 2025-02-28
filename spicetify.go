@@ -123,6 +123,13 @@ func init() {
 		os.Exit(1)
 	}
 
+	for i, flag := range flags {
+		if flag == "--bypass-admin" {
+			flags = append(flags[:i], flags[i+1:]...)
+			break
+		}
+	}
+
 	utils.MigrateConfigFolder()
 	utils.MigrateFolders()
 	cmd.InitConfig(quiet)
