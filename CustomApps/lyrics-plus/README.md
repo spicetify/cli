@@ -7,7 +7,7 @@ Show current track lyrics. Current lyrics providers:
 - Internal Spotify lyrics service.
 - Netease: From Chinese developers and users. Provides karaoke and synced lyrics.
 - Musixmatch: A company from Italy. Provided synced lyrics.
-- Genius: Provide unsynced lyrics but with description/insight from artists themselve.
+- Genius: Provides unsynced lyrics but with description/insight from artists themselves (Disabled and cannot be used as a provider on `1.2.31` and higher).
 
 ![kara](./kara.png)
 
