@@ -306,8 +306,55 @@ window.Spicetify = {
 	Platform: {},
 };
 
+(function waitForPlatform() {
+	if (!Spicetify._platform) {
+		setTimeout(waitForPlatform, 50);
+		return;
+	}
+	const { _platform } = Spicetify;
+	for (const key of Object.keys(_platform)) {
+		if (key.startsWith("get") && typeof _platform[key] === "function") {
+			Spicetify.Platform[key.slice(3)] = _platform[key]();
+		} else {
+			Spicetify.Platform[key] = _platform[key];
+		}
+	}
+})();
+
+(function addMissingPlatformAPIs() {
+	if (!Spicetify.Platform?.version && !Spicetify.Platform?.Registry) {
+		setTimeout(addMissingPlatformAPIs, 50);
+		return;
+	}
+	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
+	if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
+
+	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
+		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
+		const symbolName = key.description;
+		if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
+		const resolvedAPI = Spicetify.Platform.Registry.resolve(key);
+		if (!resolvedAPI) {
+			console.warn(`[spicetifyWrapper] Failed to resolve PlatformAPI from Registry: ${symbolName}`);
+			continue;
+		}
+
+		Spicetify.Platform[symbolName] = resolvedAPI;
+		console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
+	}
+})();
+
 // Based on https://blog.aziz.tn/2025/01/spotify-fix-lagging-issue-on-scrolling.html
 function applyScrollingFix() {
+	if (!Spicetify.Platform?.version) {
+		setTimeout(applyScrollingFix, 50);
+		return;
+	}
+
+	// Run only for 1.2.56 and lower
+	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
+	if (version[1] >= 2 && version[2] >= 57) return;
+
 	const scrollableElements = Array.from(document.querySelectorAll("*")).filter((el) => {
 		if (
 			el.id === "context-menu" ||
@@ -351,44 +398,6 @@ window.addEventListener("popstate", () => {
 
 applyScrollingFix();
 
-(function waitForPlatform() {
-	if (!Spicetify._platform) {
-		setTimeout(waitForPlatform, 50);
-		return;
-	}
-	const { _platform } = Spicetify;
-	for (const key of Object.keys(_platform)) {
-		if (key.startsWith("get") && typeof _platform[key] === "function") {
-			Spicetify.Platform[key.slice(3)] = _platform[key]();
-		} else {
-			Spicetify.Platform[key] = _platform[key];
-		}
-	}
-})();
-
-(function addMissingPlatformAPIs() {
-	if (!Spicetify.Platform?.version && !Spicetify.Platform?.Registry) {
-		setTimeout(addMissingPlatformAPIs, 50);
-		return;
-	}
-	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
-	if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
-
-	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
-		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
-		const symbolName = key.description;
-		if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
-		const resolvedAPI = Spicetify.Platform.Registry.resolve(key);
-		if (!resolvedAPI) {
-			console.warn(`[spicetifyWrapper] Failed to resolve PlatformAPI from Registry: ${symbolName}`);
-			continue;
-		}
-
-		Spicetify.Platform[symbolName] = resolvedAPI;
-		console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
-	}
-})();
-
 (async function addProxyCosmos() {
 	if (!Spicetify.Player.origin?._cosmos && !Spicetify.Platform?.Registry) {
 		setTimeout(addProxyCosmos, 50);
@@ -413,7 +422,7 @@ applyScrollingFix();
 
 			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop)) return internalFetch;
 			const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
-			if (version[0] === 1 && version[1] === 2 && version[2] < 31) return internalFetch;
+			if (version[1] >= 2 && version[2] < 31) return internalFetch;
 
 			return async function (url, body) {
 				const urlObj = new URL(url);
@@ -2247,7 +2256,7 @@ Spicetify.Topbar = (() => {
 	function waitForTopbarMounted() {
 		const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
 		leftGeneratedClassName = document.querySelector(
-			".main-topBar-historyButtons .main-topBar-button, .main-globalNav-historyButtons .main-globalNav-icon"
+			".main-topBar-historyButtons .main-topBar-button, .main-globalNav-historyButtons .main-globalNav-icon, .main-globalNav-historyButtons .e-9640-button-tertiary--condensed"
 		)?.className;
 		rightGeneratedClassName = document.querySelector(
 			".main-topBar-container .main-topBar-buddyFeed, .main-actionButtons .main-topBar-buddyFeed, .main-actionButtons .main-globalNav-buddyFeed"
