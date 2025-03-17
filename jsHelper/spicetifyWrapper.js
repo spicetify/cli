@@ -308,36 +308,20 @@ window.Spicetify = {
 
 // Based on https://blog.aziz.tn/2025/01/spotify-fix-lagging-issue-on-scrolling.html
 function applyScrollingFix() {
-	const scrollableElements = Array.from(document.querySelectorAll("*")).filter((el) => {
-		if (
-			el.id === "context-menu" ||
-			el.closest("#context-menu") ||
-			el.getAttribute("role") === "dialog" ||
-			el.classList.contains("popup") ||
-			el.getAttribute("aria-haspopup") === "true"
-		)
-			return false;
-
-		const style = window.getComputedStyle(el);
-		return style.overflow === "auto" || style.overflow === "scroll" || style.overflowY === "auto" || style.overflowY === "scroll";
-	});
-
-	for (const el of scrollableElements) {
-		if (!el.hasAttribute("data-scroll-optimized")) {
-			el.style.willChange = "transform";
-			el.style.transform = "translate3d(0, 0, 0)";
-			el.setAttribute("data-scroll-optimized", "true");
-		}
+	let style = document.getElementById("spice-scroll-fix");
+	if (!style) {
+		style = document.createElement("style");
+		style.id = "spice-scroll-fix";
+		document.head.appendChild(style);
 	}
+
+	style.innerHTML = `[data-overlayscrollbars],
+[data-overlayscrollbars-grid],
+[data-overlayscrollbars-padding],
+[data-overlayscrollbars-viewport],
+.main-view-container__scroll-node { will-change: transform; transform: translate3d(0px,0px,0px);}`;
 }
-
-const observer = new MutationObserver(applyScrollingFix);
-
-observer.observe(document.body, {
-	childList: true,
-	subtree: true,
-	attributes: false,
-});
+applyScrollingFix();
 
 const originalPushState = history.pushState;
 history.pushState = function (...args) {
