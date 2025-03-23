@@ -22,7 +22,7 @@ import (
 func CheckExistAndCreate(dir string) {
 	_, err := os.Stat(dir)
 	if err != nil {
-		os.MkdirAll(dir, 0700)
+		os.MkdirAll(dir, 0770)
 	}
 }
 
@@ -52,20 +52,20 @@ func Unzip(src, dest string) error {
 
 		fpath := filepath.Join(dest, f.Name)
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(fpath, 0700)
+			os.MkdirAll(fpath, 0770)
 		} else {
 			var fdir string
 			if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
 				fdir = fpath[:lastIndex]
 			}
 
-			err = os.MkdirAll(fdir, 0700)
+			err = os.MkdirAll(fdir, 0770)
 			if err != nil {
 				log.Fatal(err)
 				return err
 			}
 			f, err := os.OpenFile(
-				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0770)
 			if err != nil {
 				return err
 			}
@@ -87,7 +87,7 @@ func Copy(src, dest string, recursive bool, filters []string) error {
 		return err
 	}
 
-	os.MkdirAll(dest, 0700)
+	os.MkdirAll(dest, 0770)
 
 	for _, file := range dir {
 		fileName := file.Name()
@@ -95,7 +95,7 @@ func Copy(src, dest string, recursive bool, filters []string) error {
 
 		fDestPath := filepath.Join(dest, fileName)
 		if file.IsDir() && recursive {
-			os.MkdirAll(fDestPath, 0700)
+			os.MkdirAll(fDestPath, 0770)
 			if err = Copy(fSrcPath, fDestPath, true, filters); err != nil {
 				return err
 			}
@@ -122,7 +122,7 @@ func Copy(src, dest string, recursive bool, filters []string) error {
 			defer fSrc.Close()
 
 			fDest, err := os.OpenFile(
-				fDestPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+				fDestPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0770)
 			if err != nil {
 				return err
 			}
@@ -148,7 +148,7 @@ func CopyFile(srcPath, dest string) error {
 	CheckExistAndCreate(dest)
 	destPath := filepath.Join(dest, filepath.Base(srcPath))
 	fDest, err := os.OpenFile(
-		destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+		destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0770)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func ModifyFile(path string, repl func(string) string) {
 
 	content := repl(string(raw))
 
-	os.WriteFile(path, []byte(content), 0700)
+	os.WriteFile(path, []byte(content), 0770)
 }
 
 // CreateFile creates a file with given path and content.
