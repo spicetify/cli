@@ -202,7 +202,7 @@ func CheckStates() {
 		utils.PrintWarning("Spotify version and backup version are mismatched.")
 
 		if spotStat.IsMixed() {
-			utils.PrintInfo(`Spotify client possibly just had an new update.`)
+			utils.PrintInfo(`Spotify client possibly just had a new update.`)
 			utils.PrintInfo(`Please run "spicetify backup apply".`)
 		} else if spotStat.IsStock() {
 			utils.PrintInfo(`Spotify client is in stock state.`)
