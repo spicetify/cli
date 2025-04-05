@@ -2256,7 +2256,7 @@ Spicetify.Topbar = (() => {
 	function waitForTopbarMounted() {
 		const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
 		leftGeneratedClassName = document.querySelector(
-			".main-topBar-historyButtons .main-topBar-button, .main-globalNav-historyButtons .main-globalNav-icon, .main-globalNav-historyButtons .e-9640-button-tertiary--condensed"
+			".main-topBar-historyButtons .main-topBar-button, .main-globalNav-historyButtons .main-globalNav-icon, .main-globalNav-historyButtons [data-encore-id='buttonTertiary']"
 		)?.className;
 		rightGeneratedClassName = document.querySelector(
 			".main-topBar-container .main-topBar-buddyFeed, .main-actionButtons .main-topBar-buddyFeed, .main-actionButtons .main-globalNav-buddyFeed"
