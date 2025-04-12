@@ -1205,6 +1205,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		"$buttonSize",
 		"$position",
 		"$iconSize",
+		"$lineClamp",
 	];
 	const customKeys = ["blocksize"];
 	const customExactKeys = ["$padding", "$paddingBottom", "paddingBottom", "padding"];
