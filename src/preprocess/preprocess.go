@@ -504,7 +504,7 @@ func exposeAPIs_main(input string) string {
 	// Spicetify._platform
 	utils.Replace(
 		&input,
-		`(setTitlebarHeight[\w(){}<>:.,&$!=;""?!#% ]+)(\{version:[a-zA-Z_\$][\w\$]*,)`,
+		`((?:setTitlebarHeight|registerFactory)[\w(){}<>:.,&$!=;""?!#% ]+)(\{version:[a-zA-Z_\$][\w\$]*,)`,
 		func(submatches ...string) string {
 			return fmt.Sprintf("%sSpicetify._platform=%s", submatches[1], submatches[2])
 		})
@@ -570,6 +570,14 @@ func exposeAPIs_main(input string) string {
 		`\(\({[^}]*,\s*imageSrc`,
 		func(submatches ...string) string {
 			return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
+		})
+
+	utils.ReplaceOnce(
+		&input,
+		`(;const [\w\d]+=)((?:\(0,[\w\d]+\.memo\))[\(\d,\w\.\){:}=]+\=[\d\w]+\.[\d\w]+\.getLocaleForURLPath\(\))`,
+		func(submatches ...string) string {
+			fmt.Println(submatches)
+			return fmt.Sprintf("%sSpicetify.ReactComponent.Navigation=%s", submatches[1], submatches[2])
 		})
 
 	// Menu hook

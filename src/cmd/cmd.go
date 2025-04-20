@@ -70,6 +70,9 @@ func InitPaths() {
 				os.Exit(1)
 			}
 			utils.PrintError(`Cannot detect Spotify location. Please manually set "spotify_path" in config-xpui.ini`)
+			if runtime.GOOS == "windows" {
+				utils.PrintInfo("Please make sure Spotify is not installed via Microsoft Store. If it is, please uninstall it and install Spotify with their web installer.")
+			}
 			os.Exit(1)
 		}
 

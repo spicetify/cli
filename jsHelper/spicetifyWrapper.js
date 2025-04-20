@@ -684,7 +684,6 @@ applyScrollingFix();
 			Routes: functionModules.find((m) => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
 			Route: functionModules.find((m) => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
 			StoreProvider: functionModules.find((m) => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
-			Navigation: exportedMemoFRefs.find((m) => m.type.render.toString().includes("navigationalRoot")),
 			ScrollableContainer: functionModules.find((m) => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")),
 			IconComponent: reactComponentsUI.Icon,
 			...Object.fromEntries(menus),
@@ -726,6 +725,8 @@ applyScrollingFix();
 	});
 
 	if (!Spicetify.ContextMenuV2._context) Spicetify.ContextMenuV2._context = Spicetify.React.createContext({});
+	if (!Spicetify.ReactComponent.Navigation)
+		Spicetify.ReactComponent.Navigation = exportedMemoFRefs.find((m) => m.type.render.toString().includes("navigationalRoot"));
 
 	(function waitForChunks() {
 		const listOfComponents = [
