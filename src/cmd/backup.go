@@ -65,16 +65,22 @@ Modded Spotify cannot be launched using original Shortcut/Start menu tile. To co
 
 	utils.PrintBold("Preprocessing:")
 
-	preprocess.Start(
-		spicetifyVersion,
-		rawFolder,
-		preprocess.Flag{
-			DisableSentry:  preprocSection.Key("disable_sentry").MustBool(false),
-			DisableLogging: preprocSection.Key("disable_ui_logging").MustBool(false),
-			RemoveRTL:      preprocSection.Key("remove_rtl_rule").MustBool(false),
-			ExposeAPIs:     preprocSection.Key("expose_apis").MustBool(false),
-			SpotifyVer:     utils.GetSpotifyVersion(prefsPath)},
-	)
+	spotifyBasePath := spotifyPath
+	if spotifyBasePath == "" {
+		utils.PrintError("Spotify installation path not found. Cannot preprocess V8 snapshots.")
+	} else {
+		preprocess.Start(
+			spicetifyVersion,
+			spotifyBasePath,
+			rawFolder,
+			preprocess.Flag{
+				DisableSentry:  preprocSection.Key("disable_sentry").MustBool(false),
+				DisableLogging: preprocSection.Key("disable_ui_logging").MustBool(false),
+				RemoveRTL:      preprocSection.Key("remove_rtl_rule").MustBool(false),
+				ExposeAPIs:     preprocSection.Key("expose_apis").MustBool(false),
+				SpotifyVer:     utils.GetSpotifyVersion(prefsPath)},
+		)
+	}
 	utils.PrintGreen("OK")
 
 	err = utils.Copy(rawFolder, themedFolder, true, []string{".html", ".js", ".css"})

@@ -223,6 +223,15 @@ func ModifyFile(path string, repl func(string) string) {
 	os.WriteFile(path, []byte(content), 0700)
 }
 
+// CreateFile creates a file with given path and content.
+func CreateFile(path string, content string) error {
+	err := os.WriteFile(path, []byte(content), 0600)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetSpotifyVersion .
 func GetSpotifyVersion(prefsPath string) string {
 	pref, err := ini.Load(prefsPath)

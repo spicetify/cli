@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -60,8 +61,7 @@ func readLocalCssMap(cssTranslationMap *map[string]string) error {
 	return nil
 }
 
-// Start preprocessing apps assets in extractedAppPath
-func Start(version string, extractedAppsPath string, flags Flag) {
+func Start(version string, spotifyBasePath string, extractedAppsPath string, flags Flag) {
 	appPath := filepath.Join(extractedAppsPath, "xpui")
 	var cssTranslationMap = make(map[string]string)
 	// readSourceMapAndGenerateCSSMap(appPath)
@@ -95,14 +95,66 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 		spotifyPatch, _ = strconv.Atoi(verParts[2])
 	}
 
+	frameworkResourcesPath := ""
+	switch runtime.GOOS {
+	case "darwin":
+		frameworkResourcesPath = filepath.Join(spotifyBasePath, "Contents", "Frameworks", "Chromium Embedded Framework.framework", "Resources")
+	case "windows":
+		frameworkResourcesPath = spotifyBasePath
+	case "linux":
+		frameworkResourcesPath = spotifyBasePath
+	default:
+		utils.PrintWarning("Unsupported OS for V8 snapshot finding: " + runtime.GOOS)
+	}
+
+	if frameworkResourcesPath != "" {
+		files, err := os.ReadDir(frameworkResourcesPath)
+		if err != nil {
+			utils.PrintWarning(fmt.Sprintf("Could not read directory %s for V8 snapshots: %v", frameworkResourcesPath, err))
+		} else {
+			for _, file := range files {
+				if !file.IsDir() && strings.HasPrefix(file.Name(), "v8_context_snapshot") && strings.HasSuffix(file.Name(), ".bin") {
+					binFilePath := filepath.Join(frameworkResourcesPath, file.Name())
+					utils.PrintInfo("Processing V8 snapshot file: " + binFilePath)
+
+					startMarker := []byte("var __webpack_modules__={")
+					endMarker := []byte("xpui-modules.js.map")
+
+					embeddedString, _, _, err := utils.ReadStringFromUTF16Binary(binFilePath, startMarker, endMarker)
+					if err != nil {
+						utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
+						utils.PrintInfo("You can ignore this warning if you're on a Spotify version that didn't yet add xpui modules to the V8 snapshot")
+						continue
+					}
+
+					err = utils.CreateFile(filepath.Join(appPath, "xpui-modules.js"), embeddedString)
+					if err != nil {
+						utils.PrintWarning(fmt.Sprintf("Could not create xpui-modules.js: %v", err))
+						continue
+					} else {
+						utils.PrintInfo("Extracted V8 snapshot blob (remaining xpui) to xpui-modules.js")
+					}
+				}
+			}
+		}
+	}
+
 	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Printf("Error accessing path %q: %v\n", path, err)
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
 		fileName := info.Name()
 		extension := filepath.Ext(fileName)
 
 		switch extension {
 		case ".js":
 			utils.ModifyFile(path, func(content string) string {
-				if flags.DisableSentry && fileName == "xpui.js" {
+				if flags.DisableSentry && (fileName == "xpui.js" || fileName == "xpui-snapshot.js") {
 					content = disableSentry(content)
 				}
 
@@ -112,6 +164,9 @@ func Start(version string, extractedAppsPath string, flags Flag) {
 
 				if flags.ExposeAPIs {
 					switch fileName {
+					case "xpui-modules.js", "xpui-snapshot.js":
+						content = exposeAPIs_main(content)
+						content = exposeAPIs_vendor(content)
 					case "xpui.js":
 						content = exposeAPIs_main(content)
 						if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
@@ -576,7 +631,6 @@ func exposeAPIs_main(input string) string {
 		&input,
 		`(;const [\w\d]+=)((?:\(0,[\w\d]+\.memo\))[\(\d,\w\.\){:}=]+\=[\d\w]+\.[\d\w]+\.getLocaleForURLPath\(\))`,
 		func(submatches ...string) string {
-			fmt.Println(submatches)
 			return fmt.Sprintf("%sSpicetify.ReactComponent.Navigation=%s", submatches[1], submatches[2])
 		})
 
@@ -585,7 +639,12 @@ func exposeAPIs_main(input string) string {
 		return fmt.Sprintf("%s[Spicetify.ContextMenuV2.renderItems(),%s].flat()", submatches[1], submatches[2])
 	})
 
-	croppedInput := utils.FindFirstMatch(input, `.*value:"contextmenu"`)[0]
+	inputContextMenu := utils.FindFirstMatch(input, `.*value:"contextmenu"`)
+	if len(inputContextMenu) == 0 {
+		return input
+	}
+
+	croppedInput := inputContextMenu[0]
 	react := utils.FindLastMatch(croppedInput, `([a-zA-Z_\$][\w\$]*)\.useRef`)[1]
 	candicates := utils.FindLastMatch(croppedInput, `\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)`)
 	oldCandicates := utils.FindLastMatch(croppedInput, `([a-zA-Z_\$][\w\$]*)=[\w_$]+\.menu[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.trigger[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.triggerRef`)

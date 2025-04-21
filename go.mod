@@ -12,4 +12,5 @@ require (
 require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/stretchr/testify v1.7.1 // indirect
+	golang.org/x/text v0.24.0 // indirect
 )
