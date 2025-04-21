@@ -144,9 +144,6 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 			fmt.Printf("Error accessing path %q: %v\n", path, err)
 			return err
 		}
-		if info.IsDir() {
-			return nil
-		}
 
 		fileName := info.Name()
 		extension := filepath.Ext(fileName)
