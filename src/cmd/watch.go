@@ -28,7 +28,7 @@ func Watch(liveUpdate bool) {
 	}
 
 	if len(themeFolder) == 0 {
-		utils.PrintError(`Config "current_theme" is blank. No theme asset to watch.`)
+		utils.PrintError(`Config "current_theme" is blank. No theme asset to watch`)
 		os.Exit(1)
 	}
 
@@ -115,7 +115,7 @@ func WatchExtensions(extName []string, liveUpdate bool) {
 	}
 
 	if len(extPathList) == 0 {
-		utils.PrintError("No extension to watch.")
+		utils.PrintError("No extension to watch")
 		os.Exit(1)
 	}
 
@@ -127,7 +127,7 @@ func WatchExtensions(extName []string, liveUpdate bool) {
 
 		pushExtensions("", filePath)
 
-		utils.PrintSuccess(utils.PrependTime(`Extension "` + filePath + `" is updated.`))
+		utils.PrintSuccess(utils.PrependTime(`Extension "` + filePath + `" is updated`))
 	}, autoReloadFunc)
 }
 
@@ -152,7 +152,7 @@ func WatchCustomApp(appName []string, liveUpdate bool) {
 	for _, v := range appNameList {
 		appPath, err := utils.GetCustomAppPath(v)
 		if err != nil {
-			utils.PrintError(`Custom app "` + v + `" not found.`)
+			utils.PrintError(`Custom app "` + v + `" not found`)
 			continue
 		}
 
@@ -195,7 +195,7 @@ func WatchCustomApp(appName []string, liveUpdate bool) {
 
 			RefreshApps(appName)
 
-			utils.PrintSuccess(utils.PrependTime(`Custom app "` + appName + `" is updated.`))
+			utils.PrintSuccess(utils.PrependTime(`Custom app "` + appName + `" is updated`))
 		}, autoReloadFunc)
 	}
 
@@ -210,7 +210,7 @@ func isValidForWatching() bool {
 	status := spotifystatus.Get(appDestPath)
 
 	if !status.IsModdable() {
-		utils.PrintError(`You haven't applied. Run "spicetify apply" once before entering watch mode.`)
+		utils.PrintError(`You haven't applied. Run "spicetify apply" once before entering watch mode`)
 		return false
 	}
 
@@ -229,7 +229,7 @@ func startDebugger() {
 	autoReloadFunc = func() {
 		if utils.SendReload(&debuggerURL) != nil {
 			utils.PrintError("Could not Reload Spotify")
-			utils.PrintInfo(`Close Spotify and run watch command again.`)
+			utils.PrintInfo(`Close Spotify and run watch command again`)
 		} else {
 			utils.PrintSuccess("Spotify reloaded")
 		}

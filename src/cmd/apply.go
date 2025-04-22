@@ -177,9 +177,9 @@ func RefreshExtensions(list ...string) {
 
 	if len(list) > 0 {
 		pushExtensions("", list...)
-		utils.PrintSuccess(utils.PrependTime("All extensions are updated."))
+		utils.PrintSuccess("All extensions are updated")
 	} else {
-		utils.PrintError("No extension to update.")
+		utils.PrintError("No extension to update")
 	}
 }
 
@@ -192,9 +192,9 @@ func CheckStates() {
 
 	if backStat.IsEmpty() {
 		if spotStat.IsBackupable() {
-			utils.PrintError(`You haven't backed up. Run "spicetify backup apply".`)
+			utils.PrintError(`You haven't backed up. Run "spicetify backup apply"`)
 		} else {
-			utils.PrintError(`You haven't backed up and Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
+			utils.PrintError(`You haven't backed up and Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply"`)
 		}
 		os.Exit(1)
 
@@ -202,13 +202,13 @@ func CheckStates() {
 		utils.PrintWarning("Spotify version and backup version are mismatched.")
 
 		if spotStat.IsMixed() {
-			utils.PrintInfo(`Spotify client possibly just had a new update.`)
-			utils.PrintInfo(`Please run "spicetify backup apply".`)
+			utils.PrintInfo(`Spotify client possibly just had a new update`)
+			utils.PrintInfo(`Please run "spicetify backup apply"`)
 		} else if spotStat.IsStock() {
-			utils.PrintInfo(`Spotify client is in stock state.`)
-			utils.PrintInfo(`Please run "spicetify backup apply".`)
+			utils.PrintInfo(`Spotify client is in stock state`)
+			utils.PrintInfo(`Please run "spicetify backup apply"`)
 		} else {
-			utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply".`)
+			utils.PrintInfo(`Spotify cannot be backed up at this state. Please re-install Spotify then run "spicetify backup apply"`)
 		}
 
 		os.Exit(1)
@@ -243,7 +243,7 @@ func pushExtensions(destExt string, list ...string) {
 			}
 			extPath, err = utils.GetExtensionPath(extName)
 			if err != nil {
-				utils.PrintError(`Extension "` + extName + `" not found.`)
+				utils.PrintError(`Extension "` + extName + `" not found`)
 				continue
 			}
 		}
@@ -281,7 +281,7 @@ func RefreshApps(list ...string) {
 
 		customAppPath, err := utils.GetCustomAppPath(app)
 		if err != nil {
-			utils.PrintError(`Custom app "` + app + `" not found.`)
+			utils.PrintError(`Custom app "` + app + `" not found`)
 			continue
 		}
 

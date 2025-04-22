@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pterm/pterm"
 	"github.com/spicetify/cli/src/utils"
 )
 
@@ -25,9 +26,32 @@ type Flag struct {
 	DisableLogging bool
 	// RemoveRTL removes all Right-To-Left CSS rules to simplify CSS files.
 	RemoveRTL bool
-	// ExposeAPIs leaks some Spotify's API, functions, objects to Spicetify global object.
+	// ExposeAPIs leaks Spotify's API, functions, objects to Spicetify global object.
 	ExposeAPIs bool
 	SpotifyVer string
+}
+
+type Patch struct {
+	Name        string
+	Regex       string
+	Replacement func(submatches ...string) string
+	Once        bool
+}
+
+type patchReporter func(string)
+
+func applyPatches(input string, patches []Patch, report ...patchReporter) string {
+	for _, patch := range patches {
+		if len(report) > 0 && report[0] != nil {
+			report[0](fmt.Sprintf("%s patch", patch.Name))
+		}
+		if patch.Once {
+			utils.ReplaceOnce(&input, patch.Regex, patch.Replacement)
+		} else {
+			utils.Replace(&input, patch.Regex, patch.Replacement)
+		}
+	}
+	return input
 }
 
 func readRemoteCssMap(tag string, cssTranslationMap *map[string]string) error {
@@ -104,7 +128,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 	case "linux":
 		frameworkResourcesPath = spotifyBasePath
 	default:
-		utils.PrintWarning("Unsupported OS for V8 snapshot finding: " + runtime.GOOS)
+		utils.PrintError("Unsupported OS for V8 snapshot finding: " + runtime.GOOS)
 	}
 
 	if frameworkResourcesPath != "" {
@@ -130,28 +154,51 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					err = utils.CreateFile(filepath.Join(appPath, "xpui-modules.js"), embeddedString)
 					if err != nil {
 						utils.PrintWarning(fmt.Sprintf("Could not create xpui-modules.js: %v", err))
-						continue
+						break
 					} else {
-						utils.PrintInfo("Extracted V8 snapshot blob (remaining xpui) to xpui-modules.js")
+						utils.PrintSuccess("Extracted V8 snapshot blob (remaining xpui modules) to xpui-modules.js")
+						break
 					}
 				}
 			}
 		}
 	}
 
+	var filesToPatch []string
 	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			fmt.Printf("Error accessing path %q: %v\n", path, err)
-			return err
+		if err != nil || info.IsDir() {
+			return nil
 		}
+		ext := filepath.Ext(info.Name())
+		if ext == ".js" || ext == ".css" || ext == ".html" {
+			filesToPatch = append(filesToPatch, path)
+		}
+		return nil
+	})
 
+	totalFiles := len(filesToPatch)
+	currentFile := 0
+
+	style := pterm.NewStyle(pterm.FgWhite, pterm.BgBlack)
+	bar, _ := pterm.DefaultProgressbar.WithTotal(totalFiles).WithTitle("Patching files...").WithTitleStyle(style).WithShowCount(true).Start()
+	printPatch := func(msg string) {
+		bar.UpdateTitle(msg)
+	}
+	for _, path := range filesToPatch {
+		info, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
 		fileName := info.Name()
 		extension := filepath.Ext(fileName)
+
+		currentFile++
 
 		switch extension {
 		case ".js":
 			utils.ModifyFile(path, func(content string) string {
 				if flags.DisableSentry && (fileName == "xpui.js" || fileName == "xpui-snapshot.js") {
+					printPatch("Disable Sentry")
 					content = disableSentry(content)
 				}
 
@@ -162,17 +209,18 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 				if flags.ExposeAPIs {
 					switch fileName {
 					case "xpui-modules.js", "xpui-snapshot.js":
-						content = exposeAPIs_main(content)
-						content = exposeAPIs_vendor(content)
+						content = exposeAPIs_main(content, printPatch)
+						content = exposeAPIs_vendor(content, printPatch)
 					case "xpui.js":
-						content = exposeAPIs_main(content)
+						content = exposeAPIs_main(content, printPatch)
 						if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
-							content = exposeAPIs_vendor(content)
+							content = exposeAPIs_vendor(content, printPatch)
 						}
 					case "vendor~xpui.js":
-						content = exposeAPIs_vendor(content)
+						content = exposeAPIs_vendor(content, printPatch)
 					}
 				}
+				printPatch("CSS (JS): Patching our mappings into file")
 				for k, v := range cssTranslationMap {
 					utils.Replace(&content, k, func(submatches ...string) string {
 						return v
@@ -184,15 +232,18 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 			})
 		case ".css":
 			utils.ModifyFile(path, func(content string) string {
+				printPatch("CSS: Patching our mappings into file")
 				for k, v := range cssTranslationMap {
 					utils.Replace(&content, k, func(submatches ...string) string {
 						return v
 					})
 				}
 				if flags.RemoveRTL {
+					printPatch("Remove RTL")
 					content = removeRTL(content)
 				}
 				if fileName == "xpui.css" {
+					printPatch("Extra CSS Patch")
 					content = content + `
 					.main-gridContainer-fixedWidth{grid-template-columns: repeat(auto-fill, var(--column-width));width: calc((var(--column-count) - 1) * var(--grid-gap)) + var(--column-count) * var(--column-width));}.main-cardImage-imageWrapper{background-color: var(--card-color, #333);border-radius: 6px;-webkit-box-shadow: 0 8px 24px rgba(0, 0, 0, .5);box-shadow: 0 8px 24px rgba(0, 0, 0, .5);padding-bottom: 100%;position: relative;width:100%;}.main-cardImage-image,.main-card-imagePlaceholder{height: 100%;left: 0;position: absolute;top: 0;width: 100%};.main-content-view{height:100%;}
 					`
@@ -202,6 +253,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 
 		case ".html":
 			utils.ModifyFile(path, func(content string) string {
+				printPatch("Inject wrapper/CSS")
 				var tags string
 				tags += "<link rel='stylesheet' class='userCSS' href='colors.css'>\n"
 				tags += "<link rel='stylesheet' class='userCSS' href='user.css'>\n"
@@ -218,8 +270,9 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 				return content
 			})
 		}
-		return nil
-	})
+
+		bar.Increment()
+	}
 }
 
 // StartCSS modifies all CSS files in extractedAppsPath to change
@@ -233,144 +286,201 @@ func StartCSS(extractedAppsPath string) {
 		}
 
 		if filepath.Ext(info.Name()) == ".css" {
-			utils.ModifyFile(path, colorVariableReplace)
+			utils.ModifyFile(path, func(content string) string {
+				return colorVariableReplace(content)
+			})
 		}
 		return nil
 	})
 }
 
 func colorVariableReplace(content string) string {
-	utils.Replace(&content, "#181818", func(submatches ...string) string {
-		return "var(--spice-player)"
-	})
-	utils.Replace(&content, "#212121", func(submatches ...string) string {
-		return "var(--spice-player)"
-	})
+	patches := []Patch{
+		{
+			Name:  "CSS: --spice-player",
+			Regex: "#(181818|212121)",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-player)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-card",
+			Regex: "#282828",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-card)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-main",
+			Regex: "#121212",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-main)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-card-elevated",
+			Regex: "#(242424|1f1f1f)",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-card-elevated)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-highlight",
+			Regex: "#1a1a1a",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-highlight)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-highlight-elevated",
+			Regex: "#2a2a2a",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-highlight-elevated)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-sidebar",
+			Regex: "#(000|000000)",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-sidebar)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-text",
+			Regex: "white;|#fff|#ffffff|#f8f8f8",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-text)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-subtext",
+			Regex: `#(b3b3b3|a7a7a7)`,
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-subtext)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-button",
+			Regex: "#(1db954|1877f2)",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-button)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-button-active",
+			Regex: "#(1ed760|1fdf64|169c46)",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-button-active)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-button-disabled",
+			Regex: "#535353",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-button-disabled)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-tab-active",
+			Regex: "#(333|333333)",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-tab-active)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-misc",
+			Regex: "#7f7f7f",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-misc)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-notification",
+			Regex: "#(4687d6|2e77d0)",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-notification)"
+			},
+		},
+		{
+			Name:  "CSS: --spice-notification-error",
+			Regex: "#(e22134|cd1a2b)",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-notification-error)"
+			},
+		},
+		{
+			Name:  "CSS (rgba): --spice-main",
+			Regex: `rgba\(18,18,18,([\d\.]+)\)`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("rgba(var(--spice-main),%s)", submatches[1])
+			},
+		},
+		{
+			Name:  "CSS (rgba): --spice-card",
+			Regex: `rgba\(40,40,40,([\d\.]+)\)`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("rgba(var(--spice-card),%s)", submatches[1])
+			},
+		},
+		{
+			Name:  "CSS (rgba): --spice-rgb-shadow",
+			Regex: `rgba\(0,0,0,([\d\.]+)\)`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("rgba(var(--spice-rgb-shadow),%s)", submatches[1])
+			},
+		},
+		{
+			Name:  "CSS (hsla): --spice-rgb-text",
+			Regex: `hsla\(0,0%,100%,\.9\)`,
+			Replacement: func(submatches ...string) string {
+				return "rgba(var(--spice-rgb-text),.9)"
+			},
+		},
+		{
+			Name:  "CSS (hsla): --spice-rgb-selected-row",
+			Regex: `hsla\(0,0%,100%,([\d\.]+)\)`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("rgba(var(--spice-rgb-selected-row),%s)", submatches[1])
+			},
+		},
+	}
 
-	utils.Replace(&content, "#282828", func(submatches ...string) string {
-		return "var(--spice-card)"
-	})
-
-	utils.Replace(&content, "#121212", func(submatches ...string) string {
-		return "var(--spice-main)"
-	})
-	utils.Replace(&content, `#(242424|1f1f1f)`, func(submatches ...string) string {
-		return "var(--spice-main-elevated)"
-	})
-
-	utils.Replace(&content, "#1a1a1a", func(submatches ...string) string {
-		return "var(--spice-highlight)"
-	})
-	utils.Replace(&content, "#2a2a2a", func(submatches ...string) string {
-		return "var(--spice-highlight-elevated)"
-	})
-
-	utils.Replace(&content, "#000", func(submatches ...string) string {
-		return "var(--spice-sidebar)"
-	})
-	utils.Replace(&content, "#000000", func(submatches ...string) string {
-		return "var(--spice-sidebar)"
-	})
-
-	utils.Replace(&content, "white;", func(submatches ...string) string {
-		return " var(--spice-text);"
-	})
-	utils.Replace(&content, "#fff", func(submatches ...string) string {
-		return "var(--spice-text)"
-	})
-	utils.Replace(&content, "#ffffff", func(submatches ...string) string {
-		return "var(--spice-text)"
-	})
-	utils.Replace(&content, "#f8f8f8", func(submatches ...string) string {
-		return "var(--spice-text)"
-	})
-
-	utils.Replace(&content, "#b3b3b3", func(submatches ...string) string {
-		return "var(--spice-subtext)"
-	})
-	utils.Replace(&content, "#a7a7a7", func(submatches ...string) string {
-		return "var(--spice-subtext)"
-	})
-
-	utils.Replace(&content, "#1db954", func(submatches ...string) string {
-		return "var(--spice-button)"
-	})
-	utils.Replace(&content, "#1877f2", func(submatches ...string) string {
-		return "var(--spice-button)"
-	})
-
-	utils.Replace(&content, "#1ed760", func(submatches ...string) string {
-		return "var(--spice-button-active)"
-	})
-	utils.Replace(&content, "#1fdf64", func(submatches ...string) string {
-		return "var(--spice-button-active)"
-	})
-	utils.Replace(&content, "#169c46", func(submatches ...string) string {
-		return "var(--spice-button-active)"
-	})
-
-	utils.Replace(&content, "#535353", func(submatches ...string) string {
-		return "var(--spice-button-disabled)"
-	})
-
-	utils.Replace(&content, "#333", func(submatches ...string) string {
-		return "var(--spice-tab-active)"
-	})
-	utils.Replace(&content, "#333333", func(submatches ...string) string {
-		return "var(--spice-tab-active)"
-	})
-
-	utils.Replace(&content, "#7f7f7f", func(submatches ...string) string {
-		return "var(--spice-misc)"
-	})
-
-	utils.Replace(&content, "#4687d6", func(submatches ...string) string {
-		return "var(--spice-notification)"
-	})
-	utils.Replace(&content, "#2e77d0", func(submatches ...string) string {
-		return "var(--spice-notification)"
-	})
-
-	utils.Replace(&content, "#e22134", func(submatches ...string) string {
-		return "var(--spice-notification-error)"
-	})
-	utils.Replace(&content, "#cd1a2b", func(submatches ...string) string {
-		return "var(--spice-notification-error)"
-	})
-
-	utils.Replace(&content, `rgba\(18,18,18,([\d\.]+)\)`, func(submatches ...string) string {
-		return fmt.Sprintf("rgba(var(--spice-main),%s)", submatches[1])
-	})
-	utils.Replace(&content, `rgba\(40,40,40,([\d\.]+)\)`, func(submatches ...string) string {
-		return fmt.Sprintf("rgba(var(--spice-card),%s)", submatches[1])
-	})
-	utils.Replace(&content, `rgba\(0,0,0,([\d\.]+)\)`, func(submatches ...string) string {
-		return fmt.Sprintf("rgba(var(--spice-rgb-shadow),%s)", submatches[1])
-	})
-	utils.Replace(&content, `hsla\(0,0%,100%,\.9\)`, func(submatches ...string) string {
-		return "rgba(var(--spice-rgb-text),.9)"
-	})
-	utils.Replace(&content, `hsla\(0,0%,100%,([\d\.]+)\)`, func(submatches ...string) string {
-		return fmt.Sprintf("rgba(var(--spice-rgb-selected-row),%s)", submatches[1])
-	})
-
-	return content
+	return applyPatches(content, patches)
 }
 
 func colorVariableReplaceForJS(content string) string {
-	utils.Replace(&content, `"#1db954"`, func(submatches ...string) string {
-		return ` getComputedStyle(document.body).getPropertyValue("--spice-button").trim()`
-	})
-	utils.Replace(&content, `"#b3b3b3"`, func(submatches ...string) string {
-		return ` getComputedStyle(document.body).getPropertyValue("--spice-subtext").trim()`
-	})
-	utils.Replace(&content, `"#ffffff"`, func(submatches ...string) string {
-		return ` getComputedStyle(document.body).getPropertyValue("--spice-text").trim()`
-	})
-	utils.Replace(&content, `color:"white"`, func(submatches ...string) string {
-		return `color:"var(--spice-text)"`
-	})
-	return content
+	patches := []Patch{
+		{
+			Name:  "CSS (JS): --spice-button",
+			Regex: `"#1db954"`,
+			Replacement: func(submatches ...string) string {
+				return ` getComputedStyle(document.body).getPropertyValue("--spice-button").trim()`
+			},
+		},
+		{
+			Name:  "CSS (JS): --spice-subtext",
+			Regex: `"#b3b3b3"`,
+			Replacement: func(submatches ...string) string {
+				return ` getComputedStyle(document.body).getPropertyValue("--spice-subtext").trim()`
+			},
+		},
+		{
+			Name:  "CSS (JS): --spice-text",
+			Regex: `"#ffffff"`,
+			Replacement: func(submatches ...string) string {
+				return ` getComputedStyle(document.body).getPropertyValue("--spice-text").trim()`
+			},
+		},
+		{
+			Name:  "CSS (JS): --spice-text white",
+			Regex: `color:"white"`,
+			Replacement: func(submatches ...string) string {
+				return `color:"var(--spice-text)"`
+			},
+		},
+	}
+
+	return applyPatches(content, patches)
 }
 
 func disableSentry(input string) string {
@@ -385,289 +495,445 @@ func disableSentry(input string) string {
 }
 
 func disableLogging(input string) string {
-	utils.Replace(&input, `sp://logging/v3/\w+`, func(submatches ...string) string {
-		return ""
-	})
-	utils.Replace(&input, `[^"\/]+\/[^"\/]+\/(public\/)?v3\/events`, func(submatches ...string) string {
-		return ""
-	})
-
-	utils.Replace(&input, `key:"registerEventListeners",value:function\(\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `key:"logInteraction",value:function\([\w,]+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn {interactionId:null,pageInstanceId:null};", submatches[0])
-	})
-	utils.Replace(&input, `key:"logNonAuthInteraction",value:function\([\w,]+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn {interactionId:null,pageInstanceId:null};", submatches[0])
-	})
-	utils.Replace(&input, `key:"logImpression",value:function\([\w,]+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `key:"logNonAuthImpression",value:function\([\w,]+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `key:"logNavigation",value:function\([\w,]+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `key:"handleBackgroundStates",value:function\(\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `key:"createLoggingParams",value:function\([\w,]+\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `key:"initSendingEvents",value:function\(\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `key:"flush",value:function\(\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `(\{key:"send",value:function\([\w,]+\))\{[\d\w\s,{}()[\]\.,!\?=>&|;:_""]+?\}(\},\{key:"hasContext")`, func(submatches ...string) string {
-		return fmt.Sprintf("%s{return;}%s", submatches[1], submatches[2])
-	})
-	utils.Replace(&input, `key:"lastFlush",value:function\(\)\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn Promise.resolve({fired:true});", submatches[0])
-	})
-	utils.Replace(&input, `key:"addItemInEventsStorage",value:function\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `key:"createLoggingParams",value:function\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn {interactionIds:null,pageInstanceIds:null};", submatches[0])
-	})
-	utils.Replace(&input, `key:"addEventsToESSData",value:function\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-
-	utils.Replace(&input, `registerEventListeners\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `logInteraction\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn {interactionId:null,pageInstanceId:null};", submatches[0])
-	})
-	utils.Replace(&input, `logImpression\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `logNavigation\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `handleBackgroundStates\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `initSendingEvents\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `sendEvents\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `storeEvent\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `lastFlush\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn Promise.resolve({fired:true});", submatches[0])
-	})
-	utils.Replace(&input, `addItemInEventsStorage\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-	utils.Replace(&input, `createLoggingParams\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn {interactionIds:null,pageInstanceIds:null};", submatches[0])
-	})
-	utils.Replace(&input, `addEventsToESSData\([^)]*\)\s*\{`, func(submatches ...string) string {
-		return fmt.Sprintf("%sreturn;", submatches[0])
-	})
-
-	return input
+	patches := []Patch{
+		{
+			Name:  "Remove sp://logging/v3/*",
+			Regex: `sp://logging/v3/\w+`,
+			Replacement: func(submatches ...string) string {
+				return ""
+			},
+		},
+		{
+			Name:  "Remove /v3/events endpoints",
+			Regex: `[^"\/]+\/[^"\/]+\/(public\/)?v3\/events`,
+			Replacement: func(submatches ...string) string {
+				return ""
+			},
+		},
+		{
+			Name:  "Disable registerEventListeners",
+			Regex: `key:"registerEventListeners",value:function\(\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable logInteraction",
+			Regex: `key:"logInteraction",value:function\([\w,]+\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn {interactionId:null,pageInstanceId:null};", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable logNonAuthInteraction",
+			Regex: `key:"logNonAuthInteraction",value:function\([\w,]+\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn {interactionId:null,pageInstanceId:null};", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable logImpression",
+			Regex: `key:"logImpression",value:function\([\w,]+\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable logNonAuthImpression",
+			Regex: `key:"logNonAuthImpression",value:function\([\w,]+\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable logNavigation",
+			Regex: `key:"logNavigation",value:function\([\w,]+\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable handleBackgroundStates",
+			Regex: `key:"handleBackgroundStates",value:function\(\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable createLoggingParams",
+			Regex: `key:"createLoggingParams",value:function\([\w,]+\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable initSendingEvents",
+			Regex: `key:"initSendingEvents",value:function\(\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable flush",
+			Regex: `key:"flush",value:function\(\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable send",
+			Regex: `(\{key:"send",value:function\([\w,]+\))\{[\d\w\s,{}()[\]\.,!\?=>&|;:_""]+?\}(\},\{key:"hasContext")`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%s{return;}%s", submatches[1], submatches[2])
+			},
+		},
+		{
+			Name:  "Disable lastFlush",
+			Regex: `key:"lastFlush",value:function\(\)\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn Promise.resolve({fired:true});", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable addItemInEventsStorage",
+			Regex: `key:"addItemInEventsStorage",value:function\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable createLoggingParams (new)",
+			Regex: `key:"createLoggingParams",value:function\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn {interactionIds:null,pageInstanceIds:null};", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable addEventsToESSData",
+			Regex: `key:"addEventsToESSData",value:function\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable registerEventListeners (new)",
+			Regex: `registerEventListeners\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable logInteraction (new)",
+			Regex: `logInteraction\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn {interactionId:null,pageInstanceId:null};", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable logImpression (new)",
+			Regex: `logImpression\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable logNavigation (new)",
+			Regex: `logNavigation\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable handleBackgroundStates (new)",
+			Regex: `handleBackgroundStates\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable initSendingEvents (new)",
+			Regex: `initSendingEvents\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable sendEvents",
+			Regex: `sendEvents\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable storeEvent",
+			Regex: `storeEvent\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable lastFlush (new)",
+			Regex: `lastFlush\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn Promise.resolve({fired:true});", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable addItemInEventsStorage (new)",
+			Regex: `addItemInEventsStorage\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable createLoggingParams (new)",
+			Regex: `createLoggingParams\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn {interactionIds:null,pageInstanceIds:null};", submatches[0])
+			},
+		},
+		{
+			Name:  "Disable addEventsToESSData (new)",
+			Regex: `addEventsToESSData\([^)]*\)\s*\{`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sreturn;", submatches[0])
+			},
+		},
+	}
+	return applyPatches(input, patches)
 }
 
 func removeRTL(input string) string {
-	utils.Replace(&input, `}\[dir=ltr\]\s?`, func(submatches ...string) string {
-		return "} "
-	})
-	utils.Replace(&input, `html\[dir=ltr\]`, func(submatches ...string) string {
-		return "html"
-	})
-	utils.Replace(&input, `,\s?\[dir=rtl\].+?(\{.+?\})`, func(submatches ...string) string {
-		return submatches[1]
-	})
-	utils.Replace(&input, `[\w\-\.]+\[dir=rtl\].+?\{.+?\}`, func(submatches ...string) string {
-		return ""
-	})
-	utils.Replace(&input, `\}\[lang=ar\].+?\{.+?\}`, func(submatches ...string) string {
-		return "}"
-	})
-	utils.Replace(&input, `\}\[dir=rtl\].+?\{.+?\}`, func(submatches ...string) string {
-		return "}"
-	})
-	utils.Replace(&input, `\}html\[dir=rtl\].+?\{.+?\}`, func(submatches ...string) string {
-		return "}"
-	})
-	utils.Replace(&input, `\}html\[lang=ar\].+?\{.+?\}`, func(submatches ...string) string {
-		return "}"
-	})
-	utils.Replace(&input, `\[lang=ar\].+?\{.+?\}`, func(submatches ...string) string {
-		return ""
-	})
-	utils.Replace(&input, `html\[dir=rtl\].+?\{.+?\}`, func(submatches ...string) string {
-		return ""
-	})
-	utils.Replace(&input, `html\[lang=ar\].+?\{.+?\}`, func(submatches ...string) string {
-		return ""
-	})
-	utils.Replace(&input, `\[dir=rtl\].+?\{.+?\}`, func(submatches ...string) string {
-		return ""
-	})
+	patches := []Patch{
+		{
+			Name:  "Remove }[dir=ltr]",
+			Regex: `}\[dir=ltr\]\s?`,
+			Replacement: func(submatches ...string) string {
+				return "} "
+			},
+		},
+		{
+			Name:  "Remove html[dir=ltr]",
+			Regex: `html\[dir=ltr\]`,
+			Replacement: func(submatches ...string) string {
+				return "html"
+			},
+		},
+		{
+			Name:  "Remove ', [dir=rtl]' selectors",
+			Regex: `,\s?\[dir=rtl\].+?(\{.+?\})`,
+			Replacement: func(submatches ...string) string {
+				return submatches[1]
+			},
+		},
+		{
+			Name:  "Remove [something][dir=rtl] blocks",
+			Regex: `[\w\-\.]+\[dir=rtl\].+?\{.+?\}`,
+			Replacement: func(submatches ...string) string {
+				return ""
+			},
+		},
+		{
+			Name:  "Remove }[lang=ar] blocks",
+			Regex: `\}\[lang=ar\].+?\{.+?\}`,
+			Replacement: func(submatches ...string) string {
+				return "}"
+			},
+		},
+		{
+			Name:  "Remove }[dir=rtl] blocks",
+			Regex: `\}\[dir=rtl\].+?\{.+?\}`,
+			Replacement: func(submatches ...string) string {
+				return "}"
+			},
+		},
+		{
+			Name:  "Remove }html[dir=rtl] blocks",
+			Regex: `\}html\[dir=rtl\].+?\{.+?\}`,
+			Replacement: func(submatches ...string) string {
+				return "}"
+			},
+		},
+		{
+			Name:  "Remove }html[lang=ar] blocks",
+			Regex: `\}html\[lang=ar\].+?\{.+?\}`,
+			Replacement: func(submatches ...string) string {
+				return "}"
+			},
+		},
+		{
+			Name:  "Remove [lang=ar] blocks",
+			Regex: `\[lang=ar\].+?\{.+?\}`,
+			Replacement: func(submatches ...string) string {
+				return ""
+			},
+		},
+		{
+			Name:  "Remove html[dir=rtl] blocks",
+			Regex: `html\[dir=rtl\].+?\{.+?\}`,
+			Replacement: func(submatches ...string) string {
+				return ""
+			},
+		},
+		{
+			Name:  "Remove html[lang=ar] blocks",
+			Regex: `html\[lang=ar\].+?\{.+?\}`,
+			Replacement: func(submatches ...string) string {
+				return ""
+			},
+		},
+		{
+			Name:  "Remove [dir=rtl] blocks",
+			Regex: `\[dir=rtl\].+?\{.+?\}`,
+			Replacement: func(submatches ...string) string {
+				return ""
+			},
+		},
+	}
 
-	return input
+	return applyPatches(input, patches)
 }
 
-func exposeAPIs_main(input string) string {
-	// Show Notification
-	utils.Replace(
-		&input,
-		`(?:\w+ |,)([\w$]+)=(\([\w$]+=[\w$]+\.dispatch)`,
-		func(submatches ...string) string {
-			return fmt.Sprintf(`;globalThis.Spicetify.showNotification=(message,isError=false,msTimeout)=>%s({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const %s=%s`, submatches[1], submatches[1], submatches[2])
-		})
-
-	// Remove list of exclusive shows
-	utils.Replace(
-		&input,
-		`\["spotify:show.+?\]`,
-		func(submatches ...string) string {
-			return "[]"
-		})
-
-	// Remove Star Wars easter eggs since it aggressively
-	// listens to keystroke, checking URIs at all time
-	// TODO: to fix
-	utils.Replace(
-		&input,
-		`\w+\(\)\.createElement\(\w+,\{onChange:this\.handleSaberStateChange\}\),`,
-		func(submatches ...string) string {
-			return ""
-		})
-
-	utils.Replace(
-		&input,
-		`"data-testid":`,
-		func(submatches ...string) string {
-			return `"":`
-		})
-
-	// Spicetify._platform
-	utils.Replace(
-		&input,
-		`((?:setTitlebarHeight|registerFactory)[\w(){}<>:.,&$!=;""?!#% ]+)(\{version:[a-zA-Z_\$][\w\$]*,)`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("%sSpicetify._platform=%s", submatches[1], submatches[2])
-		})
-
-	// Redux store
-	utils.Replace(
-		&input,
-		`(,[\w$]+=)(([$\w,.:=;(){}]+\(\{session:[\w$]+,features:[\w$]+,seoExperiment:[\w$]+\}))`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("%sSpicetify.Platform.ReduxStore=%s", submatches[1], submatches[2])
-		})
-
-	// React Component: Platform Provider
-	utils.Replace(
-		&input,
-		`(,[$\w]+=)((function\([\w$]{1}\)\{var [\w$]+=[\w$]+\.platform,[\w$]+=[\w$]+\.children,)|(\(\{platform:[\w$]+,children:[\w$]+\}\)=>\{))`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("%sSpicetify.ReactComponent.PlatformProvider=%s", submatches[1], submatches[2])
-		})
-
-	// Prevent breaking popupLyrics
-	utils.Replace(
-		&input,
-		`document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null`,
-		func(submatches ...string) string {
-			return ""
-		})
-
-	// GraphQL definitions <=1.2.30
-	utils.Replace(
-		&input,
-		`((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("%sSpicetify.GraphQL.Definitions[%s]=%s", submatches[1], submatches[3], submatches[2])
-		})
-
-	// GraphQL definitons >=1.2.31
-	utils.Replace(
-		&input,
-		`(=new [\w_\$][\w_\$\d]*\.[\w_\$][\w_\$\d]*\("(\w+)","(query|mutation)","[\w\d]{64}",null\))`,
-		func(submatches ...string) string {
-			return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
-		})
-
-	// Spotify Custom Snackbar Interfaces
-	utils.Replace(
-		&input,
-		`\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("%sSpicetify.Snackbar.enqueueCustomSnackbar=%s;", submatches[0], submatches[1])
-		})
-
-	// >= 1.2.38
-	utils.Replace(
-		&input,
-		`(=)[^=]*\(\)\.enqueueCustomSnackbar;`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("=Spicetify.Snackbar.enqueueCustomSnackbar%s;", submatches[0])
-		})
-
-	utils.Replace(
-		&input,
-		`\(\({[^}]*,\s*imageSrc`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
-		})
-
-	utils.ReplaceOnce(
-		&input,
-		`(;const [\w\d]+=)((?:\(0,[\w\d]+\.memo\))[\(\d,\w\.\){:}=]+\=[\d\w]+\.[\d\w]+\.getLocaleForURLPath\(\))`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("%sSpicetify.ReactComponent.Navigation=%s", submatches[1], submatches[2])
-		})
-
-	// Menu hook
-	utils.Replace(&input, `("Menu".+?children:)([\w$][\w$\d]*)`, func(submatches ...string) string {
-		return fmt.Sprintf("%s[Spicetify.ContextMenuV2.renderItems(),%s].flat()", submatches[1], submatches[2])
-	})
-
+func exposeAPIs_main(input string, report patchReporter) string {
 	inputContextMenu := utils.FindFirstMatch(input, `.*value:"contextmenu"`)
-	if len(inputContextMenu) == 0 {
-		return input
+	if len(inputContextMenu) > 1 {
+		croppedInput := inputContextMenu[0]
+		react := utils.FindLastMatch(croppedInput, `([a-zA-Z_\$][\w\$]*)\.useRef`)[1]
+		candicates := utils.FindLastMatch(croppedInput, `\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)`)
+		oldCandicates := utils.FindLastMatch(croppedInput, `([a-zA-Z_\$][\w\$]*)=[\w_$]+\.menu[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.trigger[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.triggerRef`)
+		var menu, trigger, target string
+		if len(oldCandicates) != 0 {
+			menu = oldCandicates[1]
+			trigger = oldCandicates[2]
+			target = oldCandicates[3]
+		} else if len(candicates) != 0 {
+			menu = candicates[1]
+			trigger = candicates[2]
+			target = candicates[3]
+		} else {
+			menu = "e.menu"
+			trigger = "e.trigger"
+			target = "e.triggerRef"
+		}
+
+		utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, func(submatches ...string) string {
+			return fmt.Sprintf("(0,%s.jsx)((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=%s.createContext(null))).Provider,{value:{props:%s?.props,trigger:%s,target:%s},children:%s})", submatches[1], react, menu, trigger, target, submatches[0])
+		})
 	}
 
-	croppedInput := inputContextMenu[0]
-	react := utils.FindLastMatch(croppedInput, `([a-zA-Z_\$][\w\$]*)\.useRef`)[1]
-	candicates := utils.FindLastMatch(croppedInput, `\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)`)
-	oldCandicates := utils.FindLastMatch(croppedInput, `([a-zA-Z_\$][\w\$]*)=[\w_$]+\.menu[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.trigger[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.triggerRef`)
-	var menu, trigger, target string
-	if len(oldCandicates) != 0 {
-		menu = oldCandicates[1]
-		trigger = oldCandicates[2]
-		target = oldCandicates[3]
-	} else if len(candicates) != 0 {
-		menu = candicates[1]
-		trigger = candicates[2]
-		target = candicates[3]
-	} else {
-		menu = "e.menu"
-		trigger = "e.trigger"
-		target = "e.triggerRef"
+	patches := []Patch{
+		{
+			Name:  "showNotification patch",
+			Regex: `(?:\w+ |,)([\w$]+)=(\([\w$]+=[\w$]+\.dispatch)`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf(`;globalThis.Spicetify.showNotification=(message,isError=false,msTimeout)=>%s({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const %s=%s`, submatches[1], submatches[1], submatches[2])
+			},
+		},
+		{
+			Name:  "Remove list of exclusive shows",
+			Regex: `\["spotify:show.+?\]`,
+			Replacement: func(submatches ...string) string {
+				return "[]"
+			},
+		},
+		{
+			Name:  "Remove Star Wars easter eggs",
+			Regex: `\w+\(\)\.createElement\(\w+,\{onChange:this\.handleSaberStateChange\}\),`,
+			Replacement: func(submatches ...string) string {
+				return ""
+			},
+		},
+		{
+			Name:  "Remove data-testid",
+			Regex: `"data-testid":`,
+			Replacement: func(submatches ...string) string {
+				return `"":`
+			},
+		},
+		{
+			Name:  "Expose PlatformAPI",
+			Regex: `((?:setTitlebarHeight|registerFactory)[\w(){}<>:.,&$!=;""?!#% ]+)(\{version:[a-zA-Z_\$][\w\$]*,)`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sSpicetify._platform=%s", submatches[1], submatches[2])
+			},
+		},
+		{
+			Name:  "Redux store",
+			Regex: `(,[\w$]+=)(([$\w,.:=;(){}]+\(\{session:[\w$]+,features:[\w$]+,seoExperiment:[\w$]+\}))`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sSpicetify.Platform.ReduxStore=%s", submatches[1], submatches[2])
+			},
+		},
+		{
+			Name:  "React Component: Platform Provider",
+			Regex: `(,[$\w]+=)((function\([\w$]{1}\)\{var [\w$]+=[\w$]+\.platform,[\w$]+=[\w$]+\.children,)|(\(\{platform:[\w$]+,children:[\w$]+\}\)=>\{))`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sSpicetify.ReactComponent.PlatformProvider=%s", submatches[1], submatches[2])
+			},
+		},
+		{
+			Name:  "Prevent breaking popupLyrics",
+			Regex: `document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null`,
+			Replacement: func(submatches ...string) string {
+				return ""
+			},
+		},
+		{
+			Name:  "GraphQL definitions <=1.2.30",
+			Regex: `((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sSpicetify.GraphQL.Definitions[%s]=%s", submatches[1], submatches[3], submatches[2])
+			},
+		},
+		{
+			Name:  "GraphQL definitons >=1.2.31",
+			Regex: `(=new [\w_\$][\w_\$\d]*\.[\w_\$][\w_\$\d]*\("(\w+)","(query|mutation)","[\w\d]{64}",null\))`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
+			},
+		},
+		{
+			Name:  "Spotify Custom Snackbar Interfaces <=1.2.37",
+			Regex: `\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sSpicetify.Snackbar.enqueueCustomSnackbar=%s;", submatches[0], submatches[1])
+			},
+		},
+		{
+			Name:  "Spotify Custom Snackbar Interfaces >=1.2.38",
+			Regex: `(=)[^=]*\(\)\.enqueueCustomSnackbar;`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("=Spicetify.Snackbar.enqueueCustomSnackbar%s;", submatches[0])
+			},
+		},
+		{
+			Name:  "Spotify Image Snackbar Interface",
+			Regex: `\(\({[^}]*,\s*imageSrc`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
+			},
+		},
+		{
+			Name:  "React Component: Navigation for navLinks",
+			Regex: `(;const [\w\d]+=)((?:\(0,[\w\d]+\.memo\))[\(\d,\w\.\){:}=]+\=[\d\w]+\.[\d\w]+\.getLocaleForURLPath\(\))`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sSpicetify.ReactComponent.Navigation=%s", submatches[1], submatches[2])
+			},
+			Once: true,
+		},
+		{
+			Name:  "Context Menu V2",
+			Regex: `("Menu".+?children:)([\w$][\w$\d]*)`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%s[Spicetify.ContextMenuV2.renderItems(),%s].flat()", submatches[1], submatches[2])
+			},
+		},
 	}
 
-	utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, func(submatches ...string) string {
-		return fmt.Sprintf("(0,%s.jsx)((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=%s.createContext(null))).Provider,{value:{props:%s?.props,trigger:%s,target:%s},children:%s})", submatches[1], react, menu, trigger, target, submatches[0])
-	})
-
-	return input
+	return applyPatches(input, patches, report)
 }
 
-func exposeAPIs_vendor(input string) string {
+func exposeAPIs_vendor(input string, report patchReporter) string {
 	// URI
 	utils.Replace(
 		&input,
@@ -675,6 +941,45 @@ func exposeAPIs_vendor(input string) string {
 		func(submatches ...string) string {
 			return fmt.Sprintf(`,(globalThis.Spicetify.URI=%s)%s`, submatches[1], submatches[0])
 		})
+
+	patches := []Patch{
+		{
+			Name:  "Spicetify.URI",
+			Regex: `,(\w+)\.prototype\.toAppType`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf(`,(globalThis.Spicetify.URI=%s)%s`, submatches[1], submatches[0])
+			},
+		},
+		{
+			Name:  "Mapping styled-components classes",
+			Regex: `(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%s=Spicetify._getStyledClassName(arguments,this)", submatches[1])
+			},
+		},
+		{
+			Name:  "Mapping Tippy.js",
+			Regex: `([\w\$_]+)\.setDefaultProps=`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("Spicetify.Tippy=%s;%s", submatches[1], submatches[0])
+			},
+		},
+		{
+			Name:  "Flipper components",
+			Regex: `([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%s=Spicetify.ReactFlipToolkit.spring=%s", submatches[1], submatches[2])
+			},
+		},
+		{
+			// https://github.com/iamhosseindhv/notistack
+			Name:  "Snackbar",
+			Regex: `\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("Spicetify.Snackbar=%s", submatches[0])
+			},
+		},
+	}
 
 	// URI after 1.2.4
 	if !strings.Contains(input, "Spicetify.URI") {
@@ -700,39 +1005,7 @@ func exposeAPIs_vendor(input string) string {
 		}
 	}
 
-	// Mapping styled-components classes
-	utils.Replace(
-		&input,
-		`(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("%s=Spicetify._getStyledClassName(arguments,this)", submatches[1])
-		})
-
-	// Tippy
-	utils.Replace(
-		&input,
-		`([\w\$_]+)\.setDefaultProps=`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("Spicetify.Tippy=%s;%s", submatches[1], submatches[0])
-		})
-
-	// Flipper components
-	utils.Replace(
-		&input,
-		`([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("%s=Spicetify.ReactFlipToolkit.spring=%s", submatches[1], submatches[2])
-		})
-
-	// Snackbar https://github.com/iamhosseindhv/notistack
-	utils.Replace(
-		&input,
-		`\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar`,
-		func(submatches ...string) string {
-			return fmt.Sprintf("Spicetify.Snackbar=%s", submatches[0])
-		})
-
-	return input
+	return applyPatches(input, patches, report)
 }
 
 type githubRelease = utils.GithubRelease

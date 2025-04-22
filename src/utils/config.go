@@ -70,7 +70,7 @@ func ParseConfig(configPath string) Config {
 			content: getDefaultConfig(),
 		}
 		defaultConfig.Write()
-		PrintSuccess("Default config-xpui.ini generated.")
+		PrintSuccess("Default config-xpui.ini generated")
 		return defaultConfig
 	}
 
@@ -90,7 +90,7 @@ func ParseConfig(configPath string) Config {
 	}
 
 	if needRewrite {
-		PrintSuccess("Config is updated.")
+		PrintSuccess("Config is updated")
 		cfg.SaveTo(configPath)
 	}
 
@@ -129,13 +129,13 @@ func getDefaultConfig() *ini.File {
 	prefsFilePath := FindPrefFilePath()
 
 	if len(spotifyPath) == 0 {
-		PrintError("Could not detect Spotify location.")
+		PrintError("Could not detect Spotify location")
 	} else {
 		configLayout["Setting"]["spotify_path"] = spotifyPath
 	}
 
 	if len(prefsFilePath) == 0 {
-		PrintError("Could not detect \"prefs\" file location.")
+		PrintError("Could not detect \"prefs\" file location")
 	} else {
 		configLayout["Setting"]["prefs_path"] = prefsFilePath
 	}
@@ -193,7 +193,7 @@ func FindPrefFilePath() string {
 			path = WinXPrefs()
 		}
 		if len(path) == 0 {
-			PrintError("No valid path options found, ensure you have Spotify installed and have ran it for at least 30 seconds.")
+			PrintError("No valid path options found, ensure you have Spotify installed and have ran it for at least 30 seconds")
 		}
 		return path
 
