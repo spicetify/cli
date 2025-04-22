@@ -177,7 +177,6 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 	})
 
 	totalFiles := len(filesToPatch)
-	currentFile := 0
 
 	style := pterm.NewStyle(pterm.FgWhite, pterm.BgBlack)
 	bar, _ := pterm.DefaultProgressbar.WithTotal(totalFiles).WithTitle("Patching files...").WithTitleStyle(style).WithShowCount(true).Start()
@@ -191,8 +190,6 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		}
 		fileName := info.Name()
 		extension := filepath.Ext(fileName)
-
-		currentFile++
 
 		switch extension {
 		case ".js":
