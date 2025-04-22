@@ -64,7 +64,6 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")], insertCustomApp)
 	if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
 		filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")], insertExpFeatures)
-		filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui-modules.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui-modukes.js")], insertExpFeatures)
 	} else {
 		filesToModified[filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js")] = []func(string, Flag){insertExpFeatures}
 	}
