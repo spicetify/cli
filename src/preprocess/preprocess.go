@@ -123,9 +123,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 	switch runtime.GOOS {
 	case "darwin":
 		frameworkResourcesPath = filepath.Join(spotifyBasePath, "Contents", "Frameworks", "Chromium Embedded Framework.framework", "Resources")
-	case "windows":
-		frameworkResourcesPath = spotifyBasePath
-	case "linux":
+	case "windows", "linux":
 		frameworkResourcesPath = spotifyBasePath
 	default:
 		utils.PrintError("Unsupported OS for V8 snapshot finding: " + runtime.GOOS)
