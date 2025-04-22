@@ -1069,6 +1069,12 @@ Spicetify.Events = (() => {
 	return { webpackLoaded: new Event(), platformLoaded: new Event() };
 })();
 
+Spicetify.getResizeHost = () => {
+	return document.querySelector(
+		".Root__main-view .os-resize-observer-host, .Root__main-view .os-size-observer, .Root__main-view .main-view-container__scroll-node"
+	);
+}
+
 // Wait for Spicetify.Player.origin._state before adding following APIs
 (function waitOrigins() {
 	if (!Spicetify?.Player?.origin?._state) {
