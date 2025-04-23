@@ -306,6 +306,13 @@ func colorVariableReplace(content string) string {
 			},
 		},
 		{
+			Name:  "CSS: --spice-main-elevated",
+			Regex: "#(242424|1f1f1f)",
+			Replacement: func(submatches ...string) string {
+				return "var(--spice-main-elevated)"
+			},
+		},
+		{
 			Name:  "CSS: --spice-main",
 			Regex: "#121212",
 			Replacement: func(submatches ...string) string {
