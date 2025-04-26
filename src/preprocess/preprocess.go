@@ -122,7 +122,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 	frameworkResourcesPath := ""
 	switch runtime.GOOS {
 	case "darwin":
-		frameworkResourcesPath = filepath.Join(spotifyBasePath, "Contents", "Frameworks", "Chromium Embedded Framework.framework", "Resources")
+		frameworkResourcesPath = filepath.Join(spotifyBasePath, "..", "Frameworks", "Chromium Embedded Framework.framework", "Resources")
 	case "windows", "linux":
 		frameworkResourcesPath = spotifyBasePath
 	default:
