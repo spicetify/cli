@@ -38,9 +38,9 @@ type Patch struct {
 	Once        bool
 }
 
-type patchReporter func(string)
+type logPatch func(string)
 
-func applyPatches(input string, patches []Patch, report ...patchReporter) string {
+func applyPatches(input string, patches []Patch, report ...logPatch) string {
 	for _, patch := range patches {
 		if len(report) > 0 && report[0] != nil {
 			report[0](fmt.Sprintf("%s patch", patch.Name))
@@ -290,7 +290,7 @@ func StartCSS(extractedAppsPath string) {
 }
 
 func colorVariableReplace(content string) string {
-	patches := []Patch{
+	colorPatches := []Patch{
 		{
 			Name:  "CSS: --spice-player",
 			Regex: "#(181818|212121)",
@@ -447,11 +447,11 @@ func colorVariableReplace(content string) string {
 		},
 	}
 
-	return applyPatches(content, patches)
+	return applyPatches(content, colorPatches)
 }
 
 func colorVariableReplaceForJS(content string) string {
-	patches := []Patch{
+	colorVariablePatches := []Patch{
 		{
 			Name:  "CSS (JS): --spice-button",
 			Regex: `"#1db954"`,
@@ -482,7 +482,7 @@ func colorVariableReplaceForJS(content string) string {
 		},
 	}
 
-	return applyPatches(content, patches)
+	return applyPatches(content, colorVariablePatches)
 }
 
 func disableSentry(input string) string {
@@ -497,7 +497,7 @@ func disableSentry(input string) string {
 }
 
 func disableLogging(input string) string {
-	patches := []Patch{
+	loggingPatches := []Patch{
 		{
 			Name:  "Remove sp://logging/v3/*",
 			Regex: `sp://logging/v3/\w+`,
@@ -702,11 +702,11 @@ func disableLogging(input string) string {
 			},
 		},
 	}
-	return applyPatches(input, patches)
+	return applyPatches(input, loggingPatches)
 }
 
 func removeRTL(input string) string {
-	patches := []Patch{
+	rtlPatches := []Patch{
 		{
 			Name:  "Remove }[dir=ltr]",
 			Regex: `}\[dir=ltr\]\s?`,
@@ -793,10 +793,10 @@ func removeRTL(input string) string {
 		},
 	}
 
-	return applyPatches(input, patches)
+	return applyPatches(input, rtlPatches)
 }
 
-func exposeAPIs_main(input string, report patchReporter) string {
+func exposeAPIs_main(input string, report logPatch) string {
 	inputContextMenu := utils.FindFirstMatch(input, `.*value:"contextmenu"`)
 	if len(inputContextMenu) > 0 {
 		croppedInput := inputContextMenu[0]
@@ -823,7 +823,7 @@ func exposeAPIs_main(input string, report patchReporter) string {
 		})
 	}
 
-	patches := []Patch{
+	xpuiPatches := []Patch{
 		{
 			Name:  "showNotification patch",
 			Regex: `(?:\w+ |,)([\w$]+)=(\([\w$]+=[\w$]+\.dispatch)`,
@@ -881,28 +881,28 @@ func exposeAPIs_main(input string, report patchReporter) string {
 			},
 		},
 		{
-			Name:  "GraphQL definitions <=1.2.30",
+			Name:  "GraphQL definitions (<=1.2.30)",
 			Regex: `((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf("%sSpicetify.GraphQL.Definitions[%s]=%s", submatches[1], submatches[3], submatches[2])
 			},
 		},
 		{
-			Name:  "GraphQL definitons >=1.2.31",
+			Name:  "GraphQL definitons (>=1.2.31)",
 			Regex: `(=new [\w_\$][\w_\$\d]*\.[\w_\$][\w_\$\d]*\("(\w+)","(query|mutation)","[\w\d]{64}",null\))`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
 			},
 		},
 		{
-			Name:  "Spotify Custom Snackbar Interfaces <=1.2.37",
+			Name:  "Spotify Custom Snackbar Interfaces (<=1.2.37)",
 			Regex: `\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf("%sSpicetify.Snackbar.enqueueCustomSnackbar=%s;", submatches[0], submatches[1])
 			},
 		},
 		{
-			Name:  "Spotify Custom Snackbar Interfaces >=1.2.38",
+			Name:  "Spotify Custom Snackbar Interfaces (>=1.2.38)",
 			Regex: `(=)[^=]*\(\)\.enqueueCustomSnackbar;`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf("=Spicetify.Snackbar.enqueueCustomSnackbar%s;", submatches[0])
@@ -932,10 +932,10 @@ func exposeAPIs_main(input string, report patchReporter) string {
 		},
 	}
 
-	return applyPatches(input, patches, report)
+	return applyPatches(input, xpuiPatches, report)
 }
 
-func exposeAPIs_vendor(input string, report patchReporter) string {
+func exposeAPIs_vendor(input string, report logPatch) string {
 	// URI
 	utils.Replace(
 		&input,
@@ -944,7 +944,7 @@ func exposeAPIs_vendor(input string, report patchReporter) string {
 			return fmt.Sprintf(`,(globalThis.Spicetify.URI=%s)%s`, submatches[1], submatches[0])
 		})
 
-	patches := []Patch{
+	vendorPatches := []Patch{
 		{
 			Name:  "Spicetify.URI",
 			Regex: `,(\w+)\.prototype\.toAppType`,
@@ -953,14 +953,14 @@ func exposeAPIs_vendor(input string, report patchReporter) string {
 			},
 		},
 		{
-			Name:  "Mapping styled-components classes",
+			Name:  "Map styled-components classes",
 			Regex: `(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf("%s=Spicetify._getStyledClassName(arguments,this)", submatches[1])
 			},
 		},
 		{
-			Name:  "Mapping Tippy.js",
+			Name:  "Tippy.js",
 			Regex: `([\w\$_]+)\.setDefaultProps=`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf("Spicetify.Tippy=%s;%s", submatches[1], submatches[0])
@@ -1007,7 +1007,7 @@ func exposeAPIs_vendor(input string, report patchReporter) string {
 		}
 	}
 
-	return applyPatches(input, patches, report)
+	return applyPatches(input, vendorPatches, report)
 }
 
 type githubRelease = utils.GithubRelease
