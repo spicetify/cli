@@ -214,6 +214,8 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					case "vendor~xpui.js":
 						content = exposeAPIs_vendor(content, printPatch)
 					}
+
+					content = exposeGraphQL(content, printPatch)
 				}
 				printPatch("CSS (JS): Patching our mappings into file")
 				for k, v := range cssTranslationMap {
@@ -796,6 +798,27 @@ func removeRTL(input string) string {
 	return applyPatches(input, rtlPatches)
 }
 
+func exposeGraphQL(input string, report logPatch) string {
+	graphQLPatches := []Patch{
+		{
+			Name:  "GraphQL definitions (<=1.2.30)",
+			Regex: `((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf("%sSpicetify.GraphQL.Definitions[%s]=%s", submatches[1], submatches[3], submatches[2])
+			},
+		},
+		{
+			Name:  "GraphQL definitons (>=1.2.31)",
+			Regex: `(=new [\w_\$][\w_\$\d]*\.[\w_\$][\w_\$\d]*\("(\w+)","(query|mutation)","[\w\d]{64}",null\))`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
+			},
+		},
+	}
+
+	return applyPatches(input, graphQLPatches, report)
+}
+
 func exposeAPIs_main(input string, report logPatch) string {
 	inputContextMenu := utils.FindFirstMatch(input, `.*value:"contextmenu"`)
 	if len(inputContextMenu) > 0 {
@@ -878,20 +901,6 @@ func exposeAPIs_main(input string, report logPatch) string {
 			Regex: `document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null`,
 			Replacement: func(submatches ...string) string {
 				return ""
-			},
-		},
-		{
-			Name:  "GraphQL definitions (<=1.2.30)",
-			Regex: `((?:\w+ ?)?[\w$]+=)(\{kind:"Document",definitions:\[\{(?:\w+:[\w"]+,)+name:\{(?:\w+:[\w"]+,?)+value:("\w+"))`,
-			Replacement: func(submatches ...string) string {
-				return fmt.Sprintf("%sSpicetify.GraphQL.Definitions[%s]=%s", submatches[1], submatches[3], submatches[2])
-			},
-		},
-		{
-			Name:  "GraphQL definitons (>=1.2.31)",
-			Regex: `(=new [\w_\$][\w_\$\d]*\.[\w_\$][\w_\$\d]*\("(\w+)","(query|mutation)","[\w\d]{64}",null\))`,
-			Replacement: func(submatches ...string) string {
-				return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
 			},
 		},
 		{
