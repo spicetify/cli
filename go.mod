@@ -7,7 +7,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14
 	github.com/pterm/pterm v0.12.80
 	golang.org/x/net v0.39.0
-	golang.org/x/sys v0.32.0
+	golang.org/x/sys v0.33.0
 )
 
 require (
