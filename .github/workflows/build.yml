@@ -83,6 +83,31 @@ jobs:
           subject-path: "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
           subject-name: "spicetify v${{ env.TAG }} (${{ matrix.os }}, ${{ (matrix.os == 'windows' && matrix.arch == 'amd64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }})"
 
+      - name: Upload Artifact for Signing
+        if: env.IS_WIN == 'true'
+        id: upload-artifact-for-signing
+        uses: actions/upload-artifact@v4
+        with:
+          name: spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.arch == 'amd64' && 'x64') || (matrix.arch == 'arm64' && 'arm64') || 'x32' }}-unsigned
+          path: ./spicetify.exe
+
+      - name: Sign Windows Executable
+        if: env.IS_WIN == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORG_ID }}
+          project-slug: "spicetify"
+          signing-policy-slug: "test-signing"
+          github-artifact-id: ${{ steps.upload-artifact-for-signing.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: "./signed"
+
+      - name: Copy Signed Windows Executable
+        if: env.IS_WIN == 'true'
+        run: |
+          cp ./signed/spicetify.exe ./spicetify.exe
+
       - name: 7z - .tar
         if: env.IS_UNIX == 'true'
         uses: edgarrc/action-7z@v1
@@ -109,19 +134,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  trigger-release:
-    name: Trigger Homebrew/AUR Release
-    runs-on: ubuntu-latest
-    needs: release
-    steps:
-      - name: Update AUR package
-        uses: fjogeleit/http-request-action@master
-        with:
-          url: https://vps.itsmeow.dev/spicetify-update
-          method: GET
-      - name: Update Winget package
-        uses: vedantmgoyal9/winget-releaser@main
-        with:
-          identifier: Spicetify.Spicetify
-          installers-regex: '-windows-\w+\.zip$'
-          token: ${{ secrets.SPICETIFY_WINGET_TOKEN }}
+  # trigger-release:
+  #   name: Trigger Homebrew/AUR Release
+  #   runs-on: ubuntu-latest
+  #   needs: release
+  #   steps:
+  #     - name: Update AUR package
+  #       uses: fjogeleit/http-request-action@master
+  #       with:
+  #         url: https://vps.itsmeow.dev/spicetify-update
+  #         method: GET
+  #     - name: Update Winget package
+  #       uses: vedantmgoyal9/winget-releaser@main
+  #       with:
+  #         identifier: Spicetify.Spicetify
+  #         installers-regex: '-windows-\w+\.zip$'
+  #         token: ${{ secrets.SPICETIFY_WINGET_TOKEN }}
