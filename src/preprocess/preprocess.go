@@ -145,7 +145,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					embeddedString, _, _, err := utils.ReadStringFromUTF16Binary(binFilePath, startMarker, endMarker)
 					if err != nil {
 						utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
-						utils.PrintInfo("You can ignore this warning if you're on a Spotify version that didn't yet add xpui modules to the V8 snapshot")
+						utils.PrintInfo("If above error says 'could not find start marker', you can safely ignore that error. It's for the future spotify release that might add xpui to the snapshot.")
 						continue
 					}
 
