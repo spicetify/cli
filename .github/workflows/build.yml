@@ -98,7 +98,7 @@ jobs:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ secrets.SIGNPATH_ORG_ID }}
           project-slug: "cli"
-          signing-policy-slug: "test-signing"
+          signing-policy-slug: "release-signing"
           github-artifact-id: ${{ steps.upload-artifact-for-signing.outputs.artifact-id }}
           wait-for-completion: true
           output-artifact-directory: "./signed"
