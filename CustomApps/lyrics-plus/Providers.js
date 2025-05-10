@@ -125,8 +125,13 @@ const Providers = {
 			result.unsynced = unsynced;
 		}
 		const translation = ProviderNetease.getTranslation(list);
-		if (translation) {
-			result.neteaseTranslation = translation;
+		if ((synced || unsynced) && Array.isArray(translation)) {
+			const baseLyrics = synced ?? unsynced;
+			result.neteaseTranslation = baseLyrics.map((line) => ({
+				...line,
+				text: translation.find((t) => t.startTime === line.startTime)?.text ?? line.text,
+				originalText: line.text,
+			}));
 		}
 
 		return result;
