@@ -6,12 +6,13 @@ const openCCPath = "https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.m
 const dictPath = "https:/cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict";
 
 class Translator {
-	constructor(lang) {
+	constructor(lang, isUsingNetease = false) {
 		this.finished = {
 			ja: false,
 			ko: false,
 			zh: false,
 		};
+		this.isUsingNetease = isUsingNetease;
 
 		this.applyKuromojiFix();
 		this.injectExternals(lang);
@@ -19,7 +20,7 @@ class Translator {
 	}
 
 	includeExternal(url) {
-		if (CONFIG.visual.translate && !document.querySelector(`script[src="${url}"]`)) {
+		if ((CONFIG.visual.translate || this.isUsingNetease) && !document.querySelector(`script[src="${url}"]`)) {
 			const script = document.createElement("script");
 			script.setAttribute("type", "text/javascript");
 			script.setAttribute("src", url);

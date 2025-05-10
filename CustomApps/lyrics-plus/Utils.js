@@ -70,7 +70,7 @@ const Utils = {
 	 */
 	async toSimplifiedChinese(s) {
 		// create a singleton Translator instance
-		if (!this._translatorInstance) this.translator = new Translator("zh");
+		if (!this._translatorInstance) this.translator = new Translator("zh", true);
 
 		// translate to Simplified Chinese
 		// as Traditional Chinese differs between HK and TW, forcing to use OpenCC standard
