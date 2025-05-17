@@ -732,6 +732,7 @@ applyScrollingFix();
 		const listOfComponents = [
 			"ScrollableContainer",
 			"Slider",
+			"Dropdown",
 			"Toggle",
 			"Cards.Artist",
 			"Cards.Audiobook",
@@ -781,6 +782,18 @@ applyScrollingFix();
 			(m) => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")
 		);
 		Object.assign(Spicetify.ReactComponent.Cards, Object.fromEntries(cards));
+
+		// chunks
+		const dropdownChunk = chunks.find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
+		if (dropdownChunk) {
+			Spicetify.ReactComponent.Dropdown =
+				Object.values(require(dropdownChunk[0]))?.[0]?.render ?? Object.values(require(dropdownChunk[0])).find((m) => typeof m === "function");
+		}
+
+		const toggleChunk = chunks.find(([, value]) => value.toString().includes("onSelected") && value.toString().includes('type:"checkbox"'));
+		if (toggleChunk && !Spicetify.ReactComponent.Toggle) {
+			Spicetify.ReactComponent.Toggle = Object.values(require(toggleChunk[0]))[0].render;
+		}
 
 		if (!listOfComponents.every((component) => Spicetify.ReactComponent[component] !== undefined)) {
 			setTimeout(waitForChunks, 100);
@@ -886,11 +899,6 @@ applyScrollingFix();
 		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(
 			(m) => typeof m === "function" || typeof m === "object"
 		);
-	}
-
-	const dropdownChunk = chunks.find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
-	if (dropdownChunk) {
-		Spicetify.ReactComponent.Dropdown = Object.values(require(dropdownChunk[0])).find((m) => typeof m === "function");
 	}
 
 	const infiniteQueryChunk = chunks.find(

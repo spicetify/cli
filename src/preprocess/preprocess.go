@@ -215,7 +215,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 						content = exposeAPIs_vendor(content, printPatch)
 					}
 
-					content = exposeGraphQL(content, printPatch)
+					content = additionalPatches(content, printPatch)
 				}
 				printPatch("CSS (JS): Patching our mappings into file")
 				for k, v := range cssTranslationMap {
@@ -239,7 +239,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					printPatch("Remove RTL")
 					content = removeRTL(content)
 				}
-				if fileName == "xpui.css" {
+				if fileName == "xpui.css" || fileName == "xpui-snapshot.css" {
 					printPatch("Extra CSS Patch")
 					content = content + `
 					.main-gridContainer-fixedWidth{grid-template-columns: repeat(auto-fill, var(--column-width));width: calc((var(--column-count) - 1) * var(--grid-gap)) + var(--column-count) * var(--column-width));}.main-cardImage-imageWrapper{background-color: var(--card-color, #333);border-radius: 6px;-webkit-box-shadow: 0 8px 24px rgba(0, 0, 0, .5);box-shadow: 0 8px 24px rgba(0, 0, 0, .5);padding-bottom: 100%;position: relative;width:100%;}.main-cardImage-image,.main-card-imagePlaceholder{height: 100%;left: 0;position: absolute;top: 0;width: 100%};.main-content-view{height:100%;}
@@ -798,7 +798,7 @@ func removeRTL(input string) string {
 	return applyPatches(input, rtlPatches)
 }
 
-func exposeGraphQL(input string, report logPatch) string {
+func additionalPatches(input string, report logPatch) string {
 	graphQLPatches := []Patch{
 		{
 			Name:  "GraphQL definitions (<=1.2.30)",
@@ -814,13 +814,20 @@ func exposeGraphQL(input string, report logPatch) string {
 				return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
 			},
 		},
+		{
+			Name:  "Search bug fix (1.2.57<= and >=1.2.28)",
+			Regex: `(typeName\\])`,
+			Replacement: func(submatches ...string) string {
+				return fmt.Sprintf(`%s || []`, submatches[1])
+			},
+		},
 	}
 
 	return applyPatches(input, graphQLPatches, report)
 }
 
 func exposeAPIs_main(input string, report logPatch) string {
-	inputContextMenu := utils.FindFirstMatch(input, `.*value:"contextmenu"`)
+	inputContextMenu := utils.FindFirstMatch(input, `.*(?:value:"contextmenu"|"[^"]*":"context-menu")`)
 	if len(inputContextMenu) > 0 {
 		croppedInput := inputContextMenu[0]
 		react := utils.FindLastMatch(croppedInput, `([a-zA-Z_\$][\w\$]*)\.useRef`)[1]
@@ -841,7 +848,7 @@ func exposeAPIs_main(input string, report logPatch) string {
 			target = "e.triggerRef"
 		}
 
-		utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\([\w_$]+\.[\w_$]+,\{value:"contextmenu"[^\}]+\}\)\}\)`, func(submatches ...string) string {
+		utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\((?:[\w_$]+\.[\w_$]+,\{value:"contextmenu"[^}]+\}\)\}\)|"[\w-]+",\{[^}]+:"context-menu"[^}]+\}\))`, func(submatches ...string) string {
 			return fmt.Sprintf("(0,%s.jsx)((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=%s.createContext(null))).Provider,{value:{props:%s?.props,trigger:%s,target:%s},children:%s})", submatches[1], react, menu, trigger, target, submatches[0])
 		})
 	}
