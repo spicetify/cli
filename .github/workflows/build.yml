@@ -134,19 +134,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # trigger-release:
-  #   name: Trigger Homebrew/AUR Release
-  #   runs-on: ubuntu-latest
-  #   needs: release
-  #   steps:
-  #     - name: Update AUR package
-  #       uses: fjogeleit/http-request-action@master
-  #       with:
-  #         url: https://vps.itsmeow.dev/spicetify-update
-  #         method: GET
-  #     - name: Update Winget package
-  #       uses: vedantmgoyal9/winget-releaser@main
-  #       with:
-  #         identifier: Spicetify.Spicetify
-  #         installers-regex: '-windows-\w+\.zip$'
-  #         token: ${{ secrets.SPICETIFY_WINGET_TOKEN }}
+  trigger-release:
+    name: Trigger Homebrew/AUR Release
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - name: Update AUR package
+        uses: fjogeleit/http-request-action@master
+        with:
+          url: https://vps.itsmeow.dev/spicetify-update
+          method: GET
+      - name: Update Winget package
+        uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: Spicetify.Spicetify
+          installers-regex: '-windows-\w+\.zip$'
+          token: ${{ secrets.SPICETIFY_WINGET_TOKEN }}
