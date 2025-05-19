@@ -815,7 +815,7 @@ func additionalPatches(input string, report logPatch) string {
 			},
 		},
 		{
-			Name:  "Search bug fix (1.2.57<= and >=1.2.28)",
+			Name:  "Search bug fix (>=1.2.28 and <=1.2.57)",
 			Regex: `(typeName\\])`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf(`%s || []`, submatches[1])

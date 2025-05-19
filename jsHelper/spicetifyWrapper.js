@@ -569,13 +569,19 @@ applyScrollingFix();
 	};
 	const reactComponentsUI = exposeReactComponentsUI({ modules, functionModules, exportedForwardRefs });
 
-	const knownMenuTypes = ["album", "show", "artist", "track"];
+	const knownMenuTypes = ["album", "show", "artist", "track", "playlist"];
 	const menus = modules
-		.map((m) => m?.type?.toString().match(/value:"[\w-]+"/g) && [m, ...m.type.toString().match(/value:"[\w-]+"/g)])
+		.map((m) => {
+			const valueMatch = m?.type?.toString().match(/value:"([\w-]+)"/);
+			if (valueMatch) return [m, valueMatch[1]];
+			const typeMatch = m?.type?.toString().match(/type:[\w$]+\.[\w$]+\.([A-Z_]+)/);
+			if (typeMatch) return [m, typeMatch[1].toLowerCase()];
+			return null;
+		})
 		.filter(Boolean)
 		.filter((m) => m[1] !== 'value:"row"')
 		.map(([module, type]) => {
-			type = type.match(/value:"([\w-]+)"/)[1];
+			type = type.match(/value:"([\w-]+)"/)?.[1] ?? type;
 
 			if (!knownMenuTypes.includes(type)) return;
 			if (type === "show") type = "podcast-show";
@@ -895,7 +901,7 @@ applyScrollingFix();
 	const playlistMenuChunk = chunks.find(
 		([, value]) => value.toString().includes('value:"playlist"') && value.toString().includes("canView") && value.toString().includes("permissions")
 	);
-	if (playlistMenuChunk) {
+	if (playlistMenuChunk && !Spicetify.ReactComponent?.PlaylistMenu) {
 		Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(
 			(m) => typeof m === "function" || typeof m === "object"
 		);
