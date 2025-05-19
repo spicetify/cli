@@ -215,6 +215,11 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 						content = exposeAPIs_vendor(content, printPatch)
 					}
 
+					if spotifyMajor >= 1 && spotifyMinor >= 2 && (spotifyPatch >= 28 && spotifyPatch <= 57) {
+						utils.ReplaceOnce(&content, `(typeName\])`, func(submatches ...string) string {
+							return fmt.Sprintf(`%s || []`, submatches[1])
+						})
+					}
 					content = additionalPatches(content, printPatch)
 				}
 				printPatch("CSS (JS): Patching our mappings into file")
@@ -812,13 +817,6 @@ func additionalPatches(input string, report logPatch) string {
 			Regex: `(=new [\w_\$][\w_\$\d]*\.[\w_\$][\w_\$\d]*\("(\w+)","(query|mutation)","[\w\d]{64}",null\))`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
-			},
-		},
-		{
-			Name:  "Search bug fix (>=1.2.28 and <=1.2.57)",
-			Regex: `(typeName\\])`,
-			Replacement: func(submatches ...string) string {
-				return fmt.Sprintf(`%s || []`, submatches[1])
 			},
 		},
 	}
