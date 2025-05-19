@@ -145,7 +145,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					embeddedString, _, _, err := utils.ReadStringFromUTF16Binary(binFilePath, startMarker, endMarker)
 					if err != nil {
 						utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
-						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error. It's for the future spotify release that might add xpui to the snapshot.")
+						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error if you're on Spotify 1.2.63 or lower. However, if you're on 1.2.64 or higher, please report this issue")
 						continue
 					}
 
