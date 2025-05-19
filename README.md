@@ -27,3 +27,7 @@ Supports Windows, MacOS and Linux.
 - [Installation](https://spicetify.app/docs/getting-started)
 - [Basic Usage](https://spicetify.app/docs/getting-started#basic-usage)
 - [FAQ](https://spicetify.app/docs/faq)
+
+### Code Signing Policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org/).
