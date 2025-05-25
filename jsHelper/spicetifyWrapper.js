@@ -1745,14 +1745,13 @@ Spicetify.ContextMenuV2 = (() => {
 	}
 
 	class ItemSubMenu {
-		static itemsToComponents = (items) => items.map((item) => item._element);
-
-		constructor({ text, disabled = false, leadingIcon, divider, items, shouldAdd = () => true }) {
+		constructor({ text, disabled = false, leadingIcon, divider, items = [], shouldAdd = () => true }) {
 			this.shouldAdd = shouldAdd;
 
 			this._text = text;
 			this._disabled = disabled;
 			this._leadingIcon = leadingIcon;
+			this._divider = divider;
 			this._items = items;
 			this._element = Spicetify.ReactJSX.jsx(() => {
 				const [_text, setText] = Spicetify.React.useState(this._text);
@@ -1760,6 +1759,12 @@ Spicetify.ContextMenuV2 = (() => {
 				const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(this._leadingIcon);
 				const [_divider, setDivider] = Spicetify.React.useState(this._divider);
 				const [_items, setItems] = Spicetify.React.useState(this._items);
+
+				const context = Spicetify.React.useContext(Spicetify.ContextMenuV2._context) ?? {};
+
+				const visibleItems = Spicetify.React.useMemo(() => {
+					return _items.filter((item) => item.shouldAdd(context.props, context.trigger, context.target)).map((item) => item._element);
+				}, [_items, context.props, context.trigger, context.target]);
 
 				Spicetify.React.useEffect(() => {
 					this._setText = setText;
@@ -1785,7 +1790,7 @@ Spicetify.ContextMenuV2 = (() => {
 					onClick: () => undefined,
 					disabled: _disabled,
 					leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
-					children: ItemSubMenu.itemsToComponents(_items),
+					children: visibleItems,
 				});
 			}, {});
 		}
