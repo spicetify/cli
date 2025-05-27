@@ -1745,7 +1745,11 @@ Spicetify.ContextMenuV2 = (() => {
 	}
 
 	class ItemSubMenu {
-		static itemsToComponents = (items) => items.map((item) => item._element);
+		static itemsToComponents = (items, props, trigger, target) => {
+			return items
+				.filter((item) => (item.shouldAdd || (() => true))?.(props, trigger, target))
+				.map((item) => item._element);
+		};
 
 		constructor({ text, disabled = false, leadingIcon, divider, items, shouldAdd = () => true }) {
 			this.shouldAdd = shouldAdd;
@@ -1753,6 +1757,7 @@ Spicetify.ContextMenuV2 = (() => {
 			this._text = text;
 			this._disabled = disabled;
 			this._leadingIcon = leadingIcon;
+			this._divider = divider;
 			this._items = items;
 			this._element = Spicetify.ReactJSX.jsx(() => {
 				const [_text, setText] = Spicetify.React.useState(this._text);
@@ -1776,6 +1781,9 @@ Spicetify.ContextMenuV2 = (() => {
 					};
 				});
 
+				const context = Spicetify.React.useContext(Spicetify.ContextMenuV2._context) ?? {};
+				const { props, trigger, target } = context;
+
 				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuSubMenuItem, {
 					displayText: _text,
 					divider: _divider,
@@ -1785,7 +1793,7 @@ Spicetify.ContextMenuV2 = (() => {
 					onClick: () => undefined,
 					disabled: _disabled,
 					leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
-					children: ItemSubMenu.itemsToComponents(_items),
+					children: ItemSubMenu.itemsToComponents(_items, props, trigger, target),
 				});
 			}, {});
 		}
