@@ -1746,9 +1746,7 @@ Spicetify.ContextMenuV2 = (() => {
 
 	class ItemSubMenu {
 		static itemsToComponents = (items, props, trigger, target) => {
-			return items
-				.filter((item) => (item.shouldAdd || (() => true))?.(props, trigger, target))
-				.map((item) => item._element);
+			return items.filter((item) => (item.shouldAdd || (() => true))?.(props, trigger, target)).map((item) => item._element);
 		};
 
 		constructor({ text, disabled = false, leadingIcon, divider, items, shouldAdd = () => true }) {
