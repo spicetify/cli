@@ -6,7 +6,7 @@ require (
 	github.com/go-ini/ini v1.67.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/pterm/pterm v0.12.80
-	golang.org/x/net v0.40.0
+	golang.org/x/net v0.41.0
 	golang.org/x/sys v0.33.0
 )
 
@@ -23,5 +23,5 @@ require (
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/term v0.32.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 )
