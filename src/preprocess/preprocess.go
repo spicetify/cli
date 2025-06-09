@@ -283,7 +283,7 @@ func StartCSS(extractedAppsPath string) {
 	appPath := filepath.Join(extractedAppsPath, "xpui")
 	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
 		// temp so text won't be black ._.
-		if info.Name() == "pip-mini-player.css" {
+		if strings.HasPrefix(info.Name(), "pip-mini-player") && strings.HasSuffix(info.Name(), ".css") {
 			return nil
 		}
 
