@@ -280,7 +280,7 @@ const Utils = {
 			.split("\n");
 
 		const syncedTimestamp = /\[([0-9:.]+)\]/;
-		const karaokeTimestamp = /\<([0-9:.]+)\>/;
+		const karaokeTimestamp = /<([0-9:.]+)>/;
 
 		const unsynced = [];
 
@@ -291,14 +291,14 @@ const Utils = {
 		const karaoke = isKaraoke ? [] : null;
 
 		function timestampToMs(timestamp) {
-			const [minutes, seconds] = timestamp.replace(/\[\]\<\>/, "").split(":");
+			const [minutes, seconds] = timestamp.replace(/\[\]<>/, "").split(":");
 			return Number(minutes) * 60 * 1000 + Number(seconds) * 1000;
 		}
 
 		function parseKaraokeLine(line, startTime) {
 			let wordTime = timestampToMs(startTime);
 			const karaokeLine = [];
-			const karaoke = line.matchAll(/(\S+ ?)\<([0-9:.]+)\>/g);
+			const karaoke = line.matchAll(/(\S+ ?)<([0-9:.]+)>/g);
 			for (const match of karaoke) {
 				const word = match[1];
 				const time = match[2];
@@ -311,7 +311,7 @@ const Utils = {
 		for (const [i, line] of lines.entries()) {
 			const time = line.match(syncedTimestamp)?.[1];
 			let lyricContent = line.replace(syncedTimestamp, "").trim();
-			const lyric = lyricContent.replaceAll(/\<([0-9:.]+)\>/g, "").trim();
+			const lyric = lyricContent.replaceAll(/<([0-9:.]+)>/g, "").trim();
 
 			if (line.trim() !== "") {
 				if (isKaraoke) {

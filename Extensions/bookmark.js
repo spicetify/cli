@@ -261,7 +261,7 @@
 			title = idToProperName(contextUri.id);
 			description = "Application";
 		} else {
-			description = contextUri.type.replace(/\-.+$/, "");
+			description = contextUri.type.replace(/-.+$/, "");
 			const tail = context.split("/");
 			if (tail.length > 3) {
 				description += ` ${tail[3]}`;
@@ -319,7 +319,7 @@
 
 	// Utilities
 	function idToProperName(id) {
-		const newId = id.replace(/\-/g, " ").replace(/^.|\s./g, (char) => char.toUpperCase());
+		const newId = id.replace(/-/g, " ").replace(/^.|\s./g, (char) => char.toUpperCase());
 
 		return newId;
 	}

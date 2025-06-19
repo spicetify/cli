@@ -46,7 +46,7 @@ const ProviderNetease = (() => {
 		// ["lyrics"]
 		// ["[03:10]", "[03:10]", "lyrics"]
 		// ["[1235,300]", "lyrics"]
-		const matchResult = line.match(/(\[.*?\])|([^\[\]]+)/g);
+		const matchResult = line.match(/(\[.*?\])|([^[\]]+)/g);
 		if (!matchResult?.length || matchResult.length === 1) {
 			return { text: line };
 		}
