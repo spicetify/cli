@@ -688,7 +688,7 @@ applyScrollingFix();
 			},
 			Router: functionModules.find((m) => m.toString().includes("navigationType") && m.toString().includes("static")),
 			Routes: functionModules.find((m) => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
-			Route: functionModules.find((m) => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(\!1\)\}$/)),
+			Route: functionModules.find((m) => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(!1\)\}$/)),
 			StoreProvider: functionModules.find((m) => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
 			ScrollableContainer: functionModules.find((m) => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")),
 			IconComponent: reactComponentsUI.Icon,
@@ -946,7 +946,7 @@ applyScrollingFix();
 			setTimeout(bindColorExtractor, 10);
 			return;
 		}
-		let imageAnalysis = functionModules.find((m) => m.toString().match(/\![\w$]+\.isFallback|\{extractColor/g));
+		let imageAnalysis = functionModules.find((m) => m.toString().match(/![\w$]+\.isFallback|\{extractColor/g));
 		const fallbackPreset = modules.find((m) => m?.colorDark);
 
 		// Search chunk in Spotify 1.2.13 or much older because it is impossible to find any distinguishing features

@@ -222,7 +222,7 @@ function PopupLyrics() {
 					// ["[03:10]", "永远高唱我歌"]
 					// ["永远高唱我歌"]
 					// ["[03:10]", "[03:10]", "永远高唱我歌"]
-					const matchResult = line.match(/(\[.*?\])|([^\[\]]+)/g) || [line];
+					const matchResult = line.match(/(\[.*?\])|([^[\]]+)/g) || [line];
 					if (!matchResult.length || matchResult.length === 1) {
 						return;
 					}
@@ -235,7 +235,7 @@ function PopupLyrics() {
 					if (text === "纯音乐, 请欣赏") noLyrics = true;
 					return matchResult.map((slice) => {
 						const result = {};
-						const matchResult = slice.match(/[^\[\]]+/g);
+						const matchResult = slice.match(/[^[\]]+/g);
 						const [key, value] = matchResult[0].split(":") || [];
 						const [min, sec] = [Number.parseFloat(key), Number.parseFloat(value)];
 						if (!Number.isNaN(min) && !Number.isNaN(sec) && !otherInfoRegexp.test(text)) {
@@ -311,8 +311,8 @@ function PopupLyrics() {
 			const lyrics = lines.map((line) => {
 				const time = line.match(syncedTimestamp)?.[1];
 				const lyricContent = line.replace(syncedTimestamp, "").trim();
-				const lyric = lyricContent.replaceAll(/\<([0-9:.]+)\>/g, "").trim();
-				const [min, sec] = time.replace(/\[\]\<\>/, "").split(":");
+				const lyric = lyricContent.replaceAll(/<([0-9:.]+)>/g, "").trim();
+				const [min, sec] = time.replace(/\[\]<>/, "").split(":");
 
 				if (line.trim() !== "" && isSynced && time) {
 					return { text: lyric || "♪", startTime: Number(min) * 60 + Number(sec) };
