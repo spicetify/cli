@@ -165,21 +165,30 @@ color: var(--spice-button-disabled);
 
 	(async () => {
 		await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
+
+		while (!Spicetify.Snackbar?.enqueueCustomSnackbar) {
+			await new Promise((resolve) => setTimeout(resolve, 10));
+		}
+
 		if (document.querySelector(".Root__globalNav")) {
+			const content = Spicetify.React.createElement("div", {
+				dangerouslySetInnerHTML: {
+					__html:
+						"Sidebar config is not supported when Global Navbar is enabled.<br>In your terminal, please run <code>spicetify config sidebar_config 0</code> command and then re-apply spicetify with <code>spicetify apply</code>.",
+				},
+				style: {
+					"text-size": "12px",
+				},
+			});
+
 			Spicetify.Snackbar?.enqueueCustomSnackbar("sidebar-config", {
 				keyPrefix: "sidebar-config",
 				autoHideDuration: 7500,
 				children: Spicetify.ReactComponent.Snackbar.wrapper({
-					children: Spicetify.ReactComponent.Snackbar.simpleLayout({
-						center: Spicetify.React.createElement("div", {
-							dangerouslySetInnerHTML: {
-								__html:
-									"Sidebar config is not supported when Global Navbar is enabled. In your terminal, please run <code>spicetify config sidebar_config 0</code> command and then re-apply spicetify with <code>spicetify apply</code>.",
-							},
-							style: {
-								"text-size": "12px",
-							},
-						}),
+					children: Spicetify.React.createElement(Spicetify.ReactComponent.Snackbar.simpleLayout, {
+						center: content,
+						children: content,
+						dragMetadata: {},
 					}),
 				}),
 			});

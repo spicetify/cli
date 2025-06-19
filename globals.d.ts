@@ -1419,7 +1419,7 @@ declare namespace Spicetify {
 			/**
 			 * Label to display in the tooltip
 			 */
-			label: string;
+			label: string | React.ReactNode;
 			/**
 			 * The child element that the tooltip will be attached to
 			 * and will display when hovered over
