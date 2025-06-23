@@ -40,8 +40,8 @@
 		j: { callback: () => createScrollCallback(SCROLL_STEP) },
 		k: { callback: () => createScrollCallback(-SCROLL_STEP) },
 
-		// Scroll to the top ('g') or bottom ('Shift+g') of the page
-		g: { callback: () => scrollToPosition(0) },
+		// Scroll to the top ('gg') or bottom ('Shift+g') of the page
+		"g g": { callback: () => scrollToPosition(0) },
 		"shift+g": { callback: () => scrollToPosition(1) },
 
 		// Shift + H and Shift + L to go back and forward page
