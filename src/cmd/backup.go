@@ -114,17 +114,17 @@ func clearBackup() {
 	if err := os.RemoveAll(backupFolder); err != nil {
 		utils.Fatal(err)
 	}
-	os.Mkdir(backupFolder, 0700)
+	os.Mkdir(backupFolder, 0770)
 
 	if err := os.RemoveAll(rawFolder); err != nil {
 		utils.Fatal(err)
 	}
-	os.Mkdir(rawFolder, 0700)
+	os.Mkdir(rawFolder, 0770)
 
 	if err := os.RemoveAll(themedFolder); err != nil {
 		utils.Fatal(err)
 	}
-	os.Mkdir(themedFolder, 0700)
+	os.Mkdir(themedFolder, 0770)
 
 	backupSection.Key("version").SetValue("")
 	backupSection.Key("with").SetValue("")
