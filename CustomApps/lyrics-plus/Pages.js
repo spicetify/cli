@@ -22,9 +22,8 @@ const IdlingIndicator = ({ isActive, progress, delay }) => {
 	return react.createElement(
 		"div",
 		{
-			className: `lyrics-idling-indicator ${
-				!isActive ? "lyrics-idling-indicator-hidden" : ""
-			} lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active`,
+			className: `lyrics-idling-indicator ${!isActive ? "lyrics-idling-indicator-hidden" : ""
+				} lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active`,
 			style: {
 				"--position-index": 0,
 				"--animation-index": 1,
@@ -32,29 +31,29 @@ const IdlingIndicator = ({ isActive, progress, delay }) => {
 			},
 		},
 		[0.05, 0.33, 0.66].map((threshold) =>
-            react.createElement(
-                "div", { className: `lyrics-idling-indicator__circle ${progress >= threshold ? "active" : ""}` }
-            )
-        )
+			react.createElement(
+				"div", { className: `lyrics-idling-indicator__circle ${progress >= threshold ? "active" : ""}` }
+			)
+		)
 	);
 };
 
 const InlineIdlingIndicator = ({ progress, isActive }) => {
-    return react.createElement(
-        "span",
-        {
-            className: `lyrics-inline-idling-indicator${isActive ? " active" : ""}`,
-        },
-        [0.05, 0.33, 0.66].map((threshold, idx) =>
-            react.createElement(
-                "span",
-                {
-                    key: idx,
-                    className: `lyrics-inline-idling-dot${progress >= threshold ? " active" : ""}`,
-                }
-            )
-        )
-    );
+	return react.createElement(
+		"span",
+		{
+			className: `lyrics-inline-idling-indicator${isActive ? " active" : ""}`,
+		},
+		[0.05, 0.33, 0.66].map((threshold, idx) =>
+			react.createElement(
+				"span",
+				{
+					key: idx,
+					className: `lyrics-inline-idling-dot${progress >= threshold ? " active" : ""}`,
+				}
+			)
+		)
+	);
 };
 
 const emptyLine = {
@@ -253,21 +252,21 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 						!isKara ? lineText : react.createElement(KaraokeLine, { text, startTime, position, isActive })
 					),
 					belowMode &&
-						react.createElement(
-							"p",
-							{
-								style: {
-									opacity: 0.5,
-								},
-								onContextMenu: (event) => {
-									event.preventDefault();
-									Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
-										.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
-										.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
-								},
+					react.createElement(
+						"p",
+						{
+							style: {
+								opacity: 0.5,
 							},
-							text
-						)
+							onContextMenu: (event) => {
+								event.preventDefault();
+								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
+									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
+									.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
+							},
+						},
+						text
+					)
 				);
 			})
 		),
@@ -532,19 +531,19 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 					!isKara ? lineText : react.createElement(KaraokeLine, { text, startTime, position, isActive })
 				),
 				belowMode &&
-					react.createElement(
-						"p",
-						{
-							style: { opacity: 0.5 },
-							onContextMenu: (event) => {
-								event.preventDefault();
-								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
-									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
-									.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
-							},
+				react.createElement(
+					"p",
+					{
+						style: { opacity: 0.5 },
+						onContextMenu: (event) => {
+							event.preventDefault();
+							Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
+								.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
+								.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
 						},
-						text
-					)
+					},
+					text
+				)
 			);
 		}),
 		react.createElement("p", {
@@ -599,19 +598,19 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 					lineText
 				),
 				belowMode &&
-					react.createElement(
-						"p",
-						{
-							style: { opacity: 0.5 },
-							onContextMenu: (event) => {
-								event.preventDefault();
-								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToUnsynced(lyrics, belowMode).conver)
-									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
-									.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
-							},
+				react.createElement(
+					"p",
+					{
+						style: { opacity: 0.5 },
+						onContextMenu: (event) => {
+							event.preventDefault();
+							Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToUnsynced(lyrics, belowMode).conver)
+								.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
+								.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
 						},
-						text
-					)
+					},
+					text
+				)
 			);
 		}),
 		react.createElement("p", {
