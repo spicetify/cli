@@ -31,10 +31,30 @@ const IdlingIndicator = ({ isActive, progress, delay }) => {
 				"--indicator-delay": `${delay}ms`,
 			},
 		},
-		react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.05 ? "active" : ""}` }),
-		react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.33 ? "active" : ""}` }),
-		react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.66 ? "active" : ""}` })
+		[0.05, 0.33, 0.66].map((threshold) =>
+            react.createElement(
+                "div", { className: `lyrics-idling-indicator__circle ${progress >= threshold ? "active" : ""}` }
+            )
+        )
 	);
+};
+
+const InlineIdlingIndicator = ({ progress, isActive }) => {
+    return react.createElement(
+        "span",
+        {
+            className: `lyrics-inline-idling-indicator${isActive ? " active" : ""}`,
+        },
+        [0.05, 0.33, 0.66].map((threshold, idx) =>
+            react.createElement(
+                "span",
+                {
+                    key: idx,
+                    className: `lyrics-inline-idling-dot${progress >= threshold ? " active" : ""}`,
+                }
+            )
+        )
+    );
 };
 
 const emptyLine = {
@@ -144,6 +164,29 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 						progress: position / activeLines[2].startTime,
 						delay: activeLines[2].startTime / 3,
 					});
+				}
+				if (text === "♪") {
+					let className = "lyrics-lyricsContainer-LyricsLine";
+					let ref;
+					if (Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1) === i) {
+						className += " lyrics-lyricsContainer-LyricsLine-active";
+						ref = activeLineEle;
+					}
+					const animationIndex = activeLineIndex <= CONFIG.visual["lines-before"]
+						? i - activeLineIndex
+						: i - CONFIG.visual["lines-before"] - 1;
+					const nextLine = activeLines[i + 1];
+					const timeToNext = nextLine ? nextLine.startTime - startTime : 1000;
+					const progress = Math.min(1, (position - startTime) / (timeToNext || 1));
+					return react.createElement(
+						"div",
+						{ className, style: { cursor: "pointer", "--position-index": animationIndex, "--animation-index": (animationIndex < 0 ? 0 : animationIndex) + 1, "--blur-index": Math.abs(animationIndex) }, key: lineNumber, dir: "auto", ref, onClick: () => { if (startTime) Spicetify.Player.seek(startTime); } },
+						react.createElement(
+							"p",
+							{},
+							react.createElement(InlineIdlingIndicator, { progress, isActive: progress >= 1 })
+						)
+					);
 				}
 
 				let className = "lyrics-lyricsContainer-LyricsLine";
