@@ -29,8 +29,8 @@
 		},
 
 		// Rotate through sidebar items using Shift + J and Shift + K
-		"shift+j": { callback: () => rotateSidebar(-1) },
-		"shift+k": { callback: () => rotateSidebar(1) },
+		"shift+j": { callback: () => rotateSidebar(1) },
+		"shift+k": { callback: () => rotateSidebar(-1) },
 
 		// Focus on the app content before scrolling using Shift+PageUp and Shift+PageDown
 		"shift+pageup": { callback: () => focusOnApp() },
