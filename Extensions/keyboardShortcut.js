@@ -28,10 +28,10 @@
 				Spicetify.CosmosAsync.post("sp://desktop/v1/shutdown"),
 		},
 
-		// Rotate through sidebar items using Shift + J and Shift + K
-		"shift+j": { callback: () => rotateSidebar(1) },
-		"shift+k": { callback: () => rotateSidebar(-1) },
-
+		// Rotate through sidebar items using Ctrl+Tab and Ctrl+Shift+Tab
+		"ctrl+tab": { callback: () => rotateSidebar(1) },
+		"ctrl+shift+tab": { callback: () => rotateSidebar(-1) },
+		
 		// Focus on the app content before scrolling using Shift+PageUp and Shift+PageDown
 		"shift+pageup": { callback: () => focusOnApp() },
 		"shift+pagedown": { callback: () => focusOnApp() },
@@ -41,9 +41,9 @@
 		k: { callback: () => createScrollCallback(-SCROLL_STEP) },
 		
 		// Scroll half-page using 'u' and 'd' keys
-		u: { callback: () => createScrollCallback(-SCROLL_STEP * 3) },
 		d: { callback: () => createScrollCallback(SCROLL_STEP * 3) },
-		
+		u: { callback: () => createScrollCallback(-SCROLL_STEP * 3) },
+
 		// Scroll to the top ('gg') or bottom ('Shift+g') of the page
 		"g g": { callback: () => scrollToPosition(0) },
 		"shift+g": { callback: () => scrollToPosition(1) },
