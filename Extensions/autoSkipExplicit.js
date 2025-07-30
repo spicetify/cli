@@ -5,7 +5,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function ChristianSpotify() {
-	if (!Spicetify.LocalStorage) {
+	if (!Spicetify.LocalStorage || !Spicetify.ReactJSX?.jsx) {
 		setTimeout(ChristianSpotify, 1000);
 		return;
 	}
