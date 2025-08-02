@@ -4,7 +4,7 @@
 
 /// <reference path="../globals.d.ts" />
 
-(function ChristianSpotify() {
+(async function ChristianSpotify() {
 	if (!Spicetify.LocalStorage) {
 		setTimeout(ChristianSpotify, 1000);
 		return;
