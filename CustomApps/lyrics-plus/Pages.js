@@ -22,18 +22,37 @@ const IdlingIndicator = ({ isActive, progress, delay }) => {
 	return react.createElement(
 		"div",
 		{
-			className: `lyrics-idling-indicator ${
-				!isActive ? "lyrics-idling-indicator-hidden" : ""
-			} lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active`,
+			className: `lyrics-idling-indicator ${!isActive ? "lyrics-idling-indicator-hidden" : ""
+				} lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active`,
 			style: {
 				"--position-index": 0,
 				"--animation-index": 1,
 				"--indicator-delay": `${delay}ms`,
 			},
 		},
-		react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.05 ? "active" : ""}` }),
-		react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.33 ? "active" : ""}` }),
-		react.createElement("div", { className: `lyrics-idling-indicator__circle ${progress >= 0.66 ? "active" : ""}` })
+		[0.05, 0.33, 0.66].map((threshold) =>
+			react.createElement(
+				"div", { className: `lyrics-idling-indicator__circle ${progress >= threshold ? "active" : ""}` }
+			)
+		)
+	);
+};
+
+const InlineIdlingIndicator = ({ progress, isActive }) => {
+	return react.createElement(
+		"span",
+		{
+			className: `lyrics-inline-idling-indicator${isActive ? " active" : ""}`,
+		},
+		[0.05, 0.33, 0.66].map((threshold, idx) =>
+			react.createElement(
+				"span",
+				{
+					key: idx,
+					className: `lyrics-inline-idling-dot${progress >= threshold ? " active" : ""}`,
+				}
+			)
+		)
 	);
 };
 
@@ -145,6 +164,29 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 						delay: activeLines[2].startTime / 3,
 					});
 				}
+				if (text === "♪") {
+					let className = "lyrics-lyricsContainer-LyricsLine";
+					let ref;
+					if (Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1) === i) {
+						className += " lyrics-lyricsContainer-LyricsLine-active";
+						ref = activeLineEle;
+					}
+					const animationIndex = activeLineIndex <= CONFIG.visual["lines-before"]
+						? i - activeLineIndex
+						: i - CONFIG.visual["lines-before"] - 1;
+					const nextLine = activeLines[i + 1];
+					const timeToNext = nextLine ? nextLine.startTime - startTime : 1000;
+					const progress = Math.min(1, (position - startTime) / (timeToNext || 1));
+					return react.createElement(
+						"div",
+						{ className, style: { cursor: "pointer", "--position-index": animationIndex, "--animation-index": (animationIndex < 0 ? 0 : animationIndex) + 1, "--blur-index": Math.abs(animationIndex) }, key: lineNumber, dir: "auto", ref, onClick: () => { if (startTime) Spicetify.Player.seek(startTime); } },
+						react.createElement(
+							"p",
+							{},
+							react.createElement(InlineIdlingIndicator, { progress, isActive: progress >= 1 })
+						)
+					);
+				}
 
 				let className = "lyrics-lyricsContainer-LyricsLine";
 				const activeElementIndex = Math.min(activeLineIndex, CONFIG.visual["lines-before"] + 1);
@@ -210,21 +252,21 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 						!isKara ? lineText : react.createElement(KaraokeLine, { text, startTime, position, isActive })
 					),
 					belowMode &&
-						react.createElement(
-							"p",
-							{
-								style: {
-									opacity: 0.5,
-								},
-								onContextMenu: (event) => {
-									event.preventDefault();
-									Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
-										.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
-										.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
-								},
+					react.createElement(
+						"p",
+						{
+							style: {
+								opacity: 0.5,
 							},
-							text
-						)
+							onContextMenu: (event) => {
+								event.preventDefault();
+								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
+									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
+									.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
+							},
+						},
+						text
+					)
 				);
 			})
 		),
@@ -489,19 +531,19 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 					!isKara ? lineText : react.createElement(KaraokeLine, { text, startTime, position, isActive })
 				),
 				belowMode &&
-					react.createElement(
-						"p",
-						{
-							style: { opacity: 0.5 },
-							onContextMenu: (event) => {
-								event.preventDefault();
-								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
-									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
-									.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
-							},
+				react.createElement(
+					"p",
+					{
+						style: { opacity: 0.5 },
+						onContextMenu: (event) => {
+							event.preventDefault();
+							Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToLRC(lyrics, belowMode).conver)
+								.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
+								.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
 						},
-						text
-					)
+					},
+					text
+				)
 			);
 		}),
 		react.createElement("p", {
@@ -556,19 +598,19 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 					lineText
 				),
 				belowMode &&
-					react.createElement(
-						"p",
-						{
-							style: { opacity: 0.5 },
-							onContextMenu: (event) => {
-								event.preventDefault();
-								Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToUnsynced(lyrics, belowMode).conver)
-									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
-									.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
-							},
+				react.createElement(
+					"p",
+					{
+						style: { opacity: 0.5 },
+						onContextMenu: (event) => {
+							event.preventDefault();
+							Spicetify.Platform.ClipboardAPI.copy(Utils.convertParsedToUnsynced(lyrics, belowMode).conver)
+								.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
+								.catch(() => Spicetify.showNotification("Failed to copy translated lyrics to clipboard"));
 						},
-						text
-					)
+					},
+					text
+				)
 			);
 		}),
 		react.createElement("p", {
