@@ -9,7 +9,7 @@
 		setTimeout(ChristianSpotify, 1000);
 		return;
 	}
-	await new Promise(res => Spicetify.Events.webpackLoaded.on(res));
+	await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
 
 	let isEnabled = Spicetify.LocalStorage.get("ChristianMode") === "1";
 
