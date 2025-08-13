@@ -23,4 +23,4 @@ jobs:
           version: latest
 
       - name: Run Biome
-        run: biome ci . --files-ignore-unknown=true
+        run: biome ci . --files-ignore-unknown=true --diagnostic-level=error
