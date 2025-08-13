@@ -359,26 +359,26 @@ func insertNavLink(str string, appNameArray string) string {
 			1)
 	}
 
-	// Global Navbar <= 1.2.45
-	globalNavBarMatch := utils.FindMatch(str, `(,[a-zA-Z_\$][\w\$]*===(?:[a-zA-Z_\$][\w\$]*\.){2}HOME_NEXT_TO_NAVIGATION&&.+?)\]`)
-	utils.ReplaceOnce(&str, `(,[a-zA-Z_\$][\w\$]*===(?:[a-zA-Z_\$][\w\$]*\.){2}HOME_NEXT_TO_NAVIGATION&&.+?)\]`, func(submatches ...string) string {
-		return fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], true)]", submatches[1], appNameArray)
-	})
-
-	if len(globalNavBarMatch) == 0 {
-		globalNavBarMatch = utils.FindMatch(str, `("global-nav-bar".*[[\w\$&|]*\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))\]`)
-		if len(globalNavBarMatch) > 0 {
-			// Global Navbar >= 1.2.60, greedy matching with enclosing bracket
-			utils.ReplaceOnce(&str, `("global-nav-bar".*[[\w\$&|]*\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))\]`, func(submatches ...string) string {
+	utils.ReplaceOnceWithPriority(&str,
+		[]string{
+			// Global Navbar <= 1.2.45
+			`(,[a-zA-Z_\$][\w\$]*===(?:[a-zA-Z_\$][\w\$]*\.){2}HOME_NEXT_TO_NAVIGATION&&.+?)\]`,
+			// Global Navbar >= 1.2.60, greedy matching with enclosing brackets
+			`("global-nav-bar".*[[\w\$&|]*\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))\]`,
+			// Global Navbar >= 1.2.46, lazy matching
+			`("global-nav-bar".*?)(\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\))(\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))`,
+		},
+		func(index int, submatches ...string) string {
+			switch index {
+			case 0:
+			case 1:
 				return fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], true)]", submatches[1], appNameArray)
-			})
-		} else {
-			// 	// Global Navbar >= 1.2.46, lazy matching
-			utils.ReplaceOnce(&str, `("global-nav-bar".*?)(\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\))(\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))`, func(submatches ...string) string {
+			case 2:
 				return fmt.Sprintf("%s[%s%s,Spicetify._renderNavLinks([%s], true)].flat()", submatches[1], submatches[2], submatches[3], appNameArray)
-			})
-		}
-	}
+			}
+			return ""
+		},
+	)
 
 	return str
 }
