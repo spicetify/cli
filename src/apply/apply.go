@@ -365,11 +365,19 @@ func insertNavLink(str string, appNameArray string) string {
 		return fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], true)]", submatches[1], appNameArray)
 	})
 
-	// Global Navbar >= 1.2.46
 	if len(globalNavBarMatch) == 0 {
-		utils.ReplaceOnce(&str, `("global-nav-bar".*?)(\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\))(\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))`, func(submatches ...string) string {
-			return fmt.Sprintf("%s[%s%s,Spicetify._renderNavLinks([%s], true)].flat()", submatches[1], submatches[2], submatches[3], appNameArray)
-		})
+		globalNavBarMatch = utils.FindMatch(str, `("global-nav-bar".*[[\w\$&|]*\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))\]`)
+		if len(globalNavBarMatch) > 0 {
+			// Global Navbar >= 1.2.60, greedy matching with enclosing bracket
+			utils.ReplaceOnce(&str, `("global-nav-bar".*[[\w\$&|]*\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))\]`, func(submatches ...string) string {
+				return fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], true)]", submatches[1], appNameArray)
+			})
+		} else {
+			// 	// Global Navbar >= 1.2.46, lazy matching
+			utils.ReplaceOnce(&str, `("global-nav-bar".*?)(\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\))(\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))`, func(submatches ...string) string {
+				return fmt.Sprintf("%s[%s%s,Spicetify._renderNavLinks([%s], true)].flat()", submatches[1], submatches[2], submatches[3], appNameArray)
+			})
+		}
 	}
 
 	return str
