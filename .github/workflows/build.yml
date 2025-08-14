@@ -56,7 +56,7 @@ jobs:
         run: echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
 
       - name: Is Unix Platform
-        run: echo "IS_UNIX=${{ matrix.os != 'windows' && matrix.arch != '386' && matrix.arch != 'arm64' }}" >> $GITHUB_ENV
+        run: echo "IS_UNIX=${{ matrix.os != 'windows' && matrix.arch != '386' && (matrix.os != 'linux' || matrix.arch != 'arm64') }}" >> $GITHUB_ENV
 
       - name: Is Windows Platform
         run: echo "IS_WIN=${{ matrix.os == 'windows' }}" >> $GITHUB_ENV
