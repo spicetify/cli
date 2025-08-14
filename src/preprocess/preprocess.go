@@ -793,7 +793,7 @@ func removeRTL(input string) string {
 		},
 		{
 			Name:  "Remove [dir=rtl] blocks",
-			Regex: `\[dir=rtl\].+?\{.+?\}`,
+			Regex: `\[dir=rtl\][^)]+?\{.+?\}`,
 			Replacement: func(submatches ...string) string {
 				return ""
 			},
