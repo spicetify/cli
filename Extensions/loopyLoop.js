@@ -5,12 +5,13 @@
 
 /// <reference path="../globals.d.ts" />
 
-(function LoopyLoop() {
+(async function LoopyLoop() {
 	const bar = document.querySelector(".playback-bar .progress-bar");
 	if (!(bar && Spicetify.React)) {
 		setTimeout(LoopyLoop, 100);
 		return;
 	}
+	await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
 
 	const style = document.createElement("style");
 	style.innerHTML = `
