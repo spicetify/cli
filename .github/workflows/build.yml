@@ -76,13 +76,6 @@ jobs:
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
 
-      - name: Attest output
-        uses: actions/attest-build-provenance@v2
-        if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
-        with:
-          subject-path: "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
-          subject-name: "spicetify v${{ env.TAG }} (${{ matrix.os }}, ${{ (matrix.os == 'windows' && matrix.arch == 'amd64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }})"
-
       - name: Upload Artifact for Signing
         if: env.IS_WIN == 'true'
         id: upload-artifact-for-signing
@@ -107,6 +100,13 @@ jobs:
         if: env.IS_WIN == 'true'
         run: |
           cp ./signed/spicetify.exe ./spicetify.exe
+
+      - name: Attest output
+        uses: actions/attest-build-provenance@v2
+        if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
+        with:
+          subject-path: "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
+          subject-name: "spicetify v${{ env.TAG }} (${{ matrix.os }}, ${{ (matrix.os == 'windows' && matrix.arch == 'amd64' && 'x64') || (matrix.os == 'windows' && matrix.arch == '386' && 'x32') || matrix.arch }})"
 
       - name: 7z - .tar
         if: env.IS_UNIX == 'true'
