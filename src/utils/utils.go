@@ -187,6 +187,26 @@ func ReplaceOnce(str *string, pattern string, repl func(submatches ...string) st
 	})
 }
 
+func ReplaceOnceWithPriority(str *string, patterns []string, repl func(index int, submatches ...string) string) {
+	for i, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		firstMatch := true
+		*str = re.ReplaceAllStringFunc(*str, func(match string) string {
+			if firstMatch {
+				firstMatch = false
+				submatches := re.FindStringSubmatch(match)
+				if submatches != nil {
+					return repl(i, submatches...)
+				}
+			}
+			return match
+		})
+		if !firstMatch {
+			break
+		}
+	}
+}
+
 func FindMatch(input string, regexpTerm string) [][]string {
 	re := regexp.MustCompile(regexpTerm)
 	matches := re.FindAllStringSubmatch(input, -1)
