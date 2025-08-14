@@ -370,8 +370,7 @@ func insertNavLink(str string, appNameArray string) string {
 		},
 		func(index int, submatches ...string) string {
 			switch index {
-			case 0:
-			case 1:
+			case 0, 1:
 				return fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], true)]", submatches[1], appNameArray)
 			case 2:
 				return fmt.Sprintf("%s[%s%s,Spicetify._renderNavLinks([%s], true)].flat()", submatches[1], submatches[2], submatches[3], appNameArray)
