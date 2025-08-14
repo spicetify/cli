@@ -1,10 +1,9 @@
 <h3 align="center"><a href="https://spicetify.app/"><img src="https://i.imgur.com/iwcLITQ.png" width="600px"></a></h3>
 <p align="center">
   <a href="https://goreportcard.com/report/github.com/spicetify/cli"><img src="https://goreportcard.com/badge/github.com/spicetify/cli"></a>
-  <a href="https://github.com/spicetify/cli/releases/latest"><img src="https://img.shields.io/github/release/spicetify/cli/all.svg?colorB=97CA00&label=version"></a>
-  <a href="https://github.com/spicetify/cli/releases"><img src="https://img.shields.io/github/downloads/spicetify/cli/total.svg?colorB=97CA00"></a>
+  <a href="https://github.com/spicetify/cli/releases/latest"><img src="https://img.shields.io/github/release/spicetify/cli/all.svg?colorB=97CA00&label=latest%20version"></a>
+  <a href="https://github.com/spicetify/cli/releases"><img src="https://img.shields.io/github/downloads/spicetify/cli/total.svg?colorB=97CA00&label=total%20downloads"></a>
   <a href="https://discord.gg/VnevqPp2Rr"><img src="https://img.shields.io/discord/842219447716151306?label=chat&logo=discord&logoColor=discord"></a>
-  <a href="https://www.reddit.com/r/spicetify"><img src="https://img.shields.io/reddit/subreddit-subscribers/spicetify?logo=reddit"></a>
 </p>
 
 ---
@@ -16,17 +15,18 @@ Supports Windows, MacOS and Linux.
 
 ### Features
 
-- Change colors whole UI
+- Change colors across the User Interface
 - Inject CSS for advanced customization
-- Inject Extensions (Javascript script) to extend functionalities, manipulate UI and control player.
-- Inject Custom apps
-- Remove bloated components to improve performance
+- Inject Extensions to extend functionalities, manipulate UI and control player
+- Inject Custom Apps
+- Make yourself in control of the Spotify client
 
 ### Links
 
 - [Installation](https://spicetify.app/docs/getting-started)
 - [Basic Usage](https://spicetify.app/docs/getting-started#basic-usage)
-- [FAQ](https://spicetify.app/docs/faq)
+
+---
 
 ### Code Signing Policy
 
