@@ -126,12 +126,12 @@ func SendReload(debuggerURL *string) error {
 
 	socket, err := websocket.Dial(*debuggerURL, "", "http://localhost/")
 	if err != nil {
-		return nil
+		return err
 	}
 	defer socket.Close()
 
 	if _, err := socket.Write([]byte(`{"id":0,"method":"Runtime.evaluate","params":{"expression":"window.location.reload()"}}`)); err != nil {
-		return nil
+		return err
 	}
 
 	return nil

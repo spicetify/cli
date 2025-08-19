@@ -144,12 +144,9 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 
 					embeddedString, _, _, err := utils.ReadStringFromUTF16Binary(binFilePath, startMarker, endMarker)
 					if err != nil {
-						if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 64 {
-							utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
-							utils.PrintWarning("Please report this!")
-						} else {
-							utils.PrintInfo("Skipped V8 snapshot processing")
-						}
+						utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
+						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error if you're on Spotify 1.2.63 or lower.")
+						utils.PrintInfo("However, if you're on 1.2.64 or higher, please report this issue")
 						continue
 					}
 
@@ -1035,10 +1032,10 @@ func splitVersion(version string) ([3]int, error) {
 	if len(vSplit) != 3 {
 		return [3]int{}, errors.New("invalid version string")
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		conv, err := strconv.Atoi(vSplit[i])
 		if err != nil {
-			return [3]int{}, nil
+			return [3]int{}, err
 		}
 		vInts[i] = conv
 	}

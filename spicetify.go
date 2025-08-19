@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	colorable "github.com/mattn/go-colorable"
+	"github.com/pterm/pterm"
 	"github.com/spicetify/cli/src/cmd"
 	spotifystatus "github.com/spicetify/cli/src/status/spotify"
 	"github.com/spicetify/cli/src/utils"
@@ -67,7 +68,7 @@ func init() {
 
 	for _, v := range flags {
 		switch v {
-		case "-b", "--bypass-admin":
+		case "--bypass-admin":
 			bypassAdminCheck = true
 		case "-c", "--config":
 			log.Println(cmd.GetConfigPath())
@@ -111,10 +112,11 @@ func init() {
 	if quiet {
 		log.SetOutput(io.Discard)
 		os.Stdout = nil
+		pterm.DisableOutput()
 	}
 
 	if isAdmin.Check(bypassAdminCheck) {
-		utils.PrintError("Spicetify should NOT be ran with administrator/root privileges")
+		utils.PrintError("Spicetify should NOT be run with administrator or root privileges")
 		utils.PrintError("Doing so can cause Spotify to show a black/blank window after applying!")
 		utils.PrintError("This happens because Spotify (running as a normal user) can't access files modified with admin privileges")
 		utils.PrintInfo("If you understand the risks and need to continue, you can use the '--bypass-admin' flag.")
@@ -304,7 +306,6 @@ func main() {
 		cmd.CheckUpdate(version)
 	}
 
-	cmd.SpotifyKill()
 	// Chainable commands
 	for _, v := range commands {
 		switch v {
@@ -480,7 +481,7 @@ upgrade|update      Update spicetify to the latest version if an update is avail
 -n, --no-restart    Do not restart Spotify after running command(s),
                     except for the "restart" command.
 
--b, --bypass-admin  Bypass admin check. NOT RECOMMENDED
+--bypass-admin      Bypass admin check. NOT RECOMMENDED
 
 -c, --config        Print config file path and quit
 

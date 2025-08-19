@@ -68,5 +68,5 @@ func EnableDevTools() {
 
 	file.WriteAt([]byte{50}, firstPatchLocation)
 	file.WriteAt([]byte{50}, secondPatchLocation)
-	utils.PrintSuccess("Enable DevTools")
+	utils.PrintSuccess("Enabled DevTools!")
 }

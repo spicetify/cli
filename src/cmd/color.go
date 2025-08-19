@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"log"
 	"path/filepath"
 
 	"github.com/go-ini/ini"
@@ -115,7 +114,7 @@ func DisplayColors() {
 
 	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
 
-	log.Println("(*): Default color is used")
+	utils.PrintNote("(*): Default color is used")
 }
 
 func colorChangeSuccess(field, value string) {

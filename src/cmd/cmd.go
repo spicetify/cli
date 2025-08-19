@@ -245,14 +245,15 @@ func ReadAnswer(info string, defaultAnswer bool, quietModeAnswer bool) bool {
 		return quietModeAnswer
 	}
 
+	prompt := info
 	if defaultAnswer {
-		info += " [Y/n]: "
+		prompt += " [Y/n]: "
 	} else {
-		info += " [y/N]: "
+		prompt += " [y/N]: "
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print(info)
+	fmt.Print(prompt)
 	text, _ := reader.ReadString('\n')
 	text = strings.Replace(text, "\r", "", 1)
 	text = strings.Replace(text, "\n", "", 1)

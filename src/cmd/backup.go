@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"log"
 	"os"
 
 	spotifystatus "github.com/spicetify/cli/src/status/spotify"
@@ -41,12 +40,14 @@ Modded Spotify cannot be launched using original Shortcut/Start menu tile. To co
 	spinner, _ := utils.Spinner.Start("Backup app files")
 
 	if err := backup.Start(appPath, backupFolder); err != nil {
-		log.Fatal(err)
+		spinner.Fail()
+		utils.Fatal(err)
 	}
 
 	appList, err := os.ReadDir(backupFolder)
 	if err != nil {
-		log.Fatal(err)
+		spinner.Fail()
+		utils.Fatal(err)
 	}
 
 	totalApp := len(appList)
@@ -77,8 +78,8 @@ Modded Spotify cannot be launched using original Shortcut/Start menu tile. To co
 				ExposeAPIs:     preprocSection.Key("expose_apis").MustBool(false),
 				SpotifyVer:     utils.GetSpotifyVersion(prefsPath)},
 		)
+		utils.PrintSuccess("Preprocessing completed")
 	}
-	utils.PrintSuccess("Preprocessing completed")
 
 	err = utils.Copy(rawFolder, themedFolder, true, []string{".html", ".js", ".css"})
 	if err != nil {
