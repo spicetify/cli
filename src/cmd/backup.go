@@ -11,8 +11,8 @@ import (
 	"github.com/spicetify/cli/src/utils"
 )
 
-// Backup stores original apps packages, extracts them and preprocesses
-// extracted apps' assets
+// Backup stores original apps packages, extracts them and preprocesses extracted apps' assets
+// If silent is true, the final readiness message is surpressed (useful when chaining with "apply")
 func Backup(spicetifyVersion string, silent bool) {
 	if isAppX {
 		utils.PrintInfo(`You are using the Microsoft Store version of Spotify, which is only partly supported.
@@ -25,7 +25,7 @@ Modded Spotify cannot be launched using original Shortcut/Start menu tile. To co
 	backupVersion := backupSection.Key("version").MustString("")
 	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 	if !backStat.IsEmpty() {
-		utils.PrintInfo("There is an available backup")
+		utils.PrintInfo("A backup is available")
 
 		spotStat := spotifystatus.Get(appPath)
 		if spotStat.IsBackupable() {

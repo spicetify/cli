@@ -124,7 +124,7 @@ func init() {
 	}
 
 	for i, flag := range flags {
-		if flag == "--bypass-admin" || flag == "-b" {
+		if flag == "--bypass-admin" {
 			flags = append(flags[:i], flags[i+1:]...)
 			break
 		}

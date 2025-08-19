@@ -101,8 +101,9 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 			fetchSpinner.Warning()
 			utils.PrintInfo("Using local CSS map instead")
 			readLocalCssMap(&cssTranslationMap)
+		} else {
+			fetchSpinner.Success()
 		}
-		fetchSpinner.Success()
 	} else {
 		utils.PrintInfo("In development environment, using local CSS map")
 		readLocalCssMap(&cssTranslationMap)
@@ -809,7 +810,7 @@ func additionalPatches(input string) string {
 			},
 		},
 		{
-			Name:  "GraphQL definitons (>=1.2.31)",
+			Name:  "GraphQL definitions (>=1.2.31)",
 			Regex: `(=new [\w_\$][\w_\$\d]*\.[\w_\$][\w_\$\d]*\("(\w+)","(query|mutation)","[\w\d]{64}",null\))`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
@@ -1032,7 +1033,7 @@ func splitVersion(version string) ([3]int, error) {
 	if len(vSplit) != 3 {
 		return [3]int{}, errors.New("invalid version string")
 	}
-	for i := range 3 {
+	for i := 0; i < 3; i++ {
 		conv, err := strconv.Atoi(vSplit[i])
 		if err != nil {
 			return [3]int{}, err
