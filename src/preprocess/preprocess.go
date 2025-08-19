@@ -38,13 +38,8 @@ type Patch struct {
 	Once        bool
 }
 
-type logPatch func(string)
-
-func applyPatches(input string, patches []Patch, report ...logPatch) string {
+func applyPatches(input string, patches []Patch) string {
 	for _, patch := range patches {
-		if len(report) > 0 && report[0] != nil {
-			report[0](fmt.Sprintf("%s patch", patch.Name))
-		}
 		if patch.Once {
 			utils.ReplaceOnce(&input, patch.Regex, patch.Replacement)
 		} else {
@@ -947,14 +942,6 @@ func exposeAPIs_main(input string) string {
 }
 
 func exposeAPIs_vendor(input string) string {
-	// URI
-	utils.Replace(
-		&input,
-		`,(\w+)\.prototype\.toAppType`,
-		func(submatches ...string) string {
-			return fmt.Sprintf(`,(globalThis.Spicetify.URI=%s)%s`, submatches[1], submatches[0])
-		})
-
 	vendorPatches := []Patch{
 		{
 			Name:  "Spicetify.URI",
@@ -1073,6 +1060,7 @@ func FetchLatestTagMatchingVersion(version string) (string, error) {
 		return "", err
 	}
 
+	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err

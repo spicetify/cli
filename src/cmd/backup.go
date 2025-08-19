@@ -12,7 +12,7 @@ import (
 )
 
 // Backup stores original apps packages, extracts them and preprocesses extracted apps' assets
-// If silent is true, the final readiness message is surpressed (useful when chaining with "apply")
+// If silent is true, the final readiness message is suppressed (useful when chaining with "apply")
 func Backup(spicetifyVersion string, silent bool) {
 	if isAppX {
 		utils.PrintInfo(`You are using the Microsoft Store version of Spotify, which is only partly supported.
