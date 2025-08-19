@@ -29,29 +29,33 @@ func Apply(spicetifyVersion string) {
 	// replaceColors is false.
 	extractedStock := false
 	if !spotifystatus.Get(appDestPath).IsApplied() {
-		utils.PrintBold(`Copying raw assets:`)
+		spinner, _ := utils.Spinner.Start("Copy raw assets")
 		if err := os.RemoveAll(appDestPath); err != nil {
+			spinner.Fail()
 			utils.Fatal(err)
 		}
 		if err := utils.Copy(rawFolder, appDestPath, true, nil); err != nil {
+			spinner.Fail()
 			utils.Fatal(err)
 		}
-		utils.PrintGreen("OK")
+		spinner.Success()
 		extractedStock = true
 	}
 
 	if replaceColors {
-		utils.PrintBold(`Overwriting themed assets:`)
+		spinner, _ := utils.Spinner.Start("Overwrite themed assets")
 		if err := utils.Copy(themedFolder, appDestPath, true, nil); err != nil {
+			spinner.Fail()
 			utils.Fatal(err)
 		}
-		utils.PrintGreen("OK")
+		spinner.Success()
 	} else if !extractedStock {
-		utils.PrintBold(`Overwriting raw assets:`)
+		spinner, _ := utils.Spinner.Start("Overwrite raw assets")
 		if err := utils.Copy(rawFolder, appDestPath, true, nil); err != nil {
+			spinner.Fail()
 			utils.Fatal(err)
 		}
-		utils.PrintGreen("OK")
+		spinner.Success()
 	}
 
 	RefreshTheme()
@@ -65,7 +69,7 @@ func Apply(spicetifyVersion string) {
 	extensionList := featureSection.Key("extensions").Strings("|")
 	customAppsList := featureSection.Key("custom_apps").Strings("|")
 
-	utils.PrintBold(`Applying additional modifications:`)
+	spinner, _ := utils.Spinner.Start("Apply additional modifications")
 	apply.AdditionalOptions(appDestPath, apply.Flag{
 		CurrentTheme:         settingSection.Key("current_theme").MustString(""),
 		ColorScheme:          settingSection.Key("color_scheme").MustString(""),
@@ -78,45 +82,30 @@ func Apply(spicetifyVersion string) {
 		ExpFeatures:          featureSection.Key("experimental_features").MustBool(false),
 		SpicetifyVer:         backupSection.Key("with").MustString(""),
 	})
-	utils.PrintGreen("OK")
+	spinner.Success()
 
 	if len(extensionList) > 0 {
-		utils.PrintBold(`Transferring extensions:`)
 		RefreshExtensions(extensionList...)
-		utils.PrintGreen("OK")
 		nodeModuleSymlink()
 	}
 
 	if len(customAppsList) > 0 {
-		utils.PrintBold(`Transferring custom apps:`)
 		RefreshApps(customAppsList...)
-		utils.PrintGreen("OK")
 	}
-
-	if len(patchSection.Keys()) > 0 {
-		utils.PrintBold(`Patching:`)
-		Patch()
-		utils.PrintGreen("OK")
-	}
-
-	utils.PrintSuccess("Spotify is spiced up!")
 }
 
 // RefreshTheme updates user.css + theme.js and overwrites custom assets
 func RefreshTheme() {
 	refreshThemeCSS()
-	utils.PrintSuccess("Custom CSS is updated")
 
 	if injectJS {
 		refreshThemeJS()
-		utils.PrintSuccess("Theme's JS is updated")
 	} else {
 		utils.CheckExistAndDelete(filepath.Join(appDestPath, "xpui", "extensions/theme.js"))
 	}
 
 	if overwriteAssets {
 		refreshThemeAssets()
-		utils.PrintSuccess("Custom assets are updated")
 	}
 }
 
@@ -127,6 +116,7 @@ type spicetifyConfigJson struct {
 }
 
 func refreshThemeCSS() {
+	spinner, _ := utils.Spinner.Start("Update theme CSS")
 	var scheme map[string]string = nil
 	if colorSection != nil {
 		scheme = colorSection.KeysHash()
@@ -156,30 +146,35 @@ func refreshThemeCSS() {
 
 	configJsonBytes, err := json.MarshalIndent(configJson, "", "    ")
 	if err != nil {
+		spinner.Warning()
 		utils.PrintWarning("Cannot convert colors.ini to JSON")
 	} else {
 		os.WriteFile(
 			filepath.Join(appDestPath, "xpui", "spicetify-config.json"),
 			configJsonBytes,
 			0700)
+		spinner.Success()
 	}
 }
 
 func refreshThemeAssets() {
+	spinner, _ := utils.Spinner.Start("Update custom assets")
 	apply.UserAsset(appDestPath, themeFolder)
+	spinner.Success()
 }
 
 // RefreshExtensions pushes all extensions to Spotify
 func RefreshExtensions(list ...string) {
+	spinner, _ := utils.Spinner.Start("Refresh extensions")
 	if len(list) == 0 {
 		list = featureSection.Key("extensions").Strings("|")
 	}
 
 	if len(list) > 0 {
 		pushExtensions("", list...)
-		utils.PrintSuccess("All extensions are updated")
+		spinner.Success()
 	} else {
-		utils.PrintError("No extension to update")
+		spinner.Info("No extensions to update")
 	}
 }
 
@@ -216,9 +211,11 @@ func CheckStates() {
 }
 
 func refreshThemeJS() {
+	spinner, _ := utils.Spinner.Start("Update theme JS")
 	utils.CopyFile(
 		filepath.Join(themeFolder, "theme.js"),
 		filepath.Join(appDestPath, "xpui", "extensions"))
+	spinner.Success()
 }
 
 func pushExtensions(destExt string, list ...string) {
@@ -272,6 +269,7 @@ func pushExtensions(destExt string, list ...string) {
 }
 
 func RefreshApps(list ...string) {
+	spinner, _ := utils.Spinner.Start("Refresh custom apps")
 	if len(list) == 0 {
 		list = featureSection.Key("custom_apps").Strings("|")
 	}
@@ -380,6 +378,8 @@ func RefreshApps(list ...string) {
 			[]byte(cssFileContent),
 			0700)
 	}
+
+	spinner.Success()
 }
 
 func nodeModuleSymlink() {
@@ -388,13 +388,14 @@ func nodeModuleSymlink() {
 		return
 	}
 
-	utils.PrintBold(`Found node_modules folder. Creating node_modules symlink:`)
+	spinner, _ := utils.Spinner.Start("Create node_modules symlink")
 
 	nodeModuleDest := filepath.Join(appDestPath, "xpui", "extensions", "node_modules")
 	if err = utils.CreateJunction(nodeModulePath, nodeModuleDest); err != nil {
-		utils.PrintError("Cannot create node_modules symlink")
+		spinner.Fail()
+		utils.PrintError(err.Error())
 		return
 	}
 
-	utils.PrintGreen("OK")
+	spinner.Success()
 }

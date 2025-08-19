@@ -204,8 +204,8 @@ func stringType(section *ini.Section, field, value string) {
 func toggleType(field, value string) {
 	key := searchField(field)
 
-	if value != "0" && value != "1" && value != "-1" {
-		unchangeWarning(field, `"`+value+`" is not valid value. Only "0", "1" or "-1".`)
+	if value != "0" && value != "1" {
+		unchangeWarning(field, `"`+value+`" is not valid value. Only "0" or "1" are valid.`)
 		return
 	}
 

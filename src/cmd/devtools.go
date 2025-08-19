@@ -11,8 +11,8 @@ import (
 	"github.com/spicetify/cli/src/utils"
 )
 
-// SetDevTool enables/disables developer mode of Spotify client
-func SetDevTools() {
+// EnableDevTools enables the developer tools in the Spotify client
+func EnableDevTools() {
 	var filePath string
 
 	switch runtime.GOOS {
@@ -68,5 +68,5 @@ func SetDevTools() {
 
 	file.WriteAt([]byte{50}, firstPatchLocation)
 	file.WriteAt([]byte{50}, secondPatchLocation)
-	utils.PrintSuccess("Enabled DevTools!")
+	utils.PrintSuccess("Enable DevTools")
 }

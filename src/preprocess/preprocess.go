@@ -88,20 +88,21 @@ func readLocalCssMap(cssTranslationMap *map[string]string) error {
 func Start(version string, spotifyBasePath string, extractedAppsPath string, flags Flag) {
 	appPath := filepath.Join(extractedAppsPath, "xpui")
 	var cssTranslationMap = make(map[string]string)
-	// readSourceMapAndGenerateCSSMap(appPath)
 
 	if version != "Dev" {
+		fetchSpinner, _ := utils.Spinner.Start("Fetch remote CSS map")
 		tag, err := FetchLatestTagMatchingOrMain(version)
 		if err != nil {
-			utils.PrintWarning("Cannot fetch version tag for CSS mappings")
-			fmt.Printf("err: %v\n", err)
+			fetchSpinner.Warning()
+			utils.PrintWarning(err.Error())
 			tag = version
 		}
-		utils.PrintInfo("Fetching remote CSS map for newer compatible tag version: " + tag)
 		if readRemoteCssMap(tag, &cssTranslationMap) != nil {
-			utils.PrintInfo("Cannot fetch remote CSS map. Using local CSS map instead...")
+			fetchSpinner.Warning()
+			utils.PrintInfo("Using local CSS map instead")
 			readLocalCssMap(&cssTranslationMap)
 		}
+		fetchSpinner.Success()
 	} else {
 		utils.PrintInfo("In development environment, using local CSS map")
 		readLocalCssMap(&cssTranslationMap)
@@ -137,15 +138,18 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 			for _, file := range files {
 				if !file.IsDir() && strings.HasPrefix(file.Name(), "v8_context_snapshot") && strings.HasSuffix(file.Name(), ".bin") {
 					binFilePath := filepath.Join(frameworkResourcesPath, file.Name())
-					utils.PrintInfo("Processing V8 snapshot file: " + binFilePath)
 
 					startMarker := []byte("var __webpack_modules__={")
 					endMarker := []byte("xpui-modules.js.map")
 
 					embeddedString, _, _, err := utils.ReadStringFromUTF16Binary(binFilePath, startMarker, endMarker)
 					if err != nil {
-						utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
-						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error if you're on Spotify 1.2.63 or lower. However, if you're on 1.2.64 or higher, please report this issue")
+						if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 64 {
+							utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
+							utils.PrintWarning("Please report this!")
+						} else {
+							utils.PrintInfo("Skipped V8 snapshot processing")
+						}
 						continue
 					}
 
@@ -176,11 +180,12 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 
 	totalFiles := len(filesToPatch)
 
-	style := pterm.NewStyle(pterm.FgWhite, pterm.BgBlack)
-	bar, _ := pterm.DefaultProgressbar.WithTotal(totalFiles).WithTitle("Patching files...").WithTitleStyle(style).WithShowCount(true).Start()
-	printPatch := func(msg string) {
-		bar.UpdateTitle(msg)
-	}
+	bar, _ := pterm.DefaultProgressbar.
+		WithTotal(totalFiles).
+		WithTitle("Patching files").
+		WithTitleStyle(pterm.NewStyle(pterm.Bold)).
+		WithShowCount(true).
+		Start()
 	for _, path := range filesToPatch {
 		info, err := os.Stat(path)
 		if err != nil {
@@ -193,7 +198,6 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		case ".js":
 			utils.ModifyFile(path, func(content string) string {
 				if flags.DisableSentry && (fileName == "xpui.js" || fileName == "xpui-snapshot.js") {
-					printPatch("Disable Sentry")
 					content = disableSentry(content)
 				}
 
@@ -204,15 +208,15 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 				if flags.ExposeAPIs {
 					switch fileName {
 					case "xpui-modules.js", "xpui-snapshot.js":
-						content = exposeAPIs_main(content, printPatch)
-						content = exposeAPIs_vendor(content, printPatch)
+						content = exposeAPIs_main(content)
+						content = exposeAPIs_vendor(content)
 					case "xpui.js":
-						content = exposeAPIs_main(content, printPatch)
+						content = exposeAPIs_main(content)
 						if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
-							content = exposeAPIs_vendor(content, printPatch)
+							content = exposeAPIs_vendor(content)
 						}
 					case "vendor~xpui.js":
-						content = exposeAPIs_vendor(content, printPatch)
+						content = exposeAPIs_vendor(content)
 					}
 
 					if spotifyMajor >= 1 && spotifyMinor >= 2 && (spotifyPatch >= 28 && spotifyPatch <= 57) {
@@ -220,9 +224,8 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 							return fmt.Sprintf(`%s || []`, submatches[1])
 						})
 					}
-					content = additionalPatches(content, printPatch)
+					content = additionalPatches(content)
 				}
-				printPatch("CSS (JS): Patching our mappings into file")
 				for k, v := range cssTranslationMap {
 					utils.Replace(&content, k, func(submatches ...string) string {
 						return v
@@ -234,18 +237,15 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 			})
 		case ".css":
 			utils.ModifyFile(path, func(content string) string {
-				printPatch("CSS: Patching our mappings into file")
 				for k, v := range cssTranslationMap {
 					utils.Replace(&content, k, func(submatches ...string) string {
 						return v
 					})
 				}
 				if flags.RemoveRTL {
-					printPatch("Remove RTL")
 					content = removeRTL(content)
 				}
 				if fileName == "xpui.css" || fileName == "xpui-snapshot.css" {
-					printPatch("Extra CSS Patch")
 					content = content + `
 					.main-gridContainer-fixedWidth{grid-template-columns: repeat(auto-fill, var(--column-width));width: calc((var(--column-count) - 1) * var(--grid-gap)) + var(--column-count) * var(--column-width));}.main-cardImage-imageWrapper{background-color: var(--card-color, #333);border-radius: 6px;-webkit-box-shadow: 0 8px 24px rgba(0, 0, 0, .5);box-shadow: 0 8px 24px rgba(0, 0, 0, .5);padding-bottom: 100%;position: relative;width:100%;}.main-cardImage-image,.main-card-imagePlaceholder{height: 100%;left: 0;position: absolute;top: 0;width: 100%};.main-content-view{height:100%;}
 					`
@@ -255,7 +255,6 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 
 		case ".html":
 			utils.ModifyFile(path, func(content string) string {
-				printPatch("Inject wrapper/CSS")
 				var tags string
 				tags += "<link rel='stylesheet' class='userCSS' href='colors.css'>\n"
 				tags += "<link rel='stylesheet' class='userCSS' href='user.css'>\n"
@@ -803,7 +802,7 @@ func removeRTL(input string) string {
 	return applyPatches(input, rtlPatches)
 }
 
-func additionalPatches(input string, report logPatch) string {
+func additionalPatches(input string) string {
 	graphQLPatches := []Patch{
 		{
 			Name:  "GraphQL definitions (<=1.2.30)",
@@ -821,10 +820,10 @@ func additionalPatches(input string, report logPatch) string {
 		},
 	}
 
-	return applyPatches(input, graphQLPatches, report)
+	return applyPatches(input, graphQLPatches)
 }
 
-func exposeAPIs_main(input string, report logPatch) string {
+func exposeAPIs_main(input string) string {
 	inputContextMenu := utils.FindFirstMatch(input, `.*(?:value:"contextmenu"|"[^"]*":"context-menu")`)
 	if len(inputContextMenu) > 0 {
 		croppedInput := inputContextMenu[0]
@@ -853,7 +852,7 @@ func exposeAPIs_main(input string, report logPatch) string {
 
 	xpuiPatches := []Patch{
 		{
-			Name:  "showNotification patch",
+			Name:  "showNotification",
 			Regex: `(?:\w+ |,)([\w$]+)=(\([\w$]+=[\w$]+\.dispatch)`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf(`;globalThis.Spicetify.showNotification=(message,isError=false,msTimeout)=>%s({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const %s=%s`, submatches[1], submatches[1], submatches[2])
@@ -946,10 +945,10 @@ func exposeAPIs_main(input string, report logPatch) string {
 		},
 	}
 
-	return applyPatches(input, xpuiPatches, report)
+	return applyPatches(input, xpuiPatches)
 }
 
-func exposeAPIs_vendor(input string, report logPatch) string {
+func exposeAPIs_vendor(input string) string {
 	// URI
 	utils.Replace(
 		&input,
@@ -1021,7 +1020,7 @@ func exposeAPIs_vendor(input string, report logPatch) string {
 		}
 	}
 
-	return applyPatches(input, vendorPatches, report)
+	return applyPatches(input, vendorPatches)
 }
 
 type githubRelease = utils.GithubRelease

@@ -28,7 +28,6 @@ var (
 	backupSection           *ini.Section
 	preprocSection          *ini.Section
 	featureSection          *ini.Section
-	patchSection            *ini.Section
 	themeFolder             string
 	colorCfg                *ini.File
 	colorSection            *ini.Section
@@ -47,7 +46,6 @@ func InitConfig(isQuiet bool) {
 	backupSection = cfg.GetSection("Backup")
 	preprocSection = cfg.GetSection("Preprocesses")
 	featureSection = cfg.GetSection("AdditionalOptions")
-	patchSection = cfg.GetSection("Patch")
 }
 
 // InitPaths checks various essential paths' availabilities,
@@ -247,6 +245,12 @@ func ReadAnswer(info string, defaultAnswer bool, quietModeAnswer bool) bool {
 		return quietModeAnswer
 	}
 
+	if defaultAnswer {
+		info += " [Y/n]: "
+	} else {
+		info += " [y/N]: "
+	}
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print(info)
 	text, _ := reader.ReadString('\n')
@@ -276,10 +280,8 @@ func CheckUpdate(version string) {
 		return
 	}
 
-	if latestTag == version {
-		utils.PrintInfo("Spicetify up-to-date")
-	} else {
-		utils.PrintWarning("New version available: v" + latestTag + " (currently on: v" + version + ")")
-		utils.PrintWarning(`Run "spicetify update" or use a package manager to update spicetify`)
+	if latestTag != version {
+		utils.PrintInfo("New version available: v" + latestTag + " (currently on: v" + version + ")")
+		utils.PrintInfo(`Run "spicetify update" or use a package manager to update spicetify`)
 	}
 }
