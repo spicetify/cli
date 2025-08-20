@@ -942,6 +942,13 @@ func exposeAPIs_main(input string) string {
 }
 
 func exposeAPIs_vendor(input string) string {
+	// URI
+	utils.Replace(
+		&input,
+		`,(\w+)\.prototype\.toAppType`,
+		func(submatches ...string) string {
+			return fmt.Sprintf(`,(globalThis.Spicetify.URI=%s)%s`, submatches[1], submatches[0])
+		})
 	vendorPatches := []Patch{
 		{
 			Name:  "Spicetify.URI",
