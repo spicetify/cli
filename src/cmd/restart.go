@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 func SpotifyKill() {
@@ -42,8 +43,11 @@ func SpotifyStart(flags ...string) {
 		if isAppX {
 			ps, _ := exec.LookPath("powershell.exe")
 			exe := filepath.Join(os.Getenv("LOCALAPPDATA"), "Microsoft", "WindowsApps", "Spotify.exe")
-			flags = append([]string{"-NoProfile", "-NonInteractive", `& "` + exe + `" --app-directory="` + appDestPath + `"`}, flags...)
-			exec.Command(ps, flags...).Start()
+			cmd := `& "` + exe + `" --app-directory="` + appDestPath + `"`
+			if len(flags) > 0 {
+				cmd += " " + strings.Join(flags, " ")
+			}
+			exec.Command(ps, "-NoProfile", "-NonInteractive", "-Command", cmd).Start()
 		} else {
 			exec.Command(filepath.Join(spotifyPath, "spotify.exe"), flags...).Start()
 		}

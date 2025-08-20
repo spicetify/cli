@@ -48,7 +48,7 @@ type config struct {
 
 // Config .
 type Config interface {
-	Write()
+	Write() error
 	GetSection(string) *ini.Section
 	GetPath() string
 }
@@ -100,8 +100,8 @@ func ParseConfig(configPath string) Config {
 }
 
 // Write writes content to config file.
-func (c config) Write() {
-	c.content.SaveTo(c.path)
+func (c config) Write() error {
+	return c.content.SaveTo(c.path)
 }
 
 func (c config) GetSection(name string) *ini.Section {

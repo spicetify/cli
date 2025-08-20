@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	spotifystatus "github.com/spicetify/cli/src/status/spotify"
@@ -90,7 +91,9 @@ Modded Spotify cannot be launched using original Shortcut/Start menu tile. To co
 
 	backupSection.Key("version").SetValue(utils.GetSpotifyVersion(prefsPath))
 	backupSection.Key("with").SetValue(spicetifyVersion)
-	cfg.Write()
+	if err := cfg.Write(); err != nil {
+		utils.PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+	}
 	if !silent {
 		utils.PrintSuccess("Everything is ready, you can start applying!")
 	}
@@ -115,23 +118,37 @@ func clearBackup() {
 		spinner.Fail()
 		utils.Fatal(err)
 	}
-	os.Mkdir(backupFolder, 0700)
+
+	if err := os.Mkdir(backupFolder, 0700); err != nil {
+		spinner.Fail()
+		utils.Fatal(err)
+	}
 
 	if err := os.RemoveAll(rawFolder); err != nil {
 		spinner.Fail()
 		utils.Fatal(err)
 	}
-	os.Mkdir(rawFolder, 0700)
+
+	if err := os.Mkdir(rawFolder, 0700); err != nil {
+		spinner.Fail()
+		utils.Fatal(err)
+	}
 
 	if err := os.RemoveAll(themedFolder); err != nil {
 		spinner.Fail()
 		utils.Fatal(err)
 	}
-	os.Mkdir(themedFolder, 0700)
+
+	if err := os.Mkdir(themedFolder, 0700); err != nil {
+		spinner.Fail()
+		utils.Fatal(err)
+	}
 
 	backupSection.Key("version").SetValue("")
 	backupSection.Key("with").SetValue("")
-	cfg.Write()
+	if err := cfg.Write(); err != nil {
+		utils.PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+	}
 	spinner.Success()
 }
 

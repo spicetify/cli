@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -58,6 +59,12 @@ func Update(currentVersion string) bool {
 	if err != nil {
 		spinner.Fail()
 		utils.Fatal(err)
+	}
+	defer resp2.Body.Close()
+
+	if resp2.StatusCode != http.StatusOK {
+		spinner.Fail()
+		utils.Fatal(fmt.Errorf("unexpected HTTP status: %s for %s", resp2.Status, assetURL))
 	}
 
 	_, err = io.Copy(out, resp2.Body)

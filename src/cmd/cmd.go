@@ -76,7 +76,9 @@ func InitPaths() {
 
 		spotifyPath = actualSpotifyPath
 		settingSection.Key("spotify_path").SetValue(spotifyPath)
-		cfg.Write()
+		if err := cfg.Write(); err != nil {
+			utils.PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+		}
 	}
 
 	if _, err := os.Stat(prefsPath); err != nil {
@@ -93,7 +95,9 @@ func InitPaths() {
 
 		prefsPath = actualPrefsPath
 		settingSection.Key("prefs_path").SetValue(prefsPath)
-		cfg.Write()
+		if err := cfg.Write(); err != nil {
+			utils.PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+		}
 	}
 
 	if runtime.GOOS == "windows" {

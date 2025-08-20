@@ -149,11 +149,14 @@ func refreshThemeCSS() {
 		spinner.Warning()
 		utils.PrintWarning("Cannot convert colors.ini to JSON")
 	} else {
-		os.WriteFile(
+		if err := os.WriteFile(
 			filepath.Join(appDestPath, "xpui", "spicetify-config.json"),
-			configJsonBytes,
-			0700)
-		spinner.Success()
+			configJsonBytes, 0700); err != nil {
+			spinner.Warning()
+			utils.PrintWarning(err.Error())
+		} else {
+			spinner.Success()
+		}
 	}
 }
 
@@ -212,10 +215,14 @@ func CheckStates() {
 
 func refreshThemeJS() {
 	spinner, _ := utils.Spinner.Start("Update theme JS")
-	utils.CopyFile(
+	if err := utils.CopyFile(
 		filepath.Join(themeFolder, "theme.js"),
-		filepath.Join(appDestPath, "xpui", "extensions"))
-	spinner.Success()
+		filepath.Join(appDestPath, "xpui", "extensions")); err != nil {
+		spinner.Fail()
+		utils.PrintError(err.Error())
+	} else {
+		spinner.Success()
+	}
 }
 
 func pushExtensions(destExt string, list ...string) {
