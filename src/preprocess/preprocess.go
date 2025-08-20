@@ -300,119 +300,119 @@ func colorVariableReplace(content string) string {
 	colorPatches := []Patch{
 		{
 			Name:  "CSS: --spice-player",
-			Regex: "\b#(181818|212121)\b",
+			Regex: "#(181818|212121)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-player)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-card",
-			Regex: "\b#282828\b",
+			Regex: "#282828\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-card)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-main-elevated",
-			Regex: "\b#(242424|1f1f1f)\b",
+			Regex: "#(242424|1f1f1f)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-main-elevated)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-main",
-			Regex: "\b#121212\b",
+			Regex: "#121212\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-main)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-card-elevated",
-			Regex: "\b#(242424|1f1f1f)\b",
+			Regex: "#(242424|1f1f1f)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-card-elevated)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-highlight",
-			Regex: "\b#1a1a1a\b",
+			Regex: "#1a1a1a\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-highlight)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-highlight-elevated",
-			Regex: "\b#2a2a2a\b",
+			Regex: "#2a2a2a\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-highlight-elevated)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-sidebar",
-			Regex: "#\b(000|000000)\b",
+			Regex: "#(000|000000)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-sidebar)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-text",
-			Regex: "\b(white;|#fff|#ffffff|#f8f8f8)\b",
+			Regex: "(white;|#fff|#ffffff|#f8f8f8)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-text)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-subtext",
-			Regex: "\b#(b3b3b3|a7a7a7)\b",
+			Regex: "#(b3b3b3|a7a7a7)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-subtext)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-button",
-			Regex: "\b#(1db954|1877f2)\b",
+			Regex: "#(1db954|1877f2)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-button)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-button-active",
-			Regex: "\b#(1ed760|1fdf64|169c46)\b",
+			Regex: "#(1ed760|1fdf64|169c46)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-button-active)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-button-disabled",
-			Regex: "\b#535353\b",
+			Regex: "#535353\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-button-disabled)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-tab-active",
-			Regex: "\b#(333|333333)\b",
+			Regex: "#(333|333333)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-tab-active)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-misc",
-			Regex: "\b#7f7f7f\b",
+			Regex: "#7f7f7f\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-misc)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-notification",
-			Regex: "\b#(4687d6|2e77d0)\b",
+			Regex: "#(4687d6|2e77d0)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-notification)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-notification-error",
-			Regex: "\b#(e22134|cd1a2b)\b",
+			Regex: "#(e22134|cd1a2b)\b",
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-notification-error)"
 			},
