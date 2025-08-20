@@ -133,7 +133,17 @@
 		const app = focusOnApp();
 		app.scroll(0, position === 0 ? 0 : app.scrollHeight);
 	}
-
+	
+	function scrollHalfPage(direction /* 1 | -1 */) {
+  		const app = focusOnApp();
+  		if (!app) return;
+  		const delta     = Math.floor(app.clientHeight / 2) * direction;
+  		const targetTop = Math.max(0,
+    		Math.min(app.scrollTop + delta, app.scrollHeight)
+  		);
+  		app.scroll(0, targetTop);
+	}
+	
 	/**
 	 * @returns {number | undefined}
 	 * @param {NodeListOf<Element>} allItems
