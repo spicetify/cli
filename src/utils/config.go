@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,7 +69,9 @@ func ParseConfig(configPath string) Config {
 			path:    configPath,
 			content: getDefaultConfig(),
 		}
-		defaultConfig.Write()
+		if err := defaultConfig.Write(); err != nil {
+			PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+		}
 		PrintSuccess("Default config-xpui.ini generated")
 		return defaultConfig
 	}

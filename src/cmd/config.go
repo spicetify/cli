@@ -31,7 +31,9 @@ func EditConfig(args []string) {
 		args = args[2:]
 	}
 
-	cfg.Write()
+	if err := cfg.Write(); err != nil {
+		utils.PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+	}
 }
 
 // DisplayAllConfig displays all configs in all sections
