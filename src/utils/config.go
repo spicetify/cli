@@ -71,8 +71,9 @@ func ParseConfig(configPath string) Config {
 		}
 		if err := defaultConfig.Write(); err != nil {
 			PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+		} else {
+			PrintSuccess("Default config-xpui.ini generated")
 		}
-		PrintSuccess("Default config-xpui.ini generated")
 		return defaultConfig
 	}
 
