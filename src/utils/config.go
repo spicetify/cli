@@ -39,6 +39,7 @@ var (
 			"home_config":           "1",
 			"experimental_features": "1",
 		},
+		"Patch": {},
 	}
 )
 

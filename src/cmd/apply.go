@@ -92,6 +92,10 @@ func Apply(spicetifyVersion string) {
 	if len(customAppsList) > 0 {
 		RefreshApps(customAppsList...)
 	}
+
+	if len(patchSection.Keys()) > 0 {
+		Patch()
+	}
 }
 
 // RefreshTheme updates user.css + theme.js and overwrites custom assets

@@ -565,5 +565,8 @@ home_config <0 | 1>
 
 sidebar_config <0 | 1>
     Enable ability to stick, hide, re-arrange sidebar items.
-    Turn "Sidebar config" mode on in Profile menu and hover on sidebar items to show customization buttons.`)
+    Turn "Sidebar config" mode on in Profile menu and hover on sidebar items to show customization buttons.
+
+` + utils.Bold("[Patch]") + `
+Allows you to apply custom patches to Spotify.`)
 }
