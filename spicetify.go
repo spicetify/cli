@@ -335,7 +335,7 @@ func main() {
 			cmd.Restore()
 
 		case "enable-devtools":
-			cmd.SpotifyStart()
+			cmd.EnableDevTools()
 
 		case "restart":
 			cmd.SpotifyRestart()
@@ -349,7 +349,7 @@ Run "spicetify -h" for list of valid commands.`))
 		}
 	}
 
-	if !noRestart && !slices.Contains(commands, "restart") && !slices.Contains(commands, "enable-devtools") {
+	if !noRestart && !slices.Contains(commands, "restart") {
 		cmd.SpotifyStart()
 	}
 }
