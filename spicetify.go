@@ -54,7 +54,7 @@ func init() {
 	// Separates flags and commands
 	for _, v := range os.Args[1:] {
 		if len(v) > 0 && v[0] == '-' {
-			if v[1] != '-' && len(v) > 2 {
+			if len(v) > 2 && v[1] != '-' {
 				for _, char := range v[1:] {
 					flags = append(flags, "-"+string(char))
 				}
@@ -345,7 +345,7 @@ func main() {
 
 		default:
 			utils.Fatal(errors.New(`Command "` + v + `" not found.
-Run "spicetify -h" for list of valid commands.`))
+Run "spicetify -h" for a list of valid commands.`))
 		}
 	}
 
@@ -388,7 +388,7 @@ restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
 spotify-updates     Blocks Spotify updates by patching spotify executable.
-                    Accepts "block" or "unblock" as parameter.
+                    Accepts "block" or "unblock" as the parameter.
 
 path                Prints path of Spotify's executable, userdata, and more.
                     1. Print executable path:
