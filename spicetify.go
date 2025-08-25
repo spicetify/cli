@@ -349,7 +349,7 @@ Run "spicetify -h" for list of valid commands.`))
 		}
 	}
 	if !noRestart && !slices.Contains(commands, "restart") {
-		cmd.SpotifyRestart()
+		cmd.SpotifyStart()
 	}
 }
 

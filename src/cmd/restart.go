@@ -33,6 +33,11 @@ func SpotifyKill() {
 }
 
 func SpotifyStart(flags ...string) {
+	enableDevtools := settingSection.Key("always_enable_devtools").MustBool(false)
+	if enableDevtools {
+		EnableDevTools()
+	}
+
 	launchFlag := settingSection.Key("spotify_launch_flags").Strings("|")
 	if len(launchFlag) > 0 {
 		flags = append(flags, launchFlag...)
@@ -60,11 +65,6 @@ func SpotifyStart(flags ...string) {
 }
 
 func SpotifyRestart(flags ...string) {
-	enableDevtools := settingSection.Key("always_enable_devtools").MustBool(false)
-	if enableDevtools {
-		EnableDevTools()
-	}
-
 	SpotifyKill()
 	SpotifyStart(flags...)
 }
