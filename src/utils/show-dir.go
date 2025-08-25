@@ -7,7 +7,6 @@ import (
 
 // ShowDirectory shows directory in user's default file manager application
 func ShowDirectory(dir string) error {
-
 	var err error
 	err = nil
 
