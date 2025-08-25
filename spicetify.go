@@ -348,6 +348,7 @@ func main() {
 Run "spicetify -h" for list of valid commands.`))
 		}
 	}
+
 	if !noRestart && !slices.Contains(commands, "restart") && !slices.Contains(commands, "enable-devtools") {
 		cmd.SpotifyStart()
 	}
