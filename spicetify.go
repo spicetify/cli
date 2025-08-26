@@ -387,10 +387,10 @@ watch               Enter watch mode.
 restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
-spotify-updates     Blocks Spotify updates by patching spotify executable.
-                    Accepts "block" or "unblock" as the parameter.
+spotify-updates     Block Spotify updates by patching spotify executable.
+                    Accept "block" or "unblock" as the parameter.
 
-path                Prints path of Spotify's executable, userdata, and more.
+path                Print path of Spotify's executable, userdata, and more.
                     1. Print executable path:
                     spicetify path
 
@@ -403,7 +403,7 @@ path                Prints path of Spotify's executable, userdata, and more.
                     4. Toggle focus with flags:
                     spicetify path <flag> <option>
 
-                    Available Flags and Options:
+                    Available flags and options:
                     "-e" (for extensions),
                     options: root, extension name, blank for all.
 
@@ -460,7 +460,7 @@ color               1. Print all color fields and values.
                     - Change sidebar to 00ff00 and button to 0000ff
                     spicetify color sidebar 00ff00 button 0000ff
 
-config-dir          Shows config directory in file viewer
+config-dir          Show config directory in file viewer
 
 upgrade|update      Update spicetify to the latest version if an update is available
 
