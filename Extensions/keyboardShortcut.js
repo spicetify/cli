@@ -125,8 +125,8 @@
 			const scrollInterval = setInterval(() => {
 				app.scrollTop += step;
 			}, 10);
-      const clear = () => clearInterval(scrollInterval);
-      document.addEventListener("keyup", clear, { once: true });
+      	const clear = () => clearInterval(scrollInterval);
+      	document.addEventListener("keyup", clear, { once: true });
 		}
 	}
 
@@ -135,14 +135,14 @@
 		app.scroll(0, position === 0 ? 0 : app.scrollHeight);
 	}
 
-  function scrollHalfPage(direction /* 1 | -1 */) {
-    const app = focusOnApp();
-    if (!app) return;
-    const delta = Math.floor(app.clientHeight / 2) * direction;
-    const maxTop = Math.max(0, app.scrollHeight - app.clientHeight);
-    const nextTop = Math.max(0, Math.min(app.scrollTop + delta, maxTop));
-    app.scroll(0, nextTop);
-  }
+  	function scrollHalfPage(direction /* 1 | -1 */) {
+    	const app = focusOnApp();
+    	if (!app) return;
+    	const delta = Math.floor(app.clientHeight / 2) * direction;
+    	const maxTop = Math.max(0, app.scrollHeight - app.clientHeight);
+    	const nextTop = Math.max(0, Math.min(app.scrollTop + delta, maxTop));
+    	app.scroll(0, nextTop);
+  	}
 
 	/**
 	 * @returns {number | undefined}
