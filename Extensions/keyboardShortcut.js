@@ -125,8 +125,8 @@
 			const scrollInterval = setInterval(() => {
 				app.scrollTop += step;
 			}, 10);
-      	const clear = () => clearInterval(scrollInterval);
-      	document.addEventListener("keyup", clear, { once: true });
+      		const clear = () => clearInterval(scrollInterval);
+      		document.addEventListener("keyup", clear, { once: true });
 		}
 	}
 
