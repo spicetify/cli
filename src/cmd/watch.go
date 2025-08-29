@@ -55,7 +55,6 @@ func Watch(liveUpdate bool) {
 				}
 
 				refreshThemeJS()
-				utils.PrintSuccess(utils.PrependTime("Theme's JS was reloaded"))
 			}, autoReloadFunc)
 		}
 	}
@@ -70,7 +69,6 @@ func Watch(liveUpdate bool) {
 				}
 
 				refreshThemeAssets()
-				utils.PrintSuccess(utils.PrependTime("Custom assets were reloaded"))
 			}, autoReloadFunc)
 		}
 	}
@@ -82,7 +80,6 @@ func Watch(liveUpdate bool) {
 
 		InitSetting()
 		refreshThemeCSS()
-		utils.PrintSuccess(utils.PrependTime("Custom CSS is updated"))
 	}, autoReloadFunc)
 }
 
@@ -219,19 +216,19 @@ func isValidForWatching() bool {
 
 func startDebugger() {
 	if len(utils.GetDebuggerPath()) == 0 {
-		SetDevTools()
-		EvalSpotifyRestart(true, "--remote-debugging-port=9222", "--remote-allow-origins=*")
-		utils.PrintInfo("Spotify is restarted with debugger on. Waiting...")
+		EnableDevTools()
+		SpotifyRestart("--remote-debugging-port=9222", "--remote-allow-origins=*")
+		utils.PrintInfo("Restarted Spotify with debugger on. Waiting...")
 		for len(utils.GetDebuggerPath()) == 0 {
 			// Wait until debugger is up
 		}
 	}
 	autoReloadFunc = func() {
 		if utils.SendReload(&debuggerURL) != nil {
-			utils.PrintError("Could not Reload Spotify")
+			utils.PrintError("Could not reload Spotify")
 			utils.PrintInfo(`Close Spotify and run watch command again`)
 		} else {
-			utils.PrintSuccess("Spotify reloaded")
+			utils.PrintSuccess("Reloaded Spotify")
 		}
 	}
 }

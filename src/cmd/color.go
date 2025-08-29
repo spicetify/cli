@@ -1,16 +1,11 @@
 package cmd
 
 import (
-	"log"
 	"path/filepath"
-	"strings"
 
 	"github.com/go-ini/ini"
+	"github.com/pterm/pterm"
 	"github.com/spicetify/cli/src/utils"
-)
-
-const (
-	nameMaxLen = 42
 )
 
 // EditColor changes one or multiple colors' values
@@ -42,43 +37,6 @@ func EditColor(args []string) {
 	}
 
 	colorCfg.SaveTo(filepath.Join(themeFolder, "color.ini"))
-}
-
-// DisplayColors prints out every color name, hex and rgb value.
-func DisplayColors() {
-	colorFileOk := initCmdColor()
-
-	if !colorFileOk {
-		return
-	}
-
-	for _, k := range utils.BaseColorOrder {
-		colorString := ""
-		if colorFileOk {
-			colorString = colorSection.Key(k).String()
-		}
-
-		if len(colorString) == 0 {
-			colorString = utils.BaseColorList[k]
-			k += " (*)"
-		}
-
-		out := formatName(k) + formatColor(colorString)
-		log.Println(out)
-	}
-
-	for _, v := range colorSection.Keys() {
-		key := v.Name()
-
-		if len(utils.BaseColorList[key]) != 0 {
-			continue
-		}
-
-		out := formatName(key) + formatColor(v.String())
-		log.Println(out)
-	}
-
-	log.Println("\n(*): Default color is used")
 }
 
 func initCmdColor() bool {
@@ -123,22 +81,47 @@ func initCmdColor() bool {
 	return true
 }
 
+// DisplayColors prints out every color name, hex and rgb value.
+func DisplayColors() {
+	if !initCmdColor() {
+		return
+	}
+	data := pterm.TableData{
+		{"Name", "Preview", "Hex", "RGB"},
+	}
+	for _, k := range utils.BaseColorOrder {
+		colorString := colorSection.Key(k).String()
+
+		if len(colorString) == 0 {
+			colorString = utils.BaseColorList[k]
+			k += " (*)"
+		}
+
+		color := utils.ParseColor(colorString)
+		data = append(data, []string{utils.Bold(k), colorPreview(color), color.Hex(), color.RGB()})
+	}
+
+	for _, v := range colorSection.Keys() {
+		k := v.Name()
+
+		if len(utils.BaseColorList[k]) != 0 {
+			continue
+		}
+
+		color := utils.ParseColor(v.String())
+		data = append(data, []string{utils.Bold(k), colorPreview(color), color.Hex(), color.RGB()})
+	}
+
+	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+
+	utils.PrintNote("(*): Default color is used")
+}
+
 func colorChangeSuccess(field, value string) {
 	utils.PrintSuccess(`Color changed: ` + field + ` = ` + value)
-	utils.PrintInfo(`Run "spicetify update" to apply new color`)
+	utils.PrintInfo(`Run "spicetify refresh" to apply new color(s)`)
 }
 
-func formatColor(value string) string {
-	color := utils.ParseColor(value)
-	return "\x1B[48;2;" + color.TerminalRGB() + "m     \033[0m | " + color.Hex() + " | " + color.RGB()
-}
-
-func formatName(name string) string {
-	nameLen := len(name)
-	if nameLen > nameMaxLen {
-		name = name[:(nameMaxLen - 3)]
-		name += "..."
-		nameLen = nameMaxLen
-	}
-	return utils.Bold(name) + strings.Repeat(" ", nameMaxLen-nameLen)
+func colorPreview(color utils.Color) string {
+	return "\x1B[48;2;" + color.TerminalRGB() + "m       \033[0m"
 }
