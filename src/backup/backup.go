@@ -14,7 +14,7 @@ func Start(appPath, backupPath string) error {
 
 // Extract all SPA files from backupPath to extractPath
 func Extract(backupPath, extractPath string) {
-	spinner, _ := utils.Spinner.Start("Extract backup")
+	spinner, _ := utils.Spinner.Start("Extracting backup")
 	for _, app := range []string{"xpui", "login"} {
 		appPath := filepath.Join(backupPath, app+".spa")
 		appExtractToFolder := filepath.Join(extractPath, app)
@@ -26,9 +26,9 @@ func Extract(backupPath, extractPath string) {
 
 		err = utils.Unzip(appPath, appExtractToFolder)
 		if err != nil {
-			spinner.Fail()
+			spinner.Fail("Failed to extract backup")
 			utils.Fatal(err)
 		}
 	}
-	spinner.Success()
+	spinner.Success("Extracted backup")
 }

@@ -46,33 +46,33 @@ func Update(currentVersion string) bool {
 		location += ".tar.gz"
 	}
 
-	spinner, _ := utils.Spinner.Start("Download Spicetify")
+	spinner, _ := utils.Spinner.Start("Downloading Spicetify")
 
 	out, err := os.Create(location)
 	if err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to download Spicetify")
 		utils.Fatal(err)
 	}
 	defer out.Close()
 
 	resp2, err := http.Get(assetURL)
 	if err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to download Spicetify")
 		utils.Fatal(err)
 	}
 	defer resp2.Body.Close()
 
 	if resp2.StatusCode != http.StatusOK {
-		spinner.Fail()
+		spinner.Fail("Failed to download Spicetify")
 		utils.Fatal(fmt.Errorf("unexpected HTTP status: %s for %s", resp2.Status, assetURL))
 	}
 
 	_, err = io.Copy(out, resp2.Body)
 	if err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to download Spicetify")
 		utils.Fatal(err)
 	}
-	spinner.Success()
+	spinner.Success("Downloaded Spicetify")
 
 	exe, err := os.Executable()
 	if err != nil {

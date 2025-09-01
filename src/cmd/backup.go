@@ -38,24 +38,24 @@ Modded Spotify cannot be launched using original Shortcut/Start menu tile. To co
 		}
 	}
 
-	spinner, _ := utils.Spinner.Start("Backup app files")
+	spinner, _ := utils.Spinner.Start("Backing up app files")
 
 	if err := backup.Start(appPath, backupFolder); err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to backup app files")
 		utils.Fatal(err)
 	}
 
 	appList, err := os.ReadDir(backupFolder)
 	if err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to backup app files")
 		utils.Fatal(err)
 	}
 
 	totalApp := len(appList)
 	if totalApp > 0 {
-		spinner.Success()
+		spinner.Success("Backed up app files")
 	} else {
-		spinner.Fail()
+		spinner.Fail("Failed to backup app files")
 		utils.PrintInfo("Reinstall Spotify and try again")
 		os.Exit(1)
 	}
@@ -113,34 +113,34 @@ func Clear() {
 }
 
 func clearBackup() {
-	spinner, _ := utils.Spinner.Start("Clear current backup")
+	spinner, _ := utils.Spinner.Start("Clearing current backup")
 	if err := os.RemoveAll(backupFolder); err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to clear current backup")
 		utils.Fatal(err)
 	}
 
 	if err := os.Mkdir(backupFolder, 0700); err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to clear current backup")
 		utils.Fatal(err)
 	}
 
 	if err := os.RemoveAll(rawFolder); err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to clear current backup")
 		utils.Fatal(err)
 	}
 
 	if err := os.Mkdir(rawFolder, 0700); err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to clear current backup")
 		utils.Fatal(err)
 	}
 
 	if err := os.RemoveAll(themedFolder); err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to clear current backup")
 		utils.Fatal(err)
 	}
 
 	if err := os.Mkdir(themedFolder, 0700); err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to clear current backup")
 		utils.Fatal(err)
 	}
 
@@ -149,22 +149,22 @@ func clearBackup() {
 	if err := cfg.Write(); err != nil {
 		utils.PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
 	}
-	spinner.Success()
+	spinner.Success("Cleared current backup")
 }
 
 // Restore uses backup to revert every changes made by Spicetify.
 func Restore() {
 	CheckStates()
-	spinner, _ := utils.Spinner.Start("Restore Spotify")
+	spinner, _ := utils.Spinner.Start("Restoring Spotify")
 	if err := os.RemoveAll(appDestPath); err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to restore Spotify")
 		utils.Fatal(err)
 	}
 
 	if err := utils.Copy(backupFolder, appDestPath, false, []string{".spa"}); err != nil {
-		spinner.Fail()
+		spinner.Fail("Failed to restore Spotify")
 		utils.Fatal(err)
 	}
 
-	spinner.Success()
+	spinner.Success("Restored Spotify")
 }

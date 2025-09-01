@@ -388,7 +388,7 @@ restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
 spotify-updates     Block Spotify updates by patching spotify executable.
-                    Accept "block" or "unblock" as the parameter.
+                    Accepts "block" or "unblock" as the parameter.
 
 path                Print path of Spotify's executable, userdata, and more.
                     1. Print executable path:
@@ -482,7 +482,7 @@ upgrade|update      Update spicetify to the latest version if an update is avail
 -n, --no-restart    Do not restart Spotify after running command(s),
                     except for the "restart" command.
 
---bypass-admin      Bypass admin check. NOT RECOMMENDED
+--bypass-admin      Bypass admin or root (sudo) check. NOT RECOMMENDED
 
 -c, --config        Print config file path and quit
 
