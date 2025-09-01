@@ -893,7 +893,7 @@ applyScrollingFix();
 		Spicetify.ReactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find((m) => typeof m === "object");
 	}
 
-	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
+	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("handleContextMenu"));
 	if (contextMenuChunk) {
 		Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find((m) => typeof m === "function");
 	}
