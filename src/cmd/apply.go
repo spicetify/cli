@@ -161,7 +161,7 @@ func refreshThemeCSS() {
 		os.WriteFile(
 			filepath.Join(appDestPath, "xpui", "spicetify-config.json"),
 			configJsonBytes,
-			0700)
+			0770)
 	}
 }
 
@@ -300,7 +300,7 @@ func RefreshApps(list ...string) {
 		os.WriteFile(
 			filepath.Join(appDestPath, "xpui", appName+".json"),
 			manifestFileContent,
-			0700)
+			0770)
 
 		var manifestJson utils.AppManifest
 		if err = json.Unmarshal(manifestFileContent, &manifestJson); err == nil {
@@ -368,7 +368,7 @@ func RefreshApps(list ...string) {
 		os.WriteFile(
 			filepath.Join(appDestPath, "xpui", appName+".js"),
 			[]byte(jsTemplate),
-			0700)
+			0770)
 
 		cssFile := filepath.Join(customAppPath, "style.css")
 		cssFileContent, err := os.ReadFile(cssFile)
@@ -378,7 +378,7 @@ func RefreshApps(list ...string) {
 		os.WriteFile(
 			filepath.Join(appDestPath, "xpui", appName+".css"),
 			[]byte(cssFileContent),
-			0700)
+			0770)
 	}
 }
 
