@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -12,68 +13,66 @@ import (
 )
 
 func Update(currentVersion string) bool {
-	utils.PrintBold("Fetch latest release info:")
 	tagName, err := utils.FetchLatestTag()
 	if err != nil {
 		utils.PrintError("Cannot fetch latest release info")
 		utils.PrintError(err.Error())
 		return false
 	}
-	utils.PrintGreen("OK")
-
-	utils.PrintInfo("Current version: " + currentVersion)
-	utils.PrintInfo("Latest release: " + tagName)
 	if currentVersion == tagName {
-		utils.PrintSuccess("Already up-to-date.")
+		utils.PrintSuccess("Spicetify is up-to-date.")
 		return false
 	}
 
-	var assetURL string = "https://github.com/spicetify/cli/releases/download/v" + tagName + "/spicetify-" + tagName
-	var location string
-	switch runtime.GOOS {
-	case "windows":
-		if runtime.GOARCH == "386" {
-			assetURL += "-windows-x32.zip"
-		} else if runtime.GOARCH == "arm64" {
-			assetURL += "-windows-arm64.zip"
-		} else {
-			assetURL += "-windows-x64.zip"
-		}
-		location = os.TempDir() + "/spicetify-" + tagName + ".zip"
-	case "linux":
-		if runtime.GOARCH == "arm64" {
-			assetURL += "-linux-arm64.tar.gz"
-		} else {
-			assetURL += "-linux-amd64.tar.gz"
-		}
-		location = os.TempDir() + "/spicetify-" + tagName + ".tar.gz"
-	case "darwin":
-		if runtime.GOARCH == "arm64" {
-			assetURL += "-darwin-arm64.tar.gz"
-		} else {
-			assetURL += "-darwin-amd64.tar.gz"
-		}
-		location = os.TempDir() + "/spicetify-" + tagName + ".tar.gz"
+	utils.PrintInfo("Latest release: " + tagName)
+	var assetURL string = "https://github.com/spicetify/cli/releases/download/v" + tagName + "/spicetify-" + tagName + "-" + runtime.GOOS + "-"
+	var location string = os.TempDir() + "/spicetify-" + tagName
+
+	if runtime.GOARCH == "386" && runtime.GOOS == "windows" {
+		assetURL += "x32"
+	} else if runtime.GOARCH == "arm64" {
+		assetURL += "arm64"
+	} else if runtime.GOOS == "windows" {
+		assetURL += "x64"
+	} else {
+		assetURL += "amd64"
 	}
 
-	utils.PrintBold("Downloading:")
+	if runtime.GOOS == "windows" {
+		assetURL += ".zip"
+		location += ".zip"
+	} else {
+		assetURL += ".tar.gz"
+		location += ".tar.gz"
+	}
+
+	spinner, _ := utils.Spinner.Start("Downloading Spicetify")
 
 	out, err := os.Create(location)
 	if err != nil {
+		spinner.Fail("Failed to download Spicetify")
 		utils.Fatal(err)
 	}
 	defer out.Close()
 
 	resp2, err := http.Get(assetURL)
 	if err != nil {
+		spinner.Fail("Failed to download Spicetify")
 		utils.Fatal(err)
+	}
+	defer resp2.Body.Close()
+
+	if resp2.StatusCode != http.StatusOK {
+		spinner.Fail("Failed to download Spicetify")
+		utils.Fatal(fmt.Errorf("unexpected HTTP status: %s for %s", resp2.Status, assetURL))
 	}
 
 	_, err = io.Copy(out, resp2.Body)
 	if err != nil {
+		spinner.Fail("Failed to download Spicetify")
 		utils.Fatal(err)
 	}
-	utils.PrintGreen("OK")
+	spinner.Success("Downloaded Spicetify")
 
 	exe, err := os.Executable()
 	if err != nil {
@@ -90,7 +89,6 @@ func Update(currentVersion string) bool {
 		permissionError(err)
 	}
 
-	utils.PrintBold("Extracting:")
 	switch runtime.GOOS {
 	case "windows":
 		err = utils.Unzip(location, utils.GetExecutableDir())
@@ -104,8 +102,7 @@ func Update(currentVersion string) bool {
 	}
 
 	utils.CheckExistAndDelete(exeOld)
-	utils.PrintGreen("OK")
-	utils.PrintSuccess("spicetify is up-to-date.")
+	utils.PrintSuccess("Successfully updated Spicetify to v" + tagName)
 	return true
 }
 

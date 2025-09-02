@@ -10,6 +10,7 @@ import (
 )
 
 func Patch() {
+	utils.PrintBold("Applying custom patches:")
 	keys := patchSection.Keys()
 
 	re := regexp.MustCompile(`^([\w\d\-~\.]+)_find_(\d+)$`)
@@ -36,7 +37,7 @@ func Patch() {
 
 		if errAll != nil && errOnce != nil {
 			utils.PrintError("Cannot find replace string for patch \"" + keyName + "\"")
-			utils.PrintInfo("Correct key name for replace string are")
+			utils.PrintInfo("Correct key name for replace string are:")
 			utils.PrintInfo("    \"" + replOnceName + "\"")
 			utils.PrintInfo("    \"" + replName + "\"")
 			continue
@@ -49,7 +50,8 @@ func Patch() {
 		}
 
 		utils.ModifyFile(assetPath, func(content string) string {
-			if errAll == nil { // Prioritize replace all
+			// Prioritize replace all
+			if errAll == nil {
 				return patchRegexp.ReplaceAllString(content, replKey.MustString(""))
 			} else {
 				match := patchRegexp.FindString(content)
@@ -63,4 +65,6 @@ func Patch() {
 
 		utils.PrintSuccess("\"" + keyName + "\" is patched")
 	}
+
+	utils.PrintSuccess("Applied custom patches")
 }
