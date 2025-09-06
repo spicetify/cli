@@ -997,7 +997,7 @@ applyScrollingFix();
 				// Avoid creating 2 arrays of the same values
 				try {
 					const values = Object.values(m);
-					return values.some((m) => typeof m === "function") && values.some((m) => m?.AD);
+					return values.some((m) => typeof m === "function") && values.some((m) => m?.PLAYLIST_V2);
 				} catch {
 					return false;
 				}
@@ -1005,7 +1005,7 @@ applyScrollingFix();
 		const URIModules = Object.values(URIChunk);
 
 		// URI.Type
-		Spicetify.URI.Type = URIModules.find((m) => m?.AD);
+		Spicetify.URI.Type = URIModules.find((m) => m?.PLAYLIST_V2);
 
 		// Parse functions
 		Spicetify.URI.from = URIModules.find((m) => typeof m === "function" && m.toString().includes("allowedTypes"));
