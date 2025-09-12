@@ -78,7 +78,9 @@ func InitPaths() {
 
 		spotifyPath = actualSpotifyPath
 		settingSection.Key("spotify_path").SetValue(spotifyPath)
-		cfg.Write()
+		if err := cfg.Write(); err != nil {
+			utils.PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+		}
 	}
 
 	if _, err := os.Stat(prefsPath); err != nil {
@@ -95,7 +97,9 @@ func InitPaths() {
 
 		prefsPath = actualPrefsPath
 		settingSection.Key("prefs_path").SetValue(prefsPath)
-		cfg.Write()
+		if err := cfg.Write(); err != nil {
+			utils.PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+		}
 	}
 
 	if runtime.GOOS == "windows" {
@@ -247,8 +251,15 @@ func ReadAnswer(info string, defaultAnswer bool, quietModeAnswer bool) bool {
 		return quietModeAnswer
 	}
 
+	prompt := info
+	if defaultAnswer {
+		prompt += " [Y/n]: "
+	} else {
+		prompt += " [y/N]: "
+	}
+
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print(info)
+	fmt.Print(prompt)
 	text, _ := reader.ReadString('\n')
 	text = strings.Replace(text, "\r", "", 1)
 	text = strings.Replace(text, "\n", "", 1)
@@ -276,10 +287,8 @@ func CheckUpdate(version string) {
 		return
 	}
 
-	if latestTag == version {
-		utils.PrintInfo("Spicetify up-to-date")
-	} else {
-		utils.PrintWarning("New version available: v" + latestTag + " (currently on: v" + version + ")")
-		utils.PrintWarning(`Run "spicetify update" or use a package manager to update spicetify`)
+	if latestTag != version {
+		utils.PrintInfo("New version available: v" + latestTag + " (currently on: v" + version + ")")
+		utils.PrintInfo(`Run "spicetify update" or use a package manager to update spicetify`)
 	}
 }

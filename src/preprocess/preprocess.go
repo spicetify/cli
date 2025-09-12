@@ -38,13 +38,8 @@ type Patch struct {
 	Once        bool
 }
 
-type logPatch func(string)
-
-func applyPatches(input string, patches []Patch, report ...logPatch) string {
+func applyPatches(input string, patches []Patch) string {
 	for _, patch := range patches {
-		if len(report) > 0 && report[0] != nil {
-			report[0](fmt.Sprintf("%s patch", patch.Name))
-		}
 		if patch.Once {
 			utils.ReplaceOnce(&input, patch.Regex, patch.Replacement)
 		} else {
@@ -88,19 +83,21 @@ func readLocalCssMap(cssTranslationMap *map[string]string) error {
 func Start(version string, spotifyBasePath string, extractedAppsPath string, flags Flag) {
 	appPath := filepath.Join(extractedAppsPath, "xpui")
 	var cssTranslationMap = make(map[string]string)
-	// readSourceMapAndGenerateCSSMap(appPath)
 
 	if version != "Dev" {
+		fetchSpinner, _ := utils.Spinner.Start("Fetch remote CSS map")
 		tag, err := FetchLatestTagMatchingOrMain(version)
 		if err != nil {
-			utils.PrintWarning("Cannot fetch version tag for CSS mappings")
-			fmt.Printf("err: %v\n", err)
+			fetchSpinner.Warning()
+			utils.PrintWarning(err.Error())
 			tag = version
 		}
-		utils.PrintInfo("Fetching remote CSS map for newer compatible tag version: " + tag)
 		if readRemoteCssMap(tag, &cssTranslationMap) != nil {
-			utils.PrintInfo("Cannot fetch remote CSS map. Using local CSS map instead...")
+			fetchSpinner.Warning()
+			utils.PrintInfo("Using local CSS map instead")
 			readLocalCssMap(&cssTranslationMap)
+		} else {
+			fetchSpinner.Success()
 		}
 	} else {
 		utils.PrintInfo("In development environment, using local CSS map")
@@ -137,7 +134,6 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 			for _, file := range files {
 				if !file.IsDir() && strings.HasPrefix(file.Name(), "v8_context_snapshot") && strings.HasSuffix(file.Name(), ".bin") {
 					binFilePath := filepath.Join(frameworkResourcesPath, file.Name())
-					utils.PrintInfo("Processing V8 snapshot file: " + binFilePath)
 
 					startMarker := []byte("var __webpack_modules__={")
 					endMarker := []byte("xpui-modules.js.map")
@@ -145,7 +141,8 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					embeddedString, _, _, err := utils.ReadStringFromUTF16Binary(binFilePath, startMarker, endMarker)
 					if err != nil {
 						utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
-						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error if you're on Spotify 1.2.63 or lower. However, if you're on 1.2.64 or higher, please report this issue")
+						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error if you're on Spotify 1.2.63 or lower.")
+						utils.PrintInfo("However, if you're on 1.2.64 or higher, please report this issue")
 						continue
 					}
 
@@ -176,11 +173,12 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 
 	totalFiles := len(filesToPatch)
 
-	style := pterm.NewStyle(pterm.FgWhite, pterm.BgBlack)
-	bar, _ := pterm.DefaultProgressbar.WithTotal(totalFiles).WithTitle("Patching files...").WithTitleStyle(style).WithShowCount(true).Start()
-	printPatch := func(msg string) {
-		bar.UpdateTitle(msg)
-	}
+	bar, _ := pterm.DefaultProgressbar.
+		WithTotal(totalFiles).
+		WithTitle("Patching files").
+		WithTitleStyle(pterm.NewStyle(pterm.Bold)).
+		WithShowCount(true).
+		Start()
 	for _, path := range filesToPatch {
 		info, err := os.Stat(path)
 		if err != nil {
@@ -193,7 +191,6 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		case ".js":
 			utils.ModifyFile(path, func(content string) string {
 				if flags.DisableSentry && (fileName == "xpui.js" || fileName == "xpui-snapshot.js") {
-					printPatch("Disable Sentry")
 					content = disableSentry(content)
 				}
 
@@ -204,15 +201,15 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 				if flags.ExposeAPIs {
 					switch fileName {
 					case "xpui-modules.js", "xpui-snapshot.js":
-						content = exposeAPIs_main(content, printPatch)
-						content = exposeAPIs_vendor(content, printPatch)
+						content = exposeAPIs_main(content)
+						content = exposeAPIs_vendor(content)
 					case "xpui.js":
-						content = exposeAPIs_main(content, printPatch)
+						content = exposeAPIs_main(content)
 						if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
-							content = exposeAPIs_vendor(content, printPatch)
+							content = exposeAPIs_vendor(content)
 						}
 					case "vendor~xpui.js":
-						content = exposeAPIs_vendor(content, printPatch)
+						content = exposeAPIs_vendor(content)
 					}
 
 					if spotifyMajor >= 1 && spotifyMinor >= 2 && (spotifyPatch >= 28 && spotifyPatch <= 57) {
@@ -220,9 +217,8 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 							return fmt.Sprintf(`%s || []`, submatches[1])
 						})
 					}
-					content = additionalPatches(content, printPatch)
+					content = additionalPatches(content)
 				}
-				printPatch("CSS (JS): Patching our mappings into file")
 				for k, v := range cssTranslationMap {
 					utils.Replace(&content, k, func(submatches ...string) string {
 						return v
@@ -234,18 +230,15 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 			})
 		case ".css":
 			utils.ModifyFile(path, func(content string) string {
-				printPatch("CSS: Patching our mappings into file")
 				for k, v := range cssTranslationMap {
 					utils.Replace(&content, k, func(submatches ...string) string {
 						return v
 					})
 				}
 				if flags.RemoveRTL {
-					printPatch("Remove RTL")
 					content = removeRTL(content)
 				}
 				if fileName == "xpui.css" || fileName == "xpui-snapshot.css" {
-					printPatch("Extra CSS Patch")
 					content = content + `
 					.main-gridContainer-fixedWidth{grid-template-columns: repeat(auto-fill, var(--column-width));width: calc((var(--column-count) - 1) * var(--grid-gap)) + var(--column-count) * var(--column-width));}.main-cardImage-imageWrapper{background-color: var(--card-color, #333);border-radius: 6px;-webkit-box-shadow: 0 8px 24px rgba(0, 0, 0, .5);box-shadow: 0 8px 24px rgba(0, 0, 0, .5);padding-bottom: 100%;position: relative;width:100%;}.main-cardImage-image,.main-card-imagePlaceholder{height: 100%;left: 0;position: absolute;top: 0;width: 100%};.main-content-view{height:100%;}
 					`
@@ -255,7 +248,6 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 
 		case ".html":
 			utils.ModifyFile(path, func(content string) string {
-				printPatch("Inject wrapper/CSS")
 				var tags string
 				tags += "<link rel='stylesheet' class='userCSS' href='colors.css'>\n"
 				tags += "<link rel='stylesheet' class='userCSS' href='user.css'>\n"
@@ -300,119 +292,119 @@ func colorVariableReplace(content string) string {
 	colorPatches := []Patch{
 		{
 			Name:  "CSS: --spice-player",
-			Regex: "#(181818|212121)\b",
+			Regex: `#(181818|212121)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-player)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-card",
-			Regex: "#282828\b",
+			Regex: `#282828\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-card)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-main-elevated",
-			Regex: "#(242424|1f1f1f)\b",
+			Regex: `#(242424|1f1f1f)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-main-elevated)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-main",
-			Regex: "#121212\b",
+			Regex: `#121212\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-main)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-card-elevated",
-			Regex: "#(242424|1f1f1f)\b",
+			Regex: `#(242424|1f1f1f)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-card-elevated)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-highlight",
-			Regex: "#1a1a1a\b",
+			Regex: `#1a1a1a\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-highlight)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-highlight-elevated",
-			Regex: "#2a2a2a\b",
+			Regex: `#2a2a2a\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-highlight-elevated)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-sidebar",
-			Regex: "#(000|000000)\b",
+			Regex: `#(000|000000)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-sidebar)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-text",
-			Regex: "(white;|#fff|#ffffff|#f8f8f8)\b",
+			Regex: `(white;|#fff|#ffffff|#f8f8f8)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-text)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-subtext",
-			Regex: "#(b3b3b3|a7a7a7)\b",
+			Regex: `#(b3b3b3|a7a7a7)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-subtext)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-button",
-			Regex: "#(1db954|1877f2)\b",
+			Regex: `#(1db954|1877f2)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-button)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-button-active",
-			Regex: "#(1ed760|1fdf64|169c46)\b",
+			Regex: `#(1ed760|1fdf64|169c46)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-button-active)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-button-disabled",
-			Regex: "#535353\b",
+			Regex: `#535353\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-button-disabled)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-tab-active",
-			Regex: "#(333|333333)\b",
+			Regex: `#(333|333333)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-tab-active)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-misc",
-			Regex: "#7f7f7f\b",
+			Regex: `#7f7f7f\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-misc)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-notification",
-			Regex: "#(4687d6|2e77d0)\b",
+			Regex: `#(4687d6|2e77d0)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-notification)"
 			},
 		},
 		{
 			Name:  "CSS: --spice-notification-error",
-			Regex: "#(e22134|cd1a2b)\b",
+			Regex: `#(e22134|cd1a2b)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-notification-error)"
 			},
@@ -803,7 +795,7 @@ func removeRTL(input string) string {
 	return applyPatches(input, rtlPatches)
 }
 
-func additionalPatches(input string, report logPatch) string {
+func additionalPatches(input string) string {
 	graphQLPatches := []Patch{
 		{
 			Name:  "GraphQL definitions (<=1.2.30)",
@@ -813,7 +805,7 @@ func additionalPatches(input string, report logPatch) string {
 			},
 		},
 		{
-			Name:  "GraphQL definitons (>=1.2.31)",
+			Name:  "GraphQL definitions (>=1.2.31)",
 			Regex: `(=new [\w_\$][\w_\$\d]*\.[\w_\$][\w_\$\d]*\("(\w+)","(query|mutation)","[\w\d]{64}",null\))`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf(`=Spicetify.GraphQL.Definitions["%s"]%s`, submatches[2], submatches[1])
@@ -821,10 +813,10 @@ func additionalPatches(input string, report logPatch) string {
 		},
 	}
 
-	return applyPatches(input, graphQLPatches, report)
+	return applyPatches(input, graphQLPatches)
 }
 
-func exposeAPIs_main(input string, report logPatch) string {
+func exposeAPIs_main(input string) string {
 	inputContextMenu := utils.FindFirstMatch(input, `.*(?:value:"contextmenu"|"[^"]*":"context-menu")`)
 	if len(inputContextMenu) > 0 {
 		croppedInput := inputContextMenu[0]
@@ -853,7 +845,7 @@ func exposeAPIs_main(input string, report logPatch) string {
 
 	xpuiPatches := []Patch{
 		{
-			Name:  "showNotification patch",
+			Name:  "showNotification",
 			Regex: `(?:\w+ |,)([\w$]+)=(\([\w$]+=[\w$]+\.dispatch)`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf(`;globalThis.Spicetify.showNotification=(message,isError=false,msTimeout)=>%s({message,feedbackType:isError?"ERROR":"NOTICE",msTimeout});const %s=%s`, submatches[1], submatches[1], submatches[2])
@@ -946,10 +938,10 @@ func exposeAPIs_main(input string, report logPatch) string {
 		},
 	}
 
-	return applyPatches(input, xpuiPatches, report)
+	return applyPatches(input, xpuiPatches)
 }
 
-func exposeAPIs_vendor(input string, report logPatch) string {
+func exposeAPIs_vendor(input string) string {
 	// URI
 	utils.Replace(
 		&input,
@@ -957,7 +949,6 @@ func exposeAPIs_vendor(input string, report logPatch) string {
 		func(submatches ...string) string {
 			return fmt.Sprintf(`,(globalThis.Spicetify.URI=%s)%s`, submatches[1], submatches[0])
 		})
-
 	vendorPatches := []Patch{
 		{
 			Name:  "Spicetify.URI",
@@ -1021,7 +1012,7 @@ func exposeAPIs_vendor(input string, report logPatch) string {
 		}
 	}
 
-	return applyPatches(input, vendorPatches, report)
+	return applyPatches(input, vendorPatches)
 }
 
 type githubRelease = utils.GithubRelease
@@ -1039,7 +1030,7 @@ func splitVersion(version string) ([3]int, error) {
 	for i := 0; i < 3; i++ {
 		conv, err := strconv.Atoi(vSplit[i])
 		if err != nil {
-			return [3]int{}, nil
+			return [3]int{}, err
 		}
 		vInts[i] = conv
 	}
@@ -1076,6 +1067,7 @@ func FetchLatestTagMatchingVersion(version string) (string, error) {
 		return "", err
 	}
 
+	defer res.Body.Close()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
