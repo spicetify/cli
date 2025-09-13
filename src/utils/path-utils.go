@@ -12,15 +12,15 @@ func MigrateConfigFolder() {
 	if runtime.GOOS == "windows" {
 		source := filepath.Join(os.Getenv("USERPROFILE"), ".spicetify")
 		if _, err := os.Stat(source); err == nil {
-			spinner, _ := Spinner.Start("Migrating spicetify config folder")
+			spinner, _ := Spinner.Start("Migrating config folder")
 			destination := GetSpicetifyFolder()
 			err := Copy(source, destination, true, nil)
 			if err != nil {
-				spinner.Fail("Failed to migrate spicetify config folder")
+				spinner.Fail("Failed to migrate config folder")
 				Fatal(err)
 			}
 			os.RemoveAll(source)
-			spinner.Success("Migrated spicetify config folder")
+			spinner.Success("Migrated config folder")
 		}
 	}
 }
@@ -41,14 +41,14 @@ func MigrateFolders() {
 		}
 
 		if oldAbs != newAbs {
-			spinner, _ := Spinner.Start("Migrating spicetify backup folder")
+			spinner, _ := Spinner.Start("Migrating backup folder")
 			err := Copy(backupPath, newBackupPath, true, nil)
 			if err != nil {
-				spinner.Fail("Failed to migrate spicetify backup folder")
+				spinner.Fail("Failed to migrate backup folder")
 				Fatal(err)
 			}
 			os.RemoveAll(backupPath)
-			spinner.Success("Migrated spicetify backup folder")
+			spinner.Success("Migrated backup folder")
 		}
 	}
 
@@ -63,14 +63,14 @@ func MigrateFolders() {
 			Fatal(err)
 		}
 		if oldAbs != newAbs {
-			spinner, _ := Spinner.Start("Migrating spicetify extracted folder")
+			spinner, _ := Spinner.Start("Migrating extracted folder")
 			err := Copy(extractedPath, newExtractedPath, true, nil)
 			if err != nil {
-				spinner.Fail("Failed to migrate spicetify extracted folder")
+				spinner.Fail("Failed to migrate extracted folder")
 				Fatal(err)
 			}
 			os.RemoveAll(extractedPath)
-			spinner.Success("Migrated spicetify extracted folder")
+			spinner.Success("Migrated extracted folder")
 		}
 	}
 }

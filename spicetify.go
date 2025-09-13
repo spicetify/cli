@@ -306,6 +306,7 @@ func main() {
 		cmd.CheckUpdate(version)
 	}
 
+	var shouldRestart bool = false
 	// Chainable commands
 	for _, v := range commands {
 		switch v {
@@ -319,6 +320,7 @@ func main() {
 			cmd.CheckStates()
 			cmd.InitSetting()
 			cmd.Apply(version)
+			shouldRestart = true
 
 		case "refresh":
 			cmd.CheckStates()
@@ -333,15 +335,18 @@ func main() {
 
 		case "restore":
 			cmd.Restore()
+			shouldRestart = true
 
 		case "enable-devtools":
 			cmd.EnableDevTools()
+			shouldRestart = true
 
 		case "restart":
 			cmd.SpotifyRestart()
 
 		case "auto":
 			cmd.Auto(version)
+			shouldRestart = true
 
 		default:
 			utils.Fatal(errors.New(`Command "` + v + `" not found.
@@ -349,7 +354,7 @@ Run "spicetify -h" for a list of valid commands.`))
 		}
 	}
 
-	if !noRestart && !slices.Contains(commands, "restart") {
+	if !noRestart && !slices.Contains(commands, "restart") && shouldRestart {
 		cmd.SpotifyRestart()
 	}
 }

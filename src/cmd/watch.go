@@ -227,6 +227,7 @@ func startDebugger() {
 		if utils.SendReload(&debuggerURL) != nil {
 			utils.PrintError("Could not reload Spotify")
 			utils.PrintInfo(`Close Spotify and run watch command again`)
+			os.Exit(1)
 		} else {
 			utils.PrintSuccess("Reloaded Spotify")
 		}
