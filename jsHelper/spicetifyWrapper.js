@@ -326,21 +326,21 @@ window.Spicetify = {
 		setTimeout(addMissingPlatformAPIs, 50);
 		return;
 	}
-	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
+	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
 	if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
 
 	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
 		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
 		const symbolName = key.description;
 		if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
-		const resolvedAPI = Spicetify.Platform.Registry.resolve(key);
-		if (!resolvedAPI) {
-			console.warn(`[spicetifyWrapper] Failed to resolve PlatformAPI from Registry: ${symbolName}`);
-			continue;
-		}
+		try {
+			const resolvedAPI = Spicetify.Platform.Registry.resolve(key);
+			Spicetify.Platform[symbolName] = resolvedAPI;
 
-		Spicetify.Platform[symbolName] = resolvedAPI;
-		console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
+			console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
+		} catch (err) {
+			console.error(`[spicetifyWrapper] Error resolving PlatformAPI from Registry: ${symbolName}`, err);
+		}
 	}
 })();
 
@@ -352,7 +352,7 @@ function applyScrollingFix() {
 	}
 
 	// Run only for 1.2.56 and lower
-	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
+	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
 	if (version[1] >= 2 && version[2] >= 57) return;
 
 	const scrollableElements = Array.from(document.querySelectorAll("*")).filter((el) => {
@@ -893,7 +893,7 @@ applyScrollingFix();
 		Spicetify.ReactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find((m) => typeof m === "object");
 	}
 
-	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("toggleContextMenu"));
+	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("handleContextMenu"));
 	if (contextMenuChunk) {
 		Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find((m) => typeof m === "function");
 	}
@@ -997,7 +997,7 @@ applyScrollingFix();
 				// Avoid creating 2 arrays of the same values
 				try {
 					const values = Object.values(m);
-					return values.some((m) => typeof m === "function") && values.some((m) => m?.AD);
+					return values.some((m) => typeof m === "function") && values.some((m) => m?.PLAYLIST_V2);
 				} catch {
 					return false;
 				}
@@ -1005,7 +1005,7 @@ applyScrollingFix();
 		const URIModules = Object.values(URIChunk);
 
 		// URI.Type
-		Spicetify.URI.Type = URIModules.find((m) => m?.AD);
+		Spicetify.URI.Type = URIModules.find((m) => m?.PLAYLIST_V2);
 
 		// Parse functions
 		Spicetify.URI.from = URIModules.find((m) => typeof m === "function" && m.toString().includes("allowedTypes"));
@@ -1368,7 +1368,7 @@ Spicetify._getStyledClassName = (args, component) => {
 		"[": "[",
 		"\\": "\\",
 		"]": "]",
-		// biome-ignore lint/suspicious/noDuplicateObjectKeys: <explanation>
+		// biome-ignore lint/suspicious/noDuplicateObjectKeys: Not an issue
 		'"': '"',
 		"~": "`",
 		"!": "1",
