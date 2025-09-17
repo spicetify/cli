@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,7 +35,7 @@ var (
 		"AdditionalOptions": {
 			"extensions":            "",
 			"custom_apps":           "",
-			"sidebar_config":        "1",
+			"sidebar_config":        "0",
 			"home_config":           "1",
 			"experimental_features": "1",
 		},
@@ -49,7 +50,7 @@ type config struct {
 
 // Config .
 type Config interface {
-	Write()
+	Write() error
 	GetSection(string) *ini.Section
 	GetPath() string
 }
@@ -69,8 +70,11 @@ func ParseConfig(configPath string) Config {
 			path:    configPath,
 			content: getDefaultConfig(),
 		}
-		defaultConfig.Write()
-		PrintSuccess("Default config-xpui.ini generated")
+		if err := defaultConfig.Write(); err != nil {
+			PrintWarning(fmt.Sprintf("Failed to save config: %s", err.Error()))
+		} else {
+			PrintSuccess("Default config-xpui.ini generated")
+		}
 		return defaultConfig
 	}
 
@@ -101,8 +105,8 @@ func ParseConfig(configPath string) Config {
 }
 
 // Write writes content to config file.
-func (c config) Write() {
-	c.content.SaveTo(c.path)
+func (c config) Write() error {
+	return c.content.SaveTo(c.path)
 }
 
 func (c config) GetSection(name string) *ini.Section {

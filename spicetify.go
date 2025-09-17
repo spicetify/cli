@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"sync"
 
 	colorable "github.com/mattn/go-colorable"
+	"github.com/pterm/pterm"
 	"github.com/spicetify/cli/src/cmd"
 	spotifystatus "github.com/spicetify/cli/src/status/spotify"
 	"github.com/spicetify/cli/src/utils"
@@ -53,8 +53,8 @@ func init() {
 
 	// Separates flags and commands
 	for _, v := range os.Args[1:] {
-		if len(v) > 0 && v[0] == '-' && v != "-1" {
-			if v[1] != '-' && len(v) > 2 {
+		if len(v) > 0 && v[0] == '-' {
+			if len(v) > 2 && v[1] != '-' {
 				for _, char := range v[1:] {
 					flags = append(flags, "-"+string(char))
 				}
@@ -71,7 +71,7 @@ func init() {
 		case "--bypass-admin":
 			bypassAdminCheck = true
 		case "-c", "--config":
-			fmt.Println(cmd.GetConfigPath())
+			log.Println(cmd.GetConfigPath())
 			os.Exit(0)
 		case "-h", "--help":
 			kind := ""
@@ -86,7 +86,7 @@ func init() {
 
 			os.Exit(0)
 		case "-v", "--version":
-			fmt.Println(version)
+			log.Println(version)
 			os.Exit(0)
 		case "-e", "--extension":
 			extensionFocus = true
@@ -112,14 +112,14 @@ func init() {
 	if quiet {
 		log.SetOutput(io.Discard)
 		os.Stdout = nil
+		pterm.DisableOutput()
 	}
 
 	if isAdmin.Check(bypassAdminCheck) {
-		utils.PrintError("Spicetify should not be run with administrator/root privileges")
-		utils.PrintError("Running as admin can cause Spotify to show a black/blank window after applying spicetify")
+		utils.PrintError("Spicetify should NOT be run with administrator or root privileges")
+		utils.PrintError("Doing so can cause Spotify to show a black/blank window after applying!")
 		utils.PrintError("This happens because Spotify (running as a normal user) can't access files modified with admin privileges")
-		utils.PrintInfo("If you understand the risks and need to continue anyway, you can use the '--bypass-admin' flag.")
-		utils.PrintInfo("Spicetify is now exiting...")
+		utils.PrintInfo("If you understand the risks and need to continue, you can use the '--bypass-admin' flag.")
 		os.Exit(1)
 	}
 
@@ -291,12 +291,14 @@ func main() {
 
 		spotStat := spotifystatus.Get(spotifyPath)
 		if spotStat.IsBackupable() {
-			utils.PrintNote("spicetify is already up-to-date! If you ran this command because spicetify disappeared after Spotify updated, we'll attempt to fix it for you right now.")
-			cmd.Backup(version)
+			utils.PrintNote("spicetify is up-to-date! If you ran this because spicetify disappeared after Spotify updated, we'll attempt to fix it for you right now.")
+			cmd.Backup(version, true)
 			cmd.CheckStates()
 			cmd.InitSetting()
 			cmd.Apply(version)
-			restartSpotify()
+			if !noRestart {
+				cmd.SpotifyRestart()
+			}
 		}
 
 		return
@@ -304,11 +306,12 @@ func main() {
 		cmd.CheckUpdate(version)
 	}
 
+	var shouldRestart bool = false
 	// Chainable commands
 	for _, v := range commands {
 		switch v {
 		case "backup":
-			cmd.Backup(version)
+			cmd.Backup(version, slices.Contains(commands, "apply"))
 
 		case "clear":
 			cmd.Clear()
@@ -317,7 +320,7 @@ func main() {
 			cmd.CheckStates()
 			cmd.InitSetting()
 			cmd.Apply(version)
-			restartSpotify()
+			shouldRestart = true
 
 		case "refresh":
 			cmd.CheckStates()
@@ -332,30 +335,27 @@ func main() {
 
 		case "restore":
 			cmd.Restore()
-			restartSpotify()
+			shouldRestart = true
 
 		case "enable-devtools":
-			cmd.SetDevTools()
-			cmd.EvalSpotifyRestart(true)
+			cmd.EnableDevTools()
+			shouldRestart = true
 
 		case "restart":
-			cmd.EvalSpotifyRestart(false)
+			cmd.SpotifyRestart()
 
 		case "auto":
 			cmd.Auto(version)
-			cmd.EvalSpotifyRestart(true)
+			shouldRestart = true
 
 		default:
-			utils.PrintError(`Command "` + v + `" not found.`)
-			utils.PrintInfo(`Run "spicetify -h" for list of valid commands.`)
-			os.Exit(1)
+			utils.Fatal(errors.New(`Command "` + v + `" not found.
+Run "spicetify -h" for a list of valid commands.`))
 		}
 	}
-}
 
-func restartSpotify() {
-	if !noRestart {
-		cmd.EvalSpotifyRestart(false)
+	if !noRestart && !slices.Contains(commands, "restart") && shouldRestart {
+		cmd.SpotifyRestart()
 	}
 }
 
@@ -367,34 +367,35 @@ func help() {
 		utils.Bold("DESCRIPTION") + "\n" +
 		"Customize Spotify client UI and functionality\n\n" +
 		utils.Bold("CHAINABLE COMMANDS") + `
-backup              Start backup and preprocessing app files.
+backup              Start backup and preprocessing of app files.
 
 apply               Apply customization.
 
 refresh             Refresh the theme's CSS, JS, colors, and assets.
-                    Use with flag "-e" to update extensions.
+                    Use with flag "-e" to update extensions or with flag "-a" to update custom apps.
 
 restore             Restore Spotify to original state.
 
 clear               Clear current backup files.
 
 enable-devtools     Enable Spotify's developer tools.
-                    Press Ctrl + Shift + I (Windows/Linux) or Cmd + Option + I (macOS) in the Spotify client to start using.
+                    Press Ctrl + Shift + I (Windows/Linux) or Cmd + Option + I (macOS) in the Spotify client to open.
 
 watch               Enter watch mode.
                     To update on change, use with any combination of the following flags:
                         "-e" (for extensions),
                         "-a" (for custom apps),
                         "-s" (for the active theme; color.ini, user.css, theme.js, and assets)
-                        "-l" (for extensions, custom apps, and active theme)
+                        "-l" (for all of the above)
 
 
 restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
-spotify-updates       Blocks Spotify updates. Patches spotify executable. Accepts "block" or "unblock" as parameter.
+spotify-updates     Block Spotify updates by patching spotify executable.
+                    Accepts "block" or "unblock" as the parameter.
 
-path                Prints path of Spotify's executable, userdata, and more.
+path                Print path of Spotify's executable, userdata, and more.
                     1. Print executable path:
                     spicetify path
 
@@ -407,7 +408,7 @@ path                Prints path of Spotify's executable, userdata, and more.
                     4. Toggle focus with flags:
                     spicetify path <flag> <option>
 
-                    Available Flags and Options:
+                    Available flags and options:
                     "-e" (for extensions),
                     options: root, extension name, blank for all.
 
@@ -464,26 +465,29 @@ color               1. Print all color fields and values.
                     - Change sidebar to 00ff00 and button to 0000ff
                     spicetify color sidebar 00ff00 button 0000ff
 
-config-dir          Shows config directory in file viewer
+config-dir          Show config directory in file viewer
 
-upgrade|update      Update spicetify latest version
+upgrade|update      Update spicetify to the latest version if an update is available
 
 ` + utils.Bold("FLAGS") + `
--q, --quiet         Quiet mode (no output). Be careful, dangerous operations
-                    like clear backup, restore will proceed without prompting
-                    permission.
+-q, --quiet         Quiet mode (no output).
 
--s, --style         Use with "watch" command to auto-reload Spotify when changes are made to the active theme (color.ini, user.css, theme.js, assets).
+-s, --style         Use with "watch" or "path" to focus on the active theme.
+                    Use with "watch" to auto-reload Spotify when changes are made to the active theme.
 
--e, --extension     Use with "refresh", "watch" or "path" command to
-                    focus on extensions. Use with "watch" command to auto-reload Spotify when changes are made to extensions.
+-e, --extension     Use with "refresh", "watch" or "path" to focus on extensions.
+                    Use with "watch" to auto-reload Spotify when changes are made to extensions.
 
--a, --app           Use with "watch" or "path" to focus on custom apps. Use with "watch" command to auto-reload Spotify when changes are made to apps.
+-a, --app           Use with "refresh", "watch" or "path" to focus on custom apps.
+                    Use with "watch" to auto-reload Spotify when changes are made to apps.
 
--n, --no-restart    Do not restart Spotify after running command(s), except
-                    "restart" command.
+-l, --live-refresh  Use with "watch" command to auto-reload Spotify when changes
+                    are made to any custom component.
 
--l, --live-refresh  Use with "watch" command to auto-reload Spotify when changes are made to any custom component (color.ini, user.css, extensions, apps).
+-n, --no-restart    Do not restart Spotify after running command(s),
+                    except for the "restart" command.
+
+--bypass-admin      Bypass admin or root (sudo) check. NOT RECOMMENDED
 
 -c, --config        Print config file path and quit
 
@@ -491,9 +495,8 @@ upgrade|update      Update spicetify latest version
 
 -v, --version       Print version number and quit
 
-When using the "watch" command, any combination of the style (-s), extension (-e), and app (-a) flags can be used (ex. "watch -s -e" or "watch -e -a").
 For config information, run "spicetify -h config".
-For more information and bug report: https://github.com/spicetify/cli/`)
+For more information and reporting bugs: https://github.com/spicetify/cli/`)
 }
 
 func helpConfig() {
@@ -516,12 +519,12 @@ inject_css <0 | 1>
     Whether custom css from user.css in theme folder is applied
 
 inject_theme_js <0 | 1>
-	Whether custom js from theme.js in theme folder is applied
+    Whether custom js from theme.js in theme folder is applied
 
 replace_colors <0 | 1>
     Whether custom colors is applied
 
-spotify_launch_flags
+spotify_launch_flags <string>
     Command-line flags used when launching/restarting Spotify.
     Separate each flag with "|".
     List of valid flags: https://spicetify.app/docs/development/spotify-cli-flags
@@ -530,7 +533,7 @@ always_enable_devtools <0 | 1>
     Whether Chrome DevTools is enabled when launching/restarting Spotify.
 
 check_spicetify_update <0 | 1>
-		Whether to check for CLI update when running Spicetify.
+    Whether to always check for updates when running Spicetify.
 
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>
@@ -568,5 +571,8 @@ home_config <0 | 1>
 
 sidebar_config <0 | 1>
     Enable ability to stick, hide, re-arrange sidebar items.
-    Turn "Sidebar config" mode on in Profile menu and hover on sidebar items to show customization buttons.`)
+    Turn "Sidebar config" mode on in Profile menu and hover on sidebar items to show customization buttons.
+
+` + utils.Bold("[Patch]") + `
+Allows you to apply custom patches to Spotify.`)
 }

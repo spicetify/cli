@@ -15,7 +15,7 @@ func Auto(spicetifyVersion string) {
 	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)
 
 	if spotStat.IsBackupable() && (backStat.IsEmpty() || backStat.IsOutdated()) {
-		Backup(spicetifyVersion)
+		Backup(spicetifyVersion, true)
 		backupVersion := backupSection.Key("version").MustString("")
 		backStat = backupstatus.Get(prefsPath, backupFolder, backupVersion)
 	}

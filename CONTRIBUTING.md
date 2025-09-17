@@ -95,7 +95,7 @@ Follow the steps outlined in the [documentation](https://spicetify.app/docs/deve
 
 ### Improving The Documentation
 
-To improve the [documentation](https://spicetify.app/docs/getting-started), navigate to the documentation [repository](https://github.com/spicetify/spicetify-docs).
+To improve the [documentation](https://spicetify.app/docs/getting-started), navigate to the documentation [repository](https://github.com/spicetify/docs).
 
 ### Commit Message Format
 
