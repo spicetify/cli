@@ -193,7 +193,7 @@ func InitSetting() {
 
 	schemeSection, err := colorCfg.GetSection(schemeName)
 	if err != nil {
-		println("Err")
+		utils.PrintWarning("Color scheme '" + schemeName + "' not found; using first scheme")
 		colorSection = sections[1]
 		return
 	}

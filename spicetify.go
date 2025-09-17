@@ -178,11 +178,12 @@ func main() {
 			return
 		}
 		param := commands[0]
-		if param == "block" {
+		switch param {
+		case "block":
 			cmd.BlockSpotifyUpdates(true)
-		} else if param == "unblock" {
+		case "unblock":
 			cmd.BlockSpotifyUpdates(false)
-		} else {
+		default:
 			utils.PrintError("Invalid parameter. It has to be \"block\" or \"unblock\".")
 		}
 		return

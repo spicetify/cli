@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	spotifystatus "github.com/spicetify/cli/src/status/spotify"
@@ -13,6 +14,8 @@ import (
 var (
 	debuggerURL    string
 	autoReloadFunc func()
+	watchQueue     chan func()
+	watchQueueOnce sync.Once
 )
 
 // Watch .
@@ -54,8 +57,13 @@ func Watch(liveUpdate bool) {
 					utils.Fatal(err)
 				}
 
-				refreshThemeJS()
-			}, autoReloadFunc)
+				enqueueWatchJob(func() {
+					refreshThemeJS()
+					if autoReloadFunc != nil {
+						autoReloadFunc()
+					}
+				})
+			}, nil)
 		}
 	}
 
@@ -68,8 +76,13 @@ func Watch(liveUpdate bool) {
 					utils.Fatal(err)
 				}
 
-				refreshThemeAssets()
-			}, autoReloadFunc)
+				enqueueWatchJob(func() {
+					refreshThemeAssets()
+					if autoReloadFunc != nil {
+						autoReloadFunc()
+					}
+				})
+			}, nil)
 		}
 	}
 
@@ -78,9 +91,14 @@ func Watch(liveUpdate bool) {
 			utils.Fatal(err)
 		}
 
-		InitSetting()
-		refreshThemeCSS()
-	}, autoReloadFunc)
+		enqueueWatchJob(func() {
+			InitSetting()
+			refreshThemeCSS()
+			if autoReloadFunc != nil {
+				autoReloadFunc()
+			}
+		})
+	}, nil)
 }
 
 // WatchExtensions .
@@ -232,4 +250,16 @@ func startDebugger() {
 			utils.PrintSuccess("Reloaded Spotify")
 		}
 	}
+}
+
+func enqueueWatchJob(job func()) {
+	watchQueueOnce.Do(func() {
+		watchQueue = make(chan func(), 64)
+		go func() {
+			for fn := range watchQueue {
+				fn()
+			}
+		}()
+	})
+	watchQueue <- job
 }
