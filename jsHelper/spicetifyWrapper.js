@@ -1748,11 +1748,16 @@ Spicetify.ContextMenuV2 = (() => {
 	}
 
 	class ItemSubMenu {
-		static itemsToComponents = (items, props, trigger, target) => {
-			return items.filter((item) => (item.shouldAdd || (() => true))?.(props, trigger, target)).map((item) => item._element);
-		};
+		static itemsToComponents(items, props, trigger, target, parentDepth = 1) {
+			return items
+				.filter((item) => (item.shouldAdd || (() => true))?.(props, trigger, target))
+				.map((item) => {
+					if (item instanceof ItemSubMenu) item.depth = parentDepth + 1;
+					return item._element;
+				});
+		}
 
-		constructor({ text, disabled = false, leadingIcon, divider, items, shouldAdd = () => true }) {
+		constructor({ text, disabled = false, leadingIcon, divider, items, depth = 1, shouldAdd = () => true }) {
 			this.shouldAdd = shouldAdd;
 
 			this._text = text;
@@ -1760,12 +1765,14 @@ Spicetify.ContextMenuV2 = (() => {
 			this._leadingIcon = leadingIcon;
 			this._divider = divider;
 			this._items = items;
+			this._depth = depth;
 			this._element = Spicetify.ReactJSX.jsx(() => {
 				const [_text, setText] = Spicetify.React.useState(this._text);
 				const [_disabled, setDisabled] = Spicetify.React.useState(this._disabled);
 				const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(this._leadingIcon);
 				const [_divider, setDivider] = Spicetify.React.useState(this._divider);
 				const [_items, setItems] = Spicetify.React.useState(this._items);
+				const [_depth, setDepth] = Spicetify.React.useState(this._depth);
 
 				Spicetify.React.useEffect(() => {
 					this._setText = setText;
@@ -1773,12 +1780,14 @@ Spicetify.ContextMenuV2 = (() => {
 					this._setLeadingIcon = setLeadingIcon;
 					this._setDivider = setDivider;
 					this._setItems = setItems;
+					this._setDepth = setDepth;
 					return () => {
 						this._setText = undefined;
 						this._setDisabled = undefined;
 						this._setLeadingIcon = undefined;
 						this._setDivider = undefined;
 						this._setItems = undefined;
+						this._setDepth = undefined;
 					};
 				});
 
@@ -1788,13 +1797,13 @@ Spicetify.ContextMenuV2 = (() => {
 				return Spicetify.React.createElement(Spicetify.ReactComponent.MenuSubMenuItem, {
 					displayText: _text,
 					divider: _divider,
-					depth: 1,
+					depth: _depth,
 					placement: "right-start",
 					onOpenChange: () => undefined,
 					onClick: () => undefined,
 					disabled: _disabled,
 					leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
-					children: ItemSubMenu.itemsToComponents(_items, props, trigger, target),
+					children: ItemSubMenu.itemsToComponents(_items, props, trigger, target, _depth),
 				});
 			}, {});
 		}
@@ -1829,6 +1838,14 @@ Spicetify.ContextMenuV2 = (() => {
 		}
 		get divider() {
 			return this._divider;
+		}
+
+		set depth(value) {
+			this._depth = value;
+			this._setDepth?.(this._depth);
+		}
+		get depth() {
+			return this._depth;
 		}
 
 		addItem(item) {
