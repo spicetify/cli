@@ -1011,6 +1011,8 @@ applyScrollingFix();
 		Spicetify.URI.from = Object.values(URIModules.find(a => Object.values(a).some(v => typeof v === 'function' && v.toString().includes("allowedTypes")))).find(v => typeof v === 'function' && v.toString().includes("allowedTypes"));
 		Spicetify.URI.fromString = Object.values(URIModules.find(a => Object.values(a).some(v => typeof v === 'function' && v.toString().includes("Argument `uri`")))).find(v => typeof v === 'function' && v.toString().includes("Argument `uri`"));
 
+
+		
 		// createURI functions
 		const createURIFunctions = URIModules.filter((m) => typeof m === "function" && m.toString().match(/\([\w$]+\./));
 		for (const type of Object.keys(Spicetify.URI.Type)) {
