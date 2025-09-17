@@ -88,16 +88,16 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		fetchSpinner, _ := utils.Spinner.Start("Fetching remote CSS map")
 		tag, err := FetchLatestTagMatchingOrMain(version)
 		if err != nil {
-			fetchSpinner.Warning()
+			fetchSpinner.Warning("Failed to fetch remote CSS map")
 			utils.PrintWarning(err.Error())
 			tag = version
 		}
 		if readRemoteCssMap(tag, &cssTranslationMap) != nil {
-			fetchSpinner.Warning()
+			fetchSpinner.Warning("Failed to fetch remote CSS map")
 			utils.PrintInfo("Using local CSS map instead")
 			readLocalCssMap(&cssTranslationMap)
 		} else {
-			fetchSpinner.Success()
+			fetchSpinner.Success("Fetched remote CSS map")
 		}
 	} else {
 		utils.PrintInfo("Using local CSS map; in development environment")
