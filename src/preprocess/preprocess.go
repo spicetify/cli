@@ -85,7 +85,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 	var cssTranslationMap = make(map[string]string)
 
 	if version != "Dev" {
-		fetchSpinner, _ := utils.Spinner.Start("Fetch remote CSS map")
+		fetchSpinner, _ := utils.Spinner.Start("Fetching remote CSS map")
 		tag, err := FetchLatestTagMatchingOrMain(version)
 		if err != nil {
 			fetchSpinner.Warning()
@@ -100,7 +100,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 			fetchSpinner.Success()
 		}
 	} else {
-		utils.PrintInfo("In development environment, using local CSS map")
+		utils.PrintInfo("Using local CSS map; in development environment")
 		readLocalCssMap(&cssTranslationMap)
 	}
 
