@@ -648,9 +648,6 @@ applyScrollingFix();
 		ReactComponent: {
 			...Spicetify.ReactComponent,
 			TextComponent: modules.find((m) => m?.h1 && m?.render),
-			ConfirmDialog: functionModules.find(
-				(m) => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc") && m.toString().includes("onClose")
-			),
 			Menu: functionModules.find((m) => m.toString().includes("getInitialFocusElement") && m.toString().includes("children")),
 			MenuItem: functionModules.find((m) => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
 			MenuSubMenuItem: functionModules.find((f) => f.toString().includes("subMenuIcon")),
@@ -887,10 +884,16 @@ applyScrollingFix();
 	});
 
 	const confirmDialogChunk = chunks.find(
-		([, value]) => value.toString().includes("confirmDialog") && value.toString().includes("shouldCloseOnEsc") && value.toString().includes("isOpen")
+		([, value]) =>
+			value.toString().includes("main-confirmDialog-container") ||
+			(value.toString().includes("confirmDialog") && value.toString().includes("shouldCloseOnEsc") && value.toString().includes("isOpen"))
 	);
 	if (!Spicetify.ReactComponent?.ConfirmDialog && confirmDialogChunk) {
 		Spicetify.ReactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find((m) => typeof m === "object");
+	} else {
+		Spicetify.ReactComponent.ConfirmDialog = functionModules.find(
+			(m) => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc") && m.toString().includes("onClose")
+		);
 	}
 
 	const contextMenuChunk = chunks.find(([, value]) => value.toString().includes("handleContextMenu"));
