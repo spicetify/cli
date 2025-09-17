@@ -1008,8 +1008,8 @@ applyScrollingFix();
 		Spicetify.URI.Type = URIModules.find((m) => m?.PLAYLIST_V2);
 
 		// Parse functions
-		Spicetify.URI.from = URIModules.find((m) => typeof m === "function" && m.toString().includes("allowedTypes"));
-		Spicetify.URI.fromString = URIModules.find((m) => typeof m === "function" && m.toString().includes("Argument `uri`"));
+		Spicetify.URI.from = Object.values(URIModules.find(a => Object.values(a).some(v => typeof v === 'function' && v.toString().includes("allowedTypes")))).find(v => typeof v === 'function' && v.toString().includes("allowedTypes"));
+		Spicetify.URI.fromString = Object.values(URIModules.find(a => Object.values(a).some(v => typeof v === 'function' && v.toString().includes("Argument `uri`")))).find(v => typeof v === 'function' && v.toString().includes("Argument `uri`"));
 
 		// createURI functions
 		const createURIFunctions = URIModules.filter((m) => typeof m === "function" && m.toString().match(/\([\w$]+\./));
