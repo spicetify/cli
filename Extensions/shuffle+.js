@@ -291,10 +291,10 @@
 	}
 
 	async function fetchPlaylistTracks(uri) {
-		const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/spotify:playlist:${uri}/rows`, {
-			policy: { link: true, playable: true },
+		const res = await Spicetify.Platform.PlaylistAPI.getContents(`spotify:playlist:${uri}`, {
+			limit: 9999999,
 		});
-		return res.rows.filter((track) => track.playable).map((track) => track.link);
+		return res.items.filter((track) => track.isPlayable).map((track) => track.uri);
 	}
 
 	function searchFolder(rows, uri) {
@@ -321,8 +321,11 @@
 			if (!folder.rows) return;
 
 			for (const i of folder.rows) {
-				if (i.type === "playlist") requestPlaylists.push(await fetchPlaylistTracks(i.link.split(":")[2]));
-				else if (i.type === "folder") await fetchNested(i);
+				if (i.type === "playlist") {
+					const uriObj = Spicetify.URI.fromString(i.link);
+					const uri = uriObj._base62Id ?? uriObj.id;
+					requestPlaylists.push(await fetchPlaylistTracks(uri));
+				} else if (i.type === "folder") await fetchNested(i);
 			}
 		}
 
