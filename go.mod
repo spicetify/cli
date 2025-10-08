@@ -6,7 +6,7 @@ require (
 	github.com/go-ini/ini v1.67.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/pterm/pterm v0.12.80
-	golang.org/x/net v0.44.0
+	golang.org/x/net v0.45.0
 	golang.org/x/sys v0.36.0
 )
 
