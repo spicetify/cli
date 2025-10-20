@@ -703,7 +703,7 @@ function openConfig() {
 						CONFIG.visual["translate:translated-lyrics-source"] = "none";
 						localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, "none");
 					}
-					reloadLyrics?.();
+					lyricContainerUpdate?.();
 				} else {
 					lyricContainerUpdate?.();
 				}

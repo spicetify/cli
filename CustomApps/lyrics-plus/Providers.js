@@ -51,6 +51,9 @@ const Providers = {
 			synced: null,
 			unsynced: null,
 			musixmatchTranslation: null,
+			musixmatchAvailableTranslations: [],
+			musixmatchTrackId: null,
+			musixmatchTranslationLanguage: null,
 			provider: "Musixmatch",
 			copyright: null,
 		};
@@ -81,7 +84,14 @@ const Providers = {
 			result.unsynced = unsynced;
 			result.copyright = list["track.lyrics.get"].message?.body?.lyrics?.lyrics_copyright?.trim();
 		}
-		const translation = await ProviderMusixmatch.getTranslation(list);
+		result.musixmatchAvailableTranslations = Array.isArray(list.__musixmatchTranslationStatus) ? list.__musixmatchTranslationStatus : [];
+		result.musixmatchTrackId = list.__musixmatchTrackId ?? null;
+
+		const selectedLanguage = CONFIG.visual["musixmatch-translation-language"];
+		const canRequestTranslation =
+			selectedLanguage && selectedLanguage !== "none" && result.musixmatchAvailableTranslations.includes(selectedLanguage);
+
+		const translation = canRequestTranslation ? await ProviderMusixmatch.getTranslation(result.musixmatchTrackId) : null;
 		if ((synced || unsynced) && translation) {
 			const baseLyrics = synced ?? unsynced;
 			result.musixmatchTranslation = baseLyrics.map((line) => ({
@@ -89,6 +99,7 @@ const Providers = {
 				text: translation.find((t) => t.matchedLine === line.text)?.translation ?? line.text,
 				originalText: line.text,
 			}));
+			result.musixmatchTranslationLanguage = selectedLanguage;
 		}
 
 		return result;
