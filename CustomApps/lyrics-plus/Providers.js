@@ -92,13 +92,31 @@ const Providers = {
 			selectedLanguage && selectedLanguage !== "none" && result.musixmatchAvailableTranslations.includes(selectedLanguage);
 
 		const translation = canRequestTranslation ? await ProviderMusixmatch.getTranslation(result.musixmatchTrackId) : null;
-		if ((synced || unsynced) && translation) {
+		if ((synced || unsynced) && Array.isArray(translation) && translation.length) {
+			const normalizeLyrics =
+				typeof Utils !== "undefined" && typeof Utils.processLyrics === "function"
+					? (value) => Utils.processLyrics(value ?? "")
+					: (value) =>
+							typeof value === "string" ? value.replace(/　| /g, "").replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~？！，。、《》【】「」]/g, "") : "";
+
+			const translationMap = new Map();
+			for (const entry of translation) {
+				const normalizedMatched = normalizeLyrics(entry.matchedLine);
+				if (!translationMap.has(normalizedMatched)) {
+					translationMap.set(normalizedMatched, entry.translation);
+				}
+			}
+
 			const baseLyrics = synced ?? unsynced;
-			result.musixmatchTranslation = baseLyrics.map((line) => ({
-				...line,
-				text: translation.find((t) => t.matchedLine === line.text)?.translation ?? line.text,
-				originalText: line.text,
-			}));
+			result.musixmatchTranslation = baseLyrics.map((line) => {
+				const originalText = line.text;
+				const normalizedOriginal = normalizeLyrics(originalText);
+				return {
+					...line,
+					text: translationMap.get(normalizedOriginal) ?? line.text,
+					originalText,
+				};
+			});
 			result.musixmatchTranslationLanguage = selectedLanguage;
 		}
 
