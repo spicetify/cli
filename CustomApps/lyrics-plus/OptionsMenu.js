@@ -255,23 +255,23 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 							type: "translation-menu",
 							items,
 							onChange: (name, value) => {
-								if (name === "translate:translated-lyrics-source" && friendlyLanguage) {
-									CONFIG.visual.translate = false;
-									localStorage.setItem(`${APP_NAME}:visual:translate`, false);
-								}
 								if (name === "translate") {
 									CONFIG.visual["translate:translated-lyrics-source"] = "none";
 									localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, "none");
 								}
 								if (name === "translate:translated-lyrics-source") {
-									let nextMusixmatchLanguage = null;
-									if (typeof value === "string" && value.startsWith(musixmatchTranslationPrefix)) {
-										nextMusixmatchLanguage = value.slice(musixmatchTranslationPrefix.length) || "none";
-									} else {
-										nextMusixmatchLanguage = "none";
+									const hasTranslationProvider = typeof value === "string" && value !== "none";
+									if (hasTranslationProvider && CONFIG.visual.translate) {
+										CONFIG.visual.translate = false;
+										localStorage.setItem(`${APP_NAME}:visual:translate`, "false");
 									}
 
-									if (nextMusixmatchLanguage !== null && CONFIG.visual["musixmatch-translation-language"] !== nextMusixmatchLanguage) {
+									let nextMusixmatchLanguage = "none";
+									if (typeof value === "string" && value.startsWith(musixmatchTranslationPrefix)) {
+										nextMusixmatchLanguage = value.slice(musixmatchTranslationPrefix.length) || "none";
+									}
+
+									if (CONFIG.visual["musixmatch-translation-language"] !== nextMusixmatchLanguage) {
 										CONFIG.visual["musixmatch-translation-language"] = nextMusixmatchLanguage;
 										localStorage.setItem(`${APP_NAME}:visual:musixmatch-translation-language`, nextMusixmatchLanguage);
 									}

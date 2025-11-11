@@ -23,6 +23,8 @@ function getConfig(name, defaultVal = true) {
 const APP_NAME = "lyrics-plus";
 const MUSIXMATCH_TRANSLATION_PREFIX_DEFAULT = "musixmatchTranslation:";
 const MUSIXMATCH_TRANSLATION_PREFIX_GLOBAL_KEY = "__lyricsPlusMusixmatchTranslationPrefix";
+const MUSIXMATCH_TRANSLATION_FETCH_MESSAGE = "Fetching translation...";
+const MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE = "Failed to fetch translation, please try again in a few minutes";
 const MUSIXMATCH_TRANSLATION_PREFIX =
 	typeof window !== "undefined" && typeof window[MUSIXMATCH_TRANSLATION_PREFIX_GLOBAL_KEY] === "string"
 		? window[MUSIXMATCH_TRANSLATION_PREFIX_GLOBAL_KEY]
@@ -139,6 +141,15 @@ if (typeof CONFIG.visual["translate:translated-lyrics-source"] === "string") {
 			localStorage.setItem(`${APP_NAME}:visual:musixmatch-translation-language`, language);
 		}
 	}
+}
+
+if (
+	CONFIG.visual.translate &&
+	typeof CONFIG.visual["translate:translated-lyrics-source"] === "string" &&
+	CONFIG.visual["translate:translated-lyrics-source"] !== "none"
+) {
+	CONFIG.visual.translate = false;
+	localStorage.setItem(`${APP_NAME}:visual:translate`, "false");
 }
 
 let CACHE = {};
@@ -330,13 +341,28 @@ class LyricsContainer extends react.Component {
 
 		const currentLanguage = selectedLanguage;
 
+		Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_MESSAGE, false, 1000);
+
 		this.setState({
 			musixmatchTranslation: null,
 			musixmatchTranslationLanguage: null,
 		});
 
-		const translation = await ProviderMusixmatch.getTranslation(trackId);
+		let translation;
+		try {
+			translation = await ProviderMusixmatch.getTranslation(trackId);
+		} catch (error) {
+			console.error(error);
+			Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
+			if (CACHE[currentUri]) {
+				CACHE[currentUri].musixmatchTranslation = null;
+				CACHE[currentUri].musixmatchTranslationLanguage = null;
+			}
+			return;
+		}
+
 		if (!translation) {
+			Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
 			if (CACHE[currentUri]) {
 				CACHE[currentUri].musixmatchTranslation = null;
 				CACHE[currentUri].musixmatchTranslationLanguage = null;
