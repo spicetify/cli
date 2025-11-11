@@ -245,6 +245,7 @@ class LyricsContainer extends react.Component {
 		this.reRenderLyricsPage = false;
 		this.displayMode = null;
 		this.currentMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"];
+		this._musixmatchTranslationRequestId = null;
 	}
 
 	infoFromTrack(track) {
@@ -310,6 +311,14 @@ class LyricsContainer extends react.Component {
 		const availableTranslations = this.state.musixmatchAvailableTranslations || [];
 		const trackId = this.state.musixmatchTrackId;
 		const currentUri = this.state.uri;
+		const currentRequestId = Symbol("musixmatchTranslationRequest");
+		this._musixmatchTranslationRequestId = currentRequestId;
+		const isLatestRequest = () => this._musixmatchTranslationRequestId === currentRequestId;
+		const finishRequest = () => {
+			if (isLatestRequest()) {
+				this._musixmatchTranslationRequestId = null;
+			}
+		};
 
 		const clearTranslation = () => {
 			if (this.state.musixmatchTranslation !== null || this.state.musixmatchTranslationLanguage !== null) {
@@ -326,16 +335,19 @@ class LyricsContainer extends react.Component {
 
 		if (!trackId || !selectedLanguage || selectedLanguage === "none") {
 			clearTranslation();
+			finishRequest();
 			return;
 		}
 
 		if (!availableTranslations.includes(selectedLanguage)) {
 			clearTranslation();
+			finishRequest();
 			return;
 		}
 
 		const baseLyrics = this.state.synced ?? this.state.unsynced;
 		if (!baseLyrics) {
+			finishRequest();
 			return;
 		}
 
@@ -353,33 +365,42 @@ class LyricsContainer extends react.Component {
 			translation = await ProviderMusixmatch.getTranslation(trackId);
 		} catch (error) {
 			console.error(error);
-			Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
-			if (CACHE[currentUri]) {
-				CACHE[currentUri].musixmatchTranslation = null;
-				CACHE[currentUri].musixmatchTranslationLanguage = null;
+			if (isLatestRequest()) {
+				Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
+				if (CACHE[currentUri]) {
+					CACHE[currentUri].musixmatchTranslation = null;
+					CACHE[currentUri].musixmatchTranslationLanguage = null;
+				}
 			}
+			finishRequest();
 			return;
 		}
 
 		if (!translation) {
-			Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
-			if (CACHE[currentUri]) {
-				CACHE[currentUri].musixmatchTranslation = null;
-				CACHE[currentUri].musixmatchTranslationLanguage = null;
+			if (isLatestRequest()) {
+				Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
+				if (CACHE[currentUri]) {
+					CACHE[currentUri].musixmatchTranslation = null;
+					CACHE[currentUri].musixmatchTranslationLanguage = null;
+				}
 			}
+			finishRequest();
 			return;
 		}
 
 		if (
 			currentLanguage !== CONFIG.visual["musixmatch-translation-language"] ||
 			trackId !== this.state.musixmatchTrackId ||
-			currentUri !== this.state.uri
+			currentUri !== this.state.uri ||
+			!isLatestRequest()
 		) {
+			finishRequest();
 			return;
 		}
 
 		const latestBaseLyrics = this.state.synced ?? this.state.unsynced;
 		if (!latestBaseLyrics) {
+			finishRequest();
 			return;
 		}
 
@@ -394,6 +415,11 @@ class LyricsContainer extends react.Component {
 			};
 		});
 
+		if (!isLatestRequest()) {
+			finishRequest();
+			return;
+		}
+
 		this.setState({
 			musixmatchTranslation: mappedTranslation,
 			musixmatchTranslationLanguage: currentLanguage,
@@ -402,6 +428,7 @@ class LyricsContainer extends react.Component {
 			CACHE[currentUri].musixmatchTranslation = mappedTranslation;
 			CACHE[currentUri].musixmatchTranslationLanguage = currentLanguage;
 		}
+		finishRequest();
 	}
 
 	async tryServices(trackInfo, mode = -1) {
