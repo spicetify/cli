@@ -647,9 +647,17 @@ class LyricsContainer extends react.Component {
 		const lyrics = lyricsState[CONFIG.modes[mode]];
 		const translationSourceConfig = resolveTranslationSource(CONFIG.visual["translate:translated-lyrics-source"]);
 
-		if (translationSourceConfig.language && CONFIG.visual["musixmatch-translation-language"] !== translationSourceConfig.language) {
-			CONFIG.visual["musixmatch-translation-language"] = translationSourceConfig.language;
-			localStorage.setItem(`${APP_NAME}:visual:musixmatch-translation-language`, translationSourceConfig.language);
+		if (translationSourceConfig.language) {
+			const translationLanguageKey = `${APP_NAME}:visual:musixmatch-translation-language`;
+			const storedLanguage = localStorage.getItem(translationLanguageKey);
+
+			if (storedLanguage !== translationSourceConfig.language) {
+				localStorage.setItem(translationLanguageKey, translationSourceConfig.language);
+			}
+
+			if (CONFIG.visual["musixmatch-translation-language"] !== translationSourceConfig.language) {
+				CONFIG.visual["musixmatch-translation-language"] = translationSourceConfig.language;
+			}
 		}
 
 		if (CONFIG.visual.translate) {
