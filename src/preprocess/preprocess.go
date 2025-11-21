@@ -141,7 +141,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					embeddedString, _, _, err := utils.ReadStringFromUTF16Binary(binFilePath, startMarker, endMarker)
 					if err != nil {
 						utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
-						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error if you're on Spotify 1.2.63 or lower.")
+						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error if you're on Spotify 1.2.63 or lower and you're not on macOS Intel.")
 						utils.PrintInfo("However, if you're on 1.2.64 or higher, please report this issue")
 						continue
 					}
@@ -151,7 +151,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 						utils.PrintWarning(fmt.Sprintf("Could not create xpui-modules.js: %v", err))
 						break
 					} else {
-						utils.PrintSuccess("Extracted V8 snapshot blob (remaining xpui modules) to xpui-modules.js")
+						utils.PrintSuccess("Finished extracting V8 snapshot blob to local file")
 						break
 					}
 				}
@@ -219,6 +219,13 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					}
 					content = additionalPatches(content)
 				}
+
+				if fileName == "dwp-top-bar.js" || fileName == "dwp-now-playing-bar.js" || fileName == "dwp-home-chips-row.js" {
+					utils.ReplaceOnce(&content, `(\w+\.pathname)\.startsWith\((\w+)\)`, func(submatches ...string) string {
+						return fmt.Sprintf("%s === %s", submatches[1], submatches[2])
+					})
+				}
+
 				for k, v := range cssTranslationMap {
 					utils.Replace(&content, k, func(submatches ...string) string {
 						return v
