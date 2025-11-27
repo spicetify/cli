@@ -116,6 +116,21 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		spotifyPatch, _ = strconv.Atoi(verParts[2])
 	}
 
+	var spotifyBinaryPath string
+	switch runtime.GOOS {
+	case "windows":
+		spotifyBinaryPath = filepath.Join(spotifyBasePath, "spotify.dll")
+	case "darwin":
+		spotifyBinaryPath = filepath.Join(spotifyBasePath, "..", "MacOS", "Spotify")
+	}
+
+	if spotifyBinaryPath != "" {
+		if err := validateReleaseBuild(spotifyBinaryPath); err != nil {
+			utils.PrintError(err.Error())
+			utils.Fatal(errors.New("aborting the patching process due to unsupported build"))
+		}
+	}
+
 	frameworkResourcesPath := ""
 	switch runtime.GOOS {
 	case "darwin":
@@ -1020,6 +1035,28 @@ func exposeAPIs_vendor(input string) string {
 	}
 
 	return applyPatches(input, vendorPatches)
+}
+
+func validateReleaseBuild(spotifyBinaryPath string) error {
+	fileContent, err := os.ReadFile(spotifyBinaryPath)
+	if err != nil {
+		return fmt.Errorf("could not read %s: %w", filepath.Base(spotifyBinaryPath), err)
+	}
+
+	buildRegex := regexp.MustCompile(`(Master|Release|PR|Local) Build.+(cef_\d+\.\d+\.\d+\+g[0-9a-f]+\+chromium-\d+\.\d+\.\d+\.\d+)`)
+	matches := buildRegex.FindSubmatch(fileContent)
+
+	if len(matches) == 0 {
+		return fmt.Errorf("could not detect Spotify build type in %s", filepath.Base(spotifyBinaryPath))
+	}
+
+	buildType := string(matches[1])
+	if buildType != "Release" {
+		return fmt.Errorf("detected %s Spotify build! spicetify works only on Release builds. Please install latest Release version of Spotify", buildType)
+	}
+
+	utils.PrintSuccess(fmt.Sprintf("Spotify's build type is %s. Continuing...", string(matches[1])))
+	return nil
 }
 
 type githubRelease = utils.GithubRelease
