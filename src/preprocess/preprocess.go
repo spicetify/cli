@@ -119,7 +119,17 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 	var spotifyBinaryPath string
 	switch runtime.GOOS {
 	case "windows":
-		spotifyBinaryPath = filepath.Join(spotifyBasePath, "spotify.dll")
+		dllPath := filepath.Join(spotifyBasePath, "spotify.dll")
+		exePath := filepath.Join(spotifyBasePath, "spotify.exe")
+
+		if _, err := os.Stat(dllPath); err == nil {
+			spotifyBinaryPath = dllPath
+		} else if _, err := os.Stat(exePath); err == nil {
+			spotifyBinaryPath = exePath
+		} else {
+			utils.PrintError("Could not find spotify.dll or spotify.exe in Spotify installation directory")
+			utils.Fatal(errors.New("aborting the patching process due to missing Spotify binaries"))
+		}
 	case "darwin":
 		spotifyBinaryPath = filepath.Join(spotifyBasePath, "..", "MacOS", "Spotify")
 	}
@@ -1043,11 +1053,12 @@ func validateReleaseBuild(spotifyBinaryPath string) error {
 		return fmt.Errorf("could not read %s: %w", filepath.Base(spotifyBinaryPath), err)
 	}
 
-	buildRegex := regexp.MustCompile(`(Master|Release|PR|Local) Build.+(cef_\d+\.\d+\.\d+\+g[0-9a-f]+\+chromium-\d+\.\d+\.\d+\.\d+)`)
+	buildRegex := regexp.MustCompile(`(Master|Release|PR|Local) Build.+(?:cef_)?(\d+\.\d+\.\d+\+g[0-9a-f]+\+chromium-\d+\.\d+\.\d+\.\d+)`)
 	matches := buildRegex.FindSubmatch(fileContent)
 
 	if len(matches) == 0 {
-		return fmt.Errorf("could not detect Spotify build type in %s", filepath.Base(spotifyBinaryPath))
+		utils.PrintWarning(fmt.Sprintf("Could not detect Spotify build type in %s, skipping validation", filepath.Base(spotifyBinaryPath)))
+		return nil
 	}
 
 	buildType := string(matches[1])
