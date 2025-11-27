@@ -129,7 +129,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 			const musixmatchOptions = availableMusixmatchLanguages.reduce((acc, code) => {
 				let label = "";
 				try {
-					label = musixmatchDisplay.of(code) || code.toUpperCase();
+					label = musixmatchDisplay.of(code) ?? code.toUpperCase();
 				} catch (e) {
 					label = code.toUpperCase();
 				}
