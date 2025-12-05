@@ -242,6 +242,14 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 							return fmt.Sprintf(`%s || []`, submatches[1])
 						})
 					}
+
+					// to avoid syntaxerror on Spotify 1.2.78 and above
+					if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch < 78 {
+						utils.ReplaceOnce(&content, `\(\({[^}]*,\s*imageSrc`, func(submatches ...string) string {
+							return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
+						})
+					}
+
 					content = additionalPatches(content)
 				}
 
@@ -948,9 +956,9 @@ func exposeAPIs_main(input string) string {
 		},
 		{
 			Name:  "Spotify Image Snackbar Interface",
-			Regex: `\(\({[^}]*,\s*imageSrc`,
+			Regex: `(=)(\(\({[^}]*,\s*imageSrc)`,
 			Replacement: func(submatches ...string) string {
-				return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
+				return fmt.Sprintf("%sSpicetify.Snackbar.enqueueImageSnackbar=%s", submatches[1], submatches[2])
 			},
 		},
 		{
