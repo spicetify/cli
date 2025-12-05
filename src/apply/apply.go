@@ -158,7 +158,7 @@ func htmlMod(htmlPath string, flags Flag) {
 			customAppList += fmt.Sprintf(`"%s",`, app)
 		}
 
-		helperHTML += fmt.Sprintf(`<script defer>
+		helperHTML += fmt.Sprintf(`<script>
 			Spicetify.Config={};
 			Spicetify.Config["version"]="%s";
 			Spicetify.Config["current_theme"]="%s";
@@ -275,7 +275,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 			// JSX pattern (1.2.78+): (0,S.jsx)(se.qh,{path:"/collection/*",element:...})
 			`(\([\w$\.,]+\))\(([\w\.]+),\{path:"/collection(?:/[\w\*]+)?",?(element|children)?`,
 			// createElement pattern: X.createElement(Y,{path:"/collection"...})
-			`(\[\w_\$][\w_\$\d]*(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,(element|children)?[:.\w,{}()$/*"]+)?\}`,
+			`([\w_\$][\w_\$\d]*(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,(element|children)?[:.\w,{}()$/*"]+)?\}`,
 		}
 
 		reactSymbs, matchedReactPattern := utils.FindSymbolWithPattern(

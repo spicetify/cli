@@ -948,11 +948,10 @@ func exposeAPIs_main(input string) string {
 		},
 		{
 			Name:  "Spotify Image Snackbar Interface",
-			Regex: `(=)(\(\({[^}]*,\s*imageSrc)`,
+			Regex: `\(\({[^}]*,\s*imageSrc`,
 			Replacement: func(submatches ...string) string {
-				return fmt.Sprintf("%sSpicetify.Snackbar.enqueueImageSnackbar=%s", submatches[1], submatches[2])
+				return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
 			},
-			Once: true,
 		},
 		{
 			Name:  "React Component: Navigation for navLinks",
