@@ -158,7 +158,7 @@ func htmlMod(htmlPath string, flags Flag) {
 			customAppList += fmt.Sprintf(`"%s",`, app)
 		}
 
-		helperHTML += fmt.Sprintf(`<script>
+		helperHTML += fmt.Sprintf(`<script defer>
 			Spicetify.Config={};
 			Spicetify.Config["version"]="%s";
 			Spicetify.Config["current_theme"]="%s";
@@ -260,18 +260,32 @@ func getColorCSS(scheme map[string]string) string {
 
 func insertCustomApp(jsPath string, flags Flag) {
 	utils.ModifyFile(jsPath, func(content string) string {
-		const REACT_REGEX = `([\w_\$][\w_\$\d]*(?:\(\))?)\.lazy\(\((?:\(\)=>|function\(\)\{return )(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\}?\)\)`
-		const REACT_ELEMENT_REGEX = `(\[\w_\$][\w_\$\d]*(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,(element|children)?[:.\w,{}()$/*"]+)?\}`
-		reactSymbs := utils.FindSymbol(
+		// React lazy loading patterns for dynamic imports
+		reactPatterns := []string{
+			// Sync pattern: X.lazy((() => Y.Z(123).then(W.bind(W, 456))))
+			`([\w_\$][\w_\$\d]*(?:\(\))?)\.lazy\(\((?:\(\)=>|function\(\)\{return )(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)\}?\)\)`,
+			// Async pattern (1.2.78+): m.lazy(async()=>{...await o.e(123).then(...)})
+			`([\w_\$][\w_\$\d]*)\.lazy\(async\(\)=>\{(?:[^{}]|\{[^{}]*\})*await\s+(\w+)\.(\w+)\(\d+\)\.then\(\w+\.bind\(\w+,\d+\)\)`,
+			// Async Promise.all pattern (1.2.78+): m.lazy(async()=>await Promise.all([...]).then(...))
+			`([\w_\$][\w_\$\d]*(?:\(\))?)\.lazy\(async\(\)=>await\s+Promise\.all\(\[[^\]]+\]\)\.then\((\w+)\.bind\((\w+),\d+\)\)`,
+		}
+
+		// React element/route patterns for path matching
+		elementPatterns := []string{
+			// JSX pattern (1.2.78+): (0,S.jsx)(se.qh,{path:"/collection/*",element:...})
+			`(\([\w$\.,]+\))\(([\w\.]+),\{path:"/collection(?:/[\w\*]+)?",?(element|children)?`,
+			// createElement pattern: X.createElement(Y,{path:"/collection"...})
+			`(\[\w_\$][\w_\$\d]*(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,(element|children)?[:.\w,{}()$/*"]+)?\}`,
+		}
+
+		reactSymbs, matchedReactPattern := utils.FindSymbolWithPattern(
 			"Custom app React symbols",
 			content,
-			[]string{
-				REACT_REGEX})
-		eleSymbs := utils.FindSymbol(
+			reactPatterns)
+		eleSymbs, matchedElementPattern := utils.FindSymbolWithPattern(
 			"Custom app React Element",
 			content,
-			[]string{
-				REACT_ELEMENT_REGEX})
+			elementPatterns)
 
 		if (len(reactSymbs) < 2) || (len(eleSymbs) == 0) {
 			utils.PrintError("Spotify version mismatch with Spicetify. Please report it on our github repository.")
@@ -320,14 +334,14 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		utils.ReplaceOnce(
 			&content,
-			REACT_REGEX,
+			matchedReactPattern,
 			func(submatches ...string) string {
 				return fmt.Sprintf("%s%s", submatches[0], appReactMap)
 			})
 
 		utils.ReplaceOnce(
 			&content,
-			REACT_ELEMENT_REGEX,
+			matchedElementPattern,
 			func(submatches ...string) string {
 				return fmt.Sprintf("%s%s", appEleMap, submatches[0])
 			})

@@ -313,6 +313,24 @@ func FindSymbol(debugInfo, content string, clues []string) []string {
 	return nil
 }
 
+// FindSymbolWithPattern uses regexp from one or multiple clues to find variable or
+// function symbol in obfuscated code. Returns the matched symbols and the pattern that matched.
+func FindSymbolWithPattern(debugInfo, content string, clues []string) ([]string, string) {
+	for _, v := range clues {
+		re := regexp.MustCompile(v)
+		found := re.FindStringSubmatch(content)
+		if found != nil {
+			return found[1:], v
+		}
+	}
+
+	if len(debugInfo) > 0 {
+		PrintError("Cannot find symbol for " + debugInfo)
+	}
+
+	return nil, ""
+}
+
 // CreateJunction creates a junction in Windows or a symlink in Linux/Mac.
 func CreateJunction(location, destination string) error {
 	CheckExistAndDelete(destination)
