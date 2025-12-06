@@ -351,14 +351,18 @@ func SeekToCloseParen(content string, regexpTerm string, leftChar, rightChar byt
 		start := loc[0]
 		end := start
 		count := 0
+		init := false
+
 		for {
-			if content[end] == leftChar {
+			switch content[end] {
+			case leftChar:
 				count += 1
-			} else if content[end] == rightChar {
+				init = true
+			case rightChar:
 				count -= 1
 			}
 			end += 1
-			if count == 0 {
+			if count == 0 && init {
 				break
 			}
 		}

@@ -273,7 +273,8 @@ func insertCustomApp(jsPath string, flags Flag) {
 		// React element/route patterns for path matching
 		elementPatterns := []string{
 			// JSX pattern (1.2.78+): (0,S.jsx)(se.qh,{path:"/collection/*",element:...})
-			`(\([\w$\.,]+\))\(([\w\.]+),\{path:"/collection(?:/[\w\*]+)?",?(element|children)?`,
+			// Settings page should be more consistent with having no conditional renders
+			`(\([\w$\.,]+\))\(([\w\.]+),\{path:"/settings(?:/[\w\*]+)?",?(element|children)?`,
 			// createElement pattern: X.createElement(Y,{path:"/collection"...})
 			`([\w_\$][\w_\$\d]*(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,(element|children)?[:.\w,{}()$/*"]+)?\}`,
 		}
@@ -332,12 +333,20 @@ func insertCustomApp(jsPath string, flags Flag) {
 				return fmt.Sprintf("{%s%s", appMap, submatches[1])
 			})
 
-		utils.ReplaceOnce(
-			&content,
+		// Seek to the full matched React.lazy pattern
+		matchedReactPattern = utils.SeekToCloseParen(
+			content,
 			matchedReactPattern,
-			func(submatches ...string) string {
-				return fmt.Sprintf("%s%s", submatches[0], appReactMap)
-			})
+			'(',
+			')',
+		)
+
+		content = strings.Replace(
+			content,
+			matchedReactPattern,
+			fmt.Sprintf("%s%s", matchedReactPattern, appReactMap),
+			1,
+		)
 
 		utils.ReplaceOnce(
 			&content,
