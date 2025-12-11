@@ -4,6 +4,36 @@ const ProviderMusixmatch = (() => {
 		cookie: "x-mxm-token-guid=",
 	};
 
+	function findTranslationStatus(body) {
+		if (!body || typeof body !== "object") {
+			return null;
+		}
+
+		if (Array.isArray(body)) {
+			for (const item of body) {
+				const result = findTranslationStatus(item);
+				if (result) {
+					return result;
+				}
+			}
+
+			return null;
+		}
+
+		if (Array.isArray(body.track_lyrics_translation_status)) {
+			return body.track_lyrics_translation_status;
+		}
+
+		for (const value of Object.values(body)) {
+			const result = findTranslationStatus(value);
+			if (result) {
+				return result;
+			}
+		}
+
+		return null;
+	}
+
 	async function findLyrics(info) {
 		const baseURL =
 			"https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&";
@@ -19,6 +49,7 @@ const ProviderMusixmatch = (() => {
 			q_duration: durr,
 			f_subtitle_length: Math.floor(durr),
 			usertoken: CONFIG.providers.musixmatch.token,
+			part: "track_lyrics_translation_status",
 		};
 
 		const finalURL =
@@ -43,6 +74,19 @@ const ProviderMusixmatch = (() => {
 				uri: info.uri,
 			};
 		}
+
+		const translationStatus = findTranslationStatus(body);
+		const meta = body?.["matcher.track.get"]?.message?.body;
+		const availableTranslations = Array.isArray(translationStatus) ? [...new Set(translationStatus.map((status) => status?.to).filter(Boolean))] : [];
+
+		Object.defineProperties(body, {
+			__musixmatchTranslationStatus: {
+				value: availableTranslations,
+			},
+			__musixmatchTrackId: {
+				value: meta?.track?.track_id ?? null,
+			},
+		});
 
 		return body;
 	}
@@ -158,9 +202,8 @@ const ProviderMusixmatch = (() => {
 		return null;
 	}
 
-	async function getTranslation(body) {
-		const track_id = body?.["matcher.track.get"]?.message?.body?.track?.track_id;
-		if (!track_id) return null;
+	async function getTranslation(trackId) {
+		if (!trackId) return null;
 
 		const selectedLanguage = CONFIG.visual["musixmatch-translation-language"] || "none";
 		if (selectedLanguage === "none") return null;
@@ -169,7 +212,7 @@ const ProviderMusixmatch = (() => {
 			"https://apic-desktop.musixmatch.com/ws/1.1/crowd.track.translations.get?translation_fields_set=minimal&comment_format=text&format=json&app_id=web-desktop-app-v1.0&";
 
 		const params = {
-			track_id,
+			track_id: trackId,
 			selected_language: selectedLanguage,
 			usertoken: CONFIG.providers.musixmatch.token,
 		};

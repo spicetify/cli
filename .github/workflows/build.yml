@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Go
         uses: actions/setup-go@v6
@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Get Tag
         run: echo "TAG=${GITHUB_REF#refs/*/v}" >> $GITHUB_ENV
@@ -79,14 +79,14 @@ jobs:
       - name: Upload Artifact for Signing
         if: env.IS_WIN == 'true'
         id: upload-artifact-for-signing
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.arch == 'amd64' && 'x64') || (matrix.arch == 'arm64' && 'arm64') || 'x32' }}-unsigned
           path: ./spicetify.exe
 
       - name: Sign Windows Executable
         if: env.IS_WIN == 'true'
-        uses: signpath/github-action-submit-signing-request@v1
+        uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ secrets.SIGNPATH_ORG_ID }}

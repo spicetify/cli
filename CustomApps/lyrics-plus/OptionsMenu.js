@@ -86,7 +86,16 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 	);
 });
 
-const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
+function getMusixmatchTranslationPrefix() {
+	if (typeof window !== "undefined" && typeof window.__lyricsPlusMusixmatchTranslationPrefix === "string") {
+		return window.__lyricsPlusMusixmatchTranslationPrefix;
+	}
+
+	return "musixmatchTranslation:";
+}
+
+const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmatchLanguages, musixmatchSelectedLanguage }) => {
+	const musixmatchTranslationPrefix = getMusixmatchTranslationPrefix();
 	const items = useMemo(() => {
 		let sourceOptions = {
 			none: "None",
@@ -109,16 +118,25 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 			none: "None",
 		};
 
-		if (hasTranslation.musixmatch) {
-			const selectedLanguage = CONFIG.visual["musixmatch-translation-language"];
-			if (selectedLanguage === "none") return;
-			const languageName = new Intl.DisplayNames([selectedLanguage], {
-				type: "language",
-			}).of(selectedLanguage);
-			sourceOptions = {
-				...sourceOptions,
-				musixmatchTranslation: `${languageName} (Musixmatch)`,
-			};
+		const musixmatchDisplay = new Intl.DisplayNames(["en"], { type: "language" });
+		const availableMusixmatchLanguages = Array.isArray(musixmatchLanguages) ? [...new Set(musixmatchLanguages.filter(Boolean))] : [];
+		const activeMusixmatchLanguage = musixmatchSelectedLanguage && musixmatchSelectedLanguage !== "none" ? musixmatchSelectedLanguage : null;
+		if (hasTranslation.musixmatch && activeMusixmatchLanguage) {
+			availableMusixmatchLanguages.push(activeMusixmatchLanguage);
+		}
+
+		if (availableMusixmatchLanguages.length) {
+			const musixmatchOptions = availableMusixmatchLanguages.reduce((acc, code) => {
+				let label = "";
+				try {
+					label = musixmatchDisplay.of(code) ?? code.toUpperCase();
+				} catch (e) {
+					label = code.toUpperCase();
+				}
+				acc[`${musixmatchTranslationPrefix}${code}`] = `${label} (Musixmatch)`;
+				return acc;
+			}, {});
+			sourceOptions = { ...sourceOptions, ...musixmatchOptions };
 		}
 
 		if (hasTranslation.netease) {
@@ -154,7 +172,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 			}
 		}
 
-		return [
+		const configItems = [
 			{
 				desc: "Translation Provider",
 				key: "translate:translated-lyrics-source",
@@ -198,7 +216,16 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 				when: () => friendlyLanguage,
 			},
 		];
-	}, [friendlyLanguage]);
+
+		return configItems;
+	}, [
+		friendlyLanguage,
+		hasTranslation.musixmatch,
+		hasTranslation.netease,
+		Array.isArray(musixmatchLanguages) ? musixmatchLanguages.join(",") : "",
+		musixmatchSelectedLanguage || "",
+		musixmatchTranslationPrefix,
+	]);
 
 	useEffect(() => {
 		// Currently opened Context Menu does not receive prop changes
@@ -210,7 +237,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 			},
 		});
 		document.dispatchEvent(event);
-	}, [friendlyLanguage]);
+	}, [friendlyLanguage, items]);
 
 	return react.createElement(
 		Spicetify.ReactComponent.TooltipWrapper,
@@ -233,13 +260,26 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 							type: "translation-menu",
 							items,
 							onChange: (name, value) => {
-								if (name === "translate:translated-lyrics-source" && friendlyLanguage) {
-									CONFIG.visual.translate = false;
-									localStorage.setItem(`${APP_NAME}:visual:translate`, false);
-								}
 								if (name === "translate") {
 									CONFIG.visual["translate:translated-lyrics-source"] = "none";
 									localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, "none");
+								}
+								if (name === "translate:translated-lyrics-source") {
+									const hasTranslationProvider = typeof value === "string" && value !== "none";
+									if (hasTranslationProvider && CONFIG.visual.translate) {
+										CONFIG.visual.translate = false;
+										localStorage.setItem(`${APP_NAME}:visual:translate`, "false");
+									}
+
+									let nextMusixmatchLanguage = "none";
+									if (typeof value === "string" && value.startsWith(musixmatchTranslationPrefix)) {
+										nextMusixmatchLanguage = value.slice(musixmatchTranslationPrefix.length) || "none";
+									}
+
+									if (CONFIG.visual["musixmatch-translation-language"] !== nextMusixmatchLanguage) {
+										CONFIG.visual["musixmatch-translation-language"] = nextMusixmatchLanguage;
+										localStorage.setItem(`${APP_NAME}:visual:musixmatch-translation-language`, nextMusixmatchLanguage);
+									}
 								}
 
 								CONFIG.visual[name] = value;

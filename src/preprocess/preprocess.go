@@ -116,6 +116,31 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		spotifyPatch, _ = strconv.Atoi(verParts[2])
 	}
 
+	var spotifyBinaryPath string
+	switch runtime.GOOS {
+	case "windows":
+		dllPath := filepath.Join(spotifyBasePath, "spotify.dll")
+		exePath := filepath.Join(spotifyBasePath, "spotify.exe")
+
+		if _, err := os.Stat(dllPath); err == nil {
+			spotifyBinaryPath = dllPath
+		} else if _, err := os.Stat(exePath); err == nil {
+			spotifyBinaryPath = exePath
+		} else {
+			utils.PrintError("Could not find spotify.dll or spotify.exe in Spotify installation directory")
+			utils.Fatal(errors.New("aborting the patching process due to missing Spotify binaries"))
+		}
+	case "darwin":
+		spotifyBinaryPath = filepath.Join(spotifyBasePath, "..", "MacOS", "Spotify")
+	}
+
+	if spotifyBinaryPath != "" {
+		if err := validateReleaseBuild(spotifyBinaryPath); err != nil {
+			utils.PrintError(err.Error())
+			utils.Fatal(errors.New("aborting the patching process due to unsupported build"))
+		}
+	}
+
 	frameworkResourcesPath := ""
 	switch runtime.GOOS {
 	case "darwin":
@@ -141,7 +166,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					embeddedString, _, _, err := utils.ReadStringFromUTF16Binary(binFilePath, startMarker, endMarker)
 					if err != nil {
 						utils.PrintWarning(fmt.Sprintf("Could not process %s: %v", binFilePath, err))
-						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error if you're on Spotify 1.2.63 or lower.")
+						utils.PrintInfo("If above warning says 'could not find start marker', you can safely ignore that error if you're on Spotify 1.2.63 or lower and you're not on macOS Intel.")
 						utils.PrintInfo("However, if you're on 1.2.64 or higher, please report this issue")
 						continue
 					}
@@ -151,7 +176,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 						utils.PrintWarning(fmt.Sprintf("Could not create xpui-modules.js: %v", err))
 						break
 					} else {
-						utils.PrintSuccess("Extracted V8 snapshot blob (remaining xpui modules) to xpui-modules.js")
+						utils.PrintSuccess("Finished extracting V8 snapshot blob to local file")
 						break
 					}
 				}
@@ -217,8 +242,23 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 							return fmt.Sprintf(`%s || []`, submatches[1])
 						})
 					}
+
+					// to avoid syntaxerror on Spotify 1.2.78 and above
+					if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch < 78 {
+						utils.ReplaceOnce(&content, `\(\({[^}]*,\s*imageSrc`, func(submatches ...string) string {
+							return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
+						})
+					}
+
 					content = additionalPatches(content)
 				}
+
+				if fileName == "dwp-top-bar.js" || fileName == "dwp-now-playing-bar.js" || fileName == "dwp-home-chips-row.js" {
+					utils.ReplaceOnce(&content, `(\w+\.pathname)\.startsWith\((\w+)\)`, func(submatches ...string) string {
+						return fmt.Sprintf("%s === %s", submatches[1], submatches[2])
+					})
+				}
+
 				for k, v := range cssTranslationMap {
 					utils.Replace(&content, k, func(submatches ...string) string {
 						return v
@@ -916,9 +956,9 @@ func exposeAPIs_main(input string) string {
 		},
 		{
 			Name:  "Spotify Image Snackbar Interface",
-			Regex: `\(\({[^}]*,\s*imageSrc`,
+			Regex: `(=)(\(\({[^}]*,\s*imageSrc)`,
 			Replacement: func(submatches ...string) string {
-				return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
+				return fmt.Sprintf("%sSpicetify.Snackbar.enqueueImageSnackbar=%s", submatches[1], submatches[2])
 			},
 		},
 		{
@@ -1013,6 +1053,29 @@ func exposeAPIs_vendor(input string) string {
 	}
 
 	return applyPatches(input, vendorPatches)
+}
+
+func validateReleaseBuild(spotifyBinaryPath string) error {
+	fileContent, err := os.ReadFile(spotifyBinaryPath)
+	if err != nil {
+		return fmt.Errorf("could not read %s: %w", filepath.Base(spotifyBinaryPath), err)
+	}
+
+	buildRegex := regexp.MustCompile(`(Master|Release|PR|Local) Build.+(?:cef_)?(\d+\.\d+\.\d+\+g[0-9a-f]+\+chromium-\d+\.\d+\.\d+\.\d+)`)
+	matches := buildRegex.FindSubmatch(fileContent)
+
+	if len(matches) == 0 {
+		utils.PrintWarning(fmt.Sprintf("Could not detect Spotify build type in %s, skipping validation", filepath.Base(spotifyBinaryPath)))
+		return nil
+	}
+
+	buildType := string(matches[1])
+	if buildType != "Release" {
+		return fmt.Errorf("detected %s Spotify build! spicetify works only on Release builds. Please install latest Release version of Spotify", buildType)
+	}
+
+	utils.PrintSuccess(fmt.Sprintf("Spotify's build type is %s. Continuing...", string(matches[1])))
+	return nil
 }
 
 type githubRelease = utils.GithubRelease
