@@ -285,7 +285,7 @@ func linuxApp() string {
 			}
 
 			if (stat.Mode() & os.ModeSymlink) != 0 {
-				binDest, err := os.Readlink(v)
+				binDest, err := filepath.EvalSymlinks(bin)
 
 				if err != nil {
 					continue
