@@ -79,7 +79,7 @@ jobs:
       - name: Upload Artifact for Signing
         if: env.IS_WIN == 'true'
         id: upload-artifact-for-signing
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: spicetify-${{ env.TAG }}-${{ matrix.os }}-${{ (matrix.arch == 'amd64' && 'x64') || (matrix.arch == 'arm64' && 'arm64') || 'x32' }}-unsigned
           path: ./spicetify.exe
