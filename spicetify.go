@@ -147,8 +147,6 @@ func main() {
 		return
 	}
 
-	cmd.InitPaths()
-
 	// Unchainable commands
 	switch commands[0] {
 	case "config":
@@ -266,6 +264,8 @@ func main() {
 		watchGroup.Wait()
 		return
 	}
+
+	cmd.InitPaths()
 
 	utils.PrintBold("spicetify v" + version)
 	if slices.Contains(commands, "upgrade") || slices.Contains(commands, "update") {
