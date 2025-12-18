@@ -341,16 +341,32 @@
 
 	async function fetchAlbumTracks(uri, includeMetadata = false) {
 		const { queryAlbumTracks } = Spicetify.GraphQL.Definitions;
-		const { data, errors } = await Spicetify.GraphQL.Request(queryAlbumTracks, {
-			uri,
-			offset: 0,
-			limit: 100,
-		});
-
-		if (errors) throw errors[0].message;
-		if (data.albumUnion.playability.playable === false) throw "Album is not playable";
-
-		return (data.albumUnion?.tracksV2 ?? data.albumUnion?.tracks ?? []).items
+		
+		let offset = 0;
+		const allItems = [];
+	
+		while (true) {
+			const { data, errors } = await Spicetify.GraphQL.Request(queryAlbumTracks, {
+				uri,
+				offset,
+				limit: 100,
+			});
+	
+			if (errors) throw errors[0].message;
+			if (data.albumUnion.playability.playable === false) {
+				throw "Album is not playable";
+			}
+	
+			const items = (data.albumUnion?.tracksV2 ?? data.albumUnion?.tracks ?? {}).items ?? [];
+			allItems.push(...items);
+	
+			// If fewer than 100 tracks were returned, we're done
+			if (items.length < 100) break;
+	
+			offset += 100;
+		}
+		
+		return allItems
 			.filter(({ track }) => track.playability.playable)
 			.map(({ track }) => (includeMetadata ? track : track.uri));
 	}
@@ -382,6 +398,10 @@
 	}
 
 	async function fetchArtistTracks(uri) {
+		// Reset counters per artist shuffle
+		artistFetchTypeCount.album = 0;
+		artistFetchTypeCount.single = 0;
+		
 		// Definitions from older Spotify version
 		const queryArtistOverview = {
 			name: "queryArtistOverview",
@@ -428,11 +448,9 @@
 	async function fetchArtistLikedTracks(uri) {
 		const artistRes = await Spicetify.CosmosAsync.get(`sp://core-collection/unstable/@/list/tracks/artist/${uri}?responseFormat=protobufJson`);
 
-		const allTracks = artistRes.item?.map((artistTrack) => {
-			if (artistTrack.trackMetadata.playable) return artistTrack.trackMetadata.link;
-		});
-
-		return allTracks ?? [];
+		return artistRes.item
+			?.filter(t => t.trackMetadata.playable)
+			.map(t => t.trackMetadata.link) ?? [];
 	}
 
 	async function fetchArtistTopTenTracks(uri) {
@@ -460,12 +478,14 @@
 
 	function fetchQueue() {
 		const { _queueState } = Spicetify.Platform.PlayerAPI._queue;
-		const nextUp = _queueState.nextUp.map((track) => track.uri);
-		const queued = _queueState.queued.map((track) => track.uri);
-		const array = [...new Set([...nextUp, ...queued])];
+		const nextUp = _queueState.nextUp.map(t => t.uri);
+		const queued = _queueState.queued.map(t => t.uri);
 		const current = _queueState.current?.uri;
+
+		const array = [];
 		if (current) array.push(current);
-		return array;
+		
+		return [...new Set([...array, ...nextUp, ...queued])];
 	}
 
 	async function fetchCollection(uriObj) {
@@ -497,7 +517,8 @@
 		return res.items.filter((track) => track.episodePlayState.isPlayable).map((track) => track.episodeMetadata.link);
 	}
 
-	function shuffle(array) {
+	function shuffle(input) {
+		const array = [...input];
 		let counter = array.length;
 		if (counter <= 1) return array;
 
@@ -510,9 +531,7 @@
 			counter--;
 
 			// And swap the last element with it
-			const temp = array[counter];
-			array[counter] = array[index];
-			array[index] = temp;
+			[array[counter], array[index]] = [array[index], array[counter]];
 		}
 		return array.filter(Boolean);
 	}
