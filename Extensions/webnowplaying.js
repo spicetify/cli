@@ -42,6 +42,7 @@ class WNPReduxWebSocket {
 	};
 
 	constructor() {
+		this.reconnectAttempts = 0;
 		this.init();
 
 		Spicetify.Player.addEventListener("songchange", ({ data }) => this.updateSpicetifyInfo(data));
@@ -92,9 +93,9 @@ class WNPReduxWebSocket {
 		this.communicationRevision = null;
 		if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
 		if (this.connectionTimeout) clearTimeout(this.connectionTimeout);
-		if (this.ws) {
-			this.ws.onclose = null;
-			this.ws.close();
+		if (this._ws) {
+			this._ws.onclose = null;
+			this._ws.close();
 		}
 	}
 
@@ -118,6 +119,7 @@ class WNPReduxWebSocket {
 	}
 
 	onOpen() {
+		console.log("WNP WebSocket connected");
 		this.reconnectCount = 0;
 		this.updateInterval = setInterval(this.sendUpdate.bind(this), 500);
 		// If no communication revision is received within 1 second, assume it's WNP for Rainmeter < 0.5.0 (legacy)
@@ -127,6 +129,7 @@ class WNPReduxWebSocket {
 	}
 
 	onClose() {
+		console.log("WNP WebSocket closed, retrying...");
 		this.retry();
 	}
 
@@ -235,8 +238,8 @@ function OnMessageLegacy(self, message) {
 
 function SendUpdateLegacy(self) {
 	if (!Spicetify.Player.data && cache.get("state") !== 0) {
-		cache.set("state", 0);
-		ws.send("STATE:0");
+		self.cache.set("state", 0);
+		self._ws.send("STATE:0");
 		return;
 	}
 
@@ -251,7 +254,7 @@ function SendUpdateLegacy(self) {
 
 			// Conversion to legacy values
 			if (key === "state") value = value === "PLAYING" ? 1 : value === "PAUSED" ? 2 : 0;
-			else if (key === "repeat") value = value === "ALL" ? 2 : value === "ONE" ? 1 : 0;
+			else if (key === "repeat") value = value === "ALL" ? 1 : value === "ONE" ? 2 : 0;
 			else if (key === "shuffle") value = value ? 1 : 0;
 
 			// Check for null, and not just falsy, because 0 and '' are falsy
@@ -325,8 +328,8 @@ function OnMessageRev1(self, message) {
 
 function SendUpdateRev1(self) {
 	if (!Spicetify.Player.data && cache.get("state") !== "STOPPED") {
-		cache.set("state", "STOPPED");
-		ws.send("STATE STOPPED");
+		self.cache.set("state", "STOPPED");
+		self._ws.send("STATE STOPPED");
 		return;
 	}
 
