@@ -54,7 +54,7 @@
 
 	function settingsContent() {
 		// Options
-		header = document.createElement("h2");
+		const header = document.createElement("h2");
 		header.innerText = "Options";
 		content.appendChild(header);
 
@@ -152,7 +152,8 @@
 		try {
 			const value = JSON.parse(Spicetify.LocalStorage.get(item));
 			return value ?? defaultValue;
-		} catch {
+		} catch (e) {
+			console.error(`Failed to parse ${item} from LocalStorage`, e);
 			return defaultValue;
 		}
 	}
@@ -261,17 +262,15 @@
 			return;
 		}
 
-		let uriIndex = 0;
-		let artistUri = data.item.metadata.artist_uri;
-
-		while (artistUri) {
-			if (trashArtistList[artistUri]) {
-				Spicetify.Player.next();
-				return;
-			}
-
-			uriIndex++;
-			artistUri = data.item.metadata[`artist_uri:${uriIndex}`];
+		const artistUris = [data.item.metadata.artist_uri];
+		let i = 1;
+		while (data.item.metadata[`artist_uri:${i}`]) {
+		    artistUris.push(data.item.metadata[`artist_uri:${i}`]);
+		    i++;
+		}
+		
+		if (artistUris.some(uri => trashArtistList[uri])) {
+		    Spicetify.Player.next();
 		}
 	}
 
@@ -342,13 +341,11 @@
 		const uri = uris[0];
 		const uriObj = Spicetify.URI.fromString(uri);
 		if (uriObj.type === Spicetify.URI.Type.TRACK) {
-			this.name = trashSongList[uri] ? UNTHROW_TEXT : THROW_TEXT;
-			return true;
+			return { name: trashSongList[uri] ? UNTHROW_TEXT : THROW_TEXT };
 		}
 
 		if (uriObj.type === Spicetify.URI.Type.ARTIST) {
-			this.name = trashArtistList[uri] ? UNTHROW_TEXT : THROW_TEXT;
-			return true;
+			return { name: trashArtistList[uri] ? UNTHROW_TEXT : THROW_TEXT };
 		}
 
 		return false;
@@ -391,7 +388,7 @@
 			});
 
 			const writable = await handle.createWritable();
-			await writable.write(JSON.stringify(data));
+			await writable.write(JSON.stringify(data, null, 2));
 			await writable.close();
 
 			Spicetify.showNotification("Backup saved succesfully.");
