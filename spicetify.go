@@ -170,6 +170,7 @@ func main() {
 		return
 
 	case "spotify-updates":
+		cmd.InitPaths()
 		commands = commands[1:]
 		if len(commands) == 0 {
 			utils.PrintError("No parameter given. It has to be \"block\" or \"unblock\".")
@@ -187,6 +188,7 @@ func main() {
 		return
 
 	case "path":
+		cmd.InitPaths()
 		commands = commands[1:]
 		path, err := (func() (string, error) {
 			if styleFocus {
@@ -230,6 +232,8 @@ func main() {
 		return
 
 	case "watch":
+		cmd.InitPaths()
+
 		var name []string
 		if len(commands) > 1 {
 			name = commands[1:]
