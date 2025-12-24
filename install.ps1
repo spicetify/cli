@@ -85,7 +85,13 @@ function Get-Spicetify {
     }
     else {
       Write-Host -Object 'Fetching the latest spicetify version...' -NoNewline
-      $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest'
+      $token = if ($env:SPICETIFY_GITHUB_TOKEN) { $env:SPICETIFY_GITHUB_TOKEN } else { $env:GITHUB_TOKEN }
+      if ($token) {
+        $headers = @{Authorization = "Bearer $token"}
+        $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest' -Headers $headers
+      } else {
+        $latestRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/cli/releases/latest'
+      }
       $targetVersion = $latestRelease.tag_name -replace 'v', ''
       Write-Success
     }
