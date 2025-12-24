@@ -2551,12 +2551,7 @@ Spicetify.Playbar = (() => {
 	// Fetch latest version from GitHub
 	try {
 		let changelog;
-		let headers = {};
-		const token = process.env.SPICETIFY_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
-		if (token) {
-			headers.Authorization = `Bearer ${token}`;
-		}
-		const res = await fetch("https://api.github.com/repos/spicetify/cli/releases/latest", { headers });
+		const res = await fetch("https://api.github.com/repos/spicetify/cli/releases/latest");
 		const { tag_name, html_url, body } = await res.json();
 		const semver = tag_name.slice(1);
 		const changelogRawDataOld = body.match(/## What's Changed([\s\S]*?)\r\n\r/)?.[1];
