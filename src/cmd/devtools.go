@@ -28,18 +28,21 @@ func EnableDevTools() {
 		{
 			homePath := os.Getenv("HOME")
 			snapSpotifyHome := homePath + "/snap/spotify/common"
-			if _, err := os.Stat(snapSpotifyHome); err == nil {
-				homePath = snapSpotifyHome
-			}
-
+			snapOfflineBNK := snapSpotifyHome + "/cache/spotify/offline.bnk"
 			flatpakHome := homePath + "/.var/app/com.spotify.Client"
-			if _, err := os.Stat(flatpakHome); err == nil {
-				homePath = flatpakHome
-				filePath = homePath + "/cache/spotify/offline.bnk"
-			} else {
-				filePath = homePath + "/.cache/spotify/offline.bnk"
-			}
+			flatpakOfflineBNK := flatpakHome + "/cache/spotify/offline.bnk"
 
+			if _, err := os.Stat(snapOfflineBNK); err == nil {
+				homePath = snapSpotifyHome
+				filePath = snapOfflineBNK
+			} else {
+				if _, err := os.Stat(flatpakOfflineBNK); err == nil {
+					homePath = flatpakHome
+					filePath = flatpakOfflineBNK
+				} else {
+					filePath = homePath + "/.cache/spotify/offline.bnk"
+				}
+			}
 		}
 	case "darwin":
 		filePath = os.Getenv("HOME") + "/Library/Application Support/Spotify/PersistentCache/offline.bnk"
