@@ -245,14 +245,16 @@ const ProviderMusixmatch = (() => {
 			const cached = localStorage.getItem("lyrics-plus:musixmatch-languages");
 			if (cached) {
 				const tempMap = JSON.parse(cached);
-				// Check if any value starts with a lowercase letter (indicating old cache)
-				const hasLowercase = Object.values(tempMap).some((name) => name && name[0] === name[0].toLowerCase() && name[0] !== name[0].toUpperCase());
-				if (!hasLowercase) {
+				// Check cache version
+				if (tempMap.__version === 1) {
+					delete tempMap.__version;
 					languageMap = tempMap;
 					return languageMap;
 				}
 			}
-		} catch {}
+		} catch (e) {
+			console.warn("Failed to parse cached languages", e);
+		}
 
 		const baseURL = "https://apic-desktop.musixmatch.com/ws/1.1/languages.get?app_id=web-desktop-app-v1.0&get_romanized_info=1&";
 
@@ -278,7 +280,7 @@ const ProviderMusixmatch = (() => {
 						if (lang.language_iso_code_3) languageMap[lang.language_iso_code_3] = name;
 					}
 				});
-				localStorage.setItem("lyrics-plus:musixmatch-languages", JSON.stringify(languageMap));
+				localStorage.setItem("lyrics-plus:musixmatch-languages", JSON.stringify({ ...languageMap, __version: 1 }));
 				return languageMap;
 			}
 		} catch (e) {
