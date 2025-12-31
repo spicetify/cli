@@ -237,5 +237,55 @@ const ProviderMusixmatch = (() => {
 		}));
 	}
 
-	return { findLyrics, getKaraoke, getSynced, getUnsynced, getTranslation };
+	let languageMap = null;
+	async function getLanguages() {
+		if (languageMap) return languageMap;
+
+		try {
+			const cached = localStorage.getItem("lyrics-plus:musixmatch-languages");
+			if (cached) {
+				const tempMap = JSON.parse(cached);
+				// Check if any value starts with a lowercase letter (indicating old cache)
+				const hasLowercase = Object.values(tempMap).some((name) => name && name[0] === name[0].toLowerCase() && name[0] !== name[0].toUpperCase());
+				if (!hasLowercase) {
+					languageMap = tempMap;
+					return languageMap;
+				}
+			}
+		} catch {}
+
+		const baseURL = "https://apic-desktop.musixmatch.com/ws/1.1/languages.get?app_id=web-desktop-app-v1.0&get_romanized_info=1&";
+		
+		const params = {
+			usertoken: CONFIG.providers.musixmatch.token,
+		};
+
+		const finalURL =
+			baseURL +
+			Object.keys(params)
+				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
+				.join("&");
+
+		try {
+			let body = await Spicetify.CosmosAsync.get(finalURL, null, headers);
+			if (body?.message?.body?.language_list) {
+				languageMap = {};
+				body.message.body.language_list.forEach((item) => {
+					const lang = item.language;
+					if (lang.language_name) {
+						const name = lang.language_name.charAt(0).toUpperCase() + lang.language_name.slice(1);
+						if (lang.language_iso_code_1) languageMap[lang.language_iso_code_1] = name;
+						if (lang.language_iso_code_3) languageMap[lang.language_iso_code_3] = name;
+					}
+				});
+				localStorage.setItem("lyrics-plus:musixmatch-languages", JSON.stringify(languageMap));
+				return languageMap;
+			}
+		} catch (e) {
+			console.error("Failed to fetch languages", e);
+		}
+		return {};
+	}
+
+	return { findLyrics, getKaraoke, getSynced, getUnsynced, getTranslation, getLanguages };
 })();
