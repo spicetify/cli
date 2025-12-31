@@ -255,7 +255,7 @@ const ProviderMusixmatch = (() => {
 		} catch {}
 
 		const baseURL = "https://apic-desktop.musixmatch.com/ws/1.1/languages.get?app_id=web-desktop-app-v1.0&get_romanized_info=1&";
-		
+
 		const params = {
 			usertoken: CONFIG.providers.musixmatch.token,
 		};

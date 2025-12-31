@@ -134,7 +134,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 			availableMusixmatchLanguages.push(activeMusixmatchLanguage);
 		}
 
-
 		if (availableMusixmatchLanguages.length) {
 			const musixmatchOptions = availableMusixmatchLanguages.reduce((acc, code) => {
 				let label = "";
