@@ -96,6 +96,15 @@ function getMusixmatchTranslationPrefix() {
 
 const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmatchLanguages, musixmatchSelectedLanguage }) => {
 	const musixmatchTranslationPrefix = getMusixmatchTranslationPrefix();
+
+	const [languageMap, setLanguageMap] = react.useState({});
+
+	react.useEffect(() => {
+		if (typeof ProviderMusixmatch !== "undefined") {
+			ProviderMusixmatch.getLanguages().then(setLanguageMap);
+		}
+	}, []);
+
 	const items = useMemo(() => {
 		let sourceOptions = {
 			none: "None",
@@ -129,7 +138,11 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 			const musixmatchOptions = availableMusixmatchLanguages.reduce((acc, code) => {
 				let label = "";
 				try {
-					label = musixmatchDisplay.of(code) ?? code.toUpperCase();
+					if (languageMap && languageMap[code]) {
+						label = languageMap[code];
+					} else {
+						label = musixmatchDisplay.of(code) ?? code.toUpperCase();
+					}
 				} catch (e) {
 					label = code.toUpperCase();
 				}
@@ -224,7 +237,9 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 		hasTranslation.netease,
 		Array.isArray(musixmatchLanguages) ? musixmatchLanguages.join(",") : "",
 		musixmatchSelectedLanguage || "",
+
 		musixmatchTranslationPrefix,
+		languageMap,
 	]);
 
 	useEffect(() => {
