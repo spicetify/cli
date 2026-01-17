@@ -100,9 +100,24 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 	const [languageMap, setLanguageMap] = react.useState({});
 
 	react.useEffect(() => {
-		if (typeof ProviderMusixmatch !== "undefined") {
-			ProviderMusixmatch.getLanguages().then(setLanguageMap);
+		let cancelled = false;
+
+		if (typeof ProviderMusixmatch !== "undefined" && ProviderMusixmatch && typeof ProviderMusixmatch.getLanguages === "function") {
+			(async () => {
+				try {
+					const languages = await ProviderMusixmatch.getLanguages();
+					if (!cancelled) {
+						setLanguageMap(languages);
+					}
+				} catch (error) {
+					console.error("Failed to fetch Musixmatch languages:", error);
+				}
+			})();
 		}
+
+		return () => {
+			cancelled = true;
+		};
 	}, []);
 
 	const items = useMemo(() => {
@@ -135,7 +150,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 		}
 
 		if (availableMusixmatchLanguages.length) {
-			const musixmatchOptions = availableMusixmatchLanguages.reduce((acc, code) => {
+			const musixmatchOptionsArray = availableMusixmatchLanguages.map((code) => {
 				let label = "";
 				try {
 					if (languageMap && languageMap[code]) {
@@ -146,7 +161,16 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 				} catch (e) {
 					label = code.toUpperCase();
 				}
-				acc[`${musixmatchTranslationPrefix}${code}`] = `${label} (Musixmatch)`;
+				return {
+					key: `${musixmatchTranslationPrefix}${code}`,
+					label: `${label} (Musixmatch)`,
+				};
+			});
+
+			musixmatchOptionsArray.sort((a, b) => a.label.localeCompare(b.label));
+
+			const musixmatchOptions = musixmatchOptionsArray.reduce((acc, { key, label }) => {
+				acc[key] = label;
 				return acc;
 			}, {});
 			sourceOptions = { ...sourceOptions, ...musixmatchOptions };
