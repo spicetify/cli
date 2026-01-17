@@ -237,7 +237,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 		hasTranslation.netease,
 		Array.isArray(musixmatchLanguages) ? musixmatchLanguages.join(",") : "",
 		musixmatchSelectedLanguage || "",
-
 		musixmatchTranslationPrefix,
 		languageMap,
 	]);
