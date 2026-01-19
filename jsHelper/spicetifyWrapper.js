@@ -2350,7 +2350,7 @@ Spicetify.Playbar = (() => {
 			this.element = document.createElement("button");
 			this.element.classList.add("main-genericButton-button");
 			this.iconElement = document.createElement("span");
-			this.iconElement.classList.add("Wrapper-sm-only", "Wrapper-small-only");
+			this.iconElement.classList.add("e-91000-button__icon-wrapper");
 			this.element.appendChild(this.iconElement);
 			this.icon = icon;
 			this.onClick = onClick;
