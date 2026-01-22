@@ -24,8 +24,8 @@ func SpotifyKill() {
 			exec.Command("pkill", "-x", "spotify").Run()
 		}
 	case "darwin":
-		isRunning := exec.Command("pgrep", "-x", "Spotify")
-		_, err := isRunning.Output()
+		isRunning := exec.Command("sh", "-c", "ps aux | grep 'Spotify' | grep -v grep")
+		_, err := isRunning.CombinedOutput()
 		if err == nil {
 			exec.Command("pkill", "-x", "Spotify").Run()
 		}
