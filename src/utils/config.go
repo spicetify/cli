@@ -307,6 +307,7 @@ func linuxApp() string {
 		"/opt/spotify/spotify-client/",
 		"/usr/share/spotify/",
 		"/usr/libexec/spotify/",
+		"/usr/share/spotify-client/",
 		"/var/lib/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
 		"$HOME/.local/share/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
 		"$HOME/.local/share/spotify-launcher/install/usr/share/spotify/",

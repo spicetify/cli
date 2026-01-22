@@ -147,8 +147,6 @@ func main() {
 		return
 	}
 
-	cmd.InitPaths()
-
 	// Unchainable commands
 	switch commands[0] {
 	case "config":
@@ -172,6 +170,7 @@ func main() {
 		return
 
 	case "spotify-updates":
+		cmd.InitPaths()
 		commands = commands[1:]
 		if len(commands) == 0 {
 			utils.PrintError("No parameter given. It has to be \"block\" or \"unblock\".")
@@ -189,6 +188,7 @@ func main() {
 		return
 
 	case "path":
+		cmd.InitPaths()
 		commands = commands[1:]
 		path, err := (func() (string, error) {
 			if styleFocus {
@@ -232,6 +232,8 @@ func main() {
 		return
 
 	case "watch":
+		cmd.InitPaths()
+
 		var name []string
 		if len(commands) > 1 {
 			name = commands[1:]
@@ -266,6 +268,8 @@ func main() {
 		watchGroup.Wait()
 		return
 	}
+
+	cmd.InitPaths()
 
 	utils.PrintBold("spicetify v" + version)
 	if slices.Contains(commands, "upgrade") || slices.Contains(commands, "update") {
