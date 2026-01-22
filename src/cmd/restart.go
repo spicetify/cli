@@ -18,16 +18,16 @@ func SpotifyKill() {
 			exec.Command("taskkill", "/F", "/IM", "spotify.exe").Run()
 		}
 	case "linux":
-		isRunning := exec.Command("pgrep", "spotify")
+		isRunning := exec.Command("pgrep", "-x", "spotify")
 		_, err := isRunning.Output()
 		if err == nil {
-			exec.Command("pkill", "spotify").Run()
+			exec.Command("pkill", "-x", "spotify").Run()
 		}
 	case "darwin":
 		isRunning := exec.Command("sh", "-c", "ps aux | grep 'Spotify' | grep -v grep")
 		_, err := isRunning.CombinedOutput()
 		if err == nil {
-			exec.Command("pkill", "Spotify").Run()
+			exec.Command("pkill", "-x", "Spotify").Run()
 		}
 	}
 }
