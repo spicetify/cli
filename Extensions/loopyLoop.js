@@ -3,6 +3,8 @@
 // VERSION: 0.3
 // DESCRIPTION: Practice hitting that note right by looping sections of a track. Right-click the progress bar to set start/end points.
 
+// <reference path="../globals.d.ts" />
+
 (async function LoopyLoop() {
     // 1. Wait for Spicetify Player and the Progress Bar element to be available
     while (!Spicetify?.Player || !document.querySelector(".main-nowPlayingBar-center .playback-progressbar")) {
