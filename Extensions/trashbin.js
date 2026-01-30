@@ -2,7 +2,7 @@
 // AUTHOR: khanhas and OhItsTom (Fixed by A2R14N)
 // DESCRIPTION: Throw songs to trashbin and never hear it again.
 
-// <reference path="../globals.d.ts" />
+/// <reference path="../globals.d.ts" />
 
 (function TrashBin() {
     const skipBackBtn =
