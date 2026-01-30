@@ -2068,6 +2068,13 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 	.custom-navlink {
 		-webkit-app-region: unset;
 	}
+
+    .main-globalNav-navLinkActive {
+        color: var(--spice-text) !important;
+    }
+    .main-globalNav-navLinkActive svg {
+        fill: currentColor !important;
+    }
 		`;
 		document.head.appendChild(style);
 	})();
@@ -2090,16 +2097,22 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 };
 
 const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
-	const isActive = Spicetify.Platform.History.location.pathname?.startsWith(appRoutePath);
-	const createIcon = () => createIconComponent(isActive ? activeIcon : icon, 24);
-
 	const NavLinkFactory = Spicetify.React.useContext(navLinkFactoryCtx);
-
-	return NavLinkFactory && Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, createIcon, isActive }, null);
+	return NavLinkFactory && Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, icon, activeIcon }, null);
 };
 
-const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
+const NavLinkSidebar = ({ appProper, appRoutePath, icon, activeIcon }) => {
 	const isSidebarCollapsed = Spicetify.Platform.LocalStorageAPI.getItem("ylx-sidebar-state") === 1;
+	const [active, setActive] = Spicetify.React.useState(Spicetify.Platform.History.location.pathname?.startsWith(appRoutePath));
+
+	Spicetify.React.useEffect(() => {
+		const unlisten = Spicetify.Platform.History.listen((location) => {
+			setActive(location.pathname?.startsWith(appRoutePath));
+		});
+		return unlisten;
+	}, [appRoutePath]);
+
+	const createIcon = () => createIconComponent(active ? activeIcon : icon, 24);
 
 	return Spicetify.React.createElement(
 		"li",
@@ -2113,7 +2126,7 @@ const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
 					to: appRoutePath,
 					referrer: "other",
 					className: Spicetify.classnames("link-subtle", "main-yourLibraryX-navLink", {
-						"main-yourLibraryX-navLinkActive": isActive,
+						"main-yourLibraryX-navLinkActive": active,
 					}),
 					onClick: () => undefined,
 					"aria-label": appProper,
@@ -2125,14 +2138,29 @@ const NavLinkSidebar = ({ appProper, appRoutePath, createIcon, isActive }) => {
 	);
 };
 
-const NavLinkGlobal = ({ appProper, appRoutePath, createIcon, isActive }) => {
+const NavLinkGlobal = ({ appProper, appRoutePath, icon, activeIcon }) => {
+	const [active, setActive] = Spicetify.React.useState(Spicetify.Platform.History.location.pathname?.startsWith(appRoutePath));
+
+	Spicetify.React.useEffect(() => {
+		const checkActive = () => {
+			const currentPath = Spicetify.Platform.History.location.pathname;
+			setActive(currentPath?.startsWith(appRoutePath));
+		};
+
+		checkActive();
+		const unlisten = Spicetify.Platform.History.listen(checkActive);
+		return unlisten;
+	}, [appRoutePath]);
+
+	const createIcon = () => createIconComponent(active ? activeIcon : icon, 24);
+
 	return Spicetify.React.createElement(
 		Spicetify.ReactComponent.TooltipWrapper,
 		{ label: appProper },
 		Spicetify.React.createElement(Spicetify.ReactComponent.ButtonTertiary, {
 			iconOnly: createIcon,
 			className: Spicetify.classnames("link-subtle", "main-globalNav-navLink", "main-globalNav-link-icon", "custom-navlink", {
-				"main-globalNav-navLinkActive": isActive,
+				"main-globalNav-navLinkActive": active,
 			}),
 			"aria-label": appProper,
 			onClick: () => Spicetify.Platform.History.push(appRoutePath),
