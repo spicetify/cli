@@ -254,8 +254,8 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 				}
 
 				if fileName == "dwp-top-bar.js" || fileName == "dwp-now-playing-bar.js" || fileName == "dwp-home-chips-row.js" {
-					utils.ReplaceOnce(&content, `(\w+\.pathname)\.startsWith\((\w+)\)`, func(submatches ...string) string {
-						return fmt.Sprintf("%s === %s", submatches[1], submatches[2])
+					utils.ReplaceOnce(&content, `e\.state\.cinemaState`, func(submatches ...string) string {
+						return "e.state?.cinemaState"
 					})
 				}
 
