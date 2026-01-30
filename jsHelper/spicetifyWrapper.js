@@ -2103,11 +2103,13 @@ const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
 
 const NavLinkSidebar = ({ appProper, appRoutePath, icon, activeIcon }) => {
 	const isSidebarCollapsed = Spicetify.Platform.LocalStorageAPI.getItem("ylx-sidebar-state") === 1;
-	const [active, setActive] = Spicetify.React.useState(Spicetify.Platform.History.location.pathname?.startsWith(appRoutePath));
+	// Boundary-safe check to prevent prefix collisions (e.g., /app matching /apple)
+	const isActiveRoute = (pathname) => pathname === appRoutePath || pathname?.startsWith(`${appRoutePath}/`);
+	const [active, setActive] = Spicetify.React.useState(isActiveRoute(Spicetify.Platform.History.location.pathname));
 
 	Spicetify.React.useEffect(() => {
 		const unlisten = Spicetify.Platform.History.listen((location) => {
-			setActive(location.pathname?.startsWith(appRoutePath));
+			setActive(isActiveRoute(location.pathname));
 		});
 		return unlisten;
 	}, [appRoutePath]);
@@ -2139,12 +2141,14 @@ const NavLinkSidebar = ({ appProper, appRoutePath, icon, activeIcon }) => {
 };
 
 const NavLinkGlobal = ({ appProper, appRoutePath, icon, activeIcon }) => {
-	const [active, setActive] = Spicetify.React.useState(Spicetify.Platform.History.location.pathname?.startsWith(appRoutePath));
+	// Boundary-safe check to prevent prefix collisions
+	const isActiveRoute = (pathname) => pathname === appRoutePath || pathname?.startsWith(`${appRoutePath}/`);
+	const [active, setActive] = Spicetify.React.useState(isActiveRoute(Spicetify.Platform.History.location.pathname));
 
 	Spicetify.React.useEffect(() => {
 		const checkActive = () => {
 			const currentPath = Spicetify.Platform.History.location.pathname;
-			setActive(currentPath?.startsWith(appRoutePath));
+			setActive(isActiveRoute(currentPath));
 		};
 
 		checkActive();
