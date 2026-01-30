@@ -6,7 +6,6 @@
 const react = Spicetify.React;
 const { useState, useEffect, useCallback, useMemo, useRef } = react;
 /** @type {import("react").ReactDOM} */
-const reactDOM = Spicetify.ReactDOM;
 const spotifyVersion = Spicetify.Platform.version;
 
 // Define a function called "render" to specify app entry point
@@ -1264,8 +1263,8 @@ class LyricsContainer extends react.Component {
 				})
 		);
 
-		if (this.state.isFullscreen) return reactDOM.createPortal(out, this.fullscreenContainer);
-		if (fadLyricsContainer) return reactDOM.createPortal(out, fadLyricsContainer);
+		if (this.state.isFullscreen) return Spicetify.ReactDOM.createPortal(out, this.fullscreenContainer);
+		if (fadLyricsContainer) return Spicetify.ReactDOM.createPortal(out, fadLyricsContainer);
 		return out;
 	}
 }

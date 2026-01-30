@@ -76,7 +76,7 @@ const TopBarContent = ({ links, activeLink, switchCallback }) => {
 };
 
 const TabBarContext = ({ children }) => {
-	return reactDOM.createPortal(
+	return Spicetify.ReactDOM.createPortal(
 		react.createElement(
 			"div",
 			{
