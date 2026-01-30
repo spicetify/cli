@@ -397,7 +397,7 @@
             await writable.write(JSON.stringify(data));
             await writable.close();
 
-            Spicetify.showNotification("Backup saved succesfully.");
+            Spicetify.showNotification("Backup saved successfully.");
         } catch {
             Spicetify.showNotification("Failed to save, try copying trashbin contents to clipboard and creating a backup manually.");
         }
