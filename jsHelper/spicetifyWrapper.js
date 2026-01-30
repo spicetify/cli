@@ -543,7 +543,7 @@ applyScrollingFix();
 		.flatMap((module) => {
 			try {
 				return Object.values(module);
-			} catch {}
+			} catch { }
 		});
 	// polyfill for chromium <117
 	const groupBy = (values, keyFinder) => {
@@ -614,7 +614,7 @@ applyScrollingFix();
 							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
 							return [type[0].toUpperCase() + type.slice(1), m];
 						}
-					} catch {}
+					} catch { }
 				});
 			})
 			.filter(Boolean),
@@ -750,7 +750,7 @@ applyScrollingFix();
 			.flatMap((module) => {
 				try {
 					return Object.values(module);
-				} catch {}
+				} catch { }
 			});
 		const functionModules = modules.filter((module) => typeof module === "function");
 		const cardTypesToFind = ["artist", "audiobook", "profile", "show", "track"];
@@ -773,7 +773,7 @@ applyScrollingFix();
 								cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
 								return [type[0].toUpperCase() + type.slice(1), m];
 							}
-						} catch {}
+						} catch { }
 					});
 				})
 				.filter(Boolean),
@@ -2346,7 +2346,7 @@ Spicetify.Playbar = (() => {
 	const buttonsStash = new Set();
 
 	class Button {
-		constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
+		constructor(label, icon, onClick = () => { }, disabled = false, active = false, registerOnCreate = true) {
 			this.element = document.createElement("button");
 			this.element.classList.add("main-genericButton-button");
 			this.iconElement = document.createElement("span");
@@ -2443,9 +2443,10 @@ Spicetify.Playbar = (() => {
 	let nowPlayingWidget;
 
 	class Widget {
-		constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
+		constructor(label, icon, onClick = () => { }, disabled = false, active = false, registerOnCreate = true) {
 			this.element = document.createElement("button");
-			this.element.className = "main-addButton-button control-button control-button-heart";
+			this.element.className = "main-genericButton-button";
+			this.element.style.cursor = "pointer";
 			this.icon = icon;
 			this.onClick = onClick;
 			this.disabled = disabled;
@@ -2462,6 +2463,7 @@ Spicetify.Playbar = (() => {
 		}
 		set label(text) {
 			this._label = text;
+			this.element.setAttribute("aria-label", text);
 			if (!this.tippy) this.element.setAttribute("title", text);
 			else this.tippy.setContent(text);
 		}
@@ -2494,7 +2496,8 @@ Spicetify.Playbar = (() => {
 		}
 		set active(bool) {
 			this._active = bool;
-			this.element.classList.toggle("main-addButton-active", bool);
+			this.element.classList.toggle("main-genericButton-buttonActive", bool);
+			this.element.classList.toggle("main-genericButton-buttonActiveDot", bool);
 			this.element.ariaChecked = bool;
 		}
 		get active() {
