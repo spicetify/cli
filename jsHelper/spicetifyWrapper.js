@@ -543,7 +543,7 @@ applyScrollingFix();
 		.flatMap((module) => {
 			try {
 				return Object.values(module);
-			} catch { }
+			} catch {}
 		});
 	// polyfill for chromium <117
 	const groupBy = (values, keyFinder) => {
@@ -614,7 +614,7 @@ applyScrollingFix();
 							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
 							return [type[0].toUpperCase() + type.slice(1), m];
 						}
-					} catch { }
+					} catch {}
 				});
 			})
 			.filter(Boolean),
@@ -750,7 +750,7 @@ applyScrollingFix();
 			.flatMap((module) => {
 				try {
 					return Object.values(module);
-				} catch { }
+				} catch {}
 			});
 		const functionModules = modules.filter((module) => typeof module === "function");
 		const cardTypesToFind = ["artist", "audiobook", "profile", "show", "track"];
@@ -773,7 +773,7 @@ applyScrollingFix();
 								cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
 								return [type[0].toUpperCase() + type.slice(1), m];
 							}
-						} catch { }
+						} catch {}
 					});
 				})
 				.filter(Boolean),
@@ -2374,7 +2374,7 @@ Spicetify.Playbar = (() => {
 	const buttonsStash = new Set();
 
 	class Button {
-		constructor(label, icon, onClick = () => { }, disabled = false, active = false, registerOnCreate = true) {
+		constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
 			this.element = document.createElement("button");
 			this.element.classList.add("main-genericButton-button");
 			this.iconElement = document.createElement("span");
@@ -2471,7 +2471,7 @@ Spicetify.Playbar = (() => {
 	let nowPlayingWidget;
 
 	class Widget {
-		constructor(label, icon, onClick = () => { }, disabled = false, active = false, registerOnCreate = true) {
+		constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
 			this.element = document.createElement("button");
 			this.element.className = "main-genericButton-button";
 			this.element.style.cursor = "pointer";
