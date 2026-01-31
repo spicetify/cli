@@ -142,7 +142,7 @@ jobs:
       - name: Update AUR package
         uses: fjogeleit/http-request-action@master
         with:
-          url: https://vps.itsmeow.dev/spicetify-update
+          url: https://spicetify-update.itsmeow.dev/spicetify-update
           method: GET
       - name: Update Winget package
         uses: vedantmgoyal9/winget-releaser@main
