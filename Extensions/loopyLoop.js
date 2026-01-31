@@ -1,193 +1,250 @@
 // NAME: Loopy Loop
-// AUTHOR: khanhas (Fixed by A2R14N)
-// VERSION: 0.3
-// DESCRIPTION: Practice hitting that note right by looping sections of a track. Right-click the progress bar to set start/end points.
-
-/// <reference path="../globals.d.ts" />
+// AUTHOR: A2R14N
+// VERSION: 1
+// DESCRIPTION: Practice hitting that right note by looping sections of a track.
 
 (async function LoopyLoop() {
-    // 1. Wait for Spicetify Player and the Progress Bar element to be available
-    while (!Spicetify?.Player || !document.querySelector(".main-nowPlayingBar-center .playback-progressbar")) {
-        await new Promise(r => setTimeout(r, 100));
-    }
+    const waitForSpicetify = () => new Promise(resolve => {
+        const check = () => {
+            if (Spicetify?.Player && Spicetify?.React && Spicetify?.ReactDOM) resolve();
+            else setTimeout(check, 100);
+        };
+        check();
+    });
 
-    const bar = document.querySelector(".main-nowPlayingBar-center .playback-progressbar");
+    const waitForProgressBar = () => new Promise(resolve => {
+        const check = () => {
+            const bar = document.querySelector(".main-nowPlayingBar-center .playback-progressbar");
+            if (bar) resolve(bar);
+            else setTimeout(check, 100);
+        };
+        check();
+    });
 
-    // 2. Inject Custom Styles for Markers and Context Menu
-    const style = document.createElement("style");
-    style.innerHTML = `
-        /* Markers Style */
-        #loopy-loop-start, #loopy-loop-end {
+    await waitForSpicetify();
+    const progressBar = await waitForProgressBar();
+
+    const { React, ReactDOM } = Spicetify;
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    const STYLES = `
+        .loopy-marker {
             position: absolute;
-            font-weight: bold;
-            font-size: 14px;
             top: 50%;
-            transform: translateY(-55%);
-            color: var(--spice-text);
+            transform: translate(-50%, -50%);
             z-index: 10;
             pointer-events: none;
-            line-height: 1;
-            text-shadow: 0 0 2px var(--spice-shadow);
+            color: var(--spice-text);
+            filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
         }
-        
-        /* Context Menu Style */
-        #loopy-context-menu {
+        .loopy-region {
             position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 4px;
+            background-color: var(--spice-button-active);
+            opacity: 0.4;
+            z-index: 5;
+            pointer-events: none;
+            border-radius: 2px;
+            transition: opacity 0.2s;
+        }
+        .main-nowPlayingBar-center .playback-progressbar:hover .loopy-region {
+            height: 6px;
+            opacity: 0.6;
+        }
+        .loopy-menu {
+            position: fixed;
             background-color: var(--spice-card);
             border: 1px solid var(--spice-button-disabled);
             border-radius: 4px;
             box-shadow: 0 4px 12px rgba(var(--spice-rgb-shadow), 0.5);
             padding: 4px;
-            z-index: 99999;
-            display: none;
-            min-width: 150px;
+            z-index: 10000;
+            min-width: 160px;
         }
-        
-        /* Menu Items */
-        #loopy-context-menu .menu-item {
+        .loopy-menu-item {
             padding: 8px 12px;
             cursor: pointer;
             color: var(--spice-text);
-            font-size: 14px;
+            font-size: 13px;
             border-radius: 2px;
             display: flex;
             align-items: center;
+            transition: background 0.1s;
         }
-        
-        #loopy-context-menu .menu-item:hover {
+        .loopy-menu-item:hover {
             background-color: var(--spice-highlight);
-            color: var(--spice-text);
         }
     `;
-    document.head.appendChild(style);
 
-    // 3. Create DOM Elements for Start/End Markers
-    const startMark = document.createElement("div");
-    startMark.id = "loopy-loop-start";
-    startMark.innerText = "[";
+    const LoopVisuals = ({ start, end, container }) => {
+        if (!container) return null;
 
-    const endMark = document.createElement("div");
-    endMark.id = "loopy-loop-end";
-    endMark.innerText = "]";
+        return ReactDOM.createPortal(
+            React.createElement(React.Fragment, null,
+                // Loop Region Bar
+                start !== null && end !== null && React.createElement("div", {
+                    className: "loopy-region",
+                    style: {
+                        left: `${start * 100}%`,
+                        width: `${(end - start) * 100}%`
+                    }
+                }),
+                // Start Marker (Icon)
+                start !== null && React.createElement("div", {
+                    className: "loopy-marker",
+                    style: { left: `${start * 100}%` },
+                }, React.createElement("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "currentColor" },
+                    React.createElement("path", { d: "M5 3l14 9-14 9V3z" }) // Play/Arrow triangle pointing right
+                )),
+                // End Marker (Icon)
+                end !== null && React.createElement("div", {
+                    className: "loopy-marker",
+                    style: { left: `${end * 100}%` },
+                }, React.createElement("svg", { width: "12", height: "12", viewBox: "0 0 24 24", fill: "currentColor" },
+                    React.createElement("path", { d: "M19 3l-14 9 14 9V3z" }) // Arrow triangle pointing left
+                ))
+            ),
+            container
+        );
+    };
 
-    // Append markers to the progress bar container
-    // 'relative' positioning is required for markers to align absolutely within the bar
-    bar.style.position = "relative";
-    bar.append(startMark, endMark);
+    const ContextMenu = ({ x, y, onClose, onSetStart, onSetEnd, onClear }) => {
+        const menuRef = useRef(null);
 
-    // 4. Logic State
-    let start = null;
-    let end = null;
-    let mouseOnBarPercent = 0.0;
+        useEffect(() => {
+            const handleClick = (e) => {
+                if (menuRef.current && !menuRef.current.contains(e.target)) {
+                    onClose();
+                }
+            };
+            window.addEventListener("mousedown", handleClick);
+            return () => window.removeEventListener("mousedown", handleClick);
+        }, [onClose]);
 
-    // Helper to update visual markers based on state
-    function drawOnBar() {
-        startMark.style.display = start !== null ? "block" : "none";
-        endMark.style.display = end !== null ? "block" : "none";
+        const style = { top: y, left: x };
 
-        if (start !== null) startMark.style.left = `${start * 100}%`;
-        if (end !== null) endMark.style.left = `${end * 100}%`;
-    }
+        return React.createElement("div", { className: "loopy-menu", style, ref: menuRef },
+            React.createElement("div", { className: "loopy-menu-item", onClick: onSetStart }, "Set Loop Start"),
+            React.createElement("div", { className: "loopy-menu-item", onClick: onSetEnd }, "Set Loop End"),
+            React.createElement("div", { className: "loopy-menu-item", onClick: onClear }, "Clear Loop")
+        );
+    };
 
-    // Helper to reset loop state
-    function reset() {
-        start = null;
-        end = null;
-        drawOnBar();
-    }
+    const App = () => {
+        const [loops, setLoops] = useState({ start: null, end: null });
+        const [menu, setMenu] = useState({ visible: false, x: 0, y: 0, progress: 0 });
+        const [barContainer, setBarContainer] = useState(null);
 
-    // 5. Player Event Listeners
-    // Monitor progress and loop back if needed
-    Spicetify.Player.addEventListener("onprogress", (_event) => {
-        if (start !== null && end !== null) {
-            const progress = Spicetify.Player.getProgressPercent();
-            if (progress >= end) {
-                Spicetify.Player.seek(start);
-            }
-        }
-    });
+        useEffect(() => {
+            const findBar = () => {
+                const bar = document.querySelector(".main-nowPlayingBar-center .playback-progressbar");
+                if (bar && bar !== barContainer) {
+                    setBarContainer(bar);
+                }
+            };
+            findBar();
+            const interval = setInterval(findBar, 1000);
+            return () => clearInterval(interval);
+        }, [barContainer]);
 
-    // Auto-reset when the song changes
-    Spicetify.Player.addEventListener("songchange", reset);
+        useEffect(() => {
+            const handleProgress = () => {
+                const { start, end } = loops;
+                if (start !== null && end !== null) {
+                    const current = Spicetify.Player.getProgressPercent();
+                    if (current >= end) {
+                        const duration = Spicetify.Player.getDuration();
+                        Spicetify.Player.seek(start * duration);
+                    }
+                }
+            };
 
-    // 6. Build Context Menu
-    const contextMenu = document.createElement("div");
-    contextMenu.id = "loopy-context-menu";
+            const handleSongChange = () => {
+                setLoops({ start: null, end: null });
+            };
 
-    function createItem(text, onClick) {
-        const item = document.createElement("div");
-        item.className = "menu-item";
-        item.innerText = text;
-        item.onclick = (e) => {
-            e.stopPropagation(); // Stop click from closing menu immediately 
-            onClick();
-            contextMenu.style.display = "none";
+            Spicetify.Player.addEventListener("onprogress", handleProgress);
+            Spicetify.Player.addEventListener("songchange", handleSongChange);
+
+            return () => {
+                Spicetify.Player.removeEventListener("onprogress", handleProgress);
+                Spicetify.Player.removeEventListener("songchange", handleSongChange);
+            };
+        }, [loops]);
+
+        useEffect(() => {
+            if (!barContainer) return;
+
+            const handleContextMenu = (e) => {
+                if (e.button !== 2 && e.type !== 'contextmenu') return;
+
+                e.preventDefault();
+                const rect = barContainer.getBoundingClientRect();
+                const progress = (e.clientX - rect.left) / rect.width;
+
+                setMenu({
+                    visible: true,
+                    x: e.clientX,
+                    y: e.clientY - 120,
+                    progress
+                });
+            };
+
+            barContainer.addEventListener("contextmenu", handleContextMenu);
+            return () => barContainer.removeEventListener("contextmenu", handleContextMenu);
+        }, [barContainer]);
+
+        const handleSetStart = () => {
+            setLoops(prev => ({
+                ...prev,
+                start: menu.progress,
+                end: (prev.end !== null && menu.progress >= prev.end) ? null : prev.end
+            }));
+            setMenu(m => ({ ...m, visible: false }));
         };
-        return item;
+
+        const handleSetEnd = () => {
+            setLoops(prev => ({
+                ...prev,
+                end: menu.progress,
+                start: (prev.start !== null && menu.progress <= prev.start) ? null : prev.start
+            }));
+            setMenu(m => ({ ...m, visible: false }));
+        };
+
+        const handleClear = () => {
+            setLoops({ start: null, end: null });
+            setMenu(m => ({ ...m, visible: false }));
+        };
+
+        return React.createElement(React.Fragment, null,
+            barContainer && React.createElement(LoopVisuals, { start: loops.start, end: loops.end, container: barContainer }),
+
+            menu.visible && React.createElement(ContextMenu, {
+                x: menu.x,
+                y: menu.y,
+                onClose: () => setMenu(m => ({ ...m, visible: false })),
+                onSetStart: handleSetStart,
+                onSetEnd: handleSetEnd,
+                onClear: handleClear
+            })
+        );
+    };
+
+    const styleTag = document.createElement("style");
+    styleTag.innerHTML = STYLES;
+    document.head.appendChild(styleTag);
+
+    const mountPoint = document.createElement("div");
+    mountPoint.id = "loopy-loop-react-root";
+    document.body.appendChild(mountPoint);
+
+    if (ReactDOM.createRoot) {
+        const root = ReactDOM.createRoot(mountPoint);
+        root.render(React.createElement(App));
+    } else {
+        ReactDOM.render(React.createElement(App), mountPoint);
     }
-
-    contextMenu.append(
-        createItem("Set Start Loop", () => {
-            start = mouseOnBarPercent;
-            // If start is after end, clear end
-            if (end !== null && start >= end) end = null;
-            drawOnBar();
-        }),
-        createItem("Set End Loop", () => {
-            end = mouseOnBarPercent;
-            // If end is before start, clear start
-            if (start !== null && end <= start) start = null;
-            drawOnBar();
-        }),
-        createItem("Clear Loop", reset)
-    );
-
-    document.body.appendChild(contextMenu);
-
-    // 7. Global Event Listeners to Handle Menu
-    // Close context menu when clicking outside
-    window.addEventListener("click", (e) => {
-        if (!contextMenu.contains(e.target)) {
-            contextMenu.style.display = "none";
-        }
-    });
-
-    // Prevent default context menu on the progress bar
-    bar.addEventListener("contextmenu", (e) => e.preventDefault());
-
-    // Listen for Right-Click (MouseUp button 2) to open our custom menu
-    bar.addEventListener("mouseup", (event) => {
-        if (event.button !== 2) return; // Ignore left/middle clicks
-
-        event.preventDefault();
-
-        // Calculate click position percentage relative to the bar
-        const rect = bar.getBoundingClientRect();
-        mouseOnBarPercent = (event.clientX - rect.left) / rect.width;
-
-        // Reset display to measure dimensions
-        contextMenu.style.display = "block";
-        contextMenu.style.visibility = "hidden";
-        contextMenu.style.left = "0px";
-        contextMenu.style.top = "0px";
-
-        const height = contextMenu.offsetHeight;
-        const width = contextMenu.offsetWidth;
-
-        // Position menu above the cursor with padding
-        let left = event.clientX;
-        let top = event.clientY - height - 10;
-
-        // Boundary checks to keep menu on screen
-        if (top < 0) top = event.clientY + 10;
-        if ((left + width) > window.innerWidth) left = window.innerWidth - width - 10;
-
-        // Apply final position
-        contextMenu.style.left = `${left}px`;
-        contextMenu.style.top = `${top}px`;
-        contextMenu.style.visibility = "visible";
-    });
-
-    // Initial draw
-    drawOnBar();
 })();
