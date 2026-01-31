@@ -543,7 +543,7 @@ applyScrollingFix();
 		.flatMap((module) => {
 			try {
 				return Object.values(module);
-			} catch {}
+			} catch { }
 		});
 	// polyfill for chromium <117
 	const groupBy = (values, keyFinder) => {
@@ -614,7 +614,7 @@ applyScrollingFix();
 							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
 							return [type[0].toUpperCase() + type.slice(1), m];
 						}
-					} catch {}
+					} catch { }
 				});
 			})
 			.filter(Boolean),
@@ -750,7 +750,7 @@ applyScrollingFix();
 			.flatMap((module) => {
 				try {
 					return Object.values(module);
-				} catch {}
+				} catch { }
 			});
 		const functionModules = modules.filter((module) => typeof module === "function");
 		const cardTypesToFind = ["artist", "audiobook", "profile", "show", "track"];
@@ -773,7 +773,7 @@ applyScrollingFix();
 								cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
 								return [type[0].toUpperCase() + type.slice(1), m];
 							}
-						} catch {}
+						} catch { }
 					});
 				})
 				.filter(Boolean),
@@ -2068,13 +2068,6 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
 	.custom-navlink {
 		-webkit-app-region: unset;
 	}
-
-    .main-globalNav-navLinkActive {
-        color: var(--spice-text) !important;
-    }
-    .main-globalNav-navLinkActive svg {
-        fill: currentColor !important;
-    }
 		`;
 		document.head.appendChild(style);
 	})();
@@ -2101,18 +2094,18 @@ const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
 	return NavLinkFactory && Spicetify.React.createElement(NavLinkFactory, { appProper, appRoutePath, icon, activeIcon }, null);
 };
 
+// Boundary-safe check to prevent prefix collisions (e.g., /app matching /apple)
+const isActiveRoute = (pathname, appRoutePath) => pathname === appRoutePath || pathname?.startsWith(`${appRoutePath}/`);
+
+const useActiveRoute = (appRoutePath) => {
+	const subscribe = Spicetify.React.useCallback((callback) => Spicetify.Platform.History.listen(callback), []);
+	const getSnapshot = () => isActiveRoute(Spicetify.Platform.History.location.pathname, appRoutePath);
+	return Spicetify.React.useSyncExternalStore(subscribe, getSnapshot);
+};
+
 const NavLinkSidebar = ({ appProper, appRoutePath, icon, activeIcon }) => {
 	const isSidebarCollapsed = Spicetify.Platform.LocalStorageAPI.getItem("ylx-sidebar-state") === 1;
-	// Boundary-safe check to prevent prefix collisions (e.g., /app matching /apple)
-	const isActiveRoute = (pathname) => pathname === appRoutePath || pathname?.startsWith(`${appRoutePath}/`);
-	const [active, setActive] = Spicetify.React.useState(isActiveRoute(Spicetify.Platform.History.location.pathname));
-
-	Spicetify.React.useEffect(() => {
-		const unlisten = Spicetify.Platform.History.listen((location) => {
-			setActive(isActiveRoute(location.pathname));
-		});
-		return unlisten;
-	}, [appRoutePath]);
+	const active = useActiveRoute(appRoutePath);
 
 	const createIcon = () => createIconComponent(active ? activeIcon : icon, 24);
 
@@ -2141,20 +2134,7 @@ const NavLinkSidebar = ({ appProper, appRoutePath, icon, activeIcon }) => {
 };
 
 const NavLinkGlobal = ({ appProper, appRoutePath, icon, activeIcon }) => {
-	// Boundary-safe check to prevent prefix collisions
-	const isActiveRoute = (pathname) => pathname === appRoutePath || pathname?.startsWith(`${appRoutePath}/`);
-	const [active, setActive] = Spicetify.React.useState(isActiveRoute(Spicetify.Platform.History.location.pathname));
-
-	Spicetify.React.useEffect(() => {
-		const checkActive = () => {
-			const currentPath = Spicetify.Platform.History.location.pathname;
-			setActive(isActiveRoute(currentPath));
-		};
-
-		checkActive();
-		const unlisten = Spicetify.Platform.History.listen(checkActive);
-		return unlisten;
-	}, [appRoutePath]);
+	const active = useActiveRoute(appRoutePath);
 
 	const createIcon = () => createIconComponent(active ? activeIcon : icon, 24);
 
@@ -2378,7 +2358,7 @@ Spicetify.Playbar = (() => {
 	const buttonsStash = new Set();
 
 	class Button {
-		constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
+		constructor(label, icon, onClick = () => { }, disabled = false, active = false, registerOnCreate = true) {
 			this.element = document.createElement("button");
 			this.element.classList.add("main-genericButton-button");
 			this.iconElement = document.createElement("span");
@@ -2475,9 +2455,13 @@ Spicetify.Playbar = (() => {
 	let nowPlayingWidget;
 
 	class Widget {
-		constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
+		constructor(label, icon, onClick = () => { }, disabled = false, active = false, registerOnCreate = true) {
 			this.element = document.createElement("button");
-			this.element.className = "main-genericButton-button";
+			this.element.classList.add("main-genericButton-button");
+			this.element.style.color = "var(--spice-subtext)";
+			this.element.style.fill = "currentColor";
+			this.element.style.background = "transparent";
+			this.element.style.border = "0";
 			this.element.style.cursor = "pointer";
 			this.icon = icon;
 			this.onClick = onClick;
@@ -2528,8 +2512,7 @@ Spicetify.Playbar = (() => {
 		}
 		set active(bool) {
 			this._active = bool;
-			this.element.classList.toggle("main-genericButton-buttonActive", bool);
-			this.element.classList.toggle("main-genericButton-buttonActiveDot", bool);
+			this.element.style.color = bool ? "var(--spice-button-active)" : "";
 			this.element.ariaChecked = bool;
 		}
 		get active() {
