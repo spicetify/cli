@@ -1,179 +1,276 @@
 // NAME: Trashbin
-// AUTHOR: khanhas and OhItsTom (Fixed by A2R14N)
+// AUTHOR: A2R14N
 // DESCRIPTION: Throw songs to trashbin and never hear it again.
 
-/// <reference path="../globals.d.ts" />
-
-(function TrashBin() {
-    const skipBackBtn =
-        document.querySelector(".main-skipBackButton-button") ??
-        document.querySelector(".player-controls__left > button[data-encore-id='buttonTertiary']");
-    if (!Spicetify.Player.data || !Spicetify.LocalStorage || !skipBackBtn) {
+(async function TrashBin() {
+    if (!Spicetify.React || !Spicetify.ReactDOM || !Spicetify.LocalStorage || !Spicetify.ReactComponent) {
         setTimeout(TrashBin, 1000);
         return;
     }
 
+    const { React, LocalStorage } = Spicetify;
+    const { useState, useEffect, useCallback } = React;
 
+    const CONFIG = {
+        KEYS: {
+            SONGS: "TrashSongList",
+            ARTISTS: "TrashArtistList",
+            ENABLED: "trashbin-enabled",
+            WIDGET: "TrashbinWidgetIcon"
+        },
+        TEXT: {
+            THROW: "Place in Trashbin",
+            UNTHROW: "Remove from Trashbin",
+        },
+        ICON: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg>`,
+        WIDGET_ICON: `<span style="display: flex; justify-content: center; align-items: center; height: 100%;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/></svg></span>`
+    };
 
+    class TrashStore {
+        constructor() {
+            this.state = {
+                songs: this._load(CONFIG.KEYS.SONGS, {}),
+                artists: this._load(CONFIG.KEYS.ARTISTS, {}),
+                enabled: this._load(CONFIG.KEYS.ENABLED, true),
+                widgetEnabled: this._load(CONFIG.KEYS.WIDGET, true),
+            };
+            this.listeners = new Set();
+        }
 
-    function createButton(text, description, callback) {
-        const container = document.createElement("div");
-        container.classList.add("setting-row");
-        container.innerHTML = `
-		<label class="col description">${description}</label>
-		<div class="col action"><button class="reset">${text}</button></div>
-		`;
+        _load(key, fallback) {
+            try {
+                const item = LocalStorage.get(key);
+                return item ? JSON.parse(item) : fallback;
+            } catch {
+                return fallback;
+            }
+        }
 
-        const button = container.querySelector("button.reset");
-        button.onclick = callback;
-        return container;
-    }
+        _save() {
+            LocalStorage.set(CONFIG.KEYS.SONGS, JSON.stringify(this.state.songs));
+            LocalStorage.set(CONFIG.KEYS.ARTISTS, JSON.stringify(this.state.artists));
+            LocalStorage.set(CONFIG.KEYS.ENABLED, JSON.stringify(this.state.enabled));
+            LocalStorage.set(CONFIG.KEYS.WIDGET, JSON.stringify(this.state.widgetEnabled));
+        }
 
-    function createSlider(name, desc, defaultVal, callback) {
-        const container = document.createElement("div");
-        container.classList.add("setting-row");
-        container.innerHTML = `
-			<label class="col description">${desc}</label>
-			<div class="col action"><button class="switch">
-			<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
-			${Spicetify.SVGIcons.check}
-			</svg>
-			</button></div>
-		`;
+        subscribe(listener) {
+            this.listeners.add(listener);
+            return () => this.listeners.delete(listener);
+        }
 
-        const slider = container.querySelector("button.switch");
-        slider.classList.toggle("disabled", !defaultVal);
+        setState(updates) {
+            this.state = { ...this.state, ...updates };
+            this._save();
+            this.listeners.forEach(cb => cb());
+        }
 
-        slider.onclick = () => {
-            const state = slider.classList.contains("disabled");
-            slider.classList.toggle("disabled");
-            Spicetify.LocalStorage.set(name, state);
-            console.log(name, state);
-            callback(state);
-        };
+        toggleURI(uri, type) {
+            const listKey = type === Spicetify.URI.Type.ARTIST ? "artists" : "songs";
+            const currentList = this.state[listKey];
+            const isTrashed = !!currentList[uri];
 
-        return container;
-    }
+            const newList = { ...currentList };
+            if (isTrashed) {
+                delete newList[uri];
+                Spicetify.showNotification(`Removed from Trashbin`);
+            } else {
+                newList[uri] = true;
+                Spicetify.showNotification(`Added to Trashbin`);
+            }
 
-    function settingsContent() {
-        // Options
-        header = document.createElement("h2");
-        header.innerText = "Options";
-        content.appendChild(header);
+            this.setState({ [listKey]: newList });
+            this.checkSkip();
+        }
 
-        content.appendChild(createSlider("trashbin-enabled", "Enabled", trashbinStatus, refreshEventListeners));
-        content.appendChild(
-            createSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, (state) => {
-                enableWidget = state;
-                state && trashbinStatus ? widget.register() : widget.deregister();
-            })
-        );
+        clearAll() {
+            this.setState({ songs: {}, artists: {} });
+            Spicetify.showNotification("Trashbin cleared!");
+        }
 
-        // Local Storage
-        header = document.createElement("h2");
-        header.innerText = "Local Storage";
-        content.appendChild(header);
+        importData(data) {
+            this.setState({
+                songs: { ...(data.songs || {}) },
+                artists: { ...(data.artists || {}) }
+            });
+        }
 
-        content.appendChild(createButton("Copy", "Copy all items in trashbin to clipboard.", copyItems));
-        content.appendChild(createButton("Export", "Save all items in trashbin to a .json file.", exportItems));
-        content.appendChild(createButton("Import", "Overwrite all items in trashbin via .json file.", importItems));
-        content.appendChild(
-            createButton("Clear ", "Clear all items from trashbin (cannot be reverted).", () => {
-                trashSongList = {};
-                trashArtistList = {};
-                setWidgetState(false);
-                putDataLocal();
-                Spicetify.showNotification("Trashbin cleared!");
-            })
-        );
-    }
+        checkSkip() {
+            if (!this.state.enabled) return;
+            const meta = Spicetify.Player.data?.item;
+            if (!meta) return;
 
-    function styleSettings() {
-        const style = document.createElement("style");
-        style.innerHTML = `
-		.main-trackCreditsModal-container {
-			width: auto !important;
-			background-color: var(--spice-player) !important;
-		}
+            if (this.shouldSkip(meta.uri, meta.metadata)) {
+                Spicetify.Player.next();
+            }
+        }
 
-		.setting-row::after {
-		  content: "";
-		  display: table;
-		  clear: both;
-		}
-		.setting-row {
-		  display: flex;
-		  padding: 10px 0;
-		  align-items: center;
-		  justify-content: space-between;
-		}
-		.setting-row .col.description {
-		  float: left;
-		  padding-right: 15px;
-		  width: 100%;
-		}
-		.setting-row .col.action {
-		  float: right;
-		  text-align: right;
-		}
-		button.switch {
-		  align-items: center;
-		  border: 0px;
-		  border-radius: 50%;
-		  background-color: rgba(var(--spice-rgb-shadow), .7);
-		  color: var(--spice-text);
-		  cursor: pointer;
-		  display: flex;
-		  margin-inline-start: 12px;
-		  padding: 8px;
-		}
-		button.switch.disabled,
-		button.switch[disabled] {
-		  color: rgba(var(--spice-rgb-text), .3);
-		}
-		button.reset {
-		  font-weight: 700;
-		  font-size: medium;
-		  background-color: transparent;
-		  border-radius: 500px;
-		  transition-duration: 33ms;
-		  transition-property: background-color, border-color, color, box-shadow, filter, transform;
-		  padding-inline: 15px;
-		  border: 1px solid #727272;
-		  color: var(--spice-text);
-		  min-block-size: 32px;
-		  cursor: pointer;
-		}
-		button.reset:hover {
-		  transform: scale(1.04);
-		  border-color: var(--spice-text);
-		}`;
-        content.appendChild(style);
-    }
+        shouldSkip(uri, metadata) {
+            if (!this.state.enabled) return false;
+            if (this.state.songs[uri]) return true;
+            if (metadata) {
+                let i = 0;
+                let artistUri = metadata.artist_uri;
+                while (artistUri) {
+                    if (this.state.artists[artistUri]) return true;
+                    i++;
+                    artistUri = metadata[`artist_uri:${i + 1}`];
+                }
+            }
+            return false;
+        }
 
-    function initValue(item, defaultValue) {
-        try {
-            const value = JSON.parse(Spicetify.LocalStorage.get(item));
-            return value ?? defaultValue;
-        } catch {
-            return defaultValue;
+        isTrashed(uri) {
+            return !!this.state.songs[uri] || !!this.state.artists[uri];
         }
     }
 
-    // Settings Variables - Initial Values
-    let trashbinStatus = initValue("trashbin-enabled", true);
-    let enableWidget = initValue("TrashbinWidgetIcon", true);
+    const store = new TrashStore();
 
-    // Settings Menu Initialization
-    const content = document.createElement("div");
-    styleSettings();
-    settingsContent();
+    const useTrashState = () => {
+        const [state, set] = useState(store.state);
+        useEffect(() => store.subscribe(() => set(store.state)), []);
+        return state;
+    };
 
-    const trashbinIcon =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style="transform: translateY(2px);"><path d="M5.25 3v-.917C5.25.933 6.183 0 7.333 0h1.334c1.15 0 2.083.933 2.083 2.083V3h4.75v1.5h-.972l-1.257 9.544A2.25 2.25 0 0 1 11.041 16H4.96a2.25 2.25 0 0 1-2.23-1.956L1.472 4.5H.5V3h4.75zm1.5-.917V3h2.5v-.917a.583.583 0 0 0-.583-.583H7.333a.583.583 0 0 0-.583.583zM2.986 4.5l1.23 9.348a.75.75 0 0 0 .744.652h6.08a.75.75 0 0 0 .744-.652L13.015 4.5H2.985z"/></svg>';
+    const SettingRow = ({ label, children }) => {
+        return React.createElement("div", {
+            style: {
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 0",
+                borderBottom: "1px solid var(--spice-button-disabled)"
+            }
+        },
+            React.createElement("span", { style: { color: "var(--spice-text)", fontSize: "16px" } }, label),
+            children
+        );
+    };
 
-    const THROW_TEXT = "Place in Trashbin";
-    const UNTHROW_TEXT = "Remove from Trashbin";
+    const SettingsModal = () => {
+        const state = useTrashState();
+
+        const handleCopy = useCallback(() => {
+            Spicetify.Platform.ClipboardAPI.copy(JSON.stringify({ songs: state.songs, artists: state.artists }));
+            Spicetify.showNotification("Copied to clipboard");
+        }, [state.songs, state.artists]);
+
+        const handleExport = useCallback(async () => {
+            try {
+                // @ts-ignore
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: "trashbin.json",
+                    types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+                });
+                const writable = await handle.createWritable();
+                await writable.write(JSON.stringify({ songs: state.songs, artists: state.artists }));
+                await writable.close();
+                Spicetify.showNotification("Saved!");
+            } catch (e) {
+                console.error(e);
+            }
+        }, [state.songs, state.artists]);
+
+        const handleImport = useCallback(() => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = ".json";
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        store.importData(data);
+                        Spicetify.showNotification("Imported!");
+                    } catch {
+                        Spicetify.showNotification("Import failed", true);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }, []);
+
+        return React.createElement("div", { style: { padding: "10px 20px" } },
+            React.createElement(SettingRow, { label: "Enable Extension" },
+                React.createElement(Spicetify.ReactComponent.Toggle, {
+                    value: state.enabled,
+                    onSelected: (val) => store.setState({ enabled: val })
+                })
+            ),
+
+            React.createElement(SettingRow, { label: "Show Player Widget" },
+                React.createElement(Spicetify.ReactComponent.Toggle, {
+                    value: state.widgetEnabled,
+                    onSelected: (val) => store.setState({ widgetEnabled: val })
+                })
+            ),
+
+            React.createElement("div", { style: { marginTop: "30px", display: "flex", gap: "10px", justifyContent: "flex-start", flexWrap: "wrap" } },
+                React.createElement(Spicetify.ReactComponent.ButtonSecondary, { onClick: handleCopy }, "Copy"),
+                React.createElement(Spicetify.ReactComponent.ButtonSecondary, { onClick: handleExport }, "Export"),
+                React.createElement(Spicetify.ReactComponent.ButtonSecondary, { onClick: handleImport }, "Import"),
+                React.createElement(Spicetify.ReactComponent.ButtonSecondary, {
+                    onClick: () => store.clearAll(),
+                    style: { color: "#ff5555", borderColor: "#ff5555" }
+                }, "Clear")
+            )
+        );
+    };
+
+    let widget = null;
+    let userHitBack = false;
+
+    const initSkipProtection = () => {
+        const addListener = (btn) => {
+            btn.addEventListener("click", () => { userHitBack = true; });
+        };
+        const skipBtn = document.querySelector(".main-skipBackButton-button");
+        if (skipBtn) addListener(skipBtn);
+    };
+
+    const onSongChange = () => {
+        const data = Spicetify.Player.data;
+        if (!data) return;
+
+        if (widget) {
+            const uri = data.item.uri;
+            const type = Spicetify.URI.fromString(uri).type;
+            const shouldShow = store.state.widgetEnabled && type === Spicetify.URI.Type.TRACK;
+
+            if (shouldShow) {
+                const isTrashed = store.isTrashed(uri);
+                widget.label = isTrashed ? CONFIG.TEXT.UNTHROW : CONFIG.TEXT.THROW;
+                widget.active = isTrashed;
+                widget.register();
+            } else {
+                widget.deregister();
+            }
+        }
+
+        if (userHitBack) {
+            userHitBack = false;
+            return;
+        }
+
+        store.checkSkip();
+    };
+
+    new Spicetify.ContextMenu.Item(
+        CONFIG.TEXT.THROW,
+        (uris) => {
+            const uri = uris[0];
+            store.toggleURI(uri, Spicetify.URI.fromString(uri).type);
+        },
+        (uris) => {
+            if (uris.length !== 1) return false;
+            const type = Spicetify.URI.fromString(uris[0]).type;
+            return type === Spicetify.URI.Type.TRACK || type === Spicetify.URI.Type.ARTIST;
+        },
+        CONFIG.ICON
+    ).register();
 
     new Spicetify.Menu.Item(
         "Trashbin",
@@ -181,253 +278,25 @@
         () => {
             Spicetify.PopupModal.display({
                 title: "Trashbin Settings",
-                content,
+                content: React.createElement(SettingsModal),
+                isLarge: true
             });
         },
-        trashbinIcon
+        CONFIG.ICON
     ).register();
 
-    const widget = new Spicetify.Playbar.Widget(
-        THROW_TEXT,
-        trashbinIcon,
-        (self) => {
-            const uri = Spicetify.Player.data.item.uri;
-            const uriObj = Spicetify.URI.fromString(uri);
-            const type = uriObj.type;
-
-            if (!trashSongList[uri]) {
-                trashSongList[uri] = true;
-                if (shouldSkipCurrentTrack(uri, type)) Spicetify.Player.next();
-                Spicetify.showNotification("Song added to trashbin");
-            } else {
-                delete trashSongList[uri];
-                setWidgetState(false);
-                Spicetify.showNotification("Song removed from trashbin");
-            }
-
-            putDataLocal();
+    widget = new Spicetify.Playbar.Widget(
+        CONFIG.TEXT.THROW,
+        CONFIG.WIDGET_ICON,
+        () => {
+            const uri = Spicetify.Player.data?.item?.uri;
+            if (uri) store.toggleURI(uri, Spicetify.URI.Type.TRACK);
         },
-        false,
-        false,
-        enableWidget
+        false, false, false
     );
 
-    // LocalStorage Setup
-    let trashSongList = initValue("TrashSongList", {});
-    let trashArtistList = initValue("TrashArtistList", {});
-    let userHitBack = false;
-    const eventListener = () => {
-        userHitBack = true;
-    };
-
-    putDataLocal();
-    refreshEventListeners(trashbinStatus);
-    setWidgetState(
-        trashSongList[Spicetify.Player.data.item.uri],
-        Spicetify.URI.fromString(Spicetify.Player.data.item.uri).type !== Spicetify.URI.Type.TRACK
-    );
-
-    function refreshEventListeners(state) {
-        trashbinStatus = state;
-        if (state) {
-            skipBackBtn.addEventListener("click", eventListener);
-            Spicetify.Player.addEventListener("songchange", watchChange);
-            enableWidget && widget.register();
-            watchChange();
-        } else {
-            skipBackBtn.removeEventListener("click", eventListener);
-            Spicetify.Player.removeEventListener("songchange", watchChange);
-            widget.deregister();
-        }
-    }
-
-    function setWidgetState(state, hidden = false) {
-        hidden ? widget.deregister() : enableWidget && widget.register();
-        widget.active = !!state;
-        widget.label = state ? UNTHROW_TEXT : THROW_TEXT;
-    }
-
-    function watchChange() {
-        const data = Spicetify.Player.data || Spicetify.Queue;
-        if (!data) return;
-
-        const isBanned = trashSongList[data.item.uri];
-        setWidgetState(isBanned, Spicetify.URI.fromString(data.item.uri).type !== Spicetify.URI.Type.TRACK);
-
-        if (userHitBack) {
-            userHitBack = false;
-            return;
-        }
-
-        if (isBanned) {
-            Spicetify.Player.next();
-            return;
-        }
-
-        let uriIndex = 0;
-        let artistUri = data.item.metadata.artist_uri;
-
-        while (artistUri) {
-            if (trashArtistList[artistUri]) {
-                Spicetify.Player.next();
-                return;
-            }
-
-            uriIndex++;
-            artistUri = data.item.metadata[`artist_uri:${uriIndex}`];
-        }
-    }
-
-    /**
-     *
-     * @param {string} uri
-     * @param {string} type
-     * @returns {boolean}
-     */
-    function shouldSkipCurrentTrack(uri, type) {
-        const curTrack = Spicetify.Player.data.item;
-        if (type === Spicetify.URI.Type.TRACK) {
-            if (uri === curTrack.uri) {
-                return true;
-            }
-        }
-
-        if (type === Spicetify.URI.Type.ARTIST) {
-            let count = 1;
-            let artUri = curTrack.metadata.artist_uri;
-            while (artUri) {
-                if (uri === artUri) {
-                    return true;
-                }
-                artUri = curTrack.metadata[`artist_uri:${count}`];
-                count++;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     *
-     * @param {string[]} uris
-     */
-    function toggleThrow(uris) {
-        const uri = uris[0];
-        const uriObj = Spicetify.URI.fromString(uri);
-        const type = uriObj.type;
-
-        const list = type === Spicetify.URI.Type.TRACK ? trashSongList : trashArtistList;
-
-        if (!list[uri]) {
-            list[uri] = true;
-            if (shouldSkipCurrentTrack(uri, type)) Spicetify.Player.next();
-            Spicetify.Player.data?.item.uri === uri && setWidgetState(true);
-            Spicetify.showNotification(type === Spicetify.URI.Type.TRACK ? "Song added to trashbin" : "Artist added to trashbin");
-        } else {
-            delete list[uri];
-            Spicetify.Player.data?.item.uri === uri && setWidgetState(false);
-            Spicetify.showNotification(type === Spicetify.URI.Type.TRACK ? "Song removed from trashbin" : "Artist removed from trashbin");
-        }
-
-        putDataLocal();
-    }
-
-    /**
-     * Only accept one track or artist URI
-     * @param {string[]} uris
-     * @returns {boolean}
-     */
-    function shouldAddContextMenu(uris) {
-        if (uris.length > 1 || !trashbinStatus) {
-            return false;
-        }
-
-        const uri = uris[0];
-        const uriObj = Spicetify.URI.fromString(uri);
-        if (uriObj.type === Spicetify.URI.Type.TRACK) {
-            this.name = trashSongList[uri] ? UNTHROW_TEXT : THROW_TEXT;
-            return true;
-        }
-
-        if (uriObj.type === Spicetify.URI.Type.ARTIST) {
-            this.name = trashArtistList[uri] ? UNTHROW_TEXT : THROW_TEXT;
-            return true;
-        }
-
-        return false;
-    }
-
-    const cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu, trashbinIcon);
-    cntxMenu.register();
-
-    function putDataLocal() {
-        Spicetify.LocalStorage.set("TrashSongList", JSON.stringify(trashSongList));
-        Spicetify.LocalStorage.set("TrashArtistList", JSON.stringify(trashArtistList));
-    }
-
-    function copyItems() {
-        const data = {
-            songs: trashSongList,
-            artists: trashArtistList,
-        };
-        Spicetify.Platform.ClipboardAPI.copy(JSON.stringify(data));
-        Spicetify.showNotification("Copied to clipboard");
-    }
-
-    async function exportItems() {
-        const data = {
-            songs: trashSongList,
-            artists: trashArtistList,
-        };
-
-        try {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: "spicetify-trashbin.json",
-                types: [
-                    {
-                        description: "Spicetify trashbin backup",
-                        accept: {
-                            "application/json": [".json"],
-                        },
-                    },
-                ],
-            });
-
-            const writable = await handle.createWritable();
-            await writable.write(JSON.stringify(data));
-            await writable.close();
-
-            Spicetify.showNotification("Backup saved successfully.");
-        } catch {
-            Spicetify.showNotification("Failed to save, try copying trashbin contents to clipboard and creating a backup manually.");
-        }
-    }
-
-    function importItems() {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".json";
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    trashSongList = data.songs;
-                    trashArtistList = data.artists;
-                    putDataLocal();
-                    Spicetify.showNotification("File Import Successful!");
-                } catch (e) {
-                    Spicetify.showNotification("File Import Failed!", true);
-                    console.error(e);
-                }
-            };
-            reader.onerror = () => {
-                Spicetify.showNotification("File Read Failed!", true);
-                console.error(reader.error);
-            };
-            reader.readAsText(file);
-        };
-        input.click();
-    }
+    Spicetify.Player.addEventListener("songchange", onSongChange);
+    store.subscribe(onSongChange);
+    initSkipProtection();
+    onSongChange();
 })();
