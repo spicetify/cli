@@ -107,25 +107,27 @@ const ProviderMusixmatch = (() => {
 				.map((c) => {
 					if (!c.performers || c.performers.length === 0) return null;
 
-					const resolvedPerformers = c.performers.map((p) => {
-						let name = "Unknown";
-						if (p.type === "artist") {
-							const fqid = p.fqid;
-							const idFromFqid = fqid ? parseInt(fqid.split(":")[2]) : null;
+					const resolvedPerformers = c.performers
+						.map((p) => {
+							let name = "Unknown";
+							if (p.type === "artist") {
+								const fqid = p.fqid;
+								const idFromFqid = fqid ? parseInt(fqid.split(":")[2]) : null;
 
-							const artist = resourcesList.find((r) => r.artist_id === idFromFqid);
-							if (artist) name = artist.artist_name;
-						} else if (miscTags[p.type]) {
-							name = miscTags[p.type];
-						}
-						return {
-							fqid: p.fqid,
-							artist_id: p.fqid ? parseInt(p.fqid.split(":")[2]) : null,
-							name: name,
-						};
-					});
+								const artist = resourcesList.find((r) => r.artist_id === idFromFqid);
+								if (artist) name = artist.artist_name;
+							} else if (miscTags[p.type]) {
+								name = miscTags[p.type];
+							}
+							return {
+								fqid: p.fqid,
+								artist_id: p.fqid ? parseInt(p.fqid.split(":")[2]) : null,
+								name: name,
+							};
+						})
+						.filter((p) => p.name !== "Unknown");
 
-					const names = resolvedPerformers.map((p) => p.name).filter((n) => n !== "Unknown");
+					const names = resolvedPerformers.map((p) => p.name);
 					if (names.length === 0) return null;
 
 					return {
