@@ -92,6 +92,10 @@ const ProviderMusixmatch = (() => {
 	}
 
 	function parsePerformerData(meta) {
+		if (!meta || !meta.track || !meta.track.performer_tagging) {
+			return [];
+		}
+
 		const tagging = meta.track.performer_tagging;
 		const miscTags = meta.track.performer_tagging_misc_tags || {};
 		let performerMap = [];
