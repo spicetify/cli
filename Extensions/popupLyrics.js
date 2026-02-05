@@ -817,7 +817,9 @@ function PopupLyrics() {
 
 		if (!document.hidden) {
 			requestAnimationFrame(() => tick(options));
-		}
+		} else {
+        	timeout = setTimeout(tick, 16.66, options);
+    	}
 	}
 
 	function boolLocalStorage(name, defaultVal = true) {
