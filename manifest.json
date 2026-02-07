@@ -40,5 +40,11 @@
 		"description": "Throw songs/artists to trash bin and never hear them again (automatically skip). This extension will append a Throw to Trashbin option in tracks and artists link right click menu.",
 		"preview": "https://i.imgur.com/ZFTy5Rm.png",
 		"main": "Extensions/trashbin.js"
+	},
+	{
+		"name": "Mandarin Lyrics",
+		"description": "Display Mandarin Chinese lyrics with synchronized pinyin romanization and English translation",
+		"preview": "https://raw.githubusercontent.com/persopourytb-wq/test/main/preview.png",
+		"main": "https://raw.githubusercontent.com/persopourytb-wq/test/main/dist/index.js"
 	}
 ]
