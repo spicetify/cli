@@ -737,11 +737,11 @@ applyScrollingFix();
 			"Slider",
 			"Dropdown",
 			"Toggle",
-			"Cards.Artist",
-			"Cards.Audiobook",
-			"Cards.Profile",
-			"Cards.Show",
-			"Cards.Track",
+			// "Cards.Artist",
+			// "Cards.Audiobook",
+			// "Cards.Profile",
+			// "Cards.Show",
+			// "Cards.Track",
 		];
 		if (listOfComponents.every((component) => Spicetify.ReactComponent[component] !== undefined)) return;
 		const cache = Object.keys(require.m).map((id) => require(id));
@@ -754,37 +754,37 @@ applyScrollingFix();
 			});
 		const functionModules = modules.filter((module) => typeof module === "function");
 		const cardTypesToFind = ["artist", "audiobook", "profile", "show", "track"];
-		const cards = [
-			...functionModules
-				.flatMap((m) => {
-					return cardTypesToFind.map((type) => {
-						if (m.toString().includes(`featureIdentifier:"${type}"`)) {
-							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
-							return [type[0].toUpperCase() + type.slice(1), m];
-						}
-					});
-				})
-				.filter(Boolean),
-			...modules
-				.flatMap((m) => {
-					return cardTypesToFind.map((type) => {
-						try {
-							if (m?.type?.toString().includes(`featureIdentifier:"${type}"`)) {
-								cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
-								return [type[0].toUpperCase() + type.slice(1), m];
-							}
-						} catch {}
-					});
-				})
-				.filter(Boolean),
-		];
+		// const cards = [
+		// 	...functionModules
+		// 		.flatMap((m) => {
+		// 			return cardTypesToFind.map((type) => {
+		// 				if (m.toString().includes(`featureIdentifier:"${type}"`)) {
+		// 					cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+		// 					return [type[0].toUpperCase() + type.slice(1), m];
+		// 				}
+		// 			});
+		// 		})
+		// 		.filter(Boolean),
+		// 	...modules
+		// 		.flatMap((m) => {
+		// 			return cardTypesToFind.map((type) => {
+		// 				try {
+		// 					if (m?.type?.toString().includes(`featureIdentifier:"${type}"`)) {
+		// 						cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+		// 						return [type[0].toUpperCase() + type.slice(1), m];
+		// 					}
+		// 				} catch {}
+		// 			});
+		// 		})
+		// 		.filter(Boolean),
+		// ];
 
 		Spicetify.ReactComponent.Slider = wrapProvider(functionModules.find((m) => m.toString().includes("progressBarRef")));
 		Spicetify.ReactComponent.Toggle = functionModules.find((m) => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"'));
 		Spicetify.ReactComponent.ScrollableContainer = functionModules.find(
 			(m) => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")
 		);
-		Object.assign(Spicetify.ReactComponent.Cards, Object.fromEntries(cards));
+		// Object.assign(Spicetify.ReactComponent.Cards, Object.fromEntries(cards));
 
 		// chunks
 		const dropdownChunk = chunks.find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
