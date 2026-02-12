@@ -767,7 +767,13 @@ const fnStr = (f) => {
 					return Object.values(module);
 				} catch {}
 			});
-		const functionModules = modules.filter((module) => typeof module === "function");
+		const functionModules = modules.flatMap((module) =>
+			typeof module === "function"
+				? [module]
+				: typeof module === "object" && module
+					? Object.values(module).filter((v) => typeof v === "function" && !webpackFactories.has(v))
+					: []
+		);
 		const cardTypesToFind = ["artist", "audiobook", "profile", "show", "track"];
 		// const cards = [
 		// 	...functionModules
@@ -794,21 +800,19 @@ const fnStr = (f) => {
 		// 		.filter(Boolean),
 		// ];
 
-		Spicetify.ReactComponent.Slider = wrapProvider(functionModules.find((m) => m.toString().includes("progressBarRef")));
-		Spicetify.ReactComponent.Toggle = functionModules.find((m) => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"'));
-		Spicetify.ReactComponent.ScrollableContainer = functionModules.find(
-			(m) => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")
-		);
+		Spicetify.ReactComponent.Slider = wrapProvider(functionModules.find((m) => fnStr(m).includes("progressBarRef")));
+		Spicetify.ReactComponent.Toggle = functionModules.find((m) => fnStr(m).includes("onSelected") && fnStr(m).includes('type:"checkbox"'));
+		Spicetify.ReactComponent.ScrollableContainer = functionModules.find((m) => fnStr(m).includes("scrollLeft") && fnStr(m).includes("showButtons"));
 		// Object.assign(Spicetify.ReactComponent.Cards, Object.fromEntries(cards));
 
 		// chunks
-		const dropdownChunk = chunks.find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
+		const dropdownChunk = chunks.find(([, value]) => fnStr(value).includes("dropDown") && fnStr(value).includes("isSafari"));
 		if (dropdownChunk) {
 			Spicetify.ReactComponent.Dropdown =
 				Object.values(require(dropdownChunk[0]))?.[0]?.render ?? Object.values(require(dropdownChunk[0])).find((m) => typeof m === "function");
 		}
 
-		const toggleChunk = chunks.find(([, value]) => value.toString().includes("onSelected") && value.toString().includes('type:"checkbox"'));
+		const toggleChunk = chunks.find(([, value]) => fnStr(value).includes("onSelected") && fnStr(value).includes('type:"checkbox"'));
 		if (toggleChunk && !Spicetify.ReactComponent.Toggle) {
 			Spicetify.ReactComponent.Toggle = Object.values(require(toggleChunk[0]))[0].render;
 		}
