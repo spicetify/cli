@@ -504,6 +504,18 @@ applyScrollingFix();
 	});
 })();
 
+const fnStr = (f) => {
+	try {
+		return f.toString();
+	} catch {
+		try {
+			return Function.prototype.toString.call(f);
+		} catch {
+			return "";
+		}
+	}
+};
+
 (async function hotloadWebpackModules() {
 	while (!window?.webpackChunkclient_web) {
 		await new Promise((r) => setTimeout(r, 50));
@@ -554,7 +566,14 @@ applyScrollingFix();
 			return a;
 		}, {});
 	};
-	const functionModules = modules.filter((module) => typeof module === "function");
+	const webpackFactories = new Set(Object.values(require.m));
+	const functionModules = modules.flatMap((module) =>
+		typeof module === "function"
+			? [module]
+			: typeof module === "object" && module
+				? Object.values(module).filter((v) => typeof v === "function" && !webpackFactories.has(v))
+				: []
+	);
 	const exportedReactObjects = groupBy(modules.filter(Boolean), (x) => x.$$typeof);
 	const exportedMemos = exportedReactObjects[Symbol.for("react.memo")];
 	const exportedForwardRefs = exportedReactObjects[Symbol.for("react.forward_ref")];
@@ -564,7 +583,8 @@ applyScrollingFix();
 		const componentRegexes = componentNames.map((n) => new RegExp(`"data-encore-id":(?:[a-zA-Z_\$][\w\$]*\\.){2}${n}\\b`));
 		const componentPairs = [functionModules.map((f) => [f, f]), exportedForwardRefs.map((f) => [f.render, f])]
 			.flat()
-			.map(([s, f]) => [componentNames.find((_, i) => s.toString().match(componentRegexes[i])), f]);
+			.map(([s, f]) => [componentNames.find((_, i) => fnStr(s)?.match(componentRegexes[i])), f]);
+
 		return Object.fromEntries(componentPairs);
 	};
 	const reactComponentsUI = exposeReactComponentsUI({ modules, functionModules, exportedForwardRefs });
@@ -572,9 +592,9 @@ applyScrollingFix();
 	const knownMenuTypes = ["album", "show", "artist", "track", "playlist"];
 	const menus = modules
 		.map((m) => {
-			const valueMatch = m?.type?.toString().match(/value:"([\w-]+)"/);
+			const valueMatch = (m?.type ? fnStr(m.type) : "").match(/value:"([\w-]+)"/);
 			if (valueMatch) return [m, valueMatch[1]];
-			const typeMatch = m?.type?.toString().match(/type:[\w$]+\.[\w$]+\.([A-Z_]+)/);
+			const typeMatch = (m?.type ? fnStr(m.type) : "").match(/type:[\w$]+\.[\w$]+\.([A-Z_]+)/);
 			if (typeMatch) return [m, typeMatch[1].toLowerCase()];
 			return null;
 		})
@@ -599,7 +619,7 @@ applyScrollingFix();
 		...functionModules
 			.flatMap((m) => {
 				return cardTypesToFind.map((type) => {
-					if (m.toString().includes(`featureIdentifier:"${type}"`)) {
+					if (fnStr(m).includes(`featureIdentifier:"${type}"`)) {
 						cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
 						return [type[0].toUpperCase() + type.slice(1), m];
 					}
@@ -610,7 +630,7 @@ applyScrollingFix();
 			.flatMap((m) => {
 				return cardTypesToFind.map((type) => {
 					try {
-						if (m?.type?.toString().includes(`featureIdentifier:"${type}"`)) {
+						if ((m?.type ? fnStr(m.type) : "").includes(`featureIdentifier:"${type}"`)) {
 							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
 							return [type[0].toUpperCase() + type.slice(1), m];
 						}
@@ -630,7 +650,7 @@ applyScrollingFix();
 			.filter(([_, v]) => v.toString().includes("[native code]"))
 			.map(([i]) => require(i))
 			.find((e) => typeof e === "function"),
-		Color: functionModules.find((m) => m.toString().includes("static fromHex") || m.toString().includes("this.rgb")),
+		Color: functionModules.find((m) => fnStr(m).includes("static fromHex") || fnStr(m).includes("this.rgb")),
 		Player: {
 			...Spicetify.Player,
 			get origin() {
@@ -642,59 +662,56 @@ applyScrollingFix();
 			get Request() {
 				return Spicetify.Platform?.GraphQLLoader || Spicetify.GraphQL.Handler?.(Spicetify.GraphQL.Context);
 			},
-			Context: functionModules.find((m) => m.toString().includes("subscription") && m.toString().includes("mutation")),
-			Handler: functionModules.find((m) => m.toString().includes("GraphQL subscriptions are not supported")),
+			Context: functionModules.find((m) => fnStr(m).includes("subscription") && fnStr(m).includes("mutation")),
+			Handler: functionModules.find((m) => fnStr(m).includes("GraphQL subscriptions are not supported")),
 		},
 		ReactComponent: {
 			...Spicetify.ReactComponent,
 			TextComponent: modules.find((m) => m?.h1 && m?.render),
-			Menu: functionModules.find((m) => m.toString().includes("getInitialFocusElement") && m.toString().includes("children")),
-			MenuItem: functionModules.find((m) => m.toString().includes("handleMouseEnter") && m.toString().includes("onClick")),
-			MenuSubMenuItem: functionModules.find((f) => f.toString().includes("subMenuIcon")),
-			Slider: wrapProvider(functionModules.find((m) => m.toString().includes("progressBarRef"))),
-			RemoteConfigProvider: functionModules.find((m) => m.toString().includes("resolveSuspense") && m.toString().includes("configuration")),
+			Menu: functionModules.find((m) => fnStr(m).includes("getInitialFocusElement") && fnStr(m).includes("children")),
+			MenuItem: functionModules.find((m) => fnStr(m).includes("handleMouseEnter") && fnStr(m).includes("onClick")),
+			MenuSubMenuItem: functionModules.find((f) => fnStr(f).includes("subMenuIcon")),
+			Slider: wrapProvider(functionModules.find((m) => fnStr(m).includes("progressBarRef"))),
+			RemoteConfigProvider: functionModules.find((m) => fnStr(m).includes("resolveSuspense") && fnStr(m).includes("configuration")),
 			RightClickMenu: functionModules.find(
-				(m) =>
-					m.toString().includes("action") && m.toString().includes("open") && m.toString().includes("trigger") && m.toString().includes("right-click")
+				(m) => fnStr(m).includes("action") && fnStr(m).includes("open") && fnStr(m).includes("trigger") && fnStr(m).includes("right-click")
 			),
-			TooltipWrapper: functionModules.find((m) => m.toString().includes("renderInline") && m.toString().includes("showDelay")),
+			TooltipWrapper: functionModules.find((m) => fnStr(m).includes("renderInline") && fnStr(m).includes("showDelay")),
 			ButtonPrimary: reactComponentsUI.ButtonPrimary,
 			ButtonSecondary: reactComponentsUI.ButtonSecondary,
 			ButtonTertiary: reactComponentsUI.ButtonTertiary,
 			Snackbar: {
-				wrapper: functionModules.find((m) => m.toString().includes("encore-light-theme") && m.toString().includes("elevated")),
-				simpleLayout: functionModules.find((m) => ["leading", "center", "trailing"].every((keyword) => m.toString().includes(keyword))),
-				ctaText: functionModules.find((m) => m.toString().includes("ctaText")),
-				styledImage: functionModules.find((m) => m.toString().includes("placeholderSrc")),
+				wrapper: functionModules.find((m) => fnStr(m).includes("encore-light-theme") && fnStr(m).includes("elevated")),
+				simpleLayout: functionModules.find((m) => ["leading", "center", "trailing"].every((keyword) => fnStr(m).includes(keyword))),
+				ctaText: functionModules.find((m) => fnStr(m).includes("ctaText")),
+				styledImage: functionModules.find((m) => fnStr(m).includes("placeholderSrc")),
 			},
 			Chip: reactComponentsUI.Chip,
-			Toggle: functionModules.find((m) => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"')),
+			Toggle: functionModules.find((m) => fnStr(m).includes("onSelected") && fnStr(m).includes('type:"checkbox"')),
 			Cards: {
 				Default: reactComponentsUI.Card,
 				FeatureCard: functionModules.find(
-					(m) => m.toString().includes("?highlight") && m.toString().includes("headerText") && m.toString().includes("imageContainer")
+					(m) => fnStr(m).includes("?highlight") && fnStr(m).includes("headerText") && fnStr(m).includes("imageContainer")
 				),
-				Hero: functionModules.find((m) => m?.toString().includes('"herocard-click-handler"')),
+				Hero: functionModules.find((m) => fnStr(m).includes('"herocard-click-handler"')),
 				CardImage: functionModules.find(
 					(m) =>
-						m.toString().includes("isHero") &&
-						(m.toString().includes("withWaves") || m.toString().includes("isCircular")) &&
-						m.toString().includes("imageWrapper")
+						fnStr(m).includes("isHero") && (fnStr(m).includes("withWaves") || fnStr(m).includes("isCircular")) && fnStr(m).includes("imageWrapper")
 				),
 				...Object.fromEntries(cards),
 			},
-			Router: functionModules.find((m) => m.toString().includes("navigationType") && m.toString().includes("static")),
-			Routes: functionModules.find((m) => m.toString().match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
-			Route: functionModules.find((m) => m.toString().match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(!1\)\}$/)),
-			StoreProvider: functionModules.find((m) => m.toString().includes("notifyNestedSubs") && m.toString().includes("serverState")),
-			ScrollableContainer: functionModules.find((m) => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")),
+			Router: functionModules.find((m) => fnStr(m).includes("navigationType") && fnStr(m).includes("static")),
+			Routes: functionModules.find((m) => fnStr(m).match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
+			Route: functionModules.find((m) => fnStr(m).match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(!1\)\}$/)),
+			StoreProvider: functionModules.find((m) => fnStr(m).includes("notifyNestedSubs") && fnStr(m).includes("serverState")),
+			ScrollableContainer: functionModules.find((m) => fnStr(m).includes("scrollLeft") && fnStr(m).includes("showButtons")),
 			IconComponent: reactComponentsUI.Icon,
 			...Object.fromEntries(menus),
 		},
 		ReactHook: {
-			DragHandler: functionModules.find((m) => m.toString().includes("dataTransfer") && m.toString().includes("data-dragging")),
+			DragHandler: functionModules.find((m) => fnStr(m).includes("dataTransfer") && fnStr(m).includes("data-dragging")),
 			useExtractedColor: functionModules.find(
-				(m) => m.toString().includes("extracted-color") || (m.toString().includes("colorRaw") && m.toString().includes("useEffect"))
+				(m) => fnStr(m).includes("extracted-color") || (fnStr(m).includes("colorRaw") && fnStr(m).includes("useEffect"))
 			),
 		},
 		// React Query
@@ -702,19 +719,17 @@ applyScrollingFix();
 		// v3 until Spotify v1.2.29
 		// v5 since Spotify v1.2.30
 		ReactQuery: cache.find((module) => module.useQuery) || {
-			PersistQueryClientProvider: functionModules.find((m) => m.toString().includes("persistOptions")),
-			QueryClient: functionModules.find((m) => m.toString().includes("defaultMutationOptions")),
-			QueryClientProvider: functionModules.find((m) => m.toString().includes("use QueryClientProvider")),
+			PersistQueryClientProvider: functionModules.find((m) => fnStr(m).includes("persistOptions")),
+			QueryClient: functionModules.find((m) => fnStr(m).includes("defaultMutationOptions")),
+			QueryClientProvider: functionModules.find((m) => fnStr(m).includes("use QueryClientProvider")),
 			notifyManager: modules.find((m) => m?.setBatchNotifyFunction),
-			useMutation: functionModules.find((m) => m.toString().includes("mutateAsync")),
+			useMutation: functionModules.find((m) => fnStr(m).includes("mutateAsync")),
 			useQuery: functionModules.find((m) =>
-				m.toString().match(/^function [\w_$]+\(([\w_$]+),([\w_$]+)\)\{return\(0,[\w_$]+\.[\w_$]+\)\(\1,[\w_$]+\.[\w_$]+,\2\)\}$/)
+				fnStr(m).match(/^function [\w_$]+\(([\w_$]+),([\w_$]+)\)\{return\(0,[\w_$]+\.[\w_$]+\)\(\1,[\w_$]+\.[\w_$]+,\2\)\}$/)
 			),
-			useQueryClient: functionModules.find(
-				(m) => m.toString().includes("client") && m.toString().includes("Provider") && m.toString().includes("mount")
-			),
+			useQueryClient: functionModules.find((m) => fnStr(m).includes("client") && fnStr(m).includes("Provider") && fnStr(m).includes("mount")),
 			useSuspenseQuery: functionModules.find(
-				(m) => m.toString().includes("throwOnError") && m.toString().includes("suspense") && m.toString().includes("enabled")
+				(m) => fnStr(m).includes("throwOnError") && fnStr(m).includes("suspense") && fnStr(m).includes("enabled")
 			),
 		},
 		ReactFlipToolkit: {
@@ -729,7 +744,7 @@ applyScrollingFix();
 
 	if (!Spicetify.ContextMenuV2._context) Spicetify.ContextMenuV2._context = Spicetify.React.createContext({});
 	if (!Spicetify.ReactComponent.Navigation)
-		Spicetify.ReactComponent.Navigation = exportedMemoFRefs.find((m) => m.type.render.toString().includes("navigationalRoot"));
+		Spicetify.ReactComponent.Navigation = exportedMemoFRefs.find((m) => fnStr(m.type.render).includes("navigationalRoot"));
 
 	(function waitForChunks() {
 		const listOfComponents = [
@@ -737,13 +752,13 @@ applyScrollingFix();
 			"Slider",
 			"Dropdown",
 			"Toggle",
-			"Cards.Artist",
-			"Cards.Audiobook",
-			"Cards.Profile",
-			"Cards.Show",
-			"Cards.Track",
+			// "Cards.Artist",
+			// "Cards.Audiobook",
+			// "Cards.Profile",
+			// "Cards.Show",
+			// "Cards.Track",
 		];
-		if (listOfComponents.every((component) => Spicetify.ReactComponent[component] !== undefined)) return;
+		if (listOfComponents.every((component) => component.split(".").reduce((o, k) => o?.[k], Spicetify.ReactComponent) !== undefined)) return;
 		const cache = Object.keys(require.m).map((id) => require(id));
 		const modules = cache
 			.filter((module) => typeof module === "object")
@@ -752,53 +767,57 @@ applyScrollingFix();
 					return Object.values(module);
 				} catch {}
 			});
-		const functionModules = modules.filter((module) => typeof module === "function");
-		const cardTypesToFind = ["artist", "audiobook", "profile", "show", "track"];
-		const cards = [
-			...functionModules
-				.flatMap((m) => {
-					return cardTypesToFind.map((type) => {
-						if (m.toString().includes(`featureIdentifier:"${type}"`)) {
-							cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
-							return [type[0].toUpperCase() + type.slice(1), m];
-						}
-					});
-				})
-				.filter(Boolean),
-			...modules
-				.flatMap((m) => {
-					return cardTypesToFind.map((type) => {
-						try {
-							if (m?.type?.toString().includes(`featureIdentifier:"${type}"`)) {
-								cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
-								return [type[0].toUpperCase() + type.slice(1), m];
-							}
-						} catch {}
-					});
-				})
-				.filter(Boolean),
-		];
-
-		Spicetify.ReactComponent.Slider = wrapProvider(functionModules.find((m) => m.toString().includes("progressBarRef")));
-		Spicetify.ReactComponent.Toggle = functionModules.find((m) => m.toString().includes("onSelected") && m.toString().includes('type:"checkbox"'));
-		Spicetify.ReactComponent.ScrollableContainer = functionModules.find(
-			(m) => m.toString().includes("scrollLeft") && m.toString().includes("showButtons")
+		const functionModules = modules.flatMap((module) =>
+			typeof module === "function"
+				? [module]
+				: typeof module === "object" && module
+					? Object.values(module).filter((v) => typeof v === "function" && !webpackFactories.has(v))
+					: []
 		);
-		Object.assign(Spicetify.ReactComponent.Cards, Object.fromEntries(cards));
+		const cardTypesToFind = ["artist", "audiobook", "profile", "show", "track"];
+		// const cards = [
+		// 	...functionModules
+		// 		.flatMap((m) => {
+		// 			return cardTypesToFind.map((type) => {
+		// 				if (m.toString().includes(`featureIdentifier:"${type}"`)) {
+		// 					cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+		// 					return [type[0].toUpperCase() + type.slice(1), m];
+		// 				}
+		// 			});
+		// 		})
+		// 		.filter(Boolean),
+		// 	...modules
+		// 		.flatMap((m) => {
+		// 			return cardTypesToFind.map((type) => {
+		// 				try {
+		// 					if (m?.type?.toString().includes(`featureIdentifier:"${type}"`)) {
+		// 						cardTypesToFind.splice(cardTypesToFind.indexOf(type), 1);
+		// 						return [type[0].toUpperCase() + type.slice(1), m];
+		// 					}
+		// 				} catch {}
+		// 			});
+		// 		})
+		// 		.filter(Boolean),
+		// ];
+
+		Spicetify.ReactComponent.Slider = wrapProvider(functionModules.find((m) => fnStr(m).includes("progressBarRef")));
+		Spicetify.ReactComponent.Toggle = functionModules.find((m) => fnStr(m).includes("onSelected") && fnStr(m).includes('type:"checkbox"'));
+		Spicetify.ReactComponent.ScrollableContainer = functionModules.find((m) => fnStr(m).includes("scrollLeft") && fnStr(m).includes("showButtons"));
+		// Object.assign(Spicetify.ReactComponent.Cards, Object.fromEntries(cards));
 
 		// chunks
-		const dropdownChunk = chunks.find(([, value]) => value.toString().includes("dropDown") && value.toString().includes("isSafari"));
+		const dropdownChunk = chunks.find(([, value]) => fnStr(value).includes("dropDown") && fnStr(value).includes("isSafari"));
 		if (dropdownChunk) {
 			Spicetify.ReactComponent.Dropdown =
 				Object.values(require(dropdownChunk[0]))?.[0]?.render ?? Object.values(require(dropdownChunk[0])).find((m) => typeof m === "function");
 		}
 
-		const toggleChunk = chunks.find(([, value]) => value.toString().includes("onSelected") && value.toString().includes('type:"checkbox"'));
+		const toggleChunk = chunks.find(([, value]) => fnStr(value).includes("onSelected") && fnStr(value).includes('type:"checkbox"'));
 		if (toggleChunk && !Spicetify.ReactComponent.Toggle) {
 			Spicetify.ReactComponent.Toggle = Object.values(require(toggleChunk[0]))[0].render;
 		}
 
-		if (!listOfComponents.every((component) => Spicetify.ReactComponent[component] !== undefined)) {
+		if (!listOfComponents.every((component) => component.split(".").reduce((o, k) => o?.[k], Spicetify.ReactComponent) !== undefined)) {
 			setTimeout(waitForChunks, 100);
 			return;
 		}
@@ -815,16 +834,14 @@ applyScrollingFix();
 		// https://github.com/iamhosseindhv/notistack
 		Spicetify.Snackbar = {
 			...Spicetify.Snackbar,
-			SnackbarProvider: functionModules.find((m) => m.toString().includes("enqueueSnackbar called with invalid argument")),
-			useSnackbar: functionModules.find((m) => m.toString().match(/^function\(\)\{return\(0,[\w$]+\.useContext\)\([\w$]+\)\}$/)),
+			SnackbarProvider: functionModules.find((m) => fnStr(m).includes("enqueueSnackbar called with invalid argument")),
+			useSnackbar: functionModules.find((m) => fnStr(m).match(/^function\(\)\{return\(0,[\w$]+\.useContext\)\([\w$]+\)\}$/)),
 		};
 	})();
 
 	const localeModule = modules.find((m) => m?.getTranslations);
 	if (localeModule) {
-		const createUrlLocale = functionModules.find(
-			(m) => m.toString().includes("has") && m.toString().includes("baseName") && m.toString().includes("language")
-		);
+		const createUrlLocale = functionModules.find((m) => fnStr(m).includes("has") && fnStr(m).includes("baseName") && fnStr(m).includes("language"));
 		Spicetify.Locale = {
 			get _relativeTimeFormat() {
 				return localeModule._relativeTimeFormat;
@@ -892,7 +909,7 @@ applyScrollingFix();
 		Spicetify.ReactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find((m) => typeof m === "object");
 	} else {
 		Spicetify.ReactComponent.ConfirmDialog = functionModules.find(
-			(m) => m.toString().includes("isOpen") && m.toString().includes("shouldCloseOnEsc") && m.toString().includes("onClose")
+			(m) => fnStr(m).includes("isOpen") && fnStr(m).includes("shouldCloseOnEsc") && fnStr(m).includes("onClose")
 		);
 	}
 
