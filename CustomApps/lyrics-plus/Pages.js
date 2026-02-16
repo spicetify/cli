@@ -589,10 +589,8 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 					(() => {
 						if (!CONFIG.visual["show-performers"] || !performer) return null;
 
-						if (!CONFIG.visual["synced-compact"]) {
-							const previousLine = lyrics[index - 1];
-							if (previousLine && previousLine.performer === performer) return null;
-						}
+						const previousLine = lyrics[index - 1];
+						if (previousLine && previousLine.performer === performer) return null;
 
 						return react.createElement(
 							"span",
