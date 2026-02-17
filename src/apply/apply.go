@@ -416,7 +416,7 @@ func insertHomeConfig(jsPath string, flags Flag) {
 			&content,
 			`(createDesktopHomeFeatureActivationShelfEventFactory.*?)([\w\.]+)(\.map)`,
 			func(submatches ...string) string {
-				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
+				return fmt.Sprintf(`%s(typeof SpicetifyHomeConfig!=="undefined"&&SpicetifyHomeConfig.arrange?SpicetifyHomeConfig.arrange(%s):%s)%s`, submatches[1], submatches[2], submatches[2], submatches[3])
 			})
 
 		// >= 1.2.40
@@ -424,7 +424,7 @@ func insertHomeConfig(jsPath string, flags Flag) {
 			&content,
 			`(&&"HomeShortsSectionData".*?[\],}])([a-zA-Z])(\}\)?\()`,
 			func(submatches ...string) string {
-				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
+				return fmt.Sprintf(`%s(typeof SpicetifyHomeConfig!=="undefined"&&SpicetifyHomeConfig.arrange?SpicetifyHomeConfig.arrange(%s):%s)%s`, submatches[1], submatches[2], submatches[2], submatches[3])
 			})
 
 		return content
@@ -468,7 +468,7 @@ func insertExpFeatures(jsPath string, flags Flag) {
 			&content,
 			`(function \w+\((\w+)\)\{)(\w+ \w+=\w\.name;if\("internal")`,
 			func(submatches ...string) string {
-				return fmt.Sprintf("%s%s=Spicetify.expFeatureOverride(%s);%s", submatches[1], submatches[2], submatches[2], submatches[3])
+				return fmt.Sprintf(`%stry{if(typeof Spicetify!=="undefined"&&typeof Spicetify.expFeatureOverride==="function"){%s=Spicetify.expFeatureOverride(%s)}}catch(_spErr){console.error('[spicetify] expFeatureOverride failed:',_spErr)};%s`, submatches[1], submatches[2], submatches[2], submatches[3])
 			})
 
 		// utils.ReplaceOnce(
@@ -482,7 +482,7 @@ func insertExpFeatures(jsPath string, flags Flag) {
 			&content,
 			`(([\w$.]+\.fromJSON)\(\w+\)+;)(return ?[\w{}().,]+[\w$]+\.Provider,)(\{value:\{localConfiguration)`,
 			func(submatches ...string) string {
-				return fmt.Sprintf("%sSpicetify.createInternalMap=%s;%sSpicetify.RemoteConfigResolver=%s", submatches[1], submatches[2], submatches[3], submatches[4])
+				return fmt.Sprintf("%stry{Spicetify.createInternalMap=%s}catch(_e){};%stry{Spicetify.RemoteConfigResolver=%s}catch(_e){};{value:{localConfiguration", submatches[1], submatches[2], submatches[3], submatches[4])
 			})
 
 		return content

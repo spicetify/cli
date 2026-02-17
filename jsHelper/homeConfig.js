@@ -198,6 +198,10 @@ SpicetifyHomeConfig = {};
 
 	await new Promise((res) => Spicetify.Events.platformLoaded.on(res));
 	// Init
+	if (!Spicetify.Platform?.History) {
+		console.warn("[homeConfig] Spicetify.Platform.History is not available, skipping home config initialization");
+		return;
+	}
 	if (Spicetify.Platform.History.location.pathname === "/") {
 		SpicetifyHomeConfig.addToMenu();
 	}

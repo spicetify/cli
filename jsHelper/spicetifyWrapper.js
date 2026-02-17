@@ -314,7 +314,33 @@ window.Spicetify = {
 	const { _platform } = Spicetify;
 	for (const key of Object.keys(_platform)) {
 		if (key.startsWith("get") && typeof _platform[key] === "function") {
-			Spicetify.Platform[key.slice(3)] = _platform[key]();
+			const apiName = key.slice(3);
+			const getterKey = key;
+			// Lazy getter: native code only called on first access, not at startup
+			Object.defineProperty(Spicetify.Platform, apiName, {
+				get() {
+					try {
+						const resolved = _platform[getterKey]();
+						// Self-cache: replace lazy getter with resolved value
+						Object.defineProperty(Spicetify.Platform, apiName, {
+							value: resolved,
+							writable: true,
+							configurable: true,
+						});
+						return resolved;
+					} catch (err) {
+						console.error(`[spicetifyWrapper] Failed to resolve PlatformAPI: ${apiName}`, err);
+						Object.defineProperty(Spicetify.Platform, apiName, {
+							value: undefined,
+							writable: true,
+							configurable: true,
+						});
+						return undefined;
+					}
+				},
+				configurable: true,
+				enumerable: true,
+			});
 		} else {
 			Spicetify.Platform[key] = _platform[key];
 		}
@@ -326,21 +352,52 @@ window.Spicetify = {
 		setTimeout(addMissingPlatformAPIs, 50);
 		return;
 	}
-	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
-	if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
+	try {
+		const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
+		if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
+	} catch (err) {
+		console.error("[spicetifyWrapper] Failed to parse Spotify version for PlatformAPI resolution", err);
+		return;
+	}
 
-	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
-		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
-		const symbolName = key.description;
-		if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
-		try {
-			const resolvedAPI = Spicetify.Platform.Registry.resolve(key);
-			Spicetify.Platform[symbolName] = resolvedAPI;
-
-			console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
-		} catch (err) {
-			console.error(`[spicetifyWrapper] Error resolving PlatformAPI from Registry: ${symbolName}`, err);
+	try {
+		if (!Spicetify.Platform.Registry?._map) {
+			console.warn("[spicetifyWrapper] Platform.Registry._map not available, skipping additional API resolution");
+			return;
 		}
+		for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
+			if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
+			const symbolName = key.description;
+			if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
+			const registryKey = key;
+			// Lazy getter: Registry.resolve() only called on first access
+			Object.defineProperty(Spicetify.Platform, symbolName, {
+				get() {
+					try {
+						const resolvedAPI = Spicetify.Platform.Registry.resolve(registryKey);
+						Object.defineProperty(Spicetify.Platform, symbolName, {
+							value: resolvedAPI,
+							writable: true,
+							configurable: true,
+						});
+						console.debug(`[spicetifyWrapper] Resolved PlatformAPI from Registry: ${symbolName}`);
+						return resolvedAPI;
+					} catch (err) {
+						console.error(`[spicetifyWrapper] Error resolving PlatformAPI from Registry: ${symbolName}`, err);
+						Object.defineProperty(Spicetify.Platform, symbolName, {
+							value: undefined,
+							writable: true,
+							configurable: true,
+						});
+						return undefined;
+					}
+				},
+				configurable: true,
+				enumerable: true,
+			});
+		}
+	} catch (err) {
+		console.error("[spicetifyWrapper] Failed to iterate Platform Registry", err);
 	}
 })();
 
