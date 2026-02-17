@@ -144,8 +144,14 @@ describe("waitForPlatform() — Lazy getter resolution", () => {
 	test("does NOT call native getters at setup time", () => {
 		let callCount = 0;
 		const _platform = {
-			getPlayerAPI: () => { callCount++; return { play: () => {} }; },
-			getHistoryAPI: () => { callCount++; return { listen: () => {} }; },
+			getPlayerAPI: () => {
+				callCount++;
+				return { play: () => {} };
+			},
+			getHistoryAPI: () => {
+				callCount++;
+				return { listen: () => {} };
+			},
 			version: "1.2.82",
 		};
 
@@ -160,7 +166,10 @@ describe("waitForPlatform() — Lazy getter resolution", () => {
 	test("resolves getter on first access and self-caches", () => {
 		let callCount = 0;
 		const _platform = {
-			getPlayerAPI: () => { callCount++; return { play: () => {} }; },
+			getPlayerAPI: () => {
+				callCount++;
+				return { play: () => {} };
+			},
 		};
 
 		const { Platform } = simulateWaitForPlatform(_platform);
@@ -179,7 +188,9 @@ describe("waitForPlatform() — Lazy getter resolution", () => {
 
 	test("returns undefined for failing getter without crashing", () => {
 		const _platform = {
-			getBrokenAPI: () => { throw new Error("Simulated crash"); },
+			getBrokenAPI: () => {
+				throw new Error("Simulated crash");
+			},
 			getWorkingAPI: () => ({ ok: true }),
 		};
 
@@ -198,9 +209,18 @@ describe("waitForPlatform() — Lazy getter resolution", () => {
 	test("only calls the getter that is actually accessed", () => {
 		const callLog = [];
 		const _platform = {
-			getA: () => { callLog.push("A"); return "a"; },
-			getB: () => { callLog.push("B"); return "b"; },
-			getC: () => { callLog.push("C"); return "c"; },
+			getA: () => {
+				callLog.push("A");
+				return "a";
+			},
+			getB: () => {
+				callLog.push("B");
+				return "b";
+			},
+			getC: () => {
+				callLog.push("C");
+				return "c";
+			},
 		};
 
 		const { Platform } = simulateWaitForPlatform(_platform);
@@ -268,7 +288,10 @@ describe("addMissingPlatformAPIs() — Lazy Registry resolution", () => {
 			version: "1.2.82",
 			Registry: {
 				_map: map,
-				resolve: () => { resolveCount++; return { extra: true }; },
+				resolve: () => {
+					resolveCount++;
+					return { extra: true };
+				},
 			},
 		};
 
@@ -287,7 +310,10 @@ describe("addMissingPlatformAPIs() — Lazy Registry resolution", () => {
 			version: "1.2.82",
 			Registry: {
 				_map: map,
-				resolve: () => { resolveCount++; return { extra: true }; },
+				resolve: () => {
+					resolveCount++;
+					return { extra: true };
+				},
 			},
 		};
 
@@ -330,7 +356,9 @@ describe("addMissingPlatformAPIs() — Lazy Registry resolution", () => {
 			PlayerAPI: { existing: true },
 			Registry: {
 				_map: map,
-				resolve: () => { throw new Error("Should not be called"); },
+				resolve: () => {
+					throw new Error("Should not be called");
+				},
 			},
 		};
 
@@ -358,10 +386,22 @@ describe("Integration: Full lazy PlatformAPI pipeline", () => {
 	test("simulates Linux 1.2.82 — no native calls at startup, crash avoided", () => {
 		const callLog = [];
 		const _platform = {
-			getPlayerAPI: () => { callLog.push("PlayerAPI"); return { play: () => {} }; },
-			getRemoteConfigDebugAPI: () => { callLog.push("RemoteConfigDebugAPI"); throw new Error("SIGSEGV crash"); },
-			getHistoryAPI: () => { callLog.push("HistoryAPI"); throw new Error("crash"); },
-			getLibraryAPI: () => { callLog.push("LibraryAPI"); return { add: () => {} }; },
+			getPlayerAPI: () => {
+				callLog.push("PlayerAPI");
+				return { play: () => {} };
+			},
+			getRemoteConfigDebugAPI: () => {
+				callLog.push("RemoteConfigDebugAPI");
+				throw new Error("SIGSEGV crash");
+			},
+			getHistoryAPI: () => {
+				callLog.push("HistoryAPI");
+				throw new Error("crash");
+			},
+			getLibraryAPI: () => {
+				callLog.push("LibraryAPI");
+				return { add: () => {} };
+			},
 			version: "1.2.82",
 			Registry: { _map: new Map(), resolve: () => {} },
 		};

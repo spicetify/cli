@@ -482,7 +482,7 @@ func insertExpFeatures(jsPath string, flags Flag) {
 			&content,
 			`(([\w$.]+\.fromJSON)\(\w+\)+;)(return ?[\w{}().,]+[\w$]+\.Provider,)(\{value:\{localConfiguration)`,
 			func(submatches ...string) string {
-				return fmt.Sprintf("%stry{Spicetify.createInternalMap=%s}catch(_e){};%stry{Spicetify.RemoteConfigResolver=%s}catch(_e){};{value:{localConfiguration", submatches[1], submatches[2], submatches[3], submatches[4])
+				return fmt.Sprintf("%stry{Spicetify.createInternalMap=%s}catch(_e){};%stry{Spicetify.RemoteConfigResolver=%s}}catch(_e){};{value:{localConfiguration", submatches[1], submatches[2], submatches[3], submatches[4])
 			})
 
 		return content
