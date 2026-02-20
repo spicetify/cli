@@ -351,7 +351,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 	);
 });
 
-const AdjustmentsMenu = react.memo(({ mode }) => {
+const AdjustmentsMenu = react.memo(({ mode, hasPerformer }) => {
 	return react.createElement(
 		Spicetify.ReactComponent.TooltipWrapper,
 		{
@@ -393,6 +393,12 @@ const AdjustmentsMenu = react.memo(({ mode }) => {
 									key: "synced-compact",
 									type: ConfigSlider,
 									when: () => mode === SYNCED || mode === KARAOKE,
+								},
+								{
+									desc: "Show performers",
+									key: "show-performers",
+									type: ConfigSlider,
+									when: () => hasPerformer && (mode === SYNCED || mode === KARAOKE || mode === UNSYNCED),
 								},
 								{
 									desc: "Dual panel",
