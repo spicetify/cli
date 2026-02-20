@@ -332,6 +332,7 @@ window.Spicetify = {
 	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
 		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
 		const symbolName = key.description;
+		if (symbolName === "ExclusiveModeAPI") continue;
 		if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
 		try {
 			const resolvedAPI = Spicetify.Platform.Registry.resolve(key);
