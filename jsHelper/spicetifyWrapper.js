@@ -326,13 +326,14 @@ window.Spicetify = {
 		setTimeout(addMissingPlatformAPIs, 50);
 		return;
 	}
+	const os = Spicetify.Platform?.operatingSystem;
 	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
 	if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
 
 	for (const [key, _] of Spicetify.Platform.Registry._map.entries()) {
 		if (typeof key?.description !== "string" || !key?.description.endsWith("API")) continue;
 		const symbolName = key.description;
-		if (symbolName === "ExclusiveModeAPI") continue;
+		if (symbolName === "ExclusiveModeAPI" && os === "Linux") continue;
 		if (Object.hasOwn(Spicetify.Platform, symbolName)) continue;
 		try {
 			const resolvedAPI = Spicetify.Platform.Registry.resolve(key);
