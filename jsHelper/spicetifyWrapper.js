@@ -326,7 +326,7 @@ window.Spicetify = {
 		setTimeout(addMissingPlatformAPIs, 50);
 		return;
 	}
-	const os = Spicetify.Platform?.operatingSystem;
+	const os = Spicetify.Platform.operatingSystem;
 	const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
 	if (version[0] === 1 && version[1] === 2 && version[2] < 38) return;
 
