@@ -104,17 +104,8 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		readLocalCssMap(&cssTranslationMap)
 	}
 
-	verParts := strings.Split(flags.SpotifyVer, ".")
-	spotifyMajor, spotifyMinor, spotifyPatch := 0, 0, 0
-	if len(verParts) > 0 {
-		spotifyMajor, _ = strconv.Atoi(verParts[0])
-	}
-	if len(verParts) > 1 {
-		spotifyMinor, _ = strconv.Atoi(verParts[1])
-	}
-	if len(verParts) > 2 {
-		spotifyPatch, _ = strconv.Atoi(verParts[2])
-	}
+	spotifyVer := utils.ParseSpotifyVersion(flags.SpotifyVer)
+	spotifyMajor, spotifyMinor, spotifyPatch := spotifyVer.Major, spotifyVer.Minor, spotifyVer.Patch
 
 	var spotifyBinaryPath string
 	switch runtime.GOOS {

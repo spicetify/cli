@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/spicetify/cli/src/utils"
@@ -49,17 +48,8 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		},
 	}
 
-	verParts := strings.Split(flags.SpotifyVer, ".")
-	spotifyMajor, spotifyMinor, spotifyPatch := 0, 0, 0
-	if len(verParts) > 0 {
-		spotifyMajor, _ = strconv.Atoi(verParts[0])
-	}
-	if len(verParts) > 1 {
-		spotifyMinor, _ = strconv.Atoi(verParts[1])
-	}
-	if len(verParts) > 2 {
-		spotifyPatch, _ = strconv.Atoi(verParts[2])
-	}
+	spotifyVer := utils.ParseSpotifyVersion(flags.SpotifyVer)
+	spotifyMajor, spotifyMinor, spotifyPatch := spotifyVer.Major, spotifyVer.Minor, spotifyVer.Patch
 
 	filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")], insertCustomApp)
 	if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
