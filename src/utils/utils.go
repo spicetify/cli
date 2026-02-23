@@ -44,40 +44,38 @@ func Unzip(src, dest string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		rc, err := f.Open()
-		if err != nil {
+		if err := extractZipEntry(f, dest); err != nil {
 			return err
-		}
-		defer rc.Close()
-
-		fpath := filepath.Join(dest, f.Name)
-		if f.FileInfo().IsDir() {
-			os.MkdirAll(fpath, 0700)
-		} else {
-			var fdir string
-			if lastIndex := strings.LastIndex(fpath, string(os.PathSeparator)); lastIndex > -1 {
-				fdir = fpath[:lastIndex]
-			}
-
-			err = os.MkdirAll(fdir, 0700)
-			if err != nil {
-				log.Fatal(err)
-				return err
-			}
-			f, err := os.OpenFile(
-				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-
-			_, err = io.Copy(f, rc)
-			if err != nil {
-				return err
-			}
 		}
 	}
 	return nil
+}
+
+func extractZipEntry(f *zip.File, dest string) error {
+	rc, err := f.Open()
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+
+	fpath := filepath.Join(dest, f.Name)
+	if f.FileInfo().IsDir() {
+		return os.MkdirAll(fpath, 0700)
+	}
+
+	fdir := filepath.Dir(fpath)
+	if err := os.MkdirAll(fdir, 0700); err != nil {
+		return err
+	}
+
+	out, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, rc)
+	return err
 }
 
 // Copy .
@@ -115,26 +113,29 @@ func Copy(src, dest string, recursive bool, filters []string) error {
 				}
 			}
 
-			fSrc, err := os.Open(fSrcPath)
-			if err != nil {
-				return err
-			}
-			defer fSrc.Close()
-
-			fDest, err := os.OpenFile(
-				fDestPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
-			if err != nil {
-				return err
-			}
-			defer fDest.Close()
-
-			_, err = io.Copy(fDest, fSrc)
-			if err != nil {
+			if err := copyOneFile(fSrcPath, fDestPath); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+func copyOneFile(srcPath, destPath string) error {
+	fSrc, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer fSrc.Close()
+
+	fDest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+	if err != nil {
+		return err
+	}
+	defer fDest.Close()
+
+	_, err = io.Copy(fDest, fSrc)
+	return err
 }
 
 // CopyFile .

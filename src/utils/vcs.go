@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"net/http"
 )
 
 type GithubRelease struct {
@@ -13,10 +12,11 @@ type GithubRelease struct {
 }
 
 func FetchLatestTag() (string, error) {
-	res, err := http.Get("https://api.github.com/repos/spicetify/cli/releases/latest")
+	res, err := HTTPClient.Get("https://api.github.com/repos/spicetify/cli/releases/latest")
 	if err != nil {
 		return "", err
 	}
+	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {

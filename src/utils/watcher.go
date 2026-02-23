@@ -1,10 +1,8 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,22 +16,30 @@ var (
 	INTERVAL = 200 * time.Millisecond
 )
 
-// Watch .
+type fileState struct {
+	modTime time.Time
+	size    int64
+}
+
+// Watch polls the given files and invokes callbackEach when a file's
+// modification time or size changes. This avoids reading entire file
+// contents every tick.
 func Watch(fileList []string, callbackEach func(fileName string, err error), callbackAfter func()) {
-	var cache = map[string][]byte{}
+	var cache = map[string]fileState{}
 
 	for {
 		finalCallback := false
 		for _, v := range fileList {
-			curr, err := os.ReadFile(v)
+			stat, err := os.Stat(v)
 			if err != nil {
 				callbackEach(v, err)
 				continue
 			}
 
-			if !bytes.Equal(cache[v], curr) {
+			prev, exists := cache[v]
+			if !exists || stat.ModTime() != prev.modTime || stat.Size() != prev.size {
+				cache[v] = fileState{stat.ModTime(), stat.Size()}
 				callbackEach(v, nil)
-				cache[v] = curr
 				finalCallback = true
 			}
 		}
@@ -46,9 +52,10 @@ func Watch(fileList []string, callbackEach func(fileName string, err error), cal
 	}
 }
 
-// WatchRecursive .
+// WatchRecursive polls all files under root and invokes callbackEach
+// when a file's modification time or size changes.
 func WatchRecursive(root string, callbackEach func(fileName string, err error), callbackAfter func()) {
-	var cache = map[string][]byte{}
+	var cache = map[string]fileState{}
 
 	for {
 		finalCallback := false
@@ -58,15 +65,16 @@ func WatchRecursive(root string, callbackEach func(fileName string, err error), 
 				return nil
 			}
 
-			curr, err := os.ReadFile(filePath)
+			fInfo, err := info.Info()
 			if err != nil {
 				callbackEach(filePath, err)
 				return nil
 			}
 
-			if !bytes.Equal(cache[filePath], curr) {
+			prev, exists := cache[filePath]
+			if !exists || fInfo.ModTime() != prev.modTime || fInfo.Size() != prev.size {
+				cache[filePath] = fileState{fInfo.ModTime(), fInfo.Size()}
 				callbackEach(filePath, nil)
-				cache[filePath] = curr
 				finalCallback = true
 			}
 
@@ -94,10 +102,11 @@ type debugger struct {
 // GetDebuggerPath fetches opening debugger list from localhost and returns
 // the Spotify one.
 func GetDebuggerPath() string {
-	res, err := http.Get("http://localhost:9222/json/list")
+	res, err := HTTPClient.Get("http://localhost:9222/json/list")
 	if err != nil {
 		return ""
 	}
+	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
