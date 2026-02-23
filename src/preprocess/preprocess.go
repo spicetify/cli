@@ -13,9 +13,15 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/pterm/pterm"
 	"github.com/spicetify/cli/src/utils"
+)
+
+var (
+	uriRegex   = regexp.MustCompile(`(?:class ([\w$_]+)\{constructor|([\w$_]+)=function\(\)\{function ?[\w$_]+)\([\w$.,={}]+\)\{[\w !?:=.,>&(){}[\];]*this\.hasBase62Id`)
+	buildRegex = regexp.MustCompile(`(Master|Release|PR|Local) Build.+(?:cef_)?(\d+\.\d+\.\d+\+g[0-9a-f]+\+chromium-\d+\.\d+\.\d+\.\d+)`)
 )
 
 // Flag enables/disables preprocesses to be applied
@@ -104,6 +110,15 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		readLocalCssMap(&cssTranslationMap)
 	}
 
+	// Build a single replacer for all CSS translation map entries.
+	// This uses Aho-Corasick internally, replacing N full-file regex scans
+	// with a single efficient pass per file.
+	cssPairs := make([]string, 0, len(cssTranslationMap)*2)
+	for k, v := range cssTranslationMap {
+		cssPairs = append(cssPairs, k, v)
+	}
+	cssReplacer := strings.NewReplacer(cssPairs...)
+
 	verParts := strings.Split(flags.SpotifyVer, ".")
 	spotifyMajor, spotifyMinor, spotifyPatch := 0, 0, 0
 	if len(verParts) > 0 {
@@ -185,11 +200,11 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 	}
 
 	var filesToPatch []string
-	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
+	filepath.WalkDir(appPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
 			return nil
 		}
-		ext := filepath.Ext(info.Name())
+		ext := filepath.Ext(d.Name())
 		if ext == ".js" || ext == ".css" || ext == ".html" {
 			filesToPatch = append(filesToPatch, path)
 		}
@@ -204,122 +219,132 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		WithTitleStyle(pterm.NewStyle(pterm.Bold)).
 		WithShowCount(true).
 		Start()
+
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, runtime.NumCPU())
+	var barMu sync.Mutex
+
 	for _, path := range filesToPatch {
-		info, err := os.Stat(path)
-		if err != nil {
-			continue
-		}
-		fileName := info.Name()
-		extension := filepath.Ext(fileName)
+		wg.Add(1)
+		go func(p string) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		switch extension {
-		case ".js":
-			utils.ModifyFile(path, func(content string) string {
-				if flags.DisableSentry && (fileName == "xpui.js" || fileName == "xpui-snapshot.js") {
-					content = disableSentry(content)
-				}
+			info, err := os.Stat(p)
+			if err != nil {
+				barMu.Lock()
+				bar.Increment()
+				barMu.Unlock()
+				return
+			}
+			fileName := info.Name()
+			extension := filepath.Ext(fileName)
 
-				if flags.DisableLogging {
-					content = disableLogging(content)
-				}
+			switch extension {
+			case ".js":
+				utils.ModifyFile(p, func(content string) string {
+					if flags.DisableSentry && (fileName == "xpui.js" || fileName == "xpui-snapshot.js") {
+						content = disableSentry(content)
+					}
 
-				if flags.ExposeAPIs {
-					switch fileName {
-					case "xpui-modules.js", "xpui-snapshot.js":
-						content = exposeAPIs_main(content)
-						content = exposeAPIs_vendor(content)
-					case "xpui.js":
-						content = exposeAPIs_main(content)
-						if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
+					if flags.DisableLogging {
+						content = disableLogging(content)
+					}
+
+					if flags.ExposeAPIs {
+						switch fileName {
+						case "xpui-modules.js", "xpui-snapshot.js":
+							content = exposeAPIs_main(content)
+							content = exposeAPIs_vendor(content)
+						case "xpui.js":
+							content = exposeAPIs_main(content)
+							if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
+								content = exposeAPIs_vendor(content)
+							}
+						case "vendor~xpui.js":
 							content = exposeAPIs_vendor(content)
 						}
-					case "vendor~xpui.js":
-						content = exposeAPIs_vendor(content)
+
+						if spotifyMajor >= 1 && spotifyMinor >= 2 && (spotifyPatch >= 28 && spotifyPatch <= 57) {
+							utils.ReplaceOnce(&content, `(typeName\])`, func(submatches ...string) string {
+								return fmt.Sprintf(`%s || []`, submatches[1])
+							})
+						}
+
+						// to avoid syntaxerror on Spotify 1.2.78 and above
+						if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch < 78 {
+							utils.ReplaceOnce(&content, `\(\({[^}]*,\s*imageSrc`, func(submatches ...string) string {
+								return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
+							})
+						}
+
+						content = additionalPatches(content)
 					}
 
-					if spotifyMajor >= 1 && spotifyMinor >= 2 && (spotifyPatch >= 28 && spotifyPatch <= 57) {
-						utils.ReplaceOnce(&content, `(typeName\])`, func(submatches ...string) string {
-							return fmt.Sprintf(`%s || []`, submatches[1])
+					if fileName == "dwp-top-bar.js" || fileName == "dwp-now-playing-bar.js" || fileName == "dwp-home-chips-row.js" {
+						utils.ReplaceOnce(&content, `e\.state\.cinemaState`, func(submatches ...string) string {
+							return "e.state?.cinemaState"
 						})
 					}
 
-					// to avoid syntaxerror on Spotify 1.2.78 and above
-					if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch < 78 {
-						utils.ReplaceOnce(&content, `\(\({[^}]*,\s*imageSrc`, func(submatches ...string) string {
-							return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
-						})
+					content = cssReplacer.Replace(content)
+					content = colorVariableReplaceForJS(content)
+
+					return content
+				})
+			case ".css":
+				utils.ModifyFile(p, func(content string) string {
+					content = cssReplacer.Replace(content)
+					if flags.RemoveRTL {
+						content = removeRTL(content)
 					}
-
-					content = additionalPatches(content)
-				}
-
-				if fileName == "dwp-top-bar.js" || fileName == "dwp-now-playing-bar.js" || fileName == "dwp-home-chips-row.js" {
-					utils.ReplaceOnce(&content, `e\.state\.cinemaState`, func(submatches ...string) string {
-						return "e.state?.cinemaState"
-					})
-				}
-
-				for k, v := range cssTranslationMap {
-					utils.Replace(&content, k, func(submatches ...string) string {
-						return v
-					})
-				}
-				content = colorVariableReplaceForJS(content)
-
-				return content
-			})
-		case ".css":
-			utils.ModifyFile(path, func(content string) string {
-				for k, v := range cssTranslationMap {
-					utils.Replace(&content, k, func(submatches ...string) string {
-						return v
-					})
-				}
-				if flags.RemoveRTL {
-					content = removeRTL(content)
-				}
-				if fileName == "xpui.css" || fileName == "xpui-snapshot.css" {
-					content = content + `
+					if fileName == "xpui.css" || fileName == "xpui-snapshot.css" {
+						content = content + `
 					.main-gridContainer-fixedWidth{grid-template-columns: repeat(auto-fill, var(--column-width));width: calc((var(--column-count) - 1) * var(--grid-gap)) + var(--column-count) * var(--column-width));}.main-cardImage-imageWrapper{background-color: var(--card-color, #333);border-radius: 6px;-webkit-box-shadow: 0 8px 24px rgba(0, 0, 0, .5);box-shadow: 0 8px 24px rgba(0, 0, 0, .5);padding-bottom: 100%;position: relative;width:100%;}.main-cardImage-image,.main-card-imagePlaceholder{height: 100%;left: 0;position: absolute;top: 0;width: 100%};.main-content-view{height:100%;}
 					`
-				}
-				return content
-			})
-
-		case ".html":
-			utils.ModifyFile(path, func(content string) string {
-				var tags string
-				tags += "<link rel='stylesheet' class='userCSS' href='colors.css'>\n"
-				tags += "<link rel='stylesheet' class='userCSS' href='user.css'>\n"
-
-				if flags.ExposeAPIs {
-					tags += "<script src='helper/spicetifyWrapper.js'></script>\n"
-					tags += "<!-- spicetify helpers -->\n"
-				}
-
-				utils.Replace(&content, `<body(\sclass="[^"]*")?>`, func(submatches ...string) string {
-					return fmt.Sprintf("%s\n%s", submatches[0], tags)
+					}
+					return content
 				})
 
-				return content
-			})
-		}
+			case ".html":
+				utils.ModifyFile(p, func(content string) string {
+					var tags string
+					tags += "<link rel='stylesheet' class='userCSS' href='colors.css'>\n"
+					tags += "<link rel='stylesheet' class='userCSS' href='user.css'>\n"
 
-		bar.Increment()
+					if flags.ExposeAPIs {
+						tags += "<script src='helper/spicetifyWrapper.js'></script>\n"
+						tags += "<!-- spicetify helpers -->\n"
+					}
+
+					utils.Replace(&content, `<body(\sclass="[^"]*")?>`, func(submatches ...string) string {
+						return fmt.Sprintf("%s\n%s", submatches[0], tags)
+					})
+
+					return content
+				})
+			}
+
+			barMu.Lock()
+			bar.Increment()
+			barMu.Unlock()
+		}(path)
 	}
+	wg.Wait()
 }
 
 // StartCSS modifies all CSS files in extractedAppsPath to change
 // all colors value with CSS variables.
 func StartCSS(extractedAppsPath string) {
 	appPath := filepath.Join(extractedAppsPath, "xpui")
-	filepath.Walk(appPath, func(path string, info os.FileInfo, err error) error {
+	filepath.WalkDir(appPath, func(path string, d os.DirEntry, err error) error {
 		// temp so text won't be black ._.
-		if strings.HasPrefix(info.Name(), "pip-mini-player") && strings.HasSuffix(info.Name(), ".css") {
+		if strings.HasPrefix(d.Name(), "pip-mini-player") && strings.HasSuffix(d.Name(), ".css") {
 			return nil
 		}
 
-		if filepath.Ext(info.Name()) == ".css" {
+		if filepath.Ext(d.Name()) == ".css" {
 			utils.ModifyFile(path, func(content string) string {
 				return colorVariableReplace(content)
 			})
@@ -1030,7 +1055,7 @@ func exposeAPIs_vendor(input string) string {
 
 	// URI after 1.2.4
 	if !strings.Contains(input, "Spicetify.URI") {
-		URIObj := regexp.MustCompile(`(?:class ([\w$_]+)\{constructor|([\w$_]+)=function\(\)\{function ?[\w$_]+)\([\w$.,={}]+\)\{[\w !?:=.,>&(){}[\];]*this\.hasBase62Id`).FindStringSubmatch(input)
+		URIObj := uriRegex.FindStringSubmatch(input)
 
 		if len(URIObj) != 0 {
 			URI := utils.SeekToCloseParen(
@@ -1061,7 +1086,6 @@ func validateReleaseBuild(spotifyBinaryPath string) error {
 		return fmt.Errorf("could not read %s: %w", filepath.Base(spotifyBinaryPath), err)
 	}
 
-	buildRegex := regexp.MustCompile(`(Master|Release|PR|Local) Build.+(?:cef_)?(\d+\.\d+\.\d+\+g[0-9a-f]+\+chromium-\d+\.\d+\.\d+\.\d+)`)
 	matches := buildRegex.FindSubmatch(fileContent)
 
 	if len(matches) == 0 {

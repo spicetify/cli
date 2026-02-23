@@ -12,7 +12,9 @@ import (
 )
 
 var (
-	xrdb map[string]string
+	hexColorRegex = regexp.MustCompile("[a-fA-F0-9]+")
+	xrdbRegex     = regexp.MustCompile(`^\*\.?(\w+?):\s*?#([A-Za-z0-9]+)`)
+	xrdb          map[string]string
 
 	// BaseColorList is color names list and their default values
 	BaseColorList = map[string]string{
@@ -100,8 +102,7 @@ func ParseColor(raw string) Color {
 		blue = stringToInt(list[2], 10)
 
 	} else {
-		re := regexp.MustCompile("[a-fA-F0-9]+")
-		hex := re.FindString(raw)
+		hex := hexColorRegex.FindString(raw)
 
 		// Support short hex color form e.g. #fff, #121
 		if len(hex) == 3 {
@@ -165,10 +166,9 @@ func getXRDB() error {
 	}
 
 	scanner := bufio.NewScanner(bytes.NewReader(output))
-	re := regexp.MustCompile(`^\*\.?(\w+?):\s*?#([A-Za-z0-9]+)`)
 	for scanner.Scan() {
 		line := scanner.Text()
-		for _, match := range re.FindAllStringSubmatch(line, -1) {
+		for _, match := range xrdbRegex.FindAllStringSubmatch(line, -1) {
 			if match != nil {
 				db[match[1]] = match[2]
 			}

@@ -12,10 +12,24 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-ini/ini"
 )
+
+var regexpCache sync.Map
+
+// getRegexp returns a compiled regexp, caching it for reuse.
+// Avoids recompiling the same pattern thousands of times in hot loops.
+func getRegexp(pattern string) *regexp.Regexp {
+	if v, ok := regexpCache.Load(pattern); ok {
+		return v.(*regexp.Regexp)
+	}
+	re := regexp.MustCompile(pattern)
+	regexpCache.Store(pattern, re)
+	return re
+}
 
 // CheckExistAndCreate checks folder existence
 // and makes that folder, recursively, if it does not exist
@@ -165,7 +179,7 @@ func CopyFile(srcPath, dest string) error {
 // Replace uses Regexp to find any matched from `input` with `regexpTerm`
 // and replaces them with `replaceTerm` then returns new string.
 func Replace(str *string, pattern string, repl func(submatches ...string) string) {
-	re := regexp.MustCompile(pattern)
+	re := getRegexp(pattern)
 	*str = re.ReplaceAllStringFunc(*str, func(match string) string {
 		submatches := re.FindStringSubmatch(match)
 		return repl(submatches...)
@@ -173,7 +187,7 @@ func Replace(str *string, pattern string, repl func(submatches ...string) string
 }
 
 func ReplaceOnce(str *string, pattern string, repl func(submatches ...string) string) {
-	re := regexp.MustCompile(pattern)
+	re := getRegexp(pattern)
 	firstMatch := true
 	*str = re.ReplaceAllStringFunc(*str, func(match string) string {
 		if firstMatch {
@@ -189,7 +203,7 @@ func ReplaceOnce(str *string, pattern string, repl func(submatches ...string) st
 
 func ReplaceOnceWithPriority(str *string, patterns []string, repl func(index int, submatches ...string) string) {
 	for i, pattern := range patterns {
-		re := regexp.MustCompile(pattern)
+		re := getRegexp(pattern)
 		firstMatch := true
 		*str = re.ReplaceAllStringFunc(*str, func(match string) string {
 			if firstMatch {
@@ -208,7 +222,7 @@ func ReplaceOnceWithPriority(str *string, patterns []string, repl func(index int
 }
 
 func FindMatch(input string, regexpTerm string) [][]string {
-	re := regexp.MustCompile(regexpTerm)
+	re := getRegexp(regexpTerm)
 	matches := re.FindAllStringSubmatch(input, -1)
 	return matches
 }
@@ -299,7 +313,7 @@ func PrependTime(text string) string {
 // function symbol in obfuscated code.
 func FindSymbol(debugInfo, content string, clues []string) []string {
 	for _, v := range clues {
-		re := regexp.MustCompile(v)
+		re := getRegexp(v)
 		found := re.FindStringSubmatch(content)
 		if found != nil {
 			return found[1:]
@@ -317,7 +331,7 @@ func FindSymbol(debugInfo, content string, clues []string) []string {
 // function symbol in obfuscated code. Returns the matched symbols and the pattern that matched.
 func FindSymbolWithPattern(debugInfo, content string, clues []string) ([]string, string) {
 	for _, v := range clues {
-		re := regexp.MustCompile(v)
+		re := getRegexp(v)
 		found := re.FindStringSubmatch(content)
 		if found != nil {
 			return found[1:], v
@@ -346,7 +360,7 @@ func CreateJunction(location, destination string) error {
 }
 
 func SeekToCloseParen(content string, regexpTerm string, leftChar, rightChar byte) string {
-	loc := regexp.MustCompile(regexpTerm).FindStringIndex(content)
+	loc := getRegexp(regexpTerm).FindStringIndex(content)
 	if len(loc) > 0 {
 		start := loc[0]
 		end := start
