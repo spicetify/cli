@@ -102,7 +102,7 @@ jobs:
           cp ./signed/spicetify.exe ./spicetify.exe
 
       - name: Attest output
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         if: env.IS_UNIX == 'true' || env.IS_WIN == 'true'
         with:
           subject-path: "./spicetify${{ matrix.os == 'windows' && '.exe' || '' }}"
