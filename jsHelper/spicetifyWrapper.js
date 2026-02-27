@@ -706,7 +706,9 @@ const fnStr = (f) => {
 			Routes: functionModules.find((m) => fnStr(m).match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
 			Route: functionModules.find((m) => fnStr(m).match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(!1\)\}$/)),
 			StoreProvider: functionModules.find((m) => fnStr(m).includes("notifyNestedSubs") && fnStr(m).includes("serverState")),
-			ScrollableContainer: functionModules.find((m) => fnStr(m).includes("scrollLeft") && fnStr(m).includes("showButtons")),
+			ScrollableContainer:
+				functionModules.find((m) => fnStr(m).includes("scrollLeft") && fnStr(m).includes("showButtons")) ||
+				exportedMemos?.find((m) => fnStr(m.type).includes("enableStandaloneUBI")),
 			IconComponent: reactComponentsUI.Icon,
 			...Object.fromEntries(menus),
 		},
@@ -776,6 +778,7 @@ const fnStr = (f) => {
 					? Object.values(module).filter((v) => typeof v === "function" && !webpackFactories.has(v))
 					: []
 		);
+		const exportedMemos = modules.filter((m) => m?.$$typeof === Symbol.for("react.memo"));
 		const cardTypesToFind = ["artist", "audiobook", "profile", "show", "track"];
 		// const cards = [
 		// 	...functionModules
@@ -804,7 +807,9 @@ const fnStr = (f) => {
 
 		Spicetify.ReactComponent.Slider = wrapProvider(functionModules.find((m) => fnStr(m).includes("progressBarRef")));
 		Spicetify.ReactComponent.Toggle = functionModules.find((m) => fnStr(m).includes("onSelected") && fnStr(m).includes('type:"checkbox"'));
-		Spicetify.ReactComponent.ScrollableContainer = functionModules.find((m) => fnStr(m).includes("scrollLeft") && fnStr(m).includes("showButtons"));
+		Spicetify.ReactComponent.ScrollableContainer =
+			functionModules.find((m) => fnStr(m).includes("scrollLeft") && fnStr(m).includes("showButtons")) ||
+			exportedMemos?.find((m) => fnStr(m.type).includes("enableStandaloneUBI"));
 		// Object.assign(Spicetify.ReactComponent.Cards, Object.fromEntries(cards));
 
 		// chunks
@@ -824,7 +829,7 @@ const fnStr = (f) => {
 			return;
 		}
 
-		if (Spicetify.ReactComponent.ScrollableContainer) setTimeout(refreshNavLinks?.(), 100);
+		if (Spicetify.ReactComponent.ScrollableContainer) setTimeout(refreshNavLinks, 100);
 	})();
 
 	(function waitForSnackbar() {
