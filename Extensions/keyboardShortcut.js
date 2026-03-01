@@ -32,6 +32,10 @@
 		"ctrl+tab": { callback: () => rotateSidebar(1) },
 		"ctrl+shift+tab": { callback: () => rotateSidebar(-1) },
 
+		// Rotate through sidebar items using Shift+J/Shift+K (Vim-style).
+		"shift+j": { callback: () => rotateSidebar(1) },
+		"shift+k": { callback: () => rotateSidebar(-1) },
+
 		// Focus on the app content before scrolling using Shift+PageUp and Shift+PageDown
 		"shift+pageup": { callback: () => focusOnApp() },
 		"shift+pagedown": { callback: () => focusOnApp() },
@@ -39,6 +43,10 @@
 		// Scroll actions using 'j' and 'k' keys
 		j: { callback: () => createScrollCallback(SCROLL_STEP) },
 		k: { callback: () => createScrollCallback(-SCROLL_STEP) },
+
+		// Scroll half-page using 'u' and 'd' keys
+		d: { callback: () => scrollHalfPage(1) },
+		u: { callback: () => scrollHalfPage(-1) },
 
 		// Scroll to the top ('gg') or bottom ('Shift+g') of the page
 		"g g": { callback: () => scrollToPosition(0) },
@@ -117,9 +125,8 @@
 			const scrollInterval = setInterval(() => {
 				app.scrollTop += step;
 			}, 10);
-			document.addEventListener("keyup", () => {
-				clearInterval(scrollInterval);
-			});
+      		const clear = () => clearInterval(scrollInterval);
+      		document.addEventListener("keyup", clear, { once: true });
 		}
 	}
 
@@ -127,6 +134,15 @@
 		const app = focusOnApp();
 		app.scroll(0, position === 0 ? 0 : app.scrollHeight);
 	}
+
+  	function scrollHalfPage(direction /* 1 | -1 */) {
+    	const app = focusOnApp();
+    	if (!app) return;
+    	const delta = Math.floor(app.clientHeight / 2) * direction;
+    	const maxTop = Math.max(0, app.scrollHeight - app.clientHeight);
+    	const nextTop = Math.max(0, Math.min(app.scrollTop + delta, maxTop));
+    	app.scroll(0, nextTop);
+  	}
 
 	/**
 	 * @returns {number | undefined}
