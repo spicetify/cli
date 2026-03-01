@@ -2166,6 +2166,7 @@ const NavLinkGlobal = ({ appProper, appRoutePath, createIcon, isActive }) => {
 
 class _HTMLGenericModal extends HTMLElement {
 	hide() {
+		Spicetify.ReactDOM.unmountComponentAtNode(this.querySelector("main"));
 		this.remove();
 	}
 
