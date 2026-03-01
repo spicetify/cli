@@ -63,6 +63,7 @@ const CONFIG = {
 		"musixmatch-translation-language": localStorage.getItem("lyrics-plus:visual:musixmatch-translation-language") || "none",
 		"fade-blur": getConfig("lyrics-plus:visual:fade-blur"),
 		"fullscreen-key": localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
+		"show-performers": getConfig("lyrics-plus:visual:show-performers", true),
 		"synced-compact": getConfig("lyrics-plus:visual:synced-compact"),
 		"dual-genius": getConfig("lyrics-plus:visual:dual-genius"),
 		"global-delay": Number(localStorage.getItem("lyrics-plus:visual:global-delay")) || 0,
@@ -1065,6 +1066,7 @@ class LyricsContainer extends react.Component {
 		const friendlyLanguage = lang && new Intl.DisplayNames(["en"], { type: "language" }).of(lang.split("-")[0])?.toLowerCase();
 		const hasMusixmatchLanguages = Array.isArray(this.state.musixmatchAvailableTranslations) && this.state.musixmatchAvailableTranslations.length > 0;
 		const hasTranslation = this.state.neteaseTranslation !== null || this.state.musixmatchTranslation !== null || hasMusixmatchLanguages;
+		const hasPerformer = !!this.state.currentLyrics?.some((line) => line.performer);
 
 		if (mode !== -1) {
 			showTranslationButton = (friendlyLanguage || hasTranslation) && (mode === SYNCED || mode === UNSYNCED);
@@ -1160,7 +1162,7 @@ class LyricsContainer extends react.Component {
 						musixmatchLanguages: this.state.musixmatchAvailableTranslations || [],
 						musixmatchSelectedLanguage: this.state.musixmatchTranslationLanguage || CONFIG.visual["musixmatch-translation-language"],
 					}),
-				react.createElement(AdjustmentsMenu, { mode }),
+				react.createElement(AdjustmentsMenu, { mode, hasPerformer }),
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{
