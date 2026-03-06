@@ -80,8 +80,8 @@
 	function createMenuItem(title, callback) {
 		const item = document.createElement("li");
 		item.setAttribute("role", "menuitem");
-		item.classList.add("main-contextMenu-menuItemButton");
 		const button = document.createElement("button");
+		button.classList.add("main-contextMenu-menuItemButton");
 		button.textContent = title;
 		button.onclick = () => {
 			contextMenu.hidden = true;
