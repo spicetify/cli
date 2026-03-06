@@ -10,7 +10,7 @@
 	const progressContainer = playbackBar?.querySelector(".playback-progressbar-container");
 	const rangeInput = progressContainer?.querySelector('input[type="range"]');
 	const bar = rangeInput?.closest("label")?.nextElementSibling;
-	if (!bar) {
+	if (!(bar && Spicetify.Player)) {
 		setTimeout(LoopyLoop, 100);
 		return;
 	}
