@@ -55,7 +55,7 @@ const isPauseLine = (text) => {
 
 const findNextLineStartTime = (lines, fromIndex) => {
 	for (let j = fromIndex + 1; j < lines.length; j++) {
-		if (!isPauseLine(lines[j].text) && lines[j].startTime > 0) {
+		if (!isPauseLine(lines[j].text) && lines[j].startTime != null) {
 			return lines[j].startTime;
 		}
 	}
@@ -74,7 +74,7 @@ const processPauseLines = (lyrics) => {
 		if (isPauseLine(line.text)) {
 			const nextStart = findNextLineStartTime(lyrics, i);
 			const pauseStart = line.startTime || 0;
-			if (nextStart) {
+			if (nextStart != null) {
 				const pauseDuration = nextStart - pauseStart;
 				if (pauseDuration >= LONG_PAUSE_THRESHOLD) {
 					result.push(line);
@@ -82,9 +82,9 @@ const processPauseLines = (lyrics) => {
 			}
 		} else {
 			result.push(line);
-			if (line.endTime && nextLine && nextLine.startTime) {
+			if (line.endTime != null && nextLine && nextLine.startTime != null) {
 				const gap = nextLine.startTime - line.endTime;
-				if (gap > LONG_PAUSE_THRESHOLD && !isPauseLine(nextLine.text)) {
+				if (gap >= LONG_PAUSE_THRESHOLD && !isPauseLine(nextLine.text)) {
 					result.push({
 						text: "♪",
 						startTime: line.endTime,
@@ -563,6 +563,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 			if (i === 0) {
 				const nextStart = findNextLineStartTime(padded, 0);
 				return react.createElement(IdlingIndicator, {
+					key: i,
 					isActive: activeLineIndex === 0,
 					progress: nextStart ? position / nextStart : 0,
 					delay: nextStart ? nextStart / 3 : 0,
