@@ -125,8 +125,8 @@ const KaraokeLine = ({ text, isActive, position, startTime, endTime }) => {
 		return text.map(({ word }, i) => (typeof word === "string" ? word : react.cloneElement(word, { key: i })));
 	}
 
-	const isRTL = isRTLText(text.map(({ word }) => (typeof word === "string" ? word : "")).join(""));
 	return text.map(({ word, time }, i) => {
+		const isRTL = isRTLText(typeof word === "string" ? word : "");
 		const isWordActive = position >= startTime;
 		startTime += time;
 		const isWordComplete = isWordActive && position >= startTime;
