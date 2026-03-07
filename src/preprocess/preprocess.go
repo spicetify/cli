@@ -914,7 +914,7 @@ func exposeAPIs_main(input string) string {
 		},
 		{
 			Name:  "Expose PlatformAPI",
-			Regex: `((?:setTitlebarHeight|registerFactory)[\w(){}<>:.,&$!=;""?!#% ]+)(\{version:[a-zA-Z_\$][\w\$]*,)`,
+			Regex: `((?:setTitlebarHeight|registerFactory)[\w(){}<>:.,&$!=;""?!#%/\- ]+)(\{version:[a-zA-Z_\$][\w\$]*,)`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf("%sSpicetify._platform=%s", submatches[1], submatches[2])
 			},
