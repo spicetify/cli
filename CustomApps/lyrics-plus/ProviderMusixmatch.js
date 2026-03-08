@@ -49,7 +49,7 @@ const ProviderMusixmatch = (() => {
 			q_duration: durr,
 			f_subtitle_length: Math.floor(durr),
 			usertoken: CONFIG.providers.musixmatch.token,
-			part: "track_lyrics_translation_status",
+			part: "track_lyrics_translation_status,track_structure,track_performer_tagging",
 		};
 
 		const finalURL =
@@ -91,6 +91,130 @@ const ProviderMusixmatch = (() => {
 		return body;
 	}
 
+	function parsePerformerData(meta) {
+		if (!meta || !meta.track || !meta.track.performer_tagging) {
+			return [];
+		}
+
+		const tagging = meta.track.performer_tagging;
+		const miscTags = meta.track.performer_tagging_misc_tags || {};
+		let performerMap = [];
+		if (tagging && tagging.content && tagging.content.length > 0) {
+			const resources = tagging.resources?.artists || [];
+			const resourcesList = Array.isArray(resources) ? resources : Object.values(resources);
+
+			performerMap = tagging.content
+				.map((c) => {
+					if (!c.performers || c.performers.length === 0) return null;
+
+					const resolvedPerformers = c.performers
+						.map((p) => {
+							let name = "Unknown";
+							if (p.type === "artist") {
+								const fqid = p.fqid;
+								const idFromFqid = fqid ? parseInt(fqid.split(":")[2]) : null;
+
+								const artist = resourcesList.find((r) => r.artist_id === idFromFqid);
+								if (artist) name = artist.artist_name;
+							} else if (miscTags[p.type]) {
+								name = miscTags[p.type];
+							}
+							return {
+								fqid: p.fqid,
+								artist_id: p.fqid ? parseInt(p.fqid.split(":")[2]) : null,
+								name: name,
+							};
+						})
+						.filter((p) => p.name !== "Unknown");
+
+					const names = resolvedPerformers.map((p) => p.name);
+					if (names.length === 0) return null;
+
+					return {
+						name: names.join(", "),
+						snippet: c.snippet,
+						performers: resolvedPerformers,
+					};
+				})
+				.filter(Boolean);
+		}
+
+		const normalizeForMatch = (text) => text.replace(/\s+/g, "").toLowerCase();
+
+		const snippetQueue = [];
+		if (performerMap.length > 0) {
+			for (const tag of performerMap) {
+				if (!tag.snippet) continue;
+				const snippetLines = tag.snippet
+					.split(/\n+/)
+					.map((s) => s.trim())
+					.filter(Boolean);
+				for (const sLine of snippetLines) {
+					if (sLine.length < 2 && !/^[\u3131-\uD79D]/.test(sLine)) continue;
+					snippetQueue.push({
+						text: normalizeForMatch(sLine),
+						raw: sLine,
+						performers: tag.performers,
+					});
+				}
+			}
+		}
+		return snippetQueue;
+	}
+
+	function matchSequential(lyricsLines, snippetQueue, getTextCallback = (l) => l.text) {
+		if (!snippetQueue || snippetQueue.length === 0) return lyricsLines;
+
+		const normalizeForMatch = (text) => text.replace(/\s+/g, "").toLowerCase();
+		let queueCursor = 0;
+		const LOOKAHEAD = 5;
+
+		return lyricsLines.map((line) => {
+			const lineText = getTextCallback(line) || "♪";
+			let normalizedLine = normalizeForMatch(lineText);
+
+			let matchedPerformers = [];
+
+			while (queueCursor < snippetQueue.length) {
+				let matchFoundAtOffset = -1;
+
+				for (let i = 0; i < LOOKAHEAD && queueCursor + i < snippetQueue.length; i++) {
+					const snippet = snippetQueue[queueCursor + i];
+
+					if (normalizedLine.includes(snippet.text) && snippet.text.length > 0) {
+						matchFoundAtOffset = i;
+						break;
+					}
+				}
+
+				if (matchFoundAtOffset !== -1) {
+					queueCursor += matchFoundAtOffset;
+					const matchedSnippet = snippetQueue[queueCursor];
+					matchedPerformers.push(...matchedSnippet.performers);
+					normalizedLine = normalizedLine.replace(matchedSnippet.text, "");
+					queueCursor++;
+				} else {
+					break;
+				}
+			}
+
+			const uniquePerformers = [];
+			const sawMap = new Set();
+			for (const p of matchedPerformers) {
+				const key = p.fqid || p.name;
+				if (!sawMap.has(key)) {
+					sawMap.add(key);
+					uniquePerformers.push(p);
+				}
+			}
+
+			return {
+				...line,
+				performers: uniquePerformers,
+			};
+		});
+	}
+
 	async function getKaraoke(body) {
 		const meta = body?.["matcher.track.get"]?.message?.body;
 		if (!meta) {
@@ -124,6 +248,8 @@ const ProviderMusixmatch = (() => {
 
 		result = result.message.body;
 
+		const snippetQueue = parsePerformerData(meta);
+
 		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map((line) => {
 			const startTime = line.ts * 1000;
 			const endTime = line.te * 1000;
@@ -143,11 +269,26 @@ const ProviderMusixmatch = (() => {
 			});
 			return {
 				startTime,
+				endTime,
 				text,
 			};
 		});
 
-		return parsedKaraoke;
+		return matchSequential(parsedKaraoke, snippetQueue, (line) => {
+			if (Array.isArray(line.text)) {
+				return line.text.map((t) => t.word).join("");
+			}
+			return line.text;
+		}).map((line) => {
+			const performerNames = (line.performers || [])
+				.map((p) => p.name)
+				.filter(Boolean)
+				.join(", ");
+			return {
+				...line,
+				performer: performerNames || null,
+			};
+		});
 	}
 
 	function getSynced(body) {
@@ -169,10 +310,22 @@ const ProviderMusixmatch = (() => {
 				return null;
 			}
 
-			return JSON.parse(subtitle.subtitle_body).map((line) => ({
-				text: line.text || "♪",
-				startTime: line.time.total * 1000,
-			}));
+			const snippetQueue = parsePerformerData(meta);
+			const rawLines = JSON.parse(subtitle.subtitle_body);
+
+			return matchSequential(rawLines, snippetQueue, (l) => l.text).map((line) => {
+				const lineText = line.text || "♪";
+				const performerNames = (line.performers || [])
+					.map((p) => p.name)
+					.filter(Boolean)
+					.join(", ");
+
+				return {
+					text: lineText,
+					startTime: line.time.total * 1000,
+					performer: performerNames || null,
+				};
+			});
 		}
 
 		return null;
@@ -196,7 +349,21 @@ const ProviderMusixmatch = (() => {
 			if (!lyrics) {
 				return null;
 			}
-			return lyrics.split("\n").map((text) => ({ text }));
+
+			const snippetQueue = parsePerformerData(meta);
+			const rawLines = lyrics.split("\n").map((text) => ({ text }));
+
+			return matchSequential(rawLines, snippetQueue, (l) => l.text).map((line) => {
+				const performerNames = (line.performers || [])
+					.map((p) => p.name)
+					.filter(Boolean)
+					.join(", ");
+
+				return {
+					...line,
+					performer: performerNames || null,
+				};
+			});
 		}
 
 		return null;

@@ -306,6 +306,10 @@ div.lyrics-tabBar-headerItemLink {
 	background-position: top left !important;
 }
 
+.lyrics-lyricsContainer-LyricsLine:hover .lyrics-lyricsContainer-Karaoke-Word {
+	background-position: top left;
+}
+
 .lyrics-lyricsContainer-Karaoke-Word {
 	color: var(--lyrics-color-inactive);
 	background-image: linear-gradient(
@@ -727,4 +731,12 @@ div.lyrics-tabBar-headerItemLink {
 		margin-right: 100px;
 		margin-left: 100px;
 	}
+}
+
+.lyrics-lyricsContainer-Performer {
+	display: block;
+	font-size: 0.6em;
+	opacity: 0.7;
+	line-height: 1.2em;
+	/* color: var(--lyrics-color-inactive); */
 }

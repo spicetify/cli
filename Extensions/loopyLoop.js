@@ -5,13 +5,15 @@
 
 /// <reference path="../globals.d.ts" />
 
-(async function LoopyLoop() {
-	const bar = document.querySelector(".playback-bar .progress-bar");
-	if (!(bar && Spicetify.React)) {
+(function LoopyLoop() {
+	const playbackBar = document.querySelector(".playback-bar");
+	const progressContainer = playbackBar?.querySelector(".playback-progressbar-container");
+	const rangeInput = progressContainer?.querySelector('input[type="range"]');
+	const bar = rangeInput?.closest("label")?.nextElementSibling;
+	if (!(bar && Spicetify.Player)) {
 		setTimeout(LoopyLoop, 100);
 		return;
 	}
-	await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
 
 	const style = document.createElement("style");
 	style.innerHTML = `
@@ -76,22 +78,17 @@
 	Spicetify.Player.addEventListener("songchange", reset);
 
 	function createMenuItem(title, callback) {
-		const wrapper = document.createElement("div");
-		Spicetify.ReactDOM.render(
-			Spicetify.React.createElement(
-				Spicetify.ReactComponent.MenuItem,
-				{
-					onClick: () => {
-						contextMenu.hidden = true;
-						callback?.();
-					},
-				},
-				title
-			),
-			wrapper
-		);
-
-		return wrapper;
+		const item = document.createElement("li");
+		item.setAttribute("role", "menuitem");
+		const button = document.createElement("button");
+		button.classList.add("main-contextMenu-menuItemButton");
+		button.textContent = title;
+		button.onclick = () => {
+			contextMenu.hidden = true;
+			callback?.();
+		};
+		item.append(button);
+		return item;
 	}
 
 	const startBtn = createMenuItem("Set start", () => {
@@ -122,9 +119,9 @@
 		contextMenu.hidden = true;
 	});
 
-	bar.oncontextmenu = (event) => {
-		const { x, width } = bar.firstElementChild.getBoundingClientRect();
-		mouseOnBarPercent = (event.clientX - x) / width;
+	progressContainer.oncontextmenu = (event) => {
+		const { x, width } = bar.getBoundingClientRect();
+		mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
 		contextMenu.style.transform = `translate(${event.clientX}px,${event.clientY - contextMenuHeight}px)`;
 		contextMenu.hidden = false;
 		event.preventDefault();
