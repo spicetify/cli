@@ -1296,7 +1296,7 @@ declare namespace Spicetify {
 			 * You can specify a string for simple text display
 			 * or a HTML element for interactive config/setting menu
 			 */
-			content: string | Element;
+			content: string | Element | React.JSX.Element;
 			/**
 			 * Bigger window
 			 */
