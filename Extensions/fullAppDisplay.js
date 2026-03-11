@@ -459,28 +459,26 @@ body.video-full-screen.video-full-screen--hide-ui {
 		}
 
 		async getAlbumDate(uri) {
-			const id = uri.split(":")[2];
-			const path = `/album/${Spicetify.URI.idToHex(id)}`;
+			const { getAlbum } = Spicetify.GraphQL.Definitions;
+			const { errors, data } = await Spicetify.GraphQL.Request(getAlbum, {
+				uri,
+				locale: Spicetify.Locale.getLocale(),
+				offset: 0,
+				limit: 10,
+			});
 
-			const response = await Spicetify.Platform.RequestBuilder.build()
-				.withHost("https://spclient.wg.spotify.com/metadata/4")
-				.withPath(path)
-				.withEndpointIdentifier(path)
-				.send();
+			if (errors) return null;
 
-			const albumInfo = await response;
-			if (!albumInfo?.ok) return null;
+			const albumDate = data.albumUnion.date;
 
-			const albumDate = albumInfo.body?.date;
-			if (!albumDate?.year) return null;
-
-			if (!albumDate.month || !albumDate.day) {
-				return albumDate.year.toString();
+			// Avoid false release date (e.g., Jan 1, XXXX)
+			if (albumDate.precision === "YEAR") {
+				return albumDate.isoString.split("-")[0];
 			}
 
-			const date = new Date(albumDate.year, albumDate.month - 1, albumDate.day);
+			const date = new Date(albumDate.isoString);
 
-			return date.toLocaleString("default", {
+			return date.toLocaleDateString("default", {
 				year: "numeric",
 				month: "short",
 				day: "numeric",
