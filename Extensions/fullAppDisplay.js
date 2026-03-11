@@ -478,11 +478,7 @@ body.video-full-screen.video-full-screen--hide-ui {
 				return albumDate.year.toString();
 			}
 
-			const date = new Date(
-				albumDate.year,
-				albumDate.month - 1,
-				albumDate.day
-			);
+			const date = new Date(albumDate.year, albumDate.month - 1, albumDate.day);
 
 			return date.toLocaleString("default", {
 				year: "numeric",
