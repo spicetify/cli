@@ -354,7 +354,7 @@
 		return false;
 	}
 
-	let cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu, trashbinIcon);
+	const cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu, trashbinIcon);
 	cntxMenu.register();
 
 	function putDataLocal() {
