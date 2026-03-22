@@ -342,19 +342,19 @@
 		const uri = uris[0];
 		const uriObj = Spicetify.URI.fromString(uri);
 		if (uriObj.type === Spicetify.URI.Type.TRACK) {
-			this.name = trashSongList[uri] ? UNTHROW_TEXT : THROW_TEXT;
+			cntxMenu.name = trashSongList[uri] ? UNTHROW_TEXT : THROW_TEXT;
 			return true;
 		}
 
 		if (uriObj.type === Spicetify.URI.Type.ARTIST) {
-			this.name = trashArtistList[uri] ? UNTHROW_TEXT : THROW_TEXT;
+			cntxMenu.name = trashArtistList[uri] ? UNTHROW_TEXT : THROW_TEXT;
 			return true;
 		}
 
 		return false;
 	}
 
-	const cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu, trashbinIcon);
+	let cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu, trashbinIcon);
 	cntxMenu.register();
 
 	function putDataLocal() {
