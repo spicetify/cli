@@ -109,7 +109,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		cssMapPairs = append(cssMapPairs, k, v)
 	}
 	cssMapJSReplacer := strings.NewReplacer(cssMapPairs...)
-	cssMapJSStringRe := regexp.MustCompile(`"[^"]*"|'[^']*'|` + "`[^`]*`")
+	cssMapJSStringRe := regexp.MustCompile(`"[^"]*"|'[^']*'|` + "`[^`]*`" + `|\b[a-zA-Z_$][\w$]*\s*:`)
 
 	verParts := strings.Split(flags.SpotifyVer, ".")
 	spotifyMajor, spotifyMinor, spotifyPatch := 0, 0, 0
@@ -267,6 +267,19 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 				}
 
 				content = cssMapJSStringRe.ReplaceAllStringFunc(content, func(match string) string {
+					if strings.HasSuffix(match, ":") {
+						colonIdx := strings.LastIndex(match, ":")
+						key := strings.TrimSpace(match[:colonIdx])
+						trailing := match[colonIdx:]
+
+						replacedKey := cssMapJSReplacer.Replace(key)
+
+						if replacedKey != key {
+							return `"` + replacedKey + `"` + trailing
+						}
+
+						return match
+					}
 					quote := match[0:1]
 					innerString := match[1 : len(match)-1]
 					replacedString := cssMapJSReplacer.Replace(innerString)
