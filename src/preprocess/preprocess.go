@@ -281,9 +281,13 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 						return match
 					}
 					quote := match[0:1]
-					innerString := match[1 : len(match)-1]
-					replacedString := cssMapJSReplacer.Replace(innerString)
-					return quote + replacedString + quote
+					if quote == `"` || quote == `'` || quote == "`" {
+						innerString := match[1 : len(match)-1]
+						replacedString := cssMapJSReplacer.Replace(innerString)
+						return quote + replacedString + quote
+					}
+
+					return match
 				})
 				content = colorVariableReplaceForJS(content)
 
