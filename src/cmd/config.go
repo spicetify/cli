@@ -21,7 +21,7 @@ func EditConfig(args []string) {
 			arrayType(featureSection, field, value)
 		case "spotify_launch_flags":
 			continue
-		case "prefs_path", "spotify_path", "current_theme", "color_scheme":
+		case "prefs_path", "spotify_path", "github_token", "current_theme", "color_scheme":
 			stringType(settingSection, field, value)
 
 		default:

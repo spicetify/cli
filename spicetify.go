@@ -513,6 +513,10 @@ spotify_path
 prefs_path
     Path to Spotify's "prefs" file
 
+github_token
+	Personal Access Token (PAT) used for GitHub API/download requests.
+	Helps avoid GitHub rate limits.
+
 current_theme
     Name of folder of your theme
 

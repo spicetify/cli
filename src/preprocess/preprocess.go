@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -51,10 +50,11 @@ func applyPatches(input string, patches []Patch) string {
 
 func readRemoteCssMap(tag string, cssTranslationMap *map[string]string) error {
 	var cssMapURL string = "https://raw.githubusercontent.com/spicetify/cli/" + tag + "/css-map.json"
-	cssMapResp, err := http.Get(cssMapURL)
+	cssMapResp, err := utils.GetURL(cssMapURL)
 	if err != nil {
 		return err
 	} else {
+		defer func() { _ = cssMapResp.Body.Close() }()
 		err := json.NewDecoder(cssMapResp.Body).Decode(cssTranslationMap)
 		if err != nil {
 			utils.PrintWarning("Remote CSS map JSON malformed.")
@@ -1133,12 +1133,12 @@ func FetchLatestTagMatchingVersion(version string) (string, error) {
 	if version == "Dev" {
 		return "Dev", nil
 	}
-	res, err := http.Get("https://api.github.com/repos/spicetify/cli/releases")
+	res, err := utils.GetURL("https://api.github.com/repos/spicetify/cli/releases")
 	if err != nil {
 		return "", err
 	}
 
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err

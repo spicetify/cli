@@ -16,6 +16,7 @@ var (
 		"Setting": {
 			"spotify_path":           "",
 			"prefs_path":             "",
+			"github_token":           "",
 			"current_theme":          "",
 			"color_scheme":           "",
 			"inject_theme_js":        "1",

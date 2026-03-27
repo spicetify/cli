@@ -55,7 +55,7 @@ func Update(currentVersion string) bool {
 	}
 	defer out.Close()
 
-	resp2, err := http.Get(assetURL)
+	resp2, err := utils.GetURL(assetURL)
 	if err != nil {
 		spinner.Fail("Failed to download Spicetify")
 		utils.Fatal(err)
