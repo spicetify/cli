@@ -533,10 +533,9 @@
 			if (target.classList?.contains("loopy-skip-marker") && target.getAttribute("data-zone-index") !== null) {
 				event.preventDefault();
 				event.stopPropagation();
-				const zIdx = parseInt(target.getAttribute("data-zone-index"));
+				const zIdx = parseInt(target.getAttribute("data-zone-index"), 10);
 				const side = target.getAttribute("data-zone-side") === "end" ? "zoneEnd" : "zoneStart";
-				const smContainer = document.querySelector(".playback-progressbar-container");
-				const smBar = smContainer?.querySelector('input[type="range"]')?.closest("label")?.nextElementSibling;
+				const smBar = getBar();
 				if (smBar) {
 					const { x, width } = smBar.getBoundingClientRect();
 					mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
