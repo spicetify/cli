@@ -66,6 +66,7 @@
 	let skipZones = [];
 	let pendingSkipStart = null;
 	let lastSkipSeek = 0;
+	let lastSkippedZoneIdx = -1;
 	let lastNextCall = 0;
 	let seekStartPendingUri = null;
 	let lastStartEnforce = 0;
@@ -88,7 +89,7 @@
 	function drawSkipMarkers() {
 		const currentBar = getBar() ?? bar;
 		if (!currentBar) return;
-		currentBar.querySelectorAll(".loopy-skip-marker").forEach(el => el.remove());
+		currentBar.querySelectorAll(".loopy-skip-marker").forEach((el) => el.remove());
 		skipZones.forEach((zone, index) => {
 			const s = document.createElement("div");
 			s.className = "loopy-skip-marker";
@@ -125,7 +126,10 @@
 
 	function loadState() {
 		const uri = Spicetify.Player.data?.item?.uri;
-		start = null; end = null; skipZones = []; pendingSkipStart = null;
+		start = null;
+		end = null;
+		skipZones = [];
+		pendingSkipStart = null;
 		if (!uri) return;
 		try {
 			const saved = Spicetify.LocalStorage.get(`loopyLoop:${uri}`);
@@ -149,8 +153,7 @@
 	}
 
 	function openContextMenu(x, y) {
-		skipStartBtn.querySelector("button").textContent =
-			pendingSkipStart !== null ? "Cancel skip start" : "Set section skip start";
+		skipStartBtn.querySelector("button").textContent = pendingSkipStart !== null ? "Cancel skip start" : "Set section skip start";
 		openMenu(contextMenu, x, y);
 	}
 
@@ -169,15 +172,21 @@
 			removeBtn.textContent = "Remove song start";
 			removeBtn.onclick = (ev) => {
 				ev.stopPropagation();
-				start = null; drawOnBar(); saveState();
-				contextMenu.hidden = true; moveSubmenu.hidden = true;
+				start = null;
+				drawOnBar();
+				saveState();
+				contextMenu.hidden = true;
+				moveSubmenu.hidden = true;
 			};
 		} else if (type === "end") {
 			removeBtn.textContent = "Remove song end";
 			removeBtn.onclick = (ev) => {
 				ev.stopPropagation();
-				end = null; drawOnBar(); saveState();
-				contextMenu.hidden = true; moveSubmenu.hidden = true;
+				end = null;
+				drawOnBar();
+				saveState();
+				contextMenu.hidden = true;
+				moveSubmenu.hidden = true;
 			};
 		} else {
 			removeBtn.textContent = "Remove section";
@@ -185,13 +194,15 @@
 				ev.stopPropagation();
 				if (activeZoneIndex >= 0) {
 					skipZones.splice(activeZoneIndex, 1);
-					saveState(); drawSkipMarkers(); activeZoneIndex = -1;
+					saveState();
+					drawSkipMarkers();
+					activeZoneIndex = -1;
 				}
-				contextMenu.hidden = true; moveSubmenu.hidden = true;
+				contextMenu.hidden = true;
+				moveSubmenu.hidden = true;
 			};
 		}
 	}
-
 
 	// Move submenu
 	const moveSubmenu = document.createElement("div");
@@ -211,22 +222,27 @@
 			end = Math.max(start !== null ? start + 1e-6 : 0, Math.min(1, end + delta));
 			drawOnBar();
 		} else if (activeMarkerType === "zoneStart") {
+			if (activeZoneIndex < 0 || activeZoneIndex >= skipZones.length) return;
 			skipZones[activeZoneIndex].start = Math.max(0, Math.min(skipZones[activeZoneIndex].end - 1e-6, skipZones[activeZoneIndex].start + delta));
 			drawSkipMarkers();
 		} else if (activeMarkerType === "zoneEnd") {
+			if (activeZoneIndex < 0 || activeZoneIndex >= skipZones.length) return;
 			skipZones[activeZoneIndex].end = Math.max(skipZones[activeZoneIndex].start + 1e-6, Math.min(1, skipZones[activeZoneIndex].end + delta));
 			drawSkipMarkers();
 		}
 		saveState();
 	}
 
-	[-0.5, -0.1, -0.01, 0.01, 0.1, 0.5].forEach(delta => {
+	[-0.5, -0.1, -0.01, 0.01, 0.1, 0.5].forEach((delta) => {
 		const li = document.createElement("li");
 		li.setAttribute("role", "menuitem");
 		const btn = document.createElement("button");
 		btn.classList.add("main-contextMenu-menuItemButton");
 		btn.textContent = (delta > 0 ? "+" : "") + delta + "s";
-		btn.onclick = (e) => { e.stopPropagation(); applyMoveAdjustment(delta); };
+		btn.onclick = (e) => {
+			e.stopPropagation();
+			applyMoveAdjustment(delta);
+		};
 		li.append(btn);
 		moveSubmenu.firstElementChild.append(li);
 	});
@@ -256,7 +272,9 @@
 				prevPressedAt = 0;
 				prevProgressPercent = percent;
 				navigatingBack = true;
-				setTimeout(() => { navigatingBack = false; }, 2000);
+				setTimeout(() => {
+					navigatingBack = false;
+				}, 2000);
 				Spicetify.Player.back();
 				return;
 			} else {
@@ -291,15 +309,20 @@
 
 		// Skip zone seeking
 		if (skipZones.length > 0) {
-			for (const zone of skipZones) {
+			let inZone = false;
+			for (let i = 0; i < skipZones.length; i++) {
+				const zone = skipZones[i];
 				if (percent >= zone.start && percent < zone.end) {
-					if (event.timeStamp - lastSkipSeek > 1000) {
+					inZone = true;
+					if (i !== lastSkippedZoneIdx || event.timeStamp - lastSkipSeek > 500) {
 						lastSkipSeek = event.timeStamp;
+						lastSkippedZoneIdx = i;
 						Spicetify.Player.seek(zone.end);
 					}
 					break;
 				}
 			}
+			if (!inZone) lastSkippedZoneIdx = -1;
 		}
 	});
 
@@ -307,9 +330,15 @@
 		navigatingBack = false;
 		// Clear seekStartPendingUri only when the new song differs — preserves repeat-one seek-to-[ behavior
 		if (Spicetify.Player.data?.item?.uri !== seekStartPendingUri) seekStartPendingUri = null;
-		loadState(); drawOnBar(); drawSkipMarkers();
-		prevProgressPercent = -1; prevPressedAt = 0;
-		lastStartEnforce = 0; lastNextCall = 0; lastSkipSeek = 0;
+		loadState();
+		drawOnBar();
+		drawSkipMarkers();
+		prevProgressPercent = -1;
+		prevPressedAt = 0;
+		lastStartEnforce = 0;
+		lastNextCall = 0;
+		lastSkipSeek = 0;
+		lastSkippedZoneIdx = -1;
 	});
 
 	// Context menu
@@ -335,7 +364,8 @@
 			return;
 		}
 		start = mouseOnBarPercent;
-		drawOnBar(); saveState();
+		drawOnBar();
+		saveState();
 	});
 	const endBtn = createMenuItem("Set song end", () => {
 		if (start !== null && mouseOnBarPercent <= start) {
@@ -343,7 +373,8 @@
 			return;
 		}
 		end = mouseOnBarPercent;
-		drawOnBar(); saveState();
+		drawOnBar();
+		saveState();
 	});
 
 	const divider1 = document.createElement("li");
@@ -364,20 +395,29 @@
 		}
 		const s = Math.min(pendingSkipStart, mouseOnBarPercent);
 		const e = Math.max(pendingSkipStart, mouseOnBarPercent);
-		if (e > s && skipZones.length < 10) {
-			skipZones.push({ start: s, end: e });
-			saveState(); drawSkipMarkers();
+		if (e > s) {
+			if (skipZones.length < 10) {
+				skipZones.push({ start: s, end: e });
+				saveState();
+				drawSkipMarkers();
+			} else {
+				Spicetify.showNotification("Maximum 10 skip zones reached");
+			}
 		}
 		pendingSkipStart = null;
 	});
 	const clearSkipsBtn = createMenuItem("Clear section skips", () => {
-		skipZones = []; pendingSkipStart = null;
-		saveState(); drawSkipMarkers();
+		skipZones = [];
+		pendingSkipStart = null;
+		saveState();
+		drawSkipMarkers();
 	});
 
 	const resetMarkersBtn = createMenuItem("Reset song start/end", () => {
-		start = null; end = null;
-		drawOnBar(); saveState();
+		start = null;
+		end = null;
+		drawOnBar();
+		saveState();
 	});
 
 	const divider2 = document.createElement("li");
@@ -407,9 +447,16 @@
 	contextMenu.id = "loopy-context-menu";
 	contextMenu.innerHTML = `<ul tabindex="0" class="main-contextMenu-menu"></ul>`;
 	contextMenu.firstElementChild.append(
-		startBtn, endBtn, resetMarkersBtn, divider1,
-		skipStartBtn, skipEndBtn, clearSkipsBtn,
-		divider2, moveBtnItem, removeActiveBtn
+		startBtn,
+		endBtn,
+		resetMarkersBtn,
+		divider1,
+		skipStartBtn,
+		skipEndBtn,
+		clearSkipsBtn,
+		divider2,
+		moveBtnItem,
+		removeActiveBtn
 	);
 	document.body.append(contextMenu);
 	contextMenu.hidden = true;
@@ -425,11 +472,27 @@
 	}
 
 	let moveHideTimer = null;
-	function scheduleMoveHide() { moveHideTimer = setTimeout(() => { moveSubmenu.hidden = true; }, 150); }
-	function cancelMoveHide() { if (moveHideTimer) { clearTimeout(moveHideTimer); moveHideTimer = null; } }
+	function scheduleMoveHide() {
+		moveHideTimer = setTimeout(() => {
+			moveSubmenu.hidden = true;
+		}, 150);
+	}
+	function cancelMoveHide() {
+		if (moveHideTimer) {
+			clearTimeout(moveHideTimer);
+			moveHideTimer = null;
+		}
+	}
 
-	moveBtnEl.onclick = (e) => { e.stopPropagation(); cancelMoveHide(); showMoveSubmenu(); };
-	moveBtnItem.addEventListener("mouseenter", () => { cancelMoveHide(); showMoveSubmenu(); });
+	moveBtnEl.onclick = (e) => {
+		e.stopPropagation();
+		cancelMoveHide();
+		showMoveSubmenu();
+	};
+	moveBtnItem.addEventListener("mouseenter", () => {
+		cancelMoveHide();
+		showMoveSubmenu();
+	});
 	moveBtnItem.addEventListener("mouseleave", () => scheduleMoveHide());
 	moveSubmenu.addEventListener("mouseenter", () => cancelMoveHide());
 	moveSubmenu.addEventListener("mouseleave", () => scheduleMoveHide());
@@ -437,65 +500,75 @@
 	// Close menus on outside click
 	window.addEventListener("click", (e) => {
 		if (!contextMenu.contains(e.target) && !moveSubmenu.contains(e.target)) {
-			contextMenu.hidden = true; moveSubmenu.hidden = true;
+			contextMenu.hidden = true;
+			moveSubmenu.hidden = true;
 		}
 	});
 
 	// Single capture-phase handler at document level — survives React re-renders
-	document.addEventListener("contextmenu", (event) => {
-		const target = event.target;
+	document.addEventListener(
+		"contextmenu",
+		(event) => {
+			const target = event.target;
 
-		// [ song start marker
-		if (target.id === "loopy-loop-start") {
-			event.preventDefault(); event.stopPropagation();
-			mouseOnBarPercent = start ?? 0;
-			setupActiveMarker("start");
-			openContextMenu(event.clientX, event.clientY);
-			return;
-		}
-		// ] song end marker
-		if (target.id === "loopy-loop-end") {
-			event.preventDefault(); event.stopPropagation();
-			mouseOnBarPercent = end ?? 1;
-			setupActiveMarker("end");
-			openContextMenu(event.clientX, event.clientY);
-			return;
-		}
-		// { or } skip marker
-		if (target.classList?.contains("loopy-skip-marker") && target.getAttribute("data-zone-index") !== null) {
-			event.preventDefault(); event.stopPropagation();
-			const zIdx = parseInt(target.getAttribute("data-zone-index"));
-			const side = target.getAttribute("data-zone-side") === "end" ? "zoneEnd" : "zoneStart";
-			const smContainer = document.querySelector(".playback-progressbar-container");
-			const smBar = smContainer?.querySelector('input[type="range"]')?.closest("label")?.nextElementSibling;
-			if (smBar) {
-				const { x, width } = smBar.getBoundingClientRect();
-				mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
+			// [ song start marker
+			if (target.id === "loopy-loop-start") {
+				event.preventDefault();
+				event.stopPropagation();
+				mouseOnBarPercent = start ?? 0;
+				setupActiveMarker("start");
+				openContextMenu(event.clientX, event.clientY);
+				return;
 			}
-			setupActiveMarker(side, zIdx);
+			// ] song end marker
+			if (target.id === "loopy-loop-end") {
+				event.preventDefault();
+				event.stopPropagation();
+				mouseOnBarPercent = end ?? 1;
+				setupActiveMarker("end");
+				openContextMenu(event.clientX, event.clientY);
+				return;
+			}
+			// { or } skip marker
+			if (target.classList?.contains("loopy-skip-marker") && target.getAttribute("data-zone-index") !== null) {
+				event.preventDefault();
+				event.stopPropagation();
+				const zIdx = parseInt(target.getAttribute("data-zone-index"));
+				const side = target.getAttribute("data-zone-side") === "end" ? "zoneEnd" : "zoneStart";
+				const smContainer = document.querySelector(".playback-progressbar-container");
+				const smBar = smContainer?.querySelector('input[type="range"]')?.closest("label")?.nextElementSibling;
+				if (smBar) {
+					const { x, width } = smBar.getBoundingClientRect();
+					mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
+				}
+				setupActiveMarker(side, zIdx);
+				openContextMenu(event.clientX, event.clientY);
+				return;
+			}
+
+			// Progress bar area
+			const currentProgressContainer = document.querySelector(".playback-progressbar-container");
+			if (!currentProgressContainer?.contains(target)) return;
+			event.preventDefault();
+			event.stopPropagation();
+
+			const currentBar = currentProgressContainer.querySelector('input[type="range"]')?.closest("label")?.nextElementSibling;
+			if (!currentBar) return;
+
+			const { x, width } = currentBar.getBoundingClientRect();
+			mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
+
+			const hitZone = skipZones.findIndex((z) => mouseOnBarPercent > z.start && mouseOnBarPercent < z.end);
+			setupActiveMarker(hitZone >= 0 ? "zone" : null, hitZone);
 			openContextMenu(event.clientX, event.clientY);
-			return;
-		}
-
-		// Progress bar area
-		const currentProgressContainer = document.querySelector(".playback-progressbar-container");
-		if (!currentProgressContainer?.contains(target)) return;
-		event.preventDefault(); event.stopPropagation();
-
-		const currentBar = currentProgressContainer.querySelector('input[type="range"]')
-			?.closest("label")?.nextElementSibling;
-		if (!currentBar) return;
-
-		const { x, width } = currentBar.getBoundingClientRect();
-		mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
-
-		const hitZone = skipZones.findIndex(z => mouseOnBarPercent > z.start && mouseOnBarPercent < z.end);
-		setupActiveMarker(hitZone >= 0 ? "zone" : null, hitZone);
-		openContextMenu(event.clientX, event.clientY);
-	}, true); // capture phase
+		},
+		true
+	); // capture phase
 
 	// Load state for the currently playing song on startup
-	loadState(); drawOnBar(); drawSkipMarkers();
+	loadState();
+	drawOnBar();
+	drawSkipMarkers();
 
 	// Toolbar button
 	try {
