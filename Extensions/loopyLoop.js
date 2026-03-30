@@ -249,6 +249,7 @@
 
 	// Skip zone seeking only — no loop-back behavior
 	Spicetify.Player.addEventListener("onprogress", (event) => {
+		const ts = event?.timeStamp ?? performance.now();
 		const percent = Spicetify.Player.getProgressPercent();
 
 		// Repeat-mode restart: song restarted from 0 after hitting ], seek to [
@@ -267,7 +268,7 @@
 		const threeSecFrac = durationMs > 0 ? 3000 / durationMs : 0.02;
 		const nearZeroFrac = durationMs > 0 ? 1500 / durationMs : 0.01;
 		if (prevProgressPercent > threeSecFrac && percent < nearZeroFrac) {
-			if (prevPressedAt > 0 && event.timeStamp - prevPressedAt < 1500) {
+			if (prevPressedAt > 0 && ts - prevPressedAt < 1500) {
 				// Second press within 1.5s — go to previous song
 				prevPressedAt = 0;
 				prevProgressPercent = percent;
@@ -279,7 +280,7 @@
 				return;
 			} else {
 				// First press — go to [ (or stay at 0 if no start set)
-				prevPressedAt = event.timeStamp;
+				prevPressedAt = ts;
 				prevProgressPercent = percent;
 				if (start !== null) Spicetify.Player.seek(start);
 				return;
@@ -290,8 +291,8 @@
 		// Song start enforcement: seek to [ if playback is before it (covers song load + manual scrub)
 		if (start !== null && percent < start) {
 			if (navigatingBack) return;
-			if (event.timeStamp - lastStartEnforce > 500) {
-				lastStartEnforce = event.timeStamp;
+			if (ts - lastStartEnforce > 500) {
+				lastStartEnforce = ts;
 				Spicetify.Player.seek(start);
 			}
 			return;
@@ -299,8 +300,8 @@
 
 		// Song end enforcement: advance to next track when playback reaches ]
 		if (end !== null && percent >= end) {
-			if (event.timeStamp - lastNextCall > 2000) {
-				lastNextCall = event.timeStamp;
+			if (ts - lastNextCall > 2000) {
+				lastNextCall = ts;
 				seekStartPendingUri = Spicetify.Player.data?.item?.uri ?? null;
 				Spicetify.Player.next();
 			}
@@ -314,8 +315,8 @@
 				const zone = skipZones[i];
 				if (percent >= zone.start && percent < zone.end) {
 					inZone = true;
-					if (i !== lastSkippedZoneIdx || event.timeStamp - lastSkipSeek > 500) {
-						lastSkipSeek = event.timeStamp;
+					if (i !== lastSkippedZoneIdx || ts - lastSkipSeek > 500) {
+						lastSkipSeek = ts;
 						lastSkippedZoneIdx = i;
 						Spicetify.Player.seek(zone.end);
 					}
@@ -473,8 +474,10 @@
 
 	let moveHideTimer = null;
 	function scheduleMoveHide() {
+		cancelMoveHide();
 		moveHideTimer = setTimeout(() => {
 			moveSubmenu.hidden = true;
+			moveHideTimer = null;
 		}, 150);
 	}
 	function cancelMoveHide() {
@@ -534,6 +537,7 @@
 				event.preventDefault();
 				event.stopPropagation();
 				const zIdx = parseInt(target.getAttribute("data-zone-index"), 10);
+				if (!Number.isFinite(zIdx) || zIdx < 0 || zIdx >= skipZones.length) return;
 				const side = target.getAttribute("data-zone-side") === "end" ? "zoneEnd" : "zoneStart";
 				const smBar = getBar();
 				if (smBar) {
