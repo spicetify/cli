@@ -494,6 +494,9 @@
 		openContextMenu(event.clientX, event.clientY);
 	}, true); // capture phase
 
+	// Load state for the currently playing song on startup
+	loadState(); drawOnBar(); drawSkipMarkers();
+
 	// Toolbar button
 	try {
 		const markerIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" height="16" width="16"><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="3" y="3" width="2" height="10" rx="1"/><rect x="11" y="3" width="2" height="10" rx="1"/><rect x="6" y="5" width="1.5" height="6" rx="0.75"/><rect x="8.5" y="5" width="1.5" height="6" rx="0.75"/></svg>`;
