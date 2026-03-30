@@ -564,10 +564,18 @@
 		true
 	); // capture phase
 
-	// Load state for the currently playing song on startup
-	loadState();
-	drawOnBar();
-	drawSkipMarkers();
+	// Load state for the currently playing song on startup.
+	// Retry until the player has track data (uri may be null immediately after init).
+	function tryLoadInitialState(attemptsLeft) {
+		if (Spicetify.Player.data?.item?.uri) {
+			loadState();
+			drawOnBar();
+			drawSkipMarkers();
+		} else if (attemptsLeft > 0) {
+			setTimeout(() => tryLoadInitialState(attemptsLeft - 1), 200);
+		}
+	}
+	tryLoadInitialState(10);
 
 	// Toolbar button
 	try {
