@@ -16,6 +16,11 @@
 		return;
 	}
 
+	function getBar() {
+		const pc = document.querySelector(".playback-progressbar-container");
+		return pc?.querySelector('input[type="range"]')?.closest("label")?.nextElementSibling ?? null;
+	}
+
 	const style = document.createElement("style");
 	style.innerHTML = `
 #loopy-loop-start, #loopy-loop-end {
@@ -34,10 +39,10 @@
     top: -7px;
     color: #e74c3c;
     cursor: context-menu;
-    z-index: 15;
+    z-index: 20;
     padding: 2px 6px;
 }
-#loopy-context-menu, #loopy-remove-menu {
+#loopy-context-menu, #loopy-move-submenu {
     position: fixed;
     z-index: 2147483647;
 }
@@ -52,7 +57,8 @@
 	startMark.style.position = endMark.style.position = "absolute";
 	startMark.hidden = endMark.hidden = true;
 
-	bar.append(style, startMark, endMark);
+	document.head.append(style);
+	bar.append(startMark, endMark);
 
 	let start = null;
 	let end = null;
@@ -63,8 +69,16 @@
 	let lastNextCall = 0;
 	let seekStartPendingUri = null;
 	let lastStartEnforce = 0;
+	let prevProgressPercent = -1;
+	let prevPressedAt = 0; // timestamp of first prev press; second press within 1.5s skips to prev song
+	let navigatingBack = false; // true after back() is called; cleared in songchange to skip stale onprogress ticks
+	let activeMarkerType = null; // "start" | "end" | "zoneStart" | "zoneEnd" | "zone" | null
 
 	function drawOnBar() {
+		const currentBar = getBar();
+		if (currentBar && startMark.parentElement !== currentBar) {
+			currentBar.append(startMark, endMark);
+		}
 		startMark.hidden = start === null;
 		endMark.hidden = end === null;
 		if (start !== null) startMark.style.left = `${start * 100}%`;
@@ -72,21 +86,25 @@
 	}
 
 	function drawSkipMarkers() {
-		bar.querySelectorAll(".loopy-skip-marker").forEach(el => el.remove());
+		const currentBar = getBar() ?? bar;
+		if (!currentBar) return;
+		currentBar.querySelectorAll(".loopy-skip-marker").forEach(el => el.remove());
 		skipZones.forEach((zone, index) => {
 			const s = document.createElement("div");
 			s.className = "loopy-skip-marker";
 			s.innerText = "{";
 			s.style.left = `${zone.start * 100}%`;
 			s.dataset.zoneIndex = String(index);
+			s.dataset.zoneSide = "start";
 
 			const e = document.createElement("div");
 			e.className = "loopy-skip-marker";
 			e.innerText = "}";
 			e.style.left = `${zone.end * 100}%`;
 			e.dataset.zoneIndex = String(index);
+			e.dataset.zoneSide = "end";
 
-			bar.append(s, e);
+			currentBar.append(e, s); // { appended after } so { sits higher in stacking order
 		});
 
 		if (pendingSkipStart !== null) {
@@ -95,7 +113,7 @@
 			p.innerText = "{";
 			p.style.left = `${pendingSkipStart * 100}%`;
 			p.style.opacity = "0.4";
-			bar.append(p);
+			currentBar.append(p);
 		}
 	}
 
@@ -130,34 +148,82 @@
 		menu.style.top = Math.max(0, y - height) + "px";
 	}
 
-	// Small remove-point popup
-	const removeMenu = document.createElement("div");
-	removeMenu.id = "loopy-remove-menu";
-	removeMenu.innerHTML = `<ul tabindex="0" class="main-contextMenu-menu"></ul>`;
-	removeMenu.hidden = true;
-	document.body.append(removeMenu);
+	// Configure the conditional bottom section of the context menu
+	function setupActiveMarker(type, zoneIdx) {
+		activeMarkerType = type;
+		activeZoneIndex = zoneIdx ?? -1;
+		const hasMarker = type !== null;
+		const isSpecificMarker = type !== null && type !== "zone";
+		divider2.hidden = !hasMarker;
+		moveBtnItem.hidden = !isSpecificMarker;
+		removeActiveBtn.hidden = !hasMarker;
 
-	function showRemoveMenu(x, y, type, zoneIndex) {
-		removeMenu.firstElementChild.innerHTML = "";
-		const labels = { zone: "Remove this zone", start: "Remove song start", end: "Remove song end" };
+		const removeBtn = removeActiveBtn.querySelector("button");
+		if (type === "start") {
+			removeBtn.textContent = "Remove song start";
+			removeBtn.onclick = (ev) => {
+				ev.stopPropagation();
+				start = null; drawOnBar(); saveState();
+				contextMenu.hidden = true; moveSubmenu.hidden = true;
+			};
+		} else if (type === "end") {
+			removeBtn.textContent = "Remove song end";
+			removeBtn.onclick = (ev) => {
+				ev.stopPropagation();
+				end = null; drawOnBar(); saveState();
+				contextMenu.hidden = true; moveSubmenu.hidden = true;
+			};
+		} else {
+			removeBtn.textContent = "Remove section";
+			removeBtn.onclick = (ev) => {
+				ev.stopPropagation();
+				if (activeZoneIndex >= 0) {
+					skipZones.splice(activeZoneIndex, 1);
+					saveState(); drawSkipMarkers(); activeZoneIndex = -1;
+				}
+				contextMenu.hidden = true; moveSubmenu.hidden = true;
+			};
+		}
+	}
 
-		const item = document.createElement("li");
-		item.setAttribute("role", "menuitem");
+
+	// Move submenu
+	const moveSubmenu = document.createElement("div");
+	moveSubmenu.id = "loopy-move-submenu";
+	moveSubmenu.innerHTML = `<ul tabindex="0" class="main-contextMenu-menu"></ul>`;
+	moveSubmenu.hidden = true;
+	document.body.append(moveSubmenu);
+
+	function applyMoveAdjustment(deltaSeconds) {
+		const durationMs = Spicetify.Player.getDuration();
+		if (!durationMs) return;
+		const delta = (deltaSeconds * 1000) / durationMs;
+		if (activeMarkerType === "start") {
+			start = Math.max(0, Math.min(end !== null ? end : 1, start + delta));
+			drawOnBar();
+		} else if (activeMarkerType === "end") {
+			end = Math.max(start !== null ? start : 0, Math.min(1, end + delta));
+			drawOnBar();
+		} else if (activeMarkerType === "zoneStart") {
+			skipZones[activeZoneIndex].start = Math.max(0, Math.min(skipZones[activeZoneIndex].end, skipZones[activeZoneIndex].start + delta));
+			drawSkipMarkers();
+		} else if (activeMarkerType === "zoneEnd") {
+			skipZones[activeZoneIndex].end = Math.max(skipZones[activeZoneIndex].start, Math.min(1, skipZones[activeZoneIndex].end + delta));
+			drawSkipMarkers();
+		}
+		saveState();
+	}
+
+	[-0.5, -0.1, -0.01, 0.01, 0.1, 0.5].forEach(delta => {
+		const li = document.createElement("li");
+		li.setAttribute("role", "menuitem");
 		const btn = document.createElement("button");
 		btn.classList.add("main-contextMenu-menuItemButton");
-		btn.textContent = labels[type];
-		btn.onclick = (e) => {
-			e.stopPropagation();
-			if (type === "zone") { skipZones.splice(zoneIndex, 1); drawSkipMarkers(); }
-			else if (type === "start") { start = null; drawOnBar(); }
-			else if (type === "end") { end = null; drawOnBar(); }
-			saveState();
-			removeMenu.hidden = true;
-		};
-		item.append(btn);
-		removeMenu.firstElementChild.append(item);
-		openMenu(removeMenu, x, y);
-	}
+		btn.textContent = (delta > 0 ? "+" : "") + delta + "s";
+		btn.onclick = (e) => { e.stopPropagation(); applyMoveAdjustment(delta); };
+		li.append(btn);
+		moveSubmenu.firstElementChild.append(li);
+	});
 
 	// Skip zone seeking only — no loop-back behavior
 	Spicetify.Player.addEventListener("onprogress", (event) => {
@@ -174,8 +240,30 @@
 			seekStartPendingUri = null;
 		}
 
+		// Detect prev button press: jump to ~0 from past Spotify's 3-second restart threshold
+		const durationMs = Spicetify.Player.getDuration() || 0;
+		const threeSecFrac = durationMs > 0 ? 3000 / durationMs : 0.02;
+		if (prevProgressPercent > threeSecFrac && percent < 0.02) {
+			if (prevPressedAt > 0 && event.timeStamp - prevPressedAt < 1500) {
+				// Second press within 1.5s — go to previous song
+				prevPressedAt = 0;
+				prevProgressPercent = percent;
+				navigatingBack = true;
+				Spicetify.Player.back();
+				return;
+			} else {
+				// First press — go to [ (or stay at 0 if no start set)
+				prevPressedAt = event.timeStamp;
+				prevProgressPercent = percent;
+				if (start !== null) Spicetify.Player.seek(start);
+				return;
+			}
+		}
+		prevProgressPercent = percent;
+
 		// Song start enforcement: seek to [ if playback is before it (covers song load + manual scrub)
 		if (start !== null && percent < start) {
+			if (navigatingBack) return;
 			if (event.timeStamp - lastStartEnforce > 500) {
 				lastStartEnforce = event.timeStamp;
 				Spicetify.Player.seek(start);
@@ -208,7 +296,10 @@
 	});
 
 	Spicetify.Player.addEventListener("songchange", () => {
+		navigatingBack = false;
 		loadState(); drawOnBar(); drawSkipMarkers();
+		prevProgressPercent = -1; prevPressedAt = 0;
+		lastStartEnforce = 0; lastNextCall = 0; lastSkipSeek = 0;
 	});
 
 	// Context menu
@@ -221,6 +312,7 @@
 		button.onclick = (e) => {
 			e.stopPropagation();
 			contextMenu.hidden = true;
+			moveSubmenu.hidden = true;
 			callback?.();
 		};
 		item.append(button);
@@ -272,13 +364,24 @@
 	divider2.style.cssText = "border-top:1px solid rgba(255,255,255,0.2);margin:4px 0;list-style:none;";
 	divider2.hidden = true;
 	let activeZoneIndex = -1;
-	const removeSectionBtn = createMenuItem("Remove section", () => {
-		if (activeZoneIndex >= 0) {
-			skipZones.splice(activeZoneIndex, 1);
-			saveState(); drawSkipMarkers(); activeZoneIndex = -1;
-		}
-	});
-	removeSectionBtn.hidden = true;
+
+	// Move ▶ button — wired up in Task 2 after moveSubmenu is created
+	const moveBtnItem = document.createElement("li");
+	moveBtnItem.setAttribute("role", "menuitem");
+	const moveBtnEl = document.createElement("button");
+	moveBtnEl.classList.add("main-contextMenu-menuItemButton");
+	moveBtnEl.textContent = "Move \u25B6";
+	moveBtnItem.append(moveBtnEl);
+	moveBtnItem.hidden = true;
+
+	// Dynamic remove button — label/callback set by setupActiveMarker
+	const removeActiveBtn = document.createElement("li");
+	removeActiveBtn.setAttribute("role", "menuitem");
+	const removeActiveBtnEl = document.createElement("button");
+	removeActiveBtnEl.classList.add("main-contextMenu-menuItemButton");
+	removeActiveBtnEl.textContent = "Remove section";
+	removeActiveBtn.append(removeActiveBtnEl);
+	removeActiveBtn.hidden = true;
 
 	const contextMenu = document.createElement("div");
 	contextMenu.id = "loopy-context-menu";
@@ -286,48 +389,75 @@
 	contextMenu.firstElementChild.append(
 		startBtn, endBtn, resetMarkersBtn, divider1,
 		skipStartBtn, skipEndBtn, clearSkipsBtn,
-		divider2, removeSectionBtn
+		divider2, moveBtnItem, removeActiveBtn
 	);
 	document.body.append(contextMenu);
 	contextMenu.hidden = true;
 
+	function showMoveSubmenu() {
+		const rect = moveBtnEl.getBoundingClientRect();
+		moveSubmenu.style.left = "-9999px";
+		moveSubmenu.style.top = "0px";
+		moveSubmenu.hidden = false;
+		const { height, width } = moveSubmenu.getBoundingClientRect();
+		moveSubmenu.style.left = Math.min(rect.right + 2, window.innerWidth - width - 4) + "px";
+		moveSubmenu.style.top = Math.max(0, Math.min(rect.top, window.innerHeight - height - 4)) + "px";
+	}
+
+	let moveHideTimer = null;
+	function scheduleMoveHide() { moveHideTimer = setTimeout(() => { moveSubmenu.hidden = true; }, 150); }
+	function cancelMoveHide() { if (moveHideTimer) { clearTimeout(moveHideTimer); moveHideTimer = null; } }
+
+	moveBtnEl.onclick = (e) => { e.stopPropagation(); cancelMoveHide(); showMoveSubmenu(); };
+	moveBtnItem.addEventListener("mouseenter", () => { cancelMoveHide(); showMoveSubmenu(); });
+	moveBtnItem.addEventListener("mouseleave", () => scheduleMoveHide());
+	moveSubmenu.addEventListener("mouseenter", () => cancelMoveHide());
+	moveSubmenu.addEventListener("mouseleave", () => scheduleMoveHide());
+
 	// Close menus on outside click
 	window.addEventListener("click", (e) => {
-		if (!contextMenu.contains(e.target)) contextMenu.hidden = true;
-		if (!removeMenu.contains(e.target)) removeMenu.hidden = true;
+		if (!contextMenu.contains(e.target) && !moveSubmenu.contains(e.target)) {
+			contextMenu.hidden = true; moveSubmenu.hidden = true;
+		}
 	});
 
 	// Single capture-phase handler at document level — survives React re-renders
 	document.addEventListener("contextmenu", (event) => {
 		const target = event.target;
 
-		// Our own markers — show remove popup
+		// [ song start marker
 		if (target.id === "loopy-loop-start") {
 			event.preventDefault(); event.stopPropagation();
-			showRemoveMenu(event.clientX, event.clientY, "start");
+			mouseOnBarPercent = start ?? 0;
+			setupActiveMarker("start");
+			openMenu(contextMenu, event.clientX, event.clientY);
 			return;
 		}
+		// ] song end marker
 		if (target.id === "loopy-loop-end") {
 			event.preventDefault(); event.stopPropagation();
-			showRemoveMenu(event.clientX, event.clientY, "end");
+			mouseOnBarPercent = end ?? 1;
+			setupActiveMarker("end");
+			openMenu(contextMenu, event.clientX, event.clientY);
 			return;
 		}
-		if (target.classList?.contains("loopy-skip-marker") && target.dataset.zoneIndex !== undefined) {
+		// { or } skip marker
+		if (target.classList?.contains("loopy-skip-marker") && target.getAttribute("data-zone-index") !== null) {
 			event.preventDefault(); event.stopPropagation();
-			activeZoneIndex = parseInt(target.dataset.zoneIndex);
-			divider2.hidden = false;
-			removeSectionBtn.hidden = false;
+			const zIdx = parseInt(target.getAttribute("data-zone-index"));
+			const side = target.getAttribute("data-zone-side") === "end" ? "zoneEnd" : "zoneStart";
 			const smContainer = document.querySelector(".playback-progressbar-container");
 			const smBar = smContainer?.querySelector('input[type="range"]')?.closest("label")?.nextElementSibling;
 			if (smBar) {
 				const { x, width } = smBar.getBoundingClientRect();
 				mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
 			}
+			setupActiveMarker(side, zIdx);
 			openMenu(contextMenu, event.clientX, event.clientY);
 			return;
 		}
 
-		// Progress bar area — show main context menu
+		// Progress bar area
 		const currentProgressContainer = document.querySelector(".playback-progressbar-container");
 		if (!currentProgressContainer?.contains(target)) return;
 		event.preventDefault(); event.stopPropagation();
@@ -339,11 +469,8 @@
 		const { x, width } = currentBar.getBoundingClientRect();
 		mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
 
-		activeZoneIndex = skipZones.findIndex(z => mouseOnBarPercent > z.start && mouseOnBarPercent < z.end);
-		const inZone = activeZoneIndex >= 0;
-		divider2.hidden = !inZone;
-		removeSectionBtn.hidden = !inZone;
-
+		const hitZone = skipZones.findIndex(z => mouseOnBarPercent > z.start && mouseOnBarPercent < z.end);
+		setupActiveMarker(hitZone >= 0 ? "zone" : null, hitZone);
 		openMenu(contextMenu, event.clientX, event.clientY);
 	}, true); // capture phase
 
@@ -352,7 +479,7 @@
 		const markerIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" height="16" width="16"><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="3" y="3" width="2" height="10" rx="1"/><rect x="11" y="3" width="2" height="10" rx="1"/><rect x="6" y="5" width="1.5" height="6" rx="0.75"/><rect x="8.5" y="5" width="1.5" height="6" rx="0.75"/></svg>`;
 		const toolbarBtn = new Spicetify.Playbar.Button("Loopy Loop", markerIcon, () => {
 			mouseOnBarPercent = Spicetify.Player.getProgressPercent();
-			activeZoneIndex = -1; divider2.hidden = true; removeSectionBtn.hidden = true;
+			setupActiveMarker(null, -1);
 			const rect = toolbarBtn.element.getBoundingClientRect();
 			openMenu(contextMenu, rect.left, rect.top);
 		});
