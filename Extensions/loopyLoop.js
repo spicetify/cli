@@ -148,6 +148,12 @@
 		menu.style.top = Math.max(0, y - height) + "px";
 	}
 
+	function openContextMenu(x, y) {
+		skipStartBtn.querySelector("button").textContent =
+			pendingSkipStart !== null ? "Cancel skip start" : "Set section skip start";
+		openMenu(contextMenu, x, y);
+	}
+
 	// Configure the conditional bottom section of the context menu
 	function setupActiveMarker(type, zoneIdx) {
 		activeMarkerType = type;
@@ -199,16 +205,16 @@
 		if (!durationMs) return;
 		const delta = (deltaSeconds * 1000) / durationMs;
 		if (activeMarkerType === "start") {
-			start = Math.max(0, Math.min(end !== null ? end : 1, start + delta));
+			start = Math.max(0, Math.min(end !== null ? end - 1e-6 : 1, start + delta));
 			drawOnBar();
 		} else if (activeMarkerType === "end") {
-			end = Math.max(start !== null ? start : 0, Math.min(1, end + delta));
+			end = Math.max(start !== null ? start + 1e-6 : 0, Math.min(1, end + delta));
 			drawOnBar();
 		} else if (activeMarkerType === "zoneStart") {
-			skipZones[activeZoneIndex].start = Math.max(0, Math.min(skipZones[activeZoneIndex].end, skipZones[activeZoneIndex].start + delta));
+			skipZones[activeZoneIndex].start = Math.max(0, Math.min(skipZones[activeZoneIndex].end - 1e-6, skipZones[activeZoneIndex].start + delta));
 			drawSkipMarkers();
 		} else if (activeMarkerType === "zoneEnd") {
-			skipZones[activeZoneIndex].end = Math.max(skipZones[activeZoneIndex].start, Math.min(1, skipZones[activeZoneIndex].end + delta));
+			skipZones[activeZoneIndex].end = Math.max(skipZones[activeZoneIndex].start + 1e-6, Math.min(1, skipZones[activeZoneIndex].end + delta));
 			drawSkipMarkers();
 		}
 		saveState();
@@ -243,12 +249,14 @@
 		// Detect prev button press: jump to ~0 from past Spotify's 3-second restart threshold
 		const durationMs = Spicetify.Player.getDuration() || 0;
 		const threeSecFrac = durationMs > 0 ? 3000 / durationMs : 0.02;
-		if (prevProgressPercent > threeSecFrac && percent < 0.02) {
+		const nearZeroFrac = durationMs > 0 ? 1500 / durationMs : 0.01;
+		if (prevProgressPercent > threeSecFrac && percent < nearZeroFrac) {
 			if (prevPressedAt > 0 && event.timeStamp - prevPressedAt < 1500) {
 				// Second press within 1.5s — go to previous song
 				prevPressedAt = 0;
 				prevProgressPercent = percent;
 				navigatingBack = true;
+				setTimeout(() => { navigatingBack = false; }, 2000);
 				Spicetify.Player.back();
 				return;
 			} else {
@@ -297,6 +305,8 @@
 
 	Spicetify.Player.addEventListener("songchange", () => {
 		navigatingBack = false;
+		// Clear seekStartPendingUri only when the new song differs — preserves repeat-one seek-to-[ behavior
+		if (Spicetify.Player.data?.item?.uri !== seekStartPendingUri) seekStartPendingUri = null;
 		loadState(); drawOnBar(); drawSkipMarkers();
 		prevProgressPercent = -1; prevPressedAt = 0;
 		lastStartEnforce = 0; lastNextCall = 0; lastSkipSeek = 0;
@@ -320,13 +330,19 @@
 	}
 
 	const startBtn = createMenuItem("Set song start", () => {
+		if (end !== null && mouseOnBarPercent >= end) {
+			Spicetify.showNotification("Song start must be before song end");
+			return;
+		}
 		start = mouseOnBarPercent;
-		if (end === null || start > end) end = 0.99;
 		drawOnBar(); saveState();
 	});
 	const endBtn = createMenuItem("Set song end", () => {
+		if (start !== null && mouseOnBarPercent <= start) {
+			Spicetify.showNotification("Song end must be after song start");
+			return;
+		}
 		end = mouseOnBarPercent;
-		if (start === null || end < start) start = 0;
 		drawOnBar(); saveState();
 	});
 
@@ -334,7 +350,11 @@
 	divider1.style.cssText = "border-top:1px solid rgba(255,255,255,0.2);margin:4px 0;list-style:none;";
 
 	const skipStartBtn = createMenuItem("Set section skip start", () => {
-		pendingSkipStart = mouseOnBarPercent;
+		if (pendingSkipStart !== null) {
+			pendingSkipStart = null;
+		} else {
+			pendingSkipStart = mouseOnBarPercent;
+		}
 		drawSkipMarkers();
 	});
 	const skipEndBtn = createMenuItem("Set section skip end", () => {
@@ -430,7 +450,7 @@
 			event.preventDefault(); event.stopPropagation();
 			mouseOnBarPercent = start ?? 0;
 			setupActiveMarker("start");
-			openMenu(contextMenu, event.clientX, event.clientY);
+			openContextMenu(event.clientX, event.clientY);
 			return;
 		}
 		// ] song end marker
@@ -438,7 +458,7 @@
 			event.preventDefault(); event.stopPropagation();
 			mouseOnBarPercent = end ?? 1;
 			setupActiveMarker("end");
-			openMenu(contextMenu, event.clientX, event.clientY);
+			openContextMenu(event.clientX, event.clientY);
 			return;
 		}
 		// { or } skip marker
@@ -453,7 +473,7 @@
 				mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
 			}
 			setupActiveMarker(side, zIdx);
-			openMenu(contextMenu, event.clientX, event.clientY);
+			openContextMenu(event.clientX, event.clientY);
 			return;
 		}
 
@@ -471,7 +491,7 @@
 
 		const hitZone = skipZones.findIndex(z => mouseOnBarPercent > z.start && mouseOnBarPercent < z.end);
 		setupActiveMarker(hitZone >= 0 ? "zone" : null, hitZone);
-		openMenu(contextMenu, event.clientX, event.clientY);
+		openContextMenu(event.clientX, event.clientY);
 	}, true); // capture phase
 
 	// Toolbar button
@@ -481,7 +501,7 @@
 			mouseOnBarPercent = Spicetify.Player.getProgressPercent();
 			setupActiveMarker(null, -1);
 			const rect = toolbarBtn.element.getBoundingClientRect();
-			openMenu(contextMenu, rect.left, rect.top);
+			openContextMenu(rect.left, rect.top);
 		});
 		toolbarBtn.element.addEventListener("click", (e) => e.stopPropagation());
 	} catch (_) {}
