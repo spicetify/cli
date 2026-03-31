@@ -423,7 +423,7 @@ applyScrollingFix();
 			const internalFetch = Reflect.get(target, prop, receiver);
 
 			if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop)) return internalFetch;
-			const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i));
+			const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
 			if (version[1] >= 2 && version[2] < 31) return internalFetch;
 
 			return async function (url, body) {
@@ -2363,7 +2363,7 @@ let navLinkFactoryCtx = null;
 let refreshNavLinks = null;
 
 Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
-	const [refreshCount, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
+	const [, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
 	refreshNavLinks = refresh;
 
 	if (
