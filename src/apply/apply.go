@@ -79,21 +79,27 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	}
 
 	if flags.SidebarConfig {
-		utils.CopyFile(
+		if err := utils.CopyFile(
 			filepath.Join(utils.GetJsHelperDir(), "sidebarConfig.js"),
-			filepath.Join(appsFolderPath, "xpui", "helper"))
+			filepath.Join(appsFolderPath, "xpui", "helper")); err != nil {
+			utils.PrintError(err.Error())
+		}
 	}
 
 	if flags.HomeConfig {
-		utils.CopyFile(
+		if err := utils.CopyFile(
 			filepath.Join(utils.GetJsHelperDir(), "homeConfig.js"),
-			filepath.Join(appsFolderPath, "xpui", "helper"))
+			filepath.Join(appsFolderPath, "xpui", "helper")); err != nil {
+			utils.PrintError(err.Error())
+		}
 	}
 
 	if flags.ExpFeatures {
-		utils.CopyFile(
+		if err := utils.CopyFile(
 			filepath.Join(utils.GetJsHelperDir(), "expFeatures.js"),
-			filepath.Join(appsFolderPath, "xpui", "helper"))
+			filepath.Join(appsFolderPath, "xpui", "helper")); err != nil {
+			utils.PrintError(err.Error())
+		}
 	}
 }
 

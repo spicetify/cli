@@ -240,7 +240,9 @@ func ModifyFile(path string, repl func(string) string) {
 
 	content := repl(string(raw))
 
-	os.WriteFile(path, []byte(content), 0700)
+	if err := os.WriteFile(path, []byte(content), 0700); err != nil {
+		log.Print(err)
+	}
 }
 
 // CreateFile creates a file with given path and content.
