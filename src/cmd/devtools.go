@@ -11,6 +11,18 @@ import (
 	"github.com/spicetify/cli/src/utils"
 )
 
+const offlineBnkDeveloperMarker = "app-developer"
+
+func findOfflineBnkDeveloperFlagOffsets(content string) (int64, int64) {
+	firstLocation := strings.Index(content, offlineBnkDeveloperMarker)
+	secondLocation := strings.LastIndex(content, offlineBnkDeveloperMarker)
+
+	firstPatchLocation := int64(firstLocation + 14)
+	secondPatchLocation := int64(secondLocation + 15)
+
+	return firstPatchLocation, secondPatchLocation
+}
+
 // EnableDevTools enables the developer tools in the Spotify client
 func EnableDevTools() {
 	var filePath string
@@ -65,11 +77,7 @@ func EnableDevTools() {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(file)
 	content := buf.String()
-	firstLocation := strings.Index(content, "app-developer")
-	firstPatchLocation := int64(firstLocation + 14)
-
-	secondLocation := strings.LastIndex(content, "app-developer")
-	secondPatchLocation := int64(secondLocation + 15)
+	firstPatchLocation, secondPatchLocation := findOfflineBnkDeveloperFlagOffsets(content)
 
 	file.WriteAt([]byte{50}, firstPatchLocation)
 	file.WriteAt([]byte{50}, secondPatchLocation)
