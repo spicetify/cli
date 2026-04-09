@@ -401,12 +401,14 @@ func insertNavLink(str string, appNameArray string) string {
 			`("global-nav-bar".*[[\w\$&|]*\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))\]`,
 			// Global Navbar >= 1.2.46, lazy matching
 			`("global-nav-bar".*?)(\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\))(\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))`,
+			// Global Navbar >= 1.2.86
+			`("global-nav-bar".*?)(\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\))(\(\s*\w+,\s*\{\s*className:\s*"(.*?)"\s*\}\s*\))`,
 		},
 		func(index int, submatches ...string) string {
 			switch index {
 			case 0, 1:
 				return fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], true)]", submatches[1], appNameArray)
-			case 2:
+			case 2, 3:
 				return fmt.Sprintf("%s[%s%s,Spicetify._renderNavLinks([%s], true)].flat()", submatches[1], submatches[2], submatches[3], appNameArray)
 			}
 			return ""
