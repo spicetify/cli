@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,6 +11,25 @@ import (
 
 	"github.com/spicetify/cli/src/utils"
 )
+
+const offlineBnkDeveloperMarker = "app-developer"
+
+func findOfflineBnkDeveloperFlagOffsets(content string) (int64, int64, error) {
+	firstLocation := strings.Index(content, offlineBnkDeveloperMarker)
+	if firstLocation == -1 {
+		return 0, 0, fmt.Errorf("cannot enable devtools safely: %q marker not found in offline.bnk", offlineBnkDeveloperMarker)
+	}
+
+	secondLocation := strings.LastIndex(content, offlineBnkDeveloperMarker)
+	if secondLocation == -1 {
+		return 0, 0, fmt.Errorf("cannot enable devtools safely: %q marker not found in offline.bnk", offlineBnkDeveloperMarker)
+	}
+
+	firstPatchLocation := int64(firstLocation + 14)
+	secondPatchLocation := int64(secondLocation + 15)
+
+	return firstPatchLocation, secondPatchLocation, nil
+}
 
 // EnableDevTools enables the developer tools in the Spotify client
 func EnableDevTools() {
@@ -65,11 +85,11 @@ func EnableDevTools() {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(file)
 	content := buf.String()
-	firstLocation := strings.Index(content, "app-developer")
-	firstPatchLocation := int64(firstLocation + 14)
-
-	secondLocation := strings.LastIndex(content, "app-developer")
-	secondPatchLocation := int64(secondLocation + 15)
+	firstPatchLocation, secondPatchLocation, err := findOfflineBnkDeveloperFlagOffsets(content)
+	if err != nil {
+		utils.PrintError(err.Error())
+		os.Exit(1)
+	}
 
 	file.WriteAt([]byte{50}, firstPatchLocation)
 	file.WriteAt([]byte{50}, secondPatchLocation)

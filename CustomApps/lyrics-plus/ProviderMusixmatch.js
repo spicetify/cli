@@ -1,7 +1,13 @@
 const ProviderMusixmatch = (() => {
 	const headers = {
-		authority: "apic-desktop.musixmatch.com",
-		cookie: "x-mxm-token-guid=",
+		Host: "apic-appmobile.musixmatch.com",
+		authority: "apic-appmobile.musixmatch.com",
+		"X-Cookie": "x-mxm-token-guid=",
+		"x-mxm-app-version": "10.1.1",
+		"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
+		"Accept-Language": "en-US,en;q=0.9",
+		Connection: "keep-alive",
+		Accept: "application/json",
 	};
 
 	function findTranslationStatus(body) {
@@ -36,7 +42,7 @@ const ProviderMusixmatch = (() => {
 
 	async function findLyrics(info) {
 		const baseURL =
-			"https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&";
+			"https://apic-appmobile.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=mac-ios-v2.0&";
 
 		const durr = info.duration / 1000;
 
@@ -225,7 +231,7 @@ const ProviderMusixmatch = (() => {
 			return null;
 		}
 
-		const baseURL = "https://apic-desktop.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=web-desktop-app-v1.0&";
+		const baseURL = "https://apic-appmobile.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=mac-ios-v2.0&";
 
 		const params = {
 			f_subtitle_length: meta.track.track_length,
@@ -376,7 +382,7 @@ const ProviderMusixmatch = (() => {
 		if (selectedLanguage === "none") return null;
 
 		const baseURL =
-			"https://apic-desktop.musixmatch.com/ws/1.1/crowd.track.translations.get?translation_fields_set=minimal&comment_format=text&format=json&app_id=web-desktop-app-v1.0&";
+			"https://apic-appmobile.musixmatch.com/ws/1.1/crowd.track.translations.get?translation_fields_set=minimal&comment_format=text&format=json&app_id=mac-ios-v2.0&";
 
 		const params = {
 			track_id: trackId,
@@ -423,7 +429,7 @@ const ProviderMusixmatch = (() => {
 			console.warn("Failed to parse cached languages", e);
 		}
 
-		const baseURL = "https://apic-desktop.musixmatch.com/ws/1.1/languages.get?app_id=web-desktop-app-v1.0&get_romanized_info=1&";
+		const baseURL = "https://apic-appmobile.musixmatch.com/ws/1.1/languages.get?app_id=mac-ios-v2.0&get_romanized_info=1&";
 
 		const params = {
 			usertoken: CONFIG.providers.musixmatch.token,

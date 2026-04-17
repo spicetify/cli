@@ -68,6 +68,33 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		filesToModified[filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js")] = []func(string, Flag){insertExpFeatures}
 	}
 
+	if flags.SidebarConfig {
+		if err := utils.CopyFile(
+			filepath.Join(utils.GetJsHelperDir(), "sidebarConfig.js"),
+			filepath.Join(appsFolderPath, "xpui", "helper")); err != nil {
+			utils.PrintError(err.Error())
+			flags.SidebarConfig = false
+		}
+	}
+
+	if flags.HomeConfig {
+		if err := utils.CopyFile(
+			filepath.Join(utils.GetJsHelperDir(), "homeConfig.js"),
+			filepath.Join(appsFolderPath, "xpui", "helper")); err != nil {
+			utils.PrintError(err.Error())
+			flags.HomeConfig = false
+		}
+	}
+
+	if flags.ExpFeatures {
+		if err := utils.CopyFile(
+			filepath.Join(utils.GetJsHelperDir(), "expFeatures.js"),
+			filepath.Join(appsFolderPath, "xpui", "helper")); err != nil {
+			utils.PrintError(err.Error())
+			flags.ExpFeatures = false
+		}
+	}
+
 	for file, calls := range filesToModified {
 		if _, err := os.Stat(file); os.IsNotExist(err) {
 			continue
@@ -76,24 +103,6 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		for _, call := range calls {
 			call(file, flags)
 		}
-	}
-
-	if flags.SidebarConfig {
-		utils.CopyFile(
-			filepath.Join(utils.GetJsHelperDir(), "sidebarConfig.js"),
-			filepath.Join(appsFolderPath, "xpui", "helper"))
-	}
-
-	if flags.HomeConfig {
-		utils.CopyFile(
-			filepath.Join(utils.GetJsHelperDir(), "homeConfig.js"),
-			filepath.Join(appsFolderPath, "xpui", "helper"))
-	}
-
-	if flags.ExpFeatures {
-		utils.CopyFile(
-			filepath.Join(utils.GetJsHelperDir(), "expFeatures.js"),
-			filepath.Join(appsFolderPath, "xpui", "helper"))
 	}
 }
 
@@ -390,6 +399,8 @@ func insertNavLink(str string, appNameArray string) string {
 			`(,[a-zA-Z_\$][\w\$]*===(?:[a-zA-Z_\$][\w\$]*\.){2}HOME_NEXT_TO_NAVIGATION&&.+?)\]`,
 			// Global Navbar >= 1.2.60, greedy matching with enclosing brackets
 			`("global-nav-bar".*[[\w\$&|]*\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))\]`,
+			// Global Navbar >= 1.2.87
+			`(?s)("global-nav-bar".*?&&\s*\(0,\s*[a-zA-Z_\$][\w\$]*\.jsxs?\)\(\s*[a-zA-Z_\$][\w\$]*\s*,\s*\{\s*children:\s*)(\[\s*[\w\$]+\s*\?\s*\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\).*?\])(\s*\}\))`,
 			// Global Navbar >= 1.2.46, lazy matching
 			`("global-nav-bar".*?)(\(0,\s*[a-zA-Z_\$][\w\$]*\.jsx\))(\(\s*\w+,\s*\{\s*className:\w*\s*\}\s*\))`,
 		},
@@ -398,6 +409,8 @@ func insertNavLink(str string, appNameArray string) string {
 			case 0, 1:
 				return fmt.Sprintf("%s,Spicetify._renderNavLinks([%s], true)]", submatches[1], appNameArray)
 			case 2:
+				return fmt.Sprintf("%s[%s,Spicetify._renderNavLinks([%s], true)].flat()%s", submatches[1], submatches[2], appNameArray, submatches[3])
+			case 3:
 				return fmt.Sprintf("%s[%s%s,Spicetify._renderNavLinks([%s], true)].flat()", submatches[1], submatches[2], submatches[3], appNameArray)
 			}
 			return ""
