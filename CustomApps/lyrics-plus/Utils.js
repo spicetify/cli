@@ -175,7 +175,7 @@ const Utils = {
 		const rubyElems = s.split("<ruby>");
 		const reactChildren = [];
 
-		reactChildren.push(rubyElems[0]);
+		if (rubyElems[0] !== "") reactChildren.push(rubyElems[0]);
 		for (let i = 1; i < rubyElems.length; i++) {
 			const kanji = rubyElems[i].split("<rp>")[0];
 			const furigana = rubyElems[i].split("<rt>")[1].split("</rt>")[0];

@@ -590,8 +590,8 @@ class LyricsContainer extends react.Component {
 			const friendlyLanguage = language && new Intl.DisplayNames(["en"], { type: "language" }).of(language.split("-")[0])?.toLowerCase();
 			const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
 
-			const isMemorey = CACHE[tempState.uri]?.[targetConvert];
-			if (CONFIG.visual.translate && defaultLanguage && !isMemorey) {
+			const isMemory = CACHE[tempState.uri]?.[targetConvert];
+			if (CONFIG.visual.translate && defaultLanguage && !isMemory) {
 				this.translateLyrics(language, this.state.currentLyrics, targetConvert).then((translated) => {
 					const res = { [targetConvert]: translated };
 					// Cache translated lyrics

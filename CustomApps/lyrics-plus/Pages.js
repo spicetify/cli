@@ -310,7 +310,12 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 
 				// Convert lyrics to text for comparison
 				const belowOrigin = (typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText)?.replace(/\s+/g, "");
-				const belowTxt = (typeof text === "object" ? text?.props?.children?.[0] : text)?.replace(/\s+/g, "");
+				const belowTxt =
+					typeof text === "string"
+						? text.replace(/\s+/g, "")
+						: typeof text?.props?.children?.[0] === "string"
+							? text.props.children[0].replace(/\s+/g, "")
+							: "";
 
 				const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
@@ -634,7 +639,12 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 
 			// Convert lyrics to text for comparison
 			const belowOrigin = (typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText)?.replace(/\s+/g, "");
-			const belowTxt = (typeof text === "object" ? text?.props?.children?.[0] : text)?.replace(/\s+/g, "");
+			const belowTxt =
+				typeof text === "string"
+					? text.replace(/\s+/g, "")
+					: typeof text?.props?.children?.[0] === "string"
+						? text.props.children[0].replace(/\s+/g, "")
+						: "";
 
 			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
@@ -713,7 +723,12 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 
 			// Convert lyrics to text for comparison
 			const belowOrigin = (typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText)?.replace(/\s+/g, "");
-			const belowTxt = (typeof text === "object" ? text?.props?.children?.[0] : text)?.replace(/\s+/g, "");
+			const belowTxt =
+				typeof text === "string"
+					? text.replace(/\s+/g, "")
+					: typeof text?.props?.children?.[0] === "string"
+						? text.props.children[0].replace(/\s+/g, "")
+						: "";
 
 			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
