@@ -96,6 +96,9 @@ func Apply(spicetifyVersion string) {
 	if len(patchSection.Keys()) > 0 {
 		Patch()
 	}
+
+	SetServiceAutoUpdate(true)
+	SyncServiceStartup(true)
 }
 
 // RefreshTheme updates user.css + theme.js and overwrites custom assets

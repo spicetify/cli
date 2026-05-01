@@ -39,6 +39,10 @@ var (
 			"home_config":           "1",
 			"experimental_features": "1",
 		},
+        "Service": {
+            "auto_update": "0",
+            "interval_seconds": "60",
+        },
 		"Patch": {},
 	}
 )

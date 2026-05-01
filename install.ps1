@@ -210,4 +210,11 @@ else {
   Invoke-WebRequest @Parameters | Invoke-Expression
 }
 #endregion Marketplace
+
+#region Service
+Write-Host -Object "`nEnabling Spicetify automatic update service..." -NoNewline
+& spicetify service install
+Write-Success
+Write-Host -Object "The service will check for Spicetify updates on every Windows startup and every 6 hours." -ForegroundColor 'Green'
+#endregion Service
 #endregion Main

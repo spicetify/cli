@@ -10,6 +10,9 @@ import (
 // Auto checks Spotify state, re-backup and apply if needed, then launch
 // Spotify client normally.
 func Auto(spicetifyVersion string) {
+	SetServiceAutoUpdate(true)
+	SyncServiceStartup(true)
+
 	backupVersion := backupSection.Key("version").MustString("")
 	spotStat := spotifystatus.Get(appPath)
 	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)

@@ -15,6 +15,7 @@ import (
 	colorable "github.com/mattn/go-colorable"
 	"github.com/pterm/pterm"
 	"github.com/spicetify/cli/src/cmd"
+	"github.com/spicetify/cli/src/service"
 	spotifystatus "github.com/spicetify/cli/src/status/spotify"
 	"github.com/spicetify/cli/src/utils"
 	"github.com/spicetify/cli/src/utils/isAdmin"
@@ -184,6 +185,38 @@ func main() {
 			cmd.BlockSpotifyUpdates(false)
 		default:
 			utils.PrintError("Invalid parameter. It has to be \"block\" or \"unblock\".")
+		}
+		return
+
+	case "service":
+		cmd.InitPaths()
+		cmd.InitSetting()
+		commands = commands[1:]
+		if len(commands) == 0 {
+			utils.PrintBold("Starting background service for automatic re-apply")
+			service.Start(version)
+			return
+		}
+
+		switch commands[0] {
+		case "install", "enable":
+			cmd.SetServiceAutoUpdate(true)
+			cmd.SyncServiceStartup(true)
+			utils.PrintSuccess("Automatic self-healing service enabled")
+		case "uninstall", "disable":
+			cmd.SetServiceAutoUpdate(false)
+			cmd.SyncServiceStartup(false)
+			utils.PrintSuccess("Automatic self-healing service disabled")
+		case "status":
+			cfg := utils.ParseConfig(cmd.GetConfigPath())
+			serviceSection := cfg.GetSection("Service")
+			if serviceSection.Key("auto_update").MustBool(false) {
+				utils.PrintInfo("Automatic self-healing service is enabled")
+			} else {
+				utils.PrintInfo("Automatic self-healing service is disabled")
+			}
+		default:
+			utils.PrintError("Invalid parameter. It has to be \"install\", \"uninstall\" or \"status\".")
 		}
 		return
 
@@ -399,6 +432,10 @@ restart             Restart Spotify client.
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
 spotify-updates     Block Spotify updates by patching spotify executable.
                     Accepts "block" or "unblock" as the parameter.
+
+service             Run the background self-healing monitor.
+                    Use "install" to enable automatic startup,
+                    "uninstall" to disable it, or "status" to inspect it.
 
 path                Print path of Spotify's executable, userdata, and more.
                     1. Print executable path:
