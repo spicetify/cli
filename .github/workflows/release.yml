@@ -2,7 +2,7 @@ name: Release CLI
 
 on:
   push:
-    tags: ["cli-v*"]
+    tags: ["*"]
 
 jobs:
   setup:
