@@ -1,0 +1,52 @@
+name: Build CLI (Windows)
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Version tag
+        required: true
+        type: string
+      arch:
+        description: Architecture
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ inputs.arch == 'amd64' && 'x86_64-pc-windows-msvc' || 'aarch64-pc-windows-msvc' }}
+
+      - name: Setup WiX
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet tool install -g wix
+          wix eula accept wix7
+          wix extension add -g WixToolset.Util.wixext
+          wix extension add -g WixToolset.UI.wixext
+
+      - name: Build
+        shell: pwsh
+        working-directory: build/windows
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\build.ps1 -version "${{ inputs.tag }}" -platform "${{ inputs.arch }}"
+
+      - name: Attest
+        uses: actions/attest@v4
+        with:
+          subject-path: build/windows/dist/*
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-windows-${{ inputs.arch }}
+          path: build/windows/dist/*

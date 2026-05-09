@@ -1,0 +1,49 @@
+name: Build CLI (Linux)
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Version tag
+        required: true
+        type: string
+      arch:
+        description: Architecture
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ inputs.arch == 'amd64' && 'x86_64-unknown-linux-gnu' || 'aarch64-unknown-linux-gnu' }}
+
+      - name: Install cross-compilation deps (arm64)
+        if: inputs.arch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+      - name: Build
+        working-directory: build/linux
+        run: |
+          chmod +x build.sh
+          ./build.sh "${{ inputs.tag }}" "${{ inputs.arch }}"
+
+      - name: Attest
+        uses: actions/attest@v4
+        with:
+          subject-path: build/linux/dist/*
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-linux-${{ inputs.arch }}
+          path: build/linux/dist/*

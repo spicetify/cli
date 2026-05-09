@@ -1,0 +1,41 @@
+name: Build CLI (macOS)
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Version tag
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin,aarch64-apple-darwin
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Build
+        working-directory: build/macos
+        run: |
+          chmod +x build.sh
+          ./build.sh "${{ inputs.tag }}"
+
+      - name: Attest
+        uses: actions/attest@v4
+        with:
+          subject-path: build/macos/dist/*
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-macos
+          path: build/macos/dist/*
