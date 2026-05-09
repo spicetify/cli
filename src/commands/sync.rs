@@ -8,7 +8,7 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     // Should support specifying a version tag and display compatibility with the installed
     // Spotify client version.
     let bytes = reqwest::blocking::get(
-        "https://github.com/veryboringhwl/v3/releases/latest/download/hooks.tar.gz",
+        "https://github.com/veryboringhwl/hooks/releases/latest/download/hooks.tar.gz",
     )?
     .bytes()?;
 
