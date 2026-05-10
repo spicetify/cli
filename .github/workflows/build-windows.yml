@@ -24,15 +24,6 @@ jobs:
         with:
           targets: ${{ inputs.arch == 'amd64' && 'x86_64-pc-windows-msvc' || 'aarch64-pc-windows-msvc' }}
 
-      - name: Setup WiX
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          dotnet tool install -g wix
-          wix eula accept wix7
-          wix extension add -g WixToolset.Util.wixext
-          wix extension add -g WixToolset.UI.wixext
-
       - name: Build
         shell: pwsh
         working-directory: build/windows

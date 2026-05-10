@@ -24,7 +24,7 @@ jobs:
     needs: setup
     strategy:
       matrix:
-        arch: [amd64, arm64]
+        arch: [amd64]
     with:
       tag: ${{ needs.setup.outputs.tag }}
       arch: ${{ matrix.arch }}

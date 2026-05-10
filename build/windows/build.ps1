@@ -1,15 +1,15 @@
 [CmdletBinding()]
 param (
-	[Parameter(
-		Mandatory = $true
-	)]
-	[string]$version,
+  [Parameter(
+    Mandatory = $true
+  )]
+  [string]$version,
 
-	[Parameter(
-		Mandatory = $true
-	)]
-	[ValidateSet('amd64', 'arm64')]
-	[string]$platform
+  [Parameter(
+    Mandatory = $true
+  )]
+  [ValidateSet('amd64', 'arm64')]
+  [string]$platform
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,5 +28,7 @@ Copy-Item $exe "dist\spicetify-$version-windows-$platform.exe"
 Copy-Item $exe "bin\spicetify.exe"
 
 $arch = $platform -replace 'amd64', 'x64'
-wix eula accept wix7
-wix build -arch $arch -d ProductVersion=$version -d Platform=$arch -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext .\installer.wxs -o "dist\installer-$version-windows-$platform.msi"
+
+# Windows runner 2025 default has iscc in PATH
+$innoSetupPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+& $innoSetupPath /DProductVersion=$version /DArch=$arch /DOutputArch=$platform .\installer.iss

@@ -1,1 +1,4 @@
 target
+go
+build/*/bin/spicetify.exe
+build/*/dist

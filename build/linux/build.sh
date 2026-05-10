@@ -6,7 +6,6 @@ arch=$2
 
 case $arch in
 	amd64) target="x86_64-unknown-linux-gnu" ;;
-	arm64) target="aarch64-unknown-linux-gnu" ;;
 	*)     echo "unsupported arch: $arch" && exit 1 ;;
 esac
 
