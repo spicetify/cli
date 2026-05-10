@@ -31,4 +31,4 @@ $arch = $platform -replace 'amd64', 'x64'
 
 # Windows runner 2025 default has iscc in PATH
 $innoSetupPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-& $innoSetupPath /DProductVersion=$version /DArch=$arch /DOutputArch=$platform .\installer.iss
+& $innoSetupPath /DAppVersion=$version /DArch=$arch /DOutputArch=$platform .\installer.iss

@@ -1,5 +1,5 @@
-#ifndef ProductVersion
-  #error ProductVersion not defined
+#ifndef AppVersion
+  #error AppVersion not defined
 #endif
 
 #ifndef Arch
@@ -7,12 +7,11 @@
 #endif
 
 #ifndef OutputArch
-  #define OutputArch "amd64"
+  #define OutputArch "arm64"
 #endif
 
 #define AppName "Spicetify"
-#define AppPublisher "spicetify.app"
-#define AppURL "https://spicetify.app"
+#define OutputDir "dist"
 
 #if Arch == "x64"
   #define AppId "{{5e60b260-206a-4571-8413-8b8b9bddbf65}"
@@ -25,36 +24,48 @@
 [Setup]
 AppId={#AppId}
 AppName={#AppName}
-AppVersion={#ProductVersion}
-AppPublisher={#AppPublisher}
-AppPublisherURL={#AppURL}
-AppSupportURL={#AppURL}/docs/faq
-AppUpdatesURL={#AppURL}
-AppReadmeFile={#AppURL}/docs/getting-started
+AppVersion={#AppVersion}
+AppPublisher=Spicetify
+AppPublisherURL=https://spicetify.app
+AppSupportURL=https://spicetify.app
+AppUpdatesURL=https://spicetify.app
 DefaultDirName={localappdata}\Spicetify
 DisableProgramGroupPage=yes
-DisableWelcomePage=no
 PrivilegesRequired=admin
-OutputDir=dist
-OutputBaseFilename=installer-{#ProductVersion}-windows-{#OutputArch}
+OutputDir={#OutputDir}
+OutputBaseFilename=installer-{#AppVersion}-windows-{#OutputArch}
 Compression=lzma2/ultra64
 SolidCompression=yes
-WizardStyle=modern
+WizardStyle=modern dynamic windows11
 ChangesEnvironment=yes
-MinVersion=10.0
-UninstallDisplayName={#AppName}
+UsedUserAreasWarning=no
+
+WizardImageFile=installer\spicetify.png
+WizardImageFileDynamicDark=installer\spicetify.png
+WizardSmallImageFile=installer\spicetify.png
+WizardSmallImageFileDynamicDark=installer\spicetify.png
+
+SetupIconFile=installer\spicetify.ico
+UninstallDisplayIcon={app}\spicetify.ico
+
 #if Arch == "x64"
-ArchitecturesAllowed=x64compatible
-ArchitecturesInstallIn64BitMode=x64compatible
+ArchitecturesAllowed=x64os
+ArchitecturesInstallIn64BitMode=x64os
 #elif Arch == "arm64"
 ArchitecturesAllowed=arm64
 ArchitecturesInstallIn64BitMode=arm64
 #endif
-UninstallDisplayIcon={app}\spicetify.ico
-UsedUserAreasWarning=no
+
+[Messages]
+ReadyLabel1=Setup is now ready to begin installing Spicetify on your computer.
+ReadyLabel2a=Click Install to continue with the installation, or click Back if you want to review or change any settings.
+ReadyMemoDir=Destination location:
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Tasks]
+Name: "addtopath"; Description: "Add to PATH (requires shell restart)"; GroupDescription: "Additional tasks:"; Flags: checkedonce
 
 [Files]
 Source: "bin\spicetify.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
@@ -76,6 +87,7 @@ Filename: "{app}\bin\spicetify.exe"; Parameters: "init"; WorkingDir: "{app}"; Fl
 Filename: "{sys}\schtasks.exe"; Parameters: "/Create /TN ""Spicetify daemon"" /XML ""{app}\bin\st-daemon.xml"" /F"; Flags: runhidden; StatusMsg: "Creating scheduled task..."; Check: IsFreshInstall
 Filename: "{sys}\schtasks.exe"; Parameters: "/Change /TN ""Spicetify daemon"" /TR ""\""{app}\bin\spicetify.exe\"" daemon"""; Flags: runhidden; StatusMsg: "Configuring daemon..."; Check: IsFreshInstall
 Filename: "{sys}\schtasks.exe"; Parameters: "/Run /TN ""Spicetify daemon"""; Flags: runhidden; StatusMsg: "Starting daemon..."; Check: IsFreshInstall
+Filename: "{app}\bin\spicetify.exe"; Description: "Launch Spicetify"; Flags: nowait postinstall shellexec; WorkingDir: "{app}"
 
 [UninstallRun]
 Filename: "{app}\bin\spicetify.exe"; Parameters: "fix"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Reverting Spicetify changes..."; RunOnceId: "FixSpicetify"
@@ -102,18 +114,21 @@ var
 begin
   if CurStep = ssPostInstall then
   begin
-    Entry := ExpandConstant('{app}\bin');
-
-    if RegQueryStringValue(HKCU, 'Environment', 'Path', CurrentPath) then
+    if WizardIsTaskSelected('addtopath') then
     begin
-      if Pos(';' + UpperCase(Entry) + ';', ';' + UpperCase(CurrentPath) + ';') = 0 then
+      Entry := ExpandConstant('{app}\bin');
+
+      if RegQueryStringValue(HKCU, 'Environment', 'Path', CurrentPath) then
       begin
-        CurrentPath := CurrentPath + ';' + Entry;
-        RegWriteExpandStringValue(HKCU, 'Environment', 'Path', CurrentPath);
-      end;
-    end
-    else
-      RegWriteExpandStringValue(HKCU, 'Environment', 'Path', Entry);
+        if Pos(';' + UpperCase(Entry) + ';', ';' + UpperCase(CurrentPath) + ';') = 0 then
+        begin
+          CurrentPath := CurrentPath + ';' + Entry;
+          RegWriteExpandStringValue(HKCU, 'Environment', 'Path', CurrentPath);
+        end;
+      end
+      else
+        RegWriteExpandStringValue(HKCU, 'Environment', 'Path', Entry);
+    end;
 
     RegWriteStringValue(HKCU, 'Software\{#AppName}', 'Installed', '1');
   end;
