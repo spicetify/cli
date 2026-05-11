@@ -27,4 +27,4 @@ crossterm = "0.29.0"
 regex = "1.12.3"
 
 [target.'cfg(windows)'.dependencies]
-junction = "1"
+junction = "2"
