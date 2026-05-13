@@ -34,6 +34,7 @@ const ALLOWED_ORIGIN: &str = "https://xpui.app.spotify.com";
 /// Inno Setup checks this mutex via `AppMutex` to prevent the installer from
 /// proceeding while the daemon is active. Must match the `AppMutex` value
 /// passed to Inno Setup from `build.ps1`.
+#[cfg(windows)]
 const INSTANCE_MUTEX_NAME: &str = "Spicetify-Daemon-Instance-Mutex";
 
 fn acquire_instance_mutex() -> InstanceMutexGuard {

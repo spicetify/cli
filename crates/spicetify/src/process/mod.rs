@@ -86,6 +86,7 @@ fn wait_for_start(ctx: &AppContext, timeout: Duration) -> Result<()> {
     }
 }
 
+#[cfg(windows)]
 fn image_name(ctx: &AppContext) -> String {
     ctx.spotify_exec_path
         .file_name()
@@ -165,14 +166,14 @@ fn kill(ctx: &AppContext) -> Result<()> {
 #[cfg(unix)]
 fn process_names(ctx: &AppContext) -> Vec<String> {
     let mut names = Vec::new();
-    if let Some(name) = ctx.spotify_exec_path.file_name().and_then(OsStr::to_str) {
-        if !name.is_empty() {
-            names.push(name.to_string());
-            if let Some(stem) = ctx.spotify_exec_path.file_stem().and_then(OsStr::to_str) {
-                if !stem.is_empty() {
-                    names.push(stem.to_string());
-                }
-            }
+    if let Some(name) = ctx.spotify_exec_path.file_name().and_then(OsStr::to_str)
+        && !name.is_empty()
+    {
+        names.push(name.to_string());
+        if let Some(stem) = ctx.spotify_exec_path.file_stem().and_then(OsStr::to_str)
+            && !stem.is_empty()
+        {
+            names.push(stem.to_string());
         }
     }
     names.push("Spotify".into());

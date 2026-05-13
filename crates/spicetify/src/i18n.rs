@@ -80,9 +80,9 @@ fn lookup_locale(locale: &LanguageIdentifier, key: &str, args: &[(&str, &str)]) 
             let available: Vec<&LanguageIdentifier> = BUNDLES.keys().collect();
             let best =
                 negotiate_languages(&[locale], &available, None, NegotiationStrategy::Filtering);
-            match best.first() {
-                Some(lang) => FALLBACKS.get(lang)?,
-                None => return None,
+            {
+                let lang = best.first()?;
+                FALLBACKS.get(lang)?
             }
         }
     };
