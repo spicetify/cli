@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -38,18 +39,43 @@ jobs:
           version=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "spicetify") | .version')
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Commit and tag
+      - name: Commit
         id: commit
         uses: IAreKyleW00t/verified-bot-commit@126a6a11889ab05bcff72ec2403c326cd249b84c
         with:
           message: "chore: bump to v${{ steps.bump-version.outputs.version }}"
           ref: refs/heads/main
-          tag: "v${{ steps.bump-version.outputs.version }}"
           files: '**'
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Trigger release
+      - name: Create tag and trigger release
+        uses: actions/github-script@v7
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run release.yml --ref main -f tag="${{ steps.bump-version.outputs.version }}"
+          VERSION: ${{ steps.bump-version.outputs.version }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const version = process.env.VERSION;
+            const tag = `v${version}`;
+
+            const { data: ref } = await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'heads/main',
+            });
+
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/${tag}`,
+              sha: ref.object.sha,
+            });
+
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release.yml',
+              ref: 'main',
+              inputs: { tag: version },
+            });
 
