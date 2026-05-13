@@ -32,7 +32,6 @@ jobs:
           tool: cargo-edit
 
       - name: Bump version
-        working-directory: app
         run: |
           cargo set-version --bump ${{ inputs.bump }}
           version=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "spicetify") | .version')
