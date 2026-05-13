@@ -41,7 +41,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add app/Cargo.toml app/Cargo.lock
+          git add Cargo.toml Cargo.lock
           git commit -m "chore: bump to v${{ env.version }}"
           git tag "v${{ env.version }}"
           git push origin HEAD
