@@ -19,9 +19,12 @@ pub fn add_store(paths: &ModulePaths, id: &StoreIdentifier, store: Store) -> Res
 
 pub fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let mut v = vault::load(&paths.vault_path)?;
-    let store = v
-        .get_store_mut(id)
-        .ok_or_else(|| anyhow!(i18n::lookup_with_args("missing_store", &[("id", &id.as_string())])))?;
+    let store = v.get_store_mut(id).ok_or_else(|| {
+        anyhow!(i18n::lookup_with_args(
+            "missing_store",
+            &[("id", &id.as_string())]
+        ))
+    })?;
     // TODO: add more artifact options (Go: "add more options")
     // Currently only uses the first artifact (artifacts[0]). Go's module.go:160 has the same
     // limitation. Should support selecting from multiple artifact URLs (e.g. mirror fallback,
@@ -59,7 +62,10 @@ pub fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
         let module = v.get_module_mut(&id.module_identifier);
 
         if !id.version.is_empty() && !module.v.contains_key(&id.version) {
-            bail!(i18n::lookup_with_args("missing_store", &[("id", &id.as_string())]));
+            bail!(i18n::lookup_with_args(
+                "missing_store",
+                &[("id", &id.as_string())]
+            ));
         }
 
         if module.enabled == id.version {

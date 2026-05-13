@@ -10,9 +10,9 @@ use crossterm::{
     execute, terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode}
 };
 use ratatui::{Terminal, backend::CrosstermBackend};
+use spicetify::config::AppContext;
 
 use self::app::TuiApp;
-use spicetify::config::AppContext;
 
 pub fn run(ctx: &AppContext) -> Result<()> {
     let mut terminal = setup_terminal()?;

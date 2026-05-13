@@ -1,4 +1,5 @@
 use anyhow::{Context, Result, bail};
+
 use crate::i18n;
 
 pub fn encode_utf16le(input: &str) -> Vec<u8> {
@@ -10,22 +11,22 @@ pub fn encode_utf16le(input: &str) -> Vec<u8> {
 }
 
 pub fn decode_utf16le(input: &[u8]) -> Result<String> {
-    if input.len() % 2 != 0 {
+    if !input.len().is_multiple_of(2) {
         bail!(i18n::lookup("invalid_utf16le"))
     }
     let units: Vec<u16> = input
         .chunks_exact(2)
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .collect();
-    Ok(String::from_utf16(&units).context(i18n::lookup("invalid_utf16_seq"))?)
+    String::from_utf16(&units).context(i18n::lookup("invalid_utf16_seq"))
 }
 
 pub fn extract_utf16le_between(snapshot: &[u8], start: &str, end: &str) -> Result<String> {
     let start_b = encode_utf16le(start);
     let end_b = encode_utf16le(end);
 
-    let start_pos =
-        find_bytes(snapshot, &start_b).ok_or_else(|| anyhow::anyhow!(i18n::lookup("start_marker_not_found")))?;
+    let start_pos = find_bytes(snapshot, &start_b)
+        .ok_or_else(|| anyhow::anyhow!(i18n::lookup("start_marker_not_found")))?;
     let end_pos_rel = find_bytes(&snapshot[start_pos..], &end_b)
         .ok_or_else(|| anyhow::anyhow!(i18n::lookup("end_marker_not_found")))?;
 

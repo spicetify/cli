@@ -112,7 +112,10 @@ async fn run_server(ctx: Arc<Mutex<AppContext>>) -> Result<()> {
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(BIND_ADDR).await?;
-    logging::info(&i18n::lookup_with_args("daemon_listening", &[("addr", BIND_ADDR)]));
+    logging::info(i18n::lookup_with_args(
+        "daemon_listening",
+        &[("addr", BIND_ADDR)],
+    ));
     axum::serve(listener, app)
         .with_graceful_shutdown(async move {
             shutdown.notified().await;
@@ -152,13 +155,13 @@ fn spawn_apps_watcher(ctx: Arc<Mutex<AppContext>>) -> std::sync::mpsc::Sender<()
             Err(_) => return,
         };
         if watcher.watch(&apps, RecursiveMode::NonRecursive).is_err() {
-            logging::fatal(&i18n::lookup_with_args(
+            logging::fatal(i18n::lookup_with_args(
                 "watch_failed",
                 &[("path", &apps.display().to_string())],
             ));
             return;
         }
-        logging::info(&i18n::lookup_with_args(
+        logging::info(i18n::lookup_with_args(
             "watching",
             &[("path", &apps.display().to_string())],
         ));
@@ -171,17 +174,16 @@ fn spawn_apps_watcher(ctx: Arc<Mutex<AppContext>>) -> std::sync::mpsc::Sender<()
                 Ok(Ok(event)) => {
                     if matches!(event.kind, EventKind::Create(_)) {
                         for p in &event.paths {
-                            if p.file_name().and_then(|s| s.to_str()) == Some("xpui.spa") {
-                                if let Ok(app_ctx) = ctx.lock() {
-                                    if let Err(e) = apply::run(&app_ctx) {
-                                        logging::warn(&e.to_string());
-                                    }
-                                }
+                            if p.file_name().and_then(|s| s.to_str()) == Some("xpui.spa")
+                                && let Ok(app_ctx) = ctx.lock()
+                                && let Err(e) = apply::run(&app_ctx)
+                            {
+                                logging::warn(e.to_string());
                             }
                         }
                     }
                 }
-                Ok(Err(e)) => logging::warn(&e.to_string()),
+                Ok(Err(e)) => logging::warn(e.to_string()),
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
                 Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
             }
@@ -241,7 +243,7 @@ fn watch_config(
                 }
             }
             Ok(Ok(_)) => continue,
-            Ok(Err(e)) => logging::warn(&e.to_string()),
+            Ok(Err(e)) => logging::warn(e.to_string()),
             Err(_) => break,
         }
     }
@@ -267,7 +269,7 @@ async fn ws_handler(
 async fn handle_ws(mut socket: WebSocket, state: Arc<DaemonState>) {
     while let Some(Ok(msg)) = socket.next().await {
         if let Message::Text(text) = msg {
-            logging::info(&i18n::lookup_with_args("rpc_received", &[("msg", &text)]));
+            logging::info(i18n::lookup_with_args("rpc_received", &[("msg", &text)]));
             let app_ctx = match state.ctx.lock() {
                 Ok(g) => g.clone(),
                 Err(_) => continue,
@@ -276,7 +278,10 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<DaemonState>) {
                 Ok(res) if !res.is_empty() => {
                     let _ = socket.send(Message::Text(res.into())).await;
                 }
-                Err(e) => logging::warn(&i18n::lookup_with_args("protocol_error", &[("err", &e.to_string())])),
+                Err(e) => logging::warn(i18n::lookup_with_args(
+                    "protocol_error",
+                    &[("err", &e.to_string())],
+                )),
                 _ => {}
             }
         }
@@ -331,21 +336,19 @@ async fn self_update_handler() -> impl IntoResponse {
     }
 
     let asset_name = format!("installer-{latest}-windows-amd64.exe");
-    let download_url = match release["assets"]
-        .as_array()
-        .and_then(|assets| {
-            assets
-                .iter()
-                .find(|a| a["name"].as_str() == Some(&asset_name))
-                .and_then(|a| a["browser_download_url"].as_str())
-        }) {
+    let download_url = match release["assets"].as_array().and_then(|assets| {
+        assets
+            .iter()
+            .find(|a| a["name"].as_str() == Some(&asset_name))
+            .and_then(|a| a["browser_download_url"].as_str())
+    }) {
         Some(url) => url,
         None => {
             return (
                 StatusCode::NOT_FOUND,
                 i18n::lookup_with_args("no_release_asset", &[("name", &asset_name)]),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -375,12 +378,16 @@ async fn proxy_handler(
 
     let target = match url::Url::parse(&url) {
         Ok(u) => u,
-        Err(_) => return (StatusCode::BAD_REQUEST, i18n::lookup("proxy_invalid_url")).into_response(),
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, i18n::lookup("proxy_invalid_url")).into_response();
+        }
     };
 
     let body = match axum::body::to_bytes(request.into_body(), usize::MAX).await {
         Ok(b) => b,
-        Err(_) => return (StatusCode::BAD_REQUEST, i18n::lookup("proxy_invalid_body")).into_response(),
+        Err(_) => {
+            return (StatusCode::BAD_REQUEST, i18n::lookup("proxy_invalid_body")).into_response();
+        }
     };
 
     let mut upstream = state
@@ -394,23 +401,28 @@ async fn proxy_handler(
         }
     }
 
-    if let Some(raw) = headers.get("x-set-headers") {
-        if let Ok(raw) = raw.to_str() {
-            if let Ok(extra) = serde_json::from_str::<HashMap<String, String>>(raw) {
-                for (k, v) in extra {
-                    upstream = if v == "undefined" {
-                        upstream.header(&k, "")
-                    } else {
-                        upstream.header(&k, v)
-                    };
-                }
-            }
+    if let Some(raw) = headers.get("x-set-headers")
+        && let Ok(raw) = raw.to_str()
+        && let Ok(extra) = serde_json::from_str::<HashMap<String, String>>(raw)
+    {
+        for (k, v) in extra {
+            upstream = if v == "undefined" {
+                upstream.header(&k, "")
+            } else {
+                upstream.header(&k, v)
+            };
         }
     }
 
     let upstream = match upstream.send().await {
         Ok(r) => r,
-        Err(_) => return (StatusCode::BAD_GATEWAY, i18n::lookup("proxy_request_failed")).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::BAD_GATEWAY,
+                i18n::lookup("proxy_request_failed"),
+            )
+                .into_response();
+        }
     };
 
     let status = upstream.status();
@@ -418,7 +430,9 @@ async fn proxy_handler(
 
     let bytes = match upstream.bytes().await {
         Ok(b) => b,
-        Err(_) => return (StatusCode::BAD_GATEWAY, i18n::lookup("proxy_body_failed")).into_response(),
+        Err(_) => {
+            return (StatusCode::BAD_GATEWAY, i18n::lookup("proxy_body_failed")).into_response();
+        }
     };
 
     let mut response = (status, bytes).into_response();

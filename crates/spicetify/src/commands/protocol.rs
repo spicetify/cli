@@ -133,7 +133,10 @@ fn launch_uri(uri: &str) -> Result<()> {
         Command::new("xdg-open").arg(uri).spawn()
     };
 
-    result
-        .map(|_| ())
-        .map_err(|e| anyhow::anyhow!(i18n::lookup_with_args("failed_open_uri", &[("uri", &uri.to_string()), ("err", &e.to_string())])))
+    result.map(|_| ()).map_err(|e| {
+        anyhow::anyhow!(i18n::lookup_with_args(
+            "failed_open_uri",
+            &[("uri", uri), ("err", &e.to_string())]
+        ))
+    })
 }

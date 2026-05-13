@@ -120,7 +120,9 @@ fn kill(ctx: &AppContext) -> Result<()> {
     let output = Command::new("taskkill")
         .args(["/IM", &image, "/T", "/F"])
         .output()
-        .with_context(|| i18n::lookup_with_args("taskkill_failed", &[("exe", &image), ("err", "...")]))?;
+        .with_context(|| {
+            i18n::lookup_with_args("taskkill_failed", &[("exe", &image), ("err", "...")])
+        })?;
 
     if output.status.success() {
         return Ok(());
@@ -133,10 +135,7 @@ fn kill(ctx: &AppContext) -> Result<()> {
         "taskkill_failed",
         &[
             ("exe", &image),
-            (
-                "err",
-                &String::from_utf8_lossy(&output.stderr).trim().to_string()
-            )
+            ("err", String::from_utf8_lossy(&output.stderr).trim())
         ]
     ))
 }

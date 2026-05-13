@@ -31,7 +31,10 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     let dest_xpui = dest_apps.join("xpui");
     logging::info(i18n::lookup("extracting_modules"));
     if let Err(err) = extract_modules(&ctx.spotify_data_path, &dest_xpui) {
-        logging::error(i18n::lookup_with_args("failed_extract_modules", &[("err", &err.to_string())]));
+        logging::error(i18n::lookup_with_args(
+            "failed_extract_modules",
+            &[("err", &err.to_string())],
+        ));
         return Err(err);
     }
 
@@ -118,7 +121,9 @@ fn link_runtime_dirs(config_root: &Path, dest: &Path) -> Result<()> {
 fn patch_index_html(input: &str) -> Result<String> {
     let target = "<script defer=\"defer\" src=\"/xpui-snapshot.js\"></script>";
     let replacement = "<script type=\"module\" src=\"./hooks/index.js\"></script>";
-    let idx = input.find(target).context(i18n::lookup("index_patch_not_found"))?;
+    let idx = input
+        .find(target)
+        .context(i18n::lookup("index_patch_not_found"))?;
     Ok(format!(
         "{}{}{}",
         &input[..idx],

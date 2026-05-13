@@ -12,7 +12,6 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Check formatting
-        working-directory: app
         run: cargo fmt -- --check
 
   clippy:
@@ -21,5 +20,4 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Clippy
-        working-directory: app
         run: cargo clippy --release --all-targets -- --deny warnings

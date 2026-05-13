@@ -3,10 +3,11 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail};
-use crate::i18n;
 use flate2::read::GzDecoder;
 use tar::Archive;
 use zip::ZipArchive;
+
+use crate::i18n;
 
 pub fn unzip_file(zip_path: &Path, dest: &Path) -> Result<()> {
     let file = File::open(zip_path)?;
@@ -45,8 +46,12 @@ pub fn extract_zip<R: io::Read + io::Seek>(zip: &mut ZipArchive<R>, dest: &Path)
 
         io::copy(
             &mut entry,
-            &mut File::create(&out)
-                .with_context(|| i18n::lookup_with_args("failed_creating_file", &[("path", &out.display().to_string())]))?,
+            &mut File::create(&out).with_context(|| {
+                i18n::lookup_with_args(
+                    "failed_creating_file",
+                    &[("path", &out.display().to_string())],
+                )
+            })?,
         )?;
     }
     Ok(())

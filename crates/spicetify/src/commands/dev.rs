@@ -10,7 +10,10 @@ pub fn run(ctx: &AppContext) -> Result<()> {
             "failed_open_offline_bnk",
             &[
                 ("path", &offline_bnk.display().to_string()),
-                ("config_path", &ctx.spotify_config_path.display().to_string()),
+                (
+                    "config_path",
+                    &ctx.spotify_config_path.display().to_string(),
+                ),
             ],
         )
     })?;
@@ -42,9 +45,7 @@ fn patch_developer_mode(data: &mut [u8]) -> Result<()> {
     }
 
     if !found {
-        return Err(anyhow::anyhow!(i18n::lookup(
-            "app_developer_not_found"
-        )));
+        return Err(anyhow::anyhow!(i18n::lookup("app_developer_not_found")));
     }
 
     Ok(())

@@ -5,6 +5,7 @@ use std::{
 use anyhow::{Result, anyhow};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+
 use crate::i18n;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

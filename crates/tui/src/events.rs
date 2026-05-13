@@ -6,11 +6,11 @@ use std::{
 
 use anyhow::{Context, Result, anyhow};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-
-use super::app::TuiApp;
 use spicetify::{
     commands::{self as core_commands, Command as CoreCommand, DaemonAction, UpdateMode}, i18n, logging
 };
+
+use super::app::TuiApp;
 
 pub const INPUT_POLL: Duration = Duration::from_millis(50);
 pub const SPINNER_INTERVAL: Duration = Duration::from_millis(110);
@@ -224,16 +224,18 @@ fn dispatch_daemon(app: &mut TuiApp, action: Action) {
                 app.last_result = Some(true);
                 app.progress = 1.0;
                 app.progress_target = 1.0;
-                app.phase = i18n::lookup("tui_daemon_already_active").into();
-                app.logs
-                    .push(format!("INFO {}", i18n::lookup("tui_daemon_already_running")));
+                app.phase = i18n::lookup("tui_daemon_already_active");
+                app.logs.push(format!(
+                    "INFO {}",
+                    i18n::lookup("tui_daemon_already_running")
+                ));
             } else {
                 match launch_daemon() {
                     Ok(()) => {
                         app.last_result = Some(true);
                         app.progress = 1.0;
                         app.progress_target = 1.0;
-                        app.phase = i18n::lookup("tui_daemon_launched").into();
+                        app.phase = i18n::lookup("tui_daemon_launched");
                         app.logs
                             .push(format!("INFO {}", i18n::lookup("tui_daemon_started")));
                         app.refresh_daemon(true);
@@ -242,7 +244,7 @@ fn dispatch_daemon(app: &mut TuiApp, action: Action) {
                         app.last_result = Some(false);
                         app.progress = 0.0;
                         app.progress_target = 0.95;
-                        app.phase = i18n::lookup("tui_daemon_failed_launch").into();
+                        app.phase = i18n::lookup("tui_daemon_failed_launch");
                         app.logs.push(format!("ERROR {err}"));
                     }
                 }
@@ -253,7 +255,7 @@ fn dispatch_daemon(app: &mut TuiApp, action: Action) {
                 app.last_result = Some(true);
                 app.progress = 1.0;
                 app.progress_target = 1.0;
-                app.phase = i18n::lookup("tui_daemon_already_stopped").into();
+                app.phase = i18n::lookup("tui_daemon_already_stopped");
                 app.logs
                     .push(format!("INFO {}", i18n::lookup("tui_daemon_not_running")));
             } else {
@@ -263,18 +265,18 @@ fn dispatch_daemon(app: &mut TuiApp, action: Action) {
                             app.last_result = Some(true);
                             app.progress = 1.0;
                             app.progress_target = 1.0;
-                            app.phase = i18n::lookup("tui_daemon_stopped").into();
+                            app.phase = i18n::lookup("tui_daemon_stopped");
                             app.logs
                                 .push(format!("INFO {}", i18n::lookup("tui_daemon_has_stopped")));
                         } else {
                             app.last_result = Some(false);
                             app.progress = 0.0;
                             app.progress_target = 0.95;
-                            app.phase = i18n::lookup("tui_daemon_still_active").into();
-                            app.logs.push(
-                                format!("ERROR {}", i18n::lookup("tui_daemon_no_shutdown_support"))
-                                    .into(),
-                            );
+                            app.phase = i18n::lookup("tui_daemon_still_active");
+                            app.logs.push(format!(
+                                "ERROR {}",
+                                i18n::lookup("tui_daemon_no_shutdown_support")
+                            ));
                         }
                         app.refresh_daemon(true);
                     }
@@ -282,7 +284,7 @@ fn dispatch_daemon(app: &mut TuiApp, action: Action) {
                         app.last_result = Some(false);
                         app.progress = 0.0;
                         app.progress_target = 0.95;
-                        app.phase = i18n::lookup("tui_daemon_failed_stop").into();
+                        app.phase = i18n::lookup("tui_daemon_failed_stop");
                         app.logs.push(format!("ERROR {err}"));
                     }
                 }

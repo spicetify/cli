@@ -245,10 +245,11 @@ fn find_func_start_x64(data: &[u8], call_site: usize) -> usize {
         let (p1, p2) = (data[i - 1], data[i - 2]);
         if (p1 == 0xCC && p2 == 0xCC) || (p1 == 0x90 && p2 == 0x90) {
             let b = data[i];
-            if b != 0xCC && b != 0x90 {
-                if b == 0x48 || b == 0x40 || b == 0x55 || (0x53..=0x57).contains(&b) {
-                    return i;
-                }
+            if b != 0xCC
+                && b != 0x90
+                && (b == 0x48 || b == 0x40 || b == 0x55 || (0x53..=0x57).contains(&b))
+            {
+                return i;
             }
         }
         if call_site - i > 20000 {

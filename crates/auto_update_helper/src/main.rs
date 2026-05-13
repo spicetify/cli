@@ -1,7 +1,6 @@
 #[cfg(windows)]
 mod windows_impl {
-    use std::ffi::OsStr;
-    use std::os::windows::ffi::OsStrExt;
+    use std::{ffi::OsStr, os::windows::ffi::OsStrExt};
 
     unsafe extern "system" {
         fn OpenProcess(desired_access: u32, inherit_handle: i32, process_id: u32) -> isize;
@@ -26,7 +25,10 @@ mod windows_impl {
     const CREATE_NO_WINDOW: u32 = 0x08000000;
 
     fn to_wide(s: &str) -> Vec<u16> {
-        OsStr::new(s).encode_wide().chain(std::iter::once(0)).collect()
+        OsStr::new(s)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect()
     }
 
     fn wait_for_process(pid: u32) {

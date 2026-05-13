@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 
@@ -18,7 +18,7 @@ pub fn run() -> Result<()> {
         .user_agent("spicetify-self-update")
         .build()?;
 
-    logging::info(&i18n::lookup_with_args("self_update_checking", &[]));
+    logging::info(i18n::lookup_with_args("self_update_checking", &[]));
 
     let release: serde_json::Value = client
         .get(RELEASES_URL)
@@ -33,7 +33,7 @@ pub fn run() -> Result<()> {
     let latest = tag.strip_prefix('v').unwrap_or(tag);
 
     if latest == current_version {
-        logging::info(&i18n::lookup_with_args(
+        logging::info(i18n::lookup_with_args(
             "self_update_up_to_date",
             &[("version", current_version)],
         ));
@@ -51,7 +51,7 @@ pub fn run() -> Result<()> {
         })
         .with_context(|| i18n::lookup_with_args("no_release_asset", &[("name", &asset_name)]))?;
 
-    logging::info(&i18n::lookup_with_args(
+    logging::info(i18n::lookup_with_args(
         "self_update_downloading",
         &[("version", latest), ("current", current_version)],
     ));
@@ -64,7 +64,10 @@ pub fn run() -> Result<()> {
     let bytes = response.bytes()?;
     std::fs::write(&installer_path, &bytes)?;
 
-    logging::info(&i18n::lookup_with_args("self_update_installing", &[("version", latest)]));
+    logging::info(i18n::lookup_with_args(
+        "self_update_installing",
+        &[("version", latest)],
+    ));
 
     let current_exe = std::env::current_exe().context(i18n::lookup("cannot_get_exe_path"))?;
     let app_dir = current_exe
@@ -85,11 +88,14 @@ pub fn run() -> Result<()> {
         .spawn()
         .context(i18n::lookup("failed_spawn_helper"))?;
 
-    logging::info(&i18n::lookup_with_args("self_update_launching", &[("version", latest)]));
+    logging::info(i18n::lookup_with_args(
+        "self_update_launching",
+        &[("version", latest)],
+    ));
     Ok(())
 }
 
-fn find_helper(app_dir: &PathBuf) -> Result<PathBuf> {
+fn find_helper(app_dir: &Path) -> Result<PathBuf> {
     let helper = app_dir.join("tools").join("auto_update_helper.exe");
     if helper.exists() {
         return Ok(helper);
@@ -102,15 +108,13 @@ fn find_helper(app_dir: &PathBuf) -> Result<PathBuf> {
 }
 
 fn shutdown_daemon() -> Result<()> {
-    match reqwest::blocking::Client::new()
+    if reqwest::blocking::Client::new()
         .post("http://localhost:7967/shutdown")
         .timeout(std::time::Duration::from_secs(3))
         .send()
+        .is_ok()
     {
-        Ok(_) => {
-            std::thread::sleep(std::time::Duration::from_millis(500));
-        }
-        Err(_) => {}
+        std::thread::sleep(std::time::Duration::from_millis(500));
     }
     Ok(())
 }

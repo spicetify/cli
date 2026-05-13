@@ -35,16 +35,16 @@ pub fn run(ctx: &AppContext) -> Result<()> {
         found += 1;
         let spa = restore_target(&path);
         let unpacked = unpacked_folder(&spa);
-        if let Err(err) = std::fs::remove_dir_all(&unpacked) {
-            if err.kind() != ErrorKind::NotFound {
-                logging::warn(i18n::lookup_with_args(
-                    "failed_remove_unpacked",
-                    &[
-                        ("path", &unpacked.display().to_string()),
-                        ("err", &err.to_string()),
-                    ],
-                ));
-            }
+        if let Err(err) = std::fs::remove_dir_all(&unpacked)
+            && err.kind() != ErrorKind::NotFound
+        {
+            logging::warn(i18n::lookup_with_args(
+                "failed_remove_unpacked",
+                &[
+                    ("path", &unpacked.display().to_string()),
+                    ("err", &err.to_string()),
+                ],
+            ));
         }
         if let Err(err) = std::fs::rename(&path, &spa) {
             logging::error(i18n::lookup_with_args(

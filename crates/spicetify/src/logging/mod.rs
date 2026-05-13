@@ -54,15 +54,15 @@ pub fn fatal(msg: impl AsRef<str>) {
 }
 
 fn emit(level: &str, ansi: &str, msg: &str) {
-    if let Ok(mut state) = capture_state().lock() {
-        if state.enabled {
-            let line = format!("{level} {msg}");
-            state.lines.push(line.clone());
-            if let Some(stream) = &state.stream {
-                let _ = stream.send(line);
-            }
-            return;
+    if let Ok(mut state) = capture_state().lock()
+        && state.enabled
+    {
+        let line = format!("{level} {msg}");
+        state.lines.push(line.clone());
+        if let Some(stream) = &state.stream {
+            let _ = stream.send(line);
         }
+        return;
     }
     eprintln!("\x1b[{ansi}m{level}\x1b[0m {msg}");
 }
@@ -94,5 +94,9 @@ impl LogBuffer {
 
     pub fn len(&self) -> usize {
         self.buf.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.buf.is_empty()
     }
 }

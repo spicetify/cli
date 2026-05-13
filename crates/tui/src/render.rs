@@ -4,9 +4,9 @@ use anyhow::Result;
 use ratatui::{
     Terminal, backend::CrosstermBackend, layout::{Constraint, Direction, Layout}, style::{Color, Modifier, Style}, text::{Line, Span}, widgets::{List, ListItem, ListState, Paragraph, Wrap}
 };
+use spicetify::i18n;
 
 use super::{app::TuiApp, events::Action, theme};
-use spicetify::i18n;
 
 pub fn draw(app: &TuiApp, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
     terminal.draw(|frame| {
@@ -44,7 +44,7 @@ fn draw_session_header(app: &TuiApp, frame: &mut ratatui::Frame, area: ratatui::
     let active = app
         .current_action
         .map(|a| format!("spicetify {}", a.label()))
-        .unwrap_or_else(|| i18n::lookup("tui_idle_cmd").into());
+        .unwrap_or_else(|| i18n::lookup("tui_idle_cmd"));
 
     let header = Paragraph::new(vec![
         Line::from(vec![
@@ -147,11 +147,11 @@ fn draw_main_area(app: &TuiApp, frame: &mut ratatui::Frame, area: ratatui::layou
     let runtime = app
         .command_start
         .map(|s| format!("{:.1}s", s.elapsed().as_secs_f64()))
-        .unwrap_or_else(|| i18n::lookup("tui_dash").into());
+        .unwrap_or_else(|| i18n::lookup("tui_dash"));
     let active = app
         .current_action
         .map(|a| a.label())
-        .unwrap_or_else(|| i18n::lookup("tui_none").into());
+        .unwrap_or_else(|| i18n::lookup("tui_none"));
     let result = match app.last_result {
         Some(true) => i18n::lookup("tui_ok"),
         Some(false) => i18n::lookup("tui_error"),
@@ -167,8 +167,16 @@ fn draw_main_area(app: &TuiApp, frame: &mut ratatui::Frame, area: ratatui::layou
     let stats = Paragraph::new(vec![
         Line::from(format!("{}: {}", i18n::lookup("tui_stat_active"), active)),
         Line::from(format!("{}: {}", i18n::lookup("tui_stat_runtime"), runtime)),
-        Line::from(format!("{}: {}", i18n::lookup("tui_stat_logs"), app.logs.len())),
-        Line::from(format!("{}: {}", i18n::lookup("tui_stat_last_result"), result)),
+        Line::from(format!(
+            "{}: {}",
+            i18n::lookup("tui_stat_logs"),
+            app.logs.len()
+        )),
+        Line::from(format!(
+            "{}: {}",
+            i18n::lookup("tui_stat_last_result"),
+            result
+        )),
         Line::from(format!("{}: {}", i18n::lookup("tui_stat_daemon"), daemon)),
     ])
     .block(theme::border_block(&title));
@@ -217,20 +225,20 @@ fn draw_footer(app: &TuiApp, frame: &mut ratatui::Frame, area: ratatui::layout::
 
 fn status_badge(app: &TuiApp) -> (String, Color) {
     if app.running {
-        (i18n::lookup("status_running").into(), Color::Yellow)
+        (i18n::lookup("status_running"), Color::Yellow)
     } else {
         match app.last_result {
-            Some(true) => (i18n::lookup("status_done").into(), Color::Green),
-            Some(false) => (i18n::lookup("status_failed").into(), Color::Red),
-            None => (i18n::lookup("status_idle").into(), Color::DarkGray),
+            Some(true) => (i18n::lookup("status_done"), Color::Green),
+            Some(false) => (i18n::lookup("status_failed"), Color::Red),
+            None => (i18n::lookup("status_idle"), Color::DarkGray),
         }
     }
 }
 
 fn daemon_badge(app: &TuiApp) -> (String, Color) {
     if app.daemon_running {
-        (i18n::lookup("status_active").into(), Color::Green)
+        (i18n::lookup("status_active"), Color::Green)
     } else {
-        (i18n::lookup("status_off").into(), Color::DarkGray)
+        (i18n::lookup("status_off"), Color::DarkGray)
     }
 }

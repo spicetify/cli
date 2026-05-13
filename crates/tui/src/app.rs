@@ -6,11 +6,11 @@ use std::{
 
 use anyhow::Result;
 use ratatui::{Terminal, backend::CrosstermBackend};
+use spicetify::{config::AppContext, i18n, logging};
 
 use super::{
     events::{self, Action, UiEvent}, render, theme
 };
-use spicetify::{config::AppContext, i18n, logging};
 
 pub const FRAME_INTERVAL: std::time::Duration = std::time::Duration::from_millis(33);
 
@@ -53,7 +53,7 @@ impl TuiApp {
             progress: 0.0,
             progress_target: 0.0,
             link_steps: 0,
-            phase: i18n::lookup("tui_pick_command").into(),
+            phase: i18n::lookup("tui_pick_command"),
             command_start: None,
             spinner: 0,
             last_spinner_tick: Instant::now(),
@@ -111,9 +111,9 @@ impl TuiApp {
                 self.last_result = Some(success);
                 self.progress_target = if success { 1.0 } else { 0.95 };
                 self.phase = if success {
-                    i18n::lookup("tui_completed_success").into()
+                    i18n::lookup("tui_completed_success")
                 } else {
-                    i18n::lookup("tui_completed_errors").into()
+                    i18n::lookup("tui_completed_errors")
                 };
                 false
             }
@@ -143,11 +143,11 @@ impl TuiApp {
     }
 
     fn animate_progress(&mut self) {
-        if self.running {
-            if let Some(start) = self.command_start {
-                let drift = (0.08 + start.elapsed().as_secs_f64() * 0.04).min(0.88);
-                self.progress_target = self.progress_target.max(drift);
-            }
+        if self.running
+            && let Some(start) = self.command_start
+        {
+            let drift = (0.08 + start.elapsed().as_secs_f64() * 0.04).min(0.88);
+            self.progress_target = self.progress_target.max(drift);
         }
         if self.progress_target > self.progress {
             let delta = self.progress_target - self.progress;
@@ -160,7 +160,7 @@ impl TuiApp {
     fn advance_progress(&mut self, line: &str) {
         let lower = line.to_ascii_lowercase();
         if lower.starts_with("error") || lower.starts_with("fatal") {
-            self.phase = i18n::lookup("tui_error_phase").into();
+            self.phase = i18n::lookup("tui_error_phase");
             self.progress_target = self.progress_target.max(0.85);
             return;
         }

@@ -3,8 +3,14 @@ use anyhow::Result;
 use crate::{config::AppContext, i18n, logging};
 
 pub fn run(ctx: &AppContext) -> Result<()> {
-    logging::info(i18n::lookup_with_args("config_daemon", &[("value", &ctx.daemon.to_string())]));
-    logging::info(i18n::lookup_with_args("config_mirror", &[("value", &ctx.mirror.to_string())]));
+    logging::info(i18n::lookup_with_args(
+        "config_daemon",
+        &[("value", &ctx.daemon.to_string())],
+    ));
+    logging::info(i18n::lookup_with_args(
+        "config_mirror",
+        &[("value", &ctx.mirror.to_string())],
+    ));
     logging::info(i18n::lookup_with_args(
         "config_file",
         &[("path", &ctx.config_file.display().to_string())],
