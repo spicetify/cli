@@ -4,11 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  create:
 
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || startsWith(github.ref, 'refs/tags/v')
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:

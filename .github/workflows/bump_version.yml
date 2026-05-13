@@ -58,3 +58,4 @@ jobs:
               ref: 'refs/tags/v${{ steps.bump-version.outputs.version }}',
               sha: '${{ steps.commit.outputs.commit }}',
             });
+
