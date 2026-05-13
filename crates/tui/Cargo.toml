@@ -1,0 +1,14 @@
+[package]
+name = "tui"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+spicetify = { path = "../spicetify" }
+anyhow = "1.0.102"
+ratatui = "0.30.0"
+crossterm = "0.29.0"
+reqwest = { version = "0.13.3", default-features = false, features = ["blocking", "rustls"] }

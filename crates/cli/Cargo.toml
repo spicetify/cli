@@ -1,0 +1,17 @@
+[package]
+name = "cli"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "spicetify"
+path = "src/main.rs"
+
+[dependencies]
+spicetify = { path = "../spicetify" }
+tui = { path = "../tui" }
+clap = { version = "4.6.1", features = ["derive"] }
+anyhow = "1.0.102"
+
+[build-dependencies]
+winres = "0.1"

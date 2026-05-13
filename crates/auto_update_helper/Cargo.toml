@@ -1,0 +1,8 @@
+[package]
+name = "auto_update_helper"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "auto_update_helper"
+path = "src/main.rs"
