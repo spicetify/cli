@@ -2,8 +2,7 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
@@ -87,5 +86,6 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: v${{ needs.setup.outputs.tag }}
           files: "dist/*"
           generate_release_notes: true

@@ -1,4 +1,5 @@
 name: Bump Version
+
 on:
   workflow_dispatch:
     inputs:
@@ -6,11 +7,8 @@ on:
         description: "Version component to bump"
         type: choice
         required: true
-        default: "patch"
-        options:
-          - patch
-          - minor
-          - major
+        default: patch
+        options: [patch, minor, major]
 
 jobs:
   bump:
@@ -19,63 +17,43 @@ jobs:
       contents: write
       actions: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
 
-      - name: Install cargo-edit
-        uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@v2
         with:
           tool: cargo-edit
 
       - name: Bump version
-        id: bump-version
+        id: version
         run: |
           cargo set-version --bump ${{ inputs.bump }}
-          version=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "spicetify") | .version')
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "version=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "spicetify") | .version')" >> "$GITHUB_OUTPUT"
 
-      - name: Commit
-        id: commit
-        uses: IAreKyleW00t/verified-bot-commit@126a6a11889ab05bcff72ec2403c326cd249b84c
+      - uses: IAreKyleW00t/verified-bot-commit@v2.3.1
         with:
-          message: "chore: bump to v${{ steps.bump-version.outputs.version }}"
+          message: "chore: bump to v${{ steps.version.outputs.version }}"
           ref: refs/heads/main
           files: '**'
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create tag and trigger release
-        uses: actions/github-script@v7
+      - uses: actions/github-script@v7
         env:
-          VERSION: ${{ steps.bump-version.outputs.version }}
+          VERSION: ${{ steps.version.outputs.version }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const version = process.env.VERSION;
-            const tag = `v${version}`;
-
             const { data: ref } = await github.rest.git.getRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'heads/main',
+              ...context.repo, ref: 'heads/main'
             });
-
             await github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `refs/tags/${tag}`,
-              sha: ref.object.sha,
+              ...context.repo, ref: `refs/tags/v${process.env.VERSION}`, sha: ref.object.sha
             });
-
             await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'release.yml',
-              ref: 'main',
-              inputs: { tag: version },
+              ...context.repo, workflow_id: 'release.yml', ref: 'main',
+              inputs: { tag: process.env.VERSION }
             });
 
