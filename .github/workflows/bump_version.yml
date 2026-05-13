@@ -34,7 +34,8 @@ jobs:
       - name: Bump version
         id: bump-version
         run: |
-          version="$(cargo set-version --bump ${{ inputs.bump }} 2>&1 | sed 's/.* //')"
+          cargo set-version --bump ${{ inputs.bump }}
+          version=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "spicetify") | .version')
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Commit
