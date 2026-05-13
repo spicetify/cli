@@ -2,7 +2,8 @@ name: Release CLI
 
 on:
   push:
-    tags: ["*"]
+    tags:
+      - "v*"
 
 jobs:
   setup:
@@ -13,7 +14,7 @@ jobs:
     steps:
       - name: Parse tag
         id: tag
-        run: echo "tag=${{ github.ref_name }}" | sed 's/^cli-v//' >> $GITHUB_OUTPUT
+        run: echo "tag=${{ github.ref_name }}" | sed 's/^v//' >> $GITHUB_OUTPUT
 
   build-cli-linux:
     uses: ./.github/workflows/build-linux.yml

@@ -12,6 +12,6 @@ esac
 cargo build --release --target "$target" --manifest-path ../../Cargo.toml
 
 mkdir -p dist
-cp "../../target/$target/release/spicetify" "dist/spicetify-$version-linux-$arch"
+cp "../../target/$target/release/spicetify" "dist/portable-spicetify-$version-linux-$arch"
 
 #TODO: make AppImage

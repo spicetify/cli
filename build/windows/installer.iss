@@ -11,6 +11,7 @@
 #endif
 
 #define AppName "Spicetify"
+#define AppMutexName "Spicetify-Daemon-Instance-Mutex"
 #define OutputDir "dist"
 
 #if Arch == "x64"
@@ -24,7 +25,9 @@
 [Setup]
 AppId={#AppId}
 AppName={#AppName}
+AppVerName={#AppName}
 AppVersion={#AppVersion}
+VersionInfoVersion={#AppVersion}
 AppPublisher=Spicetify
 AppPublisherURL=https://spicetify.app
 AppSupportURL=https://spicetify.app
@@ -39,6 +42,10 @@ SolidCompression=yes
 WizardStyle=modern dynamic windows11
 ChangesEnvironment=yes
 UsedUserAreasWarning=no
+CloseApplications=force
+RestartApplications=no
+AppMutex={code:GetAppMutex}
+SetupMutex={#AppMutexName}Setup
 
 WizardImageFile=installer\spicetify.png
 WizardImageFileDynamicDark=installer\spicetify.png
@@ -46,7 +53,7 @@ WizardSmallImageFile=installer\spicetify.png
 WizardSmallImageFileDynamicDark=installer\spicetify.png
 
 SetupIconFile=installer\spicetify.ico
-UninstallDisplayIcon={app}\spicetify.ico
+UninstallDisplayIcon={app}\bin\spicetify.exe
 
 #if Arch == "x64"
 ArchitecturesAllowed=x64os
@@ -68,12 +75,14 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "addtopath"; Description: "Add to PATH (requires shell restart)"; GroupDescription: "Additional tasks:"; Flags: checkedonce
 
 [Files]
-Source: "bin\spicetify.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
-Source: "bin\st-daemon.xml"; DestDir: "{app}\bin"; Flags: ignoreversion
+Source: "bin\spicetify.exe"; DestDir: "{code:GetInstallDir}\bin"; Flags: ignoreversion
+Source: "bin\auto_update_helper.exe"; DestDir: "{app}\tools"; Flags: ignoreversion
+Source: "bin\st-daemon.xml"; DestDir: "{code:GetInstallDir}\bin"; Flags: ignoreversion
 Source: "installer\spicetify.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Dirs]
 Name: "{app}\bin"
+Name: "{app}\tools"
 
 [Registry]
 Root: HKCU; Subkey: "Software\{#AppName}"; ValueType: string; ValueName: "InstallDir"; ValueData: "{app}"; Flags: uninsdeletekey
@@ -83,11 +92,11 @@ Root: HKCU; Subkey: "Software\Classes\spicetify"; ValueType: string; ValueName: 
 Root: HKCU; Subkey: "Software\Classes\spicetify\shell\open\command"; ValueType: string; ValueData: """{app}\bin\spicetify.exe"" protocol ""%1"""
 
 [Run]
-Filename: "{app}\bin\spicetify.exe"; Parameters: "init"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Initializing Spicetify..."; Check: IsFreshInstall
-Filename: "{sys}\schtasks.exe"; Parameters: "/Create /TN ""Spicetify daemon"" /XML ""{app}\bin\st-daemon.xml"" /F"; Flags: runhidden; StatusMsg: "Creating scheduled task..."; Check: IsFreshInstall
-Filename: "{sys}\schtasks.exe"; Parameters: "/Change /TN ""Spicetify daemon"" /TR ""\""{app}\bin\spicetify.exe\"" daemon"""; Flags: runhidden; StatusMsg: "Configuring daemon..."; Check: IsFreshInstall
-Filename: "{sys}\schtasks.exe"; Parameters: "/Run /TN ""Spicetify daemon"""; Flags: runhidden; StatusMsg: "Starting daemon..."; Check: IsFreshInstall
-Filename: "{app}\bin\spicetify.exe"; Description: "Launch Spicetify"; Flags: nowait postinstall shellexec; WorkingDir: "{app}"
+Filename: "{app}\bin\spicetify.exe"; Parameters: "init"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Initializing Spicetify..."; Check: IsFreshInstall and not IsUpdating
+Filename: "{sys}\schtasks.exe"; Parameters: "/Create /TN ""Spicetify daemon"" /XML ""{app}\bin\st-daemon.xml"" /F"; Flags: runhidden; StatusMsg: "Creating scheduled task..."; Check: IsFreshInstall and not IsUpdating
+Filename: "{sys}\schtasks.exe"; Parameters: "/Change /TN ""Spicetify daemon"" /TR ""\""{app}\bin\spicetify.exe\"" daemon"""; Flags: runhidden; StatusMsg: "Configuring daemon..."; Check: IsFreshInstall and not IsUpdating
+Filename: "{sys}\schtasks.exe"; Parameters: "/Run /TN ""Spicetify daemon"""; Flags: runhidden; StatusMsg: "Starting daemon..."; Check: IsFreshInstall and not IsUpdating
+Filename: "{app}\bin\spicetify.exe"; Description: "Launch Spicetify"; Flags: nowait postinstall shellexec; WorkingDir: "{app}"; Check: not IsUpdating
 
 [UninstallRun]
 Filename: "{app}\bin\spicetify.exe"; Parameters: "fix"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Reverting Spicetify changes..."; RunOnceId: "FixSpicetify"
@@ -108,12 +117,43 @@ begin
   Result := IsFresh;
 end;
 
+function SwitchHasValue(Name: string; Value: string): Boolean;
+begin
+  Result := CompareText(ExpandConstant('{param:' + Name + '}'), Value) = 0;
+end;
+
+function IsUpdating(): Boolean;
+begin
+  Result := SwitchHasValue('update', 'true') and WizardSilent();
+end;
+
+function GetAppMutex(Param: string): string;
+begin
+  if IsUpdating() then
+    Result := ''
+  else
+    Result := '{#AppMutexName}';
+end;
+
+function GetInstallDir(Param: string): string;
+begin
+  if IsUpdating() then
+    Result := ExpandConstant('{app}\install')
+  else
+    Result := ExpandConstant('{app}');
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   CurrentPath, Entry: string;
 begin
   if CurStep = ssPostInstall then
   begin
+    if IsUpdating() then
+    begin
+      SaveStringToFile(ExpandConstant('{app}\updates\versions.txt'), '{#AppVersion}' + #13#10, True);
+    end;
+
     if WizardIsTaskSelected('addtopath') then
     begin
       Entry := ExpandConstant('{app}\bin');
