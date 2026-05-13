@@ -1,22 +1,31 @@
-name: Release CLI
+name: Release
 
 on:
   push:
     tags:
       - "v*"
-  create:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release version (without v prefix)"
+        required: true
 
 jobs:
   setup:
     name: Setup
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Parse tag
         id: tag
-        run: echo "tag=${{ github.ref_name }}" | sed 's/^v//' >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" | sed 's/^v//' >> "$GITHUB_OUTPUT"
+          fi
 
   build-cli-linux:
     uses: ./.github/workflows/build-linux.yml

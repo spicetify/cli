@@ -38,24 +38,18 @@ jobs:
           version=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "spicetify") | .version')
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Commit
+      - name: Commit and tag
         id: commit
         uses: IAreKyleW00t/verified-bot-commit@126a6a11889ab05bcff72ec2403c326cd249b84c
         with:
           message: "chore: bump to v${{ steps.bump-version.outputs.version }}"
           ref: refs/heads/main
+          tag: "v${{ steps.bump-version.outputs.version }}"
           files: '**'
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create tag
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            await github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/v${{ steps.bump-version.outputs.version }}',
-              sha: '${{ steps.commit.outputs.commit }}',
-            });
+      - name: Trigger release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run release.yml --ref main -f tag="${{ steps.bump-version.outputs.version }}"
 
