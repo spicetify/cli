@@ -1,3 +1,4 @@
 target
+build/*/bin/auto_update_helper.exe
 build/*/bin/spicetify.exe
 build/*/dist

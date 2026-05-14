@@ -2,24 +2,26 @@ use std::{collections::HashMap, sync::LazyLock};
 
 use fluent_bundle::{FluentArgs, FluentResource, bundle::FluentBundle};
 use fluent_langneg::{NegotiationStrategy, negotiate_languages};
+use include_dir::{Dir, include_dir};
 use intl_memoizer::concurrent::IntlLangMemoizer;
 use unic_langid::LanguageIdentifier;
+
+static LOCALES_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../locales");
 
 type Bundle = FluentBundle<FluentResource, IntlLangMemoizer>;
 type Bundles = HashMap<LanguageIdentifier, Bundle>;
 type FallbackMap = HashMap<LanguageIdentifier, Vec<LanguageIdentifier>>;
 
 fn raw_locales() -> Vec<(&'static str, &'static str)> {
-    vec![
-        (
-            "en-US",
-            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/locales/en-US.ftl")),
-        ),
-        (
-            "zh-Hans",
-            include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/locales/zh-Hans.ftl")),
-        ),
-    ]
+    LOCALES_DIR
+        .files()
+        .filter(|f| f.path().extension().map_or(false, |e| e == "ftl"))
+        .filter_map(|f| {
+            let stem = f.path().file_stem()?.to_str()?;
+            let content = f.contents_utf8()?;
+            Some((stem, content))
+        })
+        .collect()
 }
 
 static BUNDLES: LazyLock<Bundles> = LazyLock::new(|| {

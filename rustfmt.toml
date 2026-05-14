@@ -1,12 +1,12 @@
 edition = "2024"
 style_edition = "2024"
 
-max_width = 100
 
 imports_granularity = "Crate"
 group_imports = "StdExternalCrate"
 imports_layout = "Horizontal"
 
-wrap_comments = true
+max_width = 100
 comment_width = 100
+wrap_comments = true
 format_code_in_doc_comments = true

@@ -30,6 +30,7 @@ fluent-bundle = "0.16"
 fluent-langneg = "0.13"
 intl-memoizer = "0.5"
 unic-langid = "0.9"
+include_dir = "0.7"
 
 [target.'cfg(windows)'.dependencies]
 junction = "2"
