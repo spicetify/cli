@@ -1,8 +1,6 @@
 name: Release
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
@@ -13,18 +11,8 @@ jobs:
   setup:
     name: Setup
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     outputs:
-      tag: ${{ steps.tag.outputs.tag }}
-    steps:
-      - name: Parse tag
-        id: tag
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${{ github.ref_name }}" | sed 's/^v//' >> "$GITHUB_OUTPUT"
-          fi
+      tag: ${{ inputs.tag }}
 
   build-cli-linux:
     uses: ./.github/workflows/build-linux.yml

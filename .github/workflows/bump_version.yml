@@ -21,8 +21,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: dtolnay/rust-toolchain@stable
-
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-edit
@@ -37,7 +35,7 @@ jobs:
         with:
           message: "chore: bump to v${{ steps.version.outputs.version }}"
           ref: refs/heads/main
-          files: '**'
+          files: "**"
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/github-script@v7
@@ -56,4 +54,3 @@ jobs:
               ...context.repo, workflow_id: 'release.yml', ref: 'main',
               inputs: { tag: process.env.VERSION }
             });
-
