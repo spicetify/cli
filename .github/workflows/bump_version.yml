@@ -38,6 +38,9 @@ jobs:
           files: "**"
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Actions performed using GITHUB_TOKEN dont trigger workflow runs
+      # can use create-github-app-token instead but needs:
+      # APP_ID and APP_PRIVATE_KEY as repo secrets
       - uses: actions/github-script@v7
         env:
           VERSION: ${{ steps.version.outputs.version }}
