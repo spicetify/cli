@@ -15,7 +15,7 @@ type FallbackMap = HashMap<LanguageIdentifier, Vec<LanguageIdentifier>>;
 fn raw_locales() -> Vec<(&'static str, &'static str)> {
     LOCALES_DIR
         .files()
-        .filter(|f| f.path().extension().map_or(false, |e| e == "ftl"))
+        .filter(|f| f.path().extension().is_some_and(|e| e == "ftl"))
         .filter_map(|f| {
             let stem = f.path().file_stem()?.to_str()?;
             let content = f.contents_utf8()?;
