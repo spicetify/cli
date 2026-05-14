@@ -21,8 +21,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: dtolnay/rust-toolchain@stable
-
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-edit

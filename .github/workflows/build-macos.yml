@@ -15,10 +15,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-apple-darwin,aarch64-apple-darwin
+      - name: Add Rust targets
+        run: rustup target add x86_64-apple-darwin aarch64-apple-darwin
 
       - name: Install create-dmg
         run: brew install create-dmg
