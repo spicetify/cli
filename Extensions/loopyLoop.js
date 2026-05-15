@@ -68,6 +68,7 @@
 	let lastSkipSeek = 0;
 	let lastSkippedZoneIdx = -1;
 	let lastNextCall = 0;
+	let lastEndLoopSeek = 0;
 	let seekStartPendingUri = null;
 	let lastStartEnforce = 0;
 	let prevProgressPercent = -1;
@@ -298,9 +299,15 @@
 			return;
 		}
 
-		// Song end enforcement: advance to next track when playback reaches ]
+		// Song end enforcement: at ], either loop back (repeat-one) or advance to next track
 		if (end !== null && percent >= end) {
-			if (ts - lastNextCall > 2000) {
+			// Spicetify.Player.getRepeat(): 0 = off, 1 = repeat context, 2 = repeat track
+			if (Spicetify.Player.getRepeat() === 2) {
+				if (ts - lastEndLoopSeek > 500) {
+					lastEndLoopSeek = ts;
+					Spicetify.Player.seek(start ?? 0);
+				}
+			} else if (ts - lastNextCall > 2000) {
 				lastNextCall = ts;
 				seekStartPendingUri = Spicetify.Player.data?.item?.uri ?? null;
 				Spicetify.Player.next();
@@ -338,6 +345,7 @@
 		prevPressedAt = 0;
 		lastStartEnforce = 0;
 		lastNextCall = 0;
+		lastEndLoopSeek = 0;
 		lastSkipSeek = 0;
 		lastSkippedZoneIdx = -1;
 	});
