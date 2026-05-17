@@ -1,10 +1,5 @@
 use std::{
-    net::{TcpStream, ToSocketAddrs},
-    path::{Path, PathBuf},
-    process::Command,
-    sync::atomic::{AtomicBool, Ordering},
-    thread,
-    time::{Duration, Instant},
+    net::{TcpStream, ToSocketAddrs}, path::{Path, PathBuf}, process::Command, sync::atomic::{AtomicBool, Ordering}, thread, time::{Duration, Instant}
 };
 
 use anyhow::{Context, Result};

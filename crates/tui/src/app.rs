@@ -117,7 +117,8 @@ impl TuiApp {
                 } else {
                     i18n::lookup("tui_completed_errors")
                 };
-                success && matches!(self.current_action, Some(Action::SelfUpdate))
+                success
+                    && matches!(self.current_action, Some(Action::SelfUpdate))
                     && spicetify::commands::self_update::update_launched()
             }
             UiEvent::InputWorkerError => true,

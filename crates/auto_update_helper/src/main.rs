@@ -46,6 +46,20 @@ mod windows_impl {
         }
     }
 
+    fn kill_spicetify_processes() {
+        let output = std::process::Command::new("taskkill")
+            .args(["/IM", "spicetify.exe", "/F"])
+            .output();
+        if let Ok(out) = &output
+            && !out.status.success()
+        {
+            eprintln!(
+                "taskkill warning: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            );
+        }
+    }
+
     fn launch_exe(exe: &Path) {
         let wide = to_wide(&exe.to_string_lossy());
         let mut startup_info: [u16; 68] = [0; 68];
@@ -162,6 +176,9 @@ mod windows_impl {
             wait_for_process(parent_pid);
         }
 
+        thread::sleep(Duration::from_millis(500));
+
+        kill_spicetify_processes();
         thread::sleep(Duration::from_millis(500));
 
         let jobs = collect_jobs(&app_dir, &update_dir);
