@@ -157,6 +157,10 @@ fn shutdown_daemon() -> Result<()> {
 
     #[cfg(windows)]
     {
+        let _ = Command::new("schtasks")
+            .args(["/End", "/TN", "Spicetify daemon"])
+            .output();
+
         let our_pid = std::process::id().to_string();
         let output = Command::new("taskkill")
             .args([

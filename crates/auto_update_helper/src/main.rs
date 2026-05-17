@@ -47,6 +47,10 @@ mod windows_impl {
     }
 
     fn kill_spicetify_processes() {
+        let _ = std::process::Command::new("schtasks")
+            .args(["/End", "/TN", "Spicetify daemon"])
+            .output();
+
         let output = std::process::Command::new("taskkill")
             .args(["/IM", "spicetify.exe", "/F"])
             .output();
