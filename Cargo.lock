@@ -107,7 +107,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "auto_update_helper"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "winres",
 ]
@@ -359,7 +359,7 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "cli"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "anyhow",
  "clap",
@@ -2715,7 +2715,7 @@ dependencies = [
 
 [[package]]
 name = "spicetify"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "anyhow",
  "axum",
@@ -3136,7 +3136,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tui"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "anyhow",
  "crossterm",
