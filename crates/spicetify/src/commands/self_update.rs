@@ -1,6 +1,5 @@
 use std::{
-    path::{Path, PathBuf},
-    process::Command,
+    path::{Path, PathBuf}, process::Command
 };
 
 use anyhow::{Context, Result};
@@ -127,7 +126,9 @@ fn save_helper(app_dir: &Path) -> Result<PathBuf> {
             &[("path", &src.display().to_string())]
         ));
     }
-    let dst = std::env::temp_dir().join("spicetify-update").join("auto_update_helper.exe");
+    let dst = std::env::temp_dir()
+        .join("spicetify-update")
+        .join("auto_update_helper.exe");
     std::fs::create_dir_all(dst.parent().unwrap())?;
     std::fs::copy(&src, &dst)?;
     Ok(dst)
