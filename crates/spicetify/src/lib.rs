@@ -6,5 +6,6 @@ pub mod logging;
 pub mod module;
 pub mod platform;
 pub mod process;
+pub mod release;
 pub mod util;
 pub mod version;

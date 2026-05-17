@@ -1,12 +1,15 @@
+use semver::Version;
+
 pub struct VersionInfo {
-    semver: String,
+    pub semver: Version,
     display: String,
     full: String,
 }
 
 impl VersionInfo {
     pub fn load() -> Self {
-        let semver = env!("CARGO_PKG_VERSION");
+        let semver = Version::parse(env!("CARGO_PKG_VERSION"))
+            .expect("CARGO_PKG_VERSION must be valid semver");
 
         let mut display = format!("v{semver}");
         let mut full = format!("v{semver}");
@@ -27,14 +30,10 @@ impl VersionInfo {
         }
 
         Self {
-            semver: semver.to_string(),
+            semver,
             display,
             full,
         }
-    }
-
-    pub fn semver(&self) -> &str {
-        &self.semver
     }
 
     pub fn display(&self) -> &str {

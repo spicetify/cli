@@ -23,7 +23,7 @@ $target = switch ($platform) {
   }
 }
 
-mkdir dist
+mkdir dist -Force
 
 cargo build --release --target $target --manifest-path ..\..\Cargo.toml
 

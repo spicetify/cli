@@ -1,8 +1,11 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 use anyhow::{Context, Result};
 
-use crate::{i18n, logging};
+use crate::{i18n, logging, release::ReleaseInfo};
 
 const RELEASES_URL: &str = "https://api.github.com/repos/veryboringhwl/app/releases/latest";
 
@@ -20,7 +23,7 @@ pub fn run() -> Result<()> {
 
     logging::info(i18n::lookup_with_args("self_update_checking", &[]));
 
-    let release: serde_json::Value = client
+    let json: serde_json::Value = client
         .get(RELEASES_URL)
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
@@ -29,10 +32,9 @@ pub fn run() -> Result<()> {
         .json()
         .context(i18n::lookup("failed_parse_release"))?;
 
-    let tag = release["tag_name"].as_str().unwrap_or("v0.0.0");
-    let latest = tag.strip_prefix('v').unwrap_or(tag);
+    let release = ReleaseInfo::from_json(&json)?;
 
-    if latest == current_version {
+    if !release.is_update_available(current_version) {
         logging::info(i18n::lookup_with_args(
             "self_update_up_to_date",
             &[("version", current_version)],
@@ -40,33 +42,24 @@ pub fn run() -> Result<()> {
         return Ok(());
     }
 
-    let asset_name = format!("installer-{latest}-windows-amd64.exe");
-    let download_url = release["assets"]
-        .as_array()
-        .and_then(|assets| {
-            assets
-                .iter()
-                .find(|a| a["name"].as_str() == Some(&asset_name))
-                .and_then(|a| a["browser_download_url"].as_str())
-        })
-        .with_context(|| i18n::lookup_with_args("no_release_asset", &[("name", &asset_name)]))?;
+    let asset = release.find_installer_err()?;
 
     logging::info(i18n::lookup_with_args(
         "self_update_downloading",
-        &[("version", latest), ("current", current_version)],
+        &[("version", &release.version), ("current", current_version)],
     ));
 
     let temp_dir = std::env::temp_dir().join("spicetify-update");
     std::fs::create_dir_all(&temp_dir)?;
-    let installer_path = temp_dir.join(&asset_name);
+    let installer_path = temp_dir.join(&asset.name);
 
-    let response = client.get(download_url).send()?;
+    let response = client.get(&asset.download_url).send()?;
     let bytes = response.bytes()?;
     std::fs::write(&installer_path, &bytes)?;
 
     logging::info(i18n::lookup_with_args(
         "self_update_installing",
-        &[("version", latest)],
+        &[("version", &release.version)],
     ));
 
     let current_exe = std::env::current_exe().context(i18n::lookup("cannot_get_exe_path"))?;
@@ -76,35 +69,68 @@ pub fn run() -> Result<()> {
         .map(PathBuf::from)
         .context(i18n::lookup("cannot_determine_app_dir"))?;
 
-    let helper = find_helper(&app_dir)?;
+    let install_dir = app_dir.join("install");
+
+    // Save the current helper before the installer potentially overwrites it.
+    // The downloaded installer may have been built without the asInvoker manifest,
+    // which would cause Windows to demand elevation (error 740) when spawning it.
+    let helper = save_helper(&app_dir)?;
+
+    let status = Command::new(&installer_path)
+        .args(["/VERYSILENT", "/update=true", "/NORESTART"])
+        .status()
+        .context(i18n::lookup("failed_run_installer"))?;
+
+    if !status.success() {
+        anyhow::bail!(i18n::lookup("failed_run_installer"));
+    }
 
     shutdown_daemon()?;
+
+    if !install_dir.exists() {
+        anyhow::bail!(i18n::lookup_with_args(
+            "install_dir_missing",
+            &[("path", &install_dir.display().to_string())]
+        ));
+    }
 
     let pid = std::process::id();
     std::process::Command::new(&helper)
         .arg(pid.to_string())
-        .arg(&installer_path)
         .arg(&app_dir)
+        .arg(&install_dir)
         .spawn()
-        .context(i18n::lookup("failed_spawn_helper"))?;
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "{}: {e}",
+                i18n::lookup_with_args(
+                    "failed_spawn_helper",
+                    &[("path", &helper.display().to_string())],
+                )
+            )
+        })?;
+
+    let _ = std::fs::remove_file(&installer_path);
 
     logging::info(i18n::lookup_with_args(
         "self_update_launching",
-        &[("version", latest)],
+        &[("version", &release.version)],
     ));
     Ok(())
 }
 
-fn find_helper(app_dir: &Path) -> Result<PathBuf> {
-    let helper = app_dir.join("tools").join("auto_update_helper.exe");
-    if helper.exists() {
-        return Ok(helper);
+fn save_helper(app_dir: &Path) -> Result<PathBuf> {
+    let src = app_dir.join("tools").join("auto_update_helper.exe");
+    if !src.exists() {
+        anyhow::bail!(i18n::lookup_with_args(
+            "helper_not_found",
+            &[("path", &src.display().to_string())]
+        ));
     }
-
-    Err(anyhow::anyhow!(i18n::lookup_with_args(
-        "helper_not_found",
-        &[("path", &helper.display().to_string())]
-    )))
+    let dst = std::env::temp_dir().join("spicetify-update").join("auto_update_helper.exe");
+    std::fs::create_dir_all(dst.parent().unwrap())?;
+    std::fs::copy(&src, &dst)?;
+    Ok(dst)
 }
 
 fn shutdown_daemon() -> Result<()> {

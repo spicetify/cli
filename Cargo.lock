@@ -107,7 +107,10 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "auto_update_helper"
-version = "0.0.8"
+version = "0.0.1"
+dependencies = [
+ "winres",
+]
 
 [[package]]
 name = "autocfg"
@@ -356,7 +359,7 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "cli"
-version = "0.0.8"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -732,15 +735,6 @@ name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
-
-[[package]]
-name = "encoding_rs"
-version = "0.8.35"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
-dependencies = [
- "cfg-if",
-]
 
 [[package]]
 name = "equivalent"
@@ -1524,9 +1518,9 @@ dependencies = [
 
 [[package]]
 name = "kqueue-sys"
-version = "1.1.1"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "285efcf12ef41bec907b3000d5ffaeb54191d4d9d83c0d6157e6cbc2db255e64"
+checksum = "07293a4e297ac234359b510362495713f75ea345d5307140414f20c69ffeb087"
 dependencies = [
  "bitflags 2.11.1",
  "libc",
@@ -1552,9 +1546,9 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "libbz2-rs-sys"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8fc329e1457d97a9d58a4e2ca49e3be572431a7e096008efc2e3a3c19d428f4"
+checksum = "34b357333733e8260735ba5894eb928c02ecc69c78715f01a8019e7fa7f2db4c"
 
 [[package]]
 name = "libc"
@@ -2721,13 +2715,12 @@ dependencies = [
 
 [[package]]
 name = "spicetify"
-version = "0.0.8"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "axum",
  "directories",
  "dunce",
- "encoding_rs",
  "flate2",
  "fluent-bundle",
  "fluent-langneg",
@@ -2739,13 +2732,13 @@ dependencies = [
  "percent-encoding",
  "regex",
  "reqwest",
+ "semver",
  "serde",
  "serde_json",
  "tar",
  "tokio",
  "unic-langid",
  "url",
- "walkdir",
  "yaml_serde",
  "zip",
 ]
@@ -3143,7 +3136,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tui"
-version = "0.0.8"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "crossterm",

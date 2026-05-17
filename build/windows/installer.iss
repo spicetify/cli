@@ -76,7 +76,7 @@ Name: "addtopath"; Description: "Add to PATH (requires shell restart)"; GroupDes
 
 [Files]
 Source: "bin\spicetify.exe"; DestDir: "{code:GetInstallDir}\bin"; Flags: ignoreversion
-Source: "bin\auto_update_helper.exe"; DestDir: "{app}\tools"; Flags: ignoreversion
+Source: "bin\auto_update_helper.exe"; DestDir: "{code:GetInstallDir}\tools"; Flags: ignoreversion
 Source: "bin\st-daemon.xml"; DestDir: "{code:GetInstallDir}\bin"; Flags: ignoreversion
 Source: "installer\spicetify.ico"; DestDir: "{app}"; Flags: ignoreversion
 

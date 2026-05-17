@@ -16,7 +16,7 @@ use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, percent_encode};
 use reqwest::Client;
 
 use crate::{
-    commands::{apply, protocol}, config::AppContext, i18n, logging
+    commands::{apply, protocol}, config::AppContext, i18n, logging, release::ReleaseInfo
 };
 
 /// Encodes everything except unreserved characters per RFC 3986 §2.3.
@@ -296,7 +296,7 @@ async fn shutdown_handler(State(state): State<Arc<DaemonState>>) -> impl IntoRes
 }
 
 async fn self_update_handler() -> impl IntoResponse {
-    const RELEASES_URL: &str = "https://api.github.com/repos/spicetify/cli/releases/latest";
+    const RELEASES_URL: &str = "https://api.github.com/repos/veryboringhwl/app/releases/latest";
 
     let current_version = crate::version::current_version();
 
@@ -308,7 +308,7 @@ async fn self_update_handler() -> impl IntoResponse {
         Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     };
 
-    let release: serde_json::Value = match client
+    let json: serde_json::Value = match client
         .get(RELEASES_URL)
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
@@ -325,10 +325,12 @@ async fn self_update_handler() -> impl IntoResponse {
         Err(e) => return (StatusCode::BAD_GATEWAY, e.to_string()).into_response(),
     };
 
-    let tag = release["tag_name"].as_str().unwrap_or("v0.0.0");
-    let latest = tag.strip_prefix('v').unwrap_or(tag);
+    let release = match ReleaseInfo::from_json(&json) {
+        Ok(r) => r,
+        Err(e) => return (StatusCode::BAD_GATEWAY, e.to_string()).into_response(),
+    };
 
-    if latest == current_version {
+    if !release.is_update_available(current_version) {
         return (
             StatusCode::OK,
             Json(serde_json::json!({"status": "up_to_date", "version": current_version})),
@@ -336,18 +338,13 @@ async fn self_update_handler() -> impl IntoResponse {
             .into_response();
     }
 
-    let asset_name = format!("installer-{latest}-windows-amd64.exe");
-    let download_url = match release["assets"].as_array().and_then(|assets| {
-        assets
-            .iter()
-            .find(|a| a["name"].as_str() == Some(&asset_name))
-            .and_then(|a| a["browser_download_url"].as_str())
-    }) {
-        Some(url) => url,
+    let asset = match release.find_installer() {
+        Some(a) => a,
         None => {
+            let name = format!("installer-{}-windows-amd64.exe", release.version);
             return (
                 StatusCode::NOT_FOUND,
-                i18n::lookup_with_args("no_release_asset", &[("name", &asset_name)]),
+                i18n::lookup_with_args("no_release_asset", &[("name", &name)]),
             )
                 .into_response();
         }
@@ -357,10 +354,10 @@ async fn self_update_handler() -> impl IntoResponse {
         StatusCode::OK,
         Json(serde_json::json!({
             "status": "ready",
-            "version": latest,
+            "version": release.version,
             "current_version": current_version,
-            "download_url": download_url,
-            "asset_name": asset_name,
+            "download_url": asset.download_url,
+            "asset_name": asset.name,
         })),
     )
         .into_response()

@@ -25,6 +25,7 @@ pub enum Action {
     Fix,
     Dev,
     Sync,
+    SelfUpdate,
     UpdateOn,
     UpdateOff,
     DaemonStart,
@@ -35,11 +36,12 @@ pub enum Action {
 }
 
 impl Action {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 12] = [
         Self::Apply,
         Self::Fix,
         Self::Dev,
         Self::Sync,
+        Self::SelfUpdate,
         Self::UpdateOn,
         Self::UpdateOff,
         Self::DaemonStart,
@@ -55,6 +57,7 @@ impl Action {
             Self::Fix => "fix",
             Self::Dev => "dev",
             Self::Sync => "sync",
+            Self::SelfUpdate => "self-update",
             Self::UpdateOn => "update on",
             Self::UpdateOff => "update off",
             Self::DaemonStart => "daemon start",
@@ -72,6 +75,7 @@ impl Action {
             Self::Fix => i18n::lookup("menu_fix_desc"),
             Self::Dev => i18n::lookup("menu_dev_desc"),
             Self::Sync => i18n::lookup("menu_sync_desc"),
+            Self::SelfUpdate => i18n::lookup("menu_self_update_desc"),
             Self::UpdateOn => i18n::lookup("menu_update_on_desc"),
             Self::UpdateOff => i18n::lookup("menu_update_off_desc"),
             Self::DaemonStart => i18n::lookup("menu_daemon_start_desc"),
@@ -193,6 +197,7 @@ fn execute_cli_command(action: Action, ctx: &spicetify::config::AppContext) -> R
         Action::Fix => core_commands::dispatch(Fix, ctx),
         Action::Dev => core_commands::dispatch(Dev, ctx),
         Action::Sync => core_commands::dispatch(Sync, ctx),
+        Action::SelfUpdate => core_commands::dispatch(SelfUpdate, ctx),
         Action::UpdateOn => core_commands::dispatch(Update(On), ctx),
         Action::UpdateOff => core_commands::dispatch(Update(Off), ctx),
         Action::DaemonStart => core_commands::dispatch(Daemon(DaemonAction::Start), ctx),

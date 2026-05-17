@@ -15,6 +15,11 @@ pub fn unzip_file(zip_path: &Path, dest: &Path) -> Result<()> {
     extract_zip(&mut zip, dest)
 }
 
+pub fn unzip_bytes(bytes: &[u8], dest: &Path) -> Result<()> {
+    let mut zip = ZipArchive::new(Cursor::new(bytes))?;
+    extract_zip(&mut zip, dest)
+}
+
 pub fn extract_zip<R: io::Read + io::Seek>(zip: &mut ZipArchive<R>, dest: &Path) -> Result<()> {
     fs::create_dir_all(dest)?;
     let dest = dunce::canonicalize(dest)?;

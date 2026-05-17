@@ -12,11 +12,9 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 yaml_serde = "0.10.4"
 directories = "6.0.0"
-walkdir = "2.5.0"
 zip = "8.6.0"
 tar = "0.4.45"
 flate2 = "1.1.9"
-encoding_rs = "0.8.35"
 reqwest = { version = "0.13.3", default-features = false, features = ["blocking", "json", "rustls", "cookies"] }
 notify = "8.2.0"
 url = "2.5.8"
@@ -26,6 +24,7 @@ tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "signal"]
 axum = { version = "0.8.9", features = ["ws"] }
 futures-util = "0.3.32"
 regex = "1.12.3"
+semver = "1"
 fluent-bundle = "0.16"
 fluent-langneg = "0.13"
 intl-memoizer = "0.5"

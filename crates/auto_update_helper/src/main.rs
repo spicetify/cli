@@ -1,6 +1,8 @@
 #[cfg(windows)]
 mod windows_impl {
-    use std::{ffi::OsStr, os::windows::ffi::OsStrExt};
+    use std::{
+        ffi::OsStr, fs, io, os::windows::ffi::OsStrExt, path::{Path, PathBuf}, thread, time::Duration
+    };
 
     unsafe extern "system" {
         fn OpenProcess(desired_access: u32, inherit_handle: i32, process_id: u32) -> isize;
@@ -24,6 +26,9 @@ mod windows_impl {
     const INFINITE: u32 = 0xFFFFFFFF;
     const CREATE_NO_WINDOW: u32 = 0x08000000;
 
+    const RETRY_COUNT: u32 = 20;
+    const RETRY_DELAY_MS: u64 = 50;
+
     fn to_wide(s: &str) -> Vec<u16> {
         OsStr::new(s)
             .encode_wide()
@@ -41,49 +46,8 @@ mod windows_impl {
         }
     }
 
-    fn run_installer(installer: &str) -> bool {
-        let wide = to_wide(installer);
-        let mut args = to_wide(&format!(
-            "\"{installer}\" /VERYSILENT /update=true /NORESTART",
-        ));
-        let mut startup_info: [u16; 68] = [0; 68];
-        startup_info[0] = 68u16;
-        let mut proc_info: [isize; 4] = [0; 4];
-
-        let result = unsafe {
-            CreateProcessW(
-                wide.as_ptr(),
-                args.as_mut_ptr(),
-                0,
-                0,
-                0,
-                CREATE_NO_WINDOW,
-                0,
-                std::ptr::null_mut(),
-                startup_info.as_mut_ptr(),
-                proc_info.as_mut_ptr(),
-            )
-        };
-
-        if result == 0 {
-            return false;
-        }
-
-        let p_handle = proc_info[0];
-        if p_handle != 0 {
-            unsafe {
-                WaitForSingleObject(p_handle, INFINITE);
-                CloseHandle(p_handle);
-            }
-        }
-        if proc_info[1] != 0 {
-            unsafe { CloseHandle(proc_info[1]) };
-        }
-        true
-    }
-
-    fn launch_exe(exe: &str) {
-        let wide = to_wide(exe);
+    fn launch_exe(exe: &Path) {
+        let wide = to_wide(&exe.to_string_lossy());
         let mut startup_info: [u16; 68] = [0; 68];
         startup_info[0] = 68u16;
         let mut proc_info: [isize; 4] = [0; 4];
@@ -103,48 +67,117 @@ mod windows_impl {
         }
     }
 
+    struct Job {
+        src: PathBuf,
+        dst: PathBuf,
+    }
+
+    impl Job {
+        fn apply(&self) -> io::Result<()> {
+            if !self.src.exists() {
+                return Ok(());
+            }
+            let old = self.dst.with_extension("exe.old");
+            if self.dst.exists() {
+                let _ = fs::remove_file(&old);
+                retry_io(|| fs::rename(&self.dst, &old))?;
+            }
+            retry_io(|| fs::copy(&self.src, &self.dst))?;
+            let _ = fs::remove_file(&old);
+            Ok(())
+        }
+
+        fn rollback(&self) {
+            let old = self.dst.with_extension("exe.old");
+            if old.exists() {
+                let _ = fs::remove_file(&self.dst);
+                let _ = fs::rename(&old, &self.dst);
+            }
+        }
+    }
+
+    fn retry_io<F, T>(mut f: F) -> io::Result<T>
+    where
+        F: FnMut() -> io::Result<T>,
+    {
+        for _ in 0..RETRY_COUNT {
+            match f() {
+                Ok(v) => return Ok(v),
+                Err(e)
+                    if e.kind() == io::ErrorKind::PermissionDenied
+                        || e.raw_os_error() == Some(32)
+                        || e.raw_os_error() == Some(5) =>
+                {
+                    thread::sleep(Duration::from_millis(RETRY_DELAY_MS));
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        f()
+    }
+
+    fn collect_jobs(app_dir: &Path, update_dir: &Path) -> Vec<Job> {
+        vec![
+            Job {
+                src: update_dir.join("bin").join("spicetify.exe"),
+                dst: app_dir.join("bin").join("spicetify.exe"),
+            },
+            Job {
+                src: update_dir.join("tools").join("auto_update_helper.exe"),
+                dst: app_dir.join("tools").join("auto_update_helper.exe"),
+            },
+        ]
+    }
+
+    fn perform_update(jobs: &[Job]) -> Result<(), Vec<usize>> {
+        let mut applied: Vec<usize> = Vec::with_capacity(jobs.len());
+        for (i, job) in jobs.iter().enumerate() {
+            if let Err(e) = job.apply() {
+                eprintln!(
+                    "job[{}] failed: {} (src={:?}, dst={:?})",
+                    i, e, job.src, job.dst
+                );
+                for &idx in applied.iter().rev() {
+                    jobs[idx].rollback();
+                }
+                return Err(applied);
+            }
+            applied.push(i);
+        }
+        Ok(())
+    }
+
     pub fn run() {
         let args: Vec<String> = std::env::args().collect();
         if args.len() != 4 {
-            eprintln!("Usage: auto_update_helper.exe <parent_pid> <installer_path> <app_dir>");
+            eprintln!("Usage: auto_update_helper.exe <parent_pid> <app_dir> <update_dir>");
             std::process::exit(1);
         }
 
         let parent_pid: u32 = args[1].parse().unwrap_or(0);
-        let installer_path = &args[2];
-        let app_dir = &args[3];
+        let app_dir = PathBuf::from(&args[2]);
+        let update_dir = PathBuf::from(&args[3]);
 
         if parent_pid != 0 {
             wait_for_process(parent_pid);
         }
 
-        std::thread::sleep(std::time::Duration::from_millis(300));
+        thread::sleep(Duration::from_millis(300));
 
-        run_installer(installer_path);
+        let jobs = collect_jobs(&app_dir, &update_dir);
+        let _ = perform_update(&jobs);
 
-        let install_bin = std::path::Path::new(app_dir).join("install").join("bin");
-        let app_bin = std::path::Path::new(app_dir).join("bin");
+        let _ = fs::remove_dir_all(&update_dir);
 
-        if install_bin.exists() {
-            if let Ok(entries) = std::fs::read_dir(&install_bin) {
-                for entry in entries.flatten() {
-                    let dest = app_bin.join(entry.file_name());
-                    let _ = std::fs::rename(entry.path(), &dest);
-                }
-            }
-            let _ = std::fs::remove_dir_all(install_bin.parent().unwrap_or(&install_bin));
+        let exe = app_dir.join("bin").join("spicetify.exe");
+        if exe.exists() {
+            launch_exe(&exe);
         }
-
-        let exe = app_bin.join("spicetify.exe");
-        launch_exe(&exe.to_string_lossy());
-
-        let _ = std::fs::remove_file(installer_path);
     }
 }
 
 #[cfg(not(windows))]
 fn main() {
-    // TODO: Implement auto_update_helper for macOS and Linux
     eprintln!("auto_update_helper is currently Windows-only");
     std::process::exit(1);
 }
