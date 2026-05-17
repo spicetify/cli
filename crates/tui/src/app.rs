@@ -87,6 +87,8 @@ impl TuiApp {
             match self.rx.recv_timeout(FRAME_INTERVAL) {
                 Ok(event) => {
                     if self.handle_event(event) {
+                        self.tick();
+                        render::draw(self, terminal)?;
                         return Ok(());
                     }
                 }
@@ -115,7 +117,7 @@ impl TuiApp {
                 } else {
                     i18n::lookup("tui_completed_errors")
                 };
-                false
+                success && matches!(self.current_action, Some(Action::SelfUpdate))
             }
             UiEvent::InputWorkerError => true,
         }

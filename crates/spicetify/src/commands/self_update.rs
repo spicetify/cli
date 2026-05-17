@@ -1,5 +1,5 @@
 use std::{
-    path::{Path, PathBuf}, process::Command
+    net::{TcpStream, ToSocketAddrs}, path::{Path, PathBuf}, process::Command, thread, time::{Duration, Instant}
 };
 
 use anyhow::{Context, Result};
@@ -70,9 +70,6 @@ pub fn run() -> Result<()> {
 
     let install_dir = app_dir.join("install");
 
-    // Save the current helper before the installer potentially overwrites it.
-    // The downloaded installer may have been built without the asInvoker manifest,
-    // which would cause Windows to demand elevation (error 740) when spawning it.
     let helper = save_helper(&app_dir)?;
 
     let status = Command::new(&installer_path)
@@ -135,13 +132,56 @@ fn save_helper(app_dir: &Path) -> Result<PathBuf> {
 }
 
 fn shutdown_daemon() -> Result<()> {
-    if reqwest::blocking::Client::new()
+    let _ = reqwest::blocking::Client::new()
         .post("http://localhost:7967/shutdown")
-        .timeout(std::time::Duration::from_secs(3))
-        .send()
-        .is_ok()
-    {
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        .timeout(Duration::from_secs(3))
+        .send();
+
+    let start = Instant::now();
+    while start.elapsed() < Duration::from_secs(8) {
+        if !is_daemon_listening() {
+            return Ok(());
+        }
+        thread::sleep(Duration::from_millis(250));
     }
+
+    logging::warn(i18n::lookup("daemon_shutdown_timeout"));
+
+    #[cfg(windows)]
+    {
+        let our_pid = std::process::id().to_string();
+        let output = Command::new("taskkill")
+            .args([
+                "/IM",
+                "spicetify.exe",
+                "/F",
+                "/FI",
+                &format!("PID ne {our_pid}"),
+            ])
+            .output();
+        if let Ok(out) = &output {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            if !stderr.is_empty()
+                && !stderr.contains("not found")
+                && !stderr.contains("no running instance")
+            {
+                logging::warn(stderr.trim());
+            }
+        }
+    }
+
+    thread::sleep(Duration::from_secs(1));
     Ok(())
+}
+
+fn is_daemon_listening() -> bool {
+    let addr = match "localhost:7967"
+        .to_socket_addrs()
+        .ok()
+        .and_then(|mut a| a.next())
+    {
+        Some(a) => a,
+        None => return false,
+    };
+    TcpStream::connect_timeout(&addr, Duration::from_millis(250)).is_ok()
 }

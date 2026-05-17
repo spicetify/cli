@@ -26,8 +26,8 @@ mod windows_impl {
     const INFINITE: u32 = 0xFFFFFFFF;
     const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-    const RETRY_COUNT: u32 = 20;
-    const RETRY_DELAY_MS: u64 = 50;
+    const RETRY_COUNT: u32 = 200;
+    const RETRY_DELAY_MS: u64 = 100;
 
     fn to_wide(s: &str) -> Vec<u16> {
         OsStr::new(s)
@@ -162,12 +162,23 @@ mod windows_impl {
             wait_for_process(parent_pid);
         }
 
-        thread::sleep(Duration::from_millis(300));
+        thread::sleep(Duration::from_millis(500));
 
         let jobs = collect_jobs(&app_dir, &update_dir);
-        let _ = perform_update(&jobs);
+        if let Err(applied) = perform_update(&jobs) {
+            eprintln!("update failed after {} jobs; rolled back", applied.len());
+            std::process::exit(1);
+        }
 
-        let _ = fs::remove_dir_all(&update_dir);
+        for _ in 0..10 {
+            match fs::remove_dir_all(&update_dir) {
+                Ok(()) => break,
+                Err(e) => {
+                    eprintln!("cleanup failed, retrying: {e}");
+                    thread::sleep(Duration::from_millis(100));
+                }
+            }
+        }
 
         let exe = app_dir.join("bin").join("spicetify.exe");
         if exe.exists() {
