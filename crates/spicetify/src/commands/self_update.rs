@@ -1,5 +1,10 @@
 use std::{
-    net::{TcpStream, ToSocketAddrs}, path::{Path, PathBuf}, process::Command, thread, time::{Duration, Instant}
+    net::{TcpStream, ToSocketAddrs},
+    path::{Path, PathBuf},
+    process::Command,
+    sync::atomic::{AtomicBool, Ordering},
+    thread,
+    time::{Duration, Instant},
 };
 
 use anyhow::{Context, Result};
@@ -7,6 +12,12 @@ use anyhow::{Context, Result};
 use crate::{i18n, logging, release::ReleaseInfo};
 
 const RELEASES_URL: &str = "https://api.github.com/repos/veryboringhwl/app/releases/latest";
+
+static UPDATE_LAUNCHED: AtomicBool = AtomicBool::new(false);
+
+pub fn update_launched() -> bool {
+    UPDATE_LAUNCHED.load(Ordering::Acquire)
+}
 
 pub fn run() -> Result<()> {
     let current_version = crate::version::current_version();
@@ -105,6 +116,8 @@ pub fn run() -> Result<()> {
                 )
             )
         })?;
+
+    UPDATE_LAUNCHED.store(true, Ordering::Release);
 
     let _ = std::fs::remove_file(&installer_path);
 
