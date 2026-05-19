@@ -13,7 +13,7 @@ serde_json = "1.0.149"
 yaml_serde = "0.10.4"
 directories = "6.0.0"
 zip = "8.6.0"
-tar = "0.4.45"
+tar = "0.4.46"
 flate2 = "1.1.9"
 reqwest = { version = "0.13.3", default-features = false, features = ["blocking", "json", "rustls", "cookies"] }
 notify = "8.2.0"
