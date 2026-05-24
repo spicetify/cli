@@ -156,11 +156,18 @@ const Providers = {
 		const translation = ProviderNetease.getTranslation(list);
 		if ((synced || unsynced) && Array.isArray(translation)) {
 			const baseLyrics = synced ?? unsynced;
-			result.neteaseTranslation = baseLyrics.map((line) => ({
-				...line,
-				text: translation.find((t) => t.startTime === line.startTime)?.text ?? line.text,
-				originalText: line.text,
-			}));
+			const baseLanguage = Utils.detectLanguage(baseLyrics);
+			if (!baseLanguage?.startsWith("zh")) {
+				const comparableText = (value) => Utils.processLyrics(String(value ?? ""));
+				const neteaseTranslation = baseLyrics.map((line) => ({
+					...line,
+					text: translation.find((t) => Number(t.startTime) === Number(line.startTime))?.text ?? line.text,
+					originalText: line.text,
+				}));
+				if (neteaseTranslation.some((line) => comparableText(line.text) !== comparableText(line.originalText))) {
+					result.neteaseTranslation = neteaseTranslation;
+				}
+			}
 		}
 
 		return result;

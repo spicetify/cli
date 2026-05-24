@@ -57,6 +57,17 @@ const isPauseLine = (text) => {
 	return trimmed === "♪" || trimmed === "";
 };
 
+const lyricNodeToText = (value) => {
+	if (value == null) return "";
+	if (typeof value === "string") return value;
+	if (typeof value === "number") return String(value);
+	if (Array.isArray(value)) return value.map(lyricNodeToText).join("");
+	if (typeof value === "object") return lyricNodeToText(value.props?.children);
+	return String(value);
+};
+
+const comparableLyricText = (value) => lyricNodeToText(value).replace(/\s+/g, "");
+
 const findNextLineStartTime = (lines, fromIndex) => {
 	for (let j = fromIndex + 1; j < lines.length; j++) {
 		if (!isPauseLine(lines[j].text) && lines[j].startTime != null) {
@@ -309,13 +320,8 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 				const lineText = originalText && showTranslatedBelow ? originalText : text;
 
 				// Convert lyrics to text for comparison
-				const belowOrigin = (typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText)?.replace(/\s+/g, "");
-				const belowTxt =
-					typeof text === "string"
-						? text.replace(/\s+/g, "")
-						: typeof text?.props?.children?.[0] === "string"
-							? text.props.children[0].replace(/\s+/g, "")
-							: "";
+				const belowOrigin = comparableLyricText(originalText);
+				const belowTxt = comparableLyricText(text);
 
 				const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
@@ -357,6 +363,7 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 						react.createElement(
 							"p",
 							{
+								className: "lyrics-lyricsContainer-TranslatedLine",
 								style: {
 									opacity: 0.5,
 								},
@@ -638,13 +645,8 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 			const lineText = originalText && showTranslatedBelow ? originalText : text;
 
 			// Convert lyrics to text for comparison
-			const belowOrigin = (typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText)?.replace(/\s+/g, "");
-			const belowTxt =
-				typeof text === "string"
-					? text.replace(/\s+/g, "")
-					: typeof text?.props?.children?.[0] === "string"
-						? text.props.children[0].replace(/\s+/g, "")
-						: "";
+			const belowOrigin = comparableLyricText(originalText);
+			const belowTxt = comparableLyricText(text);
 
 			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
@@ -683,6 +685,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 					react.createElement(
 						"p",
 						{
+							className: "lyrics-lyricsContainer-TranslatedLine",
 							style: { opacity: 0.5 },
 							onContextMenu: (event) => {
 								event.preventDefault();
@@ -722,13 +725,8 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 			const lineText = originalText && showTranslatedBelow ? originalText : text;
 
 			// Convert lyrics to text for comparison
-			const belowOrigin = (typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText)?.replace(/\s+/g, "");
-			const belowTxt =
-				typeof text === "string"
-					? text.replace(/\s+/g, "")
-					: typeof text?.props?.children?.[0] === "string"
-						? text.props.children[0].replace(/\s+/g, "")
-						: "";
+			const belowOrigin = comparableLyricText(originalText);
+			const belowTxt = comparableLyricText(text);
 
 			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
@@ -756,6 +754,7 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 					react.createElement(
 						"p",
 						{
+							className: "lyrics-lyricsContainer-TranslatedLine",
 							style: { opacity: 0.5 },
 							onContextMenu: (event) => {
 								event.preventDefault();

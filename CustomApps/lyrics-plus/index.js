@@ -88,7 +88,7 @@ const CONFIG = {
 		},
 		netease: {
 			on: getConfig("lyrics-plus:provider:netease:on", false),
-			desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
+			desc: "Lyrics and translated lyrics sourced from official Netease Cloud Music APIs.",
 			modes: [KARAOKE, SYNCED, UNSYNCED],
 		},
 		genius: {
@@ -109,7 +109,12 @@ const CONFIG = {
 
 try {
 	CONFIG.providersOrder = JSON.parse(CONFIG.providersOrder);
-	if (!Array.isArray(CONFIG.providersOrder) || Object.keys(CONFIG.providers).length !== CONFIG.providersOrder.length) {
+	const providerKeys = Object.keys(CONFIG.providers);
+	if (
+		!Array.isArray(CONFIG.providersOrder) ||
+		providerKeys.length !== CONFIG.providersOrder.length ||
+		providerKeys.some((key) => !CONFIG.providersOrder.includes(key))
+	) {
 		throw "";
 	}
 } catch {
@@ -433,6 +438,109 @@ class LyricsContainer extends react.Component {
 		finishRequest();
 	}
 
+	async attachNeteaseTranslation(trackInfo, finalData) {
+		if (!finalData || finalData.provider === "Netease" || finalData.neteaseTranslation) {
+			return finalData;
+		}
+
+		const baseLyrics = finalData.synced ?? finalData.unsynced;
+		if (!baseLyrics?.length) {
+			return finalData;
+		}
+		const baseLanguage = Utils.detectLanguage(baseLyrics);
+		if (baseLanguage?.startsWith("zh")) {
+			return finalData;
+		}
+
+		let list;
+		try {
+			list = await ProviderNetease.findLyrics(trackInfo);
+		} catch {
+			return finalData;
+		}
+
+		const translation = ProviderNetease.getTranslation(list);
+		if (!Array.isArray(translation) || !translation.length) {
+			return finalData;
+		}
+
+		const findTranslation = (line, index) => {
+			const startTime = Number(line.startTime);
+			if (Number.isFinite(startTime)) {
+				let nearest = null;
+				let nearestDiff = Number.POSITIVE_INFINITY;
+				for (const translatedLine of translation) {
+					const translatedStartTime = Number(translatedLine.startTime);
+					if (!Number.isFinite(translatedStartTime)) continue;
+					const diff = Math.abs(translatedStartTime - startTime);
+					if (diff < nearestDiff) {
+						nearest = translatedLine;
+						nearestDiff = diff;
+					}
+				}
+				if (nearestDiff <= 1500) {
+					return nearest;
+				}
+			}
+
+			return translation.length === baseLyrics.length ? translation[index] : null;
+		};
+
+		const comparableText = (value) => Utils.processLyrics(String(value ?? ""));
+		const neteaseTranslation = baseLyrics.map((line, index) => {
+			const matched = findTranslation(line, index);
+			const originalText = line.originalText ?? line.text;
+			return {
+				...line,
+				text: matched?.text ?? line.text,
+				originalText,
+			};
+		});
+		const translatedCount = neteaseTranslation.filter((line) => comparableText(line.text) !== comparableText(line.originalText)).length;
+		if (!translatedCount) {
+			return finalData;
+		}
+		finalData.neteaseTranslation = neteaseTranslation;
+
+		return finalData;
+	}
+
+	mergeConvertedOriginalLyrics(translatedLyrics, convertedLyrics) {
+		if (!Array.isArray(translatedLyrics) || !Array.isArray(convertedLyrics)) {
+			return translatedLyrics;
+		}
+
+		const findConvertedLine = (line, index) => {
+			const startTime = Number(line.startTime);
+			if (Number.isFinite(startTime)) {
+				let nearest = null;
+				let nearestDiff = Number.POSITIVE_INFINITY;
+				for (const convertedLine of convertedLyrics) {
+					const convertedStartTime = Number(convertedLine.startTime);
+					if (!Number.isFinite(convertedStartTime)) continue;
+					const diff = Math.abs(convertedStartTime - startTime);
+					if (diff < nearestDiff) {
+						nearest = convertedLine;
+						nearestDiff = diff;
+					}
+				}
+				if (nearestDiff <= 1500) {
+					return nearest;
+				}
+			}
+
+			return convertedLyrics.length === translatedLyrics.length ? convertedLyrics[index] : null;
+		};
+
+		return translatedLyrics.map((line, index) => {
+			const convertedLine = findConvertedLine(line, index);
+			return {
+				...line,
+				originalText: convertedLine?.text ?? line.originalText,
+			};
+		});
+	}
+
 	async tryServices(trackInfo, mode = -1) {
 		const currentMode = CONFIG.modes[mode] || "";
 		let finalData = { ...emptyState, uri: trackInfo.uri };
@@ -453,7 +561,7 @@ class LyricsContainer extends react.Component {
 			if (data.error || (!data.karaoke && !data.synced && !data.unsynced && !data.genius)) continue;
 			if (mode === -1) {
 				finalData = data;
-				return finalData;
+				return await this.attachNeteaseTranslation(trackInfo, finalData);
 			}
 
 			if (!data[currentMode]) {
@@ -484,10 +592,10 @@ class LyricsContainer extends react.Component {
 				}));
 			}
 
-			return finalData;
+			return await this.attachNeteaseTranslation(trackInfo, finalData);
 		}
 
-		return finalData;
+		return await this.attachNeteaseTranslation(trackInfo, finalData);
 	}
 
 	async fetchLyrics(track, mode = -1, refresh = false) {
@@ -513,6 +621,10 @@ class LyricsContainer extends react.Component {
 			if (CACHE[info.uri]?.mode) {
 				this.state.explicitMode = CACHE[info.uri]?.mode;
 				tempState = { ...tempState, mode: CACHE[info.uri]?.mode };
+			}
+			if (!tempState.neteaseTranslation && (tempState.synced || tempState.unsynced)) {
+				tempState = await this.attachNeteaseTranslation(info, tempState);
+				CACHE[info.uri] = { ...CACHE[info.uri], ...tempState };
 			}
 		} else {
 			this.setState({ ...emptyState, isLoading: true, isCached: false });
@@ -584,7 +696,8 @@ class LyricsContainer extends react.Component {
 		if (tempState.uri !== this.state.uri || refresh) {
 			// when a song starts for the first time and language-override is selected, the lyrics are converted to the specified language.
 			// however, when switching it off again, the detected language needs to be known, so defaultLanguage has been introduced.
-			const defaultLanguage = Utils.detectLanguage(this.state.currentLyrics);
+			const originalLyrics = tempState[CONFIG.modes[finalMode]] ?? this.state.currentLyrics;
+			const defaultLanguage = Utils.detectLanguage(originalLyrics);
 			const language =
 				CONFIG.visual["translate:detect-language-override"] !== "off" ? CONFIG.visual["translate:detect-language-override"] : defaultLanguage;
 			const friendlyLanguage = language && new Intl.DisplayNames(["en"], { type: "language" }).of(language.split("-")[0])?.toLowerCase();
@@ -592,11 +705,14 @@ class LyricsContainer extends react.Component {
 
 			const isMemory = CACHE[tempState.uri]?.[targetConvert];
 			if (CONFIG.visual.translate && defaultLanguage && !isMemory) {
-				this.translateLyrics(language, this.state.currentLyrics, targetConvert).then((translated) => {
+				this.translateLyrics(language, originalLyrics, targetConvert).then((translated) => {
 					const res = { [targetConvert]: translated };
 					// Cache translated lyrics
 					CACHE[tempState.uri] = { ...CACHE[tempState.uri], ...res };
-					this.setState({ ...res });
+					this.setState((prevState) => {
+						const nextState = { ...prevState, ...res };
+						return { ...res, currentLyrics: this.getCurrentLyricsForMode(nextState, finalMode) };
+					});
 				});
 			}
 
@@ -635,19 +751,43 @@ class LyricsContainer extends react.Component {
 		});
 	}
 
+	getCurrentLyricsForMode(lyricsState, mode) {
+		if (!lyricsState) return null;
+
+		const lyrics = lyricsState[CONFIG.modes[mode]];
+		const lang = this.provideLanguageCode(lyrics);
+		const friendlyLanguage = lang && new Intl.DisplayNames(["en"], { type: "language" }).of(lang.split("-")[0])?.toLowerCase();
+		const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
+		const convertedLyrics = CONFIG.visual.translate ? lyricsState[targetConvert] : null;
+		const translatedLyrics = lyricsState[resolveTranslationSource(CONFIG.visual["translate:translated-lyrics-source"]).key];
+
+		if (translatedLyrics && convertedLyrics) {
+			return this.mergeConvertedOriginalLyrics(translatedLyrics, convertedLyrics);
+		}
+		if (translatedLyrics) {
+			return translatedLyrics;
+		}
+		return convertedLyrics ?? lyrics;
+	}
+
 	lyricsSource(lyricsState, mode) {
 		if (!lyricsState) return;
 
-		const lang = this.provideLanguageCode(this.state.currentLyrics);
+		// get original Lyrics
+		const lyrics = lyricsState[CONFIG.modes[mode]];
+		const lang = this.provideLanguageCode(lyrics);
 		const friendlyLanguage = lang && new Intl.DisplayNames(["en"], { type: "language" }).of(lang.split("-")[0])?.toLowerCase();
 
 		if (!this.displayMode) {
 			this.displayMode = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
 		}
 
-		// get original Lyrics
-		const lyrics = lyricsState[CONFIG.modes[mode]];
-		const translationSourceConfig = resolveTranslationSource(CONFIG.visual["translate:translated-lyrics-source"]);
+		let translationSourceConfig = resolveTranslationSource(CONFIG.visual["translate:translated-lyrics-source"]);
+		if (translationSourceConfig.key === "none" && lyricsState.neteaseTranslation) {
+			translationSourceConfig = { key: "neteaseTranslation", language: null };
+			CONFIG.visual["translate:translated-lyrics-source"] = "neteaseTranslation";
+			localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, "neteaseTranslation");
+		}
 
 		if (translationSourceConfig.language) {
 			const translationLanguageKey = `${APP_NAME}:visual:musixmatch-translation-language`;
@@ -662,11 +802,8 @@ class LyricsContainer extends react.Component {
 			}
 		}
 
-		if (CONFIG.visual.translate) {
-			this.state.currentLyrics = lyricsState[CONFIG.visual[`translation-mode:${friendlyLanguage}`]] ?? lyrics;
-		} else {
-			this.state.currentLyrics = lyricsState[translationSourceConfig.key] ?? lyrics;
-		}
+		const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
+		this.state.currentLyrics = this.getCurrentLyricsForMode(lyricsState, mode);
 
 		// Convert Mode re-fresh
 		if (
@@ -679,7 +816,6 @@ class LyricsContainer extends react.Component {
 			this.displayMode = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
 
 			if (CONFIG.visual.translate) {
-				const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
 				const isCached = CACHE[lyricsState.uri]?.[targetConvert];
 
 				if (!isCached) {
@@ -687,7 +823,10 @@ class LyricsContainer extends react.Component {
 						const res = { [targetConvert]: translated };
 						// Cache translated lyrics
 						CACHE[lyricsState.uri] = { ...CACHE[lyricsState.uri], ...res };
-						this.setState({ ...this.state, ...res });
+						this.setState((prevState) => {
+							const nextState = { ...prevState, ...res };
+							return { ...res, currentLyrics: this.getCurrentLyricsForMode(nextState, mode) };
+						});
 					});
 				}
 			} else {

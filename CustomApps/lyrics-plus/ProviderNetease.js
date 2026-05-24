@@ -1,14 +1,15 @@
 const ProviderNetease = (() => {
 	const requestHeader = {
-		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0",
+		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+		Referer: "https://music.163.com/",
 	};
 
 	async function findLyrics(info) {
-		const searchURL = "https://music.xianqiao.wang/neteaseapiv2/search?limit=10&type=1&keywords=";
-		const lyricURL = "https://music.xianqiao.wang/neteaseapiv2/lyric?id=";
-
 		const cleanTitle = Utils.removeExtraInfo(Utils.removeSongFeat(Utils.normalize(info.title)));
-		const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
+		const finalURL =
+			"https://music.163.com/api/cloudsearch/pc?csrf_token=&type=1&offset=0&limit=10&s=" +
+			encodeURIComponent(`${cleanTitle} ${info.artist}`);
+		const getArtists = (val) => (val.ar ?? val.artists ?? []).map((artist) => artist.name).filter(Boolean);
 
 		const searchResults = await Spicetify.CosmosAsync.get(finalURL, null, requestHeader);
 		const items = searchResults.result.songs;
@@ -16,15 +17,50 @@ const ProviderNetease = (() => {
 			throw "Cannot find track";
 		}
 
+		const normalizedTitle = Utils.normalize(cleanTitle);
+		const normalizedArtist = Utils.normalize(info.artist);
+
 		// normalized expected album name
 		const neAlbumName = Utils.normalize(info.album);
 		const expectedAlbumName = Utils.containsHanCharacter(neAlbumName) ? await Utils.toSimplifiedChinese(neAlbumName) : neAlbumName;
-		let itemId = items.findIndex((val) => Utils.normalize(val.album.name) === expectedAlbumName);
-		if (itemId === -1) itemId = items.findIndex((val) => Math.abs(info.duration - val.duration) < 3000);
-		if (itemId === -1) itemId = items.findIndex((val) => val.name === cleanTitle);
-		if (itemId === -1) throw "Cannot find track";
+		const matches = items
+			.map((val, index) => {
+				const name = Utils.normalize(val.name);
+				const album = Utils.normalize(val.al?.name ?? val.album?.name);
+				const artists = Utils.normalize(getArtists(val).join(" "));
+				const durationDiff = Math.abs(info.duration - (val.dt ?? val.duration));
+				let score = 0;
 
-		return await Spicetify.CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
+				if (name === normalizedTitle) score += 50;
+				else if (name.includes(normalizedTitle) || normalizedTitle.includes(name)) score += 20;
+				if (artists && normalizedArtist && artists === normalizedArtist) score += 40;
+				else if (artists && normalizedArtist && (artists.includes(normalizedArtist) || normalizedArtist.includes(artists))) score += 25;
+				if (album === expectedAlbumName) score += 20;
+				if (durationDiff < 3000) score += 30;
+				else if (durationDiff < 10000) score += 10;
+
+				return { index, score };
+			})
+			.sort((a, b) => b.score - a.score);
+
+		const itemId = matches[0]?.score > 0 ? matches[0].index : -1;
+		if (itemId === -1) {
+			throw "Cannot find track";
+		}
+
+		const lyricURLs = [
+			`https://music.163.com/api/song/lyric/v1?id=${items[itemId].id}&lv=1&kv=1&tv=1`,
+			`https://music.163.com/api/song/lyric?id=${items[itemId].id}&lv=1&kv=1&tv=1`,
+		];
+
+		for (const url of lyricURLs) {
+			const list = await Spicetify.CosmosAsync.get(url, null, requestHeader);
+			if (list?.lrc?.lyric || list?.tlyric?.lyric || list?.klyric?.lyric) {
+				return list;
+			}
+		}
+
+		throw "Cannot find lyrics";
 	}
 
 	const creditInfo = [

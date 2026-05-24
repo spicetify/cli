@@ -176,12 +176,10 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 			sourceOptions = { ...sourceOptions, ...musixmatchOptions };
 		}
 
-		if (hasTranslation.netease) {
-			sourceOptions = {
-				...sourceOptions,
-				neteaseTranslation: "Chinese (Netease)",
-			};
-		}
+		sourceOptions = {
+			...sourceOptions,
+			neteaseTranslation: "Chinese (Netease)",
+		};
 
 		switch (friendlyLanguage) {
 			case "japanese": {
@@ -298,17 +296,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 							type: "translation-menu",
 							items,
 							onChange: (name, value) => {
-								if (name === "translate") {
-									CONFIG.visual["translate:translated-lyrics-source"] = "none";
-									localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, "none");
-								}
 								if (name === "translate:translated-lyrics-source") {
-									const hasTranslationProvider = typeof value === "string" && value !== "none";
-									if (hasTranslationProvider && CONFIG.visual.translate) {
-										CONFIG.visual.translate = false;
-										localStorage.setItem(`${APP_NAME}:visual:translate`, "false");
-									}
-
 									let nextMusixmatchLanguage = "none";
 									if (typeof value === "string" && value.startsWith(musixmatchTranslationPrefix)) {
 										nextMusixmatchLanguage = value.slice(musixmatchTranslationPrefix.length) || "none";

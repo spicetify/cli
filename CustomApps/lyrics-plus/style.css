@@ -227,6 +227,12 @@
 	line-height: var(--lyrics-line-height);
 }
 
+.lyrics-lyricsContainer-TranslatedLine {
+	font-size: 0.76em;
+	line-height: 1.15;
+	letter-spacing: 0;
+}
+
 @media (min-width: 1280px) {
 	.lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
 		font-weight: 900;
