@@ -6,9 +6,7 @@ const ProviderNetease = (() => {
 
 	async function findLyrics(info) {
 		const cleanTitle = Utils.removeExtraInfo(Utils.removeSongFeat(Utils.normalize(info.title)));
-		const finalURL =
-			"https://music.163.com/api/cloudsearch/pc?csrf_token=&type=1&offset=0&limit=10&s=" +
-			encodeURIComponent(`${cleanTitle} ${info.artist}`);
+		const finalURL = "https://music.163.com/api/cloudsearch/pc?csrf_token=&type=1&offset=0&limit=10&s=" + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 		const getArtists = (val) => (val.ar ?? val.artists ?? []).map((artist) => artist.name).filter(Boolean);
 
 		const searchResults = await Spicetify.CosmosAsync.get(finalURL, null, requestHeader);
