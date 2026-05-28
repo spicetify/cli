@@ -80,7 +80,7 @@ function Get-Spicetify {
       else {
         Write-Warning -Message "You have specified an invalid spicetify version: $v `nThe version must be in the following format: 1.2.3"
         Pause
-        exit
+        exit 1
       }
     }
     else {
