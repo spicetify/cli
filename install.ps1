@@ -179,7 +179,7 @@ if (-not (Test-PowerShellVersion)) {
   Write-Host -Object 'PowerShell 7 install guide:'
   Write-Host -Object 'https://learn.microsoft.com/powershell/scripting/install/installing-powershell-on-windows'
   Pause
-  exit
+  exit 1
 }
 else {
   Write-Success
@@ -196,7 +196,7 @@ if (-not (Test-Admin)) {
   if ($choice -eq 0) {
     Write-Host -Object 'spicetify installation aborted' -ForegroundColor 'Yellow'
     Pause
-    exit
+    exit 1
   }
 }
 else {
