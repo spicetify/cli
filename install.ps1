@@ -98,8 +98,15 @@ function Get-Spicetify {
       UseBasicParsin = $true
       OutFile        = $archivePath
     }
-    Invoke-WebRequest @Parameters
-    Write-Success
+    try {
+      Invoke-WebRequest @Parameters
+      Write-Success
+    } catch {
+      Write-Unsuccess
+      Write-Warning "Failed to download spicetify v$targetVersion. Reason: $_"
+      Pause
+      exit
+    }
   }
   end {
     $archivePath
@@ -121,9 +128,16 @@ function Add-SpicetifyToPath {
     }
   }
   end {
-    [Environment]::SetEnvironmentVariable('PATH', $path, $user)
-    $env:PATH = $path
-    Write-Success
+    try {
+      [Environment]::SetEnvironmentVariable('PATH', $path, $user)
+      $env:PATH = $path
+      Write-Success
+    } catch {
+      Write-Unsuccess
+      Write-Warning "Failed to add spicetify to PATH. Reason: $_"
+      Pause
+      exit
+    }
   }
 }
 
@@ -136,8 +150,15 @@ function Install-Spicetify {
   process {
     $archivePath = Get-Spicetify
     Write-Host -Object 'Extracting spicetify...' -NoNewline
-    Expand-Archive -Path $archivePath -DestinationPath $spicetifyFolderPath -Force
-    Write-Success
+    try {
+      Expand-Archive -Path $archivePath -DestinationPath $spicetifyFolderPath -Force
+      Write-Success
+    } catch {
+      Write-Unsuccess
+      Write-Warning "Failed to extract spicetify. Reason: $_"
+      Pause
+      exit
+    }
     Add-SpicetifyToPath
   }
   end {
