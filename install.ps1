@@ -105,7 +105,7 @@ function Get-Spicetify {
       Write-Unsuccess
       Write-Warning "Failed to download spicetify v$targetVersion. Reason: $_"
       Pause
-      exit
+      exit 1
     }
   }
   end {
@@ -136,7 +136,7 @@ function Add-SpicetifyToPath {
       Write-Unsuccess
       Write-Warning "Failed to add spicetify to PATH. Reason: $_"
       Pause
-      exit
+      exit 1
     }
   }
 }
@@ -157,7 +157,7 @@ function Install-Spicetify {
       Write-Unsuccess
       Write-Warning "Failed to extract spicetify. Reason: $_"
       Pause
-      exit
+      exit 1
     }
     Add-SpicetifyToPath
   }
