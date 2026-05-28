@@ -75,13 +75,22 @@ tar="$spicetify_install/spicetify.tar.gz"
 [ ! -d "$spicetify_install" ] && log "CREATING $spicetify_install" && mkdir -p "$spicetify_install"
 
 log "DOWNLOADING $download_uri"
-curl --fail --location --progress-bar --output "$tar" "$download_uri"
+if ! curl --fail --location --progress-bar --output "$tar" "$download_uri"; then
+    log "ERROR: Failed to download spicetify. Check your internet connection or if the version '$tag' exists."
+    exit 1
+fi
 
 log "EXTRACTING $tar"
-tar xzf "$tar" -C "$spicetify_install"
+if ! tar xzf "$tar" -C "$spicetify_install"; then
+    log "ERROR: Failed to extract spicetify. The downloaded file may be corrupted."
+    exit 1
+fi
 
 log "SETTING EXECUTABLE PERMISSIONS TO $exe"
-chmod +x "$exe"
+if ! chmod +x "$exe"; then
+    log "ERROR: Failed to set executable permissions on $exe. Try running with correct permissions."
+    exit 1
+fi
 
 log "REMOVING $tar"
 rm "$tar"
