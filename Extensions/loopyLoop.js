@@ -7,8 +7,7 @@
 /// <reference path="../globals.d.ts" />
 
 (function LoopyLoop() {
-	const playbackBar = document.querySelector(".playback-bar");
-	const progressContainer = playbackBar?.querySelector(".playback-progressbar-container");
+	const progressContainer = document.querySelector('[data-testid="playback-progressbar"]');
 	const rangeInput = progressContainer?.querySelector('input[type="range"]');
 	const bar = rangeInput?.closest("label")?.nextElementSibling;
 	if (!(bar && Spicetify.Player)) {
@@ -17,7 +16,7 @@
 	}
 
 	function getBar() {
-		const pc = document.querySelector(".playback-progressbar-container");
+		const pc = document.querySelector('[data-testid="playback-progressbar"]');
 		return pc?.querySelector('input[type="range"]')?.closest("label")?.nextElementSibling ?? null;
 	}
 
@@ -558,7 +557,7 @@
 			}
 
 			// Progress bar area
-			const currentProgressContainer = document.querySelector(".playback-progressbar-container");
+			const currentProgressContainer = document.querySelector('[data-testid="playback-progressbar"]');
 			if (!currentProgressContainer?.contains(target)) return;
 			event.preventDefault();
 			event.stopPropagation();
