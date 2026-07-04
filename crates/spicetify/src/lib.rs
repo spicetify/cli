@@ -1,4 +1,4 @@
-#![feature(junction_point)]
+#![cfg_attr(windows, feature(junction_point))]
 
 pub mod commands;
 pub mod context;

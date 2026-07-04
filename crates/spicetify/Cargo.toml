@@ -18,7 +18,6 @@ tar = { workspace = true }
 zstd = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = ["blocking", "json", "rustls", "cookies"] }
 url = { workspace = true }
-dunce = { workspace = true }
 semver = { workspace = true }
 regex-lite = { workspace = true }
 tracing = { workspace = true }
@@ -33,6 +32,7 @@ anyhow = { workspace = true }
 rustix = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
+dunce = { workspace = true }
 windows = { workspace = true }
 windows-registry = { workspace = true }
 

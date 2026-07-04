@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  code-quality:
+  fmt:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -15,12 +15,29 @@ jobs:
       - name: Install nightly toolchain
         run: |
           rustup toolchain install nightly
-          rustup component add rustfmt clippy --toolchain nightly
-      - parallel:
-          - name: Check formatting
-            run: cargo +nightly fmt --check
-          - name: Clippy
-            run: cargo +nightly clippy --release --all-targets -- --deny warnings
+          rustup component add rustfmt --toolchain nightly
+      - name: Check formatting
+        run: cargo +nightly fmt --check
+
+  clippy:
+    name: clippy (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install nightly toolchain
+        shell: bash
+        run: |
+          rustup toolchain install nightly
+          rustup component add clippy --toolchain nightly
+      - name: Clippy
+        shell: bash
+        run: cargo +nightly clippy --release --all-targets -- --deny warnings
 
   analyze:
     name: Analyze (${{ matrix.language }})

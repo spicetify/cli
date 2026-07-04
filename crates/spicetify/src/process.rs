@@ -29,7 +29,9 @@ impl SpotifyProc {
         #[cfg(unix)]
         {
             use std::os::unix::process::CommandExt;
-            cmd.pre_exec(|| process::setsid().map(|_| ()).map_err(io::Error::from));
+            unsafe {
+                cmd.pre_exec(|| process::setsid().map(|_| ()).map_err(io::Error::from));
+            }
         }
         #[cfg(windows)]
         {
@@ -73,7 +75,7 @@ impl SpotifyProc {
         #[cfg(unix)]
         {
             let pid = Pid::from_raw(-(self.pgid as i32)).expect("pgid is non-zero");
-            if let Err(e) = process::kill_process(pid, Signal::Term) {
+            if let Err(e) = process::kill_process(pid, Signal::TERM) {
                 tracing::debug!("SIGTERM to pgid {} failed: {e}", self.pgid);
             }
         }
@@ -87,7 +89,7 @@ impl SpotifyProc {
         #[cfg(unix)]
         {
             let pid = Pid::from_raw(-(self.pgid as i32)).expect("pgid is non-zero");
-            if let Err(e) = process::kill_process(pid, Signal::Kill) {
+            if let Err(e) = process::kill_process(pid, Signal::KILL) {
                 tracing::debug!("SIGKILL to pgid {} failed: {e}", self.pgid);
             }
         }
@@ -170,11 +172,11 @@ impl OrphanProc {
         #[cfg(unix)]
         {
             let pid = Pid::from_raw(-self.pgid).expect("orphan pgid is non-zero");
-            if let Err(e) = process::kill_process(pid, Signal::Term) {
+            if let Err(e) = process::kill_process(pid, Signal::TERM) {
                 tracing::debug!("SIGTERM to orphan pgid {} failed: {e}", self.pgid);
             }
             std::thread::sleep(grace);
-            if let Err(e) = process::kill_process(pid, Signal::Kill) {
+            if let Err(e) = process::kill_process(pid, Signal::KILL) {
                 tracing::debug!("SIGKILL to orphan pgid {} failed: {e}", self.pgid);
             }
         }
