@@ -197,7 +197,7 @@ fn find_existing_linux(image: &str) -> Vec<OrphanProc> {
         return orphans;
     };
 
-    for entry in proc_dir.filter_map(Result::ok) {
+    for entry in proc_dir.filter_map(std::result::Result::<_, std::io::Error>::ok) {
         let name = entry.file_name();
         let pid: u32 = match name.to_str().and_then(|s| s.parse().ok()) {
             Some(p) => p,

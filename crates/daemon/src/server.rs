@@ -157,7 +157,7 @@ fn acquire_instance_lock() -> Result<LockGuard, String> {
         .open(&lock_path)
         .map_err(|e| format!("failed to open lock file: {e}"))?;
     fs4::FileExt::try_lock(&file).map_err(|_| "another daemon is already running".to_string())?;
-    Ok(LockGuard { inner: LockInner::Unix { file, path: lock_path } })
+    Ok(LockGuard { inner: LockInner::Unix { _file: file, path: lock_path } })
 }
 
 #[derive(Debug)]
@@ -166,7 +166,7 @@ enum LockInner {
     #[allow(dead_code)]
     Windows(WindowsMutex),
     #[cfg(unix)]
-    Unix { file: std::fs::File, path: PathBuf },
+    Unix { _file: std::fs::File, path: PathBuf },
 }
 
 #[derive(Debug)]
