@@ -95,7 +95,7 @@ function Get-Spicetify {
     Write-Host -Object "Downloading spicetify v$targetVersion..." -NoNewline
     $Parameters = @{
       Uri            = "https://github.com/spicetify/cli/releases/download/v$targetVersion/spicetify-$targetVersion-windows-$architecture.zip"
-      UseBasicParsin = $true
+      UseBasicParsing = $true
       OutFile        = $archivePath
     }
     Invoke-WebRequest @Parameters
@@ -113,16 +113,22 @@ function Add-SpicetifyToPath {
     Write-Host -Object 'Making spicetify available in the PATH...' -NoNewline
     $user = [EnvironmentVariableTarget]::User
     $path = [Environment]::GetEnvironmentVariable('PATH', $user)
+    $processPath = $env:PATH
   }
   process {
     $path = $path -replace "$([regex]::Escape($spicetifyOldFolderPath))\\*;*", ''
     if ($path -notlike "*$spicetifyFolderPath*") {
       $path = "$path;$spicetifyFolderPath"
     }
+
+    $processPath = $processPath -replace "$([regex]::Escape($spicetifyOldFolderPath))\\*;*", ''
+    if ($processPath -notlike "*$spicetifyFolderPath*") {
+      $processPath = "$processPath;$spicetifyFolderPath"
+    }
   }
   end {
     [Environment]::SetEnvironmentVariable('PATH', $path, $user)
-    $env:PATH = $path
+    $env:PATH = $processPath
     Write-Success
   }
 }
