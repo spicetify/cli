@@ -519,12 +519,13 @@ const fnStr = (f) => {
 };
 
 (async function hotloadWebpackModules() {
-	while (!window?.webpackChunkclient_web) {
+	while (!(window?.webpackChunkclient_web || window?.rspackChunkclient_web)) {
 		await new Promise((r) => setTimeout(r, 50));
 	}
+	const chunkGlobal = window.webpackChunkclient_web || window.rspackChunkclient_web;
 
 	// Force all webpack modules to load
-	const require = webpackChunkclient_web.push([[Symbol()], {}, (re) => re]);
+	const require = chunkGlobal.push([[Symbol()], {}, (re) => re]);
 	while (!require.m) await new Promise((r) => setTimeout(r, 50));
 	console.log("[spicetifyWrapper] Waiting for required webpack modules to load");
 	let webpackDidCallback = false;
@@ -1374,13 +1375,13 @@ body[data-dragging-uri-type] .spicetify-sc-chevronBtn { pointer-events: none; }`
 		Spicetify.URI.Type = URIModules.find((m) => m?.PLAYLIST_V2);
 
 		// Parse functions
-		Spicetify.URI.from = URIModules.find((m) => typeof m === "function" && m.toString().includes("allowedTypes"));
-		Spicetify.URI.fromString = URIModules.find((m) => typeof m === "function" && m.toString().includes("Argument `uri`"));
+		Spicetify.URI.from = URIModules.find((m) => typeof m === "function" && fnStr(m).includes("allowedTypes"));
+		Spicetify.URI.fromString = URIModules.find((m) => typeof m === "function" && fnStr(m).includes("Argument `uri`"));
 
 		// createURI functions
-		const createURIFunctions = URIModules.filter((m) => typeof m === "function" && m.toString().match(/\([\w$]+\./));
+		const createURIFunctions = URIModules.filter((m) => typeof m === "function" && fnStr(m).match(/\([\w$]+\./));
 		for (const type of Object.keys(Spicetify.URI.Type)) {
-			const func = createURIFunctions.find((m) => m.toString().match(new RegExp(`\\([\\w$]+\\.${type}(?!_)`)));
+			const func = createURIFunctions.find((m) => fnStr(m).match(new RegExp(`\\([\\w$]+\\.${type}(?!_)`)));
 			if (!func) continue;
 
 			const camelCaseType = type
@@ -1395,9 +1396,9 @@ body[data-dragging-uri-type] .spicetify-sc-chevronBtn { pointer-events: none; }`
 		}
 
 		// isURI functions
-		const isURIFUnctions = URIModules.filter((m) => typeof m === "function" && m.toString().match(/=[\w$]+\./));
+		const isURIFUnctions = URIModules.filter((m) => typeof m === "function" && fnStr(m).match(/=[\w$]+\./));
 		for (const type of Object.keys(Spicetify.URI.Type)) {
-			const func = isURIFUnctions.find((m) => m.toString().match(new RegExp(`===[\\w$]+\\.${type}(?!_)\\}`)));
+			const func = isURIFUnctions.find((m) => fnStr(m).match(new RegExp(`===[\\w$]+\\.${type}(?!_)\\}`)));
 			const camelCaseType = type
 				.toLowerCase()
 				.split("_")
@@ -1422,11 +1423,11 @@ body[data-dragging-uri-type] .spicetify-sc-chevronBtn { pointer-events: none; }`
 		Spicetify.URI.isPlaylistV1OrV2 = (uri) => Spicetify.URI.isPlaylist(uri) || Spicetify.URI.isPlaylistV2(uri);
 
 		// Conversion functions
-		Spicetify.URI.idToHex = URIModules.find((m) => typeof m === "function" && m.toString().includes("22==="));
-		Spicetify.URI.hexToId = URIModules.find((m) => typeof m === "function" && m.toString().includes("32==="));
+		Spicetify.URI.idToHex = URIModules.find((m) => typeof m === "function" && fnStr(m).includes("22==="));
+		Spicetify.URI.hexToId = URIModules.find((m) => typeof m === "function" && fnStr(m).includes("32==="));
 
 		// isSameIdentity
-		Spicetify.URI.isSameIdentity = URIModules.find((m) => typeof m === "function" && m.toString().match(/[\w$]+\.id===[\w$]+\.id/));
+		Spicetify.URI.isSameIdentity = URIModules.find((m) => typeof m === "function" && fnStr(m).match(/[\w$]+\.id===[\w$]+\.id/));
 	})();
 
 	Spicetify.Events.webpackLoaded.fire();

@@ -240,9 +240,15 @@ func ModifyFile(path string, repl func(string) string) {
 
 	content := repl(string(raw))
 
-	if err := os.WriteFile(path, []byte(content), 0700); err != nil {
-		log.Print(err)
+	var writeErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		if writeErr = os.WriteFile(path, []byte(content), 0700); writeErr == nil {
+			return
+		}
+		time.Sleep(500 * time.Millisecond)
 	}
+	PrintError("Failed to write " + path + ": " + writeErr.Error())
+	PrintInfo("Make sure Spotify is completely closed, then run `spicetify apply` again")
 }
 
 // CreateFile creates a file with given path and content.

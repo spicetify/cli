@@ -62,6 +62,7 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	}
 
 	filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")], insertCustomApp)
+	filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui-modules.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui-modules.js")], insertCustomApp)
 	if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
 		filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")], insertExpFeatures)
 	} else {
@@ -289,6 +290,34 @@ func insertCustomApp(jsPath string, flags Flag) {
 			`([\w_\$][\w_\$\d]*(?:\(\))?\.createElement|\([\w$\.,]+\))\(([\w\.]+),\{path:"\/collection"(?:,(element|children)?[:.\w,{}()$/*"]+)?\}`,
 		}
 
+		appMap := ""
+		cssEnableMap := ""
+		appNameArray := ""
+		for _, app := range flags.CustomApp {
+			appName := `spicetify-routes-` + app
+			appMap += fmt.Sprintf(`"%s":"%s",`, appName, appName)
+			cssEnableMap += fmt.Sprintf(`,"%s":1`, appName)
+			appNameArray += fmt.Sprintf(`"%s",`, app)
+		}
+
+		utils.Replace(
+			&content,
+			`\{(\d+:"xpui)`,
+			func(submatches ...string) string {
+				return fmt.Sprintf("{%s%s", appMap, submatches[1])
+			})
+
+		utils.ReplaceOnce(
+			&content,
+			`\d+:1,\d+:1,\d+:1`,
+			func(submatches ...string) string {
+				return fmt.Sprintf("%s%s", submatches[0], cssEnableMap)
+			})
+
+		if !strings.Contains(content, ".lazy(") {
+			return content
+		}
+
 		reactSymbs, matchedReactPattern := utils.FindSymbolWithPattern(
 			"Custom app React symbols",
 			content,
@@ -305,11 +334,8 @@ func insertCustomApp(jsPath string, flags Flag) {
 			return content
 		}
 
-		appMap := ""
 		appReactMap := ""
 		appEleMap := ""
-		cssEnableMap := ""
-		appNameArray := ""
 
 		// Spotify's new route system
 		wildcard := ""
@@ -321,8 +347,6 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 		for index, app := range flags.CustomApp {
 			appName := `spicetify-routes-` + app
-			appMap += fmt.Sprintf(`"%s":"%s",`, appName, appName)
-			appNameArray += fmt.Sprintf(`"%s",`, app)
 
 			appReactMap += fmt.Sprintf(
 				`,spicetifyApp%d=%s.lazy((()=>%s.%s("%s").then(%s.bind(%s,"%s"))))`,
@@ -332,16 +356,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 			appEleMap += fmt.Sprintf(
 				`%s(%s,{path:"/%s/%s",pathV6:"/%s/*",%s:%s(spicetifyApp%d,{})}),`,
 				eleSymbs[0], eleSymbs[1], app, wildcard, app, eleSymbs[2], eleSymbs[0], index)
-
-			cssEnableMap += fmt.Sprintf(`,"%s":1`, appName)
 		}
-
-		utils.Replace(
-			&content,
-			`\{(\d+:"xpui)`,
-			func(submatches ...string) string {
-				return fmt.Sprintf("{%s%s", appMap, submatches[1])
-			})
 
 		// Seek to the full matched React.lazy pattern
 		matchedReactPattern = utils.SeekToCloseParen(
@@ -366,13 +381,6 @@ func insertCustomApp(jsPath string, flags Flag) {
 			})
 
 		content = insertNavLink(content, appNameArray)
-
-		utils.ReplaceOnce(
-			&content,
-			`\d+:1,\d+:1,\d+:1`,
-			func(submatches ...string) string {
-				return fmt.Sprintf("%s%s", submatches[0], cssEnableMap)
-			})
 
 		return content
 	})

@@ -367,11 +367,11 @@ func RefreshApps(list ...string) {
 		}
 
 		jsTemplate := fmt.Sprintf(
-			`(("undefined"!=typeof self?self:global).webpackChunkclient_web=("undefined"!=typeof self?self:global).webpackChunkclient_web||[])
+			`((g)=>(g.rspackChunkclient_web||g.webpackChunkclient_web||(g.webpackChunkclient_web=[]))
 .push([["%s"],{"%s":(e,t,n)=>{
 "use strict";n.r(t),n.d(t,{default:()=>render});
 %s
-}}]);`,
+}}]))("undefined"!=typeof self?self:global);`,
 			appName, appName, jsFileContent)
 
 		os.WriteFile(
