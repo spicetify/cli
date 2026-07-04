@@ -35,7 +35,8 @@ fn remove_link(link: &Path) -> Result<()> {
 #[cfg(not(windows))]
 fn remove_link(link: &Path) -> Result<()> {
     match std::fs::remove_file(link) {
-        Ok(()) | Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(e.into()),
     }
 }
