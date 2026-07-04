@@ -27,6 +27,8 @@ mkdir dist -Force
 
 cargo build --release --target $target --manifest-path ..\..\Cargo.toml
 
+New-Item -ItemType Directory -Path "bin" -Force
+
 $exe = "..\..\target\$target\release\spicetify.exe"
 $daemonExe = "..\..\target\$target\release\spicetify-daemon.exe"
 Copy-Item $exe "bin\spicetify.exe"

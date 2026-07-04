@@ -58,7 +58,7 @@ create-dmg \
 	"$output_dir/spicetify-$version-macos.dmg" \
 	"$output_dir/Spicetify.app"
 
-tar -c -I "zstd -T0" -f "$output_dir/spicetify-$version-macos.tar.zst" \
+tar -c --zstd -f "$output_dir/spicetify-$version-macos.tar.zst" \
 	-C "$output_dir" spicetify spicetify-daemon
 
 rm -f "$output_dir/spicetify" "$output_dir/spicetify-daemon"
