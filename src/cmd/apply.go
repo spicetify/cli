@@ -366,12 +366,13 @@ func RefreshApps(list ...string) {
 			}
 		}
 
+		// Register with rspackChunkclient_web on Spotify 1.2.93+ (rspack) and fall
+		// back to webpackChunkclient_web on older builds.
 		jsTemplate := fmt.Sprintf(
-			`(("undefined"!=typeof self?self:global).webpackChunkclient_web=("undefined"!=typeof self?self:global).webpackChunkclient_web||[])
-.push([["%s"],{"%s":(e,t,n)=>{
+			`(g=>(g.rspackChunkclient_web||(g.webpackChunkclient_web=g.webpackChunkclient_web||[])).push([["%s"],{"%s":(e,t,n)=>{
 "use strict";n.r(t),n.d(t,{default:()=>render});
 %s
-}}]);`,
+}}]))("undefined"!=typeof self?self:global);`,
 			appName, appName, jsFileContent)
 
 		os.WriteFile(

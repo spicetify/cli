@@ -62,6 +62,8 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 	}
 
 	filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")], insertCustomApp)
+	// Spotify 1.2.93+ (rspack) splits the route/lazy code into xpui-modules.js
+	filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui-modules.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui-modules.js")], insertCustomApp)
 	if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
 		filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")], insertExpFeatures)
 	} else {
