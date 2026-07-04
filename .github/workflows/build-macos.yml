@@ -1,4 +1,4 @@
-name: Build CLI (macOS)
+name: Build App (macOS)
 
 on:
   workflow_call:
@@ -15,11 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Install build dependencies
+        run: brew install create-dmg
+
       - name: Add Rust targets
         run: rustup target add x86_64-apple-darwin aarch64-apple-darwin
-
-      - name: Install create-dmg
-        run: brew install create-dmg
 
       - name: Build
         working-directory: build/macos
@@ -35,5 +35,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
-          name: installer-macos
+          name: spicetify-macos
           path: build/macos/dist/*

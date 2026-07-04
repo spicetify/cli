@@ -1,4 +1,4 @@
-name: Build CLI (Windows)
+name: Build App (Windows)
 
 on:
   workflow_call:
@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Add Rust target
-        run: rustup target add ${{ inputs.arch == 'amd64' && 'x86_64-pc-windows-msvc' || 'aarch64-pc-windows-msvc' }}
+        run: rustup target add ${{ inputs.arch == 'x86_64' && 'x86_64-pc-windows-msvc' || 'aarch64-pc-windows-msvc' }}
 
       - name: Build
         shell: pwsh

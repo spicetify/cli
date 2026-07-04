@@ -1,0 +1,52 @@
+#!/bin/bash
+set -e
+
+USER=$(stat -f%Su /dev/console 2>/dev/null || echo "$SUDO_USER")
+if [ -z "$USER" ] || [ "$USER" = "root" ]; then
+    exit 0
+fi
+
+USER_HOME=$(dscl . -read "/Users/$USER" NFSHomeDirectory 2>/dev/null | awk '{print $2}') || true
+USER_HOME="${USER_HOME:-/Users/$USER}"
+
+BIN=/usr/local/bin/spicetify
+
+sudo -u "$USER" "$BIN" init || true
+sudo -u "$USER" "$BIN" daemon install || true
+
+APP_DIR="$USER_HOME/Library/Application Support/Spicetify/handler.app"
+CONTENTS="$APP_DIR/Contents"
+
+sudo -u "$USER" mkdir -p "$CONTENTS/MacOS"
+
+sudo -u "$USER" tee "$CONTENTS/Info.plist" > /dev/null << 'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>app.spicetify.protocol</string>
+    <key>CFBundleExecutable</key>
+    <string>handler</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>Spicetify Protocol</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>spicetify</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>
+PLIST
+
+sudo -u "$USER" tee "$CONTENTS/MacOS/handler" > /dev/null << 'SH'
+#!/bin/sh
+exec /usr/local/bin/spicetify protocol "$1"
+SH
+
+sudo -u "$USER" chmod +x "$CONTENTS/MacOS/handler"
+sudo -u "$USER" /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$APP_DIR" 2>/dev/null || true

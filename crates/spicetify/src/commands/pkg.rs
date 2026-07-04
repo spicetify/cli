@@ -1,39 +1,35 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
+use crate::context::AppContext;
+use crate::error::Result;
+use crate::module::{self, ModulePaths, Store};
 
-use crate::{
-    config::AppContext, module::{self, ModulePaths, Store}
-};
-
-pub fn install(ctx: &AppContext, id_str: &str, url: &str) -> Result<()> {
+pub(crate) fn install(ctx: &AppContext, id_str: &str, url: &str) -> Result<()> {
     let id = module::vault::StoreIdentifier::parse(id_str)?;
     let paths = ModulePaths::from_config_root(&ctx.config_root);
-
     let normalized = normalize_url(url)?;
     module::add_store(
         &paths,
         &id,
-        Store {
-            installed: false,
-            artifacts: vec![normalized],
-            checksum: String::new(),
-        },
+        Store { installed: false, artifacts: vec![normalized], checksum: String::new() },
     )?;
-    module::install(&paths, &id)
+    module::install(&paths, &id)?;
+    Ok(())
 }
 
-pub fn delete(ctx: &AppContext, id_str: &str) -> Result<()> {
+pub(crate) fn delete(ctx: &AppContext, id_str: &str) -> Result<()> {
     let id = module::vault::StoreIdentifier::parse(id_str)?;
     let paths = ModulePaths::from_config_root(&ctx.config_root);
     module::delete(&paths, &id)?;
-    module::remove_store(&paths, &id)
+    module::remove_store(&paths, &id)?;
+    Ok(())
 }
 
-pub fn enable(ctx: &AppContext, id_str: &str) -> Result<()> {
+pub(crate) fn enable(ctx: &AppContext, id_str: &str) -> Result<()> {
     let id = module::vault::StoreIdentifier::parse(id_str)?;
     let paths = ModulePaths::from_config_root(&ctx.config_root);
-    module::enable(&paths, &id)
+    module::enable(&paths, &id)?;
+    Ok(())
 }
 
 fn normalize_url(raw: &str) -> Result<String> {

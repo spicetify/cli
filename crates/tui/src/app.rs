@@ -1,209 +1,455 @@
-use std::{
-    io, sync::{
-        Arc, atomic::{AtomicBool, Ordering}, mpsc::{self, Receiver, RecvTimeoutError, Sender}
-    }, time::Instant
-};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::Receiver;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use ratatui::{Terminal, backend::CrosstermBackend};
-use spicetify::{config::AppContext, i18n, logging};
+use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind};
+use futures_util::StreamExt;
+use ratatui::Terminal;
+use ratatui::backend::Backend;
+use ratatui::layout::Rect;
+use ratatui::widgets::ListState;
+use spicetify::context::AppContext;
+use spicetify::logging::{TuiEvent, TuiEventSender};
+use tokio::sync::broadcast;
 
-use super::{
-    events::{self, Action, UiEvent}, render, theme
-};
+use crate::frame_scheduler::FrameRequester;
+use crate::log_buffer::LogBuffer;
+use crate::menu::{CATEGORIES, MenuAction};
+use crate::render;
+use crate::theme::SPINNER_FRAMES;
 
-pub const FRAME_INTERVAL: std::time::Duration = std::time::Duration::from_millis(33);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RunStatus {
+    Idle,
+    Running,
+    Ok,
+    Error,
+}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Page {
+    Main,
+    Category(usize),
+}
+
+#[derive(Debug)]
 pub struct TuiApp {
     pub ctx: AppContext,
+    pub should_quit: Arc<AtomicBool>,
+
+    pub page: Page,
     pub selected: usize,
-    pub running: bool,
-    pub exit_armed: bool,
-    pub current_action: Option<Action>,
-    pub last_result: Option<bool>,
-    pub progress: f64,
-    pub progress_target: f64,
-    pub link_steps: usize,
-    pub phase: String,
-    pub command_start: Option<Instant>,
-    pub spinner: usize,
-    pub last_spinner_tick: Instant,
-    pub buddy_frame: usize,
-    pub last_buddy_tick: Instant,
+    main_selected: usize,
+
+    pub exit_armed_at: Option<Instant>,
+
     pub daemon_running: bool,
-    pub last_daemon_check: Instant,
-    pub logs: logging::LogBuffer,
-    pub tx: Sender<UiEvent>,
-    pub rx: Receiver<UiEvent>,
+    pub daemon_installed: bool,
+    last_daemon_check: Instant,
+
+    pub current: Option<MenuAction>,
+    pub status: RunStatus,
+    pub last_result: Option<RunStatus>,
+    pub last_started_at: Option<Instant>,
+
+    pub spinner_frame: usize,
+    pub progress_pct: f32,
+    progress_dir: f32,
+    last_spinner_tick: Instant,
+    last_progress_tick: Instant,
+
+    pub logs: LogBuffer,
+
+    pub menu_rect: Option<Rect>,
+    pub body_rect: Option<Rect>,
+    pub hovered_row: Option<usize>,
+    mouse_pos: (u16, u16),
+
+    pub tx: TuiEventSender,
+    rx: Receiver<TuiEvent>,
+
+    pub list_state: ListState,
+
+    frame_req: FrameRequester,
+    draw_rx: broadcast::Receiver<()>,
 }
 
 impl TuiApp {
-    pub fn new(ctx: &AppContext) -> Self {
-        let (tx, rx) = mpsc::channel();
+    #[must_use]
+    pub(crate) fn new(
+        ctx: AppContext,
+        tx: TuiEventSender,
+        rx: Receiver<TuiEvent>,
+        frame_req: FrameRequester,
+        draw_rx: broadcast::Receiver<()>,
+    ) -> Self {
+        let now = Instant::now();
+        let mut list = ListState::default();
+        list.select(Some(0));
+
         Self {
-            ctx: ctx.clone(),
-            selected: Action::ALL
-                .iter()
-                .position(|a| matches!(a, Action::Config))
-                .unwrap_or(0),
-            running: false,
-            exit_armed: false,
-            current_action: None,
-            last_result: None,
-            progress: 0.0,
-            progress_target: 0.0,
-            link_steps: 0,
-            phase: i18n::lookup("tui_pick_command"),
-            command_start: None,
-            spinner: 0,
-            last_spinner_tick: Instant::now(),
-            buddy_frame: 0,
-            last_buddy_tick: Instant::now(),
+            ctx,
+            should_quit: Arc::new(AtomicBool::new(false)),
+            page: Page::Main,
+            selected: 0,
+            main_selected: 0,
+            exit_armed_at: None,
             daemon_running: false,
-            last_daemon_check: Instant::now(),
-            logs: logging::LogBuffer::new(400),
+            daemon_installed: false,
+            last_daemon_check: now,
+            current: None,
+            status: RunStatus::Idle,
+            last_result: None,
+            last_started_at: None,
+            spinner_frame: 0,
+            progress_pct: 0.0,
+            progress_dir: 1.0,
+            last_spinner_tick: now,
+            last_progress_tick: now,
+            logs: LogBuffer::new(400),
+            menu_rect: None,
+            body_rect: None,
+            hovered_row: None,
+            mouse_pos: (0, 0),
             tx,
             rx,
+            list_state: list,
+            frame_req,
+            draw_rx,
         }
     }
 
-    pub fn run(&mut self, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
-        events::drain_pending_input()?;
-        self.refresh_daemon(true);
-
-        let stop = Arc::new(AtomicBool::new(false));
-        let input_handle = events::spawn_input_worker(self.tx.clone(), Arc::clone(&stop));
-
-        let result = self.event_loop(terminal);
-
-        stop.store(true, Ordering::Relaxed);
-        let _ = input_handle.join();
-        result
+    #[must_use]
+    pub fn menu_labels(&self) -> Vec<String> {
+        match self.page {
+            Page::Main => CATEGORIES.iter().map(|c| c.id.label()).collect(),
+            Page::Category(i) => CATEGORIES
+                .get(i)
+                .map(|c| c.actions.iter().map(|a| a.label()).collect())
+                .unwrap_or_default(),
+        }
     }
 
-    fn event_loop(&mut self, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
-        render::draw(self, terminal)?;
+    #[must_use]
+    pub fn details_lines(&self) -> Vec<String> {
+        match self.page {
+            Page::Main => CATEGORIES
+                .get(self.selected)
+                .map_or_else(|| vec![String::new()], |c| vec![c.id.label(), c.id.description()]),
+            Page::Category(i) => CATEGORIES
+                .get(i)
+                .and_then(|c| c.actions.get(self.selected).copied())
+                .map_or_else(|| vec![String::new()], |a| vec![a.label(), a.description()]),
+        }
+    }
+
+    #[must_use]
+    pub fn is_navigable(&self) -> bool {
+        matches!(self.page, Page::Main)
+    }
+
+    pub async fn run_async<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()>
+    where
+        <B as Backend>::Error: std::fmt::Debug + Send + Sync + 'static,
+    {
+        let mut events = crossterm::event::EventStream::new();
+        let mut tick = tokio::time::interval(Duration::from_millis(50));
+        tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        let mut pending_draw = true;
+
         loop {
-            match self.rx.recv_timeout(FRAME_INTERVAL) {
-                Ok(event) => {
-                    if self.handle_event(event) {
-                        self.tick();
-                        render::draw(self, terminal)?;
-                        return Ok(());
+            if self.should_quit.load(Ordering::Acquire) {
+                return Ok(());
+            }
+
+            tokio::select! {
+                event = events.next() => {
+                    match event {
+                        Some(Ok(Event::Key(key))) => self.handle_key(key),
+                        Some(Ok(Event::Mouse(mouse))) => self.handle_mouse(mouse),
+                        _ => {}
                     }
+                    self.frame_req.schedule();
                 }
-                Err(RecvTimeoutError::Timeout) => {}
-                Err(RecvTimeoutError::Disconnected) => return Ok(()),
+                _ = self.draw_rx.recv() => {
+                    pending_draw = true;
+                }
+                _ = tick.tick() => {}
             }
-            self.tick();
-            render::draw(self, terminal)?;
-        }
-    }
 
-    fn handle_event(&mut self, event: UiEvent) -> bool {
-        match event {
-            UiEvent::Key(key) => events::handle_key(self, key),
-            UiEvent::CommandLog(line) => {
-                self.advance_progress(&line);
-                self.logs.push(line);
-                false
+            if self.refresh_daemon(Duration::from_secs(1)) {
+                self.frame_req.schedule();
             }
-            UiEvent::CommandFinished { success } => {
-                self.running = false;
-                self.last_result = Some(success);
-                self.progress_target = if success { 1.0 } else { 0.95 };
-                self.phase = if success {
-                    i18n::lookup("tui_completed_success")
-                } else {
-                    i18n::lookup("tui_completed_errors")
-                };
-                success
-                    && matches!(self.current_action, Some(Action::SelfUpdate))
-                    && spicetify::commands::self_update::update_launched()
+            if self.tick_animation() {
+                self.frame_req.schedule();
             }
-            UiEvent::InputWorkerError => true,
-        }
-    }
-
-    fn tick(&mut self) {
-        self.refresh_daemon(false);
-        self.animate_buddy();
-        self.animate_spinner();
-        self.animate_progress();
-    }
-
-    fn animate_buddy(&mut self) {
-        if self.last_buddy_tick.elapsed() >= events::BUDDY_INTERVAL {
-            self.buddy_frame = (self.buddy_frame + 1) % theme::BUDDY_POSES.len();
-            self.last_buddy_tick = Instant::now();
-        }
-    }
-
-    fn animate_spinner(&mut self) {
-        if self.running && self.last_spinner_tick.elapsed() >= events::SPINNER_INTERVAL {
-            self.spinner = (self.spinner + 1) % theme::SPINNER_FRAMES.len();
-            self.last_spinner_tick = Instant::now();
-        }
-    }
-
-    fn animate_progress(&mut self) {
-        if self.running
-            && let Some(start) = self.command_start
-        {
-            let drift = (0.08 + start.elapsed().as_secs_f64() * 0.04).min(0.88);
-            self.progress_target = self.progress_target.max(drift);
-        }
-        if self.progress_target > self.progress {
-            let delta = self.progress_target - self.progress;
-            let step = (delta * 0.22).max(0.004);
-            self.progress = (self.progress + step).min(self.progress_target);
-        }
-        self.progress = self.progress.clamp(0.0, 1.0);
-    }
-
-    fn advance_progress(&mut self, line: &str) {
-        let lower = line.to_ascii_lowercase();
-        if lower.starts_with("error") || lower.starts_with("fatal") {
-            self.phase = i18n::lookup("tui_error_phase");
-            self.progress_target = self.progress_target.max(0.85);
-            return;
-        }
-
-        self.phase = line
-            .trim_start_matches("INFO ")
-            .trim_start_matches("WARN ")
-            .trim_start_matches("ERROR ")
-            .chars()
-            .take(72)
-            .collect();
-
-        if let Some(Action::Apply) = self.current_action {
-            if lower.contains("extracting ") && lower.contains("xpui.spa") {
-                self.progress_target = self.progress_target.max(0.22);
-            } else if lower.contains("extracting xpui-modules") {
-                self.progress_target = self.progress_target.max(0.44);
-            } else if lower.contains("patching xpui/index.html") {
-                self.progress_target = self.progress_target.max(0.62);
-            } else if lower.contains("linking ") {
-                self.link_steps = (self.link_steps + 1).min(3);
-                self.progress_target = self
-                    .progress_target
-                    .max(0.68 + self.link_steps as f64 * 0.08);
-            } else if lower.contains("patched spotify") {
-                self.progress_target = self.progress_target.max(0.96);
+            if self.drain_events() {
+                self.frame_req.schedule();
             }
-        } else if lower.starts_with("info") {
-            self.progress_target = (self.progress_target + 0.16).min(0.9);
-        } else if lower.starts_with("warn") {
-            self.progress_target = (self.progress_target + 0.1).min(0.88);
+
+            if pending_draw {
+                terminal.draw(|frame| render::draw(frame, self)).map(|_| ())?;
+                pending_draw = false;
+            }
         }
     }
 
-    pub fn refresh_daemon(&mut self, force: bool) {
-        if !force && self.last_daemon_check.elapsed() < events::DAEMON_CHECK_INTERVAL {
-            return;
+    fn refresh_daemon(&mut self, interval: Duration) -> bool {
+        if self.last_daemon_check.elapsed() < interval {
+            return false;
         }
-        self.daemon_running = events::is_daemon_running();
+        let running = spicetify::daemon::is_daemon_running();
+        let installed = spicetify::daemon::manager::create().is_installed();
         self.last_daemon_check = Instant::now();
+        if running != self.daemon_running || installed != self.daemon_installed {
+            self.daemon_running = running;
+            self.daemon_installed = installed;
+            return true;
+        }
+        false
+    }
+
+    fn tick_animation(&mut self) -> bool {
+        let now = Instant::now();
+        let mut advanced = false;
+
+        if self.last_spinner_tick.elapsed() >= Duration::from_millis(80) {
+            self.spinner_frame = (self.spinner_frame + 1) % SPINNER_FRAMES.len();
+            self.last_spinner_tick = now;
+            advanced = true;
+        }
+
+        // fake progress bar doesnt work
+        // tried to copy bubbletea
+        if self.status == RunStatus::Running
+            && self.last_progress_tick.elapsed() >= Duration::from_millis(30)
+        {
+            self.progress_pct += self.progress_dir * 0.008;
+            if self.progress_pct >= 1.0 {
+                self.progress_pct = 1.0;
+                self.progress_dir = -1.0;
+            } else if self.progress_pct <= 0.0 {
+                self.progress_pct = 0.0;
+                self.progress_dir = 1.0;
+            }
+            self.last_progress_tick = now;
+            advanced = true;
+        }
+
+        advanced
+    }
+
+    fn handle_key(&mut self, key: crossterm::event::KeyEvent) {
+        if key.kind != KeyEventKind::Press {
+            return;
+        }
+
+        if !(key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c')) {
+            self.exit_armed_at = None;
+        }
+
+        let is_ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
+        match key.code {
+            KeyCode::Char('c') if is_ctrl => {
+                if self.exit_armed_at.is_some() {
+                    self.should_quit.store(true, Ordering::Release);
+                } else {
+                    self.exit_armed_at = Some(Instant::now());
+                }
+            }
+            KeyCode::Char('q') => {
+                if self.exit_armed_at.is_some() {
+                    self.should_quit.store(true, Ordering::Release);
+                } else {
+                    self.exit_armed_at = Some(Instant::now());
+                }
+            }
+            KeyCode::Up | KeyCode::Char('k') => self.move_selection(-1),
+            KeyCode::Down | KeyCode::Char('j') => self.move_selection(1),
+            KeyCode::Home => {
+                self.selected = 0;
+                self.list_state.select(Some(0));
+            }
+            KeyCode::End => {
+                let last = self.items_len().saturating_sub(1);
+                self.selected = last;
+                self.list_state.select(Some(last));
+            }
+            KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => self.activate(),
+            KeyCode::Left | KeyCode::Char('h') | KeyCode::Esc => self.go_back(),
+            _ => {}
+        }
+    }
+
+    fn handle_mouse(&mut self, mouse: crossterm::event::MouseEvent) {
+        match mouse.kind {
+            MouseEventKind::Down(MouseButton::Left) => {
+                if self.click_in_menu(mouse.column, mouse.row) {
+                    let rect = self.menu_rect.expect("menu_rect set when click_in_menu true");
+                    let row = (mouse.row.saturating_sub(rect.y.saturating_add(1))) as usize;
+                    if row < self.items_len() {
+                        self.selected = row;
+                        self.list_state.select(Some(row));
+                        self.activate();
+                    }
+                } else if self.click_in_body(mouse.column, mouse.row)
+                    && matches!(self.page, Page::Category(_))
+                {
+                    self.go_back();
+                }
+            }
+            MouseEventKind::Down(MouseButton::Right) => {
+                self.go_back();
+            }
+            MouseEventKind::Moved => {
+                self.mouse_pos = (mouse.column, mouse.row);
+                self.hovered_row = self.compute_hovered_row();
+            }
+            _ => {}
+        }
+    }
+
+    fn click_in_menu(&self, col: u16, row: u16) -> bool {
+        let Some(rect) = self.menu_rect else { return false };
+        col >= rect.x
+            && col < rect.x.saturating_add(rect.width)
+            && row >= rect.y
+            && row < rect.y.saturating_add(rect.height)
+    }
+
+    fn click_in_body(&self, col: u16, row: u16) -> bool {
+        let Some(rect) = self.body_rect else { return false };
+        col >= rect.x
+            && col < rect.x.saturating_add(rect.width)
+            && row >= rect.y
+            && row < rect.y.saturating_add(rect.height)
+    }
+
+    fn compute_hovered_row(&self) -> Option<usize> {
+        let rect = self.menu_rect?;
+        let (col, row) = self.mouse_pos;
+
+        if col < rect.x.saturating_add(1)
+            || col >= rect.x.saturating_add(rect.width).saturating_sub(1)
+            || row <= rect.y
+        {
+            return None;
+        }
+
+        let items = self.items_len();
+        if items == 0 {
+            return None;
+        }
+
+        let hovered = (row.saturating_sub(rect.y.saturating_add(1))) as usize;
+        if hovered < items { Some(hovered) } else { None }
+    }
+
+    fn items_len(&self) -> usize {
+        match self.page {
+            Page::Main => CATEGORIES.len(),
+            Page::Category(i) => CATEGORIES.get(i).map_or(0, |c| c.actions.len()),
+        }
+    }
+
+    #[expect(clippy::cast_possible_wrap)]
+    fn move_selection(&mut self, delta: isize) {
+        let len = self.items_len();
+        if len == 0 {
+            return;
+        }
+        let cur = self.selected as isize + delta;
+        let next = cur.rem_euclid(len as isize) as usize;
+        self.selected = next;
+        self.list_state.select(Some(next));
+    }
+
+    fn activate(&mut self) {
+        if self.status == RunStatus::Running {
+            return;
+        }
+
+        match self.page {
+            Page::Main => {
+                let Some(cat) = CATEGORIES.get(self.selected) else { return };
+                if cat.actions.is_empty() {
+                    return;
+                }
+                self.main_selected = self.selected;
+                self.page = Page::Category(self.selected);
+                self.selected = 0;
+                self.list_state.select(Some(0));
+            }
+            Page::Category(i) => {
+                if let Some(action) =
+                    CATEGORIES.get(i).and_then(|c| c.actions.get(self.selected).copied())
+                {
+                    self.run_action(action);
+                }
+            }
+        }
+    }
+
+    fn go_back(&mut self) {
+        if let Page::Category(_) = self.page {
+            self.page = Page::Main;
+            self.selected = self.main_selected;
+            self.list_state.select(Some(self.main_selected));
+        }
+    }
+
+    fn run_action(&mut self, action: MenuAction) {
+        self.current = Some(action);
+        self.status = RunStatus::Running;
+        self.last_started_at = Some(Instant::now());
+        self.logs.push(format!(">>> {}", action.label()));
+
+        let ctx = self.ctx.clone();
+        let tx = self.tx.clone();
+        let _ = std::thread::spawn(move || {
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                spicetify::commands::dispatch(&action.to_command(), &ctx)
+            }));
+            match result {
+                Ok(Ok(())) => {
+                    let _ = tx.send(TuiEvent::Log("OK".to_string()));
+                    let _ = tx.send(TuiEvent::CommandFinished { success: true });
+                }
+                Ok(Err(e)) => {
+                    let _ = tx.send(TuiEvent::Log(format!("ERROR {e}")));
+                    let _ = tx.send(TuiEvent::CommandFinished { success: false });
+                }
+                Err(panic) => {
+                    let msg = if let Some(s) = panic.downcast_ref::<&str>() {
+                        (*s).to_string()
+                    } else if let Some(s) = panic.downcast_ref::<String>() {
+                        s.clone()
+                    } else {
+                        "command panicked".to_string()
+                    };
+                    let _ = tx.send(TuiEvent::Log(format!("PANIC {msg}")));
+                    let _ = tx.send(TuiEvent::CommandFinished { success: false });
+                }
+            }
+        });
+    }
+
+    fn drain_events(&mut self) -> bool {
+        let mut drained = false;
+        while let Ok(event) = self.rx.try_recv() {
+            drained = true;
+            match event {
+                TuiEvent::Log(line) => self.logs.push(line),
+                TuiEvent::CommandFinished { success } => {
+                    self.status = if success { RunStatus::Ok } else { RunStatus::Error };
+                    self.last_result = Some(self.status);
+                    self.current = None;
+                    self.last_started_at = None;
+                }
+            }
+        }
+        drained
     }
 }

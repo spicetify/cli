@@ -1,35 +1,33 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use directories::BaseDirs;
-
-pub fn spotify_data_path() -> PathBuf {
-    let candidates = vec![
-        PathBuf::from("/Applications/Spotify.app/Contents/Resources"),
-        BaseDirs::new()
-            .map(|b| {
-                b.home_dir()
-                    .join("Applications/Spotify.app/Contents/Resources")
-            })
-            .unwrap_or_default(),
-    ];
-    candidates
-        .into_iter()
-        .find(|p| p.exists())
-        .unwrap_or_else(|| PathBuf::from("/Applications/Spotify.app/Contents/Resources"))
+pub(super) fn spicetify_config_root() -> PathBuf {
+    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
+        return PathBuf::from(xdg).join("spicetify");
+    }
+    directories::UserDirs::new()
+        .and_then(|u| u.home_dir().to_path_buf().into())
+        .expect("unable to determine home directory")
+        .join(".config")
+        .join("spicetify")
 }
 
-pub fn spotify_exec_path(data: &Path) -> PathBuf {
-    data.join("Spotify")
+pub(super) fn default_spotify_install_dir() -> PathBuf {
+    directories::UserDirs::new()
+        .and_then(|u| u.home_dir().to_path_buf().into())
+        .expect("unable to determine home directory")
+        .join("Library")
+        .join("Application Support")
+        .join("Spotify")
 }
 
-pub fn spotify_config_path() -> PathBuf {
-    BaseDirs::new()
-        .map(|b| b.config_dir().join("Spotify"))
-        .unwrap_or_else(|| PathBuf::from("."))
+pub(super) const fn spotify_binary_name() -> &'static str {
+    "Spotify"
 }
 
-pub fn spicetify_config_root() -> PathBuf {
-    BaseDirs::new()
-        .map(|b| b.config_dir().join("Spicetify"))
-        .unwrap_or_else(|| PathBuf::from("."))
+pub(super) fn spotify_data_path() -> PathBuf {
+    default_spotify_install_dir()
+}
+
+pub(super) fn offline_bnk_dir() -> PathBuf {
+    spotify_data_path().join("Data")
 }

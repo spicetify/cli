@@ -1,20 +1,21 @@
-use std::{io::ErrorKind, path::Path};
+use std::path::{Path, PathBuf};
 
-use anyhow::{Result, bail};
+use crate::context::AppContext;
+use crate::error::{Result, http_error, wrap_error};
+use crate::fl;
 
-use crate::{config::AppContext, i18n, logging};
-
-pub fn run(ctx: &AppContext) -> Result<()> {
+pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     if ctx.mirror {
         let mirror_apps = ctx.config_root.join("apps");
-        if let Err(err) = std::fs::remove_dir_all(&mirror_apps) {
-            logging::warn(i18n::lookup_with_args(
-                "failed_remove_mirrored_apps",
-                &[
-                    ("path", &mirror_apps.display().to_string()),
-                    ("err", &err.to_string()),
-                ],
-            ));
+        if let Err(e) = std::fs::remove_dir_all(&mirror_apps)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!(
+                path = %mirror_apps.display(),
+                error = %e,
+                "{}",
+                fl!("failed-remove-mirrored-apps", path = mirror_apps.to_string_lossy(), err = e.to_string())
+            );
         }
         return Ok(());
     }
@@ -25,58 +26,48 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     for entry in std::fs::read_dir(&apps)? {
         let entry = entry?;
         let path = entry.path();
-        let name = path
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or_default();
+        let name = path.file_name().and_then(|s| s.to_str()).unwrap_or_default();
         if !name.ends_with(".spa.backup") {
             continue;
         }
         found += 1;
         let spa = restore_target(&path);
         let unpacked = unpacked_folder(&spa);
-        if let Err(err) = std::fs::remove_dir_all(&unpacked)
-            && err.kind() != ErrorKind::NotFound
+
+        if let Err(e) = std::fs::remove_dir_all(&unpacked)
+            && e.kind() != std::io::ErrorKind::NotFound
         {
-            logging::warn(i18n::lookup_with_args(
-                "failed_remove_unpacked",
-                &[
-                    ("path", &unpacked.display().to_string()),
-                    ("err", &err.to_string()),
-                ],
-            ));
+            tracing::warn!(error = %e, path = %unpacked.display(), "failed to remove directory");
         }
-        if let Err(err) = std::fs::rename(&path, &spa) {
-            logging::error(i18n::lookup_with_args(
-                "failed_restore_backup",
-                &[
-                    ("path", &path.display().to_string()),
-                    ("err", &err.to_string()),
-                ],
+
+        if let Err(e) = std::fs::rename(&path, &spa) {
+            tracing::error!(
+                path = %path.display(),
+                error = %e,
+                "{}",
+                fl!("failed-restore-backup", path = path.to_string_lossy(), err = e.to_string())
+            );
+            return Err(wrap_error(
+                anyhow::anyhow!("failed to restore {}: {e}", path.display()),
+                500,
             ));
         }
     }
 
     if found == 0 {
-        bail!(i18n::lookup("already_stock"));
+        return Err(http_error(409, fl!("already-stock")));
     }
     Ok(())
 }
 
-fn restore_target(backup: &Path) -> std::path::PathBuf {
-    let s = backup.to_string_lossy();
-    if let Some(stripped) = s.strip_suffix(".backup") {
-        std::path::PathBuf::from(stripped)
-    } else {
-        backup.to_path_buf()
-    }
+fn restore_target(backup: &Path) -> PathBuf {
+    let name = backup.file_name().and_then(|s| s.to_str()).unwrap_or_default();
+    name.strip_suffix(".backup")
+        .map_or_else(|| backup.to_path_buf(), |stripped| backup.with_file_name(stripped))
 }
 
-fn unpacked_folder(spa: &Path) -> std::path::PathBuf {
-    let s = spa.to_string_lossy();
-    if let Some(stripped) = s.strip_suffix(".spa") {
-        std::path::PathBuf::from(stripped)
-    } else {
-        spa.to_path_buf()
-    }
+fn unpacked_folder(spa: &Path) -> PathBuf {
+    let name = spa.file_name().and_then(|s| s.to_str()).unwrap_or_default();
+    name.strip_suffix(".spa")
+        .map_or_else(|| spa.to_path_buf(), |stripped| spa.with_file_name(stripped))
 }

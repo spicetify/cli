@@ -1,12 +1,137 @@
 [workspace]
-members = [
-    "crates/auto_update_helper",
-    "crates/spicetify",
-    "crates/cli",
-    "crates/tui",
-]
+members = ["crates/spicetify", "crates/cli", "crates/tui", "crates/daemon"]
 resolver = "2"
 
 [workspace.package]
 version = "0.0.7"
 edition = "2024"
+rust-version = "1.95"
+repository = "https://github.com/veryboringhwl/app"
+homepage = "https://spicetify.app"
+authors = ["veryboringhwl"]
+license = "MIT"
+publish = false
+
+[workspace.dependencies]
+anyhow = "1.0"
+thiserror = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "1.1"
+
+tokio = { version = "1.52", features = [
+  "rt",
+  "rt-multi-thread",
+  "net",
+  "signal",
+  "sync",
+  "time",
+  "macros",
+] }
+axum = { version = "0.8", features = ["ws", "macros"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "cookies"] }
+futures-util = "0.3"
+
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+directories = "6.0"
+dunce = "1.0"
+notify = "9.0.0-rc.4"
+fs4 = "1.1"
+arc-swap = "1.9"
+rustix = { version = "1.1", features = ["process"] }
+
+url = "2.5"
+percent-encoding = "2.3"
+semver = "1.0"
+regex-lite = "0.1"
+
+zip = "8.6"
+tar = "0.4"
+zstd = "0.13"
+
+i18n-embed = { version = "0.16", features = ["fluent-system", "desktop-requester"] }
+i18n-embed-fl = "0.10"
+rust-embed = { version = "8.11", features = ["interpolate-folder-path"] }
+
+clap = { version = "4.6", features = ["derive", "wrap_help"] }
+
+ratatui = "0.30"
+crossterm = { version = "0.29", features = ["event-stream"] }
+
+windows = { version = "0.62", features = [
+  "Win32_System_Threading",
+  "Win32_System_Kernel",
+  "Win32_Foundation",
+  "Win32_Security",
+] }
+windows-registry = "0.6"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+debug = "limited"
+split-debuginfo = "unpacked"
+codegen-units = 16
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_qualifications = "deny"
+elided_lifetimes_in_paths = "deny"
+missing_debug_implementations = "deny"
+missing_copy_implementations = "deny"
+noop_method_call = "deny"
+unreachable_pub = "deny"
+unused_crate_dependencies = "deny"
+unused_extern_crates = "deny"
+unused_results = "deny"
+variant_size_differences = "deny"
+non_ascii_idents = "deny"
+unexpected_cfgs = { level = "allow" }
+missing_docs = "allow"
+
+[workspace.lints.clippy]
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+dbg_macro = "deny"
+todo = "deny"
+unwrap_used = "deny"
+panic = "deny"
+declare_interior_mutable_const = "deny"
+redundant_clone = "deny"
+disallowed_methods = "deny"
+
+clone_on_ref_ptr = "warn"
+explicit_iter_loop = "warn"
+indexing_slicing = "warn"
+style = { level = "warn", priority = -1 }
+
+type_complexity = "warn"
+too_many_arguments = "warn"
+large_enum_variant = "warn"
+nonminimal_bool = "warn"
+too_many_lines = "warn"
+struct_excessive_bools = "warn"
+
+unreadable_literal = "warn"
+cast_precision_loss = "warn"
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_sign_loss = "warn"
+
+module_name_repetitions = "allow"
+similar_names = "allow"
+let_underscore_future = "allow"
+single_range_in_vec_init = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"

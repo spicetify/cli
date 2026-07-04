@@ -1,35 +1,22 @@
-use anyhow::Result;
+use crate::context::AppContext;
+use crate::fl;
 
-use crate::{config::AppContext, i18n, logging};
-
-pub fn run(ctx: &AppContext) -> Result<()> {
-    logging::info(i18n::lookup_with_args(
-        "config_daemon",
-        &[("value", &ctx.daemon.to_string())],
-    ));
-    logging::info(i18n::lookup_with_args(
-        "config_mirror",
-        &[("value", &ctx.mirror.to_string())],
-    ));
-    logging::info(i18n::lookup_with_args(
-        "config_file",
-        &[("path", &ctx.config_file.display().to_string())],
-    ));
-    logging::info(i18n::lookup_with_args(
-        "config_root",
-        &[("path", &ctx.config_root.display().to_string())],
-    ));
-    logging::info(i18n::lookup_with_args(
-        "config_spotify_data_path",
-        &[("path", &ctx.spotify_data_path.display().to_string())],
-    ));
-    logging::info(i18n::lookup_with_args(
-        "config_spotify_exec_path",
-        &[("path", &ctx.spotify_exec_path.display().to_string())],
-    ));
-    logging::info(i18n::lookup_with_args(
-        "config_spotify_config_path",
-        &[("path", &ctx.spotify_config_path.display().to_string())],
-    ));
-    Ok(())
+pub(crate) fn run(ctx: &AppContext) {
+    tracing::info!("{}", fl!("config-mirror", value = if ctx.mirror { "true" } else { "false" }));
+    tracing::info!("{}", fl!("config-file", path = ctx.config_file.to_string_lossy()));
+    tracing::info!("{}", fl!("config-root", path = ctx.config_root.to_string_lossy()));
+    tracing::info!(
+        "{}",
+        fl!("config-spotify-data-path", path = ctx.spotify_data_path.to_string_lossy())
+    );
+    tracing::info!(
+        "{}",
+        fl!("config-spotify-exec-path", path = ctx.spotify_exec_path.to_string_lossy())
+    );
+    if !ctx.offline_bnk_dir.as_os_str().is_empty() {
+        tracing::info!(
+            "{}",
+            fl!("config-offline-bnk-dir", path = ctx.offline_bnk_dir.to_string_lossy())
+        );
+    }
 }

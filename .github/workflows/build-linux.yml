@@ -1,4 +1,4 @@
-name: Build CLI (Linux)
+name: Build App (Linux)
 
 on:
   workflow_call:
@@ -22,6 +22,11 @@ jobs:
       - name: Add Rust target
         run: rustup target add x86_64-unknown-linux-gnu
 
+      - name: Install mold
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mold
+
       - name: Build
         working-directory: build/linux
         run: |
@@ -36,5 +41,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
-          name: cli-linux-${{ inputs.arch }}
+          name: installer-linux-${{ inputs.arch }}
           path: build/linux/dist/*

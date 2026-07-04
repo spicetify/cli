@@ -1,71 +1,49 @@
-use std::{
-    fs::{self, File}, io::{self, Cursor}, path::Path
-};
+use std::fs::File;
+use std::path::Path;
 
-use anyhow::{Context, Result, bail};
-use flate2::read::GzDecoder;
-use tar::Archive;
 use zip::ZipArchive;
 
-use crate::i18n;
+use super::ArchiveError;
 
-pub fn unzip_file(zip_path: &Path, dest: &Path) -> Result<()> {
-    let file = File::open(zip_path)?;
-    let mut zip = ZipArchive::new(file)?;
-    extract_zip(&mut zip, dest)
-}
-
-pub fn unzip_bytes(bytes: &[u8], dest: &Path) -> Result<()> {
-    let mut zip = ZipArchive::new(Cursor::new(bytes))?;
-    extract_zip(&mut zip, dest)
-}
-
-pub fn extract_zip<R: io::Read + io::Seek>(zip: &mut ZipArchive<R>, dest: &Path) -> Result<()> {
-    fs::create_dir_all(dest)?;
-    let dest = dunce::canonicalize(dest)?;
-    for i in 0..zip.len() {
-        let mut entry = zip.by_index(i)?;
-
-        let out = dunce::canonicalize(dest.join(entry.name())).unwrap_or_else(|_| {
-            let mut clean = std::path::PathBuf::new();
-            for c in dest.join(entry.name()).components() {
-                if c != std::path::Component::ParentDir {
-                    clean.push(c);
-                }
-            }
-            clean
-        });
-
-        if !out.starts_with(&dest) {
-            bail!(i18n::lookup("illegal_zip_path"));
-        }
-
+pub(crate) fn unzip_file(src: &Path, dest: &Path) -> Result<(), ArchiveError> {
+    let file = File::open(src)?;
+    let mut archive = ZipArchive::new(file)?;
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i)?;
+        let raw_name = entry.name().to_string();
+        let safe = safe_relative_path(&raw_name)?;
+        let outpath = dest.join(safe);
         if entry.is_dir() {
-            fs::create_dir_all(&out)?;
+            std::fs::create_dir_all(&outpath)?;
             continue;
         }
-
-        if let Some(parent) = out.parent() {
-            fs::create_dir_all(parent)?;
+        if let Some(parent) = outpath.parent() {
+            std::fs::create_dir_all(parent)?;
         }
-
-        io::copy(
-            &mut entry,
-            &mut File::create(&out).with_context(|| {
-                i18n::lookup_with_args(
-                    "failed_creating_file",
-                    &[("path", &out.display().to_string())],
-                )
-            })?,
-        )?;
+        let mut out = File::create(&outpath)?;
+        std::io::copy(&mut entry, &mut out).map(|_| ())?;
     }
     Ok(())
 }
 
-pub fn untar_gz_bytes(bytes: &[u8], dest: &Path) -> Result<()> {
-    let gz = GzDecoder::new(Cursor::new(bytes));
-    let mut tar = Archive::new(gz);
-    fs::create_dir_all(dest)?;
-    tar.unpack(dest)?;
+pub(crate) fn untar_zst_bytes(bytes: &[u8], dest: &Path) -> Result<(), ArchiveError> {
+    let zst = zstd::Decoder::new(bytes)?;
+    let mut archive = tar::Archive::new(zst);
+    archive.unpack(dest)?;
     Ok(())
+}
+
+fn safe_relative_path(name: &str) -> Result<std::path::PathBuf, ArchiveError> {
+    use std::path::PathBuf;
+    let path = PathBuf::from(name.replace('\\', "/"));
+    if path.is_absolute() {
+        return Err(ArchiveError::IllegalPath(name.to_string()));
+    }
+    for component in path.components() {
+        use std::path::Component;
+        if matches!(component, Component::ParentDir) {
+            return Err(ArchiveError::IllegalPath(name.to_string()));
+        }
+    }
+    Ok(path)
 }

@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use clap::Parser;
-use spicetify::{
-    commands::{Command, DaemonAction, PkgAction, UpdateMode, dispatch}, config::{AppContext, Config}, i18n
-};
+use clap::{Parser, Subcommand, ValueEnum};
+use i18n_embed_fl as _;
+use spicetify::commands::{Command, DaemonAction, PkgAction, SpotifyAutoUpdate};
+use spicetify::context::AppContext;
+use spicetify::{fl, logging};
 
 #[derive(Debug, Parser)]
 #[command(name = "spicetify", about = "Make Spotify your own")]
@@ -18,61 +19,113 @@ struct SpicetifyCli {
     #[arg(long)]
     spotify_exec_path: Option<String>,
     #[arg(long)]
-    spotify_config_path: Option<String>,
+    offline_bnk_dir: Option<String>,
 
     #[command(subcommand)]
-    command: Option<Commands>,
+    command: Option<CliCommand>,
 }
 
-#[derive(Debug, clap::Subcommand)]
-enum Commands {
+#[derive(Debug, Clone, Subcommand)]
+enum CliCommand {
     Apply,
     Config,
-    Daemon {
-        #[command(subcommand)]
-        action: Option<DaemonArgs>,
-    },
+    #[command(subcommand)]
+    Daemon(CliDaemonAction),
     Dev,
     Fix,
     Init,
     Pkg {
         #[command(subcommand)]
-        action: PkgArgs,
+        action: CliPkgAction,
     },
+    #[command(name = "protocol")]
     Protocol {
         uri: String,
     },
     SelfUpdate,
     Sync,
-    Update {
-        #[command(subcommand)]
-        mode: UpdateArgs,
+    BlockSpotifyUpdates {
+        mode: CliSpotifyAutoUpdate,
     },
 }
 
-#[derive(Debug, clap::Subcommand)]
-enum DaemonArgs {
+#[derive(Debug, Clone, Copy, Subcommand)]
+enum CliDaemonAction {
     Start,
-    Enable,
-    Disable,
+    Stop,
+    Install,
+    Uninstall,
+    Status,
 }
 
-#[derive(Debug, clap::Subcommand)]
-enum PkgArgs {
+#[derive(Debug, Clone, Subcommand)]
+enum CliPkgAction {
     Install { id: String, url: String },
     Delete { id: String },
     Enable { id: String },
 }
 
-#[derive(Debug, Clone, Copy, clap::Subcommand)]
-enum UpdateArgs {
-    On,
-    Off,
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum CliSpotifyAutoUpdate {
+    Block,
+    Unblock,
+}
+
+impl From<CliCommand> for Command {
+    fn from(c: CliCommand) -> Self {
+        match c {
+            CliCommand::Apply => Command::Apply,
+            CliCommand::Config => Command::Config,
+            CliCommand::Daemon(a) => Command::Daemon(a.into()),
+            CliCommand::Dev => Command::Dev,
+            CliCommand::Fix => Command::Fix,
+            CliCommand::Init => Command::Init,
+            CliCommand::Pkg { action } => Command::Pkg { action: action.into() },
+            CliCommand::Protocol { uri } => Command::Protocol { uri },
+            CliCommand::SelfUpdate => Command::SelfUpdate,
+            CliCommand::Sync => Command::Sync,
+            CliCommand::BlockSpotifyUpdates { mode } => {
+                Command::BlockSpotifyUpdates { mode: mode.into() }
+            }
+        }
+    }
+}
+
+impl From<CliDaemonAction> for DaemonAction {
+    fn from(a: CliDaemonAction) -> Self {
+        match a {
+            CliDaemonAction::Start => DaemonAction::Start,
+            CliDaemonAction::Stop => DaemonAction::Stop,
+            CliDaemonAction::Install => DaemonAction::Install,
+            CliDaemonAction::Uninstall => DaemonAction::Uninstall,
+            CliDaemonAction::Status => DaemonAction::Status,
+        }
+    }
+}
+
+impl From<CliPkgAction> for PkgAction {
+    fn from(a: CliPkgAction) -> Self {
+        match a {
+            CliPkgAction::Install { id, url } => PkgAction::Install { id, url },
+            CliPkgAction::Delete { id } => PkgAction::Delete { id },
+            CliPkgAction::Enable { id } => PkgAction::Enable { id },
+        }
+    }
+}
+
+impl From<CliSpotifyAutoUpdate> for SpotifyAutoUpdate {
+    fn from(m: CliSpotifyAutoUpdate) -> Self {
+        match m {
+            CliSpotifyAutoUpdate::Block => SpotifyAutoUpdate::Block,
+            CliSpotifyAutoUpdate::Unblock => SpotifyAutoUpdate::Unblock,
+        }
+    }
 }
 
 fn main() {
+    spicetify::locale::localize();
     if let Err(err) = run() {
-        eprintln!("\x1b[31;1m{}\x1b[0m {err}", i18n::lookup("fatal_prefix"));
+        eprintln!("\x1b[31;1m{}\x1b[0m {err}", fl!("fatal-prefix"));
         std::process::exit(1);
     }
 }
@@ -84,49 +137,16 @@ fn run() -> Result<()> {
         cli.mirror,
         cli.spotify_data_path.as_deref(),
         cli.spotify_exec_path.as_deref(),
-        cli.spotify_config_path.as_deref(),
+        cli.offline_bnk_dir.as_deref(),
     )?;
 
     match cli.command {
-        Some(cmd) => dispatch(map_command(cmd), &ctx),
+        Some(cmd) => {
+            logging::init_for_cli()?;
+            let cmd = Command::from(cmd);
+            spicetify::commands::dispatch(&cmd, &ctx)
+        }
         None => tui::run(&ctx),
-    }
-}
-
-fn map_command(cmd: Commands) -> Command {
-    match cmd {
-        Commands::Apply => Command::Apply,
-        Commands::Config => Command::Config,
-        Commands::Daemon { action } => {
-            let action = match action {
-                Some(DaemonArgs::Start) => DaemonAction::Start,
-                Some(DaemonArgs::Enable) => DaemonAction::Enable,
-                Some(DaemonArgs::Disable) => DaemonAction::Disable,
-                None => DaemonAction::Auto,
-            };
-            Command::Daemon(action)
-        }
-        Commands::Dev => Command::Dev,
-        Commands::Fix => Command::Fix,
-        Commands::Init => Command::Init,
-        Commands::Pkg { action } => {
-            let action = match action {
-                PkgArgs::Install { id, url } => PkgAction::Install { id, url },
-                PkgArgs::Delete { id } => PkgAction::Delete { id },
-                PkgArgs::Enable { id } => PkgAction::Enable { id },
-            };
-            Command::Pkg(action)
-        }
-        Commands::Protocol { uri } => Command::Protocol(uri),
-        Commands::SelfUpdate => Command::SelfUpdate,
-        Commands::Sync => Command::Sync,
-        Commands::Update { mode } => {
-            let mode = match mode {
-                UpdateArgs::On => UpdateMode::On,
-                UpdateArgs::Off => UpdateMode::Off,
-            };
-            Command::Update(mode)
-        }
     }
 }
 
@@ -135,14 +155,15 @@ fn build_context(
     mirror: bool,
     spotify_data_path: Option<&str>,
     spotify_exec_path: Option<&str>,
-    spotify_config_path: Option<&str>,
+    offline_bnk_dir: Option<&str>,
 ) -> Result<AppContext> {
-    let config_root = config
-        .map(PathBuf::from)
-        .unwrap_or_else(spicetify::platform::default_spicetify_config_root);
+    let config_root =
+        config.map_or_else(spicetify::platform::default_spicetify_config_root, PathBuf::from);
 
-    let config_file = config_root.join("config.yaml");
-    let mut cfg = Config::load(&config_file)?;
+    let config_name =
+        std::env::var("SPICETIFY_CONFIG_FILE").unwrap_or_else(|_| "config.toml".to_string());
+    let config_file = config_root.join(&config_name);
+    let mut cfg = spicetify::context::Config::load(&config_file)?;
 
     cfg.mirror = cfg.mirror || mirror;
     if let Some(v) = spotify_data_path {
@@ -151,9 +172,9 @@ fn build_context(
     if let Some(v) = spotify_exec_path {
         cfg.spotify_exec_path = Some(PathBuf::from(v));
     }
-    if let Some(v) = spotify_config_path {
-        cfg.spotify_config_path = Some(PathBuf::from(v));
+    if let Some(v) = offline_bnk_dir {
+        cfg.offline_bnk_dir = Some(PathBuf::from(v));
     }
 
-    Ok(AppContext::from_config(config_root, cfg))
+    AppContext::from_config(config_root, &cfg)
 }

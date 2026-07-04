@@ -1,60 +1,41 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use directories::BaseDirs;
-
-pub fn spotify_data_path() -> PathBuf {
-    if let Ok(appdata) = std::env::var("APPDATA") {
-        let p = PathBuf::from(&appdata).join("Spotify");
-        if p.exists() {
-            return p;
-        }
+pub(super) fn spicetify_config_root() -> PathBuf {
+    if let Ok(local) = std::env::var("LOCALAPPDATA") {
+        return PathBuf::from(local).join("Spicetify");
     }
-    BaseDirs::new()
-        .map(|b| b.data_dir().join("Spotify"))
-        .unwrap_or_else(|| PathBuf::from("."))
+    directories::UserDirs::new()
+        .and_then(|u| u.home_dir().to_path_buf().into())
+        .expect("unable to determine home directory")
+        .join("AppData")
+        .join("Local")
+        .join("Spicetify")
 }
 
-pub fn spotify_exec_path(data: &Path) -> PathBuf {
-    data.join("spotify.exe")
-}
-
-pub fn spotify_config_path() -> PathBuf {
-    let candidates = {
-        let mut v = Vec::new();
-        if let Ok(local) = std::env::var("LOCALAPPDATA") {
-            v.push(PathBuf::from(&local).join("Spotify"));
-            let packages = PathBuf::from(&local).join("Packages");
-            if let Ok(entries) = std::fs::read_dir(&packages) {
-                for entry in entries.flatten() {
-                    let name = entry.file_name().to_string_lossy().to_string();
-                    if name.starts_with("SpotifyAB.SpotifyMusic") {
-                        v.push(entry.path().join("LocalState").join("Spotify"));
-                    }
-                }
-            }
-        }
-        if let Ok(appdata) = std::env::var("APPDATA") {
-            v.push(PathBuf::from(&appdata).join("Spotify"));
-        }
-        v
-    };
-    for c in &candidates {
-        if c.join("offline.bnk").exists() {
-            return c.clone();
+pub(super) fn default_spotify_install_dir() -> PathBuf {
+    if let Ok(local) = std::env::var("LOCALAPPDATA") {
+        let ms_store = PathBuf::from(&local).join("Spotify");
+        if ms_store.join(spotify_binary_name()).is_file() {
+            return ms_store;
         }
     }
-    candidates.into_iter().next().unwrap_or_else(|| {
-        BaseDirs::new()
-            .map(|b| b.config_dir().join("Spotify"))
-            .unwrap_or_else(|| PathBuf::from("."))
-    })
+    if let Ok(roaming) = std::env::var("APPDATA") {
+        return PathBuf::from(roaming).join("Spotify");
+    }
+    PathBuf::from("C:/Users/Default/AppData/Roaming/Spotify")
 }
 
-pub fn spicetify_config_root() -> PathBuf {
-    if let Ok(localappdata) = std::env::var("LOCALAPPDATA") {
-        return PathBuf::from(&localappdata).join("Spicetify");
+pub(super) const fn spotify_binary_name() -> &'static str {
+    "Spotify.exe"
+}
+
+pub(super) fn spotify_data_path() -> PathBuf {
+    default_spotify_install_dir()
+}
+
+pub(super) fn offline_bnk_dir() -> PathBuf {
+    if let Ok(local) = std::env::var("LOCALAPPDATA") {
+        return PathBuf::from(local).join("Spotify");
     }
-    BaseDirs::new()
-        .map(|b| b.data_local_dir().join("Spicetify"))
-        .unwrap_or_else(|| PathBuf::from("."))
+    PathBuf::from("C:/Users/Default/AppData/Local/Spotify")
 }

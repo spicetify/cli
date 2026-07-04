@@ -1,116 +1,114 @@
-use std::{
-    collections::BTreeMap, fs, path::{Path, PathBuf}
-};
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
 
-use anyhow::{Result, anyhow};
-use regex::Regex;
+use regex_lite::Regex;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
-use crate::i18n;
+static STORE_ID_RE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    #[allow(clippy::unwrap_used)]
+    Regex::new(r"^[A-Za-z0-9._/-]+@[A-Za-z0-9._+-]+$").unwrap()
+});
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Store {
-    pub installed: bool,
-    pub artifacts: Vec<String>,
-    #[serde(default)]
-    pub checksum: String,
+#[derive(Debug, Error)]
+pub(crate) enum VaultError {
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("failed to parse vault.json: {0}")]
+    Parse(#[from] serde_json::Error),
+
+    #[error("invalid store id `{0}`: expected `module@version` (use `@` separator)")]
+    InvalidStoreId(String),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Module {
-    pub enabled: String,
-    pub v: BTreeMap<String, Store>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Vault {
-    pub modules: BTreeMap<String, Module>,
-}
-
-impl Vault {
-    pub fn get_module_mut(&mut self, identifier: &str) -> &mut Module {
-        self.modules.entry(identifier.to_string()).or_default()
-    }
-
-    pub fn get_store_mut(&mut self, id: &StoreIdentifier) -> Option<&mut Store> {
-        self.modules
-            .get_mut(&id.module_identifier)?
-            .v
-            .get_mut(&id.version)
-    }
-
-    pub fn set_store(&mut self, id: &StoreIdentifier, store: Store) -> bool {
-        if id.version.is_empty() {
-            return false;
-        }
-        self.get_module_mut(&id.module_identifier)
-            .v
-            .insert(id.version.clone(), store);
-        true
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct StoreIdentifier {
-    pub module_identifier: String,
-    pub version: String,
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub(crate) struct StoreIdentifier {
+    pub(crate) module_identifier: String,
+    pub(crate) version: String,
 }
 
 impl StoreIdentifier {
-    pub fn parse(raw: &str) -> Result<Self> {
-        let re = Regex::new(r"^([^@]+)@([^@]+)$")?;
-        let cap = re
-            .captures(raw)
-            .ok_or_else(|| anyhow!(i18n::lookup("invalid_store_id")))?;
-
-        Ok(Self {
-            module_identifier: cap
-                .get(1)
-                .map(|m| m.as_str())
-                .unwrap_or_default()
-                .to_string(),
-            version: cap
-                .get(2)
-                .map(|m| m.as_str())
-                .unwrap_or_default()
-                .to_string(),
-        })
+    pub(crate) fn parse(raw: &str) -> Result<Self, VaultError> {
+        if !STORE_ID_RE.is_match(raw) {
+            return Err(VaultError::InvalidStoreId(raw.to_string()));
+        }
+        let (module, version) =
+            raw.split_once('@').ok_or_else(|| VaultError::InvalidStoreId(raw.to_string()))?;
+        Ok(Self { module_identifier: module.to_string(), version: version.to_string() })
     }
 
-    pub fn as_string(&self) -> String {
+    #[must_use]
+    pub(crate) fn as_string(&self) -> String {
         format!("{}@{}", self.module_identifier, self.version)
     }
 
-    pub fn store_path(&self, store_root: &Path) -> PathBuf {
+    #[must_use]
+    pub(crate) fn store_path(&self, store_root: &Path) -> PathBuf {
         store_root.join(&self.module_identifier).join(&self.version)
     }
 
-    pub fn module_link_path(&self, modules_root: &Path) -> PathBuf {
+    #[must_use]
+    pub(crate) fn module_link_path(&self, modules_root: &Path) -> PathBuf {
         modules_root.join(&self.module_identifier)
     }
 }
 
-pub fn load(path: &Path) -> Result<Vault> {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Store {
+    pub(crate) installed: bool,
+    pub(crate) artifacts: Vec<String>,
+    pub(crate) checksum: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Module {
+    pub(crate) v: BTreeMap<String, Store>,
+    pub(crate) enabled: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct Vault {
+    pub(crate) modules: BTreeMap<String, Module>,
+}
+
+impl Vault {
+    pub(crate) fn get_module_mut(&mut self, module: &str) -> &mut Module {
+        self.modules.entry(module.to_string()).or_default()
+    }
+
+    pub(crate) fn get_store_mut(&mut self, id: &StoreIdentifier) -> Option<&mut Store> {
+        self.modules.get_mut(&id.module_identifier).and_then(|m| m.v.get_mut(&id.version))
+    }
+
+    pub(crate) fn set_store(&mut self, id: &StoreIdentifier, store: Store) {
+        let m = self.get_module_mut(&id.module_identifier);
+        let _ = m.v.insert(id.version.clone(), store);
+    }
+}
+
+pub(crate) fn load(path: &Path) -> Result<Vault, VaultError> {
     if !path.exists() {
         return Ok(Vault::default());
     }
-    let raw = fs::read_to_string(path)?;
-    Ok(serde_json::from_str(&raw)?)
+    let raw = std::fs::read_to_string(path)?;
+    let v: Vault = serde_json::from_str(&raw)?;
+    Ok(v)
 }
 
-pub fn save(path: &Path, vault: &Vault) -> Result<()> {
+pub(crate) fn save(path: &Path, vault: &Vault) -> Result<(), VaultError> {
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
+        std::fs::create_dir_all(parent)?;
     }
-    let raw = serde_json::to_string(vault)?;
-    fs::write(path, raw)?;
+    let serialized = serde_json::to_string_pretty(vault)?;
+    std::fs::write(path, serialized)?;
     Ok(())
 }
 
-pub fn mutate(path: &Path, f: impl FnOnce(&mut Vault) -> bool) -> Result<()> {
-    let mut vault = load(path)?;
-    if !f(&mut vault) {
-        anyhow::bail!(i18n::lookup("failed_mutate_vault"))
+pub(crate) fn mutate(path: &Path, f: impl FnOnce(&mut Vault) -> bool) -> Result<(), VaultError> {
+    let mut v = load(path)?;
+    if f(&mut v) {
+        save(path, &v)?;
     }
-    save(path, &vault)
+    Ok(())
 }

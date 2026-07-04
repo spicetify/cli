@@ -1,32 +1,52 @@
-use std::{fs, path::Path};
+use std::path::Path;
 
-use anyhow::Result;
+use crate::error::Result;
 
-pub fn create_dir_link(src: &Path, dst: &Path) -> Result<()> {
-    if let Some(parent) = dst.parent() {
-        fs::create_dir_all(parent)?;
+pub(crate) fn create_dir_link(target: &Path, link: &Path) -> Result<()> {
+    if let Some(parent) = link.parent() {
+        std::fs::create_dir_all(parent)?;
     }
-    let _ = fs::remove_dir_all(dst);
-    let _ = fs::remove_file(dst);
-
+    if link.exists() {
+        remove_link(link)?;
+    }
     #[cfg(unix)]
     {
-        std::os::unix::fs::symlink(src, dst)?;
-        return Ok(());
+        std::os::unix::fs::symlink(target, link)?;
+        Ok(())
     }
-
     #[cfg(windows)]
     {
-        let result = std::os::windows::fs::symlink_dir(src, dst);
-        match result {
-            Ok(()) => return Ok(()),
-            Err(e) if e.raw_os_error() == Some(1314) => {
-                return junction::create(src, dst).map_err(Into::into);
-            }
-            Err(e) => return Err(e.into()),
-        }
+        use crate::error::wrap_error;
+        std::os::windows::fs::junction_point(target, link)
+            .map_err(|e| wrap_error(anyhow::anyhow!("junction create failed: {e}"), 500))?;
+        Ok(())
     }
+}
 
-    #[allow(unreachable_code)]
+#[cfg(windows)]
+fn remove_link(link: &Path) -> Result<()> {
+    if let Err(e) = std::fs::remove_dir(link)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        use crate::error::wrap_error;
+        return Err(wrap_error(anyhow::anyhow!("junction delete failed: {e}"), 500));
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn remove_link(link: &Path) -> Result<()> {
+    let md = match std::fs::symlink_metadata(link) {
+        Ok(m) => m,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => return Err(e.into()),
+    };
+    if md.is_symlink() {
+        std::fs::remove_file(link)?;
+    } else if md.is_dir() {
+        std::fs::remove_dir_all(link)?;
+    } else {
+        std::fs::remove_file(link)?;
+    }
     Ok(())
 }

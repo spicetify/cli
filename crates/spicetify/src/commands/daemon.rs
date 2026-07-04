@@ -1,30 +1,43 @@
-use anyhow::Result;
+use crate::context::AppContext;
+use crate::error::Result;
+use crate::fl;
 
-use crate::{
-    config::{AppContext, Config}, daemon, i18n, logging
-};
-
-pub fn start(ctx: &AppContext) -> Result<()> {
-    daemon::server::start(ctx)
+pub(crate) fn install(ctx: &AppContext) -> Result<()> {
+    crate::daemon::manager::create().install(ctx)?;
+    Ok(())
 }
 
-pub fn enable(ctx: &AppContext) -> Result<()> {
-    let mut cfg = Config::load(&ctx.config_file)?;
-    cfg.daemon = true;
-    Config::save(&ctx.config_file, &cfg)
+pub(crate) fn uninstall(_ctx: &AppContext) -> Result<()> {
+    crate::daemon::manager::create().uninstall()?;
+    Ok(())
 }
 
-pub fn disable(ctx: &AppContext) -> Result<()> {
-    let mut cfg = Config::load(&ctx.config_file)?;
-    cfg.daemon = false;
-    Config::save(&ctx.config_file, &cfg)
-}
+pub(crate) fn status(_ctx: &AppContext) {
+    let running = crate::daemon::is_daemon_running();
+    let installed = crate::daemon::manager::create().is_installed();
 
-pub fn auto(ctx: &AppContext) -> Result<()> {
-    if ctx.daemon {
-        logging::info(i18n::lookup("daemon_starting"));
-        start(ctx)
+    if running {
+        tracing::info!("{}", fl!("daemon-running"));
+        if let Some(health) = crate::daemon::health_check() {
+            if let Some(ver) = health.get("version").and_then(|v| v.as_str()) {
+                tracing::info!("  version: {ver}");
+            }
+            if let Some(uptime) = health.get("uptime_secs").and_then(serde_json::Value::as_u64) {
+                tracing::info!("  uptime: {uptime}s");
+            }
+            if let Some(spotify) =
+                health.get("spotify_detected").and_then(serde_json::Value::as_bool)
+            {
+                tracing::info!("  spotify detected: {spotify}");
+            }
+        }
     } else {
-        Ok(())
+        tracing::info!("{}", fl!("daemon-not-running-status"));
+    }
+
+    if installed {
+        tracing::info!("{}", fl!("daemon-auto-start-enabled"));
+    } else {
+        tracing::info!("{}", fl!("daemon-auto-start-disabled"));
     }
 }

@@ -1,101 +1,151 @@
 use std::path::Path;
 
-use anyhow::{Context, Result, anyhow};
+use crate::context::AppContext;
+use crate::error::{Result, http_error, wrap_error};
+use crate::{fl, util};
 
-use crate::{config::AppContext, i18n, logging, util};
+#[cfg(target_os = "linux")]
+fn register_url_scheme() {
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let Some(base_dirs) = directories::BaseDirs::new() else {
+        return;
+    };
+    let apps_dir = base_dirs.home_dir().join(".local/share/applications");
+    if let Err(e) = std::fs::create_dir_all(&apps_dir) {
+        tracing::warn!(error = %e, "failed to create applications dir for URL scheme");
+        return;
+    }
+    let desktop = format!(
+        "[Desktop Entry]\nType=Application\nName=Spicetify Protocol Handler\nExec={} protocol \
+         %u\nStartupNotify=false\nMimeType=x-scheme-handler/spicetify;\nNoDisplay=true\n",
+        exe.display()
+    );
+    if let Err(e) = std::fs::write(apps_dir.join("spicetify-protocol.desktop"), desktop) {
+        tracing::warn!(error = %e, "failed to write desktop file for URL scheme");
+    }
+}
 
 pub fn run(ctx: &AppContext) -> Result<()> {
-    let apps = ctx.spotify_apps_path();
-    let dest_apps = if ctx.mirror {
-        ctx.config_root.join("apps")
-    } else {
-        apps.clone()
-    };
+    let dest_apps = ctx.dest_apps_path();
+    let spa = ctx.spotify_apps_path().join("xpui.spa");
+    let dest_xpui = dest_apps.join("xpui");
+    let backup = spa.with_extension("spa.backup");
 
-    let spa = apps.join("xpui.spa");
-    if !spa.exists() && dest_apps.join("xpui").exists() {
-        return Err(anyhow!(i18n::lookup("already_applied")));
+    if !spa.exists() && dest_xpui.exists() {
+        return Err(http_error(409, fl!("already-applied")));
+    }
+
+    if !spa.exists() && !ctx.mirror && backup.exists() {
+        tracing::info!("{}", fl!("restoring-spa-backup", path = spa.to_string_lossy()));
+        std::fs::rename(&backup, &spa)?;
     }
 
     std::fs::create_dir_all(&dest_apps)?;
+    tracing::info!(
+        "{}",
+        fl!("extracting-spa", src = spa.to_string_lossy(), dest = dest_xpui.to_string_lossy())
+    );
 
-    logging::info(i18n::lookup_with_args(
-        "extracting_spa",
-        &[
-            ("src", &spa.display().to_string()),
-            ("dest", &dest_apps.join("xpui").display().to_string()),
-        ],
-    ));
-    extract_spa(&spa, &dest_apps, ctx.mirror)?;
-
-    let dest_xpui = dest_apps.join("xpui");
-    logging::info(i18n::lookup("extracting_modules"));
-    if let Err(err) = extract_modules(&ctx.spotify_data_path, &dest_xpui) {
-        logging::error(i18n::lookup_with_args(
-            "failed_extract_modules",
-            &[("err", &err.to_string())],
-        ));
-        return Err(err);
+    let tmp = dest_apps.join("xpui.tmp");
+    if tmp.exists() {
+        cleanup_tmp(&tmp);
     }
 
-    logging::info(i18n::lookup("patching_index"));
-    patch_index(&dest_xpui)?;
+    if let Err(e) = extract_into(&spa, &tmp) {
+        cleanup_tmp(&tmp);
+        return Err(e);
+    }
 
-    link_runtime_dirs(&ctx.config_root, &dest_xpui)?;
-    Ok(())
-}
+    tracing::info!("{}", fl!("patching-index"));
+    if let Err(e) = patch_index(&tmp) {
+        cleanup_tmp(&tmp);
+        return Err(e);
+    }
 
-fn extract_spa(spa: &Path, dest: &Path, mirror: bool) -> Result<()> {
-    if !spa.exists() {
-        if dest.join("xpui").exists() {
-            return Err(anyhow!(i18n::lookup("already_applied")));
+    if let Err(e) = extract_modules(&ctx.spotify_data_path, &ctx.offline_bnk_dir, &tmp) {
+        cleanup_tmp(&tmp);
+        return Err(e);
+    }
+
+    if let Err(e) = link_runtime_dirs(&ctx.config_root, &tmp) {
+        cleanup_tmp(&tmp);
+        return Err(e);
+    }
+
+    if dest_xpui.exists() {
+        std::fs::remove_dir_all(&dest_xpui)?;
+    }
+    std::fs::rename(&tmp, &dest_xpui)?;
+
+    if !ctx.mirror {
+        if let Err(e) = std::fs::remove_file(&backup)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!(error = %e, path = %backup.display(), "failed to remove file");
         }
-        return Err(anyhow!(i18n::lookup_with_args(
-            "xpui_not_found",
-            &[("path", &spa.display().to_string())]
-        )));
+        std::fs::rename(&spa, &backup)?;
     }
 
-    let name = spa
-        .file_name()
-        .and_then(|s| s.to_str())
-        .ok_or_else(|| anyhow!(i18n::lookup("invalid_spa_filename")))?
-        .trim_end_matches(".spa");
-    let extract_to = dest.join(name);
+    #[cfg(target_os = "linux")]
+    register_url_scheme();
 
-    util::unzip_file(spa, &extract_to)?;
-
-    if !mirror {
-        let backup = spa.with_extension("spa.backup");
-        let _ = std::fs::remove_file(&backup);
-        std::fs::rename(spa, &backup)?;
-    }
     Ok(())
 }
 
-fn extract_modules(spotify_data: &Path, dest: &Path) -> Result<()> {
-    let snapshot = std::fs::read_dir(spotify_data)?
-        .filter_map(|e| e.ok())
-        .find(|e| {
-            e.file_name()
-                .to_str()
-                .map(|n| n.starts_with("v8_context_snapshot") && n.ends_with(".bin"))
-                .unwrap_or(false)
-        })
-        .ok_or_else(|| anyhow!(i18n::lookup("snapshot_not_found")))?;
+fn cleanup_tmp(tmp: &Path) {
+    if let Err(e) = std::fs::remove_dir_all(tmp) {
+        tracing::warn!(error = %e, path = %tmp.display(), "failed to clean up temp dir");
+    }
+}
 
-    let data = std::fs::read(snapshot.path())?;
+fn extract_into(spa: &Path, dest: &Path) -> Result<()> {
+    if !spa.exists() {
+        return Err(http_error(400, fl!("xpui-not-found", path = spa.to_string_lossy())));
+    }
+
+    util::unzip_file(spa, dest).map_err(|e| wrap_error(anyhow::anyhow!(e), 500))?;
+    Ok(())
+}
+
+fn extract_modules(spotify_data: &Path, offline_bnk_dir: &Path, dest: &Path) -> Result<()> {
+    let snapshot = find_snapshot(spotify_data)
+        .or_else(|_| find_snapshot(offline_bnk_dir))?
+        .ok_or_else(|| http_error(422, fl!("snapshot-not-found")))?;
+
+    let data = std::fs::read(&snapshot)?;
     let js =
-        util::extract_utf16le_between(&data, "var __webpack_modules__={", "xpui-modules.js.map")?;
+        util::extract_utf16le_between(&data, "var __webpack_modules__={", "xpui-modules.js.map")
+            .ok_or_else(|| {
+                wrap_error(
+                    anyhow::anyhow!(
+                        "could not locate xpui-modules.js.map markers in v8 snapshot at {}",
+                        snapshot.display()
+                    ),
+                    500,
+                )
+            })?;
     std::fs::write(dest.join("xpui-modules.js"), &js)?;
     Ok(())
+}
+
+fn find_snapshot(dir: &Path) -> Result<Option<std::path::PathBuf>> {
+    let entry = std::fs::read_dir(dir)?.filter_map(std::io::Result::ok).find(|e| {
+        e.file_name().to_str().is_some_and(|n| {
+            n.starts_with("v8_context_snapshot")
+                && n.len() > 4
+                && n[n.len() - 4..].eq_ignore_ascii_case(".bin")
+        })
+    });
+    Ok(entry.map(|e| e.path()))
 }
 
 fn patch_index(dest: &Path) -> Result<()> {
     let index = dest.join("index.html");
     let raw = std::fs::read_to_string(&index)?;
     let patched = patch_index_html(&raw)?;
-    std::fs::write(&index, &patched)?;
+    std::fs::write(&index, patched)?;
     Ok(())
 }
 
@@ -103,13 +153,10 @@ fn link_runtime_dirs(config_root: &Path, dest: &Path) -> Result<()> {
     for folder in ["hooks", "modules", "store"] {
         let src = config_root.join(folder);
         let dst = dest.join(folder);
-        logging::info(i18n::lookup_with_args(
-            "linking_dir",
-            &[
-                ("dst", &dst.display().to_string()),
-                ("src", &src.display().to_string()),
-            ],
-        ));
+        tracing::info!(
+            "{}",
+            fl!("linking-dir", dst = dst.to_string_lossy(), src = src.to_string_lossy())
+        );
         if !src.exists() {
             std::fs::create_dir_all(&src)?;
         }
@@ -119,15 +166,12 @@ fn link_runtime_dirs(config_root: &Path, dest: &Path) -> Result<()> {
 }
 
 fn patch_index_html(input: &str) -> Result<String> {
+    let app_version = env!("CARGO_PKG_VERSION");
     let target = "<script defer=\"defer\" src=\"/xpui-snapshot.js\"></script>";
-    let replacement = "<script type=\"module\" src=\"./hooks/index.js\"></script>";
-    let idx = input
-        .find(target)
-        .context(i18n::lookup("index_patch_not_found"))?;
-    Ok(format!(
-        "{}{}{}",
-        &input[..idx],
-        replacement,
-        &input[idx + target.len()..]
-    ))
+    let version_script =
+        format!(r#"<script>globalThis.__SPICETIFY_APP_VERSION__="{app_version}";</script>"#);
+    let hooks_script = r#"<script type="module" src="./hooks/index.js"></script>"#;
+    let replacement = format!("{version_script}{hooks_script}");
+    let idx = input.find(target).ok_or_else(|| http_error(422, fl!("index-patch-not-found")))?;
+    Ok(format!("{}{}{}", &input[..idx], replacement, &input[idx + target.len()..]))
 }

@@ -1,0 +1,152 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, MutexGuard};
+
+use arc_swap::ArcSwap;
+use serde::{Deserialize, Serialize};
+
+use crate::error::{Result, wrap_error};
+use crate::platform;
+use crate::process::SpotifyProc;
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Config {
+    #[serde(default)]
+    pub mirror: bool,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spotify_data_path: Option<PathBuf>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spotify_exec_path: Option<PathBuf>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offline_bnk_dir: Option<PathBuf>,
+}
+
+impl Config {
+    pub fn load(path: &Path) -> Result<Self> {
+        if !path.exists() {
+            return Ok(Self::default());
+        }
+        let raw = fs::read_to_string(path)?;
+        let cfg: Self = toml::from_str(&raw)
+            .map_err(|e| wrap_error(anyhow::anyhow!("failed to parse: {e}"), 500))?;
+        cfg.validate()?;
+        Ok(cfg)
+    }
+
+    pub fn save(&self, path: &Path) -> Result<()> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let serialized = toml::to_string_pretty(self)
+            .map_err(|e| wrap_error(anyhow::anyhow!("failed to serialize: {e}"), 500))?;
+        fs::write(path, serialized)?;
+        Ok(())
+    }
+
+    fn validate(&self) -> Result<()> {
+        if let Some(p) = &self.spotify_exec_path {
+            let resolved = platform::resolve_spotify_exec_path(p);
+            if !resolved.is_file() {
+                return Err(crate::error::http_error(
+                    400,
+                    crate::fl!("invalid-exec-path", path = resolved.to_string_lossy()),
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    pub fn to_context(&self) -> Result<AppContext> {
+        AppContext::from_config(platform::default_spicetify_config_root(), self)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct AppContext {
+    pub config_file: PathBuf,
+    pub config_root: PathBuf,
+    pub mirror: bool,
+    pub spotify_data_path: PathBuf,
+    pub spotify_exec_path: PathBuf,
+    pub offline_bnk_dir: PathBuf,
+    process: Arc<Mutex<Option<SpotifyProc>>>,
+}
+
+impl AppContext {
+    pub fn from_config(config_root: PathBuf, cfg: &Config) -> Result<Self> {
+        let exec_path = match &cfg.spotify_exec_path {
+            Some(p) => platform::resolve_spotify_exec_path(p),
+            None => platform::default_spotify_exec_path(),
+        };
+
+        let data_path = cfg.spotify_data_path.clone().unwrap_or_else(|| {
+            exec_path.parent().map_or_else(platform::default_spotify_data_path, Path::to_path_buf)
+        });
+
+        let offline_bnk_dir =
+            cfg.offline_bnk_dir.clone().unwrap_or_else(platform::default_offline_bnk_dir);
+
+        let config_file = config_root.join(Self::config_filename());
+
+        Ok(Self {
+            config_file,
+            config_root,
+            mirror: cfg.mirror,
+            spotify_data_path: data_path,
+            spotify_exec_path: exec_path,
+            offline_bnk_dir,
+            process: Arc::new(Mutex::new(None)),
+        })
+    }
+
+    pub fn lock_process(&self) -> MutexGuard<'_, Option<SpotifyProc>> {
+        self.process.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    #[must_use]
+    pub fn spotify_apps_path(&self) -> PathBuf {
+        self.spotify_data_path.join("Apps")
+    }
+
+    #[must_use]
+    pub fn dest_apps_path(&self) -> PathBuf {
+        if self.mirror { self.config_root.join("apps") } else { self.spotify_apps_path() }
+    }
+
+    #[must_use]
+    pub fn daemon_log_file(&self) -> PathBuf {
+        self.config_root.join("daemon.log")
+    }
+
+    #[must_use]
+    pub fn config_filename() -> &'static str {
+        "config.toml"
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SharedContext<T = AppContext>(Arc<ArcSwap<T>>);
+
+impl<T> SharedContext<T> {
+    #[must_use]
+    pub fn new(value: T) -> Self {
+        Self(Arc::new(ArcSwap::from_pointee(value)))
+    }
+
+    #[must_use]
+    pub fn load(&self) -> arc_swap::Guard<Arc<T>> {
+        self.0.load()
+    }
+
+    #[must_use]
+    pub fn load_full(&self) -> Arc<T> {
+        self.0.load_full()
+    }
+
+    pub fn store(&self, new: T) {
+        self.0.store(Arc::new(new));
+    }
+}

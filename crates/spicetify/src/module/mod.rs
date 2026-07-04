@@ -1,128 +1,154 @@
-pub mod paths;
-pub mod vault;
+pub(crate) mod paths;
+pub(crate) mod vault;
 
 use std::fs;
+use std::path::Path;
 
-use anyhow::{Result, anyhow, bail};
-pub use paths::ModulePaths;
-pub use vault::{Store, StoreIdentifier, Vault};
+pub(crate) use paths::ModulePaths;
+pub(crate) use vault::{Store, StoreIdentifier, Vault};
 
-use crate::{i18n, util};
+use crate::error::{Result, wrap_error};
+use crate::fl;
 
-pub fn initialize(paths: &ModulePaths) -> Result<()> {
-    vault::save(&paths.vault_path, &Vault::default())
+pub(crate) fn initialize(paths: &ModulePaths) -> Result<()> {
+    fs::create_dir_all(paths.vault_path.parent().expect("vault_path always has a parent"))?;
+    vault::save(&paths.vault_path, &Vault::default())?;
+    Ok(())
 }
 
-pub fn add_store(paths: &ModulePaths, id: &StoreIdentifier, store: Store) -> Result<()> {
-    vault::mutate(&paths.vault_path, |v| v.set_store(id, store))
-}
-
-pub fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
-    let mut v = vault::load(&paths.vault_path)?;
-    let store = v.get_store_mut(id).ok_or_else(|| {
-        anyhow!(i18n::lookup_with_args(
-            "missing_store",
-            &[("id", &id.as_string())]
-        ))
+pub(crate) fn add_store(paths: &ModulePaths, id: &StoreIdentifier, store: Store) -> Result<()> {
+    vault::mutate(&paths.vault_path, |v| {
+        v.set_store(id, store);
+        true
     })?;
-    // TODO: add more artifact options (Go: "add more options")
-    // Currently only uses the first artifact (artifacts[0]). Go's module.go:160 has the same
-    // limitation. Should support selecting from multiple artifact URLs (e.g. mirror fallback,
-    // platform-specific artifacts).
+    Ok(())
+}
+
+pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
+    let mut v = vault::load(&paths.vault_path)?;
+    let store = v
+        .get_store_mut(id)
+        .ok_or_else(|| crate::error::http_error(409, fl!("missing-store", id = id.as_string())))?;
     let artifact = store
         .artifacts
         .first()
-        .cloned()
-        .ok_or_else(|| anyhow!(i18n::lookup("store_no_artifacts")))?;
+        .ok_or_else(|| crate::error::http_error(409, fl!("store-no-artifacts")))?;
 
-    // TODO: verify artifact checksum before/during installation
-    // Go's module.go:135 has the same TODO. The checksum field on Store is never validated.
+    let dest = id.store_path(&paths.store_root);
+    fs::create_dir_all(&dest)?;
     if artifact.starts_with("http://") || artifact.starts_with("https://") {
-        let response = reqwest::blocking::get(&artifact)?;
-        let bytes = response.bytes()?;
-        let dest = id.store_path(&paths.store_root);
-        fs::create_dir_all(&dest)?;
-        let archive = dest.join("artifact.zip");
-        fs::write(&archive, &bytes)?;
-        util::unzip_file(&archive, &dest)?;
-        let _ = fs::remove_file(&archive);
+        let response = reqwest::blocking::get(artifact).map_err(|e| {
+            wrap_error(anyhow::anyhow!("{}", fl!("proxy-request-failed")).context(e), 502)
+        })?;
+        let bytes = response.bytes().map_err(|e| {
+            wrap_error(anyhow::anyhow!("{}", fl!("proxy-request-failed")).context(e), 502)
+        })?;
+        let archive_path = dest.join("artifact.zip");
+        fs::write(&archive_path, &bytes)?;
+        // TODO: verify checksum against store.checksum before extracting
+        super::util::archive::unzip_file(&archive_path, &dest)?;
+        if let Err(e) = fs::remove_file(&archive_path)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!(error = %e, "failed to clean up downloaded zip");
+        }
     } else {
-        let src = std::path::PathBuf::from(&artifact);
-        let dest = id.store_path(&paths.store_root);
-        util::create_dir_link(&src, &dest)?;
+        let src = Path::new(artifact);
+        super::util::link::create_dir_link(src, &dest)?;
     }
 
     store.installed = true;
-    vault::save(&paths.vault_path, &v)
+    vault::save(&paths.vault_path, &v)?;
+    Ok(())
 }
 
-pub fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
+pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let mut v = vault::load(&paths.vault_path)?;
     let enabled = {
         let module = v.get_module_mut(&id.module_identifier);
-
         if !id.version.is_empty() && !module.v.contains_key(&id.version) {
-            bail!(i18n::lookup_with_args(
-                "missing_store",
-                &[("id", &id.as_string())]
-            ));
+            return Err(crate::error::http_error(409, fl!("missing-store", id = id.as_string())));
         }
-
         if module.enabled == id.version {
             return Ok(());
         }
-
-        module.enabled = id.version.clone();
+        module.enabled.clone_from(&id.version);
         module.enabled.clone()
     };
 
-    let link = id.module_link_path(&paths.modules_root);
-    let _ = fs::remove_file(&link);
-    let _ = fs::remove_dir_all(&link);
+    // Sub-modules (identifiers containing '/') are served from the store
+    // directory directly — no junction needed.
+    if id.module_identifier.contains('/') {
+        vault::save(&paths.vault_path, &v)?;
+        return Ok(());
+    }
 
+    let link = id.module_link_path(&paths.modules_root);
+    if let Err(e) = fs::remove_file(&link)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        tracing::warn!(error = %e, path = %link.display(), "failed to remove file");
+    }
+    if let Err(e) = fs::remove_dir_all(&link)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        tracing::warn!(error = %e, path = %link.display(), "failed to remove directory");
+    }
     if !enabled.is_empty() {
         let src = id.store_path(&paths.store_root);
-        util::create_dir_link(&src, &link)?;
+        super::util::link::create_dir_link(&src, &link)?;
     }
-    vault::save(&paths.vault_path, &v)
+    vault::save(&paths.vault_path, &v)?;
+    Ok(())
 }
 
-pub fn delete(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
+pub(crate) fn delete(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     vault::mutate(&paths.vault_path, |v| {
         let module = v.get_module_mut(&id.module_identifier);
-
         if module.enabled == id.version {
             module.enabled.clear();
-            let link = id.module_link_path(&paths.modules_root);
-            let _ = fs::remove_file(&link);
+            // Sub-modules have no junction in the modules directory.
+            if !id.module_identifier.contains('/') {
+                let link = id.module_link_path(&paths.modules_root);
+                if let Err(e) = fs::remove_file(&link)
+                    && e.kind() != std::io::ErrorKind::NotFound
+                {
+                    tracing::warn!(error = %e, path = %link.display(), "failed to remove file");
+                }
+            }
         }
         if let Some(store) = module.v.get_mut(&id.version) {
             store.installed = false;
         }
         true
     })?;
-    let _ = fs::remove_dir_all(id.store_path(&paths.store_root));
+    if let Err(e) = fs::remove_dir_all(id.store_path(&paths.store_root))
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        tracing::warn!(error = %e, path = %id.store_path(&paths.store_root).display(), "failed to remove directory");
+    }
     Ok(())
 }
 
-pub fn remove_store(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
+pub(crate) fn remove_store(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     vault::mutate(&paths.vault_path, |v| {
         let module = v.get_module_mut(&id.module_identifier);
-        module.v.remove(&id.version);
+        let _ = module.v.remove(&id.version);
         true
-    })
+    })?;
+    Ok(())
 }
 
-pub fn parse_enable_id(raw: &str) -> Result<StoreIdentifier> {
+pub(crate) fn parse_enable_id(raw: &str) -> Result<StoreIdentifier> {
     if let Some(module_identifier) = raw.strip_suffix('@') {
         if module_identifier.is_empty() || module_identifier.contains('@') {
-            bail!(i18n::lookup("invalid_store_id"))
+            return Err(crate::error::http_error(400, fl!("invalid-store-id")));
         }
         Ok(StoreIdentifier {
             module_identifier: module_identifier.to_string(),
             version: String::new(),
         })
     } else {
-        StoreIdentifier::parse(raw)
+        Ok(StoreIdentifier::parse(raw)?)
     }
 }

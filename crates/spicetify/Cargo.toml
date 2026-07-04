@@ -2,34 +2,37 @@
 name = "spicetify"
 version.workspace = true
 edition.workspace = true
+publish.workspace = true
 
-[lib]
-path = "src/lib.rs"
+[lints]
+workspace = true
 
 [dependencies]
-anyhow = "1.0.102"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-yaml_serde = "0.10.4"
-directories = "6.0.0"
-zip = "8.6.0"
-tar = "0.4.46"
-flate2 = "1.1.9"
-reqwest = { version = "0.13.3", default-features = false, features = ["blocking", "json", "rustls", "cookies"] }
-notify = "8.2.0"
-url = "2.5.8"
-percent-encoding = "2"
-dunce = "1.0.5"
-tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros", "signal"] }
-axum = { version = "0.8.9", features = ["ws"] }
-futures-util = "0.3.32"
-regex = "1.12.3"
-semver = "1"
-fluent-bundle = "0.16"
-fluent-langneg = "0.13"
-intl-memoizer = "0.5"
-unic-langid = "0.9"
-include_dir = "0.7"
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+directories = { workspace = true }
+zip = { workspace = true }
+tar = { workspace = true }
+zstd = { workspace = true }
+reqwest = { workspace = true, default-features = false, features = ["blocking", "json", "rustls", "cookies"] }
+url = { workspace = true }
+dunce = { workspace = true }
+semver = { workspace = true }
+regex-lite = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+i18n-embed = { workspace = true }
+i18n-embed-fl = { workspace = true }
+rust-embed = { workspace = true }
+arc-swap = { workspace = true }
+anyhow = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
-junction = "2"
+windows = { workspace = true }
+windows-registry = { workspace = true }
+
