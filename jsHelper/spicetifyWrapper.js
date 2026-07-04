@@ -519,13 +519,30 @@ const fnStr = (f) => {
 };
 
 (async function hotloadWebpackModules() {
-	while (!window?.webpackChunkclient_web) {
+	// Spotify 1.2.93+ builds with rspack, which renames the chunk global.
+	while (!(window?.webpackChunkclient_web || window?.rspackChunkclient_web)) {
 		await new Promise((r) => setTimeout(r, 50));
 	}
+	const chunkGlobal = window.webpackChunkclient_web || window.rspackChunkclient_web;
 
 	// Force all webpack modules to load
-	const require = webpackChunkclient_web.push([[Symbol()], {}, (re) => re]);
+	const require = chunkGlobal.push([[Symbol()], {}, (re) => re]);
 	while (!require.m) await new Promise((r) => setTimeout(r, 50));
+
+	// rspack exposes proxy-trap module exports that return an object for any
+	// property access and throw on toString, matching every symbol heuristic
+	// below. Drop them from the cache.
+	const isProxyTrap = (m) => {
+		try {
+			return m != null && (typeof m === "object" || typeof m === "function") && m.__spicetify_probe__ !== undefined;
+		} catch {
+			return true;
+		}
+	};
+	const buildCache = () =>
+		Object.keys(require.m)
+			.map((id) => require(id))
+			.filter((m) => !isProxyTrap(m));
 	console.log("[spicetifyWrapper] Waiting for required webpack modules to load");
 	let webpackDidCallback = false;
 	// https://github.com/webpack/webpack/blob/main/lib/runtime/OnChunksLoadedRuntimeModule.js
@@ -539,7 +556,7 @@ const fnStr = (f) => {
 	);
 
 	let chunks = Object.entries(require.m);
-	let cache = Object.keys(require.m).map((id) => require(id));
+	let cache = buildCache();
 
 	// For _renderNavLinks to work
 	Spicetify.React = cache.find((m) => m?.useMemo);
@@ -549,7 +566,7 @@ const fnStr = (f) => {
 	}
 	console.log("[spicetifyWrapper] All required webpack modules loaded");
 	chunks = Object.entries(require.m);
-	cache = Object.keys(require.m).map((id) => require(id));
+	cache = buildCache();
 	Spicetify.Events.platformLoaded.fire();
 
 	const modules = cache
@@ -1363,7 +1380,8 @@ body[data-dragging-uri-type] .spicetify-sc-chevronBtn { pointer-events: none; }`
 				// Avoid creating 2 arrays of the same values
 				try {
 					const values = Object.values(m);
-					return values.some((m) => typeof m === "function") && values.some((m) => m?.PLAYLIST_V2);
+					// PLAYLIST_V2 must be a string; rspack proxy-trap exports return an object for any key.
+					return values.some((m) => typeof m === "function") && values.some((m) => typeof m?.PLAYLIST_V2 === "string");
 				} catch {
 					return false;
 				}
@@ -1371,7 +1389,7 @@ body[data-dragging-uri-type] .spicetify-sc-chevronBtn { pointer-events: none; }`
 		const URIModules = Object.values(URIChunk);
 
 		// URI.Type
-		Spicetify.URI.Type = URIModules.find((m) => m?.PLAYLIST_V2);
+		Spicetify.URI.Type = URIModules.find((m) => typeof m?.PLAYLIST_V2 === "string");
 
 		// Parse functions
 		Spicetify.URI.from = URIModules.find((m) => typeof m === "function" && m.toString().includes("allowedTypes"));
