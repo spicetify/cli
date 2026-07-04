@@ -11,11 +11,11 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
-      - name: Install nightly rustfmt
+      - uses: actions/checkout@v7
+      - name: Install nightly toolchain
         run: |
           rustup toolchain install nightly
-          rustup component add rustfmt --toolchain nightly
+          rustup component add rustfmt clippy --toolchain nightly
       - parallel:
           - name: Check formatting
             run: cargo +nightly fmt --check
@@ -38,7 +38,7 @@ jobs:
           - language: rust
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:

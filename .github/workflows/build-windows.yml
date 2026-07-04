@@ -17,7 +17,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Add Rust target
         run: rustup target add ${{ inputs.arch == 'x86_64' && 'x86_64-pc-windows-msvc' || 'aarch64-pc-windows-msvc' }}
