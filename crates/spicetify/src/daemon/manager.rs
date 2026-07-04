@@ -168,9 +168,7 @@ impl DaemonManager for MacosDaemonManager {
     }
 
     fn is_installed(&self) -> bool {
-        home_dir()
-            .map(|h| h.join("Library/LaunchAgents/app.spicetify.daemon.plist").exists())
-            .unwrap_or(false)
+        home_dir().is_ok_and(|h| h.join("Library/LaunchAgents/app.spicetify.daemon.plist").exists())
     }
 }
 

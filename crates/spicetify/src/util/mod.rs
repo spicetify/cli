@@ -60,12 +60,7 @@ fn decode_utf16le(input: &[u8]) -> Option<String> {
     if !input.len().is_multiple_of(2) {
         return None;
     }
-    let units: Vec<u16> = input
-        .chunks_exact(2)
-        .map(|c| {
-            let [a, b] = c else { unreachable!("chunks_exact(2) yields 2 bytes") };
-            u16::from_le_bytes([*a, *b])
-        })
-        .collect();
+    let units: Vec<u16> =
+        input.as_chunks::<2>().0.iter().map(|[a, b]| u16::from_le_bytes([*a, *b])).collect();
     String::from_utf16(&units).ok()
 }

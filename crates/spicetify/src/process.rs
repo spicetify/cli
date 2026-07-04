@@ -1,6 +1,4 @@
 use std::fmt;
-#[cfg(unix)]
-use std::io;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
@@ -29,9 +27,7 @@ impl SpotifyProc {
         #[cfg(unix)]
         {
             use std::os::unix::process::CommandExt;
-            unsafe {
-                cmd.pre_exec(|| process::setsid().map(|_| ()).map_err(io::Error::from));
-            }
+            let _ = cmd.process_group(0);
         }
         #[cfg(windows)]
         {
@@ -74,7 +70,7 @@ impl SpotifyProc {
     fn send_graceful(&self) {
         #[cfg(unix)]
         {
-            let pid = Pid::from_raw(-(self.pgid as i32)).expect("pgid is non-zero");
+            let pid = Pid::from_raw(-(self.pgid.cast_signed())).expect("pgid is non-zero");
             if let Err(e) = process::kill_process(pid, Signal::TERM) {
                 tracing::debug!("SIGTERM to pgid {} failed: {e}", self.pgid);
             }
@@ -88,7 +84,7 @@ impl SpotifyProc {
     fn send_force(&mut self) {
         #[cfg(unix)]
         {
-            let pid = Pid::from_raw(-(self.pgid as i32)).expect("pgid is non-zero");
+            let pid = Pid::from_raw(-(self.pgid.cast_signed())).expect("pgid is non-zero");
             if let Err(e) = process::kill_process(pid, Signal::KILL) {
                 tracing::debug!("SIGKILL to pgid {} failed: {e}", self.pgid);
             }
@@ -201,7 +197,7 @@ fn find_existing_linux(image: &str) -> Vec<OrphanProc> {
         return orphans;
     };
 
-    for entry in proc_dir.filter_map(|e| e.ok()) {
+    for entry in proc_dir.filter_map(Result::ok) {
         let name = entry.file_name();
         let pid: u32 = match name.to_str().and_then(|s| s.parse().ok()) {
             Some(p) => p,
@@ -213,7 +209,7 @@ fn find_existing_linux(image: &str) -> Vec<OrphanProc> {
 
         match std::fs::read_to_string(format!("/proc/{pid}/comm")) {
             Ok(comm) if comm.trim() == image => {
-                let pgid = read_pgid(pid).unwrap_or(pid as i32);
+                let pgid = read_pgid(pid).unwrap_or(pid.cast_signed());
                 orphans.push(OrphanProc::new(pgid));
             }
             _ => {}
@@ -233,9 +229,8 @@ fn read_pgid(pid: u32) -> Option<i32> {
 #[cfg(target_os = "macos")]
 fn find_existing_macos(image: &str) -> Vec<OrphanProc> {
     let mut orphans = Vec::new();
-    let output = match Command::new("pgrep").arg("-o").arg(image).output() {
-        Ok(o) => o,
-        Err(_) => return orphans,
+    let Ok(output) = Command::new("pgrep").arg("-o").arg(image).output() else {
+        return orphans;
     };
     let stdout = String::from_utf8_lossy(&output.stdout);
     for line in stdout.lines() {
