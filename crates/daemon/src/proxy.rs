@@ -60,7 +60,7 @@ pub async fn handler(
 
     let stream = upstream.bytes_stream();
     let body = Body::from_stream(stream.map(|chunk| {
-        chunk.map_err(|e| spicetify::error::http_error(502, format!("upstream body error: {e}")))
+        chunk.map_err(|e| crate::error::http_error(502, format!("upstream body error: {e}")))
     }));
 
     let mut response = match Response::builder().status(status).body(body) {

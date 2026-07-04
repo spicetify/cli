@@ -1,5 +1,5 @@
 use crate::context::AppContext;
-use crate::error::{Result, wrap_error};
+use crate::error::Result;
 use crate::{fl, util};
 
 pub(crate) fn run(ctx: &AppContext) -> Result<()> {
@@ -7,9 +7,9 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     let bytes = reqwest::blocking::get(
         "https://github.com/veryboringhwl/hooks/releases/latest/download/hooks.tar.zst",
     )
-    .map_err(|e| wrap_error(anyhow::anyhow!("{}", fl!("proxy-request-failed")).context(e), 502))?
+    .map_err(|e| anyhow::anyhow!("{}", fl!("proxy-request-failed")).context(e))?
     .bytes()
-    .map_err(|e| wrap_error(anyhow::anyhow!("{}", fl!("proxy-request-failed")).context(e), 502))?;
+    .map_err(|e| anyhow::anyhow!("{}", fl!("proxy-request-failed")).context(e))?;
 
     let hooks = ctx.config_root.join("hooks");
     if let Err(e) = std::fs::remove_dir_all(&hooks)

@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use i18n_embed_fl as _;
-use spicetify::commands::{Command, DaemonAction, PkgAction, SpotifyAutoUpdate};
+use spicetify::commands::{Command, DaemonAction, PkgAction};
 use spicetify::context::AppContext;
 use spicetify::{fl, logging};
 
@@ -44,9 +44,6 @@ enum CliCommand {
     },
     SelfUpdate,
     Sync,
-    BlockSpotifyUpdates {
-        mode: CliSpotifyAutoUpdate,
-    },
 }
 
 #[derive(Debug, Clone, Copy, Subcommand)]
@@ -65,12 +62,6 @@ enum CliPkgAction {
     Enable { id: String },
 }
 
-#[derive(Debug, Clone, Copy, ValueEnum)]
-enum CliSpotifyAutoUpdate {
-    Block,
-    Unblock,
-}
-
 impl From<CliCommand> for Command {
     fn from(c: CliCommand) -> Self {
         match c {
@@ -84,9 +75,6 @@ impl From<CliCommand> for Command {
             CliCommand::Protocol { uri } => Command::Protocol { uri },
             CliCommand::SelfUpdate => Command::SelfUpdate,
             CliCommand::Sync => Command::Sync,
-            CliCommand::BlockSpotifyUpdates { mode } => {
-                Command::BlockSpotifyUpdates { mode: mode.into() }
-            }
         }
     }
 }
@@ -109,15 +97,6 @@ impl From<CliPkgAction> for PkgAction {
             CliPkgAction::Install { id, url } => PkgAction::Install { id, url },
             CliPkgAction::Delete { id } => PkgAction::Delete { id },
             CliPkgAction::Enable { id } => PkgAction::Enable { id },
-        }
-    }
-}
-
-impl From<CliSpotifyAutoUpdate> for SpotifyAutoUpdate {
-    fn from(m: CliSpotifyAutoUpdate) -> Self {
-        match m {
-            CliSpotifyAutoUpdate::Block => SpotifyAutoUpdate::Block,
-            CliSpotifyAutoUpdate::Unblock => SpotifyAutoUpdate::Unblock,
         }
     }
 }

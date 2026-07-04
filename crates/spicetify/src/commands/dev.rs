@@ -1,5 +1,5 @@
 use crate::context::AppContext;
-use crate::error::{Result, http_error};
+use crate::error::Result;
 use crate::{fl, util};
 
 pub(crate) fn run(ctx: &AppContext) -> Result<()> {
@@ -32,7 +32,7 @@ fn patch_developer_mode(data: &mut [u8]) -> Result<()> {
     }
 
     if !found {
-        return Err(http_error(500, fl!("app-developer-not-found")));
+        return Err(anyhow::anyhow!(fl!("app-developer-not-found")));
     }
 
     Ok(())

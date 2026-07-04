@@ -4,7 +4,7 @@ use std::process::Command;
 use url::Url;
 
 use crate::context::AppContext;
-use crate::error::{Result, http_error, wrap_error};
+use crate::error::Result;
 use crate::fl;
 use crate::module::{self, ModulePaths, Store};
 
@@ -18,9 +18,9 @@ pub fn run(ctx: &AppContext, uri: &str) -> Result<()> {
 }
 
 pub fn handle(ctx: &AppContext, uri: &str) -> Result<String> {
-    let u = Url::parse(uri).map_err(|_| http_error(400, fl!("proxy-invalid-url")))?;
+    let u = Url::parse(uri).map_err(|_| anyhow::anyhow!(fl!("proxy-invalid-url")))?;
     if u.scheme() != "spicetify" {
-        return Err(http_error(400, fl!("unsupported-scheme")));
+        return Err(anyhow::anyhow!(fl!("unsupported-scheme")));
     }
 
     let opaque = u.path();
@@ -30,7 +30,7 @@ pub fn handle(ctx: &AppContext, uri: &str) -> Result<String> {
 
     let prefix = format!("spicetify:{uuid}:");
     let action = ProtocolAction::parse(action)
-        .ok_or_else(|| http_error(502, fl!("protocol-error", err = "unknown action")))?;
+        .ok_or_else(|| anyhow::anyhow!(fl!("protocol-error", err = "unknown action")))?;
     let result = perform(ctx, action, &u);
 
     let mut response = prefix;
@@ -128,7 +128,7 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
 
 fn require_id(query: &[(Cow<'_, str>, Cow<'_, str>)]) -> Result<module::vault::StoreIdentifier> {
     let raw = require_param(query, "id")?;
-    module::vault::StoreIdentifier::parse(&raw).map_err(|e| http_error(400, e.to_string()))
+    module::vault::StoreIdentifier::parse(&raw).map_err(|e| anyhow::anyhow!(e.to_string()))
 }
 
 fn require_param(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Result<String> {
@@ -136,7 +136,7 @@ fn require_param(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Result<St
         .iter()
         .find(|(k, _)| k == key)
         .map(|(_, v)| v.to_string())
-        .ok_or_else(|| http_error(400, format!("missing '{key}' query parameter")))
+        .ok_or_else(|| anyhow::anyhow!("missing '{key}' query parameter"))
 }
 
 fn get_param(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Option<String> {
@@ -157,8 +157,7 @@ fn launch_uri(uri: &str) -> Result<()> {
     };
 
     let uri = uri.to_string();
-    let child =
-        result.map_err(|e| wrap_error(anyhow::anyhow!("failed to open URI '{uri}': {e}"), 502))?;
+    let child = result.map_err(|e| anyhow::anyhow!("failed to open URI '{uri}': {e}"))?;
     drop(child);
     Ok(())
 }

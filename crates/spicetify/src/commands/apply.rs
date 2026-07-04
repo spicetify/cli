@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::context::AppContext;
-use crate::error::{Result, http_error, wrap_error};
+use crate::error::Result;
 use crate::{fl, util};
 
 #[cfg(target_os = "linux")]
@@ -34,7 +34,7 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     let backup = spa.with_extension("spa.backup");
 
     if !spa.exists() && dest_xpui.exists() {
-        return Err(http_error(409, fl!("already-applied")));
+        return Err(anyhow::anyhow!(fl!("already-applied")));
     }
 
     if !spa.exists() && !ctx.mirror && backup.exists() {
@@ -102,28 +102,25 @@ fn cleanup_tmp(tmp: &Path) {
 
 fn extract_into(spa: &Path, dest: &Path) -> Result<()> {
     if !spa.exists() {
-        return Err(http_error(400, fl!("xpui-not-found", path = spa.to_string_lossy())));
+        return Err(anyhow::anyhow!(fl!("xpui-not-found", path = spa.to_string_lossy())));
     }
 
-    util::unzip_file(spa, dest).map_err(|e| wrap_error(anyhow::anyhow!(e), 500))?;
+    util::unzip_file(spa, dest).map_err(|e| anyhow::anyhow!("failed to extract spa: {e}"))?;
     Ok(())
 }
 
 fn extract_modules(spotify_data: &Path, offline_bnk_dir: &Path, dest: &Path) -> Result<()> {
     let snapshot = find_snapshot(spotify_data)
         .or_else(|_| find_snapshot(offline_bnk_dir))?
-        .ok_or_else(|| http_error(422, fl!("snapshot-not-found")))?;
+        .ok_or_else(|| anyhow::anyhow!(fl!("snapshot-not-found")))?;
 
     let data = std::fs::read(&snapshot)?;
     let js =
         util::extract_utf16le_between(&data, "var __webpack_modules__={", "xpui-modules.js.map")
             .ok_or_else(|| {
-                wrap_error(
-                    anyhow::anyhow!(
-                        "could not locate xpui-modules.js.map markers in v8 snapshot at {}",
-                        snapshot.display()
-                    ),
-                    500,
+                anyhow::anyhow!(
+                    "could not locate xpui-modules.js.map markers in v8 snapshot at {}",
+                    snapshot.display()
                 )
             })?;
     std::fs::write(dest.join("xpui-modules.js"), &js)?;
@@ -172,6 +169,6 @@ fn patch_index_html(input: &str) -> Result<String> {
         format!(r#"<script>globalThis.__SPICETIFY_APP_VERSION__="{app_version}";</script>"#);
     let hooks_script = r#"<script type="module" src="./hooks/index.js"></script>"#;
     let replacement = format!("{version_script}{hooks_script}");
-    let idx = input.find(target).ok_or_else(|| http_error(422, fl!("index-patch-not-found")))?;
+    let idx = input.find(target).ok_or_else(|| anyhow::anyhow!(fl!("index-patch-not-found")))?;
     Ok(format!("{}{}{}", &input[..idx], replacement, &input[idx + target.len()..]))
 }

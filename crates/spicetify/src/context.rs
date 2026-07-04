@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use arc_swap::ArcSwap;
 use serde::{Deserialize, Serialize};
 
-use crate::error::{Result, wrap_error};
-use crate::platform;
+use crate::error::Result;
 use crate::process::SpotifyProc;
+use crate::{fl, platform};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
@@ -31,7 +31,7 @@ impl Config {
         }
         let raw = fs::read_to_string(path)?;
         let cfg: Self = toml::from_str(&raw)
-            .map_err(|e| wrap_error(anyhow::anyhow!("failed to parse: {e}"), 500))?;
+            .map_err(|e| anyhow::anyhow!("failed to parse config.toml: {e}"))?;
         cfg.validate()?;
         Ok(cfg)
     }
@@ -41,7 +41,7 @@ impl Config {
             fs::create_dir_all(parent)?;
         }
         let serialized = toml::to_string_pretty(self)
-            .map_err(|e| wrap_error(anyhow::anyhow!("failed to serialize: {e}"), 500))?;
+            .map_err(|e| anyhow::anyhow!("failed to serialize config: {e}"))?;
         fs::write(path, serialized)?;
         Ok(())
     }
@@ -50,10 +50,10 @@ impl Config {
         if let Some(p) = &self.spotify_exec_path {
             let resolved = platform::resolve_spotify_exec_path(p);
             if !resolved.is_file() {
-                return Err(crate::error::http_error(
-                    400,
-                    crate::fl!("invalid-exec-path", path = resolved.to_string_lossy()),
-                ));
+                return Err(anyhow::anyhow!(fl!(
+                    "invalid-exec-path",
+                    path = resolved.to_string_lossy()
+                )));
             }
         }
         Ok(())
@@ -128,25 +128,25 @@ impl AppContext {
 }
 
 #[derive(Debug, Clone)]
-pub struct SharedContext<T = AppContext>(Arc<ArcSwap<T>>);
+pub struct SharedContext(Arc<ArcSwap<AppContext>>);
 
-impl<T> SharedContext<T> {
+impl SharedContext {
     #[must_use]
-    pub fn new(value: T) -> Self {
-        Self(Arc::new(ArcSwap::from_pointee(value)))
+    pub fn new(ctx: AppContext) -> Self {
+        Self(Arc::new(ArcSwap::from_pointee(ctx)))
     }
 
     #[must_use]
-    pub fn load(&self) -> arc_swap::Guard<Arc<T>> {
+    pub fn load(&self) -> arc_swap::Guard<Arc<AppContext>> {
         self.0.load()
     }
 
     #[must_use]
-    pub fn load_full(&self) -> Arc<T> {
+    pub fn load_full(&self) -> Arc<AppContext> {
         self.0.load_full()
     }
 
-    pub fn store(&self, new: T) {
-        self.0.store(Arc::new(new));
+    pub fn store(&self, ctx: AppContext) {
+        self.0.store(Arc::new(ctx));
     }
 }

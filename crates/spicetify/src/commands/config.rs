@@ -13,10 +13,8 @@ pub(crate) fn run(ctx: &AppContext) {
         "{}",
         fl!("config-spotify-exec-path", path = ctx.spotify_exec_path.to_string_lossy())
     );
-    if !ctx.offline_bnk_dir.as_os_str().is_empty() {
-        tracing::info!(
-            "{}",
-            fl!("config-offline-bnk-dir", path = ctx.offline_bnk_dir.to_string_lossy())
-        );
-    }
+    tracing::info!(
+        "{}",
+        fl!("config-offline-bnk-dir", path = ctx.offline_bnk_dir.to_string_lossy())
+    );
 }

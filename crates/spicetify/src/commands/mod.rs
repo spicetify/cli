@@ -3,7 +3,6 @@ use crate::error::Result;
 use crate::fl;
 
 pub mod apply;
-mod block_spotify_updates;
 mod config;
 mod daemon;
 mod dev;
@@ -26,7 +25,6 @@ pub enum Command {
     Protocol { uri: String },
     SelfUpdate,
     Sync,
-    BlockSpotifyUpdates { mode: SpotifyAutoUpdate },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -43,12 +41,6 @@ pub enum PkgAction {
     Install { id: String, url: String },
     Delete { id: String },
     Enable { id: String },
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum SpotifyAutoUpdate {
-    Block,
-    Unblock,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -141,9 +133,6 @@ impl Command {
                 .pre(Phase::StopSpotify)
                 .post(Phase::StartSpotify),
             Self::Dev => Lifecycle::new().pre(Phase::StopSpotify).post(Phase::StartSpotify),
-            Self::BlockSpotifyUpdates { mode: SpotifyAutoUpdate::Unblock } => {
-                Lifecycle::new().pre(Phase::StopSpotify)
-            }
             _ => Lifecycle::new(),
         }
     }
@@ -154,7 +143,6 @@ impl Command {
             Self::Apply => Some(fl!("applied-patches")),
             Self::Fix => Some(fl!("restored-stock")),
             Self::Dev => Some(fl!("app-developer-enabled")),
-            Self::BlockSpotifyUpdates { .. } => Some(fl!("exec-patched")),
             Self::Daemon(DaemonAction::Start) => Some(fl!("daemon-starting")),
             Self::Daemon(DaemonAction::Stop) => Some(fl!("daemon-stopping-resp")),
             Self::Daemon(DaemonAction::Install) => Some(fl!("daemon-enabling")),
@@ -221,8 +209,5 @@ pub fn dispatch_inner(cmd: &Command, ctx: &AppContext) -> Result<()> {
         Command::Protocol { uri } => protocol::run(ctx, uri),
         Command::Sync => sync::run(ctx),
         Command::SelfUpdate => self_update::run(),
-        Command::BlockSpotifyUpdates { mode } => {
-            block_spotify_updates::run(ctx, matches!(mode, SpotifyAutoUpdate::Block))
-        }
     }
 }

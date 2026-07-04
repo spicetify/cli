@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 fn home_dir() -> PathBuf {
     directories::UserDirs::new()
-        .and_then(|u| u.home_dir().to_path_buf().into())
+        .map(|u| u.home_dir().to_path_buf())
         .expect("unable to determine home directory")
 }
 

@@ -5,7 +5,7 @@ pub(super) fn spicetify_config_root() -> PathBuf {
         return PathBuf::from(local).join("Spicetify");
     }
     directories::UserDirs::new()
-        .and_then(|u| u.home_dir().to_path_buf().into())
+        .map(|u| u.home_dir().to_path_buf())
         .expect("unable to determine home directory")
         .join("AppData")
         .join("Local")

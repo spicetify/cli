@@ -16,9 +16,8 @@ pub(crate) fn create_dir_link(target: &Path, link: &Path) -> Result<()> {
     }
     #[cfg(windows)]
     {
-        use crate::error::wrap_error;
         std::os::windows::fs::junction_point(target, link)
-            .map_err(|e| wrap_error(anyhow::anyhow!("junction create failed: {e}"), 500))?;
+            .map_err(|e| anyhow::anyhow!("junction create failed: {e}"))?;
         Ok(())
     }
 }
@@ -28,25 +27,15 @@ fn remove_link(link: &Path) -> Result<()> {
     if let Err(e) = std::fs::remove_dir(link)
         && e.kind() != std::io::ErrorKind::NotFound
     {
-        use crate::error::wrap_error;
-        return Err(wrap_error(anyhow::anyhow!("junction delete failed: {e}"), 500));
+        return Err(anyhow::anyhow!("junction delete failed: {e}"));
     }
     Ok(())
 }
 
 #[cfg(not(windows))]
 fn remove_link(link: &Path) -> Result<()> {
-    let md = match std::fs::symlink_metadata(link) {
-        Ok(m) => m,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-        Err(e) => return Err(e.into()),
-    };
-    if md.is_symlink() {
-        std::fs::remove_file(link)?;
-    } else if md.is_dir() {
-        std::fs::remove_dir_all(link)?;
-    } else {
-        std::fs::remove_file(link)?;
+    match std::fs::remove_file(link) {
+        Ok(()) | Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.into()),
     }
-    Ok(())
 }

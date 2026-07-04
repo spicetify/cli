@@ -19,10 +19,7 @@ struct PatchTargets {
 
 pub(crate) fn run(ctx: &AppContext, block: bool) -> Result<()> {
     let app_dir = ctx.spotify_exec_path.parent().ok_or_else(|| {
-        crate::error::http_error(
-            400,
-            fl!("invalid-exec-path", path = ctx.spotify_exec_path.to_string_lossy()),
-        )
+        anyhow::anyhow!(fl!("invalid-exec-path", path = ctx.spotify_exec_path.to_string_lossy()))
     })?;
 
     let t = PatchTargets {
@@ -39,7 +36,7 @@ pub(crate) fn run(ctx: &AppContext, block: bool) -> Result<()> {
     }
 
     if !t.dll.exists() || !t.exe.exists() || !t.elf.exists() {
-        return Err(crate::error::http_error(422, fl!("missing-files-for-patch")));
+        return Err(anyhow::anyhow!(fl!("missing-files-for-patch")));
     }
 
     let mut dll_data = fs::read(&t.dll)?;
@@ -58,7 +55,7 @@ pub(crate) fn run(ctx: &AppContext, block: bool) -> Result<()> {
     patch_sig_check(&mut dll_data)?;
 
     if !patch_update_url(&mut dll_data) {
-        return Err(crate::error::http_error(422, fl!("update-url-not-found")));
+        return Err(anyhow::anyhow!(fl!("update-url-not-found")));
     }
 
     fs::copy(&t.dll, &t.dll_bak).map(|_| ())?;
@@ -75,7 +72,7 @@ pub(crate) fn run(ctx: &AppContext, block: bool) -> Result<()> {
 
 fn unblock(t: &PatchTargets) -> Result<()> {
     if !t.dll_bak.exists() || !t.exe_bak.exists() || !t.elf_bak.exists() {
-        return Err(crate::error::http_error(422, fl!("backups-not-found")));
+        return Err(anyhow::anyhow!(fl!("backups-not-found")));
     }
 
     for p in [&t.dll, &t.exe, &t.elf] {
@@ -101,23 +98,17 @@ struct PeSection {
 }
 
 fn read_le_u16(data: &[u8], offset: usize) -> Result<u16> {
-    let bytes = data
-        .get(offset..offset + 2)
-        .ok_or_else(|| crate::error::http_error(422, fl!("not-valid-pe")))?;
+    let bytes = data.get(offset..offset + 2).ok_or_else(|| anyhow::anyhow!(fl!("not-valid-pe")))?;
     Ok(u16::from_le_bytes(bytes.try_into().expect("2-byte slice")))
 }
 
 fn read_le_u32(data: &[u8], offset: usize) -> Result<u32> {
-    let bytes = data
-        .get(offset..offset + 4)
-        .ok_or_else(|| crate::error::http_error(422, fl!("not-valid-pe")))?;
+    let bytes = data.get(offset..offset + 4).ok_or_else(|| anyhow::anyhow!(fl!("not-valid-pe")))?;
     Ok(u32::from_le_bytes(bytes.try_into().expect("4-byte slice")))
 }
 
 fn read_le_i32(data: &[u8], offset: usize) -> Result<i32> {
-    let bytes = data
-        .get(offset..offset + 4)
-        .ok_or_else(|| crate::error::http_error(422, fl!("not-valid-pe")))?;
+    let bytes = data.get(offset..offset + 4).ok_or_else(|| anyhow::anyhow!(fl!("not-valid-pe")))?;
     Ok(i32::from_le_bytes(bytes.try_into().expect("4-byte slice")))
 }
 
@@ -154,7 +145,7 @@ fn strip_pe_signature(data: &mut [u8]) -> Result<()> {
     }
     let pe_offset = read_le_u32(data, 0x3C)? as usize;
     if pe_offset + 24 > data.len() || data.get(pe_offset..pe_offset + 2) != Some(b"PE") {
-        return Err(crate::error::http_error(422, fl!("not-valid-pe")));
+        return Err(anyhow::anyhow!(fl!("not-valid-pe")));
     }
     let machine = read_le_u16(data, pe_offset + 4)?;
     let opt_offset = pe_offset + 24;
@@ -165,7 +156,7 @@ fn strip_pe_signature(data: &mut [u8]) -> Result<()> {
     };
     let cert_offset = data_dir_offset + 32;
     if cert_offset + 8 > data.len() {
-        return Err(crate::error::http_error(400, fl!("data-dir-oob")));
+        return Err(anyhow::anyhow!(fl!("data-dir-oob")));
     }
     if let Some(entry) = data.get_mut(cert_offset..cert_offset + 8) {
         entry.fill(0);
@@ -177,9 +168,9 @@ fn patch_sig_check(data: &mut [u8]) -> Result<()> {
     let needle = b"Check failed: sep_pos != std::wstring::npos.";
     let str_offset = u32::try_from(
         util::find_subslice(data, needle)
-            .ok_or_else(|| crate::error::http_error(422, fl!("sig-check-str-not-found")))?,
+            .ok_or_else(|| anyhow::anyhow!(fl!("sig-check-str-not-found")))?,
     )
-    .map_err(|_| crate::error::http_error(422, fl!("not-valid-pe")))?;
+    .map_err(|_| anyhow::anyhow!(fl!("not-valid-pe")))?;
 
     let pe_offset = read_le_u32(data, 0x3C)? as usize;
     let machine = read_le_u16(data, pe_offset + 4)?;
@@ -188,13 +179,13 @@ fn patch_sig_check(data: &mut [u8]) -> Result<()> {
     let sections = parse_sections(data, pe_offset)?;
     let str_rva = file_offset_to_rva(str_offset, &sections);
     if str_rva == 0 {
-        return Err(crate::error::http_error(422, fl!("rva-calc-failed")));
+        return Err(anyhow::anyhow!(fl!("rva-calc-failed")));
     }
 
     let code_sec = sections
         .iter()
         .find(|s| s.is_code)
-        .ok_or_else(|| crate::error::http_error(422, fl!("no-exec-section")))?;
+        .ok_or_else(|| anyhow::anyhow!(fl!("no-exec-section")))?;
     let start = code_sec.file_offset as usize;
     let end = (code_sec.file_offset + code_sec.size) as usize;
     let patch_offset = if is_arm {
@@ -204,7 +195,7 @@ fn patch_sig_check(data: &mut [u8]) -> Result<()> {
     };
 
     if patch_offset == 0 {
-        return Err(crate::error::http_error(422, fl!("call-site-not-found")));
+        return Err(anyhow::anyhow!(fl!("call-site-not-found")));
     }
 
     let patch: &[u8] = if is_arm {
@@ -215,7 +206,7 @@ fn patch_sig_check(data: &mut [u8]) -> Result<()> {
     let dst_end = patch_offset
         .checked_add(patch.len())
         .filter(|&e| e <= data.len())
-        .ok_or_else(|| crate::error::http_error(422, fl!("not-valid-pe")))?;
+        .ok_or_else(|| anyhow::anyhow!(fl!("not-valid-pe")))?;
     if let Some(dst) = data.get_mut(patch_offset..dst_end) {
         dst.copy_from_slice(patch);
     }
@@ -268,8 +259,7 @@ fn find_call_site_x64(
     while i < limit {
         if data.get(i..i + 3) == Some(&[0x48, 0x8D, 0x15]) {
             let rel = read_le_i32(data, i + 3)?;
-            let i_u32 =
-                u32::try_from(i).map_err(|_| crate::error::http_error(422, fl!("not-valid-pe")))?;
+            let i_u32 = u32::try_from(i).map_err(|_| anyhow::anyhow!(fl!("not-valid-pe")))?;
             let rva = file_offset_to_rva(i_u32, sections);
             let target = (rva.cast_signed() + 7 + rel).cast_unsigned();
             if target == str_rva {
@@ -320,8 +310,7 @@ fn find_call_site_arm64(
                 imm |= 0xFFE0_0000;
             }
             let imm = i64::from(imm.cast_signed()) << 12;
-            let i_u32 =
-                u32::try_from(i).map_err(|_| crate::error::http_error(422, fl!("not-valid-pe")))?;
+            let i_u32 = u32::try_from(i).map_err(|_| anyhow::anyhow!(fl!("not-valid-pe")))?;
             let pc = u64::from(file_offset_to_rva(i_u32, sections));
             let page = (pc & 0x000F_FFFF_FFFF_F000).cast_signed() + imm;
             #[allow(clippy::cast_sign_loss)]

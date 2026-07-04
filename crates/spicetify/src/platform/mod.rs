@@ -9,7 +9,7 @@ mod windows;
 
 #[must_use]
 pub fn default_spicetify_config_root() -> PathBuf {
-    if let Ok(root) = std::env::var("SPICETIFY_CONFIG") {
+    if let Ok(root) = std::env::var("SPICETIFY_CONFIG_ROOT") {
         let p = PathBuf::from(root);
         if p.is_absolute() {
             return p;

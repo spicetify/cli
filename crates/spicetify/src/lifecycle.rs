@@ -4,7 +4,7 @@
 use std::time::Duration;
 
 use crate::context::AppContext;
-use crate::error::{Result, http_error};
+use crate::error::Result;
 use crate::fl;
 use crate::process::SpotifyProc;
 
@@ -32,9 +32,7 @@ pub fn stop(ctx: &AppContext) -> Result<()> {
         tracing::info!("{}", fl!("spotify-stopping"));
         p.terminate(SHUTDOWN_TIMEOUT);
     }
-    for orphan in SpotifyProc::find_existing(ctx) {
-        orphan.terminate(SHUTDOWN_TIMEOUT);
-    }
+    SpotifyProc::force_kill_orphans(ctx);
     wait_for(ctx, false, SHUTDOWN_TIMEOUT)?;
     Ok(())
 }
@@ -61,12 +59,9 @@ fn wait_for(ctx: &AppContext, expect_running: bool, timeout: Duration) -> Result
         std::thread::sleep(delay);
         delay = (delay * 2).min(Duration::from_millis(800));
     }
-    Err(http_error(
-        504,
-        if expect_running {
-            fl!("spotify-start-timeout", secs = timeout.as_secs().to_string())
-        } else {
-            fl!("spotify-exit-timeout")
-        },
-    ))
+    Err(anyhow::anyhow!(if expect_running {
+        fl!("spotify-start-timeout", secs = timeout.as_secs().to_string())
+    } else {
+        fl!("spotify-exit-timeout")
+    }))
 }

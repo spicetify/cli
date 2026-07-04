@@ -7,7 +7,7 @@ use std::path::Path;
 pub(crate) use paths::ModulePaths;
 pub(crate) use vault::{Store, StoreIdentifier, Vault};
 
-use crate::error::{Result, wrap_error};
+use crate::error::Result;
 use crate::fl;
 
 pub(crate) fn initialize(paths: &ModulePaths) -> Result<()> {
@@ -28,21 +28,18 @@ pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let mut v = vault::load(&paths.vault_path)?;
     let store = v
         .get_store_mut(id)
-        .ok_or_else(|| crate::error::http_error(409, fl!("missing-store", id = id.as_string())))?;
-    let artifact = store
-        .artifacts
-        .first()
-        .ok_or_else(|| crate::error::http_error(409, fl!("store-no-artifacts")))?;
+        .ok_or_else(|| anyhow::anyhow!(fl!("missing-store", id = id.as_string())))?;
+    let artifact =
+        store.artifacts.first().ok_or_else(|| anyhow::anyhow!(fl!("store-no-artifacts")))?;
 
     let dest = id.store_path(&paths.store_root);
     fs::create_dir_all(&dest)?;
     if artifact.starts_with("http://") || artifact.starts_with("https://") {
-        let response = reqwest::blocking::get(artifact).map_err(|e| {
-            wrap_error(anyhow::anyhow!("{}", fl!("proxy-request-failed")).context(e), 502)
-        })?;
-        let bytes = response.bytes().map_err(|e| {
-            wrap_error(anyhow::anyhow!("{}", fl!("proxy-request-failed")).context(e), 502)
-        })?;
+        let response = reqwest::blocking::get(artifact)
+            .map_err(|e| anyhow::anyhow!("{}: {e}", fl!("proxy-request-failed")))?;
+        let bytes = response
+            .bytes()
+            .map_err(|e| anyhow::anyhow!("{}: {e}", fl!("proxy-request-failed")))?;
         let archive_path = dest.join("artifact.zip");
         fs::write(&archive_path, &bytes)?;
         // TODO: verify checksum against store.checksum before extracting
@@ -67,7 +64,7 @@ pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let enabled = {
         let module = v.get_module_mut(&id.module_identifier);
         if !id.version.is_empty() && !module.v.contains_key(&id.version) {
-            return Err(crate::error::http_error(409, fl!("missing-store", id = id.as_string())));
+            return Err(anyhow::anyhow!(fl!("missing-store", id = id.as_string())));
         }
         if module.enabled == id.version {
             return Ok(());
@@ -142,7 +139,7 @@ pub(crate) fn remove_store(paths: &ModulePaths, id: &StoreIdentifier) -> Result<
 pub(crate) fn parse_enable_id(raw: &str) -> Result<StoreIdentifier> {
     if let Some(module_identifier) = raw.strip_suffix('@') {
         if module_identifier.is_empty() || module_identifier.contains('@') {
-            return Err(crate::error::http_error(400, fl!("invalid-store-id")));
+            return Err(anyhow::anyhow!(fl!("invalid-store-id")));
         }
         Ok(StoreIdentifier {
             module_identifier: module_identifier.to_string(),

@@ -14,7 +14,7 @@ use tokio::sync::{Notify, mpsc};
 const DEBOUNCE: Duration = Duration::from_millis(500);
 
 pub fn spawn_apps_watcher(
-    shared: SharedContext<AppContext>,
+    shared: SharedContext,
     shutdown: Arc<Notify>,
 ) -> Option<tokio::task::JoinHandle<()>> {
     let apps = (*shared.load_full()).spotify_apps_path();
@@ -52,7 +52,7 @@ pub fn spawn_apps_watcher(
 }
 
 pub fn spawn_config_watcher(
-    shared: SharedContext<AppContext>,
+    shared: SharedContext,
     shutdown: Arc<Notify>,
 ) -> Option<tokio::task::JoinHandle<()>> {
     let arch = shared.load_full();
@@ -141,7 +141,7 @@ fn is_config_change(event: &Event) -> bool {
 }
 
 fn rebuild_context(
-    shared: &SharedContext<AppContext>,
+    shared: &SharedContext,
     config_file: &std::path::Path,
 ) -> spicetify::error::Result<AppContext> {
     let base = shared.load_full();

@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::context::AppContext;
-use crate::error::{Result, http_error, wrap_error};
+use crate::error::Result;
 use crate::fl;
 
 pub(crate) fn run(ctx: &AppContext) -> Result<()> {
@@ -47,15 +47,12 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
                 "{}",
                 fl!("failed-restore-backup", path = path.to_string_lossy(), err = e.to_string())
             );
-            return Err(wrap_error(
-                anyhow::anyhow!("failed to restore {}: {e}", path.display()),
-                500,
-            ));
+            return Err(anyhow::anyhow!("failed to restore {}: {e}", path.display()));
         }
     }
 
     if found == 0 {
-        return Err(http_error(409, fl!("already-stock")));
+        return Err(anyhow::anyhow!(fl!("already-stock")));
     }
     Ok(())
 }

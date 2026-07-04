@@ -19,6 +19,20 @@ jobs:
       - name: Check formatting
         run: cargo +nightly fmt --check
 
+  shear:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install nightly toolchain
+        run: |
+          rustup toolchain install nightly
+      - name: Install cargo-shear
+        run: cargo +nightly install cargo-shear
+      - name: Check unused dependencies
+        run: cargo +nightly shear --deny-warnings
+
   clippy:
     name: clippy (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

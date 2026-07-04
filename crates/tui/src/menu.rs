@@ -1,4 +1,4 @@
-use spicetify::commands::{Command, DaemonAction, SpotifyAutoUpdate};
+use spicetify::commands::{Command, DaemonAction};
 use spicetify::fl;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,8 +15,6 @@ pub enum MenuAction {
     DaemonInstall,
     DaemonUninstall,
     DaemonStatus,
-    BlockUpdates,
-    UnblockUpdates,
 }
 
 impl MenuAction {
@@ -35,8 +33,6 @@ impl MenuAction {
             Self::DaemonInstall => fl!("tui-mn-daemon-install"),
             Self::DaemonUninstall => fl!("tui-mn-daemon-uninstall"),
             Self::DaemonStatus => fl!("tui-mn-daemon-status"),
-            Self::BlockUpdates => fl!("tui-mn-block-updates"),
-            Self::UnblockUpdates => fl!("tui-mn-unblock-updates"),
         }
     }
 
@@ -55,8 +51,6 @@ impl MenuAction {
             Self::DaemonInstall => fl!("tui-mn-daemon-install-desc"),
             Self::DaemonUninstall => fl!("tui-mn-daemon-uninstall-desc"),
             Self::DaemonStatus => fl!("tui-mn-daemon-status-desc"),
-            Self::BlockUpdates => fl!("tui-mn-block-updates-desc"),
-            Self::UnblockUpdates => fl!("tui-mn-unblock-updates-desc"),
         }
     }
 
@@ -75,10 +69,6 @@ impl MenuAction {
             Self::DaemonInstall => Command::Daemon(DaemonAction::Install),
             Self::DaemonUninstall => Command::Daemon(DaemonAction::Uninstall),
             Self::DaemonStatus => Command::Daemon(DaemonAction::Status),
-            Self::BlockUpdates => Command::BlockSpotifyUpdates { mode: SpotifyAutoUpdate::Block },
-            Self::UnblockUpdates => {
-                Command::BlockSpotifyUpdates { mode: SpotifyAutoUpdate::Unblock }
-            }
         }
     }
 }
@@ -87,7 +77,6 @@ impl MenuAction {
 pub enum CategoryId {
     Patching,
     Config,
-    SpotifyUpdates,
     Daemon,
 }
 
@@ -97,7 +86,6 @@ impl CategoryId {
         match self {
             Self::Patching => fl!("tui-mn-cat-patching"),
             Self::Config => fl!("tui-mn-cat-config"),
-            Self::SpotifyUpdates => fl!("tui-mn-cat-spotify-updates"),
             Self::Daemon => fl!("tui-mn-cat-daemon"),
         }
     }
@@ -107,7 +95,6 @@ impl CategoryId {
         match self {
             Self::Patching => fl!("tui-mn-cat-patching-desc"),
             Self::Config => fl!("tui-mn-cat-config-desc"),
-            Self::SpotifyUpdates => fl!("tui-mn-cat-spotify-updates-desc"),
             Self::Daemon => fl!("tui-mn-cat-daemon-desc"),
         }
     }
@@ -130,10 +117,6 @@ pub(crate) const CATEGORIES: &[MenuCategory] = &[
         ],
     },
     MenuCategory { id: CategoryId::Config, actions: &[MenuAction::Config, MenuAction::SelfUpdate] },
-    MenuCategory {
-        id: CategoryId::SpotifyUpdates,
-        actions: &[MenuAction::BlockUpdates, MenuAction::UnblockUpdates],
-    },
     MenuCategory {
         id: CategoryId::Daemon,
         actions: &[

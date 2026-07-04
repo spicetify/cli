@@ -17,7 +17,7 @@ const SHUTDOWN_GRACE: Duration = Duration::from_secs(1);
 
 #[derive(Debug)]
 pub struct DaemonState {
-    pub ctx: SharedContext<AppContext>,
+    pub ctx: SharedContext,
     pub client: reqwest::Client,
     pub shutdown: Arc<tokio::sync::Notify>,
     pub startup: std::time::Instant,

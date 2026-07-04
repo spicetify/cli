@@ -5,7 +5,7 @@ pub(super) fn spicetify_config_root() -> PathBuf {
         return PathBuf::from(xdg).join("spicetify");
     }
     directories::UserDirs::new()
-        .and_then(|u| u.home_dir().to_path_buf().into())
+        .map(|u| u.home_dir().to_path_buf())
         .expect("unable to determine home directory")
         .join(".config")
         .join("spicetify")
@@ -13,7 +13,7 @@ pub(super) fn spicetify_config_root() -> PathBuf {
 
 pub(super) fn default_spotify_install_dir() -> PathBuf {
     directories::UserDirs::new()
-        .and_then(|u| u.home_dir().to_path_buf().into())
+        .map(|u| u.home_dir().to_path_buf())
         .expect("unable to determine home directory")
         .join("Library")
         .join("Application Support")
