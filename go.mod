@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/go-ini/ini v1.67.0
-	github.com/mattn/go-colorable v0.1.14
+	github.com/mattn/go-colorable v0.1.15
 	github.com/pterm/pterm v0.12.82
 	golang.org/x/net v0.56.0
 	golang.org/x/sys v0.46.0
