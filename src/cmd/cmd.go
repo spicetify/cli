@@ -224,20 +224,25 @@ func getExtractFolder() (string, string) {
 }
 
 func getThemeFolder(themeName string) string {
+	folder := findThemeFolder(themeName)
+	if len(folder) == 0 {
+		utils.PrintError(`Theme "` + themeName + `" not found`)
+		os.Exit(1)
+	}
+	return folder
+}
+
+func findThemeFolder(themeName string) string {
 	folder := filepath.Join(userThemesFolder, themeName)
-	_, err := os.Stat(folder)
-	if err == nil {
+	if _, err := os.Stat(folder); err == nil {
 		return folder
 	}
 
 	folder = filepath.Join(utils.GetExecutableDir(), "Themes", themeName)
-	_, err = os.Stat(folder)
-	if err == nil {
+	if _, err := os.Stat(folder); err == nil {
 		return folder
 	}
 
-	utils.PrintError(`Theme "` + themeName + `" not found`)
-	os.Exit(1)
 	return ""
 }
 

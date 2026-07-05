@@ -149,6 +149,10 @@ func main() {
 
 	// Unchainable commands
 	switch commands[0] {
+	case "doctor":
+		cmd.Doctor()
+		return
+
 	case "config":
 		commands = commands[1:]
 		if len(commands) == 0 {
@@ -397,6 +401,9 @@ watch               Enter watch mode.
 restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
+doctor              Run diagnostics on Spotify installation, backup state, and config,
+                    and report anything that looks broken.
+
 spotify-updates     Block Spotify updates by patching spotify executable.
                     Accepts "block" or "unblock" as the parameter.
 
