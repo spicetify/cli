@@ -1,4 +1,56 @@
 const ProviderGenius = (() => {
+	// Allow-list of tags that may appear inside a Genius lyric container. Everything
+	// else (script, iframe, img, svg, style, on* handlers, ...) is stripped before
+	// the HTML is handed to `dangerouslySetInnerHTML` in Pages.js#GeniusPage.
+	const ALLOWED_LYRIC_TAGS = new Set(["A", "BR", "I", "B", "EM", "STRONG", "SPAN", "P", "DIV"]);
+	const ALLOWED_LYRIC_ATTRS = {
+		A: new Set(["href", "data-id"]),
+	};
+	const SAFE_HREF = /^(https?:\/\/|\/|#)/i;
+
+	function sanitizeLyricNode(node) {
+		let out = "";
+		for (const child of node.childNodes) {
+			if (child.nodeType === 3 /* TEXT_NODE */) {
+				out += child.textContent.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+				continue;
+			}
+			if (child.nodeType !== 1 /* ELEMENT_NODE */) continue;
+
+			const tag = child.tagName;
+			if (!ALLOWED_LYRIC_TAGS.has(tag)) {
+				// Drop the wrapper but keep its (sanitized) text so lyrics remain readable.
+				out += sanitizeLyricNode(child);
+				continue;
+			}
+
+			const attrs = [];
+			const allowed = ALLOWED_LYRIC_ATTRS[tag];
+			if (allowed) {
+				for (const attr of child.attributes) {
+					if (!allowed.has(attr.name)) continue;
+					let value = attr.value;
+					if (attr.name === "href") {
+						const trimmed = value.trim();
+						// Refuse javascript:, data:, vbscript: and other exotic schemes.
+						if (!SAFE_HREF.test(trimmed)) continue;
+						value = trimmed;
+					}
+					attrs.push(`${attr.name}="${value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}"`);
+				}
+			}
+
+			const tagName = tag.toLowerCase();
+			const attrStr = attrs.length ? ` ${attrs.join(" ")}` : "";
+			if (tag === "BR") {
+				out += "<br>";
+			} else {
+				out += `<${tagName}${attrStr}>${sanitizeLyricNode(child)}</${tagName}>`;
+			}
+		}
+		return out;
+	}
+
 	function getChildDeep(parent, isDeep = false) {
 		let acc = "";
 
@@ -81,8 +133,12 @@ const ProviderGenius = (() => {
 		const htmlDoc = parser.parseFromString(body, "text/html");
 		const lyricsDiv = htmlDoc.querySelectorAll('div[data-lyrics-container="true"]');
 
+		// Genius pages contain crowd-sourced annotations and are fetched over a
+		// CORS proxy, so their HTML is untrusted. Rebuild the markup from an
+		// allow-list before returning it — the string is rendered downstream with
+		// `dangerouslySetInnerHTML` in Pages.js#GeniusPage.
 		for (const i of lyricsDiv) {
-			lyrics += `${i.innerHTML}<br>`;
+			lyrics += `${sanitizeLyricNode(i)}<br>`;
 		}
 
 		if (!lyrics?.length) {
