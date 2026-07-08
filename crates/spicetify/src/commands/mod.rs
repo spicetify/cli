@@ -165,9 +165,6 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
 
     if result.is_ok() {
         lc.run_post(ctx)?;
-        if let Some(msg) = cmd.success_message() {
-            tracing::info!("{msg}");
-        }
     }
 
     result
@@ -184,11 +181,14 @@ pub fn dispatch_inner(cmd: &Command, ctx: &AppContext) -> Result<()> {
             DaemonAction::Start => {
                 if let Err(e) = crate::daemon::process::spawn(ctx) {
                     tracing::warn!(error = %e, "{}", fl!("failed-spawn-daemon"));
+                } else {
+                    tracing::info!("{}", fl!("daemon-starting"));
                 }
                 Ok(())
             }
             DaemonAction::Stop => {
                 crate::daemon::shutdown_daemon();
+                tracing::info!("{}", fl!("daemon-stopping-resp"));
                 Ok(())
             }
             DaemonAction::Install => daemon::install(ctx),

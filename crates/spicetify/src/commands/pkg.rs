@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::context::AppContext;
 use crate::error::Result;
+use crate::fl;
 use crate::module::{self, ModulePaths, Store};
 
 pub(crate) fn install(ctx: &AppContext, id_str: &str, url: &str) -> Result<()> {
@@ -14,6 +15,8 @@ pub(crate) fn install(ctx: &AppContext, id_str: &str, url: &str) -> Result<()> {
         Store { installed: false, artifacts: vec![normalized], checksum: String::new() },
     )?;
     module::install(&paths, &id)?;
+
+    tracing::info!("{}", fl!("module-added"));
     Ok(())
 }
 
@@ -22,6 +25,8 @@ pub(crate) fn delete(ctx: &AppContext, id_str: &str) -> Result<()> {
     let paths = ModulePaths::from_config_root(&ctx.config_root);
     module::delete(&paths, &id)?;
     module::remove_store(&paths, &id)?;
+
+    tracing::info!("{}", fl!("module-deleted"));
     Ok(())
 }
 
@@ -29,6 +34,8 @@ pub(crate) fn enable(ctx: &AppContext, id_str: &str) -> Result<()> {
     let id = module::vault::StoreIdentifier::parse(id_str)?;
     let paths = ModulePaths::from_config_root(&ctx.config_root);
     module::enable(&paths, &id)?;
+
+    tracing::info!("{}", fl!("module-enabled"));
     Ok(())
 }
 

@@ -4,11 +4,13 @@ use crate::fl;
 
 pub(crate) fn install(ctx: &AppContext) -> Result<()> {
     crate::daemon::manager::create().install(ctx)?;
+    tracing::info!("{}", fl!("daemon-enabling"));
     Ok(())
 }
 
 pub(crate) fn uninstall(_ctx: &AppContext) -> Result<()> {
     crate::daemon::manager::create().uninstall()?;
+    tracing::info!("{}", fl!("daemon-disabling"));
     Ok(())
 }
 

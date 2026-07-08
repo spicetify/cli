@@ -12,6 +12,10 @@ workspace = true
 name = "spicetify-daemon"
 path = "src/main.rs"
 
+[package.metadata.winresource]
+FileDescription = "Spicetify Daemon"
+ProductName = "Spicetify"
+
 [dependencies]
 spicetify = { path = "../spicetify" }
 anyhow = { workspace = true }
@@ -32,3 +36,5 @@ fs4 = { workspace = true }
 [target.'cfg(windows)'.dependencies]
 windows = { workspace = true }
 
+[build-dependencies]
+winresource = "0.1"

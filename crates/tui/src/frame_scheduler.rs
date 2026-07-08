@@ -20,6 +20,10 @@ impl FrameRequester {
     pub(crate) fn schedule(&self) {
         let _ = self.tx.send(Instant::now());
     }
+
+    pub(crate) fn schedule_in(&self, dur: Duration) {
+        let _ = self.tx.send(Instant::now() + dur);
+    }
 }
 
 struct FrameScheduler {

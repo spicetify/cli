@@ -39,7 +39,10 @@ fn start(ctx: AppContext) -> anyhow::Result<()> {
         anyhow::anyhow!(e)
     })?;
 
-    let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .max_blocking_threads(1)
+        .build()?;
     let result = runtime.block_on(async move {
         let shared = SharedContext::new(ctx);
         let shutdown = Arc::new(tokio::sync::Notify::new());

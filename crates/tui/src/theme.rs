@@ -2,17 +2,18 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, BorderType, Borders, Padding};
 
-pub const PURPLE_HAZE: Color = Color::Rgb(0x5A, 0x56, 0xE0);
-pub const NEON_PINK: Color = Color::Rgb(0xEE, 0x6F, 0xF8);
-pub const BLUEBERRY: Color = Color::Rgb(0x75, 0x71, 0xF9);
+pub const BURNT_ORANGE: Color = Color::Rgb(0xE5, 0x54, 0x2B);
+pub const SPICE_ORANGE: Color = Color::Rgb(0xFF, 0x64, 0x37);
+pub const SPICE_AMBER: Color = Color::Rgb(0xFF, 0x9A, 0x4D);
 
+pub const DIALOG_BG: Color = Color::Rgb(0x14, 0x14, 0x14);
 pub const SURFACE_DARK: Color = Color::Rgb(0x34, 0x34, 0x42);
 pub const SURFACE_HOVER: Color = Color::Rgb(0x40, 0x40, 0x50);
 pub const SLATE: Color = Color::Rgb(0x78, 0x78, 0x78);
 pub const BORDER_MUTED: Color = Color::Rgb(0x55, 0x55, 0x55);
 
-pub const KEY_DIM: Color = Color::Rgb(0x94, 0x94, 0x94);
-pub const DESC_DIM: Color = Color::Rgb(0x7E, 0x7E, 0x7E);
+pub const TEXT_SECONDARY: Color = Color::Rgb(0x94, 0x94, 0x94);
+pub const TEXT_MUTED: Color = Color::Rgb(0x7E, 0x7E, 0x7E);
 
 pub const SUCCESS_GREEN: Color = Color::Rgb(0x04, 0xB5, 0x75);
 pub const ERROR_RED: Color = Color::Rgb(0xFF, 0x6B, 0x6B);
@@ -27,26 +28,18 @@ pub fn panel(title: &str) -> Block<'static> {
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(BORDER_MUTED))
         .title(format!(" {title} "))
-        .title_style(Style::default().fg(DESC_DIM))
+        .title_style(Style::default().fg(TEXT_MUTED))
         .padding(Padding::horizontal(1))
 }
 
 #[must_use]
-pub fn panel_tight() -> Block<'static> {
-    Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(BORDER_MUTED))
-}
-
-#[must_use]
 pub fn highlight() -> Style {
-    Style::default().fg(NEON_PINK).bg(SURFACE_DARK).add_modifier(Modifier::BOLD)
+    Style::default().fg(Color::Black).bg(SPICE_ORANGE).add_modifier(Modifier::BOLD)
 }
 
 #[must_use]
 pub fn hover_style() -> Style {
-    Style::default().bg(SURFACE_HOVER)
+    highlight()
 }
 
 #[must_use]
@@ -54,7 +47,7 @@ pub fn status_dot(active: bool) -> Span<'static> {
     if active {
         Span::styled("●", Style::default().fg(SUCCESS_GREEN))
     } else {
-        Span::styled("●", Style::default().fg(DESC_DIM))
+        Span::styled("●", Style::default().fg(TEXT_MUTED))
     }
 }
 
@@ -64,19 +57,16 @@ pub fn gradient_at(t: f32) -> Color {
 
     #[rustfmt::skip]
     let stops: [(f32, Color); 5] = [
-        (0.00, PURPLE_HAZE),
-        (0.30, NEON_PINK),
-        (0.55, Color::Rgb(0xF7, 0x93, 0xFF)),
-        (0.75, Color::Rgb(0x22, 0xCC, 0xBB)),
+        (0.00, BURNT_ORANGE),
+        (0.30, SPICE_ORANGE),
+        (0.55, Color::Rgb(0xFF, 0x8C, 0x5A)),
+        (0.75, Color::Rgb(0xFF, 0xB0, 0x67)),
         (1.00, SUCCESS_GREEN),
     ];
 
-    for window in stops.windows(2) {
-        let Some(&[stop_a, stop_b]) = TryInto::<&[_; 2]>::try_into(window).ok() else {
-            continue;
-        };
-        let (a_t, a_c) = (stop_a.0, stop_a.1);
-        let (b_t, b_c) = (stop_b.0, stop_b.1);
+    for i in 0..stops.len().saturating_sub(1) {
+        let Some((a_t, a_c)) = stops.get(i).map(|s| (s.0, s.1)) else { continue };
+        let Some((b_t, b_c)) = stops.get(i + 1).map(|s| (s.0, s.1)) else { continue };
         if t <= b_t {
             let local = (t - a_t) / (b_t - a_t);
             return interpolate(a_c, b_c, local);

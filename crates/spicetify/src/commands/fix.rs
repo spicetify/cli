@@ -54,6 +54,8 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     if found == 0 {
         return Err(anyhow::anyhow!(fl!("already-stock")));
     }
+
+    tracing::info!("{}", fl!("restored-stock"));
     Ok(())
 }
 

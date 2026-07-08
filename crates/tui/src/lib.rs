@@ -8,7 +8,7 @@ pub mod theme;
 use std::io;
 
 use anyhow::Result;
-pub use app::{Page, RunStatus, TuiApp};
+pub use app::{LayoutState, Page, RunStatus, TuiApp};
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::execute;
 use crossterm::terminal::{
@@ -20,6 +20,9 @@ pub use menu::{CategoryId, MenuAction};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use spicetify::context::AppContext;
+use tokio::sync::broadcast;
+
+use crate::frame_scheduler::FrameRequester;
 
 pub fn run(ctx: &AppContext) -> Result<()> {
     let (tx, rx) = std::sync::mpsc::channel();
@@ -27,14 +30,19 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     let mut terminal = setup_terminal()?;
 
     let runtime = tokio::runtime::Builder::new_current_thread().enable_time().build()?;
-    let result = runtime.block_on(async {
-        let (draw_tx, draw_rx) = tokio::sync::broadcast::channel(16);
-        let frame_req = frame_scheduler::FrameRequester::new(draw_tx);
-        let mut app = TuiApp::new(ctx.clone(), tx, rx, frame_req, draw_rx);
-        app.run_async(&mut terminal).await
-    });
+    let panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        runtime.block_on(async {
+            let (draw_tx, _) = broadcast::channel(1);
+            let frame_requester = FrameRequester::new(draw_tx.clone());
+            let mut app = TuiApp::new(ctx.clone(), tx, rx, frame_requester, draw_tx);
+            app.run_async(&mut terminal).await
+        })
+    }));
     restore_terminal(&mut terminal)?;
-    result
+    match panic_result {
+        Ok(result) => result,
+        Err(payload) => std::panic::resume_unwind(payload),
+    }
 }
 
 fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {

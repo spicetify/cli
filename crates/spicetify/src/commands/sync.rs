@@ -18,5 +18,7 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         tracing::warn!(error = %e, path = %hooks.display(), "failed to remove directory");
     }
     util::untar_zst_bytes(&bytes, &hooks)?;
+
+    tracing::info!("{}", fl!("hooks-updated"));
     Ok(())
 }

@@ -91,6 +91,7 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     #[cfg(target_os = "linux")]
     register_url_scheme();
 
+    tracing::info!("{}", fl!("applied-patches"));
     Ok(())
 }
 

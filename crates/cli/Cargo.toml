@@ -12,9 +12,16 @@ workspace = true
 name = "spicetify"
 path = "src/main.rs"
 
+[package.metadata.winresource]
+FileDescription = "Spicetify"
+ProductName = "Spicetify"
+
 [dependencies]
 spicetify = { path = "../spicetify" }
 tui = { path = "../tui" }
 clap = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }
 i18n-embed-fl = { workspace = true }
+
+[build-dependencies]
+winresource = "0.1"

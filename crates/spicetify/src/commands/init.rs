@@ -1,5 +1,6 @@
 use crate::context::{AppContext, Config};
 use crate::error::Result;
+use crate::fl;
 use crate::module::{self, ModulePaths};
 
 pub(crate) fn run(ctx: &AppContext) -> Result<()> {
@@ -23,5 +24,7 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
 
     let paths = ModulePaths::from_config_root(&ctx.config_root);
     module::initialize(&paths)?;
+
+    tracing::info!("{}", fl!("initialised-spicetify"));
     Ok(())
 }
