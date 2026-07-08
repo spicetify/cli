@@ -23,5 +23,5 @@ clap = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }
 i18n-embed-fl = { workspace = true }
 
-[build-dependencies]
+[target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"
