@@ -41,7 +41,7 @@ $outputArch = switch ($platform) {
   'x86_64' { 'x64' }
   'aarch64' { 'arm64' }
 }
-Compress-Archive -Path "dist\portable\*" -DestinationPath "dist\portable-spicetify-$version-$outputArch.zip" -Force
+Compress-Archive -Path "dist\portable\*" -DestinationPath "dist\spicetify-$version-windows-$outputArch.zip" -Force
 Remove-Item -LiteralPath "dist\portable" -Recurse -Force
 
 $arch = $outputArch

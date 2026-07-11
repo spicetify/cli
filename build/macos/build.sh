@@ -2,27 +2,29 @@
 set -e
 
 version=$1
+arch=$2
+
+case $arch in
+	x86_64) target="x86_64-apple-darwin" ;;
+	aarch64) target="aarch64-apple-darwin" ;;
+	*) echo "unsupported arch: $arch" && exit 1 ;;
+esac
+
+cargo build --release --target "$target" --manifest-path ../../Cargo.toml
+
 output_dir="dist"
-
-cargo build --release --target x86_64-apple-darwin --manifest-path ../../Cargo.toml
-cargo build --release --target aarch64-apple-darwin --manifest-path ../../Cargo.toml
-
 mkdir -p "$output_dir"
-lipo -create -output "$output_dir/spicetify" \
-	../../target/x86_64-apple-darwin/release/spicetify \
-	../../target/aarch64-apple-darwin/release/spicetify
-lipo -create -output "$output_dir/spicetify-daemon" \
-	../../target/x86_64-apple-darwin/release/spicetify-daemon \
-	../../target/aarch64-apple-darwin/release/spicetify-daemon
+
+cp "../../target/$target/release/spicetify" "$output_dir/spicetify"
+cp "../../target/$target/release/spicetify-daemon" "$output_dir/spicetify-daemon"
 
 osacompile -x -o "$output_dir/Spicetify.app" main.applescript
 
 rm -f "$output_dir/Spicetify.app/Contents/Resources/applet.icns"
 cp installer/AppIcon.icns "$output_dir/Spicetify.app/Contents/Resources/AppIcon.icns"
 
-mkdir -p "$output_dir/Spicetify.app/Contents/MacOS/bin"
-cp "$output_dir/spicetify" "$output_dir/Spicetify.app/Contents/MacOS/bin/spicetify"
-cp "$output_dir/spicetify-daemon" "$output_dir/Spicetify.app/Contents/MacOS/bin/spicetify-daemon"
+cp "$output_dir/spicetify" "$output_dir/Spicetify.app/Contents/MacOS/spicetify"
+cp "$output_dir/spicetify-daemon" "$output_dir/Spicetify.app/Contents/MacOS/spicetify-daemon"
 
 INFO="$output_dir/Spicetify.app/Contents/Info.plist"
 
@@ -55,15 +57,15 @@ create-dmg \
 	--icon "Spicetify.app" 180 170 \
 	--hide-extension "Spicetify.app" \
 	--app-drop-link 480 170 \
-	"$output_dir/spicetify-$version-macos.dmg" \
+	"$output_dir/spicetify-$version-macos-$arch.dmg" \
 	"$output_dir/Spicetify.app"
 
-tar -c --zstd -f "$output_dir/spicetify-$version-macos.tar.zst" \
+tar -c --zstd -f "$output_dir/spicetify-$version-macos-$arch.tar.zst" \
 	-C "$output_dir" spicetify spicetify-daemon
 
 rm -f "$output_dir/spicetify" "$output_dir/spicetify-daemon"
 rm -rf "$output_dir/Spicetify.app"
 
 echo ""
-echo "  DMG:   $output_dir/spicetify-$version-macos.dmg"
-echo "  tar:   $output_dir/spicetify-$version-macos.tar.gz"
+echo "  DMG:   $output_dir/spicetify-$version-macos-$arch.dmg"
+echo "  tar:   $output_dir/spicetify-$version-macos-$arch.tar.zst"

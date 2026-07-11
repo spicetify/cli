@@ -7,6 +7,10 @@ on:
         description: Version tag
         required: true
         type: string
+      arch:
+        description: Architecture
+        required: true
+        type: string
 
 jobs:
   build:
@@ -15,17 +19,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Add Rust target
+        run: rustup target add ${{ inputs.arch == 'x86_64' && 'x86_64-apple-darwin' || 'aarch64-apple-darwin' }}
+
       - name: Install build dependencies
         run: brew install create-dmg
-
-      - name: Add Rust targets
-        run: rustup target add x86_64-apple-darwin aarch64-apple-darwin
 
       - name: Build
         working-directory: build/macos
         run: |
           chmod +x build.sh
-          ./build.sh "${{ inputs.tag }}"
+          ./build.sh "${{ inputs.tag }}" "${{ inputs.arch }}"
 
       - name: Attest
         uses: actions/attest@v4
@@ -35,5 +39,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
-          name: spicetify-macos
+          name: installer-macos-${{ inputs.arch }}
           path: build/macos/dist/*

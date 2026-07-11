@@ -1,9 +1,3 @@
--- Spicetify macOS app bundle
---
--- Two handlers:
---   run  — first open: PATH + daemon + init; always: opens TUI in Terminal
---   open location  — handles spicetify:// URLs
-
 on ensureLineInFileIfExists(filePath, lineToAdd)
 	set ok to false
 	try
@@ -78,12 +72,13 @@ on setupEnvironment(binFolder, binPath, daemonBinPath, launchAgentName)
 		createLaunchAgent(plistPath, launchAgentName, daemonBinPath)
 		do shell script "launchctl load -w " & quoted form of plistPath
 		do shell script quoted form of binPath & " init"
+		do shell script quoted form of binPath & " apply"
 	end if
 end setupEnvironment
 
 on open location input
 	set dirname to POSIX path of (path to me)
-	set binFolder to dirname & "Contents/MacOS/bin/"
+	set binFolder to dirname & "Contents/MacOS/"
 	set binPath to binFolder & "spicetify"
 
 	do shell script quoted form of binPath & " protocol " & quoted form of input
@@ -91,7 +86,7 @@ end open location
 
 on run
 	set dirname to POSIX path of (path to me)
-	set binFolder to dirname & "Contents/MacOS/bin/"
+	set binFolder to dirname & "Contents/MacOS/"
 	set binPath to binFolder & "spicetify"
 	set daemonBinPath to binFolder & "spicetify-daemon"
 

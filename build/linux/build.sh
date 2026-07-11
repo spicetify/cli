@@ -17,16 +17,13 @@ case $arch in
 	*) output_arch="$arch" ;;
 esac
 
-bin_dir="dist/staging"
-mkdir -p "$bin_dir"
-cp "../../target/$target/release/spicetify" "$bin_dir/spicetify"
-cp "../../target/$target/release/spicetify-daemon" "$bin_dir/spicetify-daemon"
+cp "../../target/$target/release/spicetify" "dist/spicetify"
+cp "../../target/$target/release/spicetify-daemon" "dist/spicetify-daemon"
+cp install.sh "dist/install.sh"
 
-archive_name="spicetify-$version-$output_arch-linux.tar.zst"
-tar -c -I "zstd -T0" -f "dist/$archive_name" -C "$bin_dir" spicetify spicetify-daemon
+archive_name="spicetify-$version-linux-$output_arch.tar.zst"
+tar --zstd -cf "dist/$archive_name" -C dist spicetify spicetify-daemon install.sh
 
-cp "$bin_dir/spicetify" "dist/portable-spicetify-$version-linux-$output_arch"
+cp "dist/spicetify" "dist/portable-spicetify-$version-linux-$output_arch"
 
-rm -rf "$bin_dir"
-
-#TODO: make AppImage
+rm -f "dist/spicetify" "dist/spicetify-daemon" "dist/install.sh"

@@ -70,7 +70,6 @@ ReadyMemoDir=Destination location:
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "enabledaemon"; Description: "Enable background daemon (auto-applies patches on Spotify updates, enables marketplace, enables spicetify:// links)"; GroupDescription: "Additional tasks:"; Flags: checkedonce
 Name: "addtopath"; Description: "Add to PATH (requires shell restart)"; GroupDescription: "Additional tasks:"; Flags: checkedonce
 
 [Files]
@@ -84,10 +83,12 @@ Name: "{app}\bin"
 [Registry]
 Root: HKCU; Subkey: "Software\{#AppName}"; ValueType: string; ValueName: "InstallDir"; ValueData: "{app}"; Flags: uninsdeletekey
 
+[Icons]
+Name: "{autoprograms}\Spicetify"; Filename: "wt.exe"; Parameters: "spicetify"; WorkingDir: "{app}"; IconFilename: "{app}\spicetify.ico"
+
 [Run]
 Filename: "{app}\bin\spicetify.exe"; Parameters: "init"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Initializing Spicetify..."; Check: IsFreshInstall and not IsUpdating
 Filename: "{app}\bin\spicetify.exe"; Parameters: "apply"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Applying Spicetify..."; Check: IsFreshInstall and not IsUpdating
-Filename: "{app}\bin\spicetify.exe"; Parameters: "daemon install"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Enabling daemon auto-start..."; Check: IsFreshInstall and not IsUpdating and WizardIsTaskSelected('enabledaemon')
 Filename: "{app}\bin\spicetify.exe"; Description: "Launch Spicetify"; Flags: nowait postinstall shellexec; WorkingDir: "{app}"; Check: not IsUpdating
 
 [UninstallRun]
