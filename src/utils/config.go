@@ -147,7 +147,8 @@ func getDefaultConfig() *ini.File {
 	for sectionName, keyList := range configLayout {
 		section, err := cfg.NewSection(sectionName)
 		if err != nil {
-			panic(err)
+			PrintError(fmt.Sprintf("Failed to create config section %s: %s", sectionName, err.Error()))
+			continue
 		}
 		for keyName, defaultValue := range keyList {
 			section.NewKey(keyName, defaultValue)
@@ -156,11 +157,12 @@ func getDefaultConfig() *ini.File {
 
 	version, err := cfg.NewSection("Backup")
 	if err != nil {
-		panic(err)
+		PrintError(fmt.Sprintf("Failed to create Backup section: %s", err.Error()))
+	} else {
+		version.Comment = "DO NOT CHANGE!"
+		version.NewKey("version", "")
+		version.NewKey("with", "")
 	}
-	version.Comment = "DO NOT CHANGE!"
-	version.NewKey("version", "")
-	version.NewKey("with", "")
 	return cfg
 }
 
