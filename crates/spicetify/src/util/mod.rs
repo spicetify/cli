@@ -55,7 +55,6 @@ fn utf16le_bytes(s: &str) -> Vec<u8> {
     out
 }
 
-// spotify embeds utf-16le strings in some of their binaries. why.
 fn decode_utf16le(input: &[u8]) -> Option<String> {
     if !input.len().is_multiple_of(2) {
         return None;

@@ -1,12 +1,11 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
 
 use arc_swap::ArcSwap;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
-use crate::process::SpotifyProc;
 use crate::{fl, platform};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -27,6 +26,7 @@ pub struct Config {
 impl Config {
     pub fn load(path: &Path) -> Result<Self> {
         if !path.exists() {
+            tracing::debug!("config file {} not found, using defaults", path.display());
             return Ok(Self::default());
         }
         let raw = fs::read_to_string(path)?;
@@ -48,7 +48,7 @@ impl Config {
 
     fn validate(&self) -> Result<()> {
         if let Some(p) = &self.spotify_exec_path {
-            let resolved = platform::resolve_spotify_exec_path(p);
+            let resolved = platform::coerce_spotify_exec_path(p);
             if !resolved.is_file() {
                 return Err(anyhow::anyhow!(fl!(
                     "invalid-exec-path",
@@ -72,13 +72,12 @@ pub struct AppContext {
     pub spotify_data_path: PathBuf,
     pub spotify_exec_path: PathBuf,
     pub offline_bnk_dir: PathBuf,
-    process: Arc<Mutex<Option<SpotifyProc>>>,
 }
 
 impl AppContext {
     pub fn from_config(config_root: PathBuf, cfg: &Config) -> Result<Self> {
         let exec_path = match &cfg.spotify_exec_path {
-            Some(p) => platform::resolve_spotify_exec_path(p),
+            Some(p) => platform::coerce_spotify_exec_path(p),
             None => platform::default_spotify_exec_path(),
         };
 
@@ -98,12 +97,7 @@ impl AppContext {
             spotify_data_path: data_path,
             spotify_exec_path: exec_path,
             offline_bnk_dir,
-            process: Arc::new(Mutex::new(None)),
         })
-    }
-
-    pub fn lock_process(&self) -> MutexGuard<'_, Option<SpotifyProc>> {
-        self.process.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
     #[must_use]
@@ -127,13 +121,13 @@ impl AppContext {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct SharedContext(Arc<ArcSwap<AppContext>>);
+#[derive(Debug)]
+pub struct SharedContext(ArcSwap<AppContext>);
 
 impl SharedContext {
     #[must_use]
     pub fn new(ctx: AppContext) -> Self {
-        Self(Arc::new(ArcSwap::from_pointee(ctx)))
+        Self(ArcSwap::from_pointee(ctx))
     }
 
     #[must_use]
@@ -149,4 +143,28 @@ impl SharedContext {
     pub fn store(&self, ctx: AppContext) {
         self.0.store(Arc::new(ctx));
     }
+}
+
+pub fn build_context(
+    mirror: bool,
+    spotify_data_path: Option<&str>,
+    spotify_exec_path: Option<&str>,
+    offline_bnk_dir: Option<&str>,
+) -> Result<AppContext> {
+    let config_root = platform::default_spicetify_config_root();
+    let config_file = config_root.join("config.toml");
+    let mut cfg = Config::load(&config_file)?;
+
+    cfg.mirror = cfg.mirror || mirror;
+    if let Some(v) = spotify_data_path {
+        cfg.spotify_data_path = Some(PathBuf::from(v));
+    }
+    if let Some(v) = spotify_exec_path {
+        cfg.spotify_exec_path = Some(PathBuf::from(v));
+    }
+    if let Some(v) = offline_bnk_dir {
+        cfg.offline_bnk_dir = Some(PathBuf::from(v));
+    }
+
+    AppContext::from_config(config_root, &cfg)
 }

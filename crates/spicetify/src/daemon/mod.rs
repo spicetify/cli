@@ -1,17 +1,18 @@
-use std::net::ToSocketAddrs;
+use std::net::{Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub mod manager;
 pub mod process;
 
-pub use manager::{DaemonManager, DaemonManagerError, create as create_manager};
+pub use manager::{DaemonManager, DaemonManagerError};
 
-pub const BIND_ADDR: &str = "127.0.0.1:7967";
+const BIND_ADDR: SocketAddr = SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::LOCALHOST), 7967);
+const BIND_ADDR_STR: &str = "127.0.0.1:7967";
 
 #[must_use]
-pub fn bind_addr() -> std::net::SocketAddr {
-    BIND_ADDR.parse().expect("BIND_ADDR is a hard-coded IP:PORT")
+pub fn bind_addr() -> SocketAddr {
+    BIND_ADDR
 }
 
 #[must_use]
@@ -31,34 +32,29 @@ pub fn daemon_binary_path() -> std::io::Result<PathBuf> {
 
 #[must_use]
 pub fn is_daemon_running() -> bool {
-    let addr = match BIND_ADDR.to_socket_addrs() {
-        Ok(mut iter) => match iter.next() {
-            Some(a) => a,
-            None => return false,
-        },
-        Err(_) => return false,
-    };
-    std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(250)).is_ok()
+    std::net::TcpStream::connect_timeout(&BIND_ADDR, Duration::from_millis(250)).is_ok()
 }
 
 #[must_use]
 pub fn health_check() -> Option<serde_json::Value> {
     let client =
         reqwest::blocking::Client::builder().timeout(Duration::from_secs(2)).build().ok()?;
-    let resp = client.get(format!("http://{BIND_ADDR}/health")).send().ok()?;
+    let resp = client.get(format!("http://{BIND_ADDR_STR}/health")).send().ok()?;
     resp.json().ok()
 }
 
 pub fn shutdown_daemon() {
+    tracing::info!("Shutting down daemon");
     if let Ok(client) = reqwest::blocking::Client::builder().timeout(Duration::from_secs(3)).build()
     {
-        let _ = client.post(format!("http://{BIND_ADDR}/shutdown")).send();
+        let _ = client.post(format!("http://{BIND_ADDR_STR}/shutdown")).send();
     }
     force_kill_daemon();
 }
 
 fn force_kill_daemon() {
     let name = daemon_binary_name();
+    tracing::info!("ensuring daemon is stopped");
     #[cfg(windows)]
     {
         match std::process::Command::new("taskkill")
@@ -75,7 +71,7 @@ fn force_kill_daemon() {
     #[cfg(target_os = "macos")]
     {
         match std::process::Command::new("pkill")
-            .args(["-x", name])
+            .args(["-x", "-KILL", name])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .status()
@@ -88,7 +84,7 @@ fn force_kill_daemon() {
     #[cfg(target_os = "linux")]
     {
         match std::process::Command::new("killall")
-            .args(["-q", name])
+            .args(["-s", "KILL", "-q", name])
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .status()

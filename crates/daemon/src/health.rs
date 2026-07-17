@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 use axum::Json;
 use axum::extract::State;
@@ -11,13 +12,16 @@ use crate::server::DaemonState;
 pub async fn handler(State(state): State<Arc<DaemonState>>) -> impl IntoResponse {
     let ctx = state.ctx.load_full();
 
+    let apps_active = state.apps_watcher_active.load(Ordering::Acquire);
+    let config_active = state.config_watcher_active.load(Ordering::Acquire);
+
     (
         StatusCode::OK,
         Json(json!({
             "daemon": "running",
             "version": spicetify::VERSION,
             "uptime_secs": state.startup.elapsed().as_secs(),
-            "watchers": { "apps": true, "config": true },
+            "watchers": { "apps": apps_active, "config": config_active },
             "spotify_detected": ctx.spotify_exec_path.is_file(),
         })),
     )

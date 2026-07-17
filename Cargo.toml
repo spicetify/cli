@@ -36,7 +36,6 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 directories = "6.0"
-dunce = "1.0"
 notify = "9.0.0-rc.4"
 fs4 = "1.1"
 arc-swap = "1.9"
@@ -61,6 +60,8 @@ ratatui = "0.30"
 crossterm = { version = "0.29", features = ["event-stream"] }
 
 opener = "0.8"
+
+color-eyre = "0.6"
 
 windows = { version = "0.62", features = [
   "Win32_System_Threading",

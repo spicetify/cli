@@ -2,11 +2,16 @@ use crate::context::AppContext;
 use crate::error::Result;
 use crate::{fl, util};
 
-pub(crate) fn run(ctx: &AppContext) -> Result<()> {
+pub(super) fn execute(ctx: &AppContext) -> Result<()> {
+    crate::lifecycle::stop(ctx)?;
+
     let offline_bnk = ctx.offline_bnk_dir.join("offline.bnk");
     let mut data = std::fs::read(&offline_bnk)?;
     patch_developer_mode(&mut data)?;
     std::fs::write(&offline_bnk, &data)?;
+
+    crate::lifecycle::start(ctx)?;
+
     tracing::info!("{}", fl!("app-developer-enabled"));
     Ok(())
 }

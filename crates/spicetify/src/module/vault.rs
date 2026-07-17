@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 static STORE_ID_RE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    #[allow(clippy::unwrap_used)]
-    Regex::new(r"^[A-Za-z0-9._/-]+@[A-Za-z0-9._+-]+$").unwrap()
+    Regex::new(r"^[A-Za-z0-9._/-]+@[A-Za-z0-9._+-]+$")
+        .expect("store id regex is a compile-time constant")
 });
 
 #[derive(Debug, Error)]

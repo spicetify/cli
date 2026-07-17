@@ -32,6 +32,7 @@ async fn ws_handler(
     let origin = headers.get("origin").and_then(|v| v.to_str().ok()).unwrap_or("");
 
     if !origin.is_empty() && origin != ALLOWED_ORIGIN {
+        tracing::warn!(%origin, "WebSocket connection rejected: origin not allowed");
         return (StatusCode::FORBIDDEN, "origin not allowed").into_response();
     }
 
@@ -68,21 +69,34 @@ async fn self_update_handler() -> impl IntoResponse {
     let current_version = spicetify::VERSION;
 
     match tokio::task::spawn_blocking(spicetify::update::check_for_update).await {
-        Ok(Ok(Some(release))) => (
-            StatusCode::OK,
-            Json(serde_json::json!({
-                "status": "ready",
-                "version": release.version(),
-                "current_version": current_version,
-            })),
-        )
-            .into_response(),
-        Ok(Ok(None)) => (
-            StatusCode::OK,
-            Json(serde_json::json!({"status": "up_to_date", "version": current_version})),
-        )
-            .into_response(),
-        Ok(Err(e)) => error::from_error(&e),
-        Err(e) => error::from_error(&e.into()),
+        Ok(Ok(Some(release))) => {
+            let version = release.version();
+            tracing::info!(%version, %current_version, "self-update check: update available");
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "status": "ready",
+                    "version": version,
+                    "current_version": current_version,
+                })),
+            )
+                .into_response()
+        }
+        Ok(Ok(None)) => {
+            tracing::info!(%current_version, "self-update check: up to date");
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({"status": "up_to_date", "version": current_version})),
+            )
+                .into_response()
+        }
+        Ok(Err(e)) => {
+            tracing::warn!(error = %e, "self-update check failed");
+            error::from_error(&e)
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "self-update spawn_blocking failed");
+            error::from_error(&e.into())
+        }
     }
 }

@@ -1,3 +1,5 @@
 [toolchain]
+# needed for junctions on windows
+# and also for nightly fmt
 channel = "nightly-2026-07-03"
 components = ["rustfmt", "clippy"]

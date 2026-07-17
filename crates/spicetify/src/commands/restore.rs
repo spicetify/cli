@@ -4,7 +4,19 @@ use crate::context::AppContext;
 use crate::error::Result;
 use crate::fl;
 
-pub(crate) fn run(ctx: &AppContext) -> Result<()> {
+pub(super) fn execute(ctx: &AppContext) -> Result<()> {
+    if !has_spa_backups(ctx)? {
+        return Err(anyhow::anyhow!(fl!("already-stock")));
+    }
+
+    crate::daemon::shutdown_daemon();
+
+    if let Err(e) = super::daemon::uninstall() {
+        tracing::warn!(error = %e, "failed to uninstall daemon auto-start");
+    }
+
+    crate::lifecycle::stop(ctx)?;
+
     if ctx.mirror {
         let mirror_apps = ctx.config_root.join("apps");
         if let Err(e) = std::fs::remove_dir_all(&mirror_apps)
@@ -17,6 +29,8 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
                 fl!("failed-remove-mirrored-apps", path = mirror_apps.to_string_lossy(), err = e.to_string())
             );
         }
+        crate::lifecycle::start(ctx)?;
+        tracing::info!("{}", fl!("restored-stock"));
         return Ok(());
     }
 
@@ -55,8 +69,26 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         return Err(anyhow::anyhow!(fl!("already-stock")));
     }
 
+    crate::lifecycle::start(ctx)?;
+
     tracing::info!("{}", fl!("restored-stock"));
     Ok(())
+}
+
+fn has_spa_backups(ctx: &AppContext) -> Result<bool> {
+    let apps = ctx.spotify_apps_path();
+    let dir = match std::fs::read_dir(&apps) {
+        Ok(d) => d,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(e) => return Err(e.into()),
+    };
+    for entry in dir {
+        let entry = entry?;
+        if entry.file_name().to_str().is_some_and(|n| n.ends_with(".spa.backup")) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn restore_target(backup: &Path) -> PathBuf {

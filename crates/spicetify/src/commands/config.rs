@@ -1,4 +1,5 @@
 use crate::context::AppContext;
+use crate::error::Result;
 use crate::fl;
 
 pub(crate) fn run(ctx: &AppContext) {
@@ -17,4 +18,14 @@ pub(crate) fn run(ctx: &AppContext) {
         "{}",
         fl!("config-offline-bnk-dir", path = ctx.offline_bnk_dir.to_string_lossy())
     );
+}
+
+pub(crate) fn open_folder(ctx: &AppContext) -> Result<()> {
+    let path = &ctx.config_root;
+    opener::open(path).map_err(|e| {
+        tracing::error!("{}", fl!("config-open-folder-failed", err = e.to_string()));
+        anyhow::anyhow!("failed to open config folder: {e}")
+    })?;
+    tracing::info!("{}", fl!("config-open-folder", path = path.to_string_lossy()));
+    Ok(())
 }

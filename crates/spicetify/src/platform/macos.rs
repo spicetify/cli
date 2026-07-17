@@ -1,13 +1,9 @@
 use std::path::PathBuf;
 
 pub(super) fn spicetify_config_root() -> PathBuf {
-    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
-        return PathBuf::from(xdg).join("spicetify");
-    }
-    directories::UserDirs::new()
-        .map(|u| u.home_dir().to_path_buf())
+    directories::BaseDirs::new()
         .expect("unable to determine home directory")
-        .join(".config")
+        .config_dir()
         .join("spicetify")
 }
 

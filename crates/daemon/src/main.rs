@@ -11,21 +11,15 @@ pub mod watcher;
 
 fn main() {
     spicetify::locale::localize();
-    if let Err(err) = server::run() {
-        log_err(&err);
-        std::process::exit(1);
-    }
-}
 
-fn log_err(err: &anyhow::Error) {
-    use std::path::PathBuf;
-    if let Ok(root) = std::env::var("SPICETIFY_CONFIG_ROOT").or_else(|_| {
-        let p = spicetify::platform::default_spicetify_config_root();
-        Ok::<String, std::env::VarError>(p.display().to_string())
-    }) {
-        let log_path = PathBuf::from(root).join("daemon.log");
-        if let Err(e) = std::fs::write(&log_path, format!("daemon error: {err}\n")) {
-            tracing::warn!(error = %e, "failed to write daemon error log");
-        }
+    let config_root = spicetify::platform::default_spicetify_config_root();
+    let log_path = config_root.join("daemon.log");
+    if let Err(e) = spicetify::logging::init_for_file(&log_path) {
+        eprintln!("failed to initialize daemon logging: {e}");
+    }
+
+    if let Err(err) = server::run() {
+        tracing::error!("daemon fatal error: {err:#}");
+        std::process::exit(1);
     }
 }

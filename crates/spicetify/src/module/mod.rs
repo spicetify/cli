@@ -1,14 +1,29 @@
-pub(crate) mod paths;
 pub(crate) mod vault;
 
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-pub(crate) use paths::ModulePaths;
 pub(crate) use vault::{Store, StoreIdentifier, Vault};
 
 use crate::error::Result;
 use crate::fl;
+
+#[derive(Debug, Clone)]
+pub(crate) struct ModulePaths {
+    pub vault_path: PathBuf,
+    pub store_root: PathBuf,
+    pub modules_root: PathBuf,
+}
+
+impl ModulePaths {
+    pub(crate) fn from_config_root(root: &Path) -> Self {
+        Self {
+            vault_path: root.join("modules").join("vault.json"),
+            store_root: root.join("store"),
+            modules_root: root.join("modules"),
+        }
+    }
+}
 
 pub(crate) fn initialize(paths: &ModulePaths) -> Result<()> {
     fs::create_dir_all(paths.vault_path.parent().expect("vault_path always has a parent"))?;
@@ -73,8 +88,6 @@ pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
         module.enabled.clone()
     };
 
-    // Sub-modules (identifiers containing '/') are served from the store
-    // directory directly — no junction needed.
     if id.module_identifier.contains('/') {
         vault::save(&paths.vault_path, &v)?;
         return Ok(());
@@ -104,7 +117,6 @@ pub(crate) fn delete(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
         let module = v.get_module_mut(&id.module_identifier);
         if module.enabled == id.version {
             module.enabled.clear();
-            // Sub-modules have no junction in the modules directory.
             if !id.module_identifier.contains('/') {
                 let link = id.module_link_path(&paths.modules_root);
                 if let Err(e) = fs::remove_file(&link)
@@ -148,4 +160,47 @@ pub(crate) fn parse_enable_id(raw: &str) -> Result<StoreIdentifier> {
     } else {
         Ok(StoreIdentifier::parse(raw)?)
     }
+}
+
+pub(crate) fn install_from_url(config_root: &Path, id_str: &str, url: &str) -> Result<()> {
+    let id = StoreIdentifier::parse(id_str)?;
+    let paths = ModulePaths::from_config_root(config_root);
+    let normalized = normalize_url(url)?;
+    add_store(
+        &paths,
+        &id,
+        Store { installed: false, artifacts: vec![normalized], checksum: String::new() },
+    )?;
+    install(&paths, &id)?;
+    tracing::info!("{}", fl!("module-added"));
+    Ok(())
+}
+
+pub(crate) fn delete_module(config_root: &Path, id_str: &str) -> Result<()> {
+    let id = StoreIdentifier::parse(id_str)?;
+    let paths = ModulePaths::from_config_root(config_root);
+    delete(&paths, &id)?;
+    remove_store(&paths, &id)?;
+    tracing::info!("{}", fl!("module-deleted"));
+    Ok(())
+}
+
+pub(crate) fn enable_module(config_root: &Path, id_str: &str) -> Result<()> {
+    let id = StoreIdentifier::parse(id_str)?;
+    let paths = ModulePaths::from_config_root(config_root);
+    enable(&paths, &id)?;
+    tracing::info!("{}", fl!("module-enabled"));
+    Ok(())
+}
+
+fn normalize_url(raw: &str) -> Result<String> {
+    if raw.starts_with("http://") || raw.starts_with("https://") {
+        return Ok(raw.to_string());
+    }
+    let path = PathBuf::from(raw);
+    if path.is_absolute() {
+        return Ok(path.to_string_lossy().to_string());
+    }
+    let abs = std::env::current_dir()?.join(&path);
+    Ok(abs.to_string_lossy().to_string())
 }

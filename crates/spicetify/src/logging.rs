@@ -1,15 +1,23 @@
 // i dont think this is right?
 // TODO: copy how codex does it
+use std::fmt;
 use std::sync::mpsc::{Receiver, Sender};
 
 use anyhow::Result;
+use tracing::Level;
 use tracing_subscriber::EnvFilter;
-use tracing_subscriber::fmt::MakeWriter;
+use tracing_subscriber::layer::Layer;
 use tracing_subscriber::prelude::*;
 
 #[derive(Debug, Clone)]
+pub struct LogLine {
+    pub level: Level,
+    pub message: String,
+}
+
+#[derive(Debug, Clone)]
 pub enum TuiEvent {
-    Log(String),
+    Log(LogLine),
     CommandFinished { success: bool },
 }
 
@@ -22,12 +30,7 @@ fn default_filter() -> EnvFilter {
 }
 
 pub fn init_for_tui(tx: &TuiEventSender) -> Result<()> {
-    let writer = ChannelWriter { tx: tx.clone() };
-    let layer = tracing_subscriber::fmt::layer()
-        .with_writer(writer)
-        .with_target(false)
-        .with_level(true)
-        .without_time();
+    let layer = TuiLogLayer { tx: tx.clone() };
     tracing_subscriber::registry()
         .with(default_filter())
         .with(layer)
@@ -36,6 +39,23 @@ pub fn init_for_tui(tx: &TuiEventSender) -> Result<()> {
     Ok(())
 }
 
+pub fn init_for_file(path: &std::path::Path) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .map_err(|e| anyhow::anyhow!("failed to open log file {}: {e}", path.display()))?;
+    tracing_subscriber::fmt()
+        .with_env_filter(default_filter())
+        .with_target(true)
+        .with_writer(std::sync::Mutex::new(file))
+        .try_init()
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
+    Ok(())
+}
 pub fn init_for_cli() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(default_filter())
@@ -46,29 +66,47 @@ pub fn init_for_cli() -> Result<()> {
     Ok(())
 }
 
-struct ChannelWriter {
+struct TuiLogLayer {
     tx: TuiEventSender,
 }
 
-impl std::io::Write for ChannelWriter {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let s = String::from_utf8_lossy(buf);
-        let trimmed = s.trim_end_matches(['\n', '\r']);
-        if !trimmed.is_empty() && self.tx.send(TuiEvent::Log(trimmed.to_string())).is_err() {
-            return Err(std::io::Error::new(std::io::ErrorKind::BrokenPipe, "receiver dropped"));
-        }
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
+impl<S> Layer<S> for TuiLogLayer
+where
+    S: tracing::Subscriber,
+{
+    fn on_event(
+        &self,
+        event: &tracing::Event<'_>,
+        _ctx: tracing_subscriber::layer::Context<'_, S>,
+    ) {
+        let mut visitor = MessageVisitor::default();
+        event.record(&mut visitor);
+        let message = visitor.into_message();
+        let _ = self.tx.send(TuiEvent::Log(LogLine { level: *event.metadata().level(), message }));
     }
 }
 
-impl<'a> MakeWriter<'a> for ChannelWriter {
-    type Writer = ChannelWriter;
+#[derive(Default)]
+struct MessageVisitor {
+    message: Option<String>,
+}
 
-    fn make_writer(&'a self) -> Self::Writer {
-        ChannelWriter { tx: self.tx.clone() }
+impl MessageVisitor {
+    fn into_message(self) -> String {
+        self.message.unwrap_or_default()
+    }
+}
+
+impl tracing::field::Visit for MessageVisitor {
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn fmt::Debug) {
+        if field.name() == "message" {
+            self.message = Some(format!("{value:?}"));
+        }
+    }
+
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        if field.name() == "message" {
+            self.message = Some(value.to_string());
+        }
     }
 }

@@ -1,17 +1,12 @@
-use std::path::PathBuf;
-
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use i18n_embed_fl as _;
-use spicetify::commands::{Command, DaemonAction, PkgAction};
-use spicetify::context::AppContext;
+use spicetify::commands::{Command, ConfigAction, DaemonAction, PkgAction};
 use spicetify::{fl, logging};
 
 #[derive(Debug, Parser)]
 #[command(name = "spicetify", about = "Make Spotify your own")]
 struct SpicetifyCli {
-    #[arg(long)]
-    config: Option<String>,
     #[arg(short = 'm', long, default_value_t = false)]
     mirror: bool,
     #[arg(long)]
@@ -28,11 +23,14 @@ struct SpicetifyCli {
 #[derive(Debug, Clone, Subcommand)]
 enum CliCommand {
     Apply,
-    Config,
+    Config {
+        #[command(subcommand)]
+        action: Option<CliConfigAction>,
+    },
     #[command(subcommand)]
     Daemon(CliDaemonAction),
     Dev,
-    Fix,
+    Restore,
     Init,
     Pkg {
         #[command(subcommand)]
@@ -44,6 +42,11 @@ enum CliCommand {
     },
     SelfUpdate,
     Sync,
+}
+
+#[derive(Debug, Clone, Copy, Subcommand)]
+enum CliConfigAction {
+    Open,
 }
 
 #[derive(Debug, Clone, Copy, Subcommand)]
@@ -66,10 +69,16 @@ impl From<CliCommand> for Command {
     fn from(c: CliCommand) -> Self {
         match c {
             CliCommand::Apply => Command::Apply,
-            CliCommand::Config => Command::Config,
+            CliCommand::Config { action } => {
+                let action = match action {
+                    Some(CliConfigAction::Open) => ConfigAction::OpenFolder,
+                    None => ConfigAction::Show,
+                };
+                Command::Config(action)
+            }
             CliCommand::Daemon(a) => Command::Daemon(a.into()),
             CliCommand::Dev => Command::Dev,
-            CliCommand::Fix => Command::Fix,
+            CliCommand::Restore => Command::Restore,
             CliCommand::Init => Command::Init,
             CliCommand::Pkg { action } => Command::Pkg { action: action.into() },
             CliCommand::Protocol { uri } => Command::Protocol { uri },
@@ -111,8 +120,7 @@ fn main() {
 
 fn run() -> Result<()> {
     let cli = SpicetifyCli::parse();
-    let ctx = build_context(
-        cli.config.as_deref(),
+    let ctx = spicetify::context::build_context(
         cli.mirror,
         cli.spotify_data_path.as_deref(),
         cli.spotify_exec_path.as_deref(),
@@ -127,33 +135,4 @@ fn run() -> Result<()> {
         }
         None => tui::run(&ctx),
     }
-}
-
-fn build_context(
-    config: Option<&str>,
-    mirror: bool,
-    spotify_data_path: Option<&str>,
-    spotify_exec_path: Option<&str>,
-    offline_bnk_dir: Option<&str>,
-) -> Result<AppContext> {
-    let config_root =
-        config.map_or_else(spicetify::platform::default_spicetify_config_root, PathBuf::from);
-
-    let config_name =
-        std::env::var("SPICETIFY_CONFIG_FILE").unwrap_or_else(|_| "config.toml".to_string());
-    let config_file = config_root.join(&config_name);
-    let mut cfg = spicetify::context::Config::load(&config_file)?;
-
-    cfg.mirror = cfg.mirror || mirror;
-    if let Some(v) = spotify_data_path {
-        cfg.spotify_data_path = Some(PathBuf::from(v));
-    }
-    if let Some(v) = spotify_exec_path {
-        cfg.spotify_exec_path = Some(PathBuf::from(v));
-    }
-    if let Some(v) = offline_bnk_dir {
-        cfg.offline_bnk_dir = Some(PathBuf::from(v));
-    }
-
-    AppContext::from_config(config_root, &cfg)
 }

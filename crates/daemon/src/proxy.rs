@@ -41,17 +41,20 @@ pub async fn handler(
     }
 
     let Ok(target) = url::Url::parse(&url) else {
+        tracing::warn!(%url, "proxy received invalid URL");
         return (StatusCode::BAD_REQUEST, spicetify::fl!("proxy-invalid-url")).into_response();
     };
 
     let Ok(body_bytes) = axum::body::to_bytes(request.into_body(), MAX_REQUEST_BODY).await else {
+        tracing::warn!(%target, "proxy request body exceeds {} bytes limit", MAX_REQUEST_BODY);
         return (StatusCode::PAYLOAD_TOO_LARGE, spicetify::fl!("proxy-invalid-body"))
             .into_response();
     };
 
-    let upstream = build_upstream_request(&state.client, method, target, body_bytes, &headers);
+    let upstream = build_upstream_request(&state.client, method, &target, body_bytes, &headers);
 
     let Ok(upstream) = upstream.send().await else {
+        tracing::warn!(%target, "upstream proxy request failed");
         return (StatusCode::BAD_GATEWAY, spicetify::fl!("proxy-request-failed")).into_response();
     };
 
@@ -100,11 +103,11 @@ pub fn apply_cors(h: &mut HeaderMap) {
 fn build_upstream_request(
     client: &reqwest::Client,
     method: Method,
-    target: url::Url,
+    target: &url::Url,
     body_bytes: axum::body::Bytes,
     headers: &HeaderMap,
 ) -> reqwest::RequestBuilder {
-    let mut upstream = client.request(method, target).body(body_bytes);
+    let mut upstream = client.request(method, target.as_str()).body(body_bytes);
 
     let mut has_user_agent = false;
     for (name, value) in headers {

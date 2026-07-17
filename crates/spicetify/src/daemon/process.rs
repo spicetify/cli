@@ -3,10 +3,6 @@ use std::time::Duration;
 
 use thiserror::Error;
 
-use crate::context::AppContext;
-
-const CONFIG_ROOT_ENV: &str = "SPICETIFY_CONFIG_ROOT";
-
 #[derive(Debug, Error)]
 pub enum DaemonSpawnError {
     #[error("failed to locate daemon binary: {0}")]
@@ -19,17 +15,15 @@ pub enum DaemonSpawnError {
     Exited(std::process::ExitStatus),
 }
 
-pub fn spawn(ctx: &AppContext) -> Result<(), DaemonSpawnError> {
+const DAEMON_START_TIMEOUT: Duration = Duration::from_secs(5);
+
+pub fn spawn() -> Result<(), DaemonSpawnError> {
     if super::is_daemon_running() {
         return Ok(());
     }
     let exe = super::daemon_binary_path()?;
     let mut cmd = Command::new(&exe);
-    let _ = cmd
-        .env(CONFIG_ROOT_ENV, &ctx.config_root)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
+    let _ = cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -40,7 +34,7 @@ pub fn spawn(ctx: &AppContext) -> Result<(), DaemonSpawnError> {
     let mut child = cmd.spawn()?;
 
     let addr = super::bind_addr();
-    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    let deadline = std::time::Instant::now() + DAEMON_START_TIMEOUT;
     loop {
         match child.try_wait() {
             Ok(Some(status)) => return Err(DaemonSpawnError::Exited(status)),
@@ -53,10 +47,10 @@ pub fn spawn(ctx: &AppContext) -> Result<(), DaemonSpawnError> {
         if std::time::Instant::now() >= deadline {
             let _ = child.kill();
             let _ = child.wait();
-            return Err(DaemonSpawnError::Io(std::io::Error::new(
-                std::io::ErrorKind::TimedOut,
-                "daemon did not start listening within 5 seconds",
-            )));
+            return Err(DaemonSpawnError::Io(std::io::Error::other(format!(
+                "daemon did not start listening within {} seconds",
+                DAEMON_START_TIMEOUT.as_secs(),
+            ))));
         }
     }
 }

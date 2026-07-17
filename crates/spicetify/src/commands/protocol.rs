@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::process::Command;
 
 use url::Url;
 
@@ -25,19 +24,20 @@ pub fn handle(ctx: &AppContext, uri: &str) -> Result<String> {
 
     let opaque = u.path();
     let mut parts = opaque.split(':');
-    let uuid = parts.next().unwrap_or_default();
+    let module_id = parts.next().unwrap_or_default();
     let action = parts.next().unwrap_or_default();
 
-    let prefix = format!("spicetify:{uuid}:");
+    let prefix = format!("spicetify:{module_id}:");
     let action = ProtocolAction::parse(action)
         .ok_or_else(|| anyhow::anyhow!(fl!("protocol-error", err = "unknown action")))?;
-    let result = perform(ctx, action, &u);
+    perform(ctx, action, &u)?;
 
+    if module_id == "0" {
+        return Ok(String::new());
+    }
     let mut response = prefix;
-    response.push(if result.is_ok() { '1' } else { '0' });
-    result?;
-
-    if uuid == "0" { Ok(String::new()) } else { Ok(response) }
+    response.push('1');
+    Ok(response)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -148,16 +148,5 @@ fn get_all_params(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Vec<Stri
 }
 
 fn launch_uri(uri: &str) -> Result<()> {
-    let result = if cfg!(target_os = "windows") {
-        Command::new("cmd").args(["/c", "start", uri]).spawn()
-    } else if cfg!(target_os = "macos") {
-        Command::new("open").arg(uri).spawn()
-    } else {
-        Command::new("xdg-open").arg(uri).spawn()
-    };
-
-    let uri = uri.to_string();
-    let child = result.map_err(|e| anyhow::anyhow!("failed to open URI '{uri}': {e}"))?;
-    drop(child);
-    Ok(())
+    opener::open(uri).map_err(|e| anyhow::anyhow!("failed to open URI '{uri}': {e}"))
 }

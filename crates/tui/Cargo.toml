@@ -17,3 +17,4 @@ i18n-embed-fl = { workspace = true }
 tokio = { workspace = true }
 futures-util = { workspace = true }
 tracing = { workspace = true }
+color-eyre = { workspace = true }

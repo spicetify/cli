@@ -1,7 +1,7 @@
 mod app;
+pub(crate) mod components;
 mod frame_scheduler;
-mod log_buffer;
-mod menu;
+pub mod log_buffer;
 mod render;
 pub mod theme;
 
@@ -16,7 +16,6 @@ use crossterm::terminal::{
 };
 use i18n_embed_fl as _;
 pub use log_buffer::LogBuffer;
-pub use menu::{CategoryId, MenuAction};
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use spicetify::context::AppContext;
@@ -25,6 +24,7 @@ use tokio::sync::broadcast;
 use crate::frame_scheduler::FrameRequester;
 
 pub fn run(ctx: &AppContext) -> Result<()> {
+    color_eyre::install().map_err(|e| anyhow::anyhow!("{e}"))?;
     let (tx, rx) = std::sync::mpsc::channel();
     spicetify::logging::init_for_tui(&tx)?;
     let mut terminal = setup_terminal()?;

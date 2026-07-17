@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
 use spicetify::context::{AppContext, SharedContext};
@@ -17,15 +18,16 @@ const SHUTDOWN_GRACE: Duration = Duration::from_secs(1);
 
 #[derive(Debug)]
 pub struct DaemonState {
-    pub ctx: SharedContext,
+    pub ctx: Arc<SharedContext>,
     pub client: reqwest::Client,
     pub shutdown: Arc<tokio::sync::Notify>,
     pub startup: std::time::Instant,
+    pub apps_watcher_active: Arc<AtomicBool>,
+    pub config_watcher_active: Arc<AtomicBool>,
 }
 
 pub fn run() -> anyhow::Result<()> {
-    let config_root = std::env::var("SPICETIFY_CONFIG_ROOT")
-        .map_or_else(|_| spicetify::platform::default_spicetify_config_root(), PathBuf::from);
+    let config_root = spicetify::platform::default_spicetify_config_root();
     let config_file = config_root.join("config.toml");
     let cfg = spicetify::context::Config::load(&config_file)?;
     let ctx = AppContext::from_config(config_root, &cfg)?;
@@ -34,7 +36,7 @@ pub fn run() -> anyhow::Result<()> {
 }
 
 fn start(ctx: AppContext) -> anyhow::Result<()> {
-    let lock = acquire_instance_lock().map_err(|e| {
+    let _lock = acquire_instance_lock(&ctx.config_root).map_err(|e| {
         tracing::error!(error = %e, "another daemon is already running");
         anyhow::anyhow!(e)
     })?;
@@ -43,31 +45,40 @@ fn start(ctx: AppContext) -> anyhow::Result<()> {
         .enable_all()
         .max_blocking_threads(1)
         .build()?;
-    let result = runtime.block_on(async move {
-        let shared = SharedContext::new(ctx);
+    runtime.block_on(async move {
+        let shared = Arc::new(SharedContext::new(ctx));
         let shutdown = Arc::new(tokio::sync::Notify::new());
+        let apps_watcher_active = Arc::new(AtomicBool::new(false));
+        let config_watcher_active = Arc::new(AtomicBool::new(false));
         let state = Arc::new(DaemonState {
-            ctx: shared.clone(),
+            ctx: Arc::clone(&shared),
             client: build_http_client()?,
             shutdown: Arc::clone(&shutdown),
             startup: std::time::Instant::now(),
+            apps_watcher_active: Arc::clone(&apps_watcher_active),
+            config_watcher_active: Arc::clone(&config_watcher_active),
         });
 
-        let apps = watcher::spawn_apps_watcher(shared.clone(), Arc::clone(&shutdown));
-        let cfg = watcher::spawn_config_watcher(shared.clone(), Arc::clone(&shutdown));
+        let apps = watcher::spawn_apps_watcher(
+            Arc::clone(&shared),
+            Arc::clone(&shutdown),
+            Arc::clone(&apps_watcher_active),
+        );
+        let cfg = watcher::spawn_config_watcher(
+            Arc::clone(&shared),
+            Arc::clone(&shutdown),
+            Arc::clone(&config_watcher_active),
+        );
 
         run_server(state, shutdown, apps, cfg).await
-    });
-    drop(runtime);
-    drop(lock);
-    result
+    })
 }
 
 fn build_http_client() -> anyhow::Result<reqwest::Client> {
     Ok(reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
         .redirect(reqwest::redirect::Policy::none())
         .cookie_store(true)
-        .timeout(Duration::from_secs(30))
         .build()?)
 }
 
@@ -81,14 +92,14 @@ async fn run_server(
     let listener = tokio::net::TcpListener::bind(bind_addr()).await?;
     tracing::info!("{}", spicetify::fl!("daemon-listening", addr = bind_addr().to_string()));
 
-    let ctrl_c = Arc::clone(&shutdown);
-    let _ctrl_c = tokio::spawn(async move {
+    let ctrl_c_notify = Arc::clone(&shutdown);
+    let ctrl_c_hdl = tokio::spawn(async move {
         if let Err(e) = tokio::signal::ctrl_c().await {
             tracing::error!(error = %e, "failed to install Ctrl-C handler");
             return;
         }
         tracing::info!("received Ctrl-C, shutting down");
-        ctrl_c.notify_waiters();
+        ctrl_c_notify.notify_waiters();
     });
 
     axum::serve(listener, app)
@@ -96,6 +107,8 @@ async fn run_server(
             shutdown.notified().await;
         })
         .await?;
+
+    ctrl_c_hdl.abort();
 
     let timed_out = tokio::time::timeout(SHUTDOWN_GRACE, async {
         if let Some(h) = apps
@@ -120,7 +133,7 @@ async fn run_server(
 }
 
 #[cfg(windows)]
-fn acquire_instance_lock() -> Result<LockGuard, String> {
+fn acquire_instance_lock(_config_root: &PathBuf) -> Result<LockGuard, String> {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
 
@@ -151,8 +164,8 @@ fn acquire_instance_lock() -> Result<LockGuard, String> {
 }
 
 #[cfg(unix)]
-fn acquire_instance_lock() -> Result<LockGuard, String> {
-    let lock_path = spicetify::platform::default_spicetify_config_root().join(INSTANCE_MUTEX_PATH);
+fn acquire_instance_lock(config_root: &PathBuf) -> Result<LockGuard, String> {
+    let lock_path = config_root.join(INSTANCE_MUTEX_PATH);
     let file = std::fs::OpenOptions::new()
         .create(true)
         .truncate(true)

@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use reqwest::blocking::{Client, Response};
+use reqwest::blocking::Response;
 
 use crate::error::Result;
-use crate::update::{ReleaseInfo, USER_AGENT, UpdateError};
+use crate::update::{ReleaseInfo, UpdateError};
 use crate::util;
 
 const DOWNLOAD_TIMEOUT_SECS: u64 = 120;
@@ -31,8 +31,7 @@ pub fn download_and_extract(release: &ReleaseInfo, staging_dir: &Path) -> Result
 }
 
 fn download_asset(url: &str, dest: &Path) -> Result<()> {
-    let client = Client::builder()
-        .user_agent(USER_AGENT)
+    let client = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(DOWNLOAD_TIMEOUT_SECS))
         .build()
         .map_err(|e| UpdateError::Network(e.to_string()))?;

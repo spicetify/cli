@@ -4,8 +4,6 @@ use std::time::Duration;
 
 use thiserror::Error;
 
-use crate::context::AppContext;
-
 #[derive(Debug, Error)]
 pub enum DaemonManagerError {
     #[error("io error: {0}")]
@@ -21,37 +19,88 @@ pub enum DaemonManagerError {
     Spawn(#[from] super::process::DaemonSpawnError),
 }
 
-pub trait DaemonManager {
-    fn install(&self, ctx: &AppContext) -> Result<(), DaemonManagerError>;
-    fn uninstall(&self) -> Result<(), DaemonManagerError>;
-    fn is_installed(&self) -> bool;
+#[derive(Debug, Clone)]
+#[allow(missing_copy_implementations)]
+pub enum DaemonManager {
+    #[cfg(windows)]
+    Windows(WindowsDaemonManager),
+    #[cfg(target_os = "macos")]
+    Macos(MacosDaemonManager),
+    #[cfg(target_os = "linux")]
+    Linux(LinuxDaemonManager),
+    #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
+    Unsupported(UnsupportedDaemonManager),
 }
 
-#[cfg(windows)]
-pub fn create() -> Box<dyn DaemonManager> {
-    Box::new(WindowsDaemonManager)
-}
+impl DaemonManager {
+    pub fn create() -> Self {
+        #[cfg(windows)]
+        {
+            Self::Windows(WindowsDaemonManager)
+        }
+        #[cfg(target_os = "macos")]
+        {
+            Self::Macos(MacosDaemonManager)
+        }
+        #[cfg(target_os = "linux")]
+        {
+            Self::Linux(LinuxDaemonManager)
+        }
+        #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
+        {
+            Self::Unsupported(UnsupportedDaemonManager)
+        }
+    }
 
-#[cfg(target_os = "macos")]
-pub fn create() -> Box<dyn DaemonManager> {
-    Box::new(MacosDaemonManager)
-}
+    pub fn install(&self) -> Result<(), DaemonManagerError> {
+        match self {
+            #[cfg(windows)]
+            Self::Windows(_) => WindowsDaemonManager::install(),
+            #[cfg(target_os = "macos")]
+            Self::Macos(m) => m.install(),
+            #[cfg(target_os = "linux")]
+            Self::Linux(m) => m.install(),
+            #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
+            Self::Unsupported(m) => m.install(),
+        }
+    }
 
-#[cfg(target_os = "linux")]
-pub fn create() -> Box<dyn DaemonManager> {
-    Box::new(LinuxDaemonManager)
+    pub fn uninstall(&self) -> Result<(), DaemonManagerError> {
+        match self {
+            #[cfg(windows)]
+            Self::Windows(_) => {
+                WindowsDaemonManager::uninstall();
+                Ok(())
+            }
+            #[cfg(target_os = "macos")]
+            Self::Macos(m) => m.uninstall(),
+            #[cfg(target_os = "linux")]
+            Self::Linux(m) => m.uninstall(),
+            #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
+            Self::Unsupported(m) => m.uninstall(),
+        }
+    }
+
+    pub fn is_installed(&self) -> bool {
+        match self {
+            #[cfg(windows)]
+            Self::Windows(_) => WindowsDaemonManager::is_installed(),
+            #[cfg(target_os = "macos")]
+            Self::Macos(m) => m.is_installed(),
+            #[cfg(target_os = "linux")]
+            Self::Linux(m) => m.is_installed(),
+            #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
+            Self::Unsupported(m) => m.is_installed(),
+        }
+    }
 }
 
 #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
-pub fn create() -> Box<dyn DaemonManager> {
-    Box::new(UnsupportedDaemonManager)
-}
-
+#[derive(Debug, Clone, Copy)]
+pub struct UnsupportedDaemonManager;
 #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
-struct UnsupportedDaemonManager;
-#[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
-impl DaemonManager for UnsupportedDaemonManager {
-    fn install(&self, _ctx: &AppContext) -> Result<(), DaemonManagerError> {
+impl UnsupportedDaemonManager {
+    fn install(&self) -> Result<(), DaemonManagerError> {
         Err(DaemonManagerError::Unsupported)
     }
 
@@ -65,20 +114,23 @@ impl DaemonManager for UnsupportedDaemonManager {
 }
 
 #[cfg(windows)]
-struct WindowsDaemonManager;
+#[derive(Debug, Clone, Copy)]
+pub struct WindowsDaemonManager;
 #[cfg(windows)]
-impl DaemonManager for WindowsDaemonManager {
-    fn install(&self, ctx: &AppContext) -> Result<(), DaemonManagerError> {
+impl WindowsDaemonManager {
+    fn install() -> Result<(), DaemonManagerError> {
         use windows_registry::CURRENT_USER;
 
         let exe = current_exe()?;
         let daemon_exe = super::daemon_binary_for(&exe);
         let run_key = r"Software\Microsoft\Windows\CurrentVersion\Run";
 
+        tracing::info!("registering daemon auto-start in HKCU\\Run");
         let key = CURRENT_USER.create(run_key).map_err(registry_err)?;
         key.set_string("Spicetify Daemon", format!("\"{}\"", daemon_exe.display()))
             .map_err(registry_err)?;
 
+        tracing::info!("registering spicetify:// URL scheme");
         let scheme_key = r"Software\Classes\spicetify";
         let key = CURRENT_USER.create(scheme_key).map_err(registry_err)?;
         key.set_string("", "URL:spicetify").map_err(registry_err)?;
@@ -89,26 +141,30 @@ impl DaemonManager for WindowsDaemonManager {
         key.set_string("", format!("\"{}\" protocol \"%1\"", exe.display()))
             .map_err(registry_err)?;
 
-        super::process::spawn(ctx)?;
+        tracing::info!("spawning daemon process");
+        super::process::spawn()?;
         Ok(())
     }
 
-    fn uninstall(&self) -> Result<(), DaemonManagerError> {
+    fn uninstall() {
         use windows_registry::CURRENT_USER;
 
+        tracing::info!("removing daemon auto-start from HKCU\\Run");
         let run_key = r"Software\Microsoft\Windows\CurrentVersion\Run";
-        if let Ok(key) = CURRENT_USER.open(run_key)
+        // needs write perms to delete value
+        if let Ok(key) = CURRENT_USER.options().write().open(run_key)
             && let Err(e) = key.remove_value("Spicetify Daemon")
         {
             tracing::warn!(error = %e, "failed to delete Run registry value");
         }
+
+        tracing::info!("removing spicetify:// URL scheme registration");
         if let Err(e) = CURRENT_USER.remove_tree(r"Software\Classes\spicetify") {
             tracing::warn!(error = %e, "failed to delete spicetify:// URL scheme registration");
         }
-        Ok(())
     }
 
-    fn is_installed(&self) -> bool {
+    fn is_installed() -> bool {
         use windows_registry::CURRENT_USER;
 
         CURRENT_USER
@@ -124,10 +180,11 @@ fn registry_err(e: impl std::fmt::Display) -> DaemonManagerError {
 }
 
 #[cfg(target_os = "macos")]
-struct MacosDaemonManager;
+#[derive(Debug, Clone, Copy)]
+pub struct MacosDaemonManager;
 #[cfg(target_os = "macos")]
-impl DaemonManager for MacosDaemonManager {
-    fn install(&self, _ctx: &AppContext) -> Result<(), DaemonManagerError> {
+impl MacosDaemonManager {
+    fn install(&self) -> Result<(), DaemonManagerError> {
         let plist_dir = home_dir()?.join("Library/LaunchAgents");
         std::fs::create_dir_all(&plist_dir)?;
         let exe = current_exe()?;
@@ -173,10 +230,11 @@ impl DaemonManager for MacosDaemonManager {
 }
 
 #[cfg(target_os = "linux")]
-struct LinuxDaemonManager;
+#[derive(Debug, Clone, Copy)]
+pub struct LinuxDaemonManager;
 #[cfg(target_os = "linux")]
-impl DaemonManager for LinuxDaemonManager {
-    fn install(&self, ctx: &AppContext) -> Result<(), DaemonManagerError> {
+impl LinuxDaemonManager {
+    fn install(&self) -> Result<(), DaemonManagerError> {
         if !is_systemd_available() {
             return Err(DaemonManagerError::Unsupported);
         }
@@ -195,7 +253,6 @@ Documentation=https://spicetify.app
 [Service]
 Type=simple
 ExecStart={}
-Environment=SPICETIFY_CONFIG_ROOT={}
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=10
@@ -204,7 +261,6 @@ TimeoutStopSec=10
 WantedBy=default.target
 ",
             systemd_quote(&daemon_exe.display().to_string()),
-            systemd_quote(&ctx.config_root.display().to_string()),
         );
 
         let service_path = systemd_dir.join("spicetify-daemon.service");

@@ -3,6 +3,7 @@
 // TODO: FIX THIS
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use notify::{Event, EventKind, RecursiveMode, Watcher};
@@ -14,8 +15,9 @@ use tokio::sync::{Notify, mpsc};
 const DEBOUNCE: Duration = Duration::from_millis(500);
 
 pub fn spawn_apps_watcher(
-    shared: SharedContext,
+    shared: Arc<SharedContext>,
     shutdown: Arc<Notify>,
+    active: Arc<AtomicBool>,
 ) -> Option<tokio::task::JoinHandle<()>> {
     let apps = (*shared.load_full()).spotify_apps_path();
 
@@ -34,6 +36,7 @@ pub fn spawn_apps_watcher(
     }
     tracing::info!("{}", fl!("watching", path = apps.to_string_lossy()));
 
+    active.store(true, Ordering::Release);
     Some(tokio::spawn(async move {
         let _watcher = watcher;
         run_loop(
@@ -41,23 +44,23 @@ pub fn spawn_apps_watcher(
             is_xpui_change,
             move || {
                 let arc = shared.load_full();
-                if let Err(e) = apply::run(&arc) {
+                if let Err(e) = apply::execute(&arc) {
                     tracing::warn!(error = %e, "auto-apply failed");
                 }
             },
             shutdown,
         )
         .await;
+        active.store(false, Ordering::Release);
     }))
 }
 
 pub fn spawn_config_watcher(
-    shared: SharedContext,
+    shared: Arc<SharedContext>,
     shutdown: Arc<Notify>,
+    active: Arc<AtomicBool>,
 ) -> Option<tokio::task::JoinHandle<()>> {
-    let arch = shared.load_full();
-    let config_file = arch.config_file.clone();
-    drop(arch);
+    let config_file = shared.load().config_file.clone();
 
     let (tx, rx) = mpsc::unbounded_channel();
     let Ok(mut watcher) = notify::recommended_watcher(move |res| {
@@ -73,6 +76,7 @@ pub fn spawn_config_watcher(
         return None;
     }
 
+    active.store(true, Ordering::Release);
     Some(tokio::spawn(async move {
         let _watcher = watcher;
         run_loop(
@@ -85,6 +89,7 @@ pub fn spawn_config_watcher(
             shutdown,
         )
         .await;
+        active.store(false, Ordering::Release);
     }))
 }
 
@@ -120,10 +125,14 @@ async fn run_loop<P, A>(
                 if res.is_none() {
                     break;
                 }
-                if let Some(Ok(event)) = res
-                    && should_trigger(&event)
-                {
-                    deadline = Some(tokio::time::Instant::now() + DEBOUNCE);
+                match res {
+                    Some(Ok(event)) if should_trigger(&event) => {
+                        deadline = Some(tokio::time::Instant::now() + DEBOUNCE);
+                    }
+                    Some(Err(e)) => {
+                        tracing::warn!(error = %e, "file watcher error");
+                    }
+                    _ => {}
                 }
             }
         }

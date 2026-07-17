@@ -6,14 +6,13 @@ use std::time::Duration;
 
 use anyhow::Context;
 pub use release::{InstallAsset, ReleaseInfo};
-use reqwest::blocking::{Client, Response};
+use reqwest::blocking::Response;
 use semver::Version;
 use thiserror::Error;
 
 use crate::error::Result;
 
 const RELEASES_URL: &str = "https://api.github.com/repos/veryboringhwl/app/releases/latest";
-pub(crate) const USER_AGENT: &str = concat!("spicetify-cli/", env!("CARGO_PKG_VERSION"));
 
 #[derive(Debug, Error)]
 pub enum UpdateError {
@@ -31,8 +30,7 @@ pub enum UpdateError {
 }
 
 pub fn check_for_update() -> Result<Option<ReleaseInfo>> {
-    let client = Client::builder()
-        .user_agent(USER_AGENT)
+    let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(15))
         .build()
         .map_err(|e| UpdateError::Network(e.to_string()))?;

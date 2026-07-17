@@ -9,12 +9,6 @@ mod windows;
 
 #[must_use]
 pub fn default_spicetify_config_root() -> PathBuf {
-    if let Ok(root) = std::env::var("SPICETIFY_CONFIG_ROOT") {
-        let p = PathBuf::from(root);
-        if p.is_absolute() {
-            return p;
-        }
-    }
     if let Some(p) = portable_config_root() {
         return p;
     }
@@ -54,7 +48,7 @@ pub fn default_spotify_exec_path() -> PathBuf {
 }
 
 #[must_use]
-pub fn resolve_spotify_exec_path(raw: &Path) -> PathBuf {
+pub fn coerce_spotify_exec_path(raw: &Path) -> PathBuf {
     if raw.is_file() {
         return raw.to_path_buf();
     }
@@ -116,7 +110,7 @@ fn platform_config_root() -> PathBuf {
 #[cfg(windows)]
 fn portable_config_root() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
-    let real = dunce::canonicalize(exe).ok()?;
+    let real = std::fs::canonicalize(exe).ok()?;
     let bin = real.parent()?;
     let app = bin.parent()?;
     let bin_name = bin.file_name()?.to_ascii_lowercase();

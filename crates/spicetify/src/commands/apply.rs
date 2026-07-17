@@ -4,30 +4,7 @@ use crate::context::AppContext;
 use crate::error::Result;
 use crate::{fl, util};
 
-#[cfg(target_os = "linux")]
-fn register_url_scheme() {
-    let Ok(exe) = std::env::current_exe() else {
-        return;
-    };
-    let Some(base_dirs) = directories::BaseDirs::new() else {
-        return;
-    };
-    let apps_dir = base_dirs.home_dir().join(".local/share/applications");
-    if let Err(e) = std::fs::create_dir_all(&apps_dir) {
-        tracing::warn!(error = %e, "failed to create applications dir for URL scheme");
-        return;
-    }
-    let desktop = format!(
-        "[Desktop Entry]\nType=Application\nName=Spicetify Protocol Handler\nExec={} protocol \
-         %u\nStartupNotify=false\nMimeType=x-scheme-handler/spicetify;\nNoDisplay=true\n",
-        exe.display()
-    );
-    if let Err(e) = std::fs::write(apps_dir.join("spicetify-protocol.desktop"), desktop) {
-        tracing::warn!(error = %e, "failed to write desktop file for URL scheme");
-    }
-}
-
-pub fn run(ctx: &AppContext) -> Result<()> {
+pub fn execute(ctx: &AppContext) -> Result<()> {
     let dest_apps = ctx.dest_apps_path();
     let spa = ctx.spotify_apps_path().join("xpui.spa");
     let dest_xpui = dest_apps.join("xpui");
@@ -36,6 +13,8 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     if !spa.exists() && dest_xpui.exists() {
         return Err(anyhow::anyhow!(fl!("already-applied")));
     }
+
+    crate::lifecycle::stop(ctx)?;
 
     if !spa.exists() && !ctx.mirror && backup.exists() {
         tracing::info!("{}", fl!("restoring-spa-backup", path = spa.to_string_lossy()));
@@ -56,6 +35,18 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     if let Err(e) = extract_into(&spa, &tmp) {
         cleanup_tmp(&tmp);
         return Err(e);
+    }
+
+    if !ctx.mirror {
+        if let Err(e) = std::fs::remove_file(&backup)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!(error = %e, path = %backup.display(), "failed to remove file");
+        }
+        if let Err(e) = std::fs::rename(&spa, &backup) {
+            cleanup_tmp(&tmp);
+            return Err(anyhow::anyhow!("failed to backup xpui.spa: {e}"));
+        }
     }
 
     tracing::info!("{}", fl!("patching-index"));
@@ -79,20 +70,40 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     }
     std::fs::rename(&tmp, &dest_xpui)?;
 
-    if !ctx.mirror {
-        if let Err(e) = std::fs::remove_file(&backup)
-            && e.kind() != std::io::ErrorKind::NotFound
-        {
-            tracing::warn!(error = %e, path = %backup.display(), "failed to remove file");
-        }
-        std::fs::rename(&spa, &backup)?;
+    if let Err(e) = super::daemon::install() {
+        tracing::warn!(error = %e, "failed to install daemon auto-start");
     }
+
+    crate::lifecycle::start(ctx)?;
 
     #[cfg(target_os = "linux")]
     register_url_scheme();
 
     tracing::info!("{}", fl!("applied-patches"));
     Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn register_url_scheme() {
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let Some(base_dirs) = directories::BaseDirs::new() else {
+        return;
+    };
+    let apps_dir = base_dirs.home_dir().join(".local/share/applications");
+    if let Err(e) = std::fs::create_dir_all(&apps_dir) {
+        tracing::warn!(error = %e, "failed to create applications dir for URL scheme");
+        return;
+    }
+    let desktop = format!(
+        "[Desktop Entry]\nType=Application\nName=Spicetify Protocol Handler\nExec={} protocol \
+         %u\nStartupNotify=false\nMimeType=x-scheme-handler/spicetify;\nNoDisplay=true\n",
+        exe.display()
+    );
+    if let Err(e) = std::fs::write(apps_dir.join("spicetify-protocol.desktop"), desktop) {
+        tracing::warn!(error = %e, "failed to write desktop file for URL scheme");
+    }
 }
 
 fn cleanup_tmp(tmp: &Path) {
@@ -105,7 +116,6 @@ fn extract_into(spa: &Path, dest: &Path) -> Result<()> {
     if !spa.exists() {
         return Err(anyhow::anyhow!(fl!("xpui-not-found", path = spa.to_string_lossy())));
     }
-
     util::unzip_file(spa, dest).map_err(|e| anyhow::anyhow!("failed to extract spa: {e}"))?;
     Ok(())
 }
