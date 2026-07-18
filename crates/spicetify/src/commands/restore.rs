@@ -11,9 +11,7 @@ pub(super) fn execute(ctx: &AppContext) -> Result<()> {
 
     crate::daemon::shutdown_daemon();
 
-    if let Err(e) = super::daemon::uninstall() {
-        tracing::warn!(error = %e, "failed to uninstall daemon auto-start");
-    }
+    super::daemon::uninstall();
 
     crate::lifecycle::stop(ctx)?;
 

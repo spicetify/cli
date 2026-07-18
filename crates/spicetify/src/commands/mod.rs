@@ -89,7 +89,10 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
                 Ok(())
             }
             DaemonAction::Install => daemon::install(),
-            DaemonAction::Uninstall => daemon::uninstall(),
+            DaemonAction::Uninstall => {
+                daemon::uninstall();
+                Ok(())
+            }
             DaemonAction::Status => {
                 daemon::status();
                 Ok(())

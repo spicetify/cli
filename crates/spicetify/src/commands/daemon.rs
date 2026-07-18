@@ -18,8 +18,8 @@ pub(crate) fn install() -> Result<()> {
     Ok(crate::daemon::DaemonManager::create().install()?)
 }
 
-pub(crate) fn uninstall() -> Result<()> {
-    Ok(crate::daemon::DaemonManager::create().uninstall()?)
+pub(crate) fn uninstall() {
+    crate::daemon::DaemonManager::create().uninstall();
 }
 
 pub(crate) fn status() {

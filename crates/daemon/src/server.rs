@@ -1,3 +1,4 @@
+#[cfg(unix)]
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -133,7 +134,7 @@ async fn run_server(
 }
 
 #[cfg(windows)]
-fn acquire_instance_lock(_config_root: &PathBuf) -> Result<LockGuard, String> {
+fn acquire_instance_lock(_config_root: &std::path::Path) -> Result<LockGuard, String> {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
 
@@ -164,7 +165,7 @@ fn acquire_instance_lock(_config_root: &PathBuf) -> Result<LockGuard, String> {
 }
 
 #[cfg(unix)]
-fn acquire_instance_lock(config_root: &PathBuf) -> Result<LockGuard, String> {
+fn acquire_instance_lock(config_root: &std::path::Path) -> Result<LockGuard, String> {
     let lock_path = config_root.join(INSTANCE_MUTEX_PATH);
     let file = std::fs::OpenOptions::new()
         .create(true)

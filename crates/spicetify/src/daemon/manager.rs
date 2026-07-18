@@ -64,20 +64,14 @@ impl DaemonManager {
         }
     }
 
-    pub fn uninstall(self) -> Result<(), DaemonManagerError> {
+    pub fn uninstall(self) {
         match self {
             #[cfg(windows)]
-            Self::Windows => {
-                WindowsDaemonManager::uninstall();
-                Ok(())
-            }
+            Self::Windows => WindowsDaemonManager::uninstall(),
             #[cfg(target_os = "macos")]
             Self::Macos => MacosDaemonManager::uninstall(),
             #[cfg(target_os = "linux")]
-            Self::Linux => {
-                LinuxDaemonManager::uninstall();
-                Ok(())
-            }
+            Self::Linux => LinuxDaemonManager::uninstall(),
             #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
             Self::Unsupported => UnsupportedDaemonManager::uninstall(),
         }
@@ -106,9 +100,7 @@ impl UnsupportedDaemonManager {
         Err(DaemonManagerError::Unsupported)
     }
 
-    fn uninstall() -> Result<(), DaemonManagerError> {
-        Err(DaemonManagerError::Unsupported)
-    }
+    fn uninstall() {}
 
     fn is_installed() -> bool {
         false
@@ -217,13 +209,18 @@ impl MacosDaemonManager {
         Ok(())
     }
 
-    fn uninstall() -> Result<(), DaemonManagerError> {
-        let plist_path = home_dir()?.join("Library/LaunchAgents/app.spicetify.daemon.plist");
-        if plist_path.exists() {
-            run_launchctl(&["unload", "-w"], &plist_path);
-            std::fs::remove_file(&plist_path)?;
+    fn uninstall() {
+        if let Ok(home) = home_dir() {
+            let plist_path = home.join("Library/LaunchAgents/app.spicetify.daemon.plist");
+            if plist_path.exists() {
+                run_launchctl(&["unload", "-w"], &plist_path);
+                if let Err(e) = std::fs::remove_file(&plist_path)
+                    && e.kind() != std::io::ErrorKind::NotFound
+                {
+                    tracing::warn!(error = %e, "failed to remove plist");
+                }
+            }
         }
-        Ok(())
     }
 
     fn is_installed() -> bool {
