@@ -19,81 +19,80 @@ pub enum DaemonManagerError {
     Spawn(#[from] super::process::DaemonSpawnError),
 }
 
-#[derive(Debug, Clone)]
-#[allow(missing_copy_implementations)]
+#[derive(Debug, Clone, Copy)]
 pub enum DaemonManager {
     #[cfg(windows)]
-    Windows(WindowsDaemonManager),
+    Windows,
     #[cfg(target_os = "macos")]
-    Macos(MacosDaemonManager),
+    Macos,
     #[cfg(target_os = "linux")]
-    Linux(LinuxDaemonManager),
+    Linux,
     #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
-    Unsupported(UnsupportedDaemonManager),
+    Unsupported,
 }
 
 impl DaemonManager {
     pub fn create() -> Self {
         #[cfg(windows)]
         {
-            Self::Windows(WindowsDaemonManager)
+            Self::Windows
         }
         #[cfg(target_os = "macos")]
         {
-            Self::Macos(MacosDaemonManager)
+            Self::Macos
         }
         #[cfg(target_os = "linux")]
         {
-            Self::Linux(LinuxDaemonManager)
+            Self::Linux
         }
         #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
         {
-            Self::Unsupported(UnsupportedDaemonManager)
+            Self::Unsupported
         }
     }
 
-    pub fn install(&self) -> Result<(), DaemonManagerError> {
+    pub fn install(self) -> Result<(), DaemonManagerError> {
         match self {
             #[cfg(windows)]
-            Self::Windows(_) => WindowsDaemonManager::install(),
+            Self::Windows => WindowsDaemonManager::install(),
             #[cfg(target_os = "macos")]
-            Self::Macos(m) => m.install(),
+            Self::Macos => MacosDaemonManager::install(),
             #[cfg(target_os = "linux")]
-            Self::Linux(m) => m.install(),
+            Self::Linux => LinuxDaemonManager::install(),
             #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
-            Self::Unsupported(m) => m.install(),
+            Self::Unsupported => UnsupportedDaemonManager::install(),
         }
     }
 
-    pub fn uninstall(&self) -> Result<(), DaemonManagerError> {
+    pub fn uninstall(self) -> Result<(), DaemonManagerError> {
         match self {
             #[cfg(windows)]
-            Self::Windows(_) => {
+            Self::Windows => {
                 WindowsDaemonManager::uninstall();
                 Ok(())
             }
             #[cfg(target_os = "macos")]
-            Self::Macos(m) => m.uninstall(),
+            Self::Macos => MacosDaemonManager::uninstall(),
             #[cfg(target_os = "linux")]
-            Self::Linux(m) => {
-                m.uninstall();
+            Self::Linux => {
+                LinuxDaemonManager::uninstall();
                 Ok(())
             }
             #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
-            Self::Unsupported(m) => m.uninstall(),
+            Self::Unsupported => UnsupportedDaemonManager::uninstall(),
         }
     }
 
-    pub fn is_installed(&self) -> bool {
+    pub fn is_installed(self) -> bool {
         match self {
             #[cfg(windows)]
-            Self::Windows(_) => WindowsDaemonManager::is_installed(),
+            Self::Windows => WindowsDaemonManager::is_installed(),
             #[cfg(target_os = "macos")]
-            Self::Macos(m) => m.is_installed(),
+            Self::Macos => MacosDaemonManager::is_installed(),
             #[cfg(target_os = "linux")]
-            Self::Linux(m) => m.is_installed(),
+            Self::Linux => LinuxDaemonManager::is_installed(),
             #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
-            Self::Unsupported(m) => m.is_installed(),
+            Self::Unsupported => UnsupportedDaemonManager::is_installed(),
         }
     }
 }
@@ -103,15 +102,15 @@ impl DaemonManager {
 pub struct UnsupportedDaemonManager;
 #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
 impl UnsupportedDaemonManager {
-    fn install(&self) -> Result<(), DaemonManagerError> {
+    fn install() -> Result<(), DaemonManagerError> {
         Err(DaemonManagerError::Unsupported)
     }
 
-    fn uninstall(&self) -> Result<(), DaemonManagerError> {
+    fn uninstall() -> Result<(), DaemonManagerError> {
         Err(DaemonManagerError::Unsupported)
     }
 
-    fn is_installed(&self) -> bool {
+    fn is_installed() -> bool {
         false
     }
 }
@@ -187,7 +186,7 @@ fn registry_err(e: impl std::fmt::Display) -> DaemonManagerError {
 pub struct MacosDaemonManager;
 #[cfg(target_os = "macos")]
 impl MacosDaemonManager {
-    fn install(self) -> Result<(), DaemonManagerError> {
+    fn install() -> Result<(), DaemonManagerError> {
         let plist_dir = home_dir()?.join("Library/LaunchAgents");
         std::fs::create_dir_all(&plist_dir)?;
         let exe = current_exe()?;
@@ -218,7 +217,7 @@ impl MacosDaemonManager {
         Ok(())
     }
 
-    fn uninstall(self) -> Result<(), DaemonManagerError> {
+    fn uninstall() -> Result<(), DaemonManagerError> {
         let plist_path = home_dir()?.join("Library/LaunchAgents/app.spicetify.daemon.plist");
         if plist_path.exists() {
             run_launchctl(&["unload", "-w"], &plist_path);
@@ -227,7 +226,7 @@ impl MacosDaemonManager {
         Ok(())
     }
 
-    fn is_installed(self) -> bool {
+    fn is_installed() -> bool {
         home_dir().is_ok_and(|h| h.join("Library/LaunchAgents/app.spicetify.daemon.plist").exists())
     }
 }
@@ -237,7 +236,7 @@ impl MacosDaemonManager {
 pub struct LinuxDaemonManager;
 #[cfg(target_os = "linux")]
 impl LinuxDaemonManager {
-    fn install(self) -> Result<(), DaemonManagerError> {
+    fn install() -> Result<(), DaemonManagerError> {
         if !is_systemd_available() {
             return Err(DaemonManagerError::Unsupported);
         }
@@ -277,7 +276,7 @@ WantedBy=default.target
         Ok(())
     }
 
-    fn uninstall(self) {
+    fn uninstall() {
         if let Err(e) = run_systemctl(&["--user", "disable", "--now", "spicetify-daemon"]) {
             tracing::warn!(error = %e, "systemctl disable failed");
         }
@@ -295,7 +294,7 @@ WantedBy=default.target
         }
     }
 
-    fn is_installed(self) -> bool {
+    fn is_installed() -> bool {
         home_dir().is_ok_and(|h| h.join(".config/systemd/user/spicetify-daemon.service").exists())
     }
 }
