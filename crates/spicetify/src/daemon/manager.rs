@@ -75,7 +75,10 @@ impl DaemonManager {
             #[cfg(target_os = "macos")]
             Self::Macos(m) => m.uninstall(),
             #[cfg(target_os = "linux")]
-            Self::Linux(m) => m.uninstall(),
+            Self::Linux(m) => {
+                m.uninstall();
+                Ok(())
+            }
             #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
             Self::Unsupported(m) => m.uninstall(),
         }
@@ -184,7 +187,7 @@ fn registry_err(e: impl std::fmt::Display) -> DaemonManagerError {
 pub struct MacosDaemonManager;
 #[cfg(target_os = "macos")]
 impl MacosDaemonManager {
-    fn install(&self) -> Result<(), DaemonManagerError> {
+    fn install(self) -> Result<(), DaemonManagerError> {
         let plist_dir = home_dir()?.join("Library/LaunchAgents");
         std::fs::create_dir_all(&plist_dir)?;
         let exe = current_exe()?;
@@ -215,7 +218,7 @@ impl MacosDaemonManager {
         Ok(())
     }
 
-    fn uninstall(&self) -> Result<(), DaemonManagerError> {
+    fn uninstall(self) -> Result<(), DaemonManagerError> {
         let plist_path = home_dir()?.join("Library/LaunchAgents/app.spicetify.daemon.plist");
         if plist_path.exists() {
             run_launchctl(&["unload", "-w"], &plist_path);
@@ -224,7 +227,7 @@ impl MacosDaemonManager {
         Ok(())
     }
 
-    fn is_installed(&self) -> bool {
+    fn is_installed(self) -> bool {
         home_dir().is_ok_and(|h| h.join("Library/LaunchAgents/app.spicetify.daemon.plist").exists())
     }
 }
@@ -234,7 +237,7 @@ impl MacosDaemonManager {
 pub struct LinuxDaemonManager;
 #[cfg(target_os = "linux")]
 impl LinuxDaemonManager {
-    fn install(&self) -> Result<(), DaemonManagerError> {
+    fn install(self) -> Result<(), DaemonManagerError> {
         if !is_systemd_available() {
             return Err(DaemonManagerError::Unsupported);
         }
@@ -274,7 +277,7 @@ WantedBy=default.target
         Ok(())
     }
 
-    fn uninstall(&self) -> Result<(), DaemonManagerError> {
+    fn uninstall(self) {
         if let Err(e) = run_systemctl(&["--user", "disable", "--now", "spicetify-daemon"]) {
             tracing::warn!(error = %e, "systemctl disable failed");
         }
@@ -290,10 +293,9 @@ WantedBy=default.target
                 tracing::warn!(error = %e, path = %path.display(), "failed to remove service file");
             }
         }
-        Ok(())
     }
 
-    fn is_installed(&self) -> bool {
+    fn is_installed(self) -> bool {
         home_dir().is_ok_and(|h| h.join(".config/systemd/user/spicetify-daemon.service").exists())
     }
 }

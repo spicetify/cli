@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use crate::context::AppContext;
@@ -67,6 +66,7 @@ fn spawn_macos(_ctx: &AppContext) -> Result<()> {
 
 #[cfg(windows)]
 fn spawn_windows(ctx: &AppContext) -> Result<()> {
+    use std::path::PathBuf;
     let local_appdata = std::env::var("LOCALAPPDATA").unwrap_or_default();
     let appx_exe =
         PathBuf::from(&local_appdata).join("Microsoft").join("WindowsApps").join("Spotify.exe");

@@ -278,12 +278,11 @@ fn extract_archive(archive_path: &Path, dest: &Path) -> Result<()> {
     {
         use std::os::unix::fs::PermissionsExt;
         let binary = dest.join(release::binary_name());
-        if binary.exists() {
-            if let Err(e) =
+        if binary.exists()
+            && let Err(e) =
                 std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o755))
-            {
-                tracing::warn!(error = %e, "failed to set executable permission on extracted binary");
-            }
+        {
+            tracing::warn!(error = %e, "failed to set executable permission on extracted binary");
         }
     }
 
