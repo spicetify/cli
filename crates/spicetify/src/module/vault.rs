@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use regex_lite::Regex;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

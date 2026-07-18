@@ -26,8 +26,8 @@ pub enum Command {
     Dev,
     Restore,
     Init,
-    Pkg { action: PkgAction },
-    Protocol { uri: String },
+    Pkg(PkgAction),
+    Protocol(String),
     SelfUpdate,
     Sync,
 }
@@ -60,9 +60,9 @@ impl Command {
             Self::Daemon(DaemonAction::Install) => Some(fl!("daemon-enabling")),
             Self::Daemon(DaemonAction::Uninstall) => Some(fl!("daemon-disabling")),
             Self::Init => Some(fl!("initialised-spicetify")),
-            Self::Pkg { action: PkgAction::Install { .. } } => Some(fl!("module-added")),
-            Self::Pkg { action: PkgAction::Delete { .. } } => Some(fl!("module-deleted")),
-            Self::Pkg { action: PkgAction::Enable { .. } } => Some(fl!("module-enabled")),
+            Self::Pkg(PkgAction::Install { .. }) => Some(fl!("module-added")),
+            Self::Pkg(PkgAction::Delete { .. }) => Some(fl!("module-deleted")),
+            Self::Pkg(PkgAction::Enable { .. }) => Some(fl!("module-enabled")),
             Self::Sync => Some(fl!("hooks-updated")),
             _ => None,
         }
@@ -98,14 +98,14 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
         Command::Dev => dev::execute(ctx),
         Command::Restore => restore::execute(ctx),
         Command::Init => init::run(ctx),
-        Command::Pkg { action } => match action {
+        Command::Pkg(action) => match action {
             PkgAction::Install { id, url } => {
                 crate::module::install_from_url(&ctx.config_root, id, url)
             }
             PkgAction::Delete { id } => crate::module::delete_module(&ctx.config_root, id),
             PkgAction::Enable { id } => crate::module::enable_module(&ctx.config_root, id),
         },
-        Command::Protocol { uri } => protocol::run(ctx, uri),
+        Command::Protocol(uri) => protocol::run(ctx, uri),
         Command::Sync => sync::run(ctx),
         Command::SelfUpdate => self_update::run(),
     }

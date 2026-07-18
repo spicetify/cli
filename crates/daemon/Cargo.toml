@@ -19,10 +19,11 @@ ProductName = "Spicetify"
 [dependencies]
 spicetify = { path = "../spicetify" }
 anyhow = { workspace = true }
+color-eyre = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
 notify = { workspace = true }
-futures-util = { workspace = true }
+tokio-stream = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
 url = { workspace = true }

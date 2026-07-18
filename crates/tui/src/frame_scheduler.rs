@@ -18,11 +18,15 @@ impl FrameRequester {
     }
 
     pub(crate) fn schedule(&self) {
-        let _ = self.tx.send(Instant::now());
+        if let Err(e) = self.tx.send(Instant::now()) {
+            tracing::warn!(error = %e, "frame scheduler channel closed");
+        }
     }
 
     pub(crate) fn schedule_in(&self, dur: Duration) {
-        let _ = self.tx.send(Instant::now() + dur);
+        if let Err(e) = self.tx.send(Instant::now() + dur) {
+            tracing::warn!(error = %e, "frame scheduler channel closed");
+        }
     }
 }
 
@@ -53,7 +57,10 @@ impl FrameScheduler {
                     if next.is_some() {
                         next = None;
                         self.limiter.record(target);
-                        let _ = self.draw_tx.send(());
+                        if let Err(e) = self.draw_tx.send(()) {
+                            tracing::warn!(error = %e, "draw broadcast channel closed");
+                            break;
+                        }
                     }
                 }
             }

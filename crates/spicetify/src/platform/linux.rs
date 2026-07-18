@@ -7,17 +7,17 @@ fn home_dir() -> PathBuf {
 }
 
 fn is_spotify_install_dir(path: &Path) -> bool {
-    path.join(spotify_binary_name()).is_file()
+    path.join("spotify").is_file()
 }
 
-pub(super) fn spicetify_config_root() -> PathBuf {
+pub(crate) fn spicetify_config_root() -> PathBuf {
     if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
         return PathBuf::from(xdg).join("spicetify");
     }
     home_dir().join(".config").join("spicetify")
 }
 
-pub(super) fn default_spotify_install_dir() -> PathBuf {
+pub(crate) fn spotify_install_dir() -> PathBuf {
     let candidates = [
         "/opt/spotify/",
         "/opt/spotify/spotify-client/",
@@ -49,14 +49,18 @@ pub(super) fn default_spotify_install_dir() -> PathBuf {
     PathBuf::from("/opt/spotify")
 }
 
-pub(super) const fn spotify_binary_name() -> &'static str {
+pub(crate) const fn spotify_binary_name() -> &'static str {
     "spotify"
 }
 
-pub(super) fn spotify_data_path() -> PathBuf {
-    default_spotify_install_dir()
+pub(crate) fn spotify_data_path() -> PathBuf {
+    spotify_install_dir()
 }
 
-pub(super) fn offline_bnk_dir() -> PathBuf {
+pub(crate) fn offline_bnk_dir() -> PathBuf {
     spotify_data_path().join("Data")
+}
+
+pub(crate) fn portable_config_root() -> Option<PathBuf> {
+    None
 }

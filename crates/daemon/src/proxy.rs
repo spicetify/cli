@@ -6,8 +6,8 @@ use axum::body::Body;
 use axum::extract::{Path, Request, State};
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode};
 use axum::response::{IntoResponse, Response};
-use futures_util::StreamExt;
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, percent_encode};
+use tokio_stream::StreamExt;
 
 use crate::routes::ALLOWED_ORIGIN;
 use crate::server::DaemonState;

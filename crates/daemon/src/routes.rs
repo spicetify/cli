@@ -6,8 +6,8 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{any, get, post};
 use axum::{Json, Router};
-use futures_util::StreamExt;
 use spicetify::commands::protocol;
+use tokio_stream::StreamExt;
 
 use crate::server::DaemonState;
 use crate::{error, health, proxy};
@@ -68,8 +68,8 @@ async fn shutdown_handler(State(state): State<Arc<DaemonState>>) -> impl IntoRes
 async fn self_update_handler() -> impl IntoResponse {
     let current_version = spicetify::VERSION;
 
-    match tokio::task::spawn_blocking(spicetify::update::check_for_update).await {
-        Ok(Ok(Some(release))) => {
+    match spicetify::update::check_for_update().await {
+        Ok(Some(release)) => {
             let version = release.version();
             tracing::info!(%version, %current_version, "self-update check: update available");
             (
@@ -82,7 +82,7 @@ async fn self_update_handler() -> impl IntoResponse {
             )
                 .into_response()
         }
-        Ok(Ok(None)) => {
+        Ok(None) => {
             tracing::info!(%current_version, "self-update check: up to date");
             (
                 StatusCode::OK,
@@ -90,13 +90,9 @@ async fn self_update_handler() -> impl IntoResponse {
             )
                 .into_response()
         }
-        Ok(Err(e)) => {
+        Err(e) => {
             tracing::warn!(error = %e, "self-update check failed");
             error::from_error(&e)
-        }
-        Err(e) => {
-            tracing::warn!(error = %e, "self-update spawn_blocking failed");
-            error::from_error(&e.into())
         }
     }
 }

@@ -11,6 +11,7 @@ pub mod watcher;
 
 fn main() {
     spicetify::locale::localize();
+    let _ = color_eyre::install();
 
     let config_root = spicetify::platform::default_spicetify_config_root();
     let log_path = config_root.join("daemon.log");

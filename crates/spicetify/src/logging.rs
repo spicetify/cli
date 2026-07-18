@@ -82,7 +82,11 @@ where
         let mut visitor = MessageVisitor::default();
         event.record(&mut visitor);
         let message = visitor.into_message();
-        let _ = self.tx.send(TuiEvent::Log(LogLine { level: *event.metadata().level(), message }));
+        if let Err(e) =
+            self.tx.send(TuiEvent::Log(LogLine { level: *event.metadata().level(), message }))
+        {
+            tracing::warn!(error = %e, "tui log channel closed");
+        }
     }
 }
 

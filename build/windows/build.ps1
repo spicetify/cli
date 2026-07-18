@@ -14,11 +14,14 @@ param (
 
 $ErrorActionPreference = 'Stop'
 
-$target = switch ($platform) {
-  'x86_64' {
+$target = switch ($platform)
+{
+  'x86_64'
+  {
     'x86_64-pc-windows-msvc'
   }
-  'aarch64' {
+  'aarch64'
+  {
     'aarch64-pc-windows-msvc'
   }
 }
@@ -37,9 +40,14 @@ Copy-Item $daemonExe "bin\spicetify-daemon.exe"
 New-Item -ItemType Directory -Path "dist\portable" -Force
 Copy-Item $exe "dist\portable\spicetify.exe"
 Copy-Item $daemonExe "dist\portable\spicetify-daemon.exe"
-$outputArch = switch ($platform) {
-  'x86_64' { 'x64' }
-  'aarch64' { 'arm64' }
+$outputArch = switch ($platform)
+{
+  'x86_64'
+  { 'x64' 
+  }
+  'aarch64'
+  { 'arm64' 
+  }
 }
 Compress-Archive -Path "dist\portable\*" -DestinationPath "dist\spicetify-$version-windows-$outputArch.zip" -Force
 Remove-Item -LiteralPath "dist\portable" -Recurse -Force
@@ -47,5 +55,5 @@ Remove-Item -LiteralPath "dist\portable" -Recurse -Force
 $arch = $outputArch
 
 # Windows runner 2025 default has iscc in PATH
-$innoSetupPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+$innoSetupPath = "C:\Program Files\Inno Setup 7\ISCC.exe"
 & $innoSetupPath /DAppVersion=$version /DArch=$arch /DOutputArch=$outputArch .\installer.iss

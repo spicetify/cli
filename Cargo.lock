@@ -437,6 +437,7 @@ version = "0.0.9"
 dependencies = [
  "anyhow",
  "clap",
+ "color-eyre",
  "i18n-embed-fl",
  "spicetify",
  "tui",
@@ -692,8 +693,8 @@ version = "0.0.9"
 dependencies = [
  "anyhow",
  "axum",
+ "color-eyre",
  "fs4",
- "futures-util",
  "i18n-embed-fl",
  "notify",
  "percent-encoding",
@@ -701,6 +702,7 @@ dependencies = [
  "serde_json",
  "spicetify",
  "tokio",
+ "tokio-stream",
  "tracing",
  "url",
  "windows",
@@ -2613,12 +2615,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "regex-lite"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cab834c73d247e67f4fae452806d17d3c7501756d98c8808d7c9c7aa7d18f973"
-
-[[package]]
 name = "regex-syntax"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3130,15 +3126,17 @@ dependencies = [
  "i18n-embed",
  "i18n-embed-fl",
  "opener",
- "regex-lite",
+ "regex",
  "reqwest",
  "rust-embed",
- "rustix",
  "semver",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tar",
  "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
  "toml 1.1.2+spec-1.1.0",
  "tracing",
  "tracing-subscriber",
@@ -3488,6 +3486,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-stream"
+version = "0.1.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32da49809aab5c3bc678af03902d4ccddea2a87d028d86392a4b1560c6906c70"
+dependencies = [
+ "futures-core",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
 name = "tokio-tungstenite"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3691,11 +3700,11 @@ dependencies = [
  "anyhow",
  "color-eyre",
  "crossterm",
- "futures-util",
  "i18n-embed-fl",
  "ratatui",
  "spicetify",
  "tokio",
+ "tokio-stream",
  "tracing",
 ]
 

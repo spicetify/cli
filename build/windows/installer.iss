@@ -7,7 +7,7 @@
 #endif
 
 #ifndef OutputArch
-  #define OutputArch "arm64"
+  #error OutputArch not defined
 #endif
 
 #define AppName "Spicetify"
@@ -55,7 +55,7 @@ UninstallDisplayIcon={app}\spicetify.ico
 
 #if Arch == "x64"
 ArchitecturesAllowed=x64os
-ArchitecturesInstallIn64BitMode=win64
+ArchitecturesInstallIn64BitMode=x64os
 #elif Arch == "arm64"
 ArchitecturesAllowed=arm64
 ArchitecturesInstallIn64BitMode=arm64

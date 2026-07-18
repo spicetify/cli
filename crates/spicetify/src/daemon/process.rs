@@ -45,8 +45,12 @@ pub fn spawn() -> Result<(), DaemonSpawnError> {
             return Ok(());
         }
         if std::time::Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
+            if let Err(e) = child.kill() {
+                tracing::warn!(error = %e, "failed to kill daemon process after startup timeout");
+            }
+            if let Err(e) = child.wait() {
+                tracing::warn!(error = %e, "failed to wait for daemon process after kill");
+            }
             return Err(DaemonSpawnError::Io(std::io::Error::other(format!(
                 "daemon did not start listening within {} seconds",
                 DAEMON_START_TIMEOUT.as_secs(),

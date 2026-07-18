@@ -27,6 +27,7 @@ pub fn run(ctx: &AppContext) -> Result<()> {
     color_eyre::install().map_err(|e| anyhow::anyhow!("{e}"))?;
     let (tx, rx) = std::sync::mpsc::channel();
     spicetify::logging::init_for_tui(&tx)?;
+    spicetify::update::startup_cleanup();
     let mut terminal = setup_terminal()?;
 
     let runtime = tokio::runtime::Builder::new_current_thread().enable_time().build()?;

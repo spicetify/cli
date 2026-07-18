@@ -139,23 +139,17 @@ impl TuiApp {
                             _ => unreachable!(),
                         };
                         (
-                            Command::Pkg {
-                                action: PkgAction::Install { id: id.clone(), url: buffer },
-                            },
+                            Command::Pkg(PkgAction::Install { id: id.clone(), url: buffer }),
                             format!("pkg install {id}"),
                         )
                     }
-                    MenuAction::PkgDelete => (
-                        Command::Pkg { action: PkgAction::Delete { id: buffer } },
-                        input.action.label(),
-                    ),
-                    MenuAction::PkgEnable => (
-                        Command::Pkg { action: PkgAction::Enable { id: buffer } },
-                        input.action.label(),
-                    ),
-                    MenuAction::Protocol => {
-                        (Command::Protocol { uri: buffer }, input.action.label())
+                    MenuAction::PkgDelete => {
+                        (Command::Pkg(PkgAction::Delete { id: buffer }), input.action.label())
                     }
+                    MenuAction::PkgEnable => {
+                        (Command::Pkg(PkgAction::Enable { id: buffer }), input.action.label())
+                    }
+                    MenuAction::Protocol => (Command::Protocol(buffer), input.action.label()),
                     _ => unreachable!(),
                 };
                 self.input = None;

@@ -80,8 +80,8 @@ impl From<CliCommand> for Command {
             CliCommand::Dev => Command::Dev,
             CliCommand::Restore => Command::Restore,
             CliCommand::Init => Command::Init,
-            CliCommand::Pkg { action } => Command::Pkg { action: action.into() },
-            CliCommand::Protocol { uri } => Command::Protocol { uri },
+            CliCommand::Pkg { action } => Command::Pkg(action.into()),
+            CliCommand::Protocol { uri } => Command::Protocol(uri),
             CliCommand::SelfUpdate => Command::SelfUpdate,
             CliCommand::Sync => Command::Sync,
         }
@@ -112,8 +112,9 @@ impl From<CliPkgAction> for PkgAction {
 
 fn main() {
     spicetify::locale::localize();
+    let _ = color_eyre::install();
     if let Err(err) = run() {
-        eprintln!("\x1b[31;1m{}\x1b[0m {err}", fl!("fatal-prefix"));
+        eprintln!("{} {err:#}", fl!("fatal-prefix"));
         std::process::exit(1);
     }
 }
@@ -126,6 +127,8 @@ fn run() -> Result<()> {
         cli.spotify_exec_path.as_deref(),
         cli.offline_bnk_dir.as_deref(),
     )?;
+
+    spicetify::update::startup_cleanup();
 
     match cli.command {
         Some(cmd) => {

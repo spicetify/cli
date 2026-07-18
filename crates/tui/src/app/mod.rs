@@ -7,7 +7,6 @@ use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use crossterm::event::Event;
-use futures_util::StreamExt;
 use ratatui::Terminal;
 use ratatui::backend::Backend;
 use ratatui::layout::Rect;
@@ -16,6 +15,7 @@ use spicetify::context::AppContext;
 use spicetify::logging::{LogLine, TuiEvent, TuiEventSender};
 use spicetify::{daemon, fl};
 use tokio::sync::broadcast;
+use tokio_stream::StreamExt;
 use tracing::Level;
 
 use crate::components::header::Header;
@@ -225,25 +225,14 @@ impl TuiApp {
             }
 
             if needs_draw {
-                terminal.draw(|frame| render::draw(frame, self)).map(|_| ())?;
+                self.render_frame(terminal)?;
                 needs_draw = false;
-                if self.cmd.status == RunStatus::Running {
-                    self.frame_requester.schedule_in(Duration::from_millis(80));
-                }
             }
 
             tokio::select! {
                 event = events.next() => {
-                    match event {
-                        Some(Ok(Event::Key(key))) => {
-                            self.handle_key(key);
-                            needs_draw = true;
-                        }
-                        Some(Ok(Event::Mouse(mouse))) => {
-                            self.handle_mouse(mouse);
-                            needs_draw = true;
-                        }
-                        _ => {}
+                    if self.handle_terminal_event(event) {
+                        needs_draw = true;
                     }
                 }
                 draw_result = draw_rx.recv() => {
@@ -256,18 +245,44 @@ impl TuiApp {
                 }
             }
 
-            if self.reconcile_daemon_state(&daemon_running, &daemon_installed) {
-                needs_draw = true;
-            }
-            if self.tick_anim() {
-                needs_draw = true;
-            }
-            if self.drain_events() {
+            if self.reconcile_daemon_state(&daemon_running, &daemon_installed)
+                || self.tick_anim()
+                || self.drain_events()
+            {
                 needs_draw = true;
             }
         }
 
         Ok(())
+    }
+
+    fn render_frame<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()>
+    where
+        <B as Backend>::Error: std::fmt::Debug + Send + Sync + 'static,
+    {
+        terminal.draw(|frame| render::draw(frame, self)).map(|_| ())?;
+        if self.cmd.status == RunStatus::Running {
+            self.frame_requester.schedule_in(Duration::from_millis(80));
+        }
+        Ok(())
+    }
+
+    #[expect(clippy::needless_pass_by_value, reason = "consumes the inner Event via match")]
+    fn handle_terminal_event(
+        &mut self,
+        event: Option<std::result::Result<Event, std::io::Error>>,
+    ) -> bool {
+        match event {
+            Some(Ok(Event::Key(key))) => {
+                self.handle_key(key);
+                true
+            }
+            Some(Ok(Event::Mouse(mouse))) => {
+                self.handle_mouse(mouse);
+                true
+            }
+            _ => false,
+        }
     }
 
     fn reconcile_daemon_state(&mut self, running: &AtomicBool, installed: &AtomicBool) -> bool {
@@ -294,39 +309,11 @@ impl TuiApp {
 
     pub(crate) fn dispatch(&mut self, action: Action) {
         match action {
-            Action::MoveUp => {
-                self.menu.hover.on_keyboard();
-                self.menu.move_selection(-1);
-                let visible = self.menu_visible_rows();
-                self.menu.ensure_visible(visible);
-            }
-            Action::MoveDown => {
-                self.menu.hover.on_keyboard();
-                self.menu.move_selection(1);
-                let visible = self.menu_visible_rows();
-                self.menu.ensure_visible(visible);
-            }
-            Action::MoveHome => {
-                self.menu.hover.on_keyboard();
-                self.menu.select(0);
-                self.menu.scroll = 0;
-            }
-            Action::MoveEnd => {
-                let last = self.menu.item_count().saturating_sub(1);
-                self.menu.hover.on_keyboard();
-                self.menu.select(last);
-                let visible = self.menu_visible_rows();
-                self.menu.ensure_visible(visible);
-            }
-            Action::Select => {
-                if self.cmd.status == RunStatus::Running {
-                    return;
-                }
-                self.menu.hover.on_keyboard();
-                if let Some(result) = self.menu.activate() {
-                    self.handle_activate(result);
-                }
-            }
+            Action::MoveUp => self.navigate_menu(-1),
+            Action::MoveDown => self.navigate_menu(1),
+            Action::MoveHome => self.navigate_menu_home(),
+            Action::MoveEnd => self.navigate_menu_end(),
+            Action::Select => self.select_menu_item(),
             Action::Back => self.menu.go_back(),
             Action::OpenQuitDialog => {
                 self.confirm_quit_open = true;
@@ -359,6 +346,37 @@ impl TuiApp {
                 let visible = self.menu_visible_rows();
                 self.menu.scroll_down(visible);
             }
+        }
+    }
+
+    fn navigate_menu(&mut self, delta: isize) {
+        self.menu.hover.on_keyboard();
+        self.menu.move_selection(delta);
+        let visible = self.menu_visible_rows();
+        self.menu.ensure_visible(visible);
+    }
+
+    fn navigate_menu_home(&mut self) {
+        self.menu.hover.on_keyboard();
+        self.menu.select(0);
+        self.menu.scroll = 0;
+    }
+
+    fn navigate_menu_end(&mut self) {
+        let last = self.menu.item_count().saturating_sub(1);
+        self.menu.hover.on_keyboard();
+        self.menu.select(last);
+        let visible = self.menu_visible_rows();
+        self.menu.ensure_visible(visible);
+    }
+
+    fn select_menu_item(&mut self) {
+        if self.cmd.status == RunStatus::Running {
+            return;
+        }
+        self.menu.hover.on_keyboard();
+        if let Some(result) = self.menu.activate() {
+            self.handle_activate(result);
         }
     }
 

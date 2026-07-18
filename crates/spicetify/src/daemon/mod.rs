@@ -46,8 +46,9 @@ pub fn health_check() -> Option<serde_json::Value> {
 pub fn shutdown_daemon() {
     tracing::info!("Shutting down daemon");
     if let Ok(client) = reqwest::blocking::Client::builder().timeout(Duration::from_secs(3)).build()
+        && let Err(e) = client.post(format!("http://{BIND_ADDR_STR}/shutdown")).send()
     {
-        let _ = client.post(format!("http://{BIND_ADDR_STR}/shutdown")).send();
+        tracing::warn!(error = %e, "failed to send shutdown request to daemon");
     }
     force_kill_daemon();
 }
