@@ -24,3 +24,6 @@ install.log
 # Python tooling
 __pycache__/
 *.pyc
+
+# Local classmap workspace (capture output / symlinks)
+/classmaps/
