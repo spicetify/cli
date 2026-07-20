@@ -20,3 +20,7 @@ install.log
 
 # Local build artifacts
 /spicetify
+
+# Python tooling
+__pycache__/
+*.pyc
