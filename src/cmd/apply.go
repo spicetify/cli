@@ -15,6 +15,8 @@ import (
 
 // Apply .
 func Apply(spicetifyVersion string) {
+	RequireSupportedSpotify()
+
 	utils.MigrateConfigFolder()
 
 	backupSpicetifyVersion := backupSection.Key("with").MustString("")
