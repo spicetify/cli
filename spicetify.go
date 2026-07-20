@@ -155,6 +155,15 @@ func main() {
 
 	// Unchainable commands
 	switch commands[0] {
+	case "support":
+		// With a version argument no Spotify paths are needed; without one,
+		// resolve them so the installed version can be detected.
+		if len(commands) < 2 {
+			cmd.InitPaths()
+		}
+		cmd.ShowSpotifySupport(commands[1:])
+		return
+
 	case "config":
 		commands = commands[1:]
 		if len(commands) == 0 {
@@ -477,6 +486,10 @@ color               1. Print all color fields and values.
                     spicetify color sidebar 00ff00 button 0000ff
 
 config-dir          Show config directory in file viewer
+
+support             Show whether the installed Spotify version is supported,
+                    its classmap key, map status, and whether a local classmap
+                    file is present. Optional: spicetify support 1.2.93
 
 upgrade|update      Update spicetify to the latest version if an update is available
 

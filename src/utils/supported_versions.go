@@ -19,7 +19,8 @@ type SupportRange struct {
 	Note string `json:"note,omitempty"`
 }
 
-// SupportList is the on-disk schema for supported-versions.json (schema v1).
+// SupportList is the on-disk schema for supported-versions.json.
+// Schema v1 is the plain allowlist; schema v2 adds classmap metadata.
 type SupportList struct {
 	SchemaVersion int               `json:"schema_version"`
 	Updated       string            `json:"updated,omitempty"`
@@ -27,6 +28,12 @@ type SupportList struct {
 	Versions      []string          `json:"versions"`
 	Ranges        []SupportRange    `json:"ranges"`
 	Notes         map[string]string `json:"notes,omitempty"`
+	// DefaultMapStatus applies to allowlisted versions without a maps entry.
+	// Defaults to "classic" when empty. Schema v2 only.
+	DefaultMapStatus ClassmapStatus `json:"default_map_status,omitempty"`
+	// Maps holds optional per-version classmap metadata, keyed by
+	// normalized major.minor.patch (e.g. "1.2.93"). Schema v2 only.
+	Maps map[string]ClassmapInfo `json:"maps,omitempty"`
 }
 
 // DefaultSupportedVersionsPath returns the path next to the executable,
@@ -75,7 +82,8 @@ func FindSupportedVersionsFile() (string, error) {
 	return FindSupportedVersionsFileIn(SupportedVersionsSearchPaths())
 }
 
-// LoadSupportedVersions reads and validates a schema v1 support list file.
+// LoadSupportedVersions reads and validates a support list file.
+// Accepts schema_version 1 (plain allowlist) and 2 (classmap-aware).
 func LoadSupportedVersions(path string) (*SupportList, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -87,14 +95,20 @@ func LoadSupportedVersions(path string) (*SupportList, error) {
 		return nil, fmt.Errorf("supported versions list is malformed (%s): %w", path, err)
 	}
 
-	if list.SchemaVersion != 1 {
-		return nil, fmt.Errorf("unsupported supported-versions schema_version %d (want 1)", list.SchemaVersion)
+	if list.SchemaVersion != 1 && list.SchemaVersion != 2 {
+		return nil, fmt.Errorf("unsupported supported-versions schema_version %d (want 1 or 2)", list.SchemaVersion)
 	}
 	if list.Policy != "" && list.Policy != "allowlist" {
 		return nil, fmt.Errorf("unsupported supported-versions policy %q (want allowlist)", list.Policy)
 	}
 	if list.Policy == "" {
 		list.Policy = "allowlist"
+	}
+	if list.DefaultMapStatus == "" {
+		list.DefaultMapStatus = ClassmapStatusClassic
+	}
+	if err := ValidateClassmapStatus(list.DefaultMapStatus); err != nil {
+		return nil, fmt.Errorf("default_map_status: %w", err)
 	}
 
 	for i, v := range list.Versions {
@@ -122,6 +136,34 @@ func LoadSupportedVersions(path string) (*SupportList, error) {
 		list.Ranges[i].Min = min
 		list.Ranges[i].Max = max
 	}
+
+	if list.Maps == nil {
+		list.Maps = map[string]ClassmapInfo{}
+	}
+	normalizedMaps := make(map[string]ClassmapInfo, len(list.Maps))
+	for key, info := range list.Maps {
+		normalized, err := NormalizeSpotifyVersion(key)
+		if err != nil {
+			return nil, fmt.Errorf("invalid maps key %q: %w", key, err)
+		}
+		if _, dup := normalizedMaps[normalized]; dup {
+			return nil, fmt.Errorf("maps keys normalize to duplicate version %q", normalized)
+		}
+		if info.Status == "" {
+			info.Status = list.DefaultMapStatus
+		}
+		if err := ValidateClassmapStatus(info.Status); err != nil {
+			return nil, fmt.Errorf("maps[%s].status: %w", normalized, err)
+		}
+		if info.ClassmapKey == "" {
+			info.ClassmapKey, err = SpotifyVersionToClassmapKey(normalized)
+			if err != nil {
+				return nil, fmt.Errorf("maps[%s].classmap_key: %w", normalized, err)
+			}
+		}
+		normalizedMaps[normalized] = info
+	}
+	list.Maps = normalizedMaps
 
 	return &list, nil
 }
@@ -172,6 +214,45 @@ func (s *SupportList) CheckSupported(raw string) error {
 		return fmt.Errorf("Spotify %s (%s) is not supported by this Spicetify release", raw, normalized)
 	}
 	return nil
+}
+
+// MapInfoFor returns classmap metadata for a normalized version.
+// ClassmapKey is always filled when the version parses.
+func (s *SupportList) MapInfoFor(normalized string) (ClassmapInfo, error) {
+	v, err := ParseSpotifyVersion(normalized)
+	if err != nil {
+		return ClassmapInfo{}, err
+	}
+	normalized = v.String()
+	key := v.ClassmapKey()
+
+	if s != nil {
+		if info, ok := s.Maps[normalized]; ok {
+			if info.ClassmapKey == "" {
+				info.ClassmapKey = key
+			}
+			if info.Status == "" {
+				info.Status = s.DefaultMapStatus
+				if info.Status == "" {
+					info.Status = ClassmapStatusClassic
+				}
+			}
+			return info, nil
+		}
+	}
+
+	status := ClassmapStatusNone
+	if s != nil && s.IsSupported(normalized) {
+		status = s.DefaultMapStatus
+		if status == "" {
+			status = ClassmapStatusClassic
+		}
+	}
+
+	return ClassmapInfo{
+		ClassmapKey: key,
+		Status:      status,
+	}, nil
 }
 
 // SupportedSummary returns a compact human-readable list of supported versions.
