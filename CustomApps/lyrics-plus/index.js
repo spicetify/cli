@@ -716,8 +716,8 @@ class LyricsContainer extends react.Component {
 				const uri = lyricsState.uri;
 				this.romanizeLyrics(lyrics).then((lines) => {
 					this._romanizing = false;
-					if (lines && uri === this.state.uri) {
-						this.setState({ pinyin: { mode, lines } });
+					if (uri === this.state.uri) {
+						this.setState({ pinyin: { mode, lines: lines || null } });
 					}
 				});
 			}
