@@ -6,9 +6,9 @@
   "versions": [],
   "ranges": [
     {
-      "min": "1.2.86",
+      "min": "1.2.70",
       "max": "1.2.93",
-      "note": "Classic css-map pipeline; window drawn from recent CLI support commits (1.2.86 through 1.2.93)"
+      "note": "Classic css-map pipeline; window drawn from recent CLI support commits (1.2.70 through 1.2.93)"
     }
   ],
   "notes": {
