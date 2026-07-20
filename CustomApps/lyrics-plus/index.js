@@ -51,12 +51,14 @@ const CONFIG = {
 		"lines-before": localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
 		"lines-after": localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
 		"font-size": localStorage.getItem("lyrics-plus:visual:font-size") || "32",
+		"romanization-font-size": localStorage.getItem("lyrics-plus:visual:romanization-font-size") || "16",
 		"translate:translated-lyrics-source": localStorage.getItem("lyrics-plus:visual:translate:translated-lyrics-source") || "none",
 		"translate:display-mode": localStorage.getItem("lyrics-plus:visual:translate:display-mode") || "replace",
 		"translate:detect-language-override": localStorage.getItem("lyrics-plus:visual:translate:detect-language-override") || "off",
 		"translation-mode:japanese": localStorage.getItem("lyrics-plus:visual:translation-mode:japanese") || "furigana",
 		"translation-mode:korean": localStorage.getItem("lyrics-plus:visual:translation-mode:korean") || "romaja",
 		"translation-mode:chinese": localStorage.getItem("lyrics-plus:visual:translation-mode:chinese") || "cn",
+		romanization: localStorage.getItem("lyrics-plus:visual:romanization") || "none",
 		translate: getConfig("lyrics-plus:visual:translate", false),
 		"ja-detect-threshold": localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
 		"hans-detect-threshold": localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
@@ -121,6 +123,7 @@ CONFIG.locked = Number.parseInt(CONFIG.locked);
 CONFIG.visual["lines-before"] = Number.parseInt(CONFIG.visual["lines-before"]);
 CONFIG.visual["lines-after"] = Number.parseInt(CONFIG.visual["lines-after"]);
 CONFIG.visual["font-size"] = Number.parseInt(CONFIG.visual["font-size"]);
+CONFIG.visual["romanization-font-size"] = Number.parseInt(CONFIG.visual["romanization-font-size"]);
 CONFIG.visual["ja-detect-threshold"] = Number.parseInt(CONFIG.visual["ja-detect-threshold"]);
 CONFIG.visual["hans-detect-threshold"] = Number.parseInt(CONFIG.visual["hans-detect-threshold"]);
 
@@ -206,6 +209,7 @@ class LyricsContainer extends react.Component {
 			cn: null,
 			hk: null,
 			tw: null,
+			pinyin: null,
 			musixmatchTranslation: null,
 			musixmatchTranslationLanguage: null,
 			musixmatchAvailableTranslations: [],
@@ -246,6 +250,7 @@ class LyricsContainer extends react.Component {
 		this.displayMode = null;
 		this.currentMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"];
 		this._musixmatchTranslationRequestId = null;
+		this._romanizing = false;
 	}
 
 	infoFromTrack(track) {
@@ -505,6 +510,7 @@ class LyricsContainer extends react.Component {
 
 		this.fetchTempo(info.uri);
 		this.resetDelay();
+		this._romanizing = false;
 
 		let tempState;
 		// if lyrics are cached
@@ -612,6 +618,7 @@ class LyricsContainer extends react.Component {
 					cn: null,
 					hk: null,
 					tw: null,
+					pinyin: null,
 					neteaseTranslation: null,
 					...tempState,
 					...translationOverrides,
@@ -695,6 +702,28 @@ class LyricsContainer extends react.Component {
 				CACHE[lyricsState.uri] = { ...CACHE[lyricsState.uri], ...resetCache };
 			}
 		}
+
+		const canRomanize =
+			CONFIG.visual["romanization"] !== "none" &&
+			(lang === "zh-hans" || lang === "zh-hant") &&
+			(mode === SYNCED || mode === UNSYNCED) &&
+			Array.isArray(lyrics) &&
+			lyrics.length;
+
+		if (canRomanize) {
+			if ((!this.state.pinyin || this.state.pinyin.mode !== mode) && !this._romanizing) {
+				this._romanizing = true;
+				const uri = lyricsState.uri;
+				this.romanizeLyrics(lyrics).then((lines) => {
+					this._romanizing = false;
+					if (lines && uri === this.state.uri) {
+						this.setState({ pinyin: { mode, lines } });
+					}
+				});
+			}
+		} else if (this.state.pinyin) {
+			this.state.pinyin = null;
+		}
 	}
 
 	provideLanguageCode(lyrics) {
@@ -777,6 +806,31 @@ class LyricsContainer extends react.Component {
 		} catch (error) {
 			Spicetify.showNotification("Convert Error!", true);
 			console.error(error);
+		}
+	}
+
+	async romanizeLyrics(lyrics) {
+		if (!lyrics) return null;
+
+		Spicetify.showNotification("Converting...", false, 1000);
+		if (!this.translator) {
+			this.translator = new Translator("zh");
+		}
+		await this.translator.awaitFinished("zh");
+
+		try {
+			const result = await Promise.all(
+				lyrics.map(async (lyric) => ({
+					startTime: lyric.startTime,
+					text: await this.translator.convertToPinyin(lyric.text),
+				}))
+			);
+			Spicetify.showNotification("Converting...", false, 0);
+			return result;
+		} catch (error) {
+			Spicetify.showNotification("Convert Error!", true);
+			console.error(error);
+			return null;
 		}
 	}
 
@@ -1011,6 +1065,7 @@ class LyricsContainer extends react.Component {
 			...this.styleVariables,
 			"--lyrics-align-text": CONFIG.visual.alignment,
 			"--lyrics-font-size": `${CONFIG.visual["font-size"]}px`,
+			"--lyrics-romanization-font-size": `${CONFIG.visual["romanization-font-size"]}px`,
 			"--animation-tempo": this.state.tempo,
 		};
 
@@ -1039,6 +1094,7 @@ class LyricsContainer extends react.Component {
 			...this.styleVariables,
 			"--lyrics-align-text": CONFIG.visual.alignment,
 			"--lyrics-font-size": `${CONFIG.visual["font-size"]}px`,
+			"--lyrics-romanization-font-size": `${CONFIG.visual["romanization-font-size"]}px`,
 			"--animation-tempo": this.state.tempo,
 		};
 
@@ -1069,6 +1125,7 @@ class LyricsContainer extends react.Component {
 		const hasMusixmatchLanguages = Array.isArray(this.state.musixmatchAvailableTranslations) && this.state.musixmatchAvailableTranslations.length > 0;
 		const hasTranslation = this.state.neteaseTranslation !== null || this.state.musixmatchTranslation !== null || hasMusixmatchLanguages;
 		const hasPerformer = !!this.state.currentLyrics?.some((line) => line.performer);
+		const romanizationLines = this.state.pinyin?.mode === mode ? this.state.pinyin.lines : null;
 
 		if (mode !== -1) {
 			showTranslationButton = (friendlyLanguage || hasTranslation) && (mode === SYNCED || mode === UNSYNCED);
@@ -1089,6 +1146,7 @@ class LyricsContainer extends react.Component {
 					provider: this.state.provider,
 					copyright: this.state.copyright,
 					reRenderLyricsPage: this.reRenderLyricsPage,
+					romanization: romanizationLines,
 				});
 			} else if (mode === UNSYNCED && this.state.unsynced) {
 				activeItem = react.createElement(UnsyncedLyricsPage, {
@@ -1097,6 +1155,7 @@ class LyricsContainer extends react.Component {
 					provider: this.state.provider,
 					copyright: this.state.copyright,
 					reRenderLyricsPage: this.reRenderLyricsPage,
+					romanization: romanizationLines,
 				});
 			} else if (mode === GENIUS && this.state.genius) {
 				activeItem = react.createElement(GeniusPage, {
