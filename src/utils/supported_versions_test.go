@@ -138,7 +138,7 @@ func TestLoadSupportedVersionsMissingFile(t *testing.T) {
 
 func TestLoadSupportedVersionsRejectsUnknownSchema(t *testing.T) {
 	dir := t.TempDir()
-	for _, schema := range []int{0, 2, 3, 99} {
+	for _, schema := range []int{0, 3, 99} {
 		path := filepath.Join(dir, "list.json")
 		content := `{"schema_version": ` + strconv.Itoa(schema) + `, "policy": "allowlist"}`
 		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
@@ -216,6 +216,70 @@ func TestShippedSupportedVersionsJSON(t *testing.T) {
 	}
 	if list.SupportedSummary() == "(none listed)" {
 		t.Fatal("shipped list summary must not be empty")
+	}
+}
+
+func TestLoadSupportedVersionsV2(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "supported-versions.json")
+	content := `{
+  "schema_version": 2,
+  "policy": "allowlist",
+  "default_map_status": "classic",
+  "versions": ["1.2.93"],
+  "ranges": [],
+  "maps": {
+    "1.2.93": { "status": "modular", "note": "verified" }
+  }
+}`
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	list, err := LoadSupportedVersions(path)
+	if err != nil {
+		t.Fatalf("LoadSupportedVersions v2: %v", err)
+	}
+	info, err := list.MapInfoFor("1.2.93.9.gabc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Status != ClassmapStatusModular {
+		t.Fatalf("status: %q", info.Status)
+	}
+	if info.ClassmapKey != "1020093" {
+		t.Fatalf("classmap key filled from version: %q", info.ClassmapKey)
+	}
+}
+
+func TestLoadSupportedVersionsV2Negatives(t *testing.T) {
+	dir := t.TempDir()
+	cases := map[string]string{
+		"invalid default_map_status": `{
+  "schema_version": 2,
+  "default_map_status": "banana"
+}`,
+		"invalid maps key": `{
+  "schema_version": 2,
+  "maps": { "not-a-version": {} }
+}`,
+		"invalid maps status": `{
+  "schema_version": 2,
+  "maps": { "1.2.93": { "status": "banana" } }
+}`,
+		"duplicate normalized maps keys": `{
+  "schema_version": 2,
+  "maps": { "1.2.93": {}, "v1.2.93": {} }
+}`,
+	}
+	for name, content := range cases {
+		path := filepath.Join(dir, "list.json")
+		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadSupportedVersions(path); err == nil {
+			t.Fatalf("%s: expected error, got nil", name)
+		}
 	}
 }
 
