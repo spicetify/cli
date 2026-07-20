@@ -254,16 +254,18 @@ func CreateFile(path string, content string) error {
 	return nil
 }
 
-// GetSpotifyVersion .
+// GetSpotifyVersion reads app.last-launched-version from Spotify prefs.
+// Returns "" when prefs are missing or unreadable (e.g. fresh install);
+// callers should prefer GetInstalledSpotifyVersion and use this as fallback.
 func GetSpotifyVersion(prefsPath string) string {
 	pref, err := ini.Load(prefsPath)
 	if err != nil {
-		log.Fatal(err)
+		return ""
 	}
 
 	rootSection, err := pref.GetSection("")
 	if err != nil {
-		log.Fatal(err)
+		return ""
 	}
 
 	version := rootSection.Key("app.last-launched-version")

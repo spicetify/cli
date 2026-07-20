@@ -9,7 +9,16 @@ import (
 
 // Auto checks Spotify state, re-backup and apply if needed, then launch
 // Spotify client normally.
+//
+// Auto is the launch wrapper, so the support gate is soft here: when the
+// installed Spotify is unsupported (or its version is unknown) we warn and
+// return without touching Spotify files. main still launches Spotify via
+// SpotifyRestart, so music keeps working on unsupported versions.
 func Auto(spicetifyVersion string) {
+	if !SpotifySupportedForAuto() {
+		return
+	}
+
 	backupVersion := backupSection.Key("version").MustString("")
 	spotStat := spotifystatus.Get(appPath)
 	backStat := backupstatus.Get(prefsPath, backupFolder, backupVersion)

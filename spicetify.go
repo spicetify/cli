@@ -25,15 +25,16 @@ var (
 )
 
 var (
-	flags            = []string{}
-	commands         = []string{}
-	quiet            = false
-	extensionFocus   = false
-	appFocus         = false
-	styleFocus       = false
-	noRestart        = false
-	liveRefresh      = false
-	bypassAdminCheck = false
+	flags                   = []string{}
+	commands                = []string{}
+	quiet                   = false
+	extensionFocus          = false
+	appFocus                = false
+	styleFocus              = false
+	noRestart               = false
+	liveRefresh             = false
+	bypassAdminCheck        = false
+	forceUnsupportedSpotify = false
 )
 
 func init() {
@@ -70,6 +71,8 @@ func init() {
 		switch v {
 		case "--bypass-admin":
 			bypassAdminCheck = true
+		case "--force-unsupported-spotify":
+			forceUnsupportedSpotify = true
 		case "-c", "--config":
 			log.Println(cmd.GetConfigPath())
 			os.Exit(0)
@@ -123,16 +126,19 @@ func init() {
 		os.Exit(1)
 	}
 
-	for i, flag := range flags {
-		if flag == "--bypass-admin" {
-			flags = append(flags[:i], flags[i+1:]...)
-			break
+	for _, strip := range []string{"--bypass-admin", "--force-unsupported-spotify"} {
+		for i, flag := range flags {
+			if flag == strip {
+				flags = append(flags[:i], flags[i+1:]...)
+				break
+			}
 		}
 	}
 
 	utils.MigrateConfigFolder()
 	utils.MigrateFolders()
 	cmd.InitConfig(quiet)
+	cmd.SetForceUnsupportedSpotify(forceUnsupportedSpotify)
 
 	if len(commands) < 1 {
 		help()
@@ -494,6 +500,10 @@ upgrade|update      Update spicetify to the latest version if an update is avail
 
 --bypass-admin      Bypass admin or root (sudo) check. NOT RECOMMENDED
 
+--force-unsupported-spotify
+                    Allow backup/apply on Spotify versions outside the
+                    supported list. NOT RECOMMENDED; the client may break.
+
 -c, --config        Print config file path and quit
 
 -h, --help          Print this help text and quit
@@ -539,6 +549,10 @@ always_enable_devtools <0 | 1>
 
 check_spicetify_update <0 | 1>
     Whether to always check for updates when running Spicetify.
+
+spotify_version_check <0 | 1>
+    Whether backup/apply refuse unsupported Spotify versions.
+    Disable only if you accept that the client may break.
 
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>
