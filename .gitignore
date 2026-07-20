@@ -17,3 +17,6 @@ jsHelper/spicetifyWrapper.js.map
 
 # Logs
 install.log
+
+# Local build artifacts
+/spicetify
