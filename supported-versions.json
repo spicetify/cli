@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "updated": "2026-07-20",
+  "policy": "allowlist",
+  "versions": [],
+  "ranges": [
+    {
+      "min": "1.2.86",
+      "max": "1.2.93",
+      "note": "Classic css-map pipeline; window drawn from recent CLI support commits (1.2.86 through 1.2.93)"
+    }
+  ],
+  "notes": {
+    "1.2.93": "Explicitly targeted in cli main"
+  }
+}
