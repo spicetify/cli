@@ -18,6 +18,12 @@ func (v SpotifyVersion) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }
 
+// ClassmapKey encodes the version as used by spicetify/classmaps folders
+// (e.g. 1.2.45 -> "1020045", 1.2.93 -> "1020093").
+func (v SpotifyVersion) ClassmapKey() string {
+	return fmt.Sprintf("%d%02d%04d", v.Major, v.Minor, v.Patch)
+}
+
 // ParseSpotifyVersion parses a Spotify version string from prefs or config.
 // Accepts forms like "1.2.93", "1.2.93.12.gdeadbeef", and optional leading "v".
 func ParseSpotifyVersion(raw string) (SpotifyVersion, error) {
@@ -97,4 +103,14 @@ func (v SpotifyVersion) Compare(other SpotifyVersion) int {
 		return 1
 	}
 	return 0
+}
+
+// SpotifyVersionToClassmapKey converts a normalized or full version string
+// into a classmap folder key.
+func SpotifyVersionToClassmapKey(raw string) (string, error) {
+	v, err := ParseSpotifyVersion(raw)
+	if err != nil {
+		return "", err
+	}
+	return v.ClassmapKey(), nil
 }

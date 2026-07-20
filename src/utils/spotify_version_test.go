@@ -35,6 +35,28 @@ func TestParseAndNormalizeSpotifyVersion(t *testing.T) {
 	}
 }
 
+func TestSpotifyVersionClassmapKey(t *testing.T) {
+	tests := []struct {
+		raw  string
+		want string
+	}{
+		{"1.2.45", "1020045"},
+		{"1.2.93", "1020093"},
+		{"1.2.8", "1020008"},
+		{"1.2.38", "1020038"},
+	}
+
+	for _, tt := range tests {
+		got, err := SpotifyVersionToClassmapKey(tt.raw)
+		if err != nil {
+			t.Fatalf("SpotifyVersionToClassmapKey(%q): %v", tt.raw, err)
+		}
+		if got != tt.want {
+			t.Fatalf("SpotifyVersionToClassmapKey(%q) = %q, want %q", tt.raw, got, tt.want)
+		}
+	}
+}
+
 func TestCompareSpotifyVersion(t *testing.T) {
 	tests := []struct {
 		a, b string
