@@ -35,6 +35,7 @@ var (
 	liveRefresh             = false
 	bypassAdminCheck        = false
 	forceUnsupportedSpotify = false
+	pkgAllowStale           = false
 )
 
 func init() {
@@ -73,6 +74,8 @@ func init() {
 			bypassAdminCheck = true
 		case "--force-unsupported-spotify":
 			forceUnsupportedSpotify = true
+		case "--allow-stale":
+			pkgAllowStale = true
 		case "-c", "--config":
 			log.Println(cmd.GetConfigPath())
 			os.Exit(0)
@@ -126,7 +129,7 @@ func init() {
 		os.Exit(1)
 	}
 
-	for _, strip := range []string{"--bypass-admin", "--force-unsupported-spotify"} {
+	for _, strip := range []string{"--bypass-admin", "--force-unsupported-spotify", "--allow-stale"} {
 		for i, flag := range flags {
 			if flag == strip {
 				flags = append(flags[:i], flags[i+1:]...)
@@ -139,6 +142,7 @@ func init() {
 	utils.MigrateFolders()
 	cmd.InitConfig(quiet)
 	cmd.SetForceUnsupportedSpotify(forceUnsupportedSpotify)
+	cmd.SetPkgAllowStale(pkgAllowStale)
 
 	if len(commands) < 1 {
 		help()
@@ -162,6 +166,10 @@ func main() {
 			cmd.InitPaths()
 		}
 		cmd.ShowSpotifySupport(commands[1:])
+		return
+
+	case "pkg":
+		cmd.ModulePkg(commands[1:])
 		return
 
 	case "config":
@@ -490,6 +498,10 @@ config-dir          Show config directory in file viewer
 support             Show whether the installed Spotify version is supported,
                     its classmap key, map status, and whether a local classmap
                     file is present. Optional: spicetify support 1.2.93
+
+pkg                 Manage v3 modules: spicetify pkg list | install <id> | delete <id>
+                    Modules install into the spicetify Modules folder and are
+                    staged at apply time on modular-supported Spotify versions.
 
 upgrade|update      Update spicetify to the latest version if an update is available
 

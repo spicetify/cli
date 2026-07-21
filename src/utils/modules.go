@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // ModuleMetadata mirrors the v3 module metadata.json shape (spicetify/modules).
@@ -17,6 +18,30 @@ type ModuleMetadata struct {
 	Entries      ModuleEntries     `json:"entries"`
 	HasMixins    bool              `json:"hasMixins"`
 	Dependencies map[string]string `json:"dependencies"`
+}
+
+// UnmarshalJSON tolerates dependencies as either a map or an (empty) array,
+// both used by historical module metadata.
+func (m *ModuleMetadata) UnmarshalJSON(data []byte) error {
+	type plain ModuleMetadata
+	var raw struct {
+		plain
+		Dependencies json.RawMessage `json:"dependencies"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*m = ModuleMetadata(raw.plain)
+	m.Dependencies = map[string]string{}
+	if len(raw.Dependencies) > 0 && string(raw.Dependencies) != "null" {
+		trimmed := strings.TrimSpace(string(raw.Dependencies))
+		if strings.HasPrefix(trimmed, "{") {
+			if err := json.Unmarshal(raw.Dependencies, &m.Dependencies); err != nil {
+				return fmt.Errorf("dependencies: %w", err)
+			}
+		}
+	}
+	return nil
 }
 
 type ModuleEntries struct {
@@ -88,29 +113,30 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 		outDir := filepath.Join(extractedXpuiPath, "modules", m.Identifier)
 		staged := ModuleManifest{Identifier: m.Identifier, ModuleMetadata: m.ModuleMetadata}
 
-		ok := true
-		if m.Entries.JS != "" {
-			out, err := remapModuleEntry(filepath.Join(modulesRoot, m.Identifier, m.Entries.JS), outDir, cm, stale)
+		// pkg artifacts are pre-tailored for a base classmap; re-aim them at
+		// the target. Source modules (MAP.* references) remap directly.
+		sidecar := readModuleSidecar(modulesRoot, m.Identifier)
+		base := sidecar.ClassmapBase
+		var baseCm Classmap
+		retarget := false
+		if base != "" && base != classmapKey {
+			basePath, err := FindClassmapFile(base)
 			if err != nil {
+				PrintWarning(fmt.Sprintf("Skipping module %s: built for classmap %s, which is not available locally", m.Identifier, base))
+				continue
+			}
+			if baseCm, err = LoadClassmap(basePath); err != nil {
 				PrintWarning(fmt.Sprintf("Skipping module %s: %v", m.Identifier, err))
-				ok = false
-			} else {
-				staged.Entries.JS = out
+				continue
 			}
-		}
-		if ok && m.Entries.CSS != "" {
-			out, err := remapModuleEntry(filepath.Join(modulesRoot, m.Identifier, m.Entries.CSS), outDir, cm, stale)
-			if err != nil {
-				PrintWarning(fmt.Sprintf("Skipping css for module %s: %v", m.Identifier, err))
-				staged.Entries.CSS = ""
-			} else {
-				staged.Entries.CSS = out
-			}
+			retarget = true
 		}
 
-		if ok {
-			manifest.Modules = append(manifest.Modules, staged)
+		if err := stageModuleTree(modulesRoot, m.Identifier, outDir, baseCm, cm, stale, retarget, sidecar.AllowStale); err != nil {
+			PrintWarning(fmt.Sprintf("Skipping module %s: %v", m.Identifier, err))
+			continue
 		}
+		manifest.Modules = append(manifest.Modules, staged)
 	}
 
 	if len(manifest.Modules) == 0 {
@@ -131,6 +157,76 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 	return manifest, nil
 }
 
+// moduleSidecar is written by `spicetify pkg install` next to metadata.json.
+type moduleSidecar struct {
+	InstalledVersion string `json:"installed_version"`
+	ClassmapBase     string `json:"classmap_base"`
+	AllowStale       bool   `json:"allow_stale,omitempty"`
+}
+
+func readModuleSidecar(modulesRoot, identifier string) moduleSidecar {
+	raw, err := os.ReadFile(filepath.Join(modulesRoot, identifier, "spicetify-module.json"))
+	if err != nil {
+		return moduleSidecar{}
+	}
+	var sc moduleSidecar
+	if json.Unmarshal(raw, &sc) != nil {
+		return moduleSidecar{}
+	}
+	return sc
+}
+
+// stageModuleTree stages a whole module directory, remapping text sources
+// and copying everything else verbatim.
+func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap, stale map[string]bool, retarget, allowStale bool) error {
+	srcRoot := filepath.Join(modulesRoot, identifier)
+	return filepath.WalkDir(srcRoot, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(srcRoot, path)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if rel == "metadata.json" || rel == "spicetify-module.json" {
+			return nil
+		}
+		destDir := filepath.Join(outDir, filepath.Dir(rel))
+		switch strings.ToLower(filepath.Ext(rel)) {
+		case ".js", ".mjs", ".css", ".ts", ".tsx", ".jsx":
+			if _, err := stageEntry(modulesRoot, identifier, rel, destDir, baseCm, cm, stale, retarget, allowStale); err != nil {
+				return err
+			}
+		default:
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			if err := os.MkdirAll(destDir, 0755); err != nil {
+				return err
+			}
+			if err := os.WriteFile(filepath.Join(outDir, rel), raw, 0644); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func stageEntry(modulesRoot, identifier, entry, outDir string, baseCm, cm Classmap, stale map[string]bool, retarget, allowStale bool) (string, error) {
+	srcPath := filepath.Join(modulesRoot, identifier, entry)
+	if retarget {
+		if allowStale {
+			return retargetModuleEntryLenient(srcPath, outDir, baseCm, cm, stale)
+		}
+		return retargetModuleEntry(srcPath, outDir, baseCm, cm, stale)
+	}
+	return remapModuleEntry(srcPath, outDir, cm, stale)
+}
+
 // remapModuleEntry remaps one entry file into the staging dir and returns
 // the staged file name (same as the entry name).
 func remapModuleEntry(srcPath, outDir string, cm Classmap, stale map[string]bool) (string, error) {
@@ -142,11 +238,40 @@ func remapModuleEntry(srcPath, outDir string, cm Classmap, stale map[string]bool
 	if err != nil {
 		return "", err
 	}
+	return writeStagedEntry(srcPath, outDir, remapped)
+}
+
+// retargetModuleEntry rewrites an entry built against baseCm to the target
+// classmap (pkg-installed pre-tailored artifacts).
+func retargetModuleEntry(srcPath, outDir string, baseCm, cm Classmap, stale map[string]bool) (string, error) {
+	return retargetModuleEntryWith(srcPath, outDir, baseCm, cm, stale, false)
+}
+
+func retargetModuleEntryLenient(srcPath, outDir string, baseCm, cm Classmap, stale map[string]bool) (string, error) {
+	return retargetModuleEntryWith(srcPath, outDir, baseCm, cm, stale, true)
+}
+
+func retargetModuleEntryWith(srcPath, outDir string, baseCm, cm Classmap, stale map[string]bool, lenient bool) (string, error) {
+	raw, err := os.ReadFile(srcPath)
+	if err != nil {
+		return "", fmt.Errorf("cannot read %s: %w", srcPath, err)
+	}
+	remapped, err := retargetClassmapHashes(string(raw), baseCm, cm, stale, lenient)
+	if err != nil {
+		return "", err
+	}
+	// hooks-era artifacts capture webpack require via the webpack 4 chunk
+	// global; current clients are rspack-based and use a different name.
+	remapped = strings.ReplaceAll(remapped, "webpackChunkclient_web", "rspackChunkclient_web")
+	return writeStagedEntry(srcPath, outDir, remapped)
+}
+
+func writeStagedEntry(srcPath, outDir, content string) (string, error) {
 	if err := os.MkdirAll(outDir, 0755); err != nil {
 		return "", err
 	}
 	name := filepath.Base(srcPath)
-	if err := os.WriteFile(filepath.Join(outDir, name), []byte(remapped), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(outDir, name), []byte(content), 0644); err != nil {
 		return "", fmt.Errorf("cannot stage %s: %w", name, err)
 	}
 	return name, nil
@@ -204,5 +329,21 @@ func StageModularApply(extractedXpuiPath, spotifyVersion, classmapKey string) (*
 		return nil, err
 	}
 	stale := ClassmapStalePathsFromMeta(classmapPath)
-	return StageModules(ModulesDir(), extractedXpuiPath, modules, cm, stale, spotifyVersion, classmapKey)
+	manifest, err := StageModules(ModulesDir(), extractedXpuiPath, modules, cm, stale, spotifyVersion, classmapKey)
+	if err != nil || manifest == nil || len(manifest.Modules) == 0 {
+		return manifest, err
+	}
+	// hooks-era artifacts import /hooks/* runtime helpers; ship the compat
+	// pack so they resolve inside the client.
+	if hooksDir := filepath.Join(GetJsHelperDir(), "hooks"); dirExists(hooksDir) {
+		if err := Copy(hooksDir, filepath.Join(extractedXpuiPath, "hooks"), true, nil); err != nil {
+			PrintWarning("cannot stage hooks compat pack: " + err.Error())
+		}
+	}
+	return manifest, nil
+}
+
+func dirExists(path string) bool {
+	st, err := os.Stat(path)
+	return err == nil && st.IsDir()
 }

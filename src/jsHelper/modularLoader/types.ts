@@ -34,8 +34,10 @@ export interface LoadContext {
 	spotifyVersion: string;
 }
 
+export type TransformerShim = (register: unknown, opts?: unknown) => Promise<unknown>;
+
 export interface JsIndex {
-	mixin?: (ctx: MixinContext) => SyncOrAsync<void>;
+	mixin?: (transformer: TransformerShim, ctx?: MixinContext) => SyncOrAsync<void>;
 	preload?: (ctx: PreloadContext) => SyncOrAsync<DisposeFn | void>;
 	load?: (ctx: LoadContext) => SyncOrAsync<DisposeFn | void>;
 }
@@ -44,6 +46,7 @@ export interface Effects {
 	importJs(path: string): Promise<JsIndex>;
 	loadCss(path: string): Promise<unknown>;
 	adoptCss(sheet: unknown): DisposeFn;
+	createTransformer(): TransformerShim;
 	log(level: "info" | "error", ...args: unknown[]): void;
 }
 

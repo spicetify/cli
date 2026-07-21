@@ -375,6 +375,10 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 
 				if flags.ModularApply {
 					tags += utils.ModularApplyScriptTag
+					// The modular loader re-injects the snapshot after mixins.
+					utils.ReplaceOnce(&content, `<script defer="defer" src="/xpui-snapshot.js"></script>`, func(submatches ...string) string {
+						return ""
+					})
 				}
 
 				utils.Replace(&content, `<body(\sclass="[^"]*")?>`, func(submatches ...string) string {

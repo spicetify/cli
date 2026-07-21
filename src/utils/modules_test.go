@@ -131,3 +131,21 @@ func TestStageModulesSkipsFailedRemap(t *testing.T) {
 		t.Fatalf("broken module should be skipped, got %+v", manifest.Modules)
 	}
 }
+
+func TestModuleMetadataDependenciesArray(t *testing.T) {
+	var m ModuleMetadata
+	if err := json.Unmarshal([]byte(`{"name":"stdlib","version":"0.2.2","dependencies":[]}`), &m); err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Dependencies) != 0 {
+		t.Fatalf("array dependencies should give empty map, got %v", m.Dependencies)
+	}
+
+	raw := `{"name":"x","version":"1.0.0","dependencies":{"stdlib":"^0.2.0"}}`
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+		t.Fatal(err)
+	}
+	if m.Dependencies["stdlib"] != "^0.2.0" {
+		t.Fatalf("map dependencies broken: %v", m.Dependencies)
+	}
+}

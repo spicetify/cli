@@ -98,12 +98,9 @@ export class Registry {
 		return index;
 	}
 
-	async boot(): Promise<BootReport> {
-		const report: BootReport = { loaded: [], failed: {} };
-		const order = this.topoOrder();
-
+	private eligibleOrder(report: BootReport): string[] {
 		const eligible: string[] = [];
-		for (const id of order) {
+		for (const id of this.topoOrder()) {
 			const problem = this.checkDependencies(id, new Set());
 			if (problem) {
 				this.effects.log("error", problem);
@@ -112,13 +109,21 @@ export class Registry {
 				eligible.push(id);
 			}
 		}
+		return eligible;
+	}
 
+	// runMixins executes the mixin phase for all eligible modules. It must
+	// complete before the client bundle boots for interceptions to work.
+	async runMixins(report: BootReport): Promise<void> {
+		const eligible = this.eligibleOrder(report);
 		for (const id of eligible) {
 			const m = this.modules.get(id)!;
 			if (!m.hasMixins) continue;
 			try {
 				const index = await this.jsIndexOf(m);
-				await index?.mixin?.({ spotifyVersion: this.manifest.spotifyVersion });
+				await index?.mixin?.(this.effects.createTransformer(), {
+					spotifyVersion: this.manifest.spotifyVersion,
+				});
 				this.state(id).mixedIn = true;
 			} catch (e) {
 				report.failed[id] = `mixin failed: ${(e as Error).message}`;
@@ -126,6 +131,12 @@ export class Registry {
 			}
 		}
 
+	}
+
+	// runLoads executes preload/css/load for all eligible modules, after the
+	// client is up. Call runMixins first during early boot.
+	async runLoads(report: BootReport): Promise<void> {
+		const eligible = this.eligibleOrder(report);
 		for (const id of eligible) {
 			if (report.failed[id]) continue;
 			const m = this.modules.get(id)!;
@@ -166,6 +177,12 @@ export class Registry {
 			}
 		}
 
+	}
+
+	async boot(): Promise<BootReport> {
+		const report: BootReport = { loaded: [], failed: {} };
+		await this.runMixins(report);
+		await this.runLoads(report);
 		return report;
 	}
 

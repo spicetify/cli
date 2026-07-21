@@ -38,6 +38,7 @@ function trackingEffects(calls: string[], jsByModule: Record<string, unknown> = 
 			calls.push(`adopt:${sheet}`);
 			return () => calls.push(`unadopt:${sheet}`);
 		},
+		createTransformer: () => () => Promise.resolve(undefined),
 		log: () => {},
 	};
 }

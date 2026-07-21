@@ -116,3 +116,61 @@ func TestRemapClassmapReferencesStale(t *testing.T) {
 		t.Fatalf("non-stale reference should still resolve: %s", out)
 	}
 }
+
+func TestRetargetClassmapHashes(t *testing.T) {
+	from := Classmap{"main": map[string]any{
+		"topbar":  map[string]any{"wrapper": "oldTop1"},
+		"playbar": map[string]any{"buttons": map[string]any{"play": "oldPlay1"}},
+	}}
+	to := Classmap{"main": map[string]any{
+		"topbar":  map[string]any{"wrapper": "newTop1"},
+		"playbar": map[string]any{"buttons": map[string]any{"play": "newPlay1"}},
+	}}
+
+	src := `const a = "oldTop1"; el.className = "oldPlay1"; const keep = "unrelated";`
+	out, err := RetargetClassmapHashes(src, from, to, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, `"newTop1"`) || !strings.Contains(out, `"newPlay1"`) {
+		t.Fatalf("hashes not retargeted:\n%s", out)
+	}
+	if !strings.Contains(out, `"unrelated"`) {
+		t.Fatalf("unrelated string touched:\n%s", out)
+	}
+}
+
+func TestRetargetClassmapHashesMissing(t *testing.T) {
+	from := Classmap{"a": map[string]any{"b": "oldB1"}}
+	to := Classmap{"a": map[string]any{"c": "newC1"}}
+	if _, err := RetargetClassmapHashes(`const x = "oldB1";`, from, to, nil); err == nil {
+		t.Fatal("expected error for path missing in target")
+	}
+}
+
+func TestRetargetClassmapHashesStale(t *testing.T) {
+	from := Classmap{"a": map[string]any{"b": "oldB1"}}
+	to := Classmap{"a": map[string]any{"b": "newB1"}}
+	_, err := RetargetClassmapHashes(`const x = "oldB1";`, from, to, map[string]bool{"a.b": true})
+	if err == nil || !strings.Contains(err.Error(), "stale: a.b") {
+		t.Fatalf("expected stale error, got %v", err)
+	}
+}
+
+func TestRetargetClassmapHashesNoOverlap(t *testing.T) {
+	from := Classmap{
+		"a": map[string]any{"x": "abc"},
+		"b": map[string]any{"y": "abcdef"},
+	}
+	to := Classmap{
+		"a": map[string]any{"x": "X1"},
+		"b": map[string]any{"y": "Y1"},
+	}
+	out, err := RetargetClassmapHashes(`"abcdef" "abc"`, from, to, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out != `"Y1" "X1"` {
+		t.Fatalf("overlap mishandled: %s", out)
+	}
+}
