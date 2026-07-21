@@ -100,22 +100,29 @@ async function bootClient(transforms: ReturnType<typeof createTransformRegistry>
 // (post-render pushes execute the chunk factory; earlier pushes are either
 // fatal to boot or silently deferred). hooks-era modules read the result
 // through the wpunpk compat proxy.
-function captureWebpackRequire(): void {
-	const q = (globalThis as never as Record<string, unknown>).rspackChunkclient_web as unknown[];
-	if (!Array.isArray(q) || q.push === Array.prototype.push) return;
-	try {
-		q.push([
-			[`spicetify.webpack.chunk.id.${Date.now()}`],
-			{},
-			(re: unknown) => {
-				(globalThis as never as Record<string, unknown>).__webpack_require__ = re;
-				return re;
-			},
-		]);
-		log("info")("captured webpack require");
-	} catch (e) {
-		log("error")("webpack require capture failed", e);
+async function captureWebpackRequire(maxWaitMs = 30000): Promise<void> {
+	const deadline = Date.now() + maxWaitMs;
+	while (Date.now() < deadline) {
+		const q = (globalThis as never as Record<string, unknown>).rspackChunkclient_web as unknown[];
+		if (Array.isArray(q) && q.push !== Array.prototype.push) {
+			try {
+				q.push([
+					[`spicetify.webpack.chunk.id.${Date.now()}`],
+					{},
+					(re: unknown) => {
+						(globalThis as never as Record<string, unknown>).__webpack_require__ = re;
+						return re;
+					},
+				]);
+				log("info")("captured webpack require");
+			} catch (e) {
+				log("error")("webpack require capture failed", e);
+			}
+			return;
+		}
+		await new Promise((r) => setTimeout(r, 500));
 	}
+	log("error")("webpack require capture timed out");
 }
 
 async function waitForClient(timeoutMs: number): Promise<boolean> {
@@ -152,7 +159,7 @@ async function boot(): Promise<BootReport | null> {
 	if (!(await waitForClient(15000))) {
 		log("error")("client did not come up in time; running module loads anyway");
 	}
-	captureWebpackRequire();
+	void captureWebpackRequire();
 	await registry.runLoads(report);
 
 	globalThis.Spicetify = globalThis.Spicetify ?? {};
