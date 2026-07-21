@@ -795,6 +795,83 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0
 
 
+def flatten_classmap(
+    classmap: dict,
+    base_map: dict | None,
+    css_map: dict[str, str],
+    report: dict | None,
+    meta: dict | None,
+) -> tuple[dict[str, str], list[str]]:
+    """Bridge a nested classmap into a flat css-map overlay (hash -> semantic).
+
+    The semantic name for a leaf is the name themes already target, resolved
+    in priority order:
+      1. css-map name of the BASE classmap's hash at the same path (the
+         established, theme-facing name for that component),
+      2. the migrate report's semantic for the path.
+    Leaves whose new hash is already in the global css-map are skipped: the
+    global map already rewrites them, so the overlay only carries verified
+    per-version corrections the global map lacks. Leaves with no resolvable
+    semantic are skipped with a warning. Leaves marked stale are skipped.
+    """
+    stale: set[str] = set()
+    if meta:
+        stale |= set(meta.get("stale_leaves", []))
+    if report:
+        for u in report.get("unmatched", []):
+            if u.get("stale"):
+                stale.add(u.get("path", ""))
+
+    base_at: dict[str, str] = {}
+    if base_map:
+        for path, h in iter_leaves(base_map):
+            base_at[".".join(path)] = h
+
+    report_sem: dict[str, str] = {}
+    if report:
+        for m in report.get("matched", []) + report.get("identity", []):
+            if m.get("semantic"):
+                report_sem[m.get("path", "")] = m["semantic"]
+
+    overlay: dict[str, str] = {}
+    skipped: list[str] = []
+    for path, h in iter_leaves(classmap):
+        dotted = ".".join(path)
+        if dotted in stale:
+            continue
+        if not is_hash_like(h):
+            # Hand-written or stale non-hash value; not safe to rewrite.
+            skipped.append(f"{dotted}: {h!r} not hash-like")
+            continue
+        if h in css_map:
+            # Global css-map already rewrites this hash; nothing to correct.
+            continue
+        semantic = css_map.get(base_at.get(dotted, "")) or report_sem.get(dotted)
+        if not semantic:
+            skipped.append(f"{dotted}: no semantic name for {h}")
+            continue
+        overlay[h] = semantic
+    return overlay, skipped
+
+
+def cmd_flatten(args: argparse.Namespace) -> int:
+    classmap = json.loads(Path(args.classmap).read_text())
+    base_map = json.loads(Path(args.base_classmap).read_text()) if args.base_classmap else None
+    css_map = load_css_map(args.css_map)
+    report = json.loads(Path(args.report).read_text()) if args.report else None
+    meta = json.loads(Path(args.meta).read_text()) if args.meta else None
+
+    overlay, skipped = flatten_classmap(classmap, base_map, css_map, report, meta)
+
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(overlay, indent=2, sort_keys=True) + "\n")
+    print(f"wrote {out} ({len(overlay)} overlay entries)")
+    for s in skipped:
+        print(f"  skipped: {s}")
+    return 0
+
+
 def cmd_devtools(args: argparse.Namespace) -> int:
     report = json.loads(Path(args.report).read_text())
     matched = report.get("matched", []) + report.get("identity", [])
@@ -889,6 +966,15 @@ def main(argv: list[str] | None = None) -> int:
     p_dt = sub.add_parser("devtools", help="Emit DevTools console snippet for matched paths")
     p_dt.add_argument("--report", required=True)
     p_dt.set_defaults(func=cmd_devtools)
+
+    p_flat = sub.add_parser("flatten", help="Bridge a classmap into a flat css-map overlay")
+    p_flat.add_argument("--classmap", required=True)
+    p_flat.add_argument("--base-classmap", help="Base classmap used to derive theme-facing names")
+    p_flat.add_argument("--css-map", default="css-map.json")
+    p_flat.add_argument("--report", help="Migrate report (semantic fallbacks + stale flags)")
+    p_flat.add_argument("--meta", help="META.json with stale_leaves list")
+    p_flat.add_argument("--out", required=True)
+    p_flat.set_defaults(func=cmd_flatten)
 
     p_key = sub.add_parser("key", help="Print classmap key for a Spotify version")
     p_key.add_argument("version")

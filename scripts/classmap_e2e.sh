@@ -30,6 +30,7 @@ cd "$ROOT"
 SKIP_MIGRATE=0
 SKIP_STATIC=0
 SKIP_CDP=0
+SKIP_FLATTEN=0
 DEEP=0
 RESTART=0
 ENSURE_CDP=1
@@ -40,6 +41,7 @@ while [[ $# -gt 0 ]]; do
     --skip-migrate) SKIP_MIGRATE=1 ;;
     --skip-static) SKIP_STATIC=1 ;;
     --skip-cdp) SKIP_CDP=1 ;;
+    --skip-flatten) SKIP_FLATTEN=1 ;;
     --deep) DEEP=1 ;;
     --restart) RESTART=1 ;;
     --no-ensure-cdp) ENSURE_CDP=0 ;;
@@ -85,6 +87,7 @@ CLASSMAP_OUT="$OUT_DIR/classmap.json"
 REPORT_OUT="$OUT_DIR/report.json"
 VERIFY_OUT="$OUT_DIR/verify.json"
 CDP_OUT="$OUT_DIR/cdp-e2e-report.json"
+OVERLAY_OUT="$OUT_DIR/css-map.json"
 
 mkdir -p "$OUT_DIR"
 
@@ -241,7 +244,7 @@ PY
 }
 
 if [[ "$SKIP_MIGRATE" -eq 0 ]]; then
-  log "1/3 migrate classmap"
+  log "1/4 migrate classmap"
   if [[ ! -f "$BASE_CLASSMAP" ]]; then
     echo "Missing base classmap: $BASE_CLASSMAP" >&2
     exit 1
@@ -261,11 +264,11 @@ if [[ "$SKIP_MIGRATE" -eq 0 ]]; then
     --threshold 0.55 \
     --allow-partial
 else
-  log "1/3 migrate skipped"
+  log "1/4 migrate skipped"
 fi
 
 if [[ "$SKIP_STATIC" -eq 0 ]]; then
-  log "2/3 static verify"
+  log "2/4 static verify"
   resolve_target_css_args 1 || resolve_target_css_args 0
   "$PYTHON" scripts/classmap_capture.py verify \
     --classmap "$CLASSMAP_OUT" \
@@ -276,11 +279,11 @@ if [[ "$SKIP_STATIC" -eq 0 ]]; then
   "$PYTHON" scripts/classmap_capture.py devtools \
     --report "$REPORT_OUT" > "$OUT_DIR/devtools-snippet.js" || true
 else
-  log "2/3 static verify skipped"
+  log "2/4 static verify skipped"
 fi
 
 if [[ "$SKIP_CDP" -eq 0 ]]; then
-  log "3/3 CDP e2e verify"
+  log "3/4 CDP e2e verify"
   if [[ "$ENSURE_CDP" -eq 1 ]]; then
     ensure_cdp
   fi
@@ -303,7 +306,22 @@ if [[ "$SKIP_CDP" -eq 0 ]]; then
     "${NAV_FLAGS[@]}" \
     "${RESTART_FLAG[@]}"
 else
-  log "3/3 CDP e2e skipped"
+  log "3/4 CDP e2e skipped"
+fi
+
+if [[ "$SKIP_FLATTEN" -eq 0 ]]; then
+  log "4/4 flatten css-map overlay"
+  META_ARGS=()
+  [[ -f "$OUT_DIR/META.json" ]] && META_ARGS=(--meta "$OUT_DIR/META.json")
+  "$PYTHON" scripts/classmap_capture.py flatten \
+    --classmap "$CLASSMAP_OUT" \
+    --base-classmap "$BASE_CLASSMAP" \
+    --css-map "$CSS_MAP" \
+    --report "$REPORT_OUT" \
+    "${META_ARGS[@]+${META_ARGS[@]}}" \
+    --out "$OVERLAY_OUT"
+else
+  log "4/4 flatten skipped"
 fi
 
 log "Done"
