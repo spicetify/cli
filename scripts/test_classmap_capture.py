@@ -142,3 +142,53 @@ class TestMigrateClassmap(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFlattenClassmap(unittest.TestCase):
+    BASE = {"main": {"topbar": {"wrapper": "oldHashAA11"}}, "settings": {"button": {"wrapper": "oldHashBB22"}}}
+    CSS_MAP = {"oldHashAA11": "main-topBar-topbarContent", "newHashCC33": "x-settings-button"}
+    REPORT = {
+        "matched": [
+            {"path": "settings.button.wrapper", "new": "newHashCC33", "semantic": "x-settings-button"}
+        ],
+        "unmatched": [{"path": "main.topbar.icon", "old": "staleHash99", "stale": True}],
+        "identity": [],
+    }
+
+    def test_base_semantic_wins(self):
+        cm = {"main": {"topbar": {"wrapper": "newHashAA44"}}}
+        overlay, skipped = cc.flatten_classmap(cm, self.BASE, self.CSS_MAP, None, None)
+        # Name comes from the base hash's css-map entry, not the new hash.
+        self.assertEqual(overlay, {"newHashAA44": "main-topBar-topbarContent"})
+        self.assertEqual(skipped, [])
+
+    def test_hash_already_in_css_map_skipped(self):
+        # Global css-map already rewrites this hash; overlay must not rename it.
+        cm = {"settings": {"button": {"wrapper": "newHashCC33"}}}
+        overlay, _ = cc.flatten_classmap(cm, self.BASE, self.CSS_MAP, self.REPORT, None)
+        self.assertEqual(overlay, {})
+
+    def test_report_semantic_fallback_for_hand_edits(self):
+        # New hash unknown to css-map and base hash unnamed: report's
+        # path-level semantic is the last resort (covers hand-edited leaves).
+        cm = {"settings": {"header": {"container": "newHashHH77"}}}
+        report = {"matched": [{"path": "settings.header.container", "semantic": "x-settings-header"}], "unmatched": [], "identity": []}
+        overlay, _ = cc.flatten_classmap(cm, self.BASE, self.CSS_MAP, report, None)
+        self.assertEqual(overlay, {"newHashHH77": "x-settings-header"})
+
+    def test_stale_excluded(self):
+        cm = {"main": {"topbar": {"icon": "staleHash99"}}}
+        overlay, _ = cc.flatten_classmap(cm, self.BASE, self.CSS_MAP, self.REPORT, None)
+        self.assertEqual(overlay, {})
+
+    def test_meta_stale_excluded(self):
+        cm = {"main": {"topbar": {"wrapper": "newHashAA44"}}}
+        meta = {"stale_leaves": ["main.topbar.wrapper"]}
+        overlay, _ = cc.flatten_classmap(cm, self.BASE, self.CSS_MAP, None, meta)
+        self.assertEqual(overlay, {})
+
+    def test_unresolvable_skipped_with_warning(self):
+        cm = {"main": {"mystery": {"leaf": "newHashZZ99"}}}
+        overlay, skipped = cc.flatten_classmap(cm, self.BASE, self.CSS_MAP, None, None)
+        self.assertEqual(overlay, {})
+        self.assertEqual(len(skipped), 1)
