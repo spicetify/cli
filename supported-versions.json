@@ -1,19 +1,20 @@
 {
   "schema_version": 2,
-  "updated": "2026-07-20",
+  "updated": "2026-07-21",
   "policy": "allowlist",
   "default_map_status": "classic",
   "versions": [],
   "ranges": [
     {
       "min": "1.2.70",
-      "max": "1.2.93",
-      "note": "Classic css-map pipeline; window drawn from recent CLI support commits (1.2.70 through 1.2.93)"
+      "max": "1.2.94",
+      "note": "Classic css-map pipeline; window drawn from recent CLI support commits (1.2.70 through 1.2.94)"
     }
   ],
   "notes": {
     "1.2.92": "Verified on maintainer machine (1.2.92.148); verified classmap available under classmaps/1020092",
-    "1.2.93": "Explicitly targeted in cli main"
+    "1.2.93": "Explicitly targeted in cli main",
+    "1.2.94": "Captured on release day via the classmap pipeline (1020092 -> 1020094 chain, 27/28 identity)"
   },
   "maps": {
     "1.2.92": {
@@ -25,6 +26,11 @@
       "classmap_key": "1020093",
       "status": "classic",
       "note": "Classic pipeline only; modular classmap not published yet"
+    },
+    "1.2.94": {
+      "classmap_key": "1020094",
+      "status": "modular",
+      "note": "Verified classmap captured on release day (1.2.94.583): 20/36 leaves CDP-verified incl. all required paths; 7 unverified, 9 stale"
     }
   }
 }
