@@ -812,11 +812,15 @@ def flatten_classmap(
     Leaves whose new hash is already in the global css-map are skipped: the
     global map already rewrites them, so the overlay only carries verified
     per-version corrections the global map lacks. Leaves with no resolvable
-    semantic are skipped with a warning. Leaves marked stale are skipped.
+    semantic are skipped with a warning. Stale leaves and leaves not yet
+    verified (per META.json) are skipped; an unverified required path is a
+    loud warning.
     """
     stale: set[str] = set()
+    unverified: set[str] = set()
     if meta:
         stale |= set(meta.get("stale_leaves", []))
+        unverified |= set(meta.get("unverified_leaves", []))
     if report:
         for u in report.get("unmatched", []):
             if u.get("stale"):
@@ -837,20 +841,28 @@ def flatten_classmap(
     skipped: list[str] = []
     for path, h in iter_leaves(classmap):
         dotted = ".".join(path)
-        if dotted in stale:
+        if dotted in stale or dotted in unverified:
             continue
         if not is_hash_like(h):
-            # Hand-written or stale non-hash value; not safe to rewrite.
             skipped.append(f"{dotted}: {h!r} not hash-like")
             continue
         if h in css_map:
-            # Global css-map already rewrites this hash; nothing to correct.
             continue
         semantic = css_map.get(base_at.get(dotted, "")) or report_sem.get(dotted)
         if not semantic:
             skipped.append(f"{dotted}: no semantic name for {h}")
             continue
+        if h in overlay and overlay[h] != semantic:
+            skipped.append(
+                f"{dotted}: {h} already named {overlay[h]!r}, ignoring conflicting {semantic!r}"
+            )
+            continue
         overlay[h] = semantic
+
+    if meta:
+        for path, status in (meta.get("required_paths") or {}).items():
+            if not str(status).startswith("verified"):
+                skipped.append(f"WARNING: required path {path} is {status}")
     return overlay, skipped
 
 
@@ -869,6 +881,8 @@ def cmd_flatten(args: argparse.Namespace) -> int:
     print(f"wrote {out} ({len(overlay)} overlay entries)")
     for s in skipped:
         print(f"  skipped: {s}")
+    if skipped and not args.allow_partial:
+        return 1
     return 0
 
 
@@ -974,6 +988,7 @@ def main(argv: list[str] | None = None) -> int:
     p_flat.add_argument("--report", help="Migrate report (semantic fallbacks + stale flags)")
     p_flat.add_argument("--meta", help="META.json with stale_leaves list")
     p_flat.add_argument("--out", required=True)
+    p_flat.add_argument("--allow-partial", action="store_true")
     p_flat.set_defaults(func=cmd_flatten)
 
     p_key = sub.add_parser("key", help="Print classmap key for a Spotify version")
