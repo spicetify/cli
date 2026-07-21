@@ -235,20 +235,8 @@ export const Platform = new Proxy({}, {
 
 // hooksEraCompatPatches maps module-relative paths to replacement content
 // applied to hooks-era (retargeted) artifacts at staging time.
-const hooksEraWpunpkShim = `// Rewritten at staging time by spicetify (hooks-era artifact compat).
-// The original registers a capture chunk in the chunk array before the
-// client boots, which is fatal to the snapshot runtime. The modular loader
-// captures __webpack_require__ itself once the client is up; this proxy
-// forwards to it lazily.
-export const webpackRequire = new Proxy(function () {}, {
-	get: (_, k) => globalThis.__webpack_require__?.[k],
-	apply: (_, __, args) => globalThis.__webpack_require__(...args),
-});
-`
-
 var hooksEraCompatPatches = map[string]string{
 	"src/expose/Platform.js": hooksEraPlatformShim,
-	"src/wpunpk.mix.js":      hooksEraWpunpkShim,
 }
 
 // stageModuleTree stages a whole module directory, remapping text sources
@@ -349,35 +337,6 @@ func retargetModuleEntryWith(srcPath, outDir string, baseCm, cm Classmap, stale 
 	// hooks-era artifacts capture webpack require via the webpack 4 chunk
 	// global; current clients are rspack-based and use a different name.
 	remapped = strings.ReplaceAll(remapped, "webpackChunkclient_web", "rspackChunkclient_web")
-	// Registered symbols throw in this runtime's chunk loader, and a
-	// constant chunk id goes stale across boots; use a per-boot unique id.
-	remapped = strings.ReplaceAll(remapped,
-		`Symbol.for("spicetify.webpack.chunk.id")`,
-		`(globalThis.__spicetifyChunkId ??= "spicetify.webpack.chunk.id." + Date.now())`)
-	// wpunpk.js expects the capture chunk at index 0 with a fixed id; the
-	// deferred capture appends it with a unique id, so match by prefix and
-	// neutralize the exact-match assertion.
-	remapped = strings.ReplaceAll(remapped,
-		"if (index === 0) {",
-		`if (Array.isArray(chunk[0]) && String(chunk[0][0]).startsWith("spicetify.webpack.chunk.id")) {`)
-	remapped = strings.ReplaceAll(remapped, "assertEquals(chunk[0], [", "0 && assertEquals(chunk[0], [")
-	// The same artifacts register their capture chunk in the chunk array
-	// before the runtime boots. Any foreign chunk in the initial array kills
-	// the snapshot runtime, so capture must be deferred until after the
-	// runtime rebinds array.push during init.
-	remapped = strings.ReplaceAll(remapped,
-		"globalThis.rspackChunkclient_web = rspackChunkclient_web;",
-		"const __spicetifyFakeChunk = rspackChunkclient_web;\n"+
-			"const __spicetifyTryCapture = () => {\n"+
-			"\tconst q = globalThis.rspackChunkclient_web;\n"+
-			"\tif (!Array.isArray(q) || q.push === Array.prototype.push || !document.querySelector(\"main\")) return false;\n"+
-			"\tq.push(__spicetifyFakeChunk);\n"+
-			"\treturn true;\n"+
-			"};\n"+
-			"let __spicetifyCaptureTries = 0;\n"+
-			"const __spicetifyCaptureTimer = setInterval(() => {\n"+
-			"\tif (__spicetifyTryCapture() || ++__spicetifyCaptureTries > 400) clearInterval(__spicetifyCaptureTimer);\n"+
-			"}, 50);")
 	return writeStagedEntry(srcPath, outDir, remapped)
 }
 
