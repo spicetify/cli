@@ -246,3 +246,21 @@ func TestLoadCssMapOverlay(t *testing.T) {
 		t.Fatal("expected error for missing file")
 	}
 }
+
+func TestLoadCssMapOverlayRejectsEmptyEntries(t *testing.T) {
+	dir := t.TempDir()
+	cases := map[string]string{
+		"empty key":   `{"":"x-settings-section"}`,
+		"empty value": `{"abcHash123":""}`,
+		"blank value": `{"abcHash123":"  "}`,
+	}
+	for name, content := range cases {
+		p := filepath.Join(dir, "bad.json")
+		if err := os.WriteFile(p, []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := LoadCssMapOverlay(p); err == nil {
+			t.Fatalf("%s: expected error", name)
+		}
+	}
+}
