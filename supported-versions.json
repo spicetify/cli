@@ -12,15 +12,15 @@
     }
   ],
   "notes": {
-    "1.2.92": "Verified on maintainer machine (1.2.92.148); verified classmap available under classmaps/1020092",
+    "1.2.92": "Verified classmap available under classmaps/1020092 (31/36 leaves)",
     "1.2.93": "Explicitly targeted in cli main",
-    "1.2.94": "Captured on release day via the classmap pipeline (1020092 -> 1020094 chain, 27/28 identity)"
+    "1.2.94": "Captured on release day via the classmap pipeline (1020092 -> 1020094 chain, 30/36 leaves verified)"
   },
   "maps": {
     "1.2.92": {
       "classmap_key": "1020092",
       "status": "modular",
-      "note": "Verified classmap published (spicetify/classmaps 1020092): 21/36 leaves CDP/DOM-verified incl. all required paths; 6 modal leaves unverified, 9 stale"
+      "note": "Verified classmap (spicetify/classmaps 1020092): 31/36 leaves verified incl. all required paths; 5 stale. See META.json for per-leaf status"
     },
     "1.2.93": {
       "classmap_key": "1020093",
@@ -30,7 +30,7 @@
     "1.2.94": {
       "classmap_key": "1020094",
       "status": "modular",
-      "note": "Verified classmap captured on release day (1.2.94.583): 20/36 leaves CDP-verified incl. all required paths; 7 unverified, 9 stale"
+      "note": "Verified classmap captured on release day (spicetify/classmaps 1020094): 30/36 leaves verified; settings.button.wrapper unverified; 5 stale. See META.json for per-leaf status"
     }
   }
 }
