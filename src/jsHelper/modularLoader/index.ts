@@ -41,8 +41,17 @@ function adoptCss(sheet: unknown): () => void {
 	return () => el.remove();
 }
 
+async function fetchManifest(): Promise<ModulesManifest | null> {
+	try {
+		const res = await fetch("/modules/manifest.json");
+		return res.ok ? ((await res.json()) as ModulesManifest) : null;
+	} catch {
+		return null;
+	}
+}
+
 async function boot(): Promise<BootReport | null> {
-	const manifest = globalThis.__SPICETIFY_MODULAR_MANIFEST__;
+	const manifest = globalThis.__SPICETIFY_MODULAR_MANIFEST__ ?? (await fetchManifest());
 	if (!manifest?.modules?.length) {
 		log("info")("no modules manifest, nothing to load");
 		return null;

@@ -68,6 +68,12 @@ func Apply(spicetifyVersion string) {
 			filepath.Join(appDestPath, "xpui", "helper"))
 	}
 
+	if _, err := os.Stat(filepath.Join(appDestPath, "xpui", "modules", "manifest.json")); err == nil {
+		utils.CopyFile(
+			filepath.Join(utils.GetJsHelperDir(), "modularLoader.js"),
+			filepath.Join(appDestPath, "xpui", "helper"))
+	}
+
 	extensionList := featureSection.Key("extensions").Strings("|")
 	customAppsList := featureSection.Key("custom_apps").Strings("|")
 

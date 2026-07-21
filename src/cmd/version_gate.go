@@ -137,3 +137,18 @@ func firstNonEmpty(values ...string) string {
 	}
 	return ""
 }
+
+// modularApplyEnabled reports whether a modular apply should run: the
+// installed version has modular status and modules + classmap are present.
+// Users without v3 modules installed see no behavior change.
+func modularApplyEnabled() bool {
+	raw, _ := detectSpotifyVersion()
+	if raw == "" {
+		return false
+	}
+	report := utils.EvaluateSpotifySupport(raw, "")
+	if report.Map.Status != utils.ClassmapStatusModular {
+		return false
+	}
+	return utils.HasModularApplyInput(report.Map.ClassmapKey)
+}

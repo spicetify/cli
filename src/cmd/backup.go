@@ -79,6 +79,7 @@ Modded Spotify cannot be launched using original Shortcut/Start menu tile. To co
 				DisableLogging: preprocSection.Key("disable_ui_logging").MustBool(false),
 				RemoveRTL:      preprocSection.Key("remove_rtl_rule").MustBool(false),
 				ExposeAPIs:     preprocSection.Key("expose_apis").MustBool(false),
+				ModularApply:   modularApplyEnabled(),
 				SpotifyVer:     utils.GetSpotifyVersion(prefsPath)},
 		)
 		utils.PrintSuccess("Preprocessing completed")

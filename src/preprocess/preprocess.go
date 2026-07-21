@@ -28,7 +28,9 @@ type Flag struct {
 	RemoveRTL bool
 	// ExposeAPIs leaks Spotify's API, functions, objects to Spicetify global object.
 	ExposeAPIs bool
-	SpotifyVer string
+	// ModularApply stages v3 modules and injects the modular loader.
+	ModularApply bool
+	SpotifyVer   string
 }
 
 type Patch struct {
@@ -113,6 +115,20 @@ func applyCssMapOverlayFromRoots(cssTranslationMap map[string]string, classmapKe
 func Start(version string, spotifyBasePath string, extractedAppsPath string, flags Flag) {
 	appPath := filepath.Join(extractedAppsPath, "xpui")
 	var cssTranslationMap = make(map[string]string)
+
+	if flags.ModularApply {
+		key, err := utils.SpotifyVersionToClassmapKey(flags.SpotifyVer)
+		if err != nil {
+			flags.ModularApply = false
+		} else if manifest, err := utils.StageModularApply(appPath, flags.SpotifyVer, key); err != nil {
+			utils.PrintWarning("Modular apply skipped: " + err.Error())
+			flags.ModularApply = false
+		} else if manifest == nil || len(manifest.Modules) == 0 {
+			flags.ModularApply = false
+		} else {
+			utils.PrintInfo(fmt.Sprintf("Modular apply: staged %d module(s) for Spotify %s", len(manifest.Modules), flags.SpotifyVer))
+		}
+	}
 
 	if version != "Dev" {
 		fetchSpinner, _ := utils.Spinner.Start("Fetching remote CSS map")
@@ -355,6 +371,10 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 				if flags.ExposeAPIs {
 					tags += "<script src='helper/spicetifyWrapper.js'></script>\n"
 					tags += "<!-- spicetify helpers -->\n"
+				}
+
+				if flags.ModularApply {
+					tags += utils.ModularApplyScriptTag
 				}
 
 				utils.Replace(&content, `<body(\sclass="[^"]*")?>`, func(submatches ...string) string {
