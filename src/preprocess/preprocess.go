@@ -80,6 +80,36 @@ func readLocalCssMap(cssTranslationMap *map[string]string) error {
 	return nil
 }
 
+// applyCssMapOverlay merges the per-version css-map overlay (if any) over
+// the global translation map. Missing or malformed overlays are non-fatal.
+func applyCssMapOverlay(cssTranslationMap map[string]string, spotifyVer string) {
+	key, err := utils.SpotifyVersionToClassmapKey(spotifyVer)
+	if err != nil {
+		return
+	}
+	applyCssMapOverlayFromRoots(cssTranslationMap, key, spotifyVer, utils.ClassmapSearchDirs())
+}
+
+// applyCssMapOverlayFromRoots is the testable core of applyCssMapOverlay.
+func applyCssMapOverlayFromRoots(cssTranslationMap map[string]string, classmapKey, spotifyVer string, roots []string) {
+	overlayPath, err := utils.FindCssMapOverlayIn(classmapKey, roots)
+	if err != nil {
+		return
+	}
+	overlay, err := utils.LoadCssMapOverlay(overlayPath)
+	if err != nil {
+		utils.PrintWarning(err.Error())
+		return
+	}
+	if len(overlay) == 0 {
+		return
+	}
+	for k, v := range overlay {
+		cssTranslationMap[k] = v
+	}
+	utils.PrintInfo(fmt.Sprintf("Applied css-map overlay for Spotify %s (%d entries from %s)", spotifyVer, len(overlay), overlayPath))
+}
+
 func Start(version string, spotifyBasePath string, extractedAppsPath string, flags Flag) {
 	appPath := filepath.Join(extractedAppsPath, "xpui")
 	var cssTranslationMap = make(map[string]string)
