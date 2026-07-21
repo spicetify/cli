@@ -12,14 +12,14 @@
     }
   ],
   "notes": {
-    "1.2.92": "Verified on maintainer machine (1.2.92.148); draft classmap capture available under classmaps/1020092 (not modular yet)",
+    "1.2.92": "Verified on maintainer machine (1.2.92.148); verified classmap available under classmaps/1020092",
     "1.2.93": "Explicitly targeted in cli main"
   },
   "maps": {
     "1.2.92": {
       "classmap_key": "1020092",
-      "status": "classic",
-      "note": "Draft classmap from automated CSS migration exists locally (classmaps/1020092); keep classic until manually verified"
+      "status": "modular",
+      "note": "Verified classmap published (spicetify/classmaps 1020092): 21/36 leaves CDP/DOM-verified incl. all required paths; 6 modal leaves unverified, 9 stale"
     },
     "1.2.93": {
       "classmap_key": "1020093",
