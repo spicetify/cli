@@ -176,6 +176,81 @@ func readModuleSidecar(modulesRoot, identifier string) moduleSidecar {
 	return sc
 }
 
+// hooksEraPlatformShim replaces src/expose/Platform.js in hooks-era
+// artifacts: the original exposes the Platform object through a runtime
+// source transform of the client core bundle, which never executes on
+// snapshot builds. The wrapper already captures the same object at runtime.
+const hooksEraPlatformShim = `// Rewritten at staging time by spicetify (hooks-era artifact compat).
+// The original exposes Platform via a runtime source transform of the client
+// core bundle, which never executes on snapshot builds. Resolve lazily: the
+// mixin phase imports this module before the client (and Spicetify._platform)
+// exists, so capture must happen on first use, not at import time.
+import { webpackRequire } from "../wpunpk.mix.js";
+
+function findPlatform() {
+	if (!webpackRequire?.m) return undefined;
+	for (const id of Object.keys(webpackRequire.m)) {
+		let exp;
+		try {
+			exp = webpackRequire(id);
+		} catch {
+			continue;
+		}
+		const candidates = [exp, exp?.default];
+		if (exp && typeof exp === "object") candidates.push(...Object.values(exp));
+		for (const c of candidates) {
+			if (c && typeof c === "object" && typeof c.getRegistry === "function") return c;
+		}
+	}
+	return undefined;
+}
+
+let cached;
+function resolvePlatform() {
+	if (cached === undefined) {
+		cached = globalThis.Spicetify?._platform ?? findPlatform() ?? null;
+	}
+	return cached ?? undefined;
+}
+
+export const Platform = new Proxy({}, {
+	get: (_, key) => {
+		const p = resolvePlatform();
+		if (!p) return undefined;
+		if (key in p) return p[key];
+		if (typeof key === "string" && key.startsWith("get") && typeof p.getRegistry === "function") {
+			const description = key.slice(3);
+			for (const s of p.getRegistry()._map.keys()) {
+				if (s.description === description) return () => p.getRegistry().resolve(s);
+			}
+		}
+		return undefined;
+	},
+	has: (_, key) => {
+		const p = resolvePlatform();
+		return p ? key in p : false;
+	},
+});
+`
+
+// hooksEraCompatPatches maps module-relative paths to replacement content
+// applied to hooks-era (retargeted) artifacts at staging time.
+const hooksEraWpunpkShim = `// Rewritten at staging time by spicetify (hooks-era artifact compat).
+// The original registers a capture chunk in the chunk array before the
+// client boots, which is fatal to the snapshot runtime. The modular loader
+// captures __webpack_require__ itself once the client is up; this proxy
+// forwards to it lazily.
+export const webpackRequire = new Proxy(function () {}, {
+	get: (_, k) => globalThis.__webpack_require__?.[k],
+	apply: (_, __, args) => globalThis.__webpack_require__(...args),
+});
+`
+
+var hooksEraCompatPatches = map[string]string{
+	"src/expose/Platform.js": hooksEraPlatformShim,
+	"src/wpunpk.mix.js":      hooksEraWpunpkShim,
+}
+
 // stageModuleTree stages a whole module directory, remapping text sources
 // and copying everything else verbatim.
 func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap, stale map[string]bool, retarget, allowStale bool) error {
@@ -195,6 +270,17 @@ func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap
 			return nil
 		}
 		destDir := filepath.Join(outDir, filepath.Dir(rel))
+		if retarget {
+			if replacement, ok := hooksEraCompatPatches[filepath.ToSlash(rel)]; ok {
+				if err := os.MkdirAll(destDir, 0755); err != nil {
+					return err
+				}
+				if err := os.WriteFile(filepath.Join(outDir, rel), []byte(replacement), 0644); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
 		switch strings.ToLower(filepath.Ext(rel)) {
 		case ".js", ".mjs", ".css", ".ts", ".tsx", ".jsx":
 			if _, err := stageEntry(modulesRoot, identifier, rel, destDir, baseCm, cm, stale, retarget, allowStale); err != nil {
@@ -263,6 +349,35 @@ func retargetModuleEntryWith(srcPath, outDir string, baseCm, cm Classmap, stale 
 	// hooks-era artifacts capture webpack require via the webpack 4 chunk
 	// global; current clients are rspack-based and use a different name.
 	remapped = strings.ReplaceAll(remapped, "webpackChunkclient_web", "rspackChunkclient_web")
+	// Registered symbols throw in this runtime's chunk loader, and a
+	// constant chunk id goes stale across boots; use a per-boot unique id.
+	remapped = strings.ReplaceAll(remapped,
+		`Symbol.for("spicetify.webpack.chunk.id")`,
+		`(globalThis.__spicetifyChunkId ??= "spicetify.webpack.chunk.id." + Date.now())`)
+	// wpunpk.js expects the capture chunk at index 0 with a fixed id; the
+	// deferred capture appends it with a unique id, so match by prefix and
+	// neutralize the exact-match assertion.
+	remapped = strings.ReplaceAll(remapped,
+		"if (index === 0) {",
+		`if (Array.isArray(chunk[0]) && String(chunk[0][0]).startsWith("spicetify.webpack.chunk.id")) {`)
+	remapped = strings.ReplaceAll(remapped, "assertEquals(chunk[0], [", "0 && assertEquals(chunk[0], [")
+	// The same artifacts register their capture chunk in the chunk array
+	// before the runtime boots. Any foreign chunk in the initial array kills
+	// the snapshot runtime, so capture must be deferred until after the
+	// runtime rebinds array.push during init.
+	remapped = strings.ReplaceAll(remapped,
+		"globalThis.rspackChunkclient_web = rspackChunkclient_web;",
+		"const __spicetifyFakeChunk = rspackChunkclient_web;\n"+
+			"const __spicetifyTryCapture = () => {\n"+
+			"\tconst q = globalThis.rspackChunkclient_web;\n"+
+			"\tif (!Array.isArray(q) || q.push === Array.prototype.push || !document.querySelector(\"main\")) return false;\n"+
+			"\tq.push(__spicetifyFakeChunk);\n"+
+			"\treturn true;\n"+
+			"};\n"+
+			"let __spicetifyCaptureTries = 0;\n"+
+			"const __spicetifyCaptureTimer = setInterval(() => {\n"+
+			"\tif (__spicetifyTryCapture() || ++__spicetifyCaptureTries > 400) clearInterval(__spicetifyCaptureTimer);\n"+
+			"}, 50);")
 	return writeStagedEntry(srcPath, outDir, remapped)
 }
 

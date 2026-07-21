@@ -55,12 +55,18 @@ const SNAPSHOT_SELECTOR = 'script[src*="xpui-snapshot"]';
 // When the apply staged modules, preprocess strips the xpui-snapshot tag so
 // this loader controls when the client boots: mixins must run first, or
 // pre-boot interceptions (webpack require capture, defineProperty patches)
-// miss the client bootstrap.
+// miss the client bootstrap. The patched modules bundle must execute before
+// the snapshot runtime, which reads __webpack_modules__ as a free global.
 function bootClient() {
 	if (document.querySelector(SNAPSHOT_SELECTOR)) return;
-	const script = document.createElement("script");
-	script.src = "/xpui-snapshot.js";
-	document.head.appendChild(script);
+	const inject = (src: string) => {
+		const script = document.createElement("script");
+		script.src = src;
+		script.async = false;
+		document.head.appendChild(script);
+	};
+	inject("/xpui-modules.js");
+	inject("/xpui-snapshot.js");
 }
 
 async function waitForClient(timeoutMs: number): Promise<boolean> {
