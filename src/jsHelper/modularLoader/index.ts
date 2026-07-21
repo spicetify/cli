@@ -96,6 +96,28 @@ async function bootClient(transforms: ReturnType<typeof createTransformRegistry>
 	inject("/xpui-snapshot.js");
 }
 
+// captureWebpackRequire registers a capture chunk after the client is up
+// (post-render pushes execute the chunk factory; earlier pushes are either
+// fatal to boot or silently deferred). hooks-era modules read the result
+// through the wpunpk compat proxy.
+function captureWebpackRequire(): void {
+	const q = (globalThis as never as Record<string, unknown>).rspackChunkclient_web as unknown[];
+	if (!Array.isArray(q) || q.push === Array.prototype.push) return;
+	try {
+		q.push([
+			[`spicetify.webpack.chunk.id.${Date.now()}`],
+			{},
+			(re: unknown) => {
+				(globalThis as never as Record<string, unknown>).__webpack_require__ = re;
+				return re;
+			},
+		]);
+		log("info")("captured webpack require");
+	} catch (e) {
+		log("error")("webpack require capture failed", e);
+	}
+}
+
 async function waitForClient(timeoutMs: number): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
@@ -130,6 +152,7 @@ async function boot(): Promise<BootReport | null> {
 	if (!(await waitForClient(15000))) {
 		log("error")("client did not come up in time; running module loads anyway");
 	}
+	captureWebpackRequire();
 	await registry.runLoads(report);
 
 	globalThis.Spicetify = globalThis.Spicetify ?? {};

@@ -235,8 +235,20 @@ export const Platform = new Proxy({}, {
 
 // hooksEraCompatPatches maps module-relative paths to replacement content
 // applied to hooks-era (retargeted) artifacts at staging time.
+const hooksEraWpunpkShim = `// Rewritten at staging time by spicetify (hooks-era artifact compat).
+// The original registers a capture chunk in the chunk array before the
+// client boots, which is fatal to the snapshot runtime. The modular loader
+// captures __webpack_require__ itself once the client is up; this proxy
+// forwards to it lazily.
+export const webpackRequire = new Proxy(function () {}, {
+	get: (_, k) => globalThis.__webpack_require__?.[k],
+	apply: (_, __, args) => globalThis.__webpack_require__(...args),
+});
+`
+
 var hooksEraCompatPatches = map[string]string{
 	"src/expose/Platform.js": hooksEraPlatformShim,
+	"src/wpunpk.mix.js":      hooksEraWpunpkShim,
 }
 
 // stageModuleTree stages a whole module directory, remapping text sources
