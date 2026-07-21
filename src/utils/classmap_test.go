@@ -177,3 +177,72 @@ func TestValidateClassmapStatus(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestFindCssMapOverlayIn(t *testing.T) {
+	binRoot := t.TempDir()
+	cfgRoot := t.TempDir()
+
+	write := func(root, name string) string {
+		t.Helper()
+		dir := filepath.Join(root, "1020092")
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatal(err)
+		}
+		p := filepath.Join(dir, name)
+		if err := os.WriteFile(p, []byte(`{"abcHash123":"x-settings-section"}`), 0600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+
+	write(cfgRoot, "css-map.json")
+	got, err := FindCssMapOverlayIn("1020092", []string{binRoot, cfgRoot})
+	if err != nil {
+		t.Fatalf("FindCssMapOverlayIn: %v", err)
+	}
+	if want := filepath.Join(cfgRoot, "1020092", "css-map.json"); got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+
+	// First root wins when both have an overlay.
+	binFile := write(binRoot, "css-map.json")
+	got, err = FindCssMapOverlayIn("1020092", []string{binRoot, cfgRoot})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != binFile {
+		t.Fatalf("first root must win: got %q, want %q", got, binFile)
+	}
+
+	if _, err := FindCssMapOverlayIn("9999999", []string{binRoot}); err == nil {
+		t.Fatal("expected error for missing overlay")
+	}
+}
+
+func TestLoadCssMapOverlay(t *testing.T) {
+	dir := t.TempDir()
+
+	ok := filepath.Join(dir, "ok.json")
+	if err := os.WriteFile(ok, []byte(`{"abcHash123":"x-settings-section"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	overlay, err := LoadCssMapOverlay(ok)
+	if err != nil {
+		t.Fatalf("LoadCssMapOverlay: %v", err)
+	}
+	if overlay["abcHash123"] != "x-settings-section" {
+		t.Fatalf("unexpected overlay: %+v", overlay)
+	}
+
+	nested := filepath.Join(dir, "nested.json")
+	if err := os.WriteFile(nested, []byte(`{"a":{"b":"c"}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadCssMapOverlay(nested); err == nil {
+		t.Fatal("expected error for nested (classmap-shaped) overlay")
+	}
+
+	if _, err := LoadCssMapOverlay(filepath.Join(dir, "missing.json")); err == nil {
+		t.Fatal("expected error for missing file")
+	}
+}

@@ -104,6 +104,21 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		readLocalCssMap(&cssTranslationMap)
 	}
 
+	// Per-version overlay: verified classmap corrections for this exact
+	// Spotify version win over the global css-map.
+	if key, err := utils.SpotifyVersionToClassmapKey(flags.SpotifyVer); err == nil {
+		if overlayPath, err := utils.FindCssMapOverlay(key); err == nil {
+			if overlay, err := utils.LoadCssMapOverlay(overlayPath); err != nil {
+				utils.PrintWarning(err.Error())
+			} else if len(overlay) > 0 {
+				for k, v := range overlay {
+					cssTranslationMap[k] = v
+				}
+				utils.PrintInfo(fmt.Sprintf("Applied css-map overlay for Spotify %s (%d entries from %s)", flags.SpotifyVer, len(overlay), overlayPath))
+			}
+		}
+	}
+
 	cssMapPairs := make([]string, 0, len(cssTranslationMap)*4)
 	for k, v := range cssTranslationMap {
 		cssMapPairs = append(cssMapPairs, k+":", `"`+v+`":`)
