@@ -34,3 +34,7 @@ jsHelper/modularLoader.js.map
 
 # Local classmap workspace (capture output / symlinks)
 /classmaps/
+
+# Modular loader build output
+jsHelper/modularLoader.js
+jsHelper/modularLoader.js.map

@@ -7,7 +7,8 @@
     "check:wrapper": "node scripts/build-wrapper.mjs --check",
     "fmt": "oxfmt scripts src/jsHelper/spicetifyWrapper package.json .oxfmtrc.json .oxlintrc.json",
     "fmt:check": "oxfmt --check scripts src/jsHelper/spicetifyWrapper package.json .oxfmtrc.json .oxlintrc.json",
-    "lint": "oxlint ."
+    "lint": "oxlint .",
+    "build:modular-loader": "node scripts/build-modular-loader.mjs"
   },
   "devDependencies": {
     "esbuild": "0.25.11",

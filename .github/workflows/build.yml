@@ -87,6 +87,9 @@ jobs:
       - name: Build wrapper bundle
         run: pnpm build:wrapper
 
+      - name: Build modular loader bundle
+        run: pnpm build:modular-loader
+
       - name: Is Unix Platform
         run: echo "IS_UNIX=${{ matrix.os != 'windows' && matrix.arch != '386' && (matrix.os != 'linux' || matrix.arch != 'arm64') }}" >> $GITHUB_ENV
 
