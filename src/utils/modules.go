@@ -349,6 +349,18 @@ func retargetModuleEntryWith(srcPath, outDir string, baseCm, cm Classmap, stale 
 	// hooks-era artifacts capture webpack require via the webpack 4 chunk
 	// global; current clients are rspack-based and use a different name.
 	remapped = strings.ReplaceAll(remapped, "webpackChunkclient_web", "rspackChunkclient_web")
+	// Registered symbols throw in this runtime's chunk loader, and a
+	// constant chunk id goes stale across boots; use a per-boot unique id.
+	remapped = strings.ReplaceAll(remapped,
+		`Symbol.for("spicetify.webpack.chunk.id")`,
+		`(globalThis.__spicetifyChunkId ??= "spicetify.webpack.chunk.id." + Date.now())`)
+	// wpunpk.js expects the capture chunk at index 0 with a fixed id; the
+	// deferred capture appends it with a unique id, so match by prefix and
+	// neutralize the exact-match assertion.
+	remapped = strings.ReplaceAll(remapped,
+		"if (index === 0) {",
+		`if (Array.isArray(chunk[0]) && String(chunk[0][0]).startsWith("spicetify.webpack.chunk.id")) {`)
+	remapped = strings.ReplaceAll(remapped, "assertEquals(chunk[0], [", "0 && assertEquals(chunk[0], [")
 	return writeStagedEntry(srcPath, outDir, remapped)
 }
 
