@@ -1,4 +1,6 @@
 import { Registry, type BootReport } from "./registry.ts";
+import { createTransformRegistry, transformPath } from "./transforms.ts";
+import { applyTransformsOffthread } from "./transformWorker.ts";
 import { entryUrl, type ModulesManifest } from "./types.ts";
 
 declare global {
@@ -57,7 +59,7 @@ const SNAPSHOT_SELECTOR = 'script[src*="xpui-snapshot"]';
 // pre-boot interceptions (webpack require capture, defineProperty patches)
 // miss the client bootstrap. The patched modules bundle must execute before
 // the snapshot runtime, which reads __webpack_modules__ as a free global.
-function bootClient() {
+async function bootClient(transforms: ReturnType<typeof createTransformRegistry>): Promise<void> {
 	if (document.querySelector(SNAPSHOT_SELECTOR)) return;
 	const inject = (src: string) => {
 		const script = document.createElement("script");
@@ -65,7 +67,32 @@ function bootClient() {
 		script.async = false;
 		document.head.appendChild(script);
 	};
-	inject("/xpui-modules.js");
+
+	let modulesSrc = "/xpui-modules.js";
+	// Source transforms run offthread, but most hooks-era transforms close over
+	// module imports and cannot survive eval-isolation, and unverifiable pure
+	// ones can break the bundle. They are opt-in for experiments only.
+	const applyEnabled = (globalThis as never as Record<string, unknown>).__SPICETIFY_APPLY_TRANSFORMS__ === true;
+	const matching = transforms.registered.filter((t) => transformPath(t.glob) !== null);
+	if (matching.length > 0 && !applyEnabled) {
+		log("info")(`dropping ${matching.length} source transform(s) (set __SPICETIFY_APPLY_TRANSFORMS__ to experiment)`);
+	}
+	if (matching.length > 0 && applyEnabled) {
+		try {
+			const res = await fetch(modulesSrc);
+			if (res.ok) {
+				const result = await applyTransformsOffthread(await res.text(), matching, 10000);
+				if (result && result.applied > 0) {
+					modulesSrc = URL.createObjectURL(new Blob([result.text], { type: "text/javascript" }));
+					log("info")(`applied ${result.applied} source transform(s) to the client bundle`);
+				}
+			}
+		} catch (e) {
+			log("error")("bundle transform failed, booting stock bundle", e);
+		}
+	}
+
+	inject(modulesSrc);
 	inject("/xpui-snapshot.js");
 }
 
@@ -84,23 +111,21 @@ async function boot(): Promise<BootReport | null> {
 	const manifest = globalThis.__SPICETIFY_MODULAR_MANIFEST__ ?? (await fetchManifest());
 	if (!manifest?.modules?.length) {
 		log("info")("no modules manifest, nothing to load");
-		bootClient();
+		void bootClient(createTransformRegistry());
 		return null;
 	}
+	const transforms = createTransformRegistry();
 	const registry = new Registry(manifest, {
 		importJs,
 		loadCss,
 		adoptCss,
-		// Modules register xpui source transforms through this factory. Runtime
-		// source interception does not exist in this model (rewrites happen
-		// offline at apply time), so registrations are accepted and dropped.
-		createTransformer: () => () => Promise.resolve(undefined),
+		createTransformer: () => transforms.factory,
 		log,
 	});
 
 	const report: BootReport = { loaded: [], failed: {} };
 	await registry.runMixins(report);
-	bootClient();
+	await bootClient(transforms);
 
 	if (!(await waitForClient(15000))) {
 		log("error")("client did not come up in time; running module loads anyway");
