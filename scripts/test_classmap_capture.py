@@ -192,3 +192,26 @@ class TestFlattenClassmap(unittest.TestCase):
         overlay, skipped = cc.flatten_classmap(cm, self.BASE, self.CSS_MAP, None, None)
         self.assertEqual(overlay, {})
         self.assertEqual(len(skipped), 1)
+
+    def test_unverified_leaves_excluded(self):
+        cm = {"settings": {"button": {"wrapper": "newHashUU55"}}}
+        meta = {
+            "unverified_leaves": ["settings.button.wrapper"],
+            "required_paths": {"settings.button.wrapper": "unverified (in CSS)"},
+        }
+        report = {"matched": [{"path": "settings.button.wrapper", "semantic": "x-settings-button"}], "unmatched": [], "identity": []}
+        overlay, skipped = cc.flatten_classmap(cm, self.BASE, self.CSS_MAP, report, meta)
+        self.assertEqual(overlay, {})
+        self.assertTrue(any("required path" in s for s in skipped))
+
+    def test_conflicting_semantic_first_wins_with_warning(self):
+        cm = {
+            "a": {"leaf": "sharedHash1"},
+            "b": {"leaf": "sharedHash1"},
+        }
+        base = {"a": {"leaf": "oldA1"}, "b": {"leaf": "oldB1"}}
+        css_map = {"oldA1": "name-a", "oldB1": "name-b"}
+        overlay, skipped = cc.flatten_classmap(cm, base, css_map, None, None)
+        self.assertEqual(len(overlay), 1)
+        self.assertEqual(overlay["sharedHash1"], "name-a")
+        self.assertTrue(any("conflicting" in s for s in skipped))

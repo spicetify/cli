@@ -311,6 +311,12 @@ fi
 
 if [[ "$SKIP_FLATTEN" -eq 0 ]]; then
   log "4/4 flatten css-map overlay"
+  for f in "$CLASSMAP_OUT" "$REPORT_OUT"; do
+    if [[ ! -f "$f" ]]; then
+      echo "Missing $f (run migrate first, or point OUT_DIR at existing artifacts)" >&2
+      exit 1
+    fi
+  done
   META_ARGS=()
   [[ -f "$OUT_DIR/META.json" ]] && META_ARGS=(--meta "$OUT_DIR/META.json")
   "$PYTHON" scripts/classmap_capture.py flatten \
@@ -319,7 +325,8 @@ if [[ "$SKIP_FLATTEN" -eq 0 ]]; then
     --css-map "$CSS_MAP" \
     --report "$REPORT_OUT" \
     "${META_ARGS[@]+${META_ARGS[@]}}" \
-    --out "$OVERLAY_OUT"
+    --out "$OVERLAY_OUT" \
+    --allow-partial
 else
   log "4/4 flatten skipped"
 fi
