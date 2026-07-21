@@ -98,6 +98,12 @@ func Apply(spicetifyVersion string) {
 	if len(patchSection.Keys()) > 0 {
 		Patch()
 	}
+
+	// Re-assert the update block after every successful apply so the pinned
+	// version is self-healing when the user opted into update control.
+	if settingSection.Key("block_spotify_updates").MustBool(false) {
+		BlockSpotifyUpdates(true)
+	}
 }
 
 // RefreshTheme updates user.css + theme.js and overwrites custom assets

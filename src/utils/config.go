@@ -25,6 +25,7 @@ var (
 			"spotify_launch_flags":   "",
 			"check_spicetify_update": "1",
 			"spotify_version_check":  "1",
+			"block_spotify_updates":  "0",
 			"always_enable_devtools": "0",
 		},
 		"Preprocesses": {

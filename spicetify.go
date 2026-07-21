@@ -554,6 +554,11 @@ spotify_version_check <0 | 1>
     Whether backup/apply refuse unsupported Spotify versions.
     Disable only if you accept that the client may break.
 
+block_spotify_updates <0 | 1>
+    Pin the current Spotify version: every apply re-blocks Spotify
+    updates, so the client only updates when you deliberately run
+    "spicetify spotify-updates unblock".
+
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>
     Prevents Sentry and Amazon Qualaroo to send console log/error/warning to Spotify developers.
