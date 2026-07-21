@@ -255,3 +255,45 @@ func LoadClassmapForKey(classmapKey string) (Classmap, string, error) {
 	}
 	return cm, path, nil
 }
+
+// CssMapOverlayFileName is the flat hash -> semantic overlay generated from a
+// classmap (scripts/classmap_capture.py flatten), stored next to it.
+const CssMapOverlayFileName = "css-map.json"
+
+// FindCssMapOverlayIn searches roots in order for classmaps/<key>/css-map.json.
+func FindCssMapOverlayIn(classmapKey string, roots []string) (string, error) {
+	if strings.TrimSpace(classmapKey) == "" {
+		return "", fmt.Errorf("empty classmap key")
+	}
+	for _, root := range roots {
+		p := filepath.Join(root, classmapKey, CssMapOverlayFileName)
+		if st, err := os.Stat(p); err == nil && !st.IsDir() {
+			return p, nil
+		}
+	}
+	return "", fmt.Errorf("no css-map overlay found for key %s (searched %s)", classmapKey, strings.Join(roots, ", "))
+}
+
+// FindCssMapOverlay looks for a css-map overlay under ClassmapSearchDirs().
+func FindCssMapOverlay(classmapKey string) (string, error) {
+	return FindCssMapOverlayIn(classmapKey, ClassmapSearchDirs())
+}
+
+// LoadCssMapOverlay reads a flat hash -> semantic name overlay and validates
+// that it is a plain string map (no nested classmap structure).
+func LoadCssMapOverlay(path string) (map[string]string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read css-map overlay at %s: %w", path, err)
+	}
+	var overlay map[string]string
+	if err := json.Unmarshal(raw, &overlay); err != nil {
+		return nil, fmt.Errorf("css-map overlay is malformed (%s): %w", path, err)
+	}
+	for k, v := range overlay {
+		if strings.TrimSpace(k) == "" || strings.TrimSpace(v) == "" {
+			return nil, fmt.Errorf("css-map overlay has an empty key or value (%s)", path)
+		}
+	}
+	return overlay, nil
+}
