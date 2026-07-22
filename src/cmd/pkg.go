@@ -125,6 +125,21 @@ func pkgList() {
 			installed[m.Identifier] = m.Version
 		}
 	}
+	if entries, err := os.ReadDir(utils.ModulesDir()); err == nil {
+		for _, e := range entries {
+			if !e.IsDir() {
+				continue
+			}
+			var sc struct {
+				InstalledVersion string `json:"installed_version"`
+			}
+			if raw, err := os.ReadFile(filepath.Join(utils.ModulesDir(), e.Name(), "spicetify-module.json")); err == nil {
+				if json.Unmarshal(raw, &sc) == nil && sc.InstalledVersion != "" {
+					installed[e.Name()] = sc.InstalledVersion
+				}
+			}
+		}
+	}
 
 	utils.PrintBold("vault modules")
 	ids := make([]string, 0, len(v.Modules))

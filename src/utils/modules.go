@@ -133,6 +133,7 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 		}
 
 		if err := stageModuleTree(modulesRoot, m.Identifier, outDir, baseCm, cm, stale, retarget, sidecar.AllowStale); err != nil {
+			os.RemoveAll(outDir)
 			PrintWarning(fmt.Sprintf("Skipping module %s: %v", m.Identifier, err))
 			continue
 		}
@@ -228,7 +229,15 @@ export const Platform = new Proxy({}, {
 	},
 	has: (_, key) => {
 		const p = resolvePlatform();
-		return p ? key in p : false;
+		if (!p) return false;
+		if (key in p) return true;
+		if (typeof key === "string" && key.startsWith("get") && typeof p.getRegistry === "function") {
+			const description = key.slice(3);
+			for (const s of p.getRegistry()._map.keys()) {
+				if (s.description === description) return true;
+			}
+		}
+		return false;
 	},
 });
 `
