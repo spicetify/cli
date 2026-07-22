@@ -44,6 +44,15 @@ jobs:
       - name: Build
         run: go build .
 
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Run modular loader tests
+        run: node --test src/jsHelper/modularLoader/
+
+      - name: Run classmap tooling tests
+        run: python3 -m unittest scripts.test_classmap_capture
+
       - name: Format
         run: |
           gofmt -s -l .
