@@ -101,8 +101,10 @@ loaded and why anything failed.
 ```
 module source (MAP.*)          or   pre-tailored artifact (+cm-1020040)
         |                                  |
+        |   stitch (rolldown,              |   RetargetClassmapHashes
+        |   MAP-intact)                    |
         v                                  v
-  RemapClassmapReferences        RetargetClassmapHashes
+  RemapClassmapReferences (at apply, per installed classmap)
         |                                  |
         +-------- staged into xpui --------+
                      |
@@ -117,3 +119,32 @@ module source (MAP.*)          or   pre-tailored artifact (+cm-1020040)
 Supported Spotify versions only: staging runs only when the installed
 version has `status: modular` in `supported-versions.json` and its classmap
 is present.
+
+## Building modules (stitch)
+
+Modules are built with `stitch` in the modules repo (`scripts/stitch.mjs`),
+a thin builder on rolldown. Node 22+, no Deno required:
+
+```shell
+CLASSMAP_KEY=1020094 nub run stitch modules/stdlib
+```
+
+- Bundles TS/TSX with rolldown (lazy chunks preserved, `/hooks/*` and
+  `https://` imports external).
+- Compiles `index.scss` to `index.css`.
+- Emits `dist/<name>@<version>/` with `metadata.json` and the
+  `spicetify-module.json` sidecar.
+- Optionally generates `classmap.d.ts` (typed `MAP`) when `CLASSMAP_JSON`
+  points at a classmap.
+
+Built modules are MAP-intact: `MAP.*` references survive into the bundle
+and are remapped at apply time by the CLI. One build serves every supported
+Spotify version.
+
+### Why Node and not Deno
+
+The 2024 prototype was Deno-first (TS-native execution, JSR, web-standard
+APIs). Nothing in the current pipeline needs it anymore: Node 24 strips
+types natively, rolldown bundles TS, and the rest of spicetify (the CLI
+wrapper, build scripts) is Node-based. The tailor-based Deno tasks remain
+in the modules repo for reference only.
