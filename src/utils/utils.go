@@ -51,6 +51,10 @@ func Unzip(src, dest string) error {
 		defer rc.Close()
 
 		fpath := filepath.Join(dest, f.Name)
+		cleanName := filepath.Clean(f.Name)
+		if filepath.IsAbs(cleanName) || cleanName == ".." || strings.HasPrefix(cleanName, ".."+string(os.PathSeparator)) {
+			return fmt.Errorf("zip entry %q escapes the destination folder", f.Name)
+		}
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(fpath, 0700)
 		} else {
