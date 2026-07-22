@@ -122,11 +122,12 @@ is present.
 
 ## Building modules (stitch)
 
-Modules are built with `stitch` in the modules repo (`scripts/stitch.mjs`),
-a thin builder on rolldown. Node 22+, no Deno required:
+Modules are built with `stitch` in the modules repo (`scripts/stitch.ts`),
+a thin builder on rolldown. Node 24, no Deno required, TypeScript native:
 
 ```shell
-CLASSMAP_KEY=1020094 nub run stitch modules/stdlib
+nub run stitch modules/stdlib        # auto-detects the classmap
+nub run stitch --classmap 1020092    # or pass a key/path explicitly
 ```
 
 - Bundles TS/TSX with rolldown (lazy chunks preserved, `/hooks/*` and
