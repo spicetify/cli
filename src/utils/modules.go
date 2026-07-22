@@ -117,6 +117,7 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 		// the target. Source modules (MAP.* references) remap directly.
 		sidecar := readModuleSidecar(modulesRoot, m.Identifier)
 		base := sidecar.ClassmapBase
+		hooksEra := base != ""
 		var baseCm Classmap
 		retarget := false
 		if base != "" && base != classmapKey {
@@ -132,7 +133,7 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 			retarget = true
 		}
 
-		if err := stageModuleTree(modulesRoot, m.Identifier, outDir, baseCm, cm, stale, retarget, sidecar.AllowStale); err != nil {
+		if err := stageModuleTree(modulesRoot, m.Identifier, outDir, baseCm, cm, stale, retarget, sidecar.AllowStale, hooksEra); err != nil {
 			os.RemoveAll(outDir)
 			PrintWarning(fmt.Sprintf("Skipping module %s: %v", m.Identifier, err))
 			continue
@@ -247,12 +248,60 @@ export const Platform = new Proxy({}, {
 const hooksEraWpunpkShim = `// Rewritten at staging time by spicetify (hooks-era artifact compat).
 // The original registers a capture chunk in the chunk array before the
 // client boots, which is fatal to the snapshot runtime. The modular loader
-// captures __webpack_require__ itself once the client is up; this proxy
-// forwards to it lazily.
+// captures __webpack_require__ itself once the client is up; this module
+// forwards to it lazily and keeps the hooks-era contract intact.
+
+class Subject {
+	constructor() {
+		this.observers = new Set();
+	}
+	subscribe(fn) {
+		this.observers.add(fn);
+		return { unsubscribe: () => this.observers.delete(fn) };
+	}
+	next(value) {
+		for (const fn of this.observers) fn(value);
+	}
+}
+
+export const moduleLoadedSubject = new Subject();
+
+const pendingHooks = [];
+export const postWebpackRequireHooks = {
+	push(hook) {
+		if (typeof globalThis.__webpack_require__ === "function") {
+			try {
+				hook(globalThis.__webpack_require__);
+			} catch (e) {
+				console.error(e);
+			}
+			return 0;
+		}
+		pendingHooks.push(hook);
+		return pendingHooks.length;
+	},
+};
+
 export const webpackRequire = new Proxy(function () {}, {
-	get: (_, k) => globalThis.__webpack_require__?.[k],
+	get: (_, k) => globalThis.__webpack_require__?.[k] ?? (k === "m" ? {} : undefined),
 	apply: (_, __, args) => globalThis.__webpack_require__(...args),
 });
+
+const drain = () => {
+	if (typeof globalThis.__webpack_require__ !== "function") return false;
+	for (const hook of pendingHooks.splice(0)) {
+		try {
+			hook(globalThis.__webpack_require__);
+		} catch (e) {
+			console.error(e);
+		}
+	}
+	return true;
+};
+let tries = 0;
+const timer = setInterval(() => {
+	if (drain() || ++tries > 400) clearInterval(timer);
+}, 50);
 `
 
 var hooksEraCompatPatches = map[string]string{
@@ -262,7 +311,9 @@ var hooksEraCompatPatches = map[string]string{
 
 // stageModuleTree stages a whole module directory, remapping text sources
 // and copying everything else verbatim.
-func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap, stale map[string]bool, retarget, allowStale bool) error {
+// Compat patches apply to any hooks-era artifact (sidecar present),
+// whether or not the base classmap differs from the target.
+func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap, stale map[string]bool, retarget, allowStale, hooksEra bool) error {
 	srcRoot := filepath.Join(modulesRoot, identifier)
 	return filepath.WalkDir(srcRoot, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -279,7 +330,7 @@ func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap
 			return nil
 		}
 		destDir := filepath.Join(outDir, filepath.Dir(rel))
-		if retarget {
+		if hooksEra {
 			if replacement, ok := hooksEraCompatPatches[filepath.ToSlash(rel)]; ok {
 				if err := os.MkdirAll(destDir, 0755); err != nil {
 					return err
