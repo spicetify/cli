@@ -126,8 +126,8 @@ Modules are built with `stitch` in the modules repo (`scripts/stitch.ts`),
 a thin builder on rolldown. Node 24, no Deno required, TypeScript native:
 
 ```shell
-nub run stitch modules/stdlib        # auto-detects the classmap
-nub run stitch --classmap 1020092    # or pass a key/path explicitly
+pnpm stitch modules/stdlib        # auto-detects the classmap
+pnpm stitch --classmap 1020092    # or pass a key/path explicitly
 ```
 
 - Bundles TS/TSX with rolldown (lazy chunks preserved, `/hooks/*` and
