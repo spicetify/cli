@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -133,6 +134,7 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 			retarget = true
 		}
 
+		os.RemoveAll(outDir)
 		if err := stageModuleTree(modulesRoot, m.Identifier, outDir, baseCm, cm, stale, retarget, sidecar.AllowStale, hooksEra); err != nil {
 			os.RemoveAll(outDir)
 			PrintWarning(fmt.Sprintf("Skipping module %s: %v", m.Identifier, err))
@@ -187,30 +189,10 @@ const hooksEraPlatformShim = `// Rewritten at staging time by spicetify (hooks-e
 // core bundle, which never executes on snapshot builds. Resolve lazily: the
 // mixin phase imports this module before the client (and Spicetify._platform)
 // exists, so capture must happen on first use, not at import time.
-import { webpackRequire } from "../wpunpk.mix.js";
-
-function findPlatform() {
-	if (!webpackRequire?.m) return undefined;
-	for (const id of Object.keys(webpackRequire.m)) {
-		let exp;
-		try {
-			exp = webpackRequire(id);
-		} catch {
-			continue;
-		}
-		const candidates = [exp, exp?.default];
-		if (exp && typeof exp === "object") candidates.push(...Object.values(exp));
-		for (const c of candidates) {
-			if (c && typeof c === "object" && typeof c.getRegistry === "function") return c;
-		}
-	}
-	return undefined;
-}
-
 let cached;
 function resolvePlatform() {
 	if (cached === undefined) {
-		cached = globalThis.Spicetify?._platform ?? findPlatform() ?? null;
+		cached = globalThis.Spicetify?._platform ?? null;
 	}
 	return cached ?? undefined;
 }
@@ -264,6 +246,29 @@ class Subject {
 	}
 }
 
+class BehaviorSubject extends Subject {
+	constructor(value) {
+		super();
+		this.value = value;
+	}
+	subscribe(fn) {
+		const sub = super.subscribe(fn);
+		fn(this.value);
+		return sub;
+	}
+	next(value) {
+		this.value = value;
+		super.next(value);
+	}
+	getValue() {
+		return this.value;
+	}
+}
+
+export { Subject, BehaviorSubject };
+
+export const chunkLoadedSubjectPre = new Subject();
+export const chunkLoadedSubjectPost = new Subject();
 export const moduleLoadedSubject = new Subject();
 
 const pendingHooks = [];
@@ -304,9 +309,27 @@ const timer = setInterval(() => {
 }, 50);
 `
 
-var hooksEraCompatPatches = map[string]string{
-	"src/expose/Platform.js": hooksEraPlatformShim,
-	"src/wpunpk.mix.js":      hooksEraWpunpkShim,
+// hooksEraCompatPatchFor returns the replacement shim for hooks-era module
+// files, detected by content (layout-proof: works for both the 2024
+// src-tree artifacts and flat bundled layouts).
+func hooksEraCompatPatchFor(content string) string {
+	switch {
+	case strings.Contains(content, "__Platform={"):
+		return hooksEraPlatformShim
+	case strings.Contains(content, "webpackChunkclient_web") && strings.Contains(content, "webpackRequire"):
+		return hooksEraWpunpkShim
+	default:
+		return ""
+	}
+}
+
+func isTextEntry(rel string) bool {
+	switch strings.ToLower(filepath.Ext(rel)) {
+	case ".js", ".mjs", ".css", ".ts", ".tsx", ".jsx":
+		return true
+	default:
+		return false
+	}
 }
 
 // stageModuleTree stages a whole module directory, remapping text sources
@@ -315,7 +338,8 @@ var hooksEraCompatPatches = map[string]string{
 // whether or not the base classmap differs from the target.
 func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap, stale map[string]bool, retarget, allowStale, hooksEra bool) error {
 	srcRoot := filepath.Join(modulesRoot, identifier)
-	return filepath.WalkDir(srcRoot, func(path string, d os.DirEntry, err error) error {
+	shimmed := map[string]bool{}
+	err := filepath.WalkDir(srcRoot, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -330,15 +354,17 @@ func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap
 			return nil
 		}
 		destDir := filepath.Join(outDir, filepath.Dir(rel))
-		if hooksEra {
-			if replacement, ok := hooksEraCompatPatches[filepath.ToSlash(rel)]; ok {
+		if hooksEra && isTextEntry(rel) {
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			if replacement := hooksEraCompatPatchFor(string(content)); replacement != "" {
 				if err := os.MkdirAll(destDir, 0755); err != nil {
 					return err
 				}
-				if err := os.WriteFile(filepath.Join(outDir, rel), []byte(replacement), 0644); err != nil {
-					return err
-				}
-				return nil
+				shimmed[filepath.Base(rel)] = true
+				return os.WriteFile(filepath.Join(outDir, rel), []byte(replacement), 0644)
 			}
 		}
 		switch strings.ToLower(filepath.Ext(rel)) {
@@ -359,6 +385,50 @@ func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap
 			}
 		}
 		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if len(shimmed) > 0 {
+		return rewriteFacadeImports(outDir, shimmed)
+	}
+	return nil
+}
+
+// rewriteFacadeImports fixes bundled facades that import from a shimmed
+// chunk with minified alias names: the shim exports readable names, so
+// `a as webpackRequire` collapses to `webpackRequire`.
+var facadeImportRe = regexp.MustCompile(`import\s+\{[^}]+\}\s+from\s+["']\.\/[^"']+["']`)
+
+var aliasRe = regexp.MustCompile(`\b([a-zA-Z_$][\w$]*)\s+as\s+([a-zA-Z_$][\w$]*)`)
+
+func rewriteFacadeImports(outDir string, shimmed map[string]bool) error {
+	return filepath.WalkDir(outDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".js") {
+			return err
+		}
+		if shimmed[filepath.Base(path)] {
+			return nil
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		content := string(raw)
+		changed := false
+		out := facadeImportRe.ReplaceAllStringFunc(content, func(stmt string) string {
+			for base := range shimmed {
+				if strings.Contains(stmt, base) {
+					changed = true
+					return aliasRe.ReplaceAllString(stmt, "$2")
+				}
+			}
+			return stmt
+		})
+		if !changed {
+			return nil
+		}
+		return os.WriteFile(path, []byte(out), 0644)
 	})
 }
 
