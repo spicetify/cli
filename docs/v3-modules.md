@@ -96,6 +96,21 @@ loaded and why anything failed.
 - **`dependencies` on remote modules.** The runtime only loads installed
   modules; `pkg install` fetches them at apply time.
 
+## Vaults and developer ownership
+
+A **vault** is a plain JSON registry (`modules.<id>.v.<version>.artifacts[]`)
+that `pkg` reads to resolve and download modules. The org vault
+(`spicetify/modules/vault.json`) is written by the publish workflow on tag.
+**Any developer can host their own vault** and have full ownership of their
+distribution: users add the URL to `vault_urls` in config-xpui.ini
+(`-`-separated), and `pkg list` / `pkg install` search every configured
+vault, first match wins.
+
+```shell
+spicetify config vault_urls "https://example.com/me/vault.json"
+spicetify pkg install my-module
+```
+
 ## The full flow
 
 ```

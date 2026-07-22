@@ -24,6 +24,8 @@ func EditConfig(args []string) {
 			// not editable via config command
 		case "prefs_path", "spotify_path", "current_theme", "color_scheme":
 			stringType(settingSection, field, value)
+		case "vault_urls":
+			stringType(moduleSection, field, value)
 
 		default:
 			toggleType(field, value)
@@ -102,8 +104,11 @@ func searchField(field string) *ini.Key {
 		if err != nil {
 			key, err = featureSection.GetKey(field)
 			if err != nil {
-				unchangeWarning(field, `Not a valid field.`)
-				os.Exit(1)
+				key, err = moduleSection.GetKey(field)
+				if err != nil {
+					unchangeWarning(field, `Not a valid field.`)
+					os.Exit(1)
+				}
 			}
 		}
 	}

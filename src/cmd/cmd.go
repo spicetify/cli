@@ -26,6 +26,7 @@ var (
 	cfg                     utils.Config
 	settingSection          *ini.Section
 	backupSection           *ini.Section
+	moduleSection           *ini.Section
 	preprocSection          *ini.Section
 	featureSection          *ini.Section
 	patchSection            *ini.Section
@@ -48,6 +49,7 @@ func InitConfig(isQuiet bool) {
 	preprocSection = cfg.GetSection("Preprocesses")
 	featureSection = cfg.GetSection("AdditionalOptions")
 	patchSection = cfg.GetSection("Patch")
+	moduleSection = cfg.GetSection("Module")
 }
 
 // InitPaths checks various essential paths' availabilities,

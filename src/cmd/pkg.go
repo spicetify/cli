@@ -16,6 +16,20 @@ import (
 // ModuleVaultURL is the default v3 module vault.
 const ModuleVaultURL = "https://raw.githubusercontent.com/spicetify/modules/main/vault.json"
 
+// vaultURLs returns the default vault plus any custom vaults configured in
+// the [Module] section (vault_urls, |-separated).
+func vaultURLs() []string {
+	urls := []string{ModuleVaultURL}
+	if moduleSection != nil {
+		for _, u := range moduleSection.Key("vault_urls").Strings("|") {
+			if u != "" {
+				urls = append(urls, u)
+			}
+		}
+	}
+	return urls
+}
+
 var pkgAllowStale bool
 
 // SetPkgAllowStale enables per-module stale-path leniency for pkg installs.
@@ -113,11 +127,17 @@ func ClassmapBaseFromVersion(version string) string {
 }
 
 func pkgList() {
-	v, err := fetchVault(ModuleVaultURL)
-	if err != nil {
-		utils.PrintError(err.Error())
-		os.Exit(1)
+	for _, vaultURL := range vaultURLs() {
+		v, err := fetchVault(vaultURL)
+		if err != nil {
+			utils.PrintWarning("cannot fetch vault " + vaultURL + ": " + err.Error())
+			continue
+		}
+		pkgListVault(v, vaultURL)
 	}
+}
+
+func pkgListVault(v *vault, vaultURL string) {
 
 	installed := map[string]string{}
 	if modules, err := utils.DiscoverModules(utils.ModulesDir()); err == nil {
@@ -141,7 +161,11 @@ func pkgList() {
 		}
 	}
 
-	utils.PrintBold("vault modules")
+	if len(vaultURLs()) > 1 {
+		utils.PrintBold("vault: " + vaultURL)
+	} else {
+		utils.PrintBold("vault modules")
+	}
 	ids := make([]string, 0, len(v.Modules))
 	for id := range v.Modules {
 		ids = append(ids, id)
@@ -163,19 +187,32 @@ func pkgList() {
 }
 
 func pkgInstall(identifier string, allowStale bool) {
-	v, err := fetchVault(ModuleVaultURL)
-	if err != nil {
-		utils.PrintError(err.Error())
-		os.Exit(1)
+	var m vaultModule
+	var version string
+	for _, vaultURL := range vaultURLs() {
+		v, err := fetchVault(vaultURL)
+		if err != nil {
+			utils.PrintWarning("cannot fetch vault " + vaultURL + ": " + err.Error())
+			continue
+		}
+		mod, ok := v.Modules[identifier]
+		if !ok {
+			continue
+		}
+		resolved, err := resolveVersion(mod)
+		if err != nil {
+			utils.PrintError(err.Error())
+			os.Exit(1)
+		}
+		if len(mod.V[resolved].Artifacts) == 0 {
+			continue
+		}
+		m, version = mod, resolved
+		utils.PrintInfo("Found " + identifier + "@" + version + " in vault " + vaultURL)
+		break
 	}
-	m, ok := v.Modules[identifier]
-	if !ok {
-		utils.PrintError("module not in vault: " + identifier)
-		os.Exit(1)
-	}
-	version, err := resolveVersion(m)
-	if err != nil {
-		utils.PrintError(err.Error())
+	if version == "" {
+		utils.PrintError("module not found in any vault: " + identifier)
 		os.Exit(1)
 	}
 	artifacts := m.V[version].Artifacts
