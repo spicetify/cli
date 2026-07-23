@@ -71,6 +71,37 @@ Modules load in dependency order and fail independently: one broken module
 never blocks the rest. `Spicetify.Modules.report` in the console shows what
 loaded and why anything failed.
 
+## Runtime module management
+
+The loader exposes a small manager on `Spicetify.Modules`:
+
+```js
+Spicetify.Modules.list()              // [{ identifier, version, loaded, mixedIn, failed? }]
+Spicetify.Modules.enable("stdlib")    // load one module on demand (deps first)
+Spicetify.Modules.disable("stdlib")   // unload with reverse-order dispose
+Spicetify.Modules.reload("stdlib")    // disable + enable
+Spicetify.Modules.report              // boot report { loaded, failed }
+Spicetify.Modules.registry            // the Registry instance
+```
+
+Enable runs the full per-module pipeline (preload, css adoption, scheme,
+load) for a single module and returns false for unknown, already-loaded, or
+dependency-broken identifiers.
+
+## Theme modules
+
+A theme is a module whose primary entry is CSS. The loader:
+
+1. adopts `entries.css` as a stylesheet at load (removed on unload),
+2. if the module ships a classic `color.ini`, parses it and sets
+   `--spice-<key>` and `--spice-rgb-<key>` on `:root` at load time, exactly
+   mirroring the classic pipeline's variable naming, restoring previous
+   values on unload.
+
+That makes theme changes and scheme switches runtime operations: no
+`backup apply` cycle. `entries.js` remains available for `theme.js`-style
+logic with a real lifecycle.
+
 ## Platform access
 
 - `Spicetify.Platform` (the classic wrapper API) is fully available.
