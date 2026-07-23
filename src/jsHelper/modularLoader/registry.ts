@@ -178,12 +178,14 @@ export class Registry {
 				report.failed[id] = "mixins not loaded";
 				continue;
 			}
-			try {
+			const loadOnce = async () => {
 				const index = await this.jsIndexOf(m);
 				const state = this.state(id);
 
 				const preloaded = await index?.preload?.({
 					spotifyVersion: this.manifest.spotifyVersion,
+					identifier: id,
+					defer: (fn) => state.disposers.push(fn),
 				});
 				if (preloaded) state.disposers.push(preloaded);
 
@@ -198,12 +200,30 @@ export class Registry {
 
 				const loaded = await index?.load?.({
 					spotifyVersion: this.manifest.spotifyVersion,
+					identifier: id,
+					defer: (fn) => state.disposers.push(fn),
 				});
 				if (loaded) state.disposers.push(loaded);
 
 				state.loaded = true;
 				report.loaded.push(id);
 				this.effects.log("info", `loaded module ${id}@${m.version}`);
+			};
+			try {
+				try {
+					await loadOnce();
+				} catch (e) {
+					// Module-script fetches can fail transiently during boot;
+					// failed dynamic imports are not cached, so one retry heals.
+					if (!/Failed to fetch/i.test((e as Error).message)) throw e;
+					this.effects.log("error", `retrying ${id} after fetch failure`, e);
+					for (const dispose of this.state(id).disposers.splice(0).reverse()) {
+						try {
+							await dispose();
+						} catch {}
+					}
+					await loadOnce();
+				}
 			} catch (e) {
 				report.failed[id] = `load failed: ${(e as Error).message}`;
 				this.effects.log("error", `can't load ${id}`, e);
