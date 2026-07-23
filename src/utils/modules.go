@@ -60,6 +60,7 @@ type ModuleManifest struct {
 type ModulesManifest struct {
 	SpotifyVersion string           `json:"spotifyVersion"`
 	ClassmapKey    string           `json:"classmapKey"`
+	Classmap       Classmap         `json:"classmap,omitempty"`
 	Modules        []ModuleManifest `json:"modules"`
 }
 
@@ -108,6 +109,7 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 	manifest := &ModulesManifest{
 		SpotifyVersion: spotifyVersion,
 		ClassmapKey:    classmapKey,
+		Classmap:       cm,
 	}
 
 	for _, m := range modules {

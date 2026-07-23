@@ -13,7 +13,7 @@ const result = await build({
 	entryPoints: [entryFile],
 	format: "iife",
 	legalComments: "none",
-	logLevel: "silent",
+	logLevel: "info",
 	minify: true,
 	outfile: outputFile,
 	sourcemap: true,
@@ -26,4 +26,13 @@ const [{ outputFiles }] = [result];
 await import("node:fs").then(({ writeFileSync }) => {
 	for (const f of outputFiles) writeFileSync(f.path, f.contents);
 });
+
+// Fail the build if any of these string literals fell out of the bundle
+// (minification renames identifiers, but literals survive).
+const js = outputFiles.find((f) => f.path === outputFile);
+for (const needle of ["spicetify.modules.local.", "[modular-loader]", "/modules/manifest.json"]) {
+	if (js && !js.text.includes(needle)) {
+		throw new Error(`modular loader bundle is missing ${needle} (check imports)`);
+	}
+}
 console.log(`built ${outputFile}`);

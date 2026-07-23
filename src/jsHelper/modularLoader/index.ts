@@ -1,3 +1,4 @@
+import { deleteLocalModule, loadLocalModules, remapSource, saveLocalModule } from "./localModules.ts";
 import { Registry, type BootReport } from "./registry.ts";
 import { createTransformRegistry, transformPath } from "./transforms.ts";
 import { applyTransformsOffthread } from "./transformWorker.ts";
@@ -17,6 +18,11 @@ const log =
 
 async function importJs(path: string) {
 	return (await import(/* webpackIgnore: true */ path)) as never;
+}
+
+function importSource(content: string) {
+	const url = URL.createObjectURL(new Blob([content], { type: "text/javascript" }));
+	return importJs(url);
 }
 
 async function loadCss(path: string): Promise<CSSStyleSheet | string> {
@@ -197,6 +203,8 @@ async function waitForClient(timeoutMs: number): Promise<boolean> {
 	return false;
 }
 
+const pendingLocal = new Map<string, { metadata: ModulesManifest["modules"][number]; files: Record<string, string> }>();
+
 async function boot(): Promise<BootReport | null> {
 	const manifest = globalThis.__SPICETIFY_MODULAR_MANIFEST__ ?? (await fetchManifest());
 	if (!manifest?.modules?.length) {
@@ -204,6 +212,24 @@ async function boot(): Promise<BootReport | null> {
 		void bootClient(createTransformRegistry());
 		return null;
 	}
+	// Merge localStorage-installed modules (the store) into the manifest,
+	// remapping their MAP.* sources against the bundled classmap.
+	if (manifest.classmap) {
+		for (const record of loadLocalModules()) {
+			try {
+				const files: Record<string, string> = {};
+				for (const [name, content] of Object.entries(record.files)) {
+					files[name] = remapSource(content, manifest.classmap);
+				}
+				manifest.modules.push({ ...record.metadata });
+				// registerLocal below wires the file contents into the registry
+				pendingLocal.set(record.metadata.identifier, { metadata: record.metadata, files });
+			} catch (e) {
+				log("error")(`local module ${record.metadata.identifier} failed to remap: ${(e as Error).message}`);
+			}
+		}
+	}
+
 	const transforms = createTransformRegistry();
 	const registry = new Registry(manifest, {
 		importJs,
@@ -213,6 +239,10 @@ async function boot(): Promise<BootReport | null> {
 		createTransformer: () => transforms.factory,
 		log,
 	});
+
+	for (const record of pendingLocal.values()) {
+		registry.registerLocal(record);
+	}
 
 	const report: BootReport = { loaded: [], failed: {} };
 	await registry.runMixins(report);
@@ -225,7 +255,7 @@ async function boot(): Promise<BootReport | null> {
 	await registry.runLoads(report);
 
 	globalThis.Spicetify = globalThis.Spicetify ?? {};
-	(globalThis.Spicetify as Record<string, unknown>).Modules = {
+	const modules = (globalThis.Spicetify as Record<string, unknown>).Modules = {
 		report,
 		registry,
 		entryUrl,
@@ -234,6 +264,27 @@ async function boot(): Promise<BootReport | null> {
 		disable: (id: string) => registry.unload(id),
 		reload: (id: string) => registry.reload(id, report),
 	};
+
+	// Local installs (store): remap against the bundled classmap, persist to
+	// localStorage, register, and enable immediately.
+	(modules as Record<string, unknown>).installLocal = async (
+		id: string,
+		record: { metadata: ModulesManifest["modules"][number]; files: Record<string, string>; sidecar: object },
+	) => {
+		if (!manifest.classmap) throw new Error("no bundled classmap in manifest");
+		const files: Record<string, string> = {};
+		for (const [name, content] of Object.entries(record.files)) {
+			files[name] = remapSource(content, manifest.classmap);
+		}
+		saveLocalModule(id, { ...record, files, installedAt: Date.now() } as never);
+		registry.registerLocal({ metadata: record.metadata, files });
+		return registry.enable(id, report);
+	};
+	(modules as Record<string, unknown>).removeLocal = async (id: string) => {
+		await registry.unload(id);
+		deleteLocalModule(id);
+	};
+	(modules as Record<string, unknown>).listLocal = () => loadLocalModules();
 	return report;
 }
 

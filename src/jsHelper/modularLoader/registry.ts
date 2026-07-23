@@ -100,10 +100,31 @@ export class Registry {
 		if (!m.entries.js) return null;
 		let index = this.jsIndexes.get(m.identifier);
 		if (!index) {
-			index = await this.effects.importJs(entryUrl(m.identifier, m.entries.js));
+			const local = this.getLocalFile(m.identifier, m.entries.js);
+			if (local !== undefined) {
+				index = await this.effects.importSource(local);
+			} else {
+				index = await this.effects.importJs(entryUrl(m.identifier, m.entries.js));
+			}
 			this.jsIndexes.set(m.identifier, index);
 		}
 		return index;
+	}
+
+	// registerLocal adds localStorage-installed modules to the registry,
+	// rewriting MAP.* references against the bundled classmap at load time.
+	registerLocal(record: {
+		metadata: ManifestModule;
+		files: Record<string, string>;
+	}): void {
+		this.localFiles.set(record.metadata.identifier, record.files);
+		this.modules.set(record.metadata.identifier, record.metadata);
+	}
+
+	private localFiles = new Map<string, Record<string, string>>();
+
+	protected getLocalFile(identifier: string, entry: string): string | undefined {
+		return this.localFiles.get(identifier)?.[entry];
 	}
 
 	private eligibleOrder(report: BootReport): string[] {
@@ -200,7 +221,7 @@ export class Registry {
 
 	list(): ModuleState[] {
 		const out: ModuleState[] = [];
-		for (const m of this.manifest.modules) {
+		for (const m of this.modules.values()) {
 			const s = this.states.get(m.identifier);
 			out.push({
 				identifier: m.identifier,
@@ -215,8 +236,16 @@ export class Registry {
 	// enable loads one module on demand (dependencies first), after boot.
 	async enable(identifier: string, report: BootReport): Promise<boolean> {
 		const m = this.modules.get(identifier);
-		if (!m || this.isLoaded(identifier)) return false;
-		if (this.checkDependencies(identifier, new Set())) return false;
+		if (!m) {
+			report.failed[identifier] = "unknown module";
+			return false;
+		}
+		if (this.isLoaded(identifier)) return false;
+		const problem = this.checkDependencies(identifier, new Set());
+		if (problem) {
+			report.failed[identifier] = problem;
+			return false;
+		}
 		try {
 			const index = await this.jsIndexOf(m);
 			const state = this.state(identifier);

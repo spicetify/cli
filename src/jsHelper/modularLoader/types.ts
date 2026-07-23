@@ -16,9 +16,12 @@ export interface ManifestModule extends ModuleMetadata {
 	identifier: string;
 }
 
+export type Classmap = Record<string, unknown>;
+
 export interface ModulesManifest {
 	spotifyVersion: string;
 	classmapKey: string;
+	classmap?: Classmap;
 	modules: ManifestModule[];
 }
 
@@ -44,6 +47,7 @@ export interface JsIndex {
 
 export interface Effects {
 	importJs(path: string): Promise<JsIndex>;
+	importSource(content: string): Promise<JsIndex>;
 	loadCss(path: string): Promise<unknown>;
 	adoptCss(sheet: unknown): DisposeFn;
 	createTransformer(): TransformerShim;

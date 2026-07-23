@@ -38,6 +38,10 @@ function trackingEffects(calls: string[], jsByModule: Record<string, unknown> = 
 			calls.push(`adopt:${sheet}`);
 			return () => calls.push(`unadopt:${sheet}`);
 		},
+		importSource: async (content) => {
+			calls.push(`importSource:${content.slice(0, 30)}`);
+			return (jsByModule.__source ?? {}) as never;
+		},
 		createTransformer: () => () => Promise.resolve(undefined),
 		log: () => {},
 	};
