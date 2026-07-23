@@ -245,6 +245,10 @@ async function boot(): Promise<BootReport | null> {
 	}
 
 	const report: BootReport = { loaded: [], failed: {} };
+	// hooks-era modules reference the CHUNKS global for chunk-load tracking;
+	// the 2024 mixin machinery created it. Define it empty so references are
+	// inert instead of fatal.
+	(globalThis as never as Record<string, unknown>).CHUNKS ??= {};
 	await registry.runMixins(report);
 	await bootClient(transforms);
 
