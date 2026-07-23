@@ -2,15 +2,28 @@
  * Copyright (C) 2024 Delusoire
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+// Some client exports are functions whose own toString is not callable;
+// they can never match a needle, so they stringify to "".
+const safeString = (x) => {
+    try {
+        return x.toString();
+    } catch (_) {
+        try {
+            return Function.prototype.toString.call(x);
+        } catch (_) {
+            return "";
+        }
+    }
+};
 export function findBy(...tests) {
     const testFns = tests.map((test) => {
         switch (typeof test) {
             case "string":
-                return (x) => x.toString().includes(test);
+                return (x) => safeString(x).includes(test);
             case "function":
                 return (x) => test(x);
             default: // assume regex
-                return (x) => test.test(x.toString());
+                return (x) => test.test(safeString(x));
         }
     });
     const testFn = (x) => testFns.map((t) => t(x)).every(Boolean);
