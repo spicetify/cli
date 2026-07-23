@@ -111,6 +111,22 @@ spicetify config vault_urls "https://example.com/me/vault.json"
 spicetify pkg install my-module
 ```
 
+The org also maintains `community-vaults.json`, a vetted list of trusted
+sources. Trust is still explicit, but one command away:
+
+```shell
+spicetify pkg sources          # list vetted community vaults (* = trusted)
+spicetify pkg trust <name>     # add one to your trusted vaults
+```
+
+## Artifact integrity
+
+Every vault entry may carry a `checksum` (`sha256:<hex>`), written by the
+publish pipeline when it builds a release. `pkg install` verifies the
+downloaded artifact against it: a mismatch aborts the install; a missing
+checksum warns and proceeds (unsigned). The verified checksum is recorded
+in the module's `spicetify-module.json` sidecar.
+
 ## The full flow
 
 ```
