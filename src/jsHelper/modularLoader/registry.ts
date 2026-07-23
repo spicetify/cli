@@ -249,7 +249,12 @@ export class Registry {
 		try {
 			const index = await this.jsIndexOf(m);
 			const state = this.state(identifier);
-			const preloaded = await index?.preload?.({ spotifyVersion: this.manifest.spotifyVersion });
+			const ctx = {
+				spotifyVersion: this.manifest.spotifyVersion,
+				identifier,
+				defer: (fn: () => void | Promise<void>) => state.disposers.push(fn),
+			};
+			const preloaded = await index?.preload?.(ctx);
 			if (preloaded) state.disposers.push(preloaded);
 			if (m.entries.css) {
 				const sheet = await this.effects.loadCss(entryUrl(identifier, m.entries.css));
@@ -259,7 +264,7 @@ export class Registry {
 					if (schemeDisposer) state.disposers.push(schemeDisposer);
 				}
 			}
-			const loaded = await index?.load?.({ spotifyVersion: this.manifest.spotifyVersion });
+			const loaded = await index?.load?.(ctx);
 			if (loaded) state.disposers.push(loaded);
 			state.loaded = true;
 			report.loaded.push(identifier);

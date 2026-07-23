@@ -31,10 +31,14 @@ export interface MixinContext {
 
 export interface PreloadContext {
 	spotifyVersion: string;
+	identifier: string;
+	defer: (fn: DisposeFn) => void;
 }
 
 export interface LoadContext {
 	spotifyVersion: string;
+	identifier: string;
+	defer: (fn: DisposeFn) => void;
 }
 
 export type TransformerShim = (register: unknown, opts?: unknown) => Promise<unknown>;

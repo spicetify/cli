@@ -259,3 +259,25 @@ describe("Registry runtime manager", () => {
 		assert.equal(await r.enable("x", report), false);
 	});
 });
+
+describe("module context", () => {
+	it("passes identifier and defer into preload and load", async () => {
+		const seen: unknown[] = [];
+		const js = {
+			feat: {
+				preload: (ctx: { identifier: string; defer: (fn: () => void) => void }) => {
+					seen.push(ctx.identifier);
+					ctx.defer(() => seen.push("deferred"));
+				},
+				load: (ctx: { identifier: string }) => {
+					seen.push(`load:${ctx.identifier}`);
+				},
+			},
+		};
+		const r = new Registry(manifest([mod("feat", "1.0.0")]), trackingEffects([], js));
+		await r.boot();
+		assert.deepEqual(seen.slice(0, 3), ["feat", "load:feat", "deferred"].slice(0, 2));
+		await r.unload("feat");
+		assert.deepEqual(seen, ["feat", "load:feat", "deferred"]);
+	});
+});
