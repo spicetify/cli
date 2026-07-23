@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +16,31 @@ import (
 
 // ModuleVaultURL is the default v3 module vault.
 const ModuleVaultURL = "https://raw.githubusercontent.com/spicetify/modules/main/vault.json"
+
+// CommunityVaultsURL lists org-vetted community module vaults.
+const CommunityVaultsURL = "https://raw.githubusercontent.com/spicetify/modules/main/community-vaults.json"
+
+type communityVault struct {
+	Name        string `json:"name"`
+	URL         string `json:"url"`
+	Description string `json:"description"`
+}
+
+func fetchCommunityVaults() ([]communityVault, error) {
+	resp, err := http.Get(CommunityVaultsURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("community vaults returned HTTP %d", resp.StatusCode)
+	}
+	var vaults []communityVault
+	if err := json.NewDecoder(resp.Body).Decode(&vaults); err != nil {
+		return nil, err
+	}
+	return vaults, nil
+}
 
 // vaultURLs returns the default vault plus any custom vaults configured in
 // the [Module] section (vault_urls, |-separated).
@@ -39,6 +65,7 @@ func SetPkgAllowStale(allow bool) {
 
 type vaultVersion struct {
 	Artifacts []string `json:"artifacts"`
+	Checksum  string   `json:"checksum,omitempty"`
 }
 
 type vaultModule struct {
@@ -60,6 +87,14 @@ func ModulePkg(args []string) {
 	switch args[0] {
 	case "list":
 		pkgList()
+	case "sources":
+		pkgSources()
+	case "trust":
+		if len(args) < 2 {
+			utils.PrintError("usage: spicetify pkg trust <name|url>")
+			os.Exit(1)
+		}
+		pkgTrust(args[1])
 	case "install":
 		if len(args) < 2 {
 			utils.PrintError("usage: spicetify pkg install <id> [--allow-stale]")
@@ -248,6 +283,12 @@ func pkgInstall(identifier string, allowStale bool) {
 	out.Close()
 	spinner.Success("Downloaded " + identifier + "@" + version)
 
+	declared := m.V[version].Checksum
+	if err := verifyChecksum(zipPath, declared); err != nil {
+		os.Remove(zipPath)
+		utils.Fatal(err)
+	}
+
 	dest := filepath.Join(utils.ModulesDir(), identifier)
 	if err := os.RemoveAll(dest); err != nil {
 		utils.Fatal(err)
@@ -263,6 +304,7 @@ func pkgInstall(identifier string, allowStale bool) {
 		"installed_version": version,
 		"classmap_base":     ClassmapBaseFromVersion(version),
 		"allow_stale":       allowStale,
+		"checksum":          m.V[version].Checksum,
 	}
 	raw, _ := json.MarshalIndent(sidecar, "", "  ")
 	if err := os.WriteFile(filepath.Join(dest, "spicetify-module.json"), raw, 0644); err != nil {
@@ -276,6 +318,91 @@ func pkgInstall(identifier string, allowStale bool) {
 	if allowStale {
 		utils.PrintWarning("allow_stale enabled: paths retired in the target classmap keep their old classes (cosmetic breakage possible).")
 	}
+}
+
+// verifyChecksum checks the artifact against the vault-declared checksum.
+// Missing declarations warn and proceed (unsigned); mismatches are fatal.
+func verifyChecksum(zipPath, declared string) error {
+	if declared == "" {
+		utils.PrintWarning("No checksum declared in the vault; installing unverified artifact")
+		return nil
+	}
+	raw, err := os.ReadFile(zipPath)
+	if err != nil {
+		return err
+	}
+	got := fmt.Sprintf("sha256:%x", sha256.Sum256(raw))
+	want := strings.ToLower(strings.TrimSpace(declared))
+	if !strings.HasPrefix(want, "sha256:") {
+		want = "sha256:" + want
+	}
+	if got != want {
+		return fmt.Errorf("checksum mismatch for %s: vault declares %s, download is %s", filepath.Base(zipPath), want, got)
+	}
+	utils.PrintInfo("Checksum verified: " + got)
+	return nil
+}
+
+func pkgSources() {
+	vaults, err := fetchCommunityVaults()
+	if err != nil {
+		utils.PrintError("cannot fetch community vaults: " + err.Error())
+		os.Exit(1)
+	}
+	trusted := map[string]bool{}
+	for _, u := range vaultURLs() {
+		trusted[u] = true
+	}
+	utils.PrintBold("community vaults")
+	for _, v := range vaults {
+		mark := "  "
+		if trusted[v.URL] {
+			mark = "* "
+		}
+		fmt.Printf("%s%s (%s)\n    %s\n", mark, v.Name, v.URL, v.Description)
+	}
+	fmt.Println()
+	fmt.Println("  * = trusted. Trust one with: spicetify pkg trust <name>")
+}
+
+func pkgTrust(nameOrURL string) {
+	url := nameOrURL
+	if !strings.HasPrefix(url, "http") {
+		vaults, err := fetchCommunityVaults()
+		if err != nil {
+			utils.PrintError("cannot fetch community vaults: " + err.Error())
+			os.Exit(1)
+		}
+		url = ""
+		for _, v := range vaults {
+			if v.Name == nameOrURL {
+				url = v.URL
+				break
+			}
+		}
+		if url == "" {
+			utils.PrintError("unknown community vault: " + nameOrURL)
+			os.Exit(1)
+		}
+	}
+
+	for _, u := range vaultURLs() {
+		if u == url {
+			utils.PrintInfo("Already trusted: " + url)
+			return
+		}
+	}
+	key := moduleSection.Key("vault_urls")
+	current := strings.TrimSpace(key.String())
+	if current == "" {
+		key.SetValue(url)
+	} else {
+		key.SetValue(current + "|" + url)
+	}
+	if err := cfg.Write(); err != nil {
+		utils.Fatal(err)
+	}
+	utils.PrintSuccess("Trusted " + url)
 }
 
 func pkgDelete(identifier string) {
