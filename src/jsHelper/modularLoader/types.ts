@@ -47,6 +47,7 @@ export interface Effects {
 	loadCss(path: string): Promise<unknown>;
 	adoptCss(sheet: unknown): DisposeFn;
 	createTransformer(): TransformerShim;
+	applyScheme?(identifier: string): Promise<DisposeFn | null>;
 	log(level: "info" | "error", ...args: unknown[]): void;
 }
 

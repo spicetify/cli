@@ -199,3 +199,59 @@ describe("Registry unload", () => {
 		assert.equal(await r.unload("a"), false);
 	});
 });
+
+describe("Registry runtime manager", () => {
+	it("lists module states", async () => {
+		const r = new Registry(
+			manifest([mod("a", "1.0.0"), mod("b", "2.0.0", { dependencies: { a: "*" } })]),
+			trackingEffects([]),
+		);
+		await r.boot();
+		const states = r.list();
+		assert.equal(states.length, 2);
+		assert.deepEqual(
+			states.map((s) => [s.identifier, s.loaded]),
+			[
+				["a", true],
+				["b", true],
+			],
+		);
+	});
+
+	it("enables a module on demand and disables it", async () => {
+		const calls: string[] = [];
+		const js = { feat: { load: () => calls.push("load:feat") } };
+		const r = new Registry(manifest([]), trackingEffects(calls, js));
+		const report = { loaded: [], failed: {} };
+		// runtime registration: enable() needs the module in the registry
+		(r as never as { modules: Map<string, unknown> }).modules.set(
+			"feat",
+			mod("feat", "1.0.0"),
+		);
+		assert.equal(await r.enable("feat", report), true);
+		assert.deepEqual(report.loaded, ["feat"]);
+		assert.equal(await r.enable("feat", report), false, "already loaded");
+		assert.equal(await r.unload("feat"), true);
+		assert.equal(await r.enable("feat", report), true, "re-enable works");
+	});
+
+	it("reloads a module", async () => {
+		const calls: string[] = [];
+		const js = {
+			feat: { load: () => () => calls.push("dispose") },
+		};
+		const r = new Registry(manifest([mod("feat", "1.0.0")]), trackingEffects(calls, js));
+		const report = { loaded: [], failed: {} };
+		await r.boot();
+		calls.length = 0;
+		assert.equal(await r.reload("feat", report), true);
+		assert.deepEqual(calls, ["dispose"]);
+	});
+
+	it("refuses to enable unknown or dependency-broken modules", async () => {
+		const r = new Registry(manifest([mod("x", "1.0.0", { dependencies: { ghost: "*" } })]), trackingEffects([]));
+		const report = { loaded: [], failed: {} };
+		assert.equal(await r.enable("nope", report), false);
+		assert.equal(await r.enable("x", report), false);
+	});
+});

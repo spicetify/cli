@@ -30,6 +30,67 @@ async function loadCss(path: string): Promise<CSSStyleSheet | string> {
 	return res.text();
 }
 
+// parseColorIni parses classic spicetify color.ini (sections with
+// key = hex) into CSS variable values.
+export function parseColorIni(text: string): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (const line of text.split("\n")) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith(";") || trimmed.startsWith("#") || trimmed.startsWith("[")) continue;
+		const eq = trimmed.indexOf("=");
+		if (eq < 0) continue;
+		const key = trimmed.slice(0, eq).trim();
+		const value = trimmed.slice(eq + 1).trim();
+		if (key && value) out[key] = value;
+	}
+	return out;
+}
+
+function hexToRgb(hex: string): string | null {
+	const h = hex.replace("#", "");
+	if (!/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(h)) return null;
+	const full = h.length === 3 ? [...h].map((c) => c + c).join("") : h;
+	return `${parseInt(full.slice(0, 2), 16)},${parseInt(full.slice(2, 4), 16)},${parseInt(full.slice(4, 6), 16)}`;
+}
+
+// applyScheme fetches a module's color.ini and sets --spice-* variables on
+// :root, mirroring the classic pipeline's getColorCSS. Returns a disposer
+// that restores the previous values.
+async function applyScheme(identifier: string): Promise<(() => void) | null> {
+	const url = entryUrl(identifier, "color.ini");
+	let text: string;
+	try {
+		const res = await fetch(url);
+		if (!res.ok) return null;
+		text = await res.text();
+	} catch {
+		return null;
+	}
+	const scheme = parseColorIni(text);
+	if (Object.keys(scheme).length === 0) return null;
+
+	const root = document.documentElement;
+	const previous: Record<string, string> = {};
+	for (const [key, value] of Object.entries(scheme)) {
+		const name = `--spice-${key}`;
+		previous[name] = root.style.getPropertyValue(name);
+		root.style.setProperty(name, value.startsWith("#") ? value : `#${value}`);
+		const rgb = hexToRgb(value);
+		if (rgb) {
+			const rgbName = `--spice-rgb-${key}`;
+			previous[rgbName] = root.style.getPropertyValue(rgbName);
+			root.style.setProperty(rgbName, rgb);
+		}
+	}
+	log("info")(`applied color scheme from ${identifier} (${Object.keys(scheme).length} colors)`);
+	return () => {
+		for (const [name, value] of Object.entries(previous)) {
+			if (value) root.style.setProperty(name, value);
+			else root.style.removeProperty(name);
+		}
+	};
+}
+
 function adoptCss(sheet: unknown): () => void {
 	if (sheet instanceof CSSStyleSheet) {
 		document.adoptedStyleSheets.push(sheet);
@@ -148,6 +209,7 @@ async function boot(): Promise<BootReport | null> {
 		importJs,
 		loadCss,
 		adoptCss,
+		applyScheme,
 		createTransformer: () => transforms.factory,
 		log,
 	});
@@ -167,8 +229,14 @@ async function boot(): Promise<BootReport | null> {
 		report,
 		registry,
 		entryUrl,
+		list: () => registry.list(),
+		enable: (id: string) => registry.enable(id, report),
+		disable: (id: string) => registry.unload(id),
+		reload: (id: string) => registry.reload(id, report),
 	};
 	return report;
 }
 
-void boot();
+if (typeof document !== "undefined") {
+	void boot();
+}

@@ -13,6 +13,14 @@ export interface BootReport {
 	failed: Record<string, string>;
 }
 
+export interface ModuleState {
+	identifier: string;
+	version: string;
+	loaded: boolean;
+	mixedIn: boolean;
+	failed?: string;
+}
+
 interface InstanceState {
 	disposers: DisposeFn[];
 	mixedIn: boolean;
@@ -161,6 +169,10 @@ export class Registry {
 				if (m.entries.css) {
 					const sheet = await this.effects.loadCss(entryUrl(m.identifier, m.entries.css));
 					state.disposers.push(this.effects.adoptCss(sheet));
+					if (this.effects.applyScheme) {
+						const schemeDisposer = await this.effects.applyScheme(m.identifier);
+						if (schemeDisposer) state.disposers.push(schemeDisposer);
+					}
 				}
 
 				const loaded = await index?.load?.({
@@ -184,6 +196,54 @@ export class Registry {
 		await this.runMixins(report);
 		await this.runLoads(report);
 		return report;
+	}
+
+	list(): ModuleState[] {
+		const out: ModuleState[] = [];
+		for (const m of this.manifest.modules) {
+			const s = this.states.get(m.identifier);
+			out.push({
+				identifier: m.identifier,
+				version: m.version,
+				loaded: s?.loaded ?? false,
+				mixedIn: s?.mixedIn ?? false,
+			});
+		}
+		return out;
+	}
+
+	// enable loads one module on demand (dependencies first), after boot.
+	async enable(identifier: string, report: BootReport): Promise<boolean> {
+		const m = this.modules.get(identifier);
+		if (!m || this.isLoaded(identifier)) return false;
+		if (this.checkDependencies(identifier, new Set())) return false;
+		try {
+			const index = await this.jsIndexOf(m);
+			const state = this.state(identifier);
+			const preloaded = await index?.preload?.({ spotifyVersion: this.manifest.spotifyVersion });
+			if (preloaded) state.disposers.push(preloaded);
+			if (m.entries.css) {
+				const sheet = await this.effects.loadCss(entryUrl(identifier, m.entries.css));
+				state.disposers.push(this.effects.adoptCss(sheet));
+				if (this.effects.applyScheme) {
+					const schemeDisposer = await this.effects.applyScheme(identifier);
+					if (schemeDisposer) state.disposers.push(schemeDisposer);
+				}
+			}
+			const loaded = await index?.load?.({ spotifyVersion: this.manifest.spotifyVersion });
+			if (loaded) state.disposers.push(loaded);
+			state.loaded = true;
+			report.loaded.push(identifier);
+			return true;
+		} catch (e) {
+			report.failed[identifier] = `load failed: ${(e as Error).message}`;
+			return false;
+		}
+	}
+
+	async reload(identifier: string, report: BootReport): Promise<boolean> {
+		await this.unload(identifier);
+		return this.enable(identifier, report);
 	}
 
 	async unload(identifier: string): Promise<boolean> {
