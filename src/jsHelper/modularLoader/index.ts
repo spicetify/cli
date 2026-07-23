@@ -213,7 +213,8 @@ async function boot(): Promise<BootReport | null> {
 	// boots, so it runs first); client-originated rejections pass through.
 	window.addEventListener("unhandledrejection", (event) => {
 		const stack = (event.reason as Error | undefined)?.stack ?? "";
-		if (/\/(modules|hooks)\//.test(stack)) {
+		// esm.sh code only ever runs on behalf of modules.
+		if (/\/(modules|hooks)\/|\besm\.sh\//.test(stack)) {
 			log("error")("module code caused an unhandled rejection:", event.reason);
 			event.stopImmediatePropagation();
 			event.preventDefault();
