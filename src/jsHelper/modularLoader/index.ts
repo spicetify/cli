@@ -206,6 +206,20 @@ async function waitForClient(timeoutMs: number): Promise<boolean> {
 const pendingLocal = new Map<string, { metadata: ModulesManifest["modules"][number]; files: Record<string, string> }>();
 
 async function boot(): Promise<BootReport | null> {
+	// Module bugs must not brick the client: its global handler turns any
+	// unhandled rejection into the full-page "Something went wrong" screen.
+	// Rejections whose stack points into module or hooks code are reported
+	// honestly and stopped here (this listener registers before the client
+	// boots, so it runs first); client-originated rejections pass through.
+	window.addEventListener("unhandledrejection", (event) => {
+		const stack = (event.reason as Error | undefined)?.stack ?? "";
+		if (/\/(modules|hooks)\//.test(stack)) {
+			log("error")("module code caused an unhandled rejection:", event.reason);
+			event.stopImmediatePropagation();
+			event.preventDefault();
+		}
+	});
+
 	const manifest = globalThis.__SPICETIFY_MODULAR_MANIFEST__ ?? (await fetchManifest());
 	if (!manifest?.modules?.length) {
 		log("info")("no modules manifest, nothing to load");
