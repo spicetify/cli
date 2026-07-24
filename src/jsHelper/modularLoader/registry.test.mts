@@ -281,3 +281,37 @@ describe("module context", () => {
 		assert.deepEqual(seen, ["feat", "load:feat", "deferred"]);
 	});
 });
+
+describe("list with boot report", () => {
+	it("joins failure reasons from the report into module states", async () => {
+		const js = {
+			ok: { load: () => {} },
+			broken: {
+				load: () => {
+					throw new Error("kaput");
+				},
+			},
+		};
+		const r = new Registry(manifest([mod("ok", "1.0.0"), mod("broken", "1.0.0")]), trackingEffects([], js));
+		const report = await r.boot();
+		const states = r.list(report);
+		const broken = states.find((s) => s.identifier === "broken");
+		const ok = states.find((s) => s.identifier === "ok");
+		assert.match(broken!.failed!, /kaput/);
+		assert.equal(ok!.failed, undefined);
+		assert.equal(ok!.loaded, true);
+	});
+
+	it("reflects enable-path failures recorded after boot", async () => {
+		const r = new Registry(manifest([mod("feat", "1.0.0", { dependencies: { ghost: "^1.0.0" } })]), trackingEffects([]));
+		const report = await r.boot();
+		await r.enable("feat", report);
+		const state = r.list(report).find((s) => s.identifier === "feat");
+		assert.match(state!.failed!, /ghost/);
+	});
+
+	it("returns no failed field without a report", () => {
+		const r = new Registry(manifest([mod("solo", "1.0.0")]), trackingEffects([]));
+		assert.equal(r.list().find((s) => s.identifier === "solo")!.failed, undefined);
+	});
+});

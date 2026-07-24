@@ -1,3 +1,4 @@
+import { pushDiagnostic } from "./diagnostics.ts";
 import { deleteLocalModule, loadLocalModules, remapSource, saveLocalModule } from "./localModules.ts";
 import { Registry, type BootReport } from "./registry.ts";
 import { createTransformRegistry, transformPath } from "./transforms.ts";
@@ -13,8 +14,10 @@ declare global {
 
 const log =
 	(level: "info" | "error") =>
-	(...args: unknown[]) =>
+	(...args: unknown[]) => {
 		console[level]("[modular-loader]", ...args);
+		pushDiagnostic(level, ...args);
+	};
 
 async function importJs(path: string) {
 	return (await import(/* webpackIgnore: true */ path)) as never;
@@ -289,7 +292,7 @@ async function boot(): Promise<BootReport | null> {
 		report,
 		registry,
 		entryUrl,
-		list: () => registry.list(),
+		list: () => registry.list(report),
 		enable: (id: string) => registry.enable(id, report),
 		disable: (id: string) => registry.unload(id),
 		reload: (id: string) => registry.reload(id, report),

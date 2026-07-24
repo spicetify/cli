@@ -239,15 +239,17 @@ export class Registry {
 		return report;
 	}
 
-	list(): ModuleState[] {
+	list(report?: BootReport): ModuleState[] {
 		const out: ModuleState[] = [];
 		for (const m of this.modules.values()) {
 			const s = this.states.get(m.identifier);
+			const failed = report?.failed[m.identifier];
 			out.push({
 				identifier: m.identifier,
 				version: m.version,
 				loaded: s?.loaded ?? false,
 				mixedIn: s?.mixedIn ?? false,
+				...(failed !== undefined ? { failed } : {}),
 			});
 		}
 		return out;
