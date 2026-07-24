@@ -30,6 +30,9 @@ type Flag struct {
 	ExposeAPIs bool
 	// ModularApply stages v3 modules and injects the modular loader.
 	ModularApply bool
+	// BlockUpdates records whether the user opted into Spotify update
+	// control, so the staged manifest can surface it in-client.
+	BlockUpdates bool
 	SpotifyVer   string
 }
 
@@ -120,7 +123,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		key, err := utils.SpotifyVersionToClassmapKey(flags.SpotifyVer)
 		if err != nil {
 			flags.ModularApply = false
-		} else if manifest, err := utils.StageModularApply(appPath, flags.SpotifyVer, key); err != nil {
+		} else if manifest, err := utils.StageModularApply(appPath, flags.SpotifyVer, key, utils.ManifestEnv{CliVersion: version, UpdatesBlocked: flags.BlockUpdates}); err != nil {
 			utils.PrintWarning("Modular apply skipped: " + err.Error())
 			flags.ModularApply = false
 		} else if manifest == nil || len(manifest.Modules) == 0 {

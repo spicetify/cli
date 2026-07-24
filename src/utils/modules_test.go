@@ -82,7 +82,7 @@ func TestStageModules(t *testing.T) {
 		[]ModuleManifest{{Identifier: "hello", ModuleMetadata: ModuleMetadata{
 			Name: "hello", Version: "0.1.0", Entries: ModuleEntries{JS: "index.js", CSS: "index.css"},
 		}}},
-		cm, nil, "1.2.94", "1020094")
+		cm, nil, "1.2.94", "1020094", ManifestEnv{CliVersion: "2.99.0", UpdatesBlocked: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,6 +109,12 @@ func TestStageModules(t *testing.T) {
 	if decoded.ClassmapKey != "1020094" || decoded.SpotifyVersion != "1.2.94" {
 		t.Fatalf("bad manifest header: %+v", decoded)
 	}
+	if decoded.CliVersion != "2.99.0" || !decoded.UpdatesBlocked {
+		t.Fatalf("manifest env fields not written: %+v", decoded)
+	}
+	if !strings.Contains(string(rawManifest), `"updatesBlocked": true`) {
+		t.Fatalf("updatesBlocked missing from serialized manifest:\n%s", rawManifest)
+	}
 	if decoded.Modules[0].Entries.CSS != "index.css" {
 		t.Fatalf("css entry missing from manifest: %+v", decoded.Modules[0])
 	}
@@ -123,7 +129,7 @@ func TestStageModulesSkipsFailedRemap(t *testing.T) {
 		[]ModuleManifest{{Identifier: "broken", ModuleMetadata: ModuleMetadata{
 			Name: "broken", Version: "0.1.0", Entries: ModuleEntries{JS: "index.js"},
 		}}},
-		cm, nil, "1.2.94", "1020094")
+		cm, nil, "1.2.94", "1020094", ManifestEnv{})
 	if err != nil {
 		t.Fatal(err)
 	}

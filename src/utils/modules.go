@@ -60,6 +60,8 @@ type ModuleManifest struct {
 type ModulesManifest struct {
 	SpotifyVersion string           `json:"spotifyVersion"`
 	ClassmapKey    string           `json:"classmapKey"`
+	CliVersion     string           `json:"cliVersion,omitempty"`
+	UpdatesBlocked bool             `json:"updatesBlocked"`
 	Classmap       Classmap         `json:"classmap,omitempty"`
 	Modules        []ModuleManifest `json:"modules"`
 }
@@ -105,10 +107,12 @@ func DiscoverModules(root string) ([]ModuleManifest, error) {
 // with the runtime manifest into the extracted xpui dir, so they flow into
 // the applied client like any other preprocessed asset.
 // A module that fails to remap is skipped with a warning, not fatal.
-func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifest, cm Classmap, stale map[string]bool, spotifyVersion, classmapKey string) (*ModulesManifest, error) {
+func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifest, cm Classmap, stale map[string]bool, spotifyVersion, classmapKey string, env ManifestEnv) (*ModulesManifest, error) {
 	manifest := &ModulesManifest{
 		SpotifyVersion: spotifyVersion,
 		ClassmapKey:    classmapKey,
+		CliVersion:     env.CliVersion,
+		UpdatesBlocked: env.UpdatesBlocked,
 		Classmap:       cm,
 	}
 
@@ -542,7 +546,14 @@ const ModularApplyScriptTag = "<script src='helper/modularLoader.js'></script>\n
 
 // StageModularApply is the full apply-time pipeline: discover, remap, stage.
 // Returns nil manifest (and nil error) when there is nothing to do.
-func StageModularApply(extractedXpuiPath, spotifyVersion, classmapKey string) (*ModulesManifest, error) {
+// ManifestEnv carries apply-time environment facts the client cannot
+// observe on its own; they ride the manifest for management UIs.
+type ManifestEnv struct {
+	CliVersion     string
+	UpdatesBlocked bool
+}
+
+func StageModularApply(extractedXpuiPath, spotifyVersion, classmapKey string, env ManifestEnv) (*ModulesManifest, error) {
 	modules, err := DiscoverModules(ModulesDir())
 	if err != nil {
 		return nil, err
@@ -559,7 +570,7 @@ func StageModularApply(extractedXpuiPath, spotifyVersion, classmapKey string) (*
 		return nil, err
 	}
 	stale := ClassmapStalePathsFromMeta(classmapPath)
-	manifest, err := StageModules(ModulesDir(), extractedXpuiPath, modules, cm, stale, spotifyVersion, classmapKey)
+	manifest, err := StageModules(ModulesDir(), extractedXpuiPath, modules, cm, stale, spotifyVersion, classmapKey, env)
 	if err != nil || manifest == nil || len(manifest.Modules) == 0 {
 		return manifest, err
 	}

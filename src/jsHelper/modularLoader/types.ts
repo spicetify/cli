@@ -21,6 +21,9 @@ export type Classmap = Record<string, unknown>;
 export interface ModulesManifest {
 	spotifyVersion: string;
 	classmapKey: string;
+	// Apply-time environment facts (absent in manifests from older CLIs).
+	cliVersion?: string;
+	updatesBlocked?: boolean;
 	classmap?: Classmap;
 	modules: ManifestModule[];
 }
