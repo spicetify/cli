@@ -2,7 +2,6 @@ mod input;
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
@@ -10,15 +9,16 @@ use crossterm::event::Event;
 use ratatui::Terminal;
 use ratatui::backend::Backend;
 use ratatui::layout::Rect;
-use spicetify::commands::Command;
+use spicetify::commands::{Command, SyncTarget};
 use spicetify::context::AppContext;
 use spicetify::logging::{LogLine, TuiEvent, TuiEventSender};
-use spicetify::{daemon, fl};
+use spicetify::{daemon, fl, hooks};
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt;
 use tracing::Level;
 
 use crate::components::header::Header;
+use crate::components::hook_selector::HookSelector;
 use crate::components::log_viewer::LogViewer;
 use crate::components::menu_list::{ActivateResult, MenuAction, MenuList};
 use crate::frame_scheduler::FrameRequester;
@@ -102,7 +102,6 @@ pub(crate) struct CommandState {
 pub(crate) enum InputStep {
     ModuleId,
     ModuleUrl(String),
-    ProtocolUri,
 }
 
 #[derive(Debug)]
@@ -117,7 +116,6 @@ impl InputState {
         match self.step {
             InputStep::ModuleId => fl!("tui-input-module-id"),
             InputStep::ModuleUrl(_) => fl!("tui-input-module-url"),
-            InputStep::ProtocolUri => fl!("tui-input-protocol-uri"),
         }
     }
 }
@@ -145,6 +143,7 @@ pub struct TuiApp {
     pub(crate) confirm_quit_yes: bool,
     pub(crate) cmd: CommandState,
     pub(crate) input: Option<InputState>,
+    pub(crate) hook_selector: Option<HookSelector>,
 
     pub daemon_running: bool,
     pub daemon_installed: bool,
@@ -152,7 +151,7 @@ pub struct TuiApp {
     pub layout: LayoutState,
 
     pub tx: TuiEventSender,
-    rx: Receiver<TuiEvent>,
+    rx: tokio::sync::mpsc::UnboundedReceiver<TuiEvent>,
     command_handle: Option<tokio::task::JoinHandle<()>>,
 
     frame_requester: FrameRequester,
@@ -165,7 +164,7 @@ impl TuiApp {
     pub(crate) fn new(
         ctx: AppContext,
         tx: TuiEventSender,
-        rx: Receiver<TuiEvent>,
+        rx: tokio::sync::mpsc::UnboundedReceiver<TuiEvent>,
         frame_requester: FrameRequester,
         draw_tx: broadcast::Sender<()>,
     ) -> Self {
@@ -182,6 +181,7 @@ impl TuiApp {
             confirm_quit_yes: true,
             cmd: CommandState { current: None, status: RunStatus::Idle, last_started_at: None },
             input: None,
+            hook_selector: None,
             daemon_running,
             daemon_installed: daemon::DaemonManager::create().is_installed(),
             layout: LayoutState {
@@ -243,12 +243,19 @@ impl TuiApp {
                         Err(broadcast::error::RecvError::Closed) => break,
                     }
                 }
+                Some(tui_event) = self.rx.recv() => {
+                    self.process_tui_event(tui_event);
+                    while let Ok(extra) = self.rx.try_recv() {
+                        self.process_tui_event(extra);
+                    }
+                    needs_draw = true;
+                }
             }
 
-            if self.reconcile_daemon_state(&daemon_running, &daemon_installed)
-                || self.tick_anim()
-                || self.drain_events()
-            {
+            if self.reconcile_daemon_state(&daemon_running, &daemon_installed) {
+                needs_draw = true;
+            }
+            if self.tick_anim() {
                 needs_draw = true;
             }
         }
@@ -384,14 +391,11 @@ impl TuiApp {
         match result {
             ActivateResult::EnterCategory => {}
             ActivateResult::RunAction(action) if action.needs_input() => {
-                let step = match action {
-                    MenuAction::PkgInstall | MenuAction::PkgDelete | MenuAction::PkgEnable => {
-                        InputStep::ModuleId
-                    }
-                    MenuAction::Protocol => InputStep::ProtocolUri,
-                    _ => unreachable!(),
-                };
-                self.input = Some(InputState { action, buffer: String::new(), step });
+                self.input =
+                    Some(InputState { action, buffer: String::new(), step: InputStep::ModuleId });
+            }
+            ActivateResult::RunAction(MenuAction::Sync) => {
+                self.start_hook_manifest_fetch();
             }
             ActivateResult::RunAction(action) => self.run_action(action),
         }
@@ -425,15 +429,24 @@ impl TuiApp {
             }));
             match result {
                 Ok(Ok(())) => {
-                    let _ = tx.send(TuiEvent::CommandFinished { success: true });
+                    if tx.send(TuiEvent::CommandFinished { success: true }).is_err() {
+                        return;
+                    }
                     fr.schedule();
                 }
                 Ok(Err(e)) => {
-                    let _ = tx.send(TuiEvent::Log(LogLine {
-                        level: Level::ERROR,
-                        message: format!("{e}"),
-                    }));
-                    let _ = tx.send(TuiEvent::CommandFinished { success: false });
+                    if tx
+                        .send(TuiEvent::Log(LogLine {
+                            level: Level::ERROR,
+                            message: format!("{e}"),
+                        }))
+                        .is_err()
+                    {
+                        return;
+                    }
+                    if tx.send(TuiEvent::CommandFinished { success: false }).is_err() {
+                        return;
+                    }
                     fr.schedule();
                 }
                 Err(panic) => {
@@ -444,34 +457,89 @@ impl TuiApp {
                     } else {
                         "command panicked".to_string()
                     };
-                    let _ = tx.send(TuiEvent::Log(LogLine {
-                        level: Level::ERROR,
-                        message: format!("PANIC {msg}"),
-                    }));
-                    let _ = tx.send(TuiEvent::CommandFinished { success: false });
+                    if tx
+                        .send(TuiEvent::Log(LogLine {
+                            level: Level::ERROR,
+                            message: format!("PANIC {msg}"),
+                        }))
+                        .is_err()
+                    {
+                        return;
+                    }
+                    if tx.send(TuiEvent::CommandFinished { success: false }).is_err() {
+                        return;
+                    }
                     fr.schedule();
                 }
             }
         }));
     }
 
-    fn drain_events(&mut self) -> bool {
-        let mut drained = false;
-        while let Ok(event) = self.rx.try_recv() {
-            drained = true;
-            match event {
-                TuiEvent::Log(line) => {
-                    self.log_viewer.push(line);
+    fn start_hook_manifest_fetch(&mut self) {
+        self.log_viewer.push(">>> Fetching available hook versions...".to_string());
+        self.frame_requester.schedule();
+
+        let tx = self.tx.clone();
+
+        let _ = tokio::task::spawn(async move {
+            let sets = hooks::manifest::fetch_hook_sets_async().await.unwrap_or_default();
+            if tx.send(TuiEvent::HookManifestFetched { sets }).is_err() {
+                tracing::warn!("hook manifest receiver dropped");
+            }
+        });
+    }
+
+    fn reconcile_hook_manifest(&mut self, sets: Vec<hooks::HookSet>) {
+        if sets.is_empty() {
+            self.log_viewer
+                .push(LogLine { level: Level::ERROR, message: fl!("hooks-manifest-empty") });
+            return;
+        }
+        self.hook_selector = Some(HookSelector::new(sets, &[]));
+        self.frame_requester.schedule();
+    }
+
+    fn process_tui_event(&mut self, event: TuiEvent) {
+        match event {
+            TuiEvent::Log(line) => {
+                self.log_viewer.push(line);
+            }
+            TuiEvent::CommandFinished { success } => {
+                self.cmd.status = if success { RunStatus::Ok } else { RunStatus::Error };
+                self.cmd.current = None;
+                self.cmd.last_started_at = None;
+                self.command_handle = None;
+            }
+            TuiEvent::HookManifestFetched { sets } => {
+                self.reconcile_hook_manifest(sets);
+            }
+            TuiEvent::HookSetsResolved { resolved } => {
+                if let Some(ref version) = resolved.spotify_version {
+                    self.log_viewer.push(format!("detected Spotify {version}"));
                 }
-                TuiEvent::CommandFinished { success } => {
-                    self.cmd.status = if success { RunStatus::Ok } else { RunStatus::Error };
-                    self.cmd.current = None;
-                    self.cmd.last_started_at = None;
-                    self.command_handle = None;
+                if resolved.matching.is_empty() {
+                    let version = resolved
+                        .spotify_version
+                        .map_or_else(|| "unknown".to_string(), |v| v.to_string());
+                    self.log_viewer.push(format!(
+                        "no hook set supports Spotify {version}. Available sets require different \
+                         Spotify versions",
+                    ));
+                    return;
                 }
+                let mut matching = resolved.matching;
+                matching.sort_by(|a, b| {
+                    let va = semver::Version::parse(&a.hooks_version).ok();
+                    let vb = semver::Version::parse(&b.hooks_version).ok();
+                    vb.cmp(&va)
+                });
+                let set = matching.into_iter().next().expect("non-empty after empty check");
+                let label = set.display_label();
+                self.log_viewer.push(format!("using hook set v{} ({})", set.hooks_version, label));
+                self.run_command(Command::Sync(SyncTarget::Url(set.download_url)), &label);
+                self.cmd.current = Some(MenuAction::Sync);
             }
         }
-        drained
     }
 }
 

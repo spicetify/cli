@@ -19,6 +19,12 @@ pub enum ConfigAction {
 }
 
 #[derive(Debug, Clone)]
+pub enum SyncTarget {
+    Auto,
+    Url(String),
+}
+
+#[derive(Debug, Clone)]
 pub enum Command {
     Apply,
     Config(ConfigAction),
@@ -29,7 +35,7 @@ pub enum Command {
     Pkg(PkgAction),
     Protocol(String),
     SelfUpdate,
-    Sync,
+    Sync(SyncTarget),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -63,7 +69,7 @@ impl Command {
             Self::Pkg(PkgAction::Install { .. }) => Some(fl!("module-added")),
             Self::Pkg(PkgAction::Delete { .. }) => Some(fl!("module-deleted")),
             Self::Pkg(PkgAction::Enable { .. }) => Some(fl!("module-enabled")),
-            Self::Sync => Some(fl!("hooks-updated")),
+            Self::Sync(_) => Some(fl!("hooks-updated")),
             _ => None,
         }
     }
@@ -109,7 +115,7 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
             PkgAction::Enable { id } => crate::module::enable_module(&ctx.config_root, id),
         },
         Command::Protocol(uri) => protocol::run(ctx, uri),
-        Command::Sync => sync::run(ctx),
+        Command::Sync(target) => sync::run(ctx, target),
         Command::SelfUpdate => self_update::run(),
     }
 }

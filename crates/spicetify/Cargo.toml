@@ -16,6 +16,7 @@ directories = { workspace = true }
 zip = { workspace = true }
 tar = { workspace = true }
 sha2 = { workspace = true }
+hex = { workspace = true }
 zstd = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = ["blocking", "json", "rustls", "cookies", "stream"] }
 url = { workspace = true }

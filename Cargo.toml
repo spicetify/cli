@@ -29,7 +29,12 @@ tokio = { version = "1.52", features = [
   "macros",
 ] }
 axum = { version = "0.8", features = ["ws", "macros"] }
-reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "cookies", "stream"] }
+reqwest = { version = "0.13", default-features = false, features = [
+  "json",
+  "rustls",
+  "cookies",
+  "stream",
+] }
 tokio-stream = "0.1"
 
 tracing = "0.1"
@@ -39,7 +44,7 @@ directories = "6.0"
 notify = "9.0.0-rc.4"
 fs4 = "1.1"
 arc-swap = "1.9"
-regex = "1.12"
+regex = "1.13"
 
 url = "2.5"
 percent-encoding = "2.3"
@@ -47,12 +52,13 @@ semver = "1.0"
 
 zip = "8.6"
 tar = "0.4"
-sha2 = "0.10"
+sha2 = "0.11"
+hex = "0.4"
 zstd = "0.13"
 
 i18n-embed = { version = "0.16", features = ["fluent-system", "desktop-requester"] }
 i18n-embed-fl = "0.10"
-rust-embed = { version = "8.11", features = ["interpolate-folder-path"] }
+rust-embed = { version = "8.12", features = ["interpolate-folder-path"] }
 
 clap = { version = "4.6", features = ["derive", "wrap_help"] }
 
@@ -79,6 +85,8 @@ strip = true
 
 [profile.dev]
 debug = 0
+# export AWS_LC_SYS_NO_U1_BINDINGS=1
+# cargo build
 
 [workspace.lints.rust]
 unsafe_code = "deny"

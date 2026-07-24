@@ -5,7 +5,8 @@ use ratatui::widgets::Paragraph;
 use spicetify::fl;
 
 use crate::app::{Page, TuiApp};
-use crate::components::{details_pane, dialog, footer, split_pane};
+use crate::components::primitives::{dialog, split_pane};
+use crate::components::{confirm_quit, details_pane, footer};
 use crate::theme::TEXT_MUTED;
 
 pub(crate) fn draw(frame: &mut Frame<'_>, app: &mut TuiApp) {
@@ -43,7 +44,16 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &mut TuiApp) {
         "details".to_string()
     };
 
-    let pane = split_pane::draw(frame, body, &menu_title, &details_title, 0.35, in_category);
+    let pane = split_pane::draw(
+        frame,
+        body,
+        &menu_title,
+        &details_title,
+        0.35,
+        in_category,
+        app.layout.mouse_pos,
+        app.menu.hover.is_mouse_active(),
+    );
 
     app.layout.menu_rect = Some(pane.left_area);
     app.layout.body_rect = Some(body);
@@ -73,12 +83,26 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &mut TuiApp) {
     draw_version(frame);
 
     if app.confirm_quit_open {
-        app.layout.dialog_rect = Some(dialog::draw_confirm_quit(
+        app.layout.dialog_rect = Some(confirm_quit::draw_confirm_quit(
             frame,
             app.layout.mouse_pos,
             app.menu.hover.is_mouse_active(),
             app.confirm_quit_yes,
         ));
+    }
+
+    if app.hook_selector.is_some() {
+        let area = dialog::draw_dialog(
+            frame,
+            60,
+            18,
+            app.layout.mouse_pos,
+            app.menu.hover.is_mouse_active(),
+        );
+        app.layout.dialog_rect = Some(area.outer);
+        if let Some(ref mut selector) = app.hook_selector {
+            selector.render(frame, area.outer);
+        }
     }
 }
 

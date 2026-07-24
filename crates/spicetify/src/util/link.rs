@@ -37,6 +37,9 @@ fn remove_link(link: &Path) -> Result<()> {
     match std::fs::remove_file(link) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::IsADirectory => {
+            std::fs::remove_dir_all(link).map_err(Into::into)
+        }
         Err(e) => Err(e.into()),
     }
 }

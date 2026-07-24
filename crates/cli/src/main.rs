@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use i18n_embed_fl as _;
-use spicetify::commands::{Command, ConfigAction, DaemonAction, PkgAction};
+use spicetify::commands::{Command, ConfigAction, DaemonAction, PkgAction, SyncTarget};
 use spicetify::{fl, logging};
 
 #[derive(Debug, Parser)]
@@ -10,9 +10,9 @@ struct SpicetifyCli {
     #[arg(short = 'm', long, default_value_t = false)]
     mirror: bool,
     #[arg(long)]
-    spotify_data_path: Option<String>,
+    spotify_data_dir: Option<String>,
     #[arg(long)]
-    spotify_exec_path: Option<String>,
+    spotify_exec: Option<String>,
     #[arg(long)]
     offline_bnk_dir: Option<String>,
 
@@ -41,7 +41,10 @@ enum CliCommand {
         uri: String,
     },
     SelfUpdate,
-    Sync,
+    Sync {
+        #[arg(long)]
+        url: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, Subcommand)]
@@ -83,7 +86,10 @@ impl From<CliCommand> for Command {
             CliCommand::Pkg { action } => Command::Pkg(action.into()),
             CliCommand::Protocol { uri } => Command::Protocol(uri),
             CliCommand::SelfUpdate => Command::SelfUpdate,
-            CliCommand::Sync => Command::Sync,
+            CliCommand::Sync { url } => Command::Sync(match url {
+                Some(u) => SyncTarget::Url(u),
+                None => SyncTarget::Auto,
+            }),
         }
     }
 }
@@ -123,8 +129,8 @@ fn run() -> Result<()> {
     let cli = SpicetifyCli::parse();
     let ctx = spicetify::context::build_context(
         cli.mirror,
-        cli.spotify_data_path.as_deref(),
-        cli.spotify_exec_path.as_deref(),
+        cli.spotify_data_dir.as_deref(),
+        cli.spotify_exec.as_deref(),
         cli.offline_bnk_dir.as_deref(),
     )?;
 

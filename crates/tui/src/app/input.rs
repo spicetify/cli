@@ -1,9 +1,14 @@
+use std::mem;
+
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind};
-use spicetify::commands::{Command, PkgAction};
+use spicetify::commands::{Command, PkgAction, SyncTarget};
+use spicetify::hooks;
+use spicetify::logging::TuiEvent;
 
 use super::{Action, InputStep, TuiApp};
-use crate::components::dialog::{self, DialogHit};
+use crate::components::confirm_quit::{self, DialogHit};
 use crate::components::menu_list::MenuAction;
+use crate::components::primitives::dialog;
 
 impl TuiApp {
     pub(crate) fn handle_key(&mut self, key: crossterm::event::KeyEvent) {
@@ -29,6 +34,11 @@ impl TuiApp {
             return;
         }
 
+        if self.hook_selector.is_some() {
+            self.handle_hook_selector_key(key);
+            return;
+        }
+
         if self.input.is_some() {
             self.handle_input_key(key);
             return;
@@ -51,23 +61,75 @@ impl TuiApp {
         self.dispatch(action);
     }
 
+    fn handle_hook_selector_key(&mut self, key: crossterm::event::KeyEvent) {
+        match key.code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                if let Some(ref mut selector) = self.hook_selector {
+                    selector.move_up();
+                }
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if let Some(ref mut selector) = self.hook_selector {
+                    selector.move_down();
+                }
+            }
+            KeyCode::Enter | KeyCode::Char('l') | KeyCode::Right => {
+                let Some(selector) = self.hook_selector.take() else { return };
+                if selector.is_auto_detect_selected() {
+                    let ctx = self.ctx.clone();
+                    let tx = self.tx.clone();
+                    let _ = tokio::task::spawn_blocking(move || {
+                        let resolved = hooks::resolve_hook_sets(selector.sets, &ctx);
+                        if tx.send(TuiEvent::HookSetsResolved { resolved }).is_err() {
+                            tracing::warn!("hook sets resolved receiver dropped");
+                        }
+                    });
+                } else if let Some(set) = selector.selected_set() {
+                    let url = set.download_url.clone();
+                    let label = set.display_label();
+                    self.run_command(Command::Sync(SyncTarget::Url(url)), &label);
+                    self.cmd.current = Some(MenuAction::Sync);
+                }
+            }
+            KeyCode::Esc | KeyCode::Char('h') | KeyCode::Left => {
+                self.hook_selector = None;
+            }
+            _ => {}
+        }
+    }
+
     pub(crate) fn handle_mouse(&mut self, mouse: crossterm::event::MouseEvent) {
         self.layout.mouse_pos = (mouse.column, mouse.row);
 
         if self.confirm_quit_open {
             if let MouseEventKind::Up(MouseButton::Left) = mouse.kind {
-                match dialog::confirm_quit_hit_test(
+                match confirm_quit::confirm_quit_hit_test(
                     self.layout.dialog_rect,
                     mouse.column,
                     mouse.row,
                 ) {
-                    DialogHit::Yes => self.dispatch(Action::ConfirmQuit),
-                    DialogHit::No | DialogHit::Background => self.dispatch(Action::CloseDialog),
+                    Some(DialogHit::Yes) => self.dispatch(Action::ConfirmQuit),
+                    Some(DialogHit::Close | DialogHit::No | DialogHit::Background) => {
+                        self.dispatch(Action::CloseDialog);
+                    }
+                    None => {}
                 }
                 return;
             }
             if matches!(mouse.kind, MouseEventKind::Moved) {
                 self.menu.hover.on_mouse_move(None);
+            }
+            return;
+        }
+
+        if self.hook_selector.is_some() {
+            if let MouseEventKind::Up(MouseButton::Left) = mouse.kind {
+                match dialog::dialog_hit_test(self.layout.dialog_rect, mouse.column, mouse.row) {
+                    dialog::DialogAreaHit::Close | dialog::DialogAreaHit::Background => {
+                        self.hook_selector = None;
+                    }
+                    dialog::DialogAreaHit::Inside => {}
+                }
             }
             return;
         }
@@ -125,7 +187,7 @@ impl TuiApp {
                 self.input = None;
             }
             KeyCode::Enter => {
-                let buffer = std::mem::take(&mut input.buffer);
+                let buffer = mem::take(&mut input.buffer);
 
                 if is_pkg_install && matches!(input.step, InputStep::ModuleId) {
                     input.step = InputStep::ModuleUrl(buffer);
@@ -136,7 +198,7 @@ impl TuiApp {
                     MenuAction::PkgInstall => {
                         let id = match &input.step {
                             InputStep::ModuleUrl(id) => id.clone(),
-                            _ => unreachable!(),
+                            InputStep::ModuleId => unreachable!(),
                         };
                         (
                             Command::Pkg(PkgAction::Install { id: id.clone(), url: buffer }),
@@ -149,8 +211,7 @@ impl TuiApp {
                     MenuAction::PkgEnable => {
                         (Command::Pkg(PkgAction::Enable { id: buffer }), input.action.label())
                     }
-                    MenuAction::Protocol => (Command::Protocol(buffer), input.action.label()),
-                    _ => unreachable!(),
+                    _ => unreachable!("only PkgInstall/PkgDelete/PkgEnable reach handle_input_key"),
                 };
                 self.input = None;
                 self.run_command(cmd, &label);

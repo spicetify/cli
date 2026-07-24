@@ -48,8 +48,8 @@ pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
         store.artifacts.first().ok_or_else(|| anyhow::anyhow!(fl!("store-no-artifacts")))?;
 
     let dest = id.store_path(&paths.store_root);
-    fs::create_dir_all(&dest)?;
     if artifact.starts_with("http://") || artifact.starts_with("https://") {
+        fs::create_dir_all(&dest)?;
         let response = reqwest::blocking::get(artifact)
             .map_err(|e| anyhow::anyhow!("{}: {e}", fl!("proxy-request-failed")))?;
         let bytes = response

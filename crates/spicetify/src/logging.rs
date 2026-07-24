@@ -1,13 +1,15 @@
 // i dont think this is right?
 // TODO: copy how codex does it
 use std::fmt;
-use std::sync::mpsc::{Receiver, Sender};
 
 use anyhow::Result;
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::Layer;
 use tracing_subscriber::prelude::*;
+
+use crate::hooks::{HookSet, ResolvedHookSets};
 
 #[derive(Debug, Clone)]
 pub struct LogLine {
@@ -19,18 +21,20 @@ pub struct LogLine {
 pub enum TuiEvent {
     Log(LogLine),
     CommandFinished { success: bool },
+    HookManifestFetched { sets: Vec<HookSet> },
+    HookSetsResolved { resolved: ResolvedHookSets },
 }
 
-pub type TuiEventSender = Sender<TuiEvent>;
+pub type TuiEventSender = UnboundedSender<TuiEvent>;
 
-pub type TuiEventReceiver = Receiver<TuiEvent>;
+pub type TuiEventReceiver = UnboundedReceiver<TuiEvent>;
 
 fn default_filter() -> EnvFilter {
     EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"))
 }
 
-pub fn init_for_tui(tx: &TuiEventSender) -> Result<()> {
-    let layer = TuiLogLayer { tx: tx.clone() };
+pub fn init_for_tui(tx: TuiEventSender) -> Result<()> {
+    let layer = TuiLogLayer { tx };
     tracing_subscriber::registry()
         .with(default_filter())
         .with(layer)
@@ -82,10 +86,12 @@ where
         let mut visitor = MessageVisitor::default();
         event.record(&mut visitor);
         let message = visitor.into_message();
-        if let Err(e) =
-            self.tx.send(TuiEvent::Log(LogLine { level: *event.metadata().level(), message }))
+        if self
+            .tx
+            .send(TuiEvent::Log(LogLine { level: *event.metadata().level(), message }))
+            .is_err()
         {
-            tracing::warn!(error = %e, "tui log channel closed");
+            tracing::warn!("tui log channel closed");
         }
     }
 }

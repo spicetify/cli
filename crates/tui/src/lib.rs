@@ -24,13 +24,13 @@ use tokio::sync::broadcast;
 use crate::frame_scheduler::FrameRequester;
 
 pub fn run(ctx: &AppContext) -> Result<()> {
-    color_eyre::install().map_err(|e| anyhow::anyhow!("{e}"))?;
-    let (tx, rx) = std::sync::mpsc::channel();
-    spicetify::logging::init_for_tui(&tx)?;
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+    spicetify::logging::init_for_tui(tx.clone())?;
     spicetify::update::startup_cleanup();
     let mut terminal = setup_terminal()?;
 
-    let runtime = tokio::runtime::Builder::new_current_thread().enable_time().build()?;
+    let runtime =
+        tokio::runtime::Builder::new_current_thread().enable_time().enable_io().build()?;
     let panic_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         runtime.block_on(async {
             let (draw_tx, _) = broadcast::channel(1);

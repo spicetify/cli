@@ -3,6 +3,7 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::widgets::Paragraph;
 
+use super::button;
 use crate::theme;
 
 pub(crate) struct SplitPane {
@@ -11,6 +12,7 @@ pub(crate) struct SplitPane {
     pub back_rect: Rect,
 }
 
+#[expect(clippy::too_many_arguments)]
 pub(crate) fn draw(
     frame: &mut Frame<'_>,
     area: Rect,
@@ -18,6 +20,8 @@ pub(crate) fn draw(
     right_title: &str,
     split_pct: f32,
     show_back: bool,
+    mouse_pos: (u16, u16),
+    mouse_active: bool,
 ) -> SplitPane {
     let inner = Rect {
         x: area.x + 1,
@@ -67,7 +71,16 @@ pub(crate) fn draw(
     );
 
     let back_rect = if show_back {
-        Rect { x: area.x, y: area.y, width: sep_x.saturating_sub(area.x), height: 1 }
+        let rect = Rect { x: area.x, y: area.y, width: sep_x.saturating_sub(area.x), height: 1 };
+        button::draw_button(
+            frame,
+            "← ",
+            Rect { x: area.x + 2, y: area.y, width: 2, height: 1 },
+            mouse_pos,
+            mouse_active,
+            false,
+        );
+        rect
     } else {
         Rect::default()
     };

@@ -3,7 +3,7 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{List, ListItem, ListState};
-use spicetify::commands::{Command, ConfigAction, DaemonAction};
+use spicetify::commands::{Command, ConfigAction, DaemonAction, SyncTarget};
 use spicetify::fl;
 
 use super::super::app::{HoverState, Page};
@@ -29,8 +29,6 @@ pub(crate) enum MenuAction {
     PkgInstall,
     PkgDelete,
     PkgEnable,
-    #[allow(dead_code)]
-    Protocol,
 }
 
 impl MenuAction {
@@ -53,7 +51,6 @@ impl MenuAction {
             Self::PkgInstall => fl!("tui-mn-pkg-install"),
             Self::PkgDelete => fl!("tui-mn-pkg-delete"),
             Self::PkgEnable => fl!("tui-mn-pkg-enable"),
-            Self::Protocol => fl!("tui-mn-protocol"),
         }
     }
 
@@ -76,7 +73,6 @@ impl MenuAction {
             Self::PkgInstall => fl!("tui-mn-pkg-install-desc"),
             Self::PkgDelete => fl!("tui-mn-pkg-delete-desc"),
             Self::PkgEnable => fl!("tui-mn-pkg-enable-desc"),
-            Self::Protocol => fl!("tui-mn-protocol-desc"),
         }
     }
 
@@ -86,7 +82,7 @@ impl MenuAction {
             Self::Apply => Command::Apply,
             Self::Restore => Command::Restore,
             Self::Init => Command::Init,
-            Self::Sync => Command::Sync,
+            Self::Sync => Command::Sync(SyncTarget::Auto),
             Self::Dev => Command::Dev,
             Self::Config => Command::Config(ConfigAction::Show),
             Self::ConfigOpenFolder => Command::Config(ConfigAction::OpenFolder),
@@ -96,7 +92,7 @@ impl MenuAction {
             Self::DaemonInstall => Command::Daemon(DaemonAction::Install),
             Self::DaemonUninstall => Command::Daemon(DaemonAction::Uninstall),
             Self::DaemonStatus => Command::Daemon(DaemonAction::Status),
-            Self::PkgInstall | Self::PkgDelete | Self::PkgEnable | Self::Protocol => {
+            Self::PkgInstall | Self::PkgDelete | Self::PkgEnable => {
                 unreachable!("input actions are handled separately")
             }
         }
@@ -104,7 +100,7 @@ impl MenuAction {
 
     #[must_use]
     pub(crate) fn needs_input(self) -> bool {
-        matches!(self, Self::PkgInstall | Self::PkgDelete | Self::PkgEnable | Self::Protocol)
+        matches!(self, Self::PkgInstall | Self::PkgDelete | Self::PkgEnable)
     }
 }
 

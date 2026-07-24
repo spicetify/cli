@@ -1,3 +1,4 @@
+use hex;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
@@ -86,7 +87,7 @@ pub fn compute_sha256(path: &std::path::Path) -> std::io::Result<String> {
     let bytes = std::fs::read(path)?;
     let mut hasher = Sha256::new();
     hasher.update(&bytes);
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok(hex::encode(hasher.finalize()))
 }
 
 pub fn verify_checksum(path: &std::path::Path, expected: &str) -> Result<(), ChecksumError> {
