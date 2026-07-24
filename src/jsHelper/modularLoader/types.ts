@@ -59,7 +59,7 @@ export interface Effects {
 	cssFromSource(content: string): Promise<unknown>;
 	adoptCss(sheet: unknown): DisposeFn;
 	createTransformer(): TransformerShim;
-	applyScheme?(identifier: string): Promise<DisposeFn | null>;
+	applyScheme?(identifier: string, source?: string): Promise<DisposeFn | null>;
 	log(level: "info" | "error", ...args: unknown[]): void;
 }
 

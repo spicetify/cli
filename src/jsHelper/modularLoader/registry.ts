@@ -220,7 +220,10 @@ export class Registry {
 					const sheet = await this.cssSheetOf(m);
 					state.disposers.push(this.effects.adoptCss(sheet));
 					if (this.effects.applyScheme) {
-						const schemeDisposer = await this.effects.applyScheme(m.identifier);
+						const schemeDisposer = await this.effects.applyScheme(
+							m.identifier,
+							this.getLocalFile(m.identifier, "color.ini"),
+						);
 						if (schemeDisposer) state.disposers.push(schemeDisposer);
 					}
 				}
@@ -310,7 +313,10 @@ export class Registry {
 				const sheet = await this.cssSheetOf(m);
 				state.disposers.push(this.effects.adoptCss(sheet));
 				if (this.effects.applyScheme) {
-					const schemeDisposer = await this.effects.applyScheme(identifier);
+					const schemeDisposer = await this.effects.applyScheme(
+						identifier,
+						this.getLocalFile(identifier, "color.ini"),
+					);
 					if (schemeDisposer) state.disposers.push(schemeDisposer);
 				}
 			}

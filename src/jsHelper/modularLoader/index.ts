@@ -44,20 +44,47 @@ async function loadCss(path: string): Promise<CSSStyleSheet | string> {
 	return cssFromSource(await res.text());
 }
 
-// parseColorIni parses classic spicetify color.ini (sections with
-// key = hex) into CSS variable values.
-export function parseColorIni(text: string): Record<string, string> {
-	const out: Record<string, string> = {};
+// parseColorSchemes parses classic spicetify color.ini into named
+// schemes: each [Section] is one scheme; keys before any section land in
+// "" (single-scheme files).
+export function parseColorSchemes(text: string): Record<string, Record<string, string>> {
+	const out: Record<string, Record<string, string>> = {};
+	let current = "";
 	for (const line of text.split("\n")) {
 		const trimmed = line.trim();
-		if (!trimmed || trimmed.startsWith(";") || trimmed.startsWith("#") || trimmed.startsWith("[")) continue;
+		if (!trimmed || trimmed.startsWith(";") || trimmed.startsWith("#")) continue;
+		const section = trimmed.match(/^\[(.+)\]$/);
+		if (section) {
+			current = section[1].trim();
+			out[current] ??= {};
+			continue;
+		}
 		const eq = trimmed.indexOf("=");
 		if (eq < 0) continue;
 		const key = trimmed.slice(0, eq).trim();
 		const value = trimmed.slice(eq + 1).trim();
-		if (key && value) out[key] = value;
+		if (key && value) (out[current] ??= {})[key] = value;
+	}
+	for (const name of Object.keys(out)) {
+		if (!Object.keys(out[name]).length) delete out[name];
 	}
 	return out;
+}
+
+// parseColorIni keeps the flat view (all sections merged) for callers
+// that only care about a single scheme's worth of variables.
+export function parseColorIni(text: string): Record<string, string> {
+	return Object.assign({}, ...Object.values(parseColorSchemes(text)));
+}
+
+// chooseScheme picks the scheme to apply: the saved preference when it
+// still exists, otherwise the file's first scheme (the classic default).
+export function chooseScheme(
+	schemes: Record<string, Record<string, string>>,
+	saved: string | null,
+): string | null {
+	if (saved !== null && schemes[saved]) return saved;
+	return Object.keys(schemes)[0] ?? null;
 }
 
 function hexToRgb(hex: string): string | null {
@@ -67,22 +94,10 @@ function hexToRgb(hex: string): string | null {
 	return `${parseInt(full.slice(0, 2), 16)},${parseInt(full.slice(2, 4), 16)},${parseInt(full.slice(4, 6), 16)}`;
 }
 
-// applyScheme fetches a module's color.ini and sets --spice-* variables on
-// :root, mirroring the classic pipeline's getColorCSS. Returns a disposer
-// that restores the previous values.
-async function applyScheme(identifier: string): Promise<(() => void) | null> {
-	const url = entryUrl(identifier, "color.ini");
-	let text: string;
-	try {
-		const res = await fetch(url);
-		if (!res.ok) return null;
-		text = await res.text();
-	} catch {
-		return null;
-	}
-	const scheme = parseColorIni(text);
-	if (Object.keys(scheme).length === 0) return null;
-
+// applyVars sets one scheme's --spice-* variables on :root, mirroring
+// the classic pipeline's getColorCSS. Returns a disposer that restores
+// the previous values.
+function applyVars(scheme: Record<string, string>): () => void {
 	const root = document.documentElement;
 	const previous: Record<string, string> = {};
 	for (const [key, value] of Object.entries(scheme)) {
@@ -96,12 +111,47 @@ async function applyScheme(identifier: string): Promise<(() => void) | null> {
 			root.style.setProperty(rgbName, rgb);
 		}
 	}
-	log("info")(`applied color scheme from ${identifier} (${Object.keys(scheme).length} colors)`);
 	return () => {
 		for (const [name, value] of Object.entries(previous)) {
 			if (value) root.style.setProperty(name, value);
 			else root.style.removeProperty(name);
 		}
+	};
+}
+
+const SCHEME_PREF = (identifier: string) => `spicetify:scheme:${identifier}`;
+
+// Live scheme state per module, so schemes can be listed and switched
+// without a reload.
+const schemeState = new Map<
+	string,
+	{ schemes: Record<string, Record<string, string>>; active: string; dispose: () => void }
+>();
+
+// applyScheme loads a module's color.ini (from pushed content for local
+// installs, the staged copy otherwise) and applies the preferred scheme.
+// Returns a disposer that restores the previous values.
+async function applyScheme(identifier: string, source?: string): Promise<(() => void) | null> {
+	let text = source;
+	if (text === undefined) {
+		try {
+			const res = await fetch(entryUrl(identifier, "color.ini"));
+			if (!res.ok) return null;
+			text = await res.text();
+		} catch {
+			return null;
+		}
+	}
+	const schemes = parseColorSchemes(text);
+	const name = chooseScheme(schemes, localStorage.getItem(SCHEME_PREF(identifier)));
+	if (name === null) return null;
+
+	const dispose = applyVars(schemes[name]);
+	schemeState.set(identifier, { schemes, active: name, dispose });
+	log("info")(`applied color scheme ${name || "(default)"} from ${identifier}`);
+	return () => {
+		schemeState.get(identifier)?.dispose();
+		schemeState.delete(identifier);
 	};
 }
 
@@ -300,6 +350,23 @@ async function boot(): Promise<BootReport | null> {
 		manifest,
 		entryUrl,
 		list: () => registry.list(report),
+		// Scheme surface for theme modules: names come from color.ini
+		// sections; switching swaps :root variables live and persists.
+		schemes: (id: string) => {
+			const s = schemeState.get(id);
+			return s ? { active: s.active, names: Object.keys(s.schemes) } : null;
+		},
+		setScheme: (id: string, name: string) => {
+			const s = schemeState.get(id);
+			if (!s || !s.schemes[name]) return false;
+			s.dispose();
+			s.dispose = applyVars(s.schemes[name]);
+			s.active = name;
+			try {
+				localStorage.setItem(SCHEME_PREF(id), name);
+			} catch {}
+			return true;
+		},
 		enable: (id: string) => registry.enable(id, report),
 		disable: (id: string) => registry.unload(id),
 		reload: (id: string) => registry.reload(id, report),
