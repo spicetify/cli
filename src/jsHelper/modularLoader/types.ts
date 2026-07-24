@@ -56,6 +56,7 @@ export interface Effects {
 	importJs(path: string): Promise<JsIndex>;
 	importSource(content: string): Promise<JsIndex>;
 	loadCss(path: string): Promise<unknown>;
+	cssFromSource(content: string): Promise<unknown>;
 	adoptCss(sheet: unknown): DisposeFn;
 	createTransformer(): TransformerShim;
 	applyScheme?(identifier: string): Promise<DisposeFn | null>;

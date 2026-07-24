@@ -34,6 +34,10 @@ function trackingEffects(calls: string[], jsByModule: Record<string, unknown> = 
 			calls.push(`css:${path}`);
 			return `sheet:${path}`;
 		},
+		cssFromSource: async (content) => {
+			calls.push(`cssSource:${content.slice(0, 30)}`);
+			return `sheet:${content.slice(0, 30)}`;
+		},
 		adoptCss: (sheet) => {
 			calls.push(`adopt:${sheet}`);
 			return () => calls.push(`unadopt:${sheet}`);
@@ -364,6 +368,33 @@ describe("local module registry state", () => {
 		const states = r.list();
 		assert.equal(states.find((s) => s.identifier === "staged")!.local, false);
 		assert.equal(states.find((s) => s.identifier === "localmod")!.local, true);
+	});
+
+	it("re-registerLocal runs the new code, not a cached index", async () => {
+		const calls: string[] = [];
+		const r = new Registry(manifest([]), {
+			...trackingEffects(calls),
+			importSource: async (content) => ({ load: () => calls.push(`ran:${content}`) }) as never,
+		});
+		const report = { loaded: [], failed: {} };
+		r.registerLocal({ metadata: mod("dev", "0.1.0"), files: { "index.js": "v1" } });
+		await r.enable("dev", report);
+		await r.unload("dev");
+		r.registerLocal({ metadata: mod("dev", "0.1.1"), files: { "index.js": "v2" } });
+		await r.enable("dev", report);
+		assert.deepEqual(calls.filter((c) => c.startsWith("ran:")), ["ran:v1", "ran:v2"]);
+	});
+
+	it("loads local css from pushed content, not the staged url", async () => {
+		const calls: string[] = [];
+		const r = new Registry(manifest([]), trackingEffects(calls));
+		r.registerLocal({
+			metadata: mod("styled", "1.0.0", { entries: { js: "index.js", css: "index.css" } }),
+			files: { "index.js": "", "index.css": ".x{color:red}" },
+		});
+		await r.enable("styled", { loaded: [], failed: {} });
+		assert.ok(calls.some((c) => c.startsWith("cssSource:.x{color:red}")));
+		assert.ok(!calls.some((c) => c.startsWith("css:/modules/styled/")));
 	});
 
 	it("unregisterLocal removes the module entirely: gone from list, enable reports unknown", async () => {

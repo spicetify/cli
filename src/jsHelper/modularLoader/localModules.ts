@@ -9,6 +9,15 @@ export interface LocalModuleRecord {
 
 const PREFIX = "spicetify.modules.local.";
 
+// absolutizeLoaderUrls rewrites absolute /modules and /hooks import
+// specifiers to fully qualified URLs. Local installs execute through
+// blob: URLs, whose non-hierarchical base cannot resolve even absolute
+// paths; the staged copies those imports point at live on the page
+// origin.
+export function absolutizeLoaderUrls(src: string, origin: string): string {
+	return src.replace(/(["'])\/(modules|hooks)\//g, (_, quote, root) => `${quote}${origin}/${root}/`);
+}
+
 // remapSource mirrors the CLI's RemapClassmapReferences for in-client
 // installs: MAP.a.b.c references become quoted class names from the
 // manifest's bundled classmap. Unresolvable paths throw so nothing ships

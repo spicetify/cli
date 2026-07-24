@@ -1,5 +1,5 @@
 import { pushDiagnostic } from "./diagnostics.ts";
-import { deleteLocalModule, loadLocalModules, remapSource, saveLocalModule } from "./localModules.ts";
+import { absolutizeLoaderUrls, deleteLocalModule, loadLocalModules, remapSource, saveLocalModule } from "./localModules.ts";
 import { Registry, type BootReport } from "./registry.ts";
 import { createTransformRegistry, transformPath } from "./transforms.ts";
 import { applyTransformsOffthread } from "./transformWorker.ts";
@@ -24,19 +24,24 @@ async function importJs(path: string) {
 }
 
 function importSource(content: string) {
-	const url = URL.createObjectURL(new Blob([content], { type: "text/javascript" }));
+	const url = URL.createObjectURL(
+		new Blob([absolutizeLoaderUrls(content, location.origin)], { type: "text/javascript" }),
+	);
 	return importJs(url);
 }
 
-async function loadCss(path: string): Promise<CSSStyleSheet | string> {
+async function cssFromSource(text: string): Promise<CSSStyleSheet | string> {
 	if ("adoptedStyleSheets" in document && typeof CSSStyleSheet !== "undefined") {
-		const res = await fetch(path);
 		const sheet = new CSSStyleSheet();
-		await sheet.replace(await res.text());
+		await sheet.replace(text);
 		return sheet;
 	}
+	return text;
+}
+
+async function loadCss(path: string): Promise<CSSStyleSheet | string> {
 	const res = await fetch(path);
-	return res.text();
+	return cssFromSource(await res.text());
 }
 
 // parseColorIni parses classic spicetify color.ini (sections with
@@ -263,6 +268,7 @@ async function boot(): Promise<BootReport | null> {
 		importJs,
 		importSource,
 		loadCss,
+		cssFromSource,
 		adoptCss,
 		applyScheme,
 		createTransformer: () => transforms.factory,

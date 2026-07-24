@@ -120,6 +120,9 @@ export class Registry {
 	}): void {
 		this.localFiles.set(record.metadata.identifier, record.files);
 		this.modules.set(record.metadata.identifier, record.metadata);
+		// New content must not run behind an index cached from a previous
+		// install (or from the staged copy this local install overrides).
+		this.jsIndexes.delete(record.metadata.identifier);
 	}
 
 	hasLocal(identifier: string): boolean {
@@ -140,6 +143,14 @@ export class Registry {
 
 	protected getLocalFile(identifier: string, entry: string): string | undefined {
 		return this.localFiles.get(identifier)?.[entry];
+	}
+
+	// Local installs carry their stylesheet as content; staged modules load
+	// theirs from the app bundle.
+	private async cssSheetOf(m: ManifestModule): Promise<unknown> {
+		const local = this.getLocalFile(m.identifier, m.entries.css!);
+		if (local !== undefined) return this.effects.cssFromSource(local);
+		return this.effects.loadCss(entryUrl(m.identifier, m.entries.css!));
 	}
 
 	private eligibleOrder(report: BootReport): string[] {
@@ -206,7 +217,7 @@ export class Registry {
 				if (preloaded) state.disposers.push(preloaded);
 
 				if (m.entries.css) {
-					const sheet = await this.effects.loadCss(entryUrl(m.identifier, m.entries.css));
+					const sheet = await this.cssSheetOf(m);
 					state.disposers.push(this.effects.adoptCss(sheet));
 					if (this.effects.applyScheme) {
 						const schemeDisposer = await this.effects.applyScheme(m.identifier);
@@ -296,7 +307,7 @@ export class Registry {
 			const preloaded = await index?.preload?.(ctx);
 			if (preloaded) state.disposers.push(preloaded);
 			if (m.entries.css) {
-				const sheet = await this.effects.loadCss(entryUrl(identifier, m.entries.css));
+				const sheet = await this.cssSheetOf(m);
 				state.disposers.push(this.effects.adoptCss(sheet));
 				if (this.effects.applyScheme) {
 					const schemeDisposer = await this.effects.applyScheme(identifier);
