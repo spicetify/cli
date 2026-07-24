@@ -68,10 +68,20 @@ func Apply(spicetifyVersion string) {
 			filepath.Join(appDestPath, "xpui", "helper"))
 	}
 
-	if _, err := os.Stat(filepath.Join(appDestPath, "xpui", "modules", "manifest.json")); err == nil {
+	manifestPath := filepath.Join(appDestPath, "xpui", "modules", "manifest.json")
+	if _, err := os.Stat(manifestPath); err == nil {
 		utils.CopyFile(
 			filepath.Join(utils.GetJsHelperDir(), "modularLoader.js"),
 			filepath.Join(appDestPath, "xpui", "helper"))
+		// The staged manifest snapshots env facts at backup time; re-stamp
+		// from live config so the client never shows a stale update-block
+		// state after `spicetify config ... && spicetify apply`.
+		if err := utils.RestampManifestEnv(manifestPath, utils.ManifestEnv{
+			CliVersion:     spicetifyVersion,
+			UpdatesBlocked: settingSection.Key("block_spotify_updates").MustBool(false),
+		}); err != nil {
+			utils.PrintWarning("Could not refresh modules manifest env: " + err.Error())
+		}
 	}
 
 	extensionList := featureSection.Key("extensions").Strings("|")

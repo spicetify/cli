@@ -20,6 +20,27 @@ describe("diagnostics buffer", () => {
 		assert.equal(entries[1].level, "info");
 	});
 
+	it("never throws on hostile arguments", () => {
+		const hostile = {
+			toString() {
+				throw new Error("gotcha");
+			},
+		};
+		pushDiagnostic("error", "boot", hostile, "tail");
+		const entries = buffer()!;
+		assert.equal(entries.length, 1);
+		assert.equal(entries[0].message, "boot [unprintable] tail");
+	});
+
+	it("survives a clobbered global buffer", () => {
+		(globalThis as never as Record<string, unknown>).__SPICETIFY_DIAGNOSTICS__ = {
+			push() {
+				throw new Error("clobbered");
+			},
+		};
+		pushDiagnostic("info", "still fine");
+	});
+
 	it("caps the buffer, evicting the oldest entries", () => {
 		for (let i = 0; i < 230; i++) pushDiagnostic("info", `entry ${i}`);
 		const entries = buffer()!;

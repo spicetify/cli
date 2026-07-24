@@ -18,6 +18,7 @@ export interface ModuleState {
 	version: string;
 	loaded: boolean;
 	mixedIn: boolean;
+	local: boolean;
 	failed?: string;
 }
 
@@ -121,6 +122,20 @@ export class Registry {
 		this.modules.set(record.metadata.identifier, record.metadata);
 	}
 
+	hasLocal(identifier: string): boolean {
+		return this.localFiles.has(identifier);
+	}
+
+	// unregisterLocal removes every trace of a localStorage-installed module
+	// so a removed module is not one enable() away from resurrecting from
+	// cached files.
+	unregisterLocal(identifier: string): void {
+		this.modules.delete(identifier);
+		this.localFiles.delete(identifier);
+		this.jsIndexes.delete(identifier);
+		this.states.delete(identifier);
+	}
+
 	private localFiles = new Map<string, Record<string, string>>();
 
 	protected getLocalFile(identifier: string, entry: string): string | undefined {
@@ -132,7 +147,8 @@ export class Registry {
 		for (const id of this.topoOrder()) {
 			const problem = this.checkDependencies(id, new Set());
 			if (problem) {
-				this.effects.log("error", problem);
+				// eligibleOrder runs for both mixins and loads; log once.
+				if (report.failed[id] !== problem) this.effects.log("error", problem);
 				report.failed[id] = problem;
 			} else {
 				eligible.push(id);
@@ -249,6 +265,7 @@ export class Registry {
 				version: m.version,
 				loaded: s?.loaded ?? false,
 				mixedIn: s?.mixedIn ?? false,
+				local: this.localFiles.has(m.identifier),
 				...(failed !== undefined ? { failed } : {}),
 			});
 		}
@@ -289,6 +306,9 @@ export class Registry {
 			const loaded = await index?.load?.(ctx);
 			if (loaded) state.disposers.push(loaded);
 			state.loaded = true;
+			// A module that failed earlier (boot or a previous enable) is no
+			// longer failed; leaving the stale reason makes list() lie.
+			delete report.failed[identifier];
 			report.loaded.push(identifier);
 			return true;
 		} catch (e) {

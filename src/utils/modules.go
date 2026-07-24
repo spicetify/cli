@@ -553,6 +553,32 @@ type ManifestEnv struct {
 	UpdatesBlocked bool
 }
 
+// RestampManifestEnv rewrites the apply-time environment fields in an
+// already-staged modules manifest. The manifest is written at backup time,
+// but update blocking follows live config on every apply; without the
+// re-stamp the client shows the pre-toggle state until the next backup.
+func RestampManifestEnv(manifestPath string, env ManifestEnv) error {
+	raw, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return err
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		return err
+	}
+	if env.CliVersion != "" {
+		manifest["cliVersion"] = env.CliVersion
+	} else {
+		delete(manifest, "cliVersion")
+	}
+	manifest["updatesBlocked"] = env.UpdatesBlocked
+	out, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(manifestPath, out, 0644)
+}
+
 func StageModularApply(extractedXpuiPath, spotifyVersion, classmapKey string, env ManifestEnv) (*ModulesManifest, error) {
 	modules, err := DiscoverModules(ModulesDir())
 	if err != nil {

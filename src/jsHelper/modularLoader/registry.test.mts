@@ -302,16 +302,77 @@ describe("list with boot report", () => {
 		assert.equal(ok!.loaded, true);
 	});
 
-	it("reflects enable-path failures recorded after boot", async () => {
-		const r = new Registry(manifest([mod("feat", "1.0.0", { dependencies: { ghost: "^1.0.0" } })]), trackingEffects([]));
+	it("reflects a failure recorded by enable() after a clean boot", async () => {
+		const js: Record<string, { load: () => void }> = { feat: { load: () => {} } };
+		const r = new Registry(manifest([mod("feat", "1.0.0")]), trackingEffects([], js));
 		const report = await r.boot();
+		assert.equal(report.failed.feat, undefined);
+		await r.unload("feat");
+		js.feat.load = () => {
+			throw new Error("enable-time only");
+		};
 		await r.enable("feat", report);
 		const state = r.list(report).find((s) => s.identifier === "feat");
-		assert.match(state!.failed!, /ghost/);
+		assert.match(state!.failed!, /enable-time only/);
+	});
+
+	it("clears a stale failure once a later enable succeeds", async () => {
+		let broken = true;
+		const js = {
+			flaky: {
+				load: () => {
+					if (broken) throw new Error("first boot only");
+				},
+			},
+		};
+		const r = new Registry(manifest([mod("flaky", "1.0.0")]), trackingEffects([], js));
+		const report = await r.boot();
+		assert.match(report.failed.flaky, /first boot only/);
+		broken = false;
+		assert.equal(await r.enable("flaky", report), true);
+		const state = r.list(report).find((s) => s.identifier === "flaky");
+		assert.equal(state!.failed, undefined);
+		assert.equal(state!.loaded, true);
+	});
+
+	it("joins mixin-phase failures into list(report)", async () => {
+		const js = {
+			mixy: {
+				mixin: () => {
+					throw new Error("mixin exploded");
+				},
+			},
+		};
+		const r = new Registry(
+			manifest([mod("mixy", "1.0.0", { hasMixins: true })]),
+			trackingEffects([], js),
+		);
+		const report = await r.boot();
+		assert.match(r.list(report).find((s) => s.identifier === "mixy")!.failed!, /mixin exploded/);
 	});
 
 	it("returns no failed field without a report", () => {
 		const r = new Registry(manifest([mod("solo", "1.0.0")]), trackingEffects([]));
 		assert.equal(r.list().find((s) => s.identifier === "solo")!.failed, undefined);
+	});
+});
+
+describe("local module registry state", () => {
+	it("marks registerLocal modules local in list() and staged modules not", () => {
+		const r = new Registry(manifest([mod("staged", "1.0.0")]), trackingEffects([]));
+		r.registerLocal({ metadata: mod("localmod", "1.0.0"), files: { "index.js": "export const load = () => {};" } });
+		const states = r.list();
+		assert.equal(states.find((s) => s.identifier === "staged")!.local, false);
+		assert.equal(states.find((s) => s.identifier === "localmod")!.local, true);
+	});
+
+	it("unregisterLocal removes the module entirely: gone from list, enable reports unknown", async () => {
+		const r = new Registry(manifest([]), trackingEffects([]));
+		r.registerLocal({ metadata: mod("gone", "1.0.0"), files: {} });
+		r.unregisterLocal("gone");
+		assert.equal(r.list().find((s) => s.identifier === "gone"), undefined);
+		const report = { loaded: [], failed: {} };
+		assert.equal(await r.enable("gone", report), false);
+		assert.match(report.failed.gone, /unknown module/);
 	});
 });

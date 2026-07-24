@@ -185,3 +185,52 @@ export { webpackRequire, chunkLoadedSubjectPost };`,
 		t.Fatalf("unrelated import was rewritten:\n%s", other)
 	}
 }
+
+func TestManifestEnvHonestSerialization(t *testing.T) {
+	modulesRoot := t.TempDir()
+	writeModule(t, modulesRoot, "plain", testMetadata, `export function load() {}`, `.x {}`)
+	xpui := t.TempDir()
+
+	_, err := StageModules(modulesRoot, xpui,
+		[]ModuleManifest{{Identifier: "plain", ModuleMetadata: ModuleMetadata{
+			Name: "plain", Version: "0.1.0", Entries: ModuleEntries{JS: "index.js"},
+		}}},
+		Classmap{}, nil, "1.2.94", "1020094", ManifestEnv{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(xpui, "modules", "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "cliVersion") {
+		t.Fatalf("empty cliVersion must be omitted, got:\n%s", raw)
+	}
+	if !strings.Contains(string(raw), `"updatesBlocked": false`) {
+		t.Fatalf("updatesBlocked:false must serialize explicitly, got:\n%s", raw)
+	}
+}
+
+func TestRestampManifestEnv(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "manifest.json")
+	seed := `{"spotifyVersion":"1.2.94","classmapKey":"1020094","updatesBlocked":false,"modules":[{"identifier":"m"}]}`
+	if err := os.WriteFile(path, []byte(seed), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := RestampManifestEnv(path, ManifestEnv{CliVersion: "3.0.0", UpdatesBlocked: true}); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := os.ReadFile(path)
+	var decoded map[string]any
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded["cliVersion"] != "3.0.0" || decoded["updatesBlocked"] != true {
+		t.Fatalf("restamp did not apply: %+v", decoded)
+	}
+	modules, ok := decoded["modules"].([]any)
+	if !ok || len(modules) != 1 || modules[0].(map[string]any)["identifier"] != "m" {
+		t.Fatalf("restamp corrupted module entries: %+v", decoded["modules"])
+	}
+}

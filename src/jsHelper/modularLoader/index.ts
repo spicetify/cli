@@ -291,6 +291,7 @@ async function boot(): Promise<BootReport | null> {
 	const modules = (globalThis.Spicetify as Record<string, unknown>).Modules = {
 		report,
 		registry,
+		manifest,
 		entryUrl,
 		list: () => registry.list(report),
 		enable: (id: string) => registry.enable(id, report),
@@ -311,11 +312,23 @@ async function boot(): Promise<BootReport | null> {
 		}
 		saveLocalModule(id, { ...record, files, installedAt: Date.now() } as never);
 		registry.registerLocal({ metadata: record.metadata, files });
+		// The manifest is the row source for management UIs; mirror the boot
+		// merge so a live install is visible without a restart.
+		if (!manifest.modules.some((m) => m.identifier === id)) {
+			manifest.modules.push({ ...record.metadata });
+		}
 		return registry.enable(id, report);
 	};
 	(modules as Record<string, unknown>).removeLocal = async (id: string) => {
+		const wasLocal = registry.hasLocal(id);
 		await registry.unload(id);
 		deleteLocalModule(id);
+		if (wasLocal) {
+			registry.unregisterLocal(id);
+			delete report.failed[id];
+			const at = manifest.modules.findIndex((m) => m.identifier === id);
+			if (at >= 0) manifest.modules.splice(at, 1);
+		}
 	};
 	(modules as Record<string, unknown>).listLocal = () => loadLocalModules();
 	return report;
