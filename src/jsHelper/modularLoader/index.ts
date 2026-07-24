@@ -232,6 +232,16 @@ async function boot(): Promise<BootReport | null> {
 	if (manifest.classmap) {
 		for (const record of loadLocalModules()) {
 			try {
+				// A CLI-staged install of the same module wins over a stale
+				// localStorage copy: the staged one went through the full
+				// remap pipeline against the current classmap.
+				const staged = manifest.modules.find((m) => m.identifier === record.metadata.identifier);
+				if (staged) {
+					log("info")(
+						`local module ${record.metadata.identifier}@${record.metadata.version} shadowed by staged install (${staged.version})`,
+					);
+					continue;
+				}
 				const files: Record<string, string> = {};
 				for (const [name, content] of Object.entries(record.files)) {
 					files[name] = remapSource(content, manifest.classmap);
@@ -248,6 +258,7 @@ async function boot(): Promise<BootReport | null> {
 	const transforms = createTransformRegistry();
 	const registry = new Registry(manifest, {
 		importJs,
+		importSource,
 		loadCss,
 		adoptCss,
 		applyScheme,
