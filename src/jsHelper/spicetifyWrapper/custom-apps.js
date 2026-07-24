@@ -22,7 +22,18 @@ function getManifest(app) {
   return {};
 }
 
+// _renderNavLinks executes inside the client's own render, so it must never
+// call hooks itself: on slow boots the nav renders before the webpack sweep
+// assigns Spicetify.React, and a conditional hook here either crashes the
+// client outright (reading useReducer off undefined) or corrupts the parent
+// component's hook order later. The parent stays hook-free forever; all
+// hooks live in NavLinksBody, which mounts fresh once React is available.
 Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
+  if (!Spicetify.React?.useReducer || !Spicetify.ReactComponent) return null;
+  return Spicetify.React.createElement(NavLinksBody, { list, isTouchScreenUi });
+};
+
+const NavLinksBody = ({ list, isTouchScreenUi }) => {
   const [, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
   refreshNavLinks = refresh;
 
