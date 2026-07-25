@@ -72,7 +72,7 @@ install_linux() {
 	bin_dir="$HOME/.local/bin"
 	mkdir -p "$bin_dir"
 
-	archive="spicetify-${version}-linux-${arch}.tar.zst"
+	archive="spicetify-${version}-${arch}-linux.tar.zst"
 	uri="https://github.com/veryboringhwl/app/releases/download/v${version}/${archive}"
 
 	echo "Downloading Spicetify ${version}..."

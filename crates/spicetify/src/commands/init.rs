@@ -7,8 +7,8 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     if !ctx.config_file.exists() {
         let cfg = Config {
             mirror: ctx.mirror,
-            spotify_data_path: Some(ctx.spotify_data_path.clone()),
-            spotify_exec_path: Some(ctx.spotify_exec_path.clone()),
+            spotify_data_dir: Some(ctx.spotify_data_dir.clone()),
+            spotify_exec: Some(ctx.spotify_exec.clone()),
             offline_bnk_dir: Some(ctx.offline_bnk_dir.clone()),
         };
         cfg.save(&ctx.config_file)?;

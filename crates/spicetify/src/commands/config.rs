@@ -8,12 +8,9 @@ pub(crate) fn run(ctx: &AppContext) {
     tracing::info!("{}", fl!("config-root", path = ctx.config_root.to_string_lossy()));
     tracing::info!(
         "{}",
-        fl!("config-spotify-data-path", path = ctx.spotify_data_path.to_string_lossy())
+        fl!("config-spotify-data-dir", path = ctx.spotify_data_dir.to_string_lossy())
     );
-    tracing::info!(
-        "{}",
-        fl!("config-spotify-exec-path", path = ctx.spotify_exec_path.to_string_lossy())
-    );
+    tracing::info!("{}", fl!("config-spotify-exec", path = ctx.spotify_exec.to_string_lossy()));
     tracing::info!(
         "{}",
         fl!("config-offline-bnk-dir", path = ctx.offline_bnk_dir.to_string_lossy())

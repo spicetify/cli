@@ -97,7 +97,7 @@ fn spawn_linux(ctx: &AppContext) -> Result<()> {
 
 #[cfg(any(windows, target_os = "linux"))]
 fn spawn_binary(ctx: &AppContext) -> Result<()> {
-    let exe = &ctx.spotify_exec_path;
+    let exe = &ctx.spotify_exec;
     if !exe.is_file() {
         return Err(anyhow::anyhow!("Spotify executable not found at {}", exe.display()));
     }
@@ -126,7 +126,7 @@ fn spawn_binary(ctx: &AppContext) -> Result<()> {
 }
 
 pub fn force_kill_spotify(ctx: &AppContext) {
-    let image = ctx.spotify_exec_path.file_name().and_then(|s| s.to_str()).unwrap_or("Spotify");
+    let image = ctx.spotify_exec.file_name().and_then(|s| s.to_str()).unwrap_or("Spotify");
 
     if !is_spotify_running(image) {
         return;
@@ -153,7 +153,7 @@ pub fn force_kill_spotify(ctx: &AppContext) {
     {
         tracing::info!("force-killing Spotify processes");
 
-        let exe_path = ctx.spotify_exec_path.to_string_lossy();
+        let exe_path = ctx.spotify_exec.to_string_lossy();
 
         let by_name = Command::new("pkill")
             .args(["-KILL", "-x", image])

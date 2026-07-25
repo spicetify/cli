@@ -32,7 +32,7 @@ pub fn restart(ctx: &AppContext) -> Result<()> {
 
 #[must_use]
 pub fn is_running(ctx: &AppContext) -> bool {
-    let Some(image) = ctx.spotify_exec_path.file_name().and_then(|s| s.to_str()) else {
+    let Some(image) = ctx.spotify_exec.file_name().and_then(|s| s.to_str()) else {
         return false;
     };
     crate::process::is_spotify_running(image)

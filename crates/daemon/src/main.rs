@@ -13,7 +13,7 @@ fn main() {
     spicetify::locale::localize();
     let _ = color_eyre::install();
 
-    let config_root = spicetify::platform::default_spicetify_config_root();
+    let config_root = spicetify::platform::default_spicetify_config_dir();
     let log_path = config_root.join("daemon.log");
     if let Err(e) = spicetify::logging::init_for_file(&log_path) {
         eprintln!("failed to initialize daemon logging: {e}");

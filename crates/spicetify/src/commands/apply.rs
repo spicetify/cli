@@ -55,7 +55,7 @@ pub fn execute(ctx: &AppContext) -> Result<()> {
         return Err(e);
     }
 
-    if let Err(e) = extract_modules(&ctx.spotify_data_path, &ctx.offline_bnk_dir, &tmp) {
+    if let Err(e) = extract_modules(&ctx.spotify_data_dir, &ctx.offline_bnk_dir, &tmp) {
         cleanup_tmp(&tmp);
         return Err(e);
     }

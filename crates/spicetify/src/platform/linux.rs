@@ -6,29 +6,34 @@ fn home_dir() -> PathBuf {
         .expect("unable to determine home directory")
 }
 
-fn is_spotify_install_dir(path: &Path) -> bool {
+fn is_spotify_dir(path: &Path) -> bool {
     path.join("spotify").is_file()
 }
 
-pub(crate) fn spicetify_config_root() -> PathBuf {
+pub(crate) fn spicetify_config_dir() -> PathBuf {
     if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
         return PathBuf::from(xdg).join("spicetify");
     }
     home_dir().join(".config").join("spicetify")
 }
 
-pub(crate) fn spotify_install_dir() -> PathBuf {
+pub(crate) const fn spotify_binary_name() -> &'static str {
+    "spotify"
+}
+
+pub(crate) fn spotify_data_dir() -> PathBuf {
     let candidates = [
         "/opt/spotify/",
         "/opt/spotify/spotify-client/",
         "/usr/share/spotify/",
+        "/usr/share/spotify-client/",
         "/usr/libexec/spotify/",
         "/var/lib/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/spotify/",
     ];
 
     for &candidate in &candidates {
         let p = Path::new(candidate);
-        if is_spotify_install_dir(p) {
+        if is_spotify_dir(p) {
             return p.to_path_buf();
         }
     }
@@ -38,29 +43,40 @@ pub(crate) fn spotify_install_dir() -> PathBuf {
         ".local/share/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/\
          spotify/",
     );
-    if is_spotify_install_dir(&p) {
+    if is_spotify_dir(&p) {
         return p;
     }
     let p = home.join(".local/share/spotify-launcher/install/usr/share/spotify/");
-    if is_spotify_install_dir(&p) {
+    if is_spotify_dir(&p) {
         return p;
     }
 
     PathBuf::from("/opt/spotify")
 }
 
-pub(crate) const fn spotify_binary_name() -> &'static str {
-    "spotify"
-}
-
-pub(crate) fn spotify_data_path() -> PathBuf {
-    spotify_install_dir()
+pub(crate) fn spotify_exec() -> PathBuf {
+    spotify_data_dir().join(spotify_binary_name())
 }
 
 pub(crate) fn offline_bnk_dir() -> PathBuf {
-    spotify_data_path().join("Data")
+    let home = std::env::var("HOME").unwrap_or_default();
+    let home = PathBuf::from(home);
+
+    let snap_home = home.join("snap/spotify/common");
+    let home = if snap_home.is_dir() { snap_home } else { home };
+
+    let flatpak_home = home.join(".var/app/com.spotify.Client");
+    if flatpak_home.is_dir() {
+        return flatpak_home.join("cache/spotify");
+    }
+
+    if let Ok(cache) = std::env::var("XDG_CACHE_HOME") {
+        PathBuf::from(cache).join("spotify")
+    } else {
+        home.join(".cache/spotify")
+    }
 }
 
-pub(crate) fn portable_config_root() -> Option<PathBuf> {
+pub(crate) fn portable_config_dir() -> Option<PathBuf> {
     None
 }

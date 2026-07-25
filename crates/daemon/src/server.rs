@@ -28,7 +28,7 @@ pub struct DaemonState {
 }
 
 pub fn run() -> anyhow::Result<()> {
-    let config_root = spicetify::platform::default_spicetify_config_root();
+    let config_root = spicetify::platform::default_spicetify_config_dir();
     let config_file = config_root.join("config.toml");
     let cfg = spicetify::context::Config::load(&config_file)?;
     let ctx = AppContext::from_config(config_root, &cfg)?;

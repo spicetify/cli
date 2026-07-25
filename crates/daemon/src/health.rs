@@ -22,7 +22,7 @@ pub async fn handler(State(state): State<Arc<DaemonState>>) -> impl IntoResponse
             "version": spicetify::VERSION,
             "uptime_secs": state.startup.elapsed().as_secs(),
             "watchers": { "apps": apps_active, "config": config_active },
-            "spotify_detected": ctx.spotify_exec_path.is_file(),
+            "spotify_detected": ctx.spotify_exec.is_file(),
         })),
     )
         .into_response()

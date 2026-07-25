@@ -12,18 +12,18 @@ mod imp;
 mod imp;
 
 #[must_use]
-pub fn default_spicetify_config_root() -> PathBuf {
-    imp::portable_config_root().unwrap_or_else(imp::spicetify_config_root)
+pub fn default_spicetify_config_dir() -> PathBuf {
+    imp::portable_config_dir().unwrap_or_else(imp::spicetify_config_dir)
 }
 
 #[must_use]
-pub fn default_spotify_data_path() -> PathBuf {
-    imp::spotify_data_path()
+pub fn default_spotify_data_dir() -> PathBuf {
+    imp::spotify_data_dir()
 }
 
 #[must_use]
-pub fn default_spotify_exec_path() -> PathBuf {
-    imp::spotify_install_dir().join(imp::spotify_binary_name())
+pub fn default_spotify_exec() -> PathBuf {
+    imp::spotify_exec()
 }
 
 #[must_use]

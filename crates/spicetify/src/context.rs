@@ -14,10 +14,10 @@ pub struct Config {
     pub mirror: bool,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub spotify_data_path: Option<PathBuf>,
+    pub spotify_data_dir: Option<PathBuf>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub spotify_exec_path: Option<PathBuf>,
+    pub spotify_exec: Option<PathBuf>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub offline_bnk_dir: Option<PathBuf>,
@@ -47,7 +47,7 @@ impl Config {
     }
 
     fn validate(&self) -> Result<()> {
-        if let Some(p) = &self.spotify_exec_path {
+        if let Some(p) = &self.spotify_exec {
             let resolved = platform::coerce_spotify_exec_path(p);
             if !resolved.is_file() {
                 return Err(anyhow::anyhow!(fl!(
@@ -60,7 +60,7 @@ impl Config {
     }
 
     pub fn to_context(&self) -> Result<AppContext> {
-        AppContext::from_config(platform::default_spicetify_config_root(), self)
+        AppContext::from_config(platform::default_spicetify_config_dir(), self)
     }
 }
 
@@ -69,20 +69,20 @@ pub struct AppContext {
     pub config_file: PathBuf,
     pub config_root: PathBuf,
     pub mirror: bool,
-    pub spotify_data_path: PathBuf,
-    pub spotify_exec_path: PathBuf,
+    pub spotify_data_dir: PathBuf,
+    pub spotify_exec: PathBuf,
     pub offline_bnk_dir: PathBuf,
 }
 
 impl AppContext {
     pub fn from_config(config_root: PathBuf, cfg: &Config) -> Result<Self> {
-        let exec_path = match &cfg.spotify_exec_path {
+        let exec_path = match &cfg.spotify_exec {
             Some(p) => platform::coerce_spotify_exec_path(p),
-            None => platform::default_spotify_exec_path(),
+            None => platform::default_spotify_exec(),
         };
 
-        let data_path = cfg.spotify_data_path.clone().unwrap_or_else(|| {
-            exec_path.parent().map_or_else(platform::default_spotify_data_path, Path::to_path_buf)
+        let data_dir = cfg.spotify_data_dir.clone().unwrap_or_else(|| {
+            exec_path.parent().map_or_else(platform::default_spotify_data_dir, Path::to_path_buf)
         });
 
         let offline_bnk_dir =
@@ -94,15 +94,15 @@ impl AppContext {
             config_file,
             config_root,
             mirror: cfg.mirror,
-            spotify_data_path: data_path,
-            spotify_exec_path: exec_path,
+            spotify_data_dir: data_dir,
+            spotify_exec: exec_path,
             offline_bnk_dir,
         })
     }
 
     #[must_use]
     pub fn spotify_apps_path(&self) -> PathBuf {
-        self.spotify_data_path.join("Apps")
+        self.spotify_data_dir.join("Apps")
     }
 
     #[must_use]
@@ -147,20 +147,20 @@ impl SharedContext {
 
 pub fn build_context(
     mirror: bool,
-    spotify_data_path: Option<&str>,
-    spotify_exec_path: Option<&str>,
+    spotify_data_dir: Option<&str>,
+    spotify_exec: Option<&str>,
     offline_bnk_dir: Option<&str>,
 ) -> Result<AppContext> {
-    let config_root = platform::default_spicetify_config_root();
+    let config_root = platform::default_spicetify_config_dir();
     let config_file = config_root.join("config.toml");
     let mut cfg = Config::load(&config_file)?;
 
     cfg.mirror = cfg.mirror || mirror;
-    if let Some(v) = spotify_data_path {
-        cfg.spotify_data_path = Some(PathBuf::from(v));
+    if let Some(v) = spotify_data_dir {
+        cfg.spotify_data_dir = Some(PathBuf::from(v));
     }
-    if let Some(v) = spotify_exec_path {
-        cfg.spotify_exec_path = Some(PathBuf::from(v));
+    if let Some(v) = spotify_exec {
+        cfg.spotify_exec = Some(PathBuf::from(v));
     }
     if let Some(v) = offline_bnk_dir {
         cfg.offline_bnk_dir = Some(PathBuf::from(v));
