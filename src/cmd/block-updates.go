@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,130 +14,148 @@ import (
 	"github.com/spicetify/cli/src/utils"
 )
 
-// Block spotify updates. Taken from https://github.com/Delusoire/bespoke-cli/blob/main/cmd/spotify/update.go
-func BlockSpotifyUpdates(disabled bool) {
-	if runtime.GOOS == "linux" {
-		utils.PrintError("Auto-updates on linux should be disabled in package manager you installed spotify with.")
-		return
-	}
-	spotifyExecPath := GetSpotifyPath()
-	switch runtime.GOOS {
-	case "windows":
-		spotifyExecPath = filepath.Join(spotifyExecPath, "Spotify.exe")
-	case "darwin":
-		spotifyExecPath = filepath.Join(spotifyExecPath, "..", "MacOS", "Spotify")
-	}
-
-	var str, msg string
-	if runtime.GOOS == "darwin" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			utils.PrintError("Cannot get user home directory")
-			return
-		}
-		updateDir := homeDir + "/Library/Application Support/Spotify/PersistentCache/Update"
-		exec.Command("pkill", "Spotify").Run()
-		exec.Command("mkdir", "-p", updateDir).Run()
-		if disabled {
-			exec.Command("chflags", "uchg", updateDir).Run()
-			msg = "Disabled"
-		} else {
-			exec.Command("chflags", "nouchg", updateDir).Run()
-			msg = "Enabled"
-		}
-
-		// chflags alone is not enough anymore: current clients stage updates
-		// via a segmented downloader that does not reference that directory.
-		// Patching the update endpoint makes the updater unreachable
-		// regardless of how the payload is fetched.
-		if err := patchDarwinUpdateEndpoint(spotifyExecPath, disabled); err != nil {
-			utils.PrintWarning("Endpoint patch failed (lock still applied): " + err.Error())
-		}
-
-		utils.PrintSuccess(msg + " Spotify updates!")
-		return
-	}
-
-	file, err := os.OpenFile(spotifyExecPath, os.O_RDWR, 0644)
-	if err != nil {
-		utils.Fatal(err)
-		return
-	}
-	defer file.Close()
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(file)
-	content := buf.String()
-
-	i := strings.Index(content, "desktop-update/")
-	if i == -1 {
-		utils.PrintError("Can't find update endpoint in executable")
-		return
-	}
-	if disabled {
-		str = "no/thanks"
-		msg = "Disabled"
-	} else {
-		str = "v2/update"
-		msg = "Enabled"
-	}
-	file.WriteAt([]byte(str), int64(i+15))
-	utils.PrintSuccess(msg + " Spotify updates!")
-}
-
+// Update-blocking works the same way on every desktop platform: Spotify's
+// self-updater fetches from a "desktop-update/v2/update" endpoint baked into
+// the client binary, so overwriting that endpoint with an equal-length dead
+// string ("no/thanks") makes the updater unreachable regardless of how the
+// payload is fetched. Reversing the patch restores updates. Original
+// approach from
+// https://github.com/Delusoire/bespoke-cli/blob/main/cmd/spotify/update.go
 const (
-	darwinUpdateEndpoint         = "desktop-update/v2/update"
-	darwinUpdateEndpointPatched  = "desktop-update/no/thanks"
-	darwinUpdateEndpointPatchOff = len("desktop-update/")
+	updateEndpointPrefix  = "desktop-update/"
+	updateEndpointLive    = updateEndpointPrefix + "v2/update"
+	updateEndpointBlocked = updateEndpointPrefix + "no/thanks"
 )
 
-// patchDarwinUpdateEndpoint rewrites the desktop-update endpoint inside the
-// Spotify binary and re-signs the bundle ad-hoc so it still launches on
-// Apple Silicon. Blocking writes "no/thanks" over "v2/update"; unblocking
-// restores the original bytes (from the backup taken on first block, or by
-// reversing the patch).
-func patchDarwinUpdateEndpoint(binaryPath string, block bool) error {
+// patchUpdateEndpoint rewrites the desktop-update endpoint inside a Spotify
+// binary image: "desktop-update/v2/update" <-> "desktop-update/no/thanks".
+// Both variants are the same length, so the patch is length-preserving,
+// reversible, and idempotent (re-running in the same direction is a no-op).
+// It mutates raw in place and reports whether anything changed. Pure and
+// platform-independent, so one unit test covers Windows, macOS, and Linux.
+func patchUpdateEndpoint(raw []byte, block bool) ([]byte, bool) {
+	from, to := updateEndpointLive, updateEndpointBlocked
+	if !block {
+		from, to = to, from
+	}
+	idx := bytes.Index(raw, []byte(from))
+	if idx < 0 {
+		return raw, false
+	}
+	copy(raw[idx+len(updateEndpointPrefix):], to[len(updateEndpointPrefix):])
+	return raw, true
+}
+
+// spotifyBinaryPath returns the client executable to patch, or "" when the
+// platform is unsupported.
+func spotifyBinaryPath() string {
+	dir := GetSpotifyPath()
+	switch runtime.GOOS {
+	case "windows":
+		return filepath.Join(dir, "Spotify.exe")
+	case "darwin":
+		return filepath.Join(dir, "..", "MacOS", "Spotify")
+	case "linux":
+		return filepath.Join(dir, "spotify")
+	}
+	return ""
+}
+
+func blockVerb(block bool) string {
+	if block {
+		return "Disabled"
+	}
+	return "Enabled"
+}
+
+// BlockSpotifyUpdates asserts the desired update-blocking state on the client
+// binary: it patches the update endpoint when a change is needed and is a
+// quiet no-op when the binary is already in the requested state, so apply can
+// re-assert it on every run. macOS additionally locks the update cache and
+// re-signs the bundle ad-hoc (so it still launches on Apple Silicon). Linux
+// installs served read-only by snap/flatpak cannot be patched in place and
+// must be pinned via the package manager instead; that case is reported, not
+// treated as a hard failure.
+func BlockSpotifyUpdates(block bool) {
+	binaryPath := spotifyBinaryPath()
+	if binaryPath == "" {
+		utils.PrintError("Update blocking is not supported on " + runtime.GOOS)
+		return
+	}
+
 	raw, err := os.ReadFile(binaryPath)
 	if err != nil {
-		return err
+		if runtime.GOOS == "linux" && errors.Is(err, fs.ErrNotExist) {
+			utils.PrintWarning("Spotify binary not found at " + binaryPath +
+				"; on snap/flatpak, block updates in your package manager instead.")
+			return
+		}
+		utils.PrintError("Cannot read Spotify binary: " + err.Error())
+		return
 	}
 
-	backupPath := filepath.Join(utils.GetSpicetifyFolder(), "spotify-binary-backup")
+	patched, changed := patchUpdateEndpoint(raw, block)
 
+	// Already in the requested state and no cache lock to manage: stay
+	// silent, since this runs on every apply. On darwin a block still
+	// re-asserts the cache lock below even when the endpoint is unchanged.
+	if !changed && (!block || runtime.GOOS != "darwin") {
+		return
+	}
+
+	if changed {
+		if runtime.GOOS == "darwin" {
+			// Release the running executable before rewriting it in place.
+			exec.Command("pkill", "Spotify").Run()
+		}
+		if err := os.WriteFile(binaryPath, patched, 0755); err != nil {
+			if runtime.GOOS == "linux" && errors.Is(err, fs.ErrPermission) {
+				utils.PrintWarning("Spotify binary is read-only (snap/flatpak?); block updates in your package manager instead.")
+				return
+			}
+			utils.PrintError("Cannot write Spotify binary: " + err.Error())
+			return
+		}
+		if runtime.GOOS == "darwin" {
+			if err := codesignBundle(binaryPath); err != nil {
+				utils.PrintWarning("Ad-hoc re-sign failed: " + err.Error())
+			}
+		}
+	}
+
+	if runtime.GOOS == "darwin" {
+		setDarwinUpdateCacheLock(block)
+	}
+
+	if changed {
+		utils.PrintSuccess(blockVerb(block) + " Spotify updates!")
+	}
+}
+
+// setDarwinUpdateCacheLock toggles the immutable flag on Spotify's update
+// cache directory. Current clients stage updates via a segmented downloader
+// that does not reference this directory, so this is belt-and-suspenders on
+// top of the endpoint patch, not sufficient on its own.
+func setDarwinUpdateCacheLock(block bool) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	updateDir := filepath.Join(homeDir, "Library", "Application Support", "Spotify", "PersistentCache", "Update")
+	flag := "nouchg"
 	if block {
-		if !bytes.Contains(raw, []byte(darwinUpdateEndpoint)) {
-			// Already patched (or the endpoint moved): nothing to do.
-			return nil
-		}
-		if _, err := os.Stat(backupPath); os.IsNotExist(err) {
-			if err := os.WriteFile(backupPath, raw, 0755); err != nil {
-				return fmt.Errorf("cannot back up binary: %w", err)
-			}
-		}
-		idx := bytes.Index(raw, []byte(darwinUpdateEndpoint))
-		copy(raw[idx+darwinUpdateEndpointPatchOff:], "no/thanks")
-	} else {
-		if st, err := os.Stat(backupPath); err == nil && !st.IsDir() {
-			raw, err = os.ReadFile(backupPath)
-			if err != nil {
-				return err
-			}
-		} else {
-			idx := bytes.Index(raw, []byte(darwinUpdateEndpointPatched))
-			if idx < 0 {
-				return fmt.Errorf("patched endpoint not found and no backup to restore")
-			}
-			copy(raw[idx+darwinUpdateEndpointPatchOff:], "v2/update")
-		}
+		exec.Command("mkdir", "-p", updateDir).Run()
+		flag = "uchg"
 	}
+	exec.Command("chflags", flag, updateDir).Run()
+}
 
-	if err := os.WriteFile(binaryPath, raw, 0755); err != nil {
-		return err
-	}
-
+// codesignBundle ad-hoc re-signs the .app so a rewritten binary still
+// launches on Apple Silicon (which rejects an unsigned/altered executable).
+func codesignBundle(binaryPath string) error {
 	bundlePath := filepath.Join(binaryPath, "..", "..", "..")
 	if out, err := exec.Command("codesign", "--force", "--deep", "--sign", "-", bundlePath).CombinedOutput(); err != nil {
-		return fmt.Errorf("codesign failed: %w (%s)", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("%w (%s)", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }

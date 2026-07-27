@@ -115,11 +115,11 @@ func Apply(spicetifyVersion string) {
 		Patch()
 	}
 
-	// Re-assert the update block after every successful apply so the pinned
-	// version is self-healing when the user opted into update control.
-	if settingSection.Key("block_spotify_updates").MustBool(false) {
-		BlockSpotifyUpdates(true)
-	}
+	// Assert the desired update-block state after every successful apply, so
+	// the pinned version is self-healing when the user opted in and the
+	// updater is restored when they opt back out. Both directions are quiet
+	// no-ops when the binary is already in the requested state.
+	BlockSpotifyUpdates(settingSection.Key("block_spotify_updates").MustBool(false))
 }
 
 // RefreshTheme updates user.css + theme.js and overwrites custom assets
