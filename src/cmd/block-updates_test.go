@@ -46,3 +46,25 @@ func TestPatchUpdateEndpoint(t *testing.T) {
 		t.Fatalf("missing endpoint must be left untouched, got changed=%v %q", changed, out)
 	}
 }
+
+// A universal Mach-O carries the endpoint once per arch slice; patching only
+// the first would leave the running slice's updater live.
+func TestPatchUpdateEndpointAllOccurrences(t *testing.T) {
+	fat := "slice1 desktop-update/v2/update ... slice2 desktop-update/v2/update end"
+
+	blocked, changed := patchUpdateEndpoint([]byte(fat), true)
+	if !changed {
+		t.Fatal("expected a change")
+	}
+	if n := bytes.Count(blocked, []byte(updateEndpointLive)); n != 0 {
+		t.Fatalf("every live endpoint must be neutered, %d remain: %q", n, blocked)
+	}
+	if n := bytes.Count(blocked, []byte(updateEndpointBlocked)); n != 2 {
+		t.Fatalf("both occurrences should be patched, got %d", n)
+	}
+
+	restored, _ := patchUpdateEndpoint(blocked, false)
+	if string(restored) != fat {
+		t.Fatalf("unblock must restore both occurrences: %q", restored)
+	}
+}
