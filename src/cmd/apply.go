@@ -127,7 +127,9 @@ func Apply(spicetifyVersion string) {
 	// unsupported and releases once support ships. Both directions are quiet
 	// no-ops when the binary is already in the requested state.
 	utils.PrintInfo(gate.Reason)
-	BlockSpotifyUpdates(gate.Block)
+	if !gate.StateUnknown {
+		BlockSpotifyUpdates(gate.Block)
+	}
 }
 
 // RefreshTheme updates user.css + theme.js and overwrites custom assets

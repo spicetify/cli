@@ -4,7 +4,32 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
+
+func TestFeedIsFresh(t *testing.T) {
+	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
+	maxAge := 30 * 24 * time.Hour
+	cases := []struct {
+		name      string
+		updatedAt string
+		want      bool
+	}{
+		{"today", "2026-07-28", true},
+		{"within window", "2026-07-10", true},
+		{"just inside window", "2026-06-29", true},
+		{"stale", "2026-05-01", false},
+		{"unparseable", "not-a-date", false},
+		{"empty", "", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := FeedIsFresh(tc.updatedAt, now, maxAge); got != tc.want {
+				t.Fatalf("FeedIsFresh(%q) = %v, want %v", tc.updatedAt, got, tc.want)
+			}
+		})
+	}
+}
 
 func TestFetchSupportFeed(t *testing.T) {
 	t.Run("valid feed parses", func(t *testing.T) {

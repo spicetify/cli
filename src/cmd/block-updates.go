@@ -72,8 +72,11 @@ func spotifyBinaryPath() string {
 // its self-update endpoint neutered. The gate uses it to preserve the current
 // state when the support feed is unavailable. Because patchUpdateEndpoint
 // rewrites every occurrence, a blocked binary retains no live endpoint.
-// Returns an error when the binary cannot be read (unknown platform, missing
-// file) so callers can decide how to fail safe.
+// Detection is only valid while the endpoint string is stable: if a future
+// Spotify build renames or removes desktop-update/v2/update, a live updater
+// on a new path would read as "blocked" here (the same assumption the patch
+// itself relies on). Returns an error when the binary cannot be read (unknown
+// platform, missing file) so callers can decide how to fail safe.
 func IsUpdateBlocked() (bool, error) {
 	path := spotifyBinaryPath()
 	if path == "" {

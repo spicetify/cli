@@ -1,8 +1,15 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/spicetify/cli/src/utils"
 )
+
+// maxFeedAge is how old a support feed may be before the gate distrusts it
+// (see utils.FeedIsFresh). Generous enough not to trip on normal maintenance,
+// tight enough to catch an abandoned or broken feed.
+const maxFeedAge = 30 * 24 * time.Hour
 
 // SupportFeedURL returns the published feed URL, allowing an override via the
 // support_feed_url config key (for a mirror or tests).
@@ -53,31 +60,43 @@ func effectiveUpdateBlock(policy UpdatePolicy, feed utils.SupportFeed, feedOK, c
 }
 
 // UpdateGateResult is the resolved gate decision plus the context that rides
-// the manifest so the in-client manager can display it.
+// the manifest so the in-client manager can display it. StateUnknown is set
+// when neither a fresh feed nor the current binary state is available, in
+// which case callers must leave the binary untouched rather than assert a
+// guessed direction.
 type UpdateGateResult struct {
 	Block            bool
+	StateUnknown     bool
 	Reason           string
 	Policy           UpdatePolicy
 	LatestSpotify    string
 	SupportedSpotify string
 }
 
-// ResolveUpdateGate computes the effective gate for the live environment: it
-// reads the policy, and for gate fetches the feed (failing safe on error) and
-// reads the current binary state.
-func ResolveUpdateGate() UpdateGateResult {
-	policy := EffectiveUpdatePolicy()
+// resolveUpdateGateFor computes the gate for an explicit policy. Kept separate
+// from config so a CLI toggle asserts from the requested policy directly even
+// when persistence is skipped.
+func resolveUpdateGateFor(policy UpdatePolicy) UpdateGateResult {
 	if policy == UpdatePolicyBlock || policy == UpdatePolicyAllow {
 		block, reason := effectiveUpdateBlock(policy, utils.SupportFeed{}, false, false)
 		return UpdateGateResult{Block: block, Reason: reason, Policy: policy}
 	}
 	feed, err := utils.FetchSupportFeed(SupportFeedURL())
-	feedOK := err == nil
+	// A stale feed is treated as unavailable: its "latest" may lag a newer
+	// unsupported build, and trusting it could unblock straight into the break.
+	feedOK := err == nil && utils.FeedIsFresh(feed.UpdatedAt, time.Now(), maxFeedAge)
 	currentlyBlocked, cbErr := IsUpdateBlocked()
+	if cbErr != nil && !feedOK {
+		// Double failure: no fresh feed to decide from and no readable current
+		// state to preserve. Leave the binary untouched rather than guess.
+		return UpdateGateResult{
+			StateUnknown: true,
+			Policy:       policy,
+			Reason:       "update_policy=gate: support feed and current block state both unavailable, leaving the update-block untouched",
+		}
+	}
 	if cbErr != nil {
-		// Current state unreadable: treat as unblocked. The block primitive
-		// re-asserts whatever we return, so this stays consistent.
-		currentlyBlocked = false
+		currentlyBlocked = false // feed is usable, so preserve() never fires
 	}
 	block, reason := effectiveUpdateBlock(policy, feed, feedOK, currentlyBlocked)
 	return UpdateGateResult{
@@ -87,6 +106,11 @@ func ResolveUpdateGate() UpdateGateResult {
 		LatestSpotify:    feed.LatestSpotify,
 		SupportedSpotify: feed.SupportedSpotify,
 	}
+}
+
+// ResolveUpdateGate computes the effective gate for the live config.
+func ResolveUpdateGate() UpdateGateResult {
+	return resolveUpdateGateFor(EffectiveUpdatePolicy())
 }
 
 // SetUpdatePolicy persists the policy to config and asserts the resulting
@@ -99,9 +123,11 @@ func SetUpdatePolicy(policy UpdatePolicy) {
 			utils.PrintWarning("Could not persist update_policy: " + err.Error())
 		}
 	}
-	gate := ResolveUpdateGate()
+	gate := resolveUpdateGateFor(policy)
 	utils.PrintInfo(gate.Reason)
-	BlockSpotifyUpdates(gate.Block)
+	if !gate.StateUnknown {
+		BlockSpotifyUpdates(gate.Block)
+	}
 }
 
 // PrintUpdateGateStatus reports the current gate decision and versions, the
@@ -118,6 +144,9 @@ func PrintUpdateGateStatus() {
 	blocked := "no"
 	if gate.Block {
 		blocked = "yes"
+	}
+	if gate.StateUnknown {
+		blocked = "unknown"
 	}
 	utils.PrintInfo("updates blocked: " + blocked)
 	utils.PrintInfo(gate.Reason)
