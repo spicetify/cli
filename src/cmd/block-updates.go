@@ -68,6 +68,24 @@ func spotifyBinaryPath() string {
 	return ""
 }
 
+// IsUpdateBlocked reports whether the installed Spotify binary currently has
+// its self-update endpoint neutered. The gate uses it to preserve the current
+// state when the support feed is unavailable. Because patchUpdateEndpoint
+// rewrites every occurrence, a blocked binary retains no live endpoint.
+// Returns an error when the binary cannot be read (unknown platform, missing
+// file) so callers can decide how to fail safe.
+func IsUpdateBlocked() (bool, error) {
+	path := spotifyBinaryPath()
+	if path == "" {
+		return false, fmt.Errorf("update-block detection is unsupported on %s", runtime.GOOS)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	return !bytes.Contains(raw, []byte(updateEndpointLive)), nil
+}
+
 func blockVerb(block bool) string {
 	if block {
 		return "Disabled"
