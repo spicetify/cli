@@ -65,6 +65,7 @@ type ModulesManifest struct {
 	UpdatePolicy     string           `json:"updatePolicy,omitempty"`
 	SupportedSpotify string           `json:"supportedSpotify,omitempty"`
 	LatestSpotify    string           `json:"latestSpotify,omitempty"`
+	ClassmapFallback bool             `json:"classmapFallback,omitempty"`
 	Classmap         Classmap         `json:"classmap,omitempty"`
 	Modules          []ModuleManifest `json:"modules"`
 }
@@ -119,6 +120,7 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 		UpdatePolicy:     env.UpdatePolicy,
 		SupportedSpotify: env.SupportedSpotify,
 		LatestSpotify:    env.LatestSpotify,
+		ClassmapFallback: env.ClassmapFallback,
 		Classmap:         cm,
 	}
 
@@ -560,6 +562,7 @@ type ManifestEnv struct {
 	UpdatePolicy     string
 	SupportedSpotify string
 	LatestSpotify    string
+	ClassmapFallback bool
 }
 
 // RestampManifestEnv rewrites the apply-time environment fields in an

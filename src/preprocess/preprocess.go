@@ -119,11 +119,26 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 	appPath := filepath.Join(extractedAppsPath, "xpui")
 	var cssTranslationMap = make(map[string]string)
 
+	// Resolve the classmap key once (with a patch-level fallback to the
+	// nearest lower verified classmap) for both modular staging and the
+	// css-map overlay, so a Spotify build without its own classmap still
+	// applies against the closest one.
+	resolvedKey, classmapFallback := "", false
+	if reqKey, err := utils.SpotifyVersionToClassmapKey(flags.SpotifyVer); err == nil {
+		if rk, fb, rerr := utils.ResolveClassmapKey(reqKey); rerr == nil {
+			resolvedKey, classmapFallback = rk, fb
+			if fb {
+				utils.PrintWarning(fmt.Sprintf(
+					"No verified classmap for Spotify %s; falling back to the closest one (%s). Some chrome may be off until a classmap ships.",
+					flags.SpotifyVer, rk))
+			}
+		}
+	}
+
 	if flags.ModularApply {
-		key, err := utils.SpotifyVersionToClassmapKey(flags.SpotifyVer)
-		if err != nil {
+		if resolvedKey == "" {
 			flags.ModularApply = false
-		} else if manifest, err := utils.StageModularApply(appPath, flags.SpotifyVer, key, utils.ManifestEnv{CliVersion: version, UpdatesBlocked: flags.BlockUpdates}); err != nil {
+		} else if manifest, err := utils.StageModularApply(appPath, flags.SpotifyVer, resolvedKey, utils.ManifestEnv{CliVersion: version, UpdatesBlocked: flags.BlockUpdates, ClassmapFallback: classmapFallback}); err != nil {
 			utils.PrintWarning("Modular apply skipped: " + err.Error())
 			flags.ModularApply = false
 		} else if manifest == nil || len(manifest.Modules) == 0 {
@@ -153,10 +168,10 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		readLocalCssMap(&cssTranslationMap)
 	}
 
-	// Per-version overlay: verified classmap corrections for this exact
-	// Spotify version win over the global css-map.
-	if key, err := utils.SpotifyVersionToClassmapKey(flags.SpotifyVer); err == nil {
-		if overlayPath, err := utils.FindCssMapOverlay(key); err == nil {
+	// Per-version overlay: verified classmap corrections win over the global
+	// css-map. Uses the same resolved (possibly fallback) key as staging.
+	if resolvedKey != "" {
+		if overlayPath, err := utils.FindCssMapOverlay(resolvedKey); err == nil {
 			if overlay, err := utils.LoadCssMapOverlay(overlayPath); err != nil {
 				utils.PrintWarning(err.Error())
 			} else if len(overlay) > 0 {

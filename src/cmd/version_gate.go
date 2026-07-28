@@ -85,6 +85,14 @@ func RequireSupportedSpotify() {
 	}
 
 	if err := list.CheckSupported(raw); err != nil {
+		// Before hard-blocking, see if a nearest-lower classmap can carry this
+		// build (v2-style cross-release resilience via degrade-not-destroy).
+		if fb := fallbackClassmapFor(raw); fb != "" {
+			utils.PrintWarning(fmt.Sprintf(
+				"Spotify %s has no verified classmap; falling back to the closest one (%s). Some chrome may be off until support ships.",
+				raw, fb))
+			return
+		}
 		utils.PrintError(err.Error() + ".")
 		utils.PrintInfo("Supported versions: " + list.SupportedSummary())
 		utils.PrintInfo("Install a supported Spotify build, or upgrade Spicetify when support is added.")
@@ -118,6 +126,12 @@ func SpotifySupportedForAuto() bool {
 
 	if err := list.CheckSupported(raw); err != nil {
 		normalized, _ := utils.NormalizeSpotifyVersion(raw)
+		if fb := fallbackClassmapFor(raw); fb != "" {
+			utils.PrintWarning(fmt.Sprintf(
+				"Spotify %s has no verified classmap; applying with the closest one (%s). Some chrome may be off.",
+				firstNonEmpty(normalized, raw), fb))
+			return true
+		}
 		utils.PrintWarning(fmt.Sprintf(
 			"Spotify %s is not supported by this Spicetify release; launching Spotify without applying.",
 			firstNonEmpty(normalized, raw),
@@ -127,6 +141,23 @@ func SpotifySupportedForAuto() bool {
 		return false
 	}
 	return true
+}
+
+// fallbackClassmapFor returns the nearest-lower classmap key usable for an
+// otherwise-unsupported version (patch-level fallback within the same minor),
+// or "" when none exists. This is what lets an unverified Spotify build still
+// apply via degrade-not-destroy instead of being hard-rejected -- the only
+// resilience available on Linux, where updates bypass the update-block.
+func fallbackClassmapFor(rawVersion string) string {
+	reqKey, err := utils.SpotifyVersionToClassmapKey(rawVersion)
+	if err != nil {
+		return ""
+	}
+	resolved, isFallback, err := utils.ResolveClassmapKey(reqKey)
+	if err != nil || !isFallback {
+		return ""
+	}
+	return resolved
 }
 
 func firstNonEmpty(values ...string) string {
@@ -147,8 +178,13 @@ func modularApplyEnabled() bool {
 		return false
 	}
 	report := utils.EvaluateSpotifySupport(raw, "")
-	if report.Map.Status != utils.ClassmapStatusModular {
-		return false
+	if report.Map.Status == utils.ClassmapStatusModular && utils.HasModularApplyInput(report.Map.ClassmapKey) {
+		return true
 	}
-	return utils.HasModularApplyInput(report.Map.ClassmapKey)
+	// No exact modular classmap: run modular apply against the nearest-lower
+	// one when available (classmap dirs exist only for modular versions).
+	if fb := fallbackClassmapFor(raw); fb != "" {
+		return utils.HasModularApplyInput(fb)
+	}
+	return false
 }
