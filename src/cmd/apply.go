@@ -68,6 +68,10 @@ func Apply(spicetifyVersion string) {
 			filepath.Join(appDestPath, "xpui", "helper"))
 	}
 
+	// Resolve the update gate once: the same decision drives both the
+	// manifest env the client reads and the binary block asserted below.
+	gate := ResolveUpdateGate()
+
 	manifestPath := filepath.Join(appDestPath, "xpui", "modules", "manifest.json")
 	if _, err := os.Stat(manifestPath); err == nil {
 		utils.CopyFile(
@@ -77,8 +81,11 @@ func Apply(spicetifyVersion string) {
 		// from live config so the client never shows a stale update-block
 		// state after `spicetify config ... && spicetify apply`.
 		if err := utils.RestampManifestEnv(manifestPath, utils.ManifestEnv{
-			CliVersion:     spicetifyVersion,
-			UpdatesBlocked: settingSection.Key("block_spotify_updates").MustBool(false),
+			CliVersion:       spicetifyVersion,
+			UpdatesBlocked:   gate.Block,
+			UpdatePolicy:     string(gate.Policy),
+			SupportedSpotify: gate.SupportedSpotify,
+			LatestSpotify:    gate.LatestSpotify,
 		}); err != nil {
 			utils.PrintWarning("Could not refresh modules manifest env: " + err.Error())
 		}
@@ -116,10 +123,11 @@ func Apply(spicetifyVersion string) {
 	}
 
 	// Assert the desired update-block state after every successful apply, so
-	// the pinned version is self-healing when the user opted in and the
-	// updater is restored when they opt back out. Both directions are quiet
+	// the gate is self-healing: it holds the user while the newest Spotify is
+	// unsupported and releases once support ships. Both directions are quiet
 	// no-ops when the binary is already in the requested state.
-	BlockSpotifyUpdates(settingSection.Key("block_spotify_updates").MustBool(false))
+	utils.PrintInfo(gate.Reason)
+	BlockSpotifyUpdates(gate.Block)
 }
 
 // RefreshTheme updates user.css + theme.js and overwrites custom assets

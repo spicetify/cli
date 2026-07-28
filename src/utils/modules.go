@@ -58,12 +58,15 @@ type ModuleManifest struct {
 
 // ModulesManifest is consumed by jsHelper/modularLoader.js at boot.
 type ModulesManifest struct {
-	SpotifyVersion string           `json:"spotifyVersion"`
-	ClassmapKey    string           `json:"classmapKey"`
-	CliVersion     string           `json:"cliVersion,omitempty"`
-	UpdatesBlocked bool             `json:"updatesBlocked"`
-	Classmap       Classmap         `json:"classmap,omitempty"`
-	Modules        []ModuleManifest `json:"modules"`
+	SpotifyVersion   string           `json:"spotifyVersion"`
+	ClassmapKey      string           `json:"classmapKey"`
+	CliVersion       string           `json:"cliVersion,omitempty"`
+	UpdatesBlocked   bool             `json:"updatesBlocked"`
+	UpdatePolicy     string           `json:"updatePolicy,omitempty"`
+	SupportedSpotify string           `json:"supportedSpotify,omitempty"`
+	LatestSpotify    string           `json:"latestSpotify,omitempty"`
+	Classmap         Classmap         `json:"classmap,omitempty"`
+	Modules          []ModuleManifest `json:"modules"`
 }
 
 // ModulesDir is where v3 modules are installed inside the spicetify config folder.
@@ -109,11 +112,14 @@ func DiscoverModules(root string) ([]ModuleManifest, error) {
 // A module that fails to remap is skipped with a warning, not fatal.
 func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifest, cm Classmap, stale map[string]bool, spotifyVersion, classmapKey string, env ManifestEnv) (*ModulesManifest, error) {
 	manifest := &ModulesManifest{
-		SpotifyVersion: spotifyVersion,
-		ClassmapKey:    classmapKey,
-		CliVersion:     env.CliVersion,
-		UpdatesBlocked: env.UpdatesBlocked,
-		Classmap:       cm,
+		SpotifyVersion:   spotifyVersion,
+		ClassmapKey:      classmapKey,
+		CliVersion:       env.CliVersion,
+		UpdatesBlocked:   env.UpdatesBlocked,
+		UpdatePolicy:     env.UpdatePolicy,
+		SupportedSpotify: env.SupportedSpotify,
+		LatestSpotify:    env.LatestSpotify,
+		Classmap:         cm,
 	}
 
 	for _, m := range modules {
@@ -549,8 +555,11 @@ const ModularApplyScriptTag = "<script src='helper/modularLoader.js'></script>\n
 // ManifestEnv carries apply-time environment facts the client cannot
 // observe on its own; they ride the manifest for management UIs.
 type ManifestEnv struct {
-	CliVersion     string
-	UpdatesBlocked bool
+	CliVersion       string
+	UpdatesBlocked   bool
+	UpdatePolicy     string
+	SupportedSpotify string
+	LatestSpotify    string
 }
 
 // RestampManifestEnv rewrites the apply-time environment fields in an
@@ -572,6 +581,16 @@ func RestampManifestEnv(manifestPath string, env ManifestEnv) error {
 		delete(manifest, "cliVersion")
 	}
 	manifest["updatesBlocked"] = env.UpdatesBlocked
+	setOrDelete := func(key, value string) {
+		if value != "" {
+			manifest[key] = value
+		} else {
+			delete(manifest, key)
+		}
+	}
+	setOrDelete("updatePolicy", env.UpdatePolicy)
+	setOrDelete("supportedSpotify", env.SupportedSpotify)
+	setOrDelete("latestSpotify", env.LatestSpotify)
 	out, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return err

@@ -202,11 +202,15 @@ func main() {
 		param := commands[0]
 		switch param {
 		case "block":
-			cmd.BlockSpotifyUpdates(true)
+			cmd.SetUpdatePolicy(cmd.UpdatePolicyBlock)
 		case "unblock":
-			cmd.BlockSpotifyUpdates(false)
+			cmd.SetUpdatePolicy(cmd.UpdatePolicyAllow)
+		case "gate":
+			cmd.SetUpdatePolicy(cmd.UpdatePolicyGate)
+		case "status":
+			cmd.PrintUpdateGateStatus()
 		default:
-			utils.PrintError("Invalid parameter. It has to be \"block\" or \"unblock\".")
+			utils.PrintError("Invalid parameter. It has to be \"block\", \"unblock\", \"gate\", or \"status\".")
 		}
 		return
 
@@ -420,8 +424,10 @@ watch               Enter watch mode.
 restart             Restart Spotify client.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
-spotify-updates     Block Spotify updates by patching spotify executable.
-                    Accepts "block" or "unblock" as the parameter.
+spotify-updates     Control Spotify self-updates (sets update_policy).
+                    "gate" (default) holds the current version until Spicetify
+                    supports the newest one, then auto-advances; "block" freezes;
+                    "unblock" allows; "status" prints the current gate state.
 
 path                Print path of Spotify's executable, userdata, and more.
                     1. Print executable path:

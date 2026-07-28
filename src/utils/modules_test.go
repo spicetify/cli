@@ -218,7 +218,13 @@ func TestRestampManifestEnv(t *testing.T) {
 	if err := os.WriteFile(path, []byte(seed), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := RestampManifestEnv(path, ManifestEnv{CliVersion: "3.0.0", UpdatesBlocked: true}); err != nil {
+	if err := RestampManifestEnv(path, ManifestEnv{
+		CliVersion:       "3.0.0",
+		UpdatesBlocked:   true,
+		UpdatePolicy:     "gate",
+		SupportedSpotify: "1.2.94.583",
+		LatestSpotify:    "1.2.95.100",
+	}); err != nil {
 		t.Fatal(err)
 	}
 	raw, _ := os.ReadFile(path)
@@ -228,6 +234,17 @@ func TestRestampManifestEnv(t *testing.T) {
 	}
 	if decoded["cliVersion"] != "3.0.0" || decoded["updatesBlocked"] != true {
 		t.Fatalf("restamp did not apply: %+v", decoded)
+	}
+	if decoded["updatePolicy"] != "gate" || decoded["supportedSpotify"] != "1.2.94.583" || decoded["latestSpotify"] != "1.2.95.100" {
+		t.Fatalf("restamp did not apply gate fields: %+v", decoded)
+	}
+	// Empty gate fields must be deleted, not written blank.
+	if err := RestampManifestEnv(path, ManifestEnv{CliVersion: "3.0.0", UpdatesBlocked: true}); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ = os.ReadFile(path)
+	if strings.Contains(string(raw), "updatePolicy") || strings.Contains(string(raw), "latestSpotify") {
+		t.Fatalf("empty gate fields must be omitted, got:\n%s", raw)
 	}
 	modules, ok := decoded["modules"].([]any)
 	if !ok || len(modules) != 1 || modules[0].(map[string]any)["identifier"] != "m" {

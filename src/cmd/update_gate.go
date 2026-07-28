@@ -52,13 +52,24 @@ func effectiveUpdateBlock(policy UpdatePolicy, feed utils.SupportFeed, feedOK, c
 	}
 }
 
-// ResolveUpdateBlock computes the effective block for the live environment: it
+// UpdateGateResult is the resolved gate decision plus the context that rides
+// the manifest so the in-client manager can display it.
+type UpdateGateResult struct {
+	Block            bool
+	Reason           string
+	Policy           UpdatePolicy
+	LatestSpotify    string
+	SupportedSpotify string
+}
+
+// ResolveUpdateGate computes the effective gate for the live environment: it
 // reads the policy, and for gate fetches the feed (failing safe on error) and
-// reads the current binary state, returning the decision plus a reason to log.
-func ResolveUpdateBlock() (bool, string) {
+// reads the current binary state.
+func ResolveUpdateGate() UpdateGateResult {
 	policy := EffectiveUpdatePolicy()
 	if policy == UpdatePolicyBlock || policy == UpdatePolicyAllow {
-		return effectiveUpdateBlock(policy, utils.SupportFeed{}, false, false)
+		block, reason := effectiveUpdateBlock(policy, utils.SupportFeed{}, false, false)
+		return UpdateGateResult{Block: block, Reason: reason, Policy: policy}
 	}
 	feed, err := utils.FetchSupportFeed(SupportFeedURL())
 	feedOK := err == nil
@@ -68,5 +79,46 @@ func ResolveUpdateBlock() (bool, string) {
 		// re-asserts whatever we return, so this stays consistent.
 		currentlyBlocked = false
 	}
-	return effectiveUpdateBlock(policy, feed, feedOK, currentlyBlocked)
+	block, reason := effectiveUpdateBlock(policy, feed, feedOK, currentlyBlocked)
+	return UpdateGateResult{
+		Block:            block,
+		Reason:           reason,
+		Policy:           policy,
+		LatestSpotify:    feed.LatestSpotify,
+		SupportedSpotify: feed.SupportedSpotify,
+	}
+}
+
+// SetUpdatePolicy persists the policy to config and asserts the resulting
+// block state immediately, so a CLI toggle sticks across future applies
+// (otherwise the next apply's gate would re-evaluate and possibly undo it).
+func SetUpdatePolicy(policy UpdatePolicy) {
+	if settingSection != nil {
+		settingSection.Key("update_policy").SetValue(string(policy))
+		if err := cfg.Write(); err != nil {
+			utils.PrintWarning("Could not persist update_policy: " + err.Error())
+		}
+	}
+	gate := ResolveUpdateGate()
+	utils.PrintInfo(gate.Reason)
+	BlockSpotifyUpdates(gate.Block)
+}
+
+// PrintUpdateGateStatus reports the current gate decision and versions, the
+// CLI-side twin of the manager's Updates panel.
+func PrintUpdateGateStatus() {
+	gate := ResolveUpdateGate()
+	utils.PrintInfo("update_policy: " + string(gate.Policy))
+	if gate.LatestSpotify != "" {
+		utils.PrintInfo("latest Spotify: " + gate.LatestSpotify)
+	}
+	if gate.SupportedSpotify != "" {
+		utils.PrintInfo("latest supported: " + gate.SupportedSpotify)
+	}
+	blocked := "no"
+	if gate.Block {
+		blocked = "yes"
+	}
+	utils.PrintInfo("updates blocked: " + blocked)
+	utils.PrintInfo(gate.Reason)
 }
