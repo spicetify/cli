@@ -169,6 +169,32 @@ func LoadSupportedVersions(path string) (*SupportList, error) {
 }
 
 // IsSupported reports whether normalized major.minor.patch is allowlisted.
+// NewestSupported returns the newest version that ships a verified modular
+// classmap (the v3 module stack's definition of "supported"), or "" when the
+// list has none. This is the single local source of truth for the gate's
+// supportedSpotify: deriving it from the shipped classmaps rather than a
+// separate feed field means the hard version gate and the update gate cannot
+// drift apart.
+func (s *SupportList) NewestSupported() string {
+	if s == nil {
+		return ""
+	}
+	newest := ""
+	for ver, info := range s.Maps {
+		if info.Status != ClassmapStatusModular {
+			continue
+		}
+		if newest == "" {
+			newest = ver
+			continue
+		}
+		if cmp, err := CompareSpotifyVersion(ver, newest); err == nil && cmp > 0 {
+			newest = ver
+		}
+	}
+	return newest
+}
+
 func (s *SupportList) IsSupported(normalized string) bool {
 	if s == nil {
 		return false

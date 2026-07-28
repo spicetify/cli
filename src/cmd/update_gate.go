@@ -23,15 +23,18 @@ func SupportFeedURL() string {
 }
 
 // effectiveUpdateBlock decides whether the Spotify binary should have updates
-// blocked, given the policy, the published feed (and whether it loaded), and
-// the current on-disk block state. Pure: every input is an argument, so the
-// gate's core is table-testable without touching a real binary or the network.
+// blocked, given the policy, the newest build that exists (latest, from the
+// feed) and the newest we support (supported, from the local allowlist),
+// whether those are trustworthy, and the current on-disk block state. Pure:
+// every input is an argument, so the gate's core is table-testable without
+// touching a real binary or the network.
 //
 // The gate rule is one comparison: block while a newer-than-supported Spotify
-// exists (latest > supported), unblock once support catches up. When the feed
-// is unavailable it preserves the current state rather than risk either an
-// unsupported update slipping through or spuriously freezing a healthy client.
-func effectiveUpdateBlock(policy UpdatePolicy, feed utils.SupportFeed, feedOK, currentlyBlocked bool) (bool, string) {
+// exists (latest > supported), unblock once support catches up. When latest or
+// supported is unknown it preserves the current state rather than risk either
+// an unsupported update slipping through or spuriously freezing a healthy
+// client.
+func effectiveUpdateBlock(policy UpdatePolicy, latest, supported string, feedOK, currentlyBlocked bool) (bool, string) {
 	switch policy {
 	case UpdatePolicyAllow:
 		return false, "update_policy=allow: Spotify updates permitted"
@@ -43,19 +46,19 @@ func effectiveUpdateBlock(policy UpdatePolicy, feed utils.SupportFeed, feedOK, c
 			if currentlyBlocked {
 				state = "blocked"
 			}
-			return currentlyBlocked, "update_policy=gate: support feed unavailable, preserving current state (" + state + ")"
+			return currentlyBlocked, "update_policy=gate: support state unavailable, preserving current state (" + state + ")"
 		}
-		if !feedOK || feed.LatestSpotify == "" || feed.SupportedSpotify == "" {
+		if !feedOK || latest == "" || supported == "" {
 			return preserve()
 		}
-		cmp, err := utils.CompareSpotifyVersion(feed.LatestSpotify, feed.SupportedSpotify)
+		cmp, err := utils.CompareSpotifyVersion(latest, supported)
 		if err != nil {
 			return preserve()
 		}
 		if cmp > 0 {
-			return true, "update_policy=gate: newest Spotify " + feed.LatestSpotify + " is not yet supported (latest verified: " + feed.SupportedSpotify + ")"
+			return true, "update_policy=gate: newest Spotify " + latest + " is not yet supported (latest verified: " + supported + ")"
 		}
-		return false, "update_policy=gate: newest Spotify " + feed.LatestSpotify + " is supported"
+		return false, "update_policy=gate: newest Spotify " + latest + " is supported"
 	}
 }
 
@@ -73,39 +76,66 @@ type UpdateGateResult struct {
 	SupportedSpotify string
 }
 
+// newestSupportedLocal returns the newest version this install can actually
+// apply: the newest shipped modular classmap. This is the gate's definition of
+// "supported" — applicability, not a published claim — so it never unblocks a
+// user into a version their CLI cannot re-apply on.
+//
+// PHASE 5 SEAM: when classmaps become remotely fetchable, "applicable" becomes
+// "the newest classmap published remotely" and this is the single function to
+// swap (read the remote/feed supported set instead of the local allowlist).
+// The gate logic above stays identical; only this source changes.
+func newestSupportedLocal() string {
+	list, _, err := loadSupportList()
+	if err != nil {
+		return ""
+	}
+	return list.NewestSupported()
+}
+
 // resolveUpdateGateFor computes the gate for an explicit policy. Kept separate
 // from config so a CLI toggle asserts from the requested policy directly even
 // when persistence is skipped.
+//
+// supportedSpotify is derived from the CLI's own allowlist (so the update gate
+// and the hard version gate can never disagree); the feed supplies only
+// latestSpotify, the one build the CLI cannot know locally. Both ride the
+// result for the manifest/display regardless of policy.
 func resolveUpdateGateFor(policy UpdatePolicy) UpdateGateResult {
-	if policy == UpdatePolicyBlock || policy == UpdatePolicyAllow {
-		block, reason := effectiveUpdateBlock(policy, utils.SupportFeed{}, false, false)
-		return UpdateGateResult{Block: block, Reason: reason, Policy: policy}
-	}
+	supported := newestSupportedLocal()
 	feed, err := utils.FetchSupportFeed(SupportFeedURL())
-	// A stale feed is treated as unavailable: its "latest" may lag a newer
-	// unsupported build, and trusting it could unblock straight into the break.
-	feedOK := err == nil && utils.FeedIsFresh(feed.UpdatedAt, time.Now(), maxFeedAge)
-	currentlyBlocked, cbErr := IsUpdateBlocked()
-	if cbErr != nil && !feedOK {
-		// Double failure: no fresh feed to decide from and no readable current
-		// state to preserve. Leave the binary untouched rather than guess.
-		return UpdateGateResult{
-			StateUnknown: true,
-			Policy:       policy,
-			Reason:       "update_policy=gate: support feed and current block state both unavailable, leaving the update-block untouched",
+	// A stale feed's latest may lag a newer unsupported build, so distrust it.
+	feedFresh := err == nil && utils.FeedIsFresh(feed.UpdatedAt, time.Now(), maxFeedAge)
+	latest := ""
+	if feedFresh {
+		latest = feed.LatestSpotify
+	}
+	// The gate can decide only with both a fresh latest and a local supported.
+	feedOK := latest != "" && supported != ""
+
+	if policy == UpdatePolicyGate {
+		currentlyBlocked, cbErr := IsUpdateBlocked()
+		if cbErr != nil && !feedOK {
+			// No basis to decide and no readable current state to preserve:
+			// leave the binary untouched rather than guess a direction.
+			return UpdateGateResult{
+				StateUnknown:     true,
+				Policy:           policy,
+				LatestSpotify:    latest,
+				SupportedSpotify: supported,
+				Reason:           "update_policy=gate: cannot determine support state, leaving the update-block untouched",
+			}
 		}
+		if cbErr != nil {
+			currentlyBlocked = false // feed is usable, so preserve() never fires
+		}
+		block, reason := effectiveUpdateBlock(policy, latest, supported, feedOK, currentlyBlocked)
+		return UpdateGateResult{Block: block, Reason: reason, Policy: policy, LatestSpotify: latest, SupportedSpotify: supported}
 	}
-	if cbErr != nil {
-		currentlyBlocked = false // feed is usable, so preserve() never fires
-	}
-	block, reason := effectiveUpdateBlock(policy, feed, feedOK, currentlyBlocked)
-	return UpdateGateResult{
-		Block:            block,
-		Reason:           reason,
-		Policy:           policy,
-		LatestSpotify:    feed.LatestSpotify,
-		SupportedSpotify: feed.SupportedSpotify,
-	}
+
+	// block / allow ignore the feed and current state, but still carry versions.
+	block, reason := effectiveUpdateBlock(policy, latest, supported, feedOK, false)
+	return UpdateGateResult{Block: block, Reason: reason, Policy: policy, LatestSpotify: latest, SupportedSpotify: supported}
 }
 
 // ResolveUpdateGate computes the effective gate for the live config.

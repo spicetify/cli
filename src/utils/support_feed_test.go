@@ -34,14 +34,14 @@ func TestFeedIsFresh(t *testing.T) {
 func TestFetchSupportFeed(t *testing.T) {
 	t.Run("valid feed parses", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			w.Write([]byte(`{"latestSpotify":"1.2.95.100","supportedSpotify":"1.2.94.583","updatedAt":"2026-07-28"}`))
+			w.Write([]byte(`{"latestSpotify":"1.2.95.100","updatedAt":"2026-07-28"}`))
 		}))
 		defer srv.Close()
 		feed, err := FetchSupportFeed(srv.URL)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if feed.LatestSpotify != "1.2.95.100" || feed.SupportedSpotify != "1.2.94.583" {
+		if feed.LatestSpotify != "1.2.95.100" || feed.UpdatedAt != "2026-07-28" {
 			t.Fatalf("parsed feed wrong: %+v", feed)
 		}
 	})

@@ -294,3 +294,29 @@ func TestSupportedSummarySemverOrder(t *testing.T) {
 		t.Fatalf("SupportedSummary = %q, want %q", got, want)
 	}
 }
+
+func TestNewestSupported(t *testing.T) {
+	list := &SupportList{
+		Maps: map[string]ClassmapInfo{
+			"1.2.92": {Status: ClassmapStatusModular},
+			"1.2.93": {Status: ClassmapStatusClassic},
+			"1.2.94": {Status: ClassmapStatusModular},
+			"1.2.90": {Status: ClassmapStatusNone},
+		},
+	}
+	if got := list.NewestSupported(); got != "1.2.94" {
+		t.Fatalf("NewestSupported() = %q, want 1.2.94 (newest modular)", got)
+	}
+
+	// No modular entries -> "".
+	classicOnly := &SupportList{Maps: map[string]ClassmapInfo{"1.2.93": {Status: ClassmapStatusClassic}}}
+	if got := classicOnly.NewestSupported(); got != "" {
+		t.Fatalf("NewestSupported() with no modular = %q, want \"\"", got)
+	}
+
+	// Nil-safe.
+	var nilList *SupportList
+	if got := nilList.NewestSupported(); got != "" {
+		t.Fatalf("nil NewestSupported() = %q, want \"\"", got)
+	}
+}

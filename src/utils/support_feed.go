@@ -8,14 +8,14 @@ import (
 	"time"
 )
 
-// SupportFeed is the published source of truth for the update gate: the
-// newest known Spotify desktop build and the newest build with a verified
-// Spicetify classmap. It mirrors modules/spotify-support.json, the same file
-// the in-client manager reads, so the CLI and the client agree.
+// SupportFeed is the published feed's single job: report the newest known
+// Spotify desktop build (the one thing the CLI cannot know locally). "What we
+// support" is derived from the CLI's own shipped classmaps, not from here, so
+// the two cannot drift. Mirrors modules/spotify-support.json, the same file
+// the in-client manager reads.
 type SupportFeed struct {
-	LatestSpotify    string `json:"latestSpotify"`
-	SupportedSpotify string `json:"supportedSpotify"`
-	UpdatedAt        string `json:"updatedAt"`
+	LatestSpotify string `json:"latestSpotify"`
+	UpdatedAt     string `json:"updatedAt"`
 }
 
 // DefaultSupportFeedURL is the canonical published feed. raw.githubusercontent
