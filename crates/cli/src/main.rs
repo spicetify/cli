@@ -5,7 +5,7 @@ use spicetify::commands::{Command, ConfigAction, DaemonAction, PkgAction, SyncTa
 use spicetify::{fl, logging};
 
 #[derive(Debug, Parser)]
-#[command(name = "spicetify", about = "Make Spotify your own")]
+#[command(name = "spicetify", about = "Make Spotify truly yours")]
 struct SpicetifyCli {
     #[arg(short = 'm', long, default_value_t = false)]
     mirror: bool,
@@ -127,21 +127,30 @@ fn main() {
 
 fn run() -> Result<()> {
     let cli = SpicetifyCli::parse();
-    let ctx = spicetify::context::build_context(
-        cli.mirror,
-        cli.spotify_data_dir.as_deref(),
-        cli.spotify_exec.as_deref(),
-        cli.offline_bnk_dir.as_deref(),
-    )?;
 
     spicetify::update::startup_cleanup();
 
     match cli.command {
         Some(cmd) => {
             logging::init_for_cli()?;
+            let ctx = if matches!(cmd, CliCommand::Init) {
+                spicetify::context::build_fresh_context()?
+            } else {
+                spicetify::context::build_context(
+                    cli.mirror,
+                    cli.spotify_data_dir.as_deref(),
+                    cli.spotify_exec.as_deref(),
+                    cli.offline_bnk_dir.as_deref(),
+                )?
+            };
             let cmd = Command::from(cmd);
             spicetify::commands::dispatch(&cmd, &ctx)
         }
-        None => tui::run(&ctx),
+        None => tui::run(
+            cli.mirror,
+            cli.spotify_data_dir.as_deref(),
+            cli.spotify_exec.as_deref(),
+            cli.offline_bnk_dir.as_deref(),
+        ),
     }
 }

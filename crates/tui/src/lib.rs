@@ -18,15 +18,20 @@ use i18n_embed_fl as _;
 pub use log_buffer::LogBuffer;
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
-use spicetify::context::AppContext;
 use tokio::sync::broadcast;
 
 use crate::frame_scheduler::FrameRequester;
 
-pub fn run(ctx: &AppContext) -> Result<()> {
+pub fn run(
+    mirror: bool,
+    spotify_data_dir: Option<&str>,
+    spotify_exec: Option<&str>,
+    offline_bnk_dir: Option<&str>,
+) -> Result<()> {
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
     spicetify::logging::init_for_tui(tx.clone())?;
-    spicetify::update::startup_cleanup();
+    let ctx =
+        spicetify::context::build_context(mirror, spotify_data_dir, spotify_exec, offline_bnk_dir)?;
     let mut terminal = setup_terminal()?;
 
     let runtime =

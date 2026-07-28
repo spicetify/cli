@@ -8,7 +8,7 @@ use spicetify::logging::TuiEvent;
 use super::{Action, InputStep, TuiApp};
 use crate::components::confirm_quit::{self, DialogHit};
 use crate::components::menu_list::MenuAction;
-use crate::components::primitives::dialog;
+use crate::components::primitives::{button, dialog};
 
 impl TuiApp {
     pub(crate) fn handle_key(&mut self, key: crossterm::event::KeyEvent) {
@@ -52,6 +52,7 @@ impl TuiApp {
             KeyCode::Down | KeyCode::Char('j') => Action::MoveDown,
             KeyCode::Home => Action::MoveHome,
             KeyCode::End => Action::MoveEnd,
+            KeyCode::Char('l') if is_ctrl => Action::ClearLog,
             KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => Action::Select,
             KeyCode::Left | KeyCode::Char('h') | KeyCode::Esc => Action::Back,
             KeyCode::PageUp => Action::ScrollLogUp,
@@ -157,7 +158,9 @@ impl TuiApp {
                 }
             }
             MouseEventKind::Up(MouseButton::Left) => {
-                if self.click_on_back(mouse.column, mouse.row) {
+                if self.click_on_clear(mouse.column, mouse.row) {
+                    self.dispatch(Action::ClearLog);
+                } else if self.click_on_back(mouse.column, mouse.row) {
                     self.dispatch(Action::Back);
                 } else if self.click_in_menu(mouse.column, mouse.row) {
                     let rect =
@@ -224,6 +227,10 @@ impl TuiApp {
             }
             _ => {}
         }
+    }
+
+    pub(crate) fn click_on_clear(&self, col: u16, row: u16) -> bool {
+        self.layout.clear_rect.is_some_and(|r| button::hit_test(r, col, row))
     }
 
     pub(crate) fn click_on_back(&self, col: u16, row: u16) -> bool {

@@ -6,7 +6,7 @@ use arc_swap::ArcSwap;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
-use crate::{fl, platform};
+use crate::platform;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
@@ -30,9 +30,9 @@ impl Config {
             return Ok(Self::default());
         }
         let raw = fs::read_to_string(path)?;
-        let cfg: Self = toml::from_str(&raw)
+        let mut cfg: Self = toml::from_str(&raw)
             .map_err(|e| anyhow::anyhow!("failed to parse config.toml: {e}"))?;
-        cfg.validate()?;
+        cfg.fixup();
         Ok(cfg)
     }
 
@@ -46,21 +46,17 @@ impl Config {
         Ok(())
     }
 
-    fn validate(&self) -> Result<()> {
+    fn fixup(&mut self) {
         if let Some(p) = &self.spotify_exec {
             let resolved = platform::coerce_spotify_exec_path(p);
             if !resolved.is_file() {
-                return Err(anyhow::anyhow!(fl!(
-                    "invalid-exec-path",
-                    path = resolved.to_string_lossy()
-                )));
+                tracing::warn!(
+                    "spotify_exec path is stale, will use default: {}",
+                    resolved.display()
+                );
+                self.spotify_exec = None;
             }
         }
-        Ok(())
-    }
-
-    pub fn to_context(&self) -> Result<AppContext> {
-        AppContext::from_config(platform::default_spicetify_config_dir(), self)
     }
 }
 
@@ -89,11 +85,13 @@ impl AppContext {
             cfg.offline_bnk_dir.clone().unwrap_or_else(platform::default_offline_bnk_dir);
 
         let config_file = config_root.join(Self::config_filename());
+        let is_store = data_dir.to_string_lossy().contains("WindowsApps");
+        let mirror = cfg.mirror || is_store;
 
         Ok(Self {
             config_file,
             config_root,
-            mirror: cfg.mirror,
+            mirror,
             spotify_data_dir: data_dir,
             spotify_exec: exec_path,
             offline_bnk_dir,
@@ -167,4 +165,9 @@ pub fn build_context(
     }
 
     AppContext::from_config(config_root, &cfg)
+}
+
+pub fn build_fresh_context() -> Result<AppContext> {
+    let config_root = platform::default_spicetify_config_dir();
+    AppContext::from_config(config_root, &Config::default())
 }

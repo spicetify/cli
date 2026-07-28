@@ -5,7 +5,7 @@ use ratatui::widgets::Paragraph;
 use spicetify::fl;
 
 use crate::app::{Page, TuiApp};
-use crate::components::primitives::{dialog, split_pane};
+use crate::components::primitives::{button, dialog, split_pane};
 use crate::components::{confirm_quit, details_pane, footer};
 use crate::theme::TEXT_MUTED;
 
@@ -72,6 +72,16 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &mut TuiApp) {
     details_pane::render(frame, pane.right_area, &details_ctx);
 
     app.log_viewer.render(frame, log, "log");
+    let clear_rect = Rect { x: log.x + log.width.saturating_sub(5), y: log.y, width: 5, height: 1 };
+    app.layout.clear_rect = Some(clear_rect);
+    button::draw_button(
+        frame,
+        "clear",
+        clear_rect,
+        app.layout.mouse_pos,
+        app.menu.hover.is_mouse_active(),
+        false,
+    );
 
     let footer_ctx = footer::FooterCtx {
         page: app.menu.page,

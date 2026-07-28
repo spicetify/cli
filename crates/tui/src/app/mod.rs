@@ -89,6 +89,7 @@ pub(crate) enum Action {
     ScrollLogDown,
     ScrollMenuUp,
     ScrollMenuDown,
+    ClearLog,
 }
 
 #[derive(Debug)]
@@ -125,6 +126,7 @@ pub struct LayoutState {
     pub menu_rect: Option<Rect>,
     pub body_rect: Option<Rect>,
     pub log_rect: Option<Rect>,
+    pub(crate) clear_rect: Option<Rect>,
     pub(crate) back_rect: Option<Rect>,
     pub(crate) dialog_rect: Option<Rect>,
     pub(crate) mouse_pos: (u16, u16),
@@ -188,6 +190,7 @@ impl TuiApp {
                 menu_rect: None,
                 body_rect: None,
                 log_rect: None,
+                clear_rect: None,
                 back_rect: None,
                 dialog_rect: None,
                 mouse_pos: (0, 0),
@@ -343,6 +346,7 @@ impl TuiApp {
                     self.handle_activate(result);
                 }
             }
+            Action::ClearLog => self.log_viewer.clear(),
             Action::ScrollLogUp => self.log_viewer.scroll_up(),
             Action::ScrollLogDown => self.log_viewer.scroll_down(),
             Action::ScrollMenuUp => {

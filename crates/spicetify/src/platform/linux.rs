@@ -11,10 +11,8 @@ fn is_spotify_dir(path: &Path) -> bool {
 }
 
 pub(crate) fn spicetify_config_dir() -> PathBuf {
-    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
-        return PathBuf::from(xdg).join("spicetify");
-    }
-    home_dir().join(".config").join("spicetify")
+    directories::BaseDirs::new()
+        .map_or_else(|| home_dir().join(".config/spicetify"), |d| d.config_dir().join("spicetify"))
 }
 
 pub(crate) const fn spotify_binary_name() -> &'static str {
@@ -59,8 +57,7 @@ pub(crate) fn spotify_exec() -> PathBuf {
 }
 
 pub(crate) fn offline_bnk_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_default();
-    let home = PathBuf::from(home);
+    let home = home_dir();
 
     let snap_home = home.join("snap/spotify/common");
     let home = if snap_home.is_dir() { snap_home } else { home };
@@ -70,11 +67,8 @@ pub(crate) fn offline_bnk_dir() -> PathBuf {
         return flatpak_home.join("cache/spotify");
     }
 
-    if let Ok(cache) = std::env::var("XDG_CACHE_HOME") {
-        PathBuf::from(cache).join("spotify")
-    } else {
-        home.join(".cache/spotify")
-    }
+    directories::BaseDirs::new()
+        .map_or_else(|| home.join(".cache/spotify"), |d| d.cache_dir().join("spotify"))
 }
 
 pub(crate) fn portable_config_dir() -> Option<PathBuf> {

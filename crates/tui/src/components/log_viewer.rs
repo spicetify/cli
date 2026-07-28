@@ -39,6 +39,11 @@ impl LogViewer {
         self.scroll = self.scroll.saturating_sub(SCROLL_STEP);
     }
 
+    pub(crate) fn clear(&mut self) {
+        self.buffer.clear();
+        self.scroll = 0;
+    }
+
     pub(crate) fn render(&mut self, frame: &mut Frame<'_>, area: Rect, panel_title: &str) {
         let block = crate::theme::panel(panel_title);
         let inner = block.inner(area);

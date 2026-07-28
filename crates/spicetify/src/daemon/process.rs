@@ -24,12 +24,21 @@ pub fn spawn() -> Result<(), DaemonSpawnError> {
     let exe = super::daemon_binary_path()?;
     let mut cmd = Command::new(&exe);
     let _ = cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        let _ = cmd.process_group(0);
+    }
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
 
-        use windows::Win32::System::Threading::{CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW};
-        let _ = cmd.creation_flags((CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP).0);
+        use windows::Win32::System::Threading::{
+            CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, DETACHED_PROCESS
+        };
+        let _ =
+            cmd.creation_flags((CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS).0);
     }
     let mut child = cmd.spawn()?;
 
@@ -44,6 +53,7 @@ pub fn spawn() -> Result<(), DaemonSpawnError> {
         if std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(100)).is_ok() {
             return Ok(());
         }
+        std::thread::sleep(Duration::from_millis(50));
         if std::time::Instant::now() >= deadline {
             if let Err(e) = child.kill() {
                 tracing::warn!(error = %e, "failed to kill daemon process after startup timeout");

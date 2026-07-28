@@ -3,36 +3,59 @@ use std::process::{Command, Stdio};
 use crate::context::AppContext;
 use crate::error::Result;
 
-pub(crate) fn is_spotify_running(image: &str) -> bool {
+pub(crate) fn process_running(name: &str) -> bool {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        Command::new("pgrep")
+            .args(["-x", name])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .is_ok_and(|s| s.success())
+    }
     #[cfg(windows)]
     {
         Command::new("tasklist")
-            .args(["/FI", &format!("IMAGENAME eq {image}"), "/FO", "CSV", "/NH"])
+            .args(["/FI", &format!("ImageName eq {name}"), "/NH"])
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .output()
-            .is_ok_and(|out| {
-                let stdout = String::from_utf8_lossy(&out.stdout);
-                stdout.contains(image)
+            .is_ok_and(|o| {
+                !o.stdout.is_empty()
+                    && !o
+                        .stdout
+                        .windows(b"No tasks are running".len())
+                        .any(|w| w == b"No tasks are running")
             })
     }
-    #[cfg(target_os = "linux")]
+}
+
+pub(crate) fn kill_image(name: &str) {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
-        Command::new("pgrep")
-            .args(["-x", image])
+        match Command::new("pkill")
+            .args(["-x", name])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
-            .is_ok_and(|s| s.success())
+        {
+            Ok(s) if s.success() => {}
+            Ok(s) => tracing::warn!(%name, %s, "pkill exited with non-zero status"),
+            Err(e) => tracing::warn!(%name, error = %e, "failed to run pkill"),
+        }
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(windows)]
     {
-        Command::new("sh")
-            .args(["-c", &format!("ps aux | grep '{image}' | grep -v grep")])
+        match Command::new("taskkill")
+            .args(["/F", "/IM", name])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
-            .is_ok_and(|s| s.success())
+        {
+            Ok(s) if s.success() => {}
+            Ok(s) => tracing::warn!(%name, %s, "taskkill exited with non-zero status"),
+            Err(e) => tracing::warn!(%name, error = %e, "failed to run taskkill"),
+        }
     }
 }
 
@@ -67,9 +90,11 @@ fn spawn_macos(_ctx: &AppContext) -> Result<()> {
 #[cfg(windows)]
 fn spawn_windows(ctx: &AppContext) -> Result<()> {
     use std::path::PathBuf;
-    let local_appdata = std::env::var("LOCALAPPDATA").unwrap_or_default();
-    let appx_exe =
-        PathBuf::from(&local_appdata).join("Microsoft").join("WindowsApps").join("Spotify.exe");
+
+    use directories::BaseDirs;
+    let local_appdata =
+        BaseDirs::new().map_or_else(PathBuf::new, |d| d.data_local_dir().to_path_buf());
+    let appx_exe = local_appdata.join("Microsoft").join("WindowsApps").join("Spotify.exe");
 
     if appx_exe.is_file() {
         let dest_apps = ctx.dest_apps_path();
@@ -92,10 +117,62 @@ fn spawn_windows(ctx: &AppContext) -> Result<()> {
 
 #[cfg(target_os = "linux")]
 fn spawn_linux(ctx: &AppContext) -> Result<()> {
-    spawn_binary(ctx)
+    use fork::{Fork, fork, setsid, waitpid};
+
+    let exe = &ctx.spotify_exec;
+    if !exe.is_file() {
+        return Err(anyhow::anyhow!("Spotify executable not found at {}", exe.display()));
+    }
+
+    // Double-fork + setsid: the grandchild is reparented to init,
+    // completely removed from spicetify's process tree.
+    match fork().map_err(|e| anyhow::anyhow!("first fork failed: {e}"))? {
+        Fork::Child => {
+            // Intermediate child: create new session, no controlling terminal.
+            // If setsid fails we're still detached from spicetify and
+            // the second fork will orphan us anyway — safe to continue.
+            if let Err(e) = setsid() {
+                tracing::warn!(error = %e, "setsid failed, continuing detached anyway");
+            }
+            match fork() {
+                Ok(Fork::Child) => {
+                    // Grandchild: fully detached (PPID = 1). Exec Spotify.
+                    use std::os::unix::process::CommandExt;
+                    let mut cmd = Command::new(exe);
+                    let _ = cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+                    let err = cmd.exec();
+                    drop(err);
+                    std::process::exit(1);
+                }
+                Ok(Fork::Parent(_)) => {
+                    // Intermediate child exits immediately.
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("second fork failed: {e}");
+                    std::process::exit(1);
+                }
+            }
+        }
+        Fork::Parent(pid) => {
+            // Original process: reap intermediate child, no zombie.
+            loop {
+                match waitpid(pid) {
+                    Ok(_) => break,
+                    Err(ref e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                    Err(e) => {
+                        tracing::warn!("waitpid for intermediate child failed: {e}");
+                        break;
+                    }
+                }
+            }
+            tracing::info!("Spotify process spawned and detached via double-fork");
+            Ok(())
+        }
+    }
 }
 
-#[cfg(any(windows, target_os = "linux"))]
+#[cfg(windows)]
 fn spawn_binary(ctx: &AppContext) -> Result<()> {
     let exe = &ctx.spotify_exec;
     if !exe.is_file() {
@@ -105,22 +182,20 @@ fn spawn_binary(ctx: &AppContext) -> Result<()> {
     let mut cmd = Command::new(exe);
     let _ = cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
 
-    #[cfg(target_os = "linux")]
-    {
-        use std::os::unix::process::CommandExt;
-        let _ = cmd.process_group(0);
-    }
-    #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
 
-        use windows::Win32::System::Threading::{CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW};
-        let _ = cmd.creation_flags((CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP).0);
+        use windows::Win32::System::Threading::{
+            CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, DETACHED_PROCESS
+        };
+        let _ =
+            cmd.creation_flags((CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS).0);
     }
 
-    let _ = cmd
+    let child = cmd
         .spawn()
         .map_err(|e| anyhow::anyhow!("process spawn failed for {}: {e}", exe.display()))?;
+    std::mem::forget(child);
     tracing::info!("Spotify process spawned and detached");
     Ok(())
 }
@@ -128,74 +203,10 @@ fn spawn_binary(ctx: &AppContext) -> Result<()> {
 pub fn force_kill_spotify(ctx: &AppContext) {
     let image = ctx.spotify_exec.file_name().and_then(|s| s.to_str()).unwrap_or("Spotify");
 
-    if !is_spotify_running(image) {
+    if !process_running(image) {
         return;
     }
 
-    #[cfg(windows)]
-    {
-        tracing::info!("force-killing Spotify processes");
-        let result = Command::new("taskkill")
-            .args(["/F", "/IM", image, "/T"])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-        match result {
-            Ok(s) if !s.success() => {
-                tracing::debug!("taskkill /F /IM {image} exited with {s}");
-            }
-            Err(e) => tracing::warn!(error = %e, "failed to run taskkill"),
-            _ => {}
-        }
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        tracing::info!("force-killing Spotify processes");
-
-        let exe_path = ctx.spotify_exec.to_string_lossy();
-
-        let by_name = Command::new("pkill")
-            .args(["-KILL", "-x", image])
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .output();
-
-        let by_full = Command::new("pkill")
-            .args(["-KILL", "-f", &exe_path])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-
-        match by_name {
-            Ok(out) if !out.status.success() => {
-                let stderr = String::from_utf8_lossy(&out.stderr);
-                tracing::debug!("pkill -KILL -x {image}: {stderr}");
-            }
-            Err(e) => tracing::warn!(error = %e, "failed to run pkill -KILL -x"),
-            _ => {}
-        }
-        match by_full {
-            Ok(s) if !s.success() => {
-                tracing::debug!("pkill -KILL -f {exe_path} exited with {s}");
-            }
-            Err(e) => tracing::warn!(error = %e, "failed to run pkill -KILL -f"),
-            _ => {}
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        tracing::info!("force-killing Spotify processes");
-        let result = Command::new("pkill")
-            .args(["-x", "-KILL", image])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
-        match result {
-            Ok(s) if !s.success() => tracing::debug!("pkill -x -KILL {image} exited with {s}"),
-            Err(e) => tracing::warn!(error = %e, "failed to run pkill"),
-            _ => {}
-        }
-    }
+    tracing::info!("force-killing Spotify processes");
+    kill_image(image);
 }

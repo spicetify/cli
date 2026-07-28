@@ -19,7 +19,6 @@ ProductName = "Spicetify"
 [dependencies]
 spicetify = { path = "../spicetify" }
 anyhow = { workspace = true }
-color-eyre = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true }
 notify = { workspace = true }

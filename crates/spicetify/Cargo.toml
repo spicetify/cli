@@ -33,6 +33,9 @@ opener = { workspace = true }
 tokio = { workspace = true, features = ["fs", "io-util"] }
 tokio-stream = { workspace = true }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+fork = { workspace = true }
+
 [target.'cfg(windows)'.dependencies]
 windows = { workspace = true }
 windows-registry = { workspace = true }

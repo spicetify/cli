@@ -21,7 +21,9 @@ pub fn start(ctx: &AppContext) -> Result<()> {
 pub fn stop(ctx: &AppContext) -> Result<()> {
     tracing::info!("{}", fl!("spotify-stopping"));
     crate::process::force_kill_spotify(ctx);
-    wait_for(ctx, false, SHUTDOWN_TIMEOUT)?;
+    if let Err(e) = wait_for(ctx, false, SHUTDOWN_TIMEOUT) {
+        tracing::warn!("{e}");
+    }
     Ok(())
 }
 
@@ -35,7 +37,7 @@ pub fn is_running(ctx: &AppContext) -> bool {
     let Some(image) = ctx.spotify_exec.file_name().and_then(|s| s.to_str()) else {
         return false;
     };
-    crate::process::is_spotify_running(image)
+    crate::process::process_running(image)
 }
 
 fn wait_for(ctx: &AppContext, expect_running: bool, timeout: Duration) -> Result<()> {

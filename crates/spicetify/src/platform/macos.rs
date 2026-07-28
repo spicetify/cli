@@ -20,8 +20,11 @@ pub(crate) fn spotify_exec() -> PathBuf {
 }
 
 pub(crate) fn offline_bnk_dir() -> PathBuf {
-    PathBuf::from(std::env::var("HOME").unwrap_or_default())
-        .join("Library/Application Support/Spotify/PersistentCache")
+    directories::BaseDirs::new()
+        .expect("unable to determine home directory")
+        .data_dir()
+        .join("Spotify")
+        .join("PersistentCache")
 }
 
 pub(crate) fn portable_config_dir() -> Option<PathBuf> {

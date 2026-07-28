@@ -15,7 +15,6 @@ const SCROLL_STEP: usize = 3;
 pub(crate) enum MenuAction {
     Apply,
     Restore,
-    Init,
     Sync,
     Dev,
     Config,
@@ -36,8 +35,7 @@ impl MenuAction {
     pub(crate) fn label(self) -> String {
         match self {
             Self::Apply => fl!("tui-mn-apply"),
-            Self::Restore => fl!("tui-mn-fix"),
-            Self::Init => fl!("tui-mn-init"),
+            Self::Restore => fl!("tui-mn-restore"),
             Self::Sync => fl!("tui-mn-sync"),
             Self::Dev => fl!("tui-mn-dev"),
             Self::Config => fl!("tui-mn-config"),
@@ -58,8 +56,7 @@ impl MenuAction {
     pub(crate) fn description(self) -> String {
         match self {
             Self::Apply => fl!("tui-mn-apply-desc"),
-            Self::Restore => fl!("tui-mn-fix-desc"),
-            Self::Init => fl!("tui-mn-init-desc"),
+            Self::Restore => fl!("tui-mn-restore-desc"),
             Self::Sync => fl!("tui-mn-sync-desc"),
             Self::Dev => fl!("tui-mn-dev-desc"),
             Self::Config => fl!("tui-mn-config-desc"),
@@ -81,7 +78,6 @@ impl MenuAction {
         match self {
             Self::Apply => Command::Apply,
             Self::Restore => Command::Restore,
-            Self::Init => Command::Init,
             Self::Sync => Command::Sync(SyncTarget::Auto),
             Self::Dev => Command::Dev,
             Self::Config => Command::Config(ConfigAction::Show),
@@ -148,13 +144,7 @@ impl MenuCategory {
 pub(crate) const CATEGORIES: &[MenuCategory] = &[
     MenuCategory {
         id: CategoryId::Patching,
-        actions: &[
-            MenuAction::Apply,
-            MenuAction::Restore,
-            MenuAction::Init,
-            MenuAction::Sync,
-            MenuAction::Dev,
-        ],
+        actions: &[MenuAction::Apply, MenuAction::Restore, MenuAction::Sync, MenuAction::Dev],
     },
     MenuCategory {
         id: CategoryId::Pkg,

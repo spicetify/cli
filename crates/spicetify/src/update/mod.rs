@@ -15,8 +15,8 @@ use crate::error::Result;
 const GITHUB_API: &str = "https://api.github.com/repos/veryboringhwl/app/releases/latest";
 
 fn http_client() -> Result<reqwest::Client> {
-    let mut headers = reqwest::header::HeaderMap::new();
     let ua = format!("spicetify/{}", crate::VERSION);
+    let mut headers = reqwest::header::HeaderMap::new();
     let _ = headers.insert(
         reqwest::header::USER_AGENT,
         reqwest::header::HeaderValue::from_str(&ua).expect("valid user agent"),
@@ -26,18 +26,11 @@ fn http_client() -> Result<reqwest::Client> {
         reqwest::header::HeaderValue::from_static("application/vnd.github.v3+json"),
     );
 
-    let mut builder =
-        reqwest::Client::builder().default_headers(headers).timeout(Duration::from_secs(15));
-
-    if let Ok(token) = std::env::var("GITHUB_TOKEN")
-        && let Ok(val) = reqwest::header::HeaderValue::from_str(&format!("Bearer {token}"))
-    {
-        let mut h = reqwest::header::HeaderMap::new();
-        let _ = h.insert(reqwest::header::AUTHORIZATION, val);
-        builder = builder.default_headers(h);
-    }
-
-    builder.build().map_err(Into::into)
+    reqwest::Client::builder()
+        .default_headers(headers)
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(Into::into)
 }
 
 pub async fn check_for_update() -> Result<Option<ReleaseInfo>> {
@@ -161,31 +154,33 @@ fn replace_binary(new: &Path, target: &Path) -> Result<()> {
         tracing::warn!(error = %e, "failed to remove old backup");
     }
 
-    if cfg!(windows) {
-        std::fs::rename(target, &backup).with_context(|| {
-            format!(
-                "failed to rename {} to {}; close other processes holding a lock",
-                target.display(),
-                backup.display()
-            )
-        })?;
-    } else {
-        std::fs::remove_file(target)
-            .with_context(|| format!("failed to remove {}", target.display()))?;
-    }
+    std::fs::rename(target, &backup).with_context(|| {
+        format!(
+            "failed to rename {} to {}; close other processes holding a lock",
+            target.display(),
+            backup.display()
+        )
+    })?;
 
     if let Err(e) = std::fs::rename(new, target) {
+        let _ = std::fs::rename(&backup, target);
+
         let _ = std::fs::copy(new, target).with_context(|| {
             format!(
-                "failed to copy {} to {} (rename also failed: {e})",
+                "failed to copy {} to {} after rename failed ({e}); target {}",
                 new.display(),
-                target.display()
+                target.display(),
+                if target.exists() { "restored from backup" } else { "lost" },
             )
         })?;
+
+        tracing::warn!("rename failed ({e}), used copy instead");
         if let Err(e) = std::fs::remove_file(new) {
             tracing::warn!(error = %e, "failed to remove staged binary after copy");
         }
     }
+
+    let _ = std::fs::remove_file(&backup);
 
     #[cfg(unix)]
     {

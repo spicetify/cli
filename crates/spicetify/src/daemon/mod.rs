@@ -56,43 +56,5 @@ pub fn shutdown_daemon() {
 fn force_kill_daemon() {
     let name = daemon_binary_name();
     tracing::info!("ensuring daemon is stopped");
-    #[cfg(windows)]
-    {
-        match std::process::Command::new("taskkill")
-            .args(["/F", "/IM", name])
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-        {
-            Ok(s) if !s.success() => tracing::debug!("taskkill exited with {s}"),
-            Err(e) => tracing::warn!(error = %e, "failed to run taskkill"),
-            _ => {}
-        }
-    }
-    #[cfg(target_os = "macos")]
-    {
-        match std::process::Command::new("pkill")
-            .args(["-x", "-KILL", name])
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-        {
-            Ok(s) if !s.success() => tracing::debug!("pkill exited with {s}"),
-            Err(e) => tracing::warn!(error = %e, "failed to run pkill"),
-            _ => {}
-        }
-    }
-    #[cfg(target_os = "linux")]
-    {
-        match std::process::Command::new("killall")
-            .args(["-s", "KILL", "-q", name])
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-        {
-            Ok(s) if !s.success() => tracing::debug!("killall exited with {s}"),
-            Err(e) => tracing::warn!(error = %e, "failed to run killall"),
-            _ => {}
-        }
-    }
+    crate::process::kill_image(name);
 }

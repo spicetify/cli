@@ -1,5 +1,58 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use std::process::Command;
 use std::sync::LazyLock;
+
+use tracing;
+
+struct SpotifyPackage {
+    family_name: String,
+    install_location: PathBuf,
+}
+
+static SPOTIFY_PACKAGE: LazyLock<Option<SpotifyPackage>> = LazyLock::new(|| {
+    let output = match Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-Command",
+            "$p=Get-AppxPackage -Name 'SpotifyAB.SpotifyMusic'; if($p){$p.InstallLocation; \
+             $p.PackageFamilyName}",
+        ])
+        .output()
+    {
+        Ok(o) => o,
+        Err(e) => {
+            tracing::warn!("failed to run Get-AppxPackage: {e}");
+            return None;
+        }
+    };
+
+    if !output.status.success() {
+        tracing::debug!("Get-AppxPackage exited with non-zero status");
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut lines = stdout.lines().map(str::trim).filter(|l| !l.is_empty());
+
+    let Some(path) = lines.next() else {
+        tracing::debug!("SpotifyAB.SpotifyMusic package not found via Get-AppxPackage");
+        return None;
+    };
+
+    let Some(family) = lines.next() else {
+        tracing::warn!("Get-AppxPackage returned install location but no family name");
+        return None;
+    };
+
+    let exe = PathBuf::from(path).join("Spotify.exe");
+    if !exe.is_file() {
+        tracing::warn!("Spotify.exe not found in Store install dir: {}", exe.display());
+        return None;
+    }
+
+    tracing::info!("detected Spotify (Store) at {}", path);
+    Some(SpotifyPackage { family_name: family.to_string(), install_location: PathBuf::from(path) })
+});
 
 enum Variant {
     Normal,
@@ -7,44 +60,33 @@ enum Variant {
 }
 
 static VARIANT: LazyLock<Variant> = LazyLock::new(|| {
-    static MS_STORE_CHECK: LazyLock<bool> = LazyLock::new(|| {
-        std::process::Command::new("powershell.exe")
-            .args([
-                "-NoProfile",
-                "-NonInteractive",
-                "(Get-AppxPackage | Where-Object -Property Name -Eq \
-                 \"SpotifyAB.SpotifyMusic\").InstallLocation",
-            ])
-            .output()
-            .is_ok_and(|o| {
-                let dir = String::from_utf8_lossy(&o.stdout).trim().to_string();
-                !dir.is_empty() && Path::new(&dir).join("Spotify.exe").is_file()
-            })
-    });
+    if SPOTIFY_PACKAGE.is_some() {
+        tracing::info!("selected MsStore variant");
+        return Variant::MsStore;
+    }
 
-    if std::env::var("APPDATA")
-        .is_ok_and(|d| Path::new(&d).join("Spotify").join("Spotify.exe").is_file())
-    {
+    let dirs = directories::BaseDirs::new();
+    if dirs.is_some_and(|d| {
+        let p = d.data_dir().join("Spotify").join("Spotify.exe");
+        let exists = p.is_file();
+        if exists {
+            tracing::info!("detected Spotify (Desktop) at {}", p.display());
+        }
+        exists
+    }) {
+        tracing::info!("selected Normal variant");
         return Variant::Normal;
     }
 
-    if *MS_STORE_CHECK {
-        return Variant::MsStore;
-    }
+    tracing::warn!("could not detect Spotify installation, defaulting to Normal variant");
     Variant::Normal
 });
 
 pub(crate) fn spicetify_config_dir() -> PathBuf {
-    if let Ok(local) = std::env::var("LOCALAPPDATA") {
-        return PathBuf::from(local).join("Spicetify");
-    }
-    directories::UserDirs::new()
-        .expect("unable to determine home directory")
-        .home_dir()
-        .to_path_buf()
-        .join("AppData")
-        .join("Local")
-        .join("Spicetify")
+    directories::BaseDirs::new().map_or_else(
+        || PathBuf::from(r"C:\Users\Default\AppData\Local\Spicetify"),
+        |d| d.data_local_dir().join("Spicetify"),
+    )
 }
 
 pub(crate) const fn spotify_binary_name() -> &'static str {
@@ -53,106 +95,50 @@ pub(crate) const fn spotify_binary_name() -> &'static str {
 
 pub(crate) fn spotify_data_dir() -> PathBuf {
     match &*VARIANT {
-        Variant::Normal => {
-            if let Ok(roaming) = std::env::var("APPDATA") {
-                PathBuf::from(roaming).join("Spotify")
-            } else {
-                PathBuf::from("C:/Users/Default/AppData/Roaming/Spotify")
-            }
-        }
-        Variant::MsStore => {
-            static FAMILY_NAME: LazyLock<Option<String>> = LazyLock::new(|| {
-                let output = std::process::Command::new("powershell.exe")
-                    .args([
-                        "-NoProfile",
-                        "-NonInteractive",
-                        "(Get-AppxPackage | Where-Object -Property Name -Eq \
-                         \"SpotifyAB.SpotifyMusic\").PackageFamilyName",
-                    ])
-                    .output()
-                    .ok()?;
-                let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if name.is_empty() { None } else { Some(name) }
-            });
-
-            let name =
-                FAMILY_NAME.clone().expect("MsStore variant set but no family name available");
-            if let Ok(local) = std::env::var("LOCALAPPDATA") {
-                PathBuf::from(local).join("Packages").join(name).join("LocalState").join("Spotify")
-            } else {
-                PathBuf::from("C:/Users/Default/AppData/Local/Spotify")
-            }
-        }
+        Variant::Normal => directories::BaseDirs::new().map_or_else(
+            || PathBuf::from(r"C:\Users\Default\AppData\Roaming\Spotify"),
+            |d| d.data_dir().join("Spotify"),
+        ),
+        Variant::MsStore => SPOTIFY_PACKAGE
+            .as_ref()
+            .expect("MsStore variant set but no install dir available")
+            .install_location
+            .clone(),
     }
 }
 
 pub(crate) fn spotify_exec() -> PathBuf {
     match &*VARIANT {
-        Variant::Normal => {
-            if let Ok(roaming) = std::env::var("APPDATA") {
-                PathBuf::from(roaming).join("Spotify").join("Spotify.exe")
-            } else {
-                PathBuf::from("C:/Users/Default/AppData/Roaming/Spotify/Spotify.exe")
-            }
-        }
+        Variant::Normal => directories::BaseDirs::new().map_or_else(
+            || PathBuf::from(r"C:\Users\Default\AppData\Roaming\Spotify\Spotify.exe"),
+            |d| d.data_dir().join("Spotify").join("Spotify.exe"),
+        ),
         Variant::MsStore => {
-            static INSTALL_DIR: LazyLock<Option<PathBuf>> = LazyLock::new(|| {
-                let output = std::process::Command::new("powershell.exe")
-                    .args([
-                        "-NoProfile",
-                        "-NonInteractive",
-                        "(Get-AppxPackage | Where-Object -Property Name -Eq \
-                         \"SpotifyAB.SpotifyMusic\").InstallLocation",
-                    ])
-                    .output()
-                    .ok()?;
-                let dir = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if dir.is_empty() || !Path::new(&dir).join("Spotify.exe").is_file() {
-                    return None;
-                }
-                Some(PathBuf::from(dir))
-            });
-
-            INSTALL_DIR
-                .clone()
-                .expect("MsStore variant set but no install dir available")
-                .join("Spotify.exe")
+            let local = directories::BaseDirs::new()
+                .map_or_else(PathBuf::new, |d| d.data_local_dir().to_path_buf());
+            local.join("Microsoft").join("WindowsApps").join("Spotify.exe")
         }
     }
 }
 
 pub(crate) fn offline_bnk_dir() -> PathBuf {
     match &*VARIANT {
-        Variant::Normal => {
-            if let Ok(local) = std::env::var("LOCALAPPDATA") {
-                PathBuf::from(local).join("Spotify")
-            } else {
-                PathBuf::from("C:/Users/Default/AppData/Local/Spotify")
-            }
-        }
-        Variant::MsStore => {
-            static FAMILY_NAME: LazyLock<Option<String>> = LazyLock::new(|| {
-                let output = std::process::Command::new("powershell.exe")
-                    .args([
-                        "-NoProfile",
-                        "-NonInteractive",
-                        "(Get-AppxPackage | Where-Object -Property Name -Eq \
-                         \"SpotifyAB.SpotifyMusic\").PackageFamilyName",
-                    ])
-                    .output()
-                    .ok()?;
-                let name = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if name.is_empty() { None } else { Some(name) }
-            });
-
-            let name =
-                FAMILY_NAME.clone().expect("MsStore variant set but no family name available");
-            if let Ok(local) = std::env::var("LOCALAPPDATA") {
-                PathBuf::from(local).join("Packages").join(name).join("LocalState").join("Spotify")
-            } else {
-                PathBuf::from("C:/Users/Default/AppData/Local/Spotify")
-            }
-        }
+        Variant::Normal => directories::BaseDirs::new().map_or_else(
+            || PathBuf::from(r"C:\Users\Default\AppData\Local\Spotify"),
+            |d| d.data_local_dir().join("Spotify"),
+        ),
+        Variant::MsStore => directories::BaseDirs::new().map_or_else(
+            || PathBuf::from(r"C:\Users\Default\AppData\Local\Spotify"),
+            |d| {
+                let pkg =
+                    SPOTIFY_PACKAGE.as_ref().expect("MsStore variant set but no package info");
+                d.data_local_dir()
+                    .join("Packages")
+                    .join(&pkg.family_name)
+                    .join("LocalState")
+                    .join("Spotify")
+            },
+        ),
     }
 }
 

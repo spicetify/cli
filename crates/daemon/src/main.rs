@@ -11,7 +11,10 @@ pub mod watcher;
 
 fn main() {
     spicetify::locale::localize();
-    let _ = color_eyre::install();
+
+    std::panic::set_hook(Box::new(|info| {
+        tracing::error!("panic: {info}");
+    }));
 
     let config_root = spicetify::platform::default_spicetify_config_dir();
     let log_path = config_root.join("daemon.log");
