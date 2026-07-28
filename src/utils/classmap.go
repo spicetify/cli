@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -198,6 +199,57 @@ func ClassmapSearchDirs() []string {
 // under ClassmapSearchDirs().
 func FindClassmapFile(classmapKey string) (string, error) {
 	return FindClassmapFileIn(classmapKey, ClassmapSearchDirs())
+}
+
+// ResolveClassmapKey resolves which classmap key to actually use for a
+// requested key. The exact key wins when present; otherwise the nearest LOWER
+// key WITHIN THE SAME major.minor (a patch-level fallback) is used, so a
+// Spotify patch that shipped without its own verified classmap still applies
+// against the closest older map and degrade-not-destroy absorbs whatever
+// drifted -- v2's "small releases just keep working" resilience, restored and
+// cross-platform (it needs no updater control, so it also covers Linux where
+// update-blocking cannot). The same-minor guard stops a minor/major bump from
+// blindly reusing an unrelated map. Returns (resolvedKey, isFallback, error);
+// error only when nothing at or below the request in the same major.minor
+// exists.
+func ResolveClassmapKey(requestedKey string) (string, bool, error) {
+	return ResolveClassmapKeyIn(requestedKey, ClassmapSearchDirs())
+}
+
+// ResolveClassmapKeyIn is ResolveClassmapKey against explicit roots (testable).
+func ResolveClassmapKeyIn(requestedKey string, roots []string) (string, bool, error) {
+	// Exact match wins and does not depend on the key parsing as an int.
+	if _, err := FindClassmapFileIn(requestedKey, roots); err == nil {
+		return requestedKey, false, nil
+	}
+	req, err := strconv.Atoi(strings.TrimSpace(requestedKey))
+	if err != nil {
+		return "", false, fmt.Errorf("invalid classmap key %q for fallback", requestedKey)
+	}
+	group := req / 10000 // major.minor bucket; the low 4 digits are the patch
+	bestKey, bestVal := "", -1
+	for _, root := range roots {
+		entries, err := os.ReadDir(root)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if !e.IsDir() {
+				continue
+			}
+			k, err := strconv.Atoi(e.Name())
+			if err != nil || k/10000 != group || k > req || k <= bestVal {
+				continue
+			}
+			if _, err := FindClassmapFileIn(e.Name(), []string{root}); err == nil {
+				bestVal, bestKey = k, e.Name()
+			}
+		}
+	}
+	if bestKey == "" {
+		return "", false, fmt.Errorf("no classmap at or below key %s within the same Spotify minor", requestedKey)
+	}
+	return bestKey, true, nil
 }
 
 // FindClassmapFileIn searches the given roots in order and returns the best

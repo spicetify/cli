@@ -264,3 +264,48 @@ func TestLoadCssMapOverlayRejectsEmptyEntries(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveClassmapKeyIn(t *testing.T) {
+	root := t.TempDir()
+	mk := func(key string) {
+		dir := filepath.Join(root, key)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "classmap.json"), []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mk("1020092") // 1.2.92
+	mk("1020094") // 1.2.94
+	mk("1010040") // 1.1.40 - different minor, must never be a fallback for 1.2.x
+	roots := []string{root}
+
+	cases := []struct {
+		name    string
+		req     string
+		wantKey string
+		wantFB  bool
+		wantErr bool
+	}{
+		{"exact match wins", "1020094", "1020094", false, false},
+		{"patch fallback to nearest lower", "1020095", "1020094", true, false},
+		{"nearest-lower skips a higher key", "1020093", "1020092", true, false},
+		{"no fallback across a new minor", "1030000", "", false, true},
+		{"no fallback below everything in the minor", "1020010", "", false, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			key, fb, err := ResolveClassmapKeyIn(tc.req, roots)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got key=%q fb=%v", key, fb)
+				}
+				return
+			}
+			if err != nil || key != tc.wantKey || fb != tc.wantFB {
+				t.Fatalf("got key=%q fb=%v err=%v; want key=%q fb=%v", key, fb, err, tc.wantKey, tc.wantFB)
+			}
+		})
+	}
+}
