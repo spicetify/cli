@@ -22,7 +22,7 @@ func EditConfig(args []string) {
 			arrayType(featureSection, field, value)
 		case "spotify_launch_flags":
 			// not editable via config command
-		case "prefs_path", "spotify_path", "current_theme", "color_scheme":
+		case "prefs_path", "spotify_path", "current_theme", "color_scheme", "update_policy", "support_feed_url":
 			stringType(settingSection, field, value)
 		case "vault_urls":
 			stringType(moduleSection, field, value)

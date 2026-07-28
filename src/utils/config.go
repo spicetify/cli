@@ -26,6 +26,7 @@ var (
 			"check_spicetify_update": "1",
 			"spotify_version_check":  "1",
 			"block_spotify_updates":  "0",
+			"support_feed_url":       "",
 			"always_enable_devtools": "0",
 		},
 		"Preprocesses": {
