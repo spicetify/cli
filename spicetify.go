@@ -580,9 +580,16 @@ spotify_version_check <0 | 1>
     Disable only if you accept that the client may break.
 
 block_spotify_updates <0 | 1>
-    Pin the current Spotify version: every apply re-blocks Spotify
-    updates, so the client only updates when you deliberately run
-    "spicetify spotify-updates unblock".
+    Legacy pin switch. Honored only when update_policy is unset; prefer
+    update_policy=block. Kept for backward compatibility.
+
+update_policy <gate | block | allow>
+    How Spotify self-updates are handled (default: gate).
+      gate  - hold the current version while the newest available Spotify
+              is unsupported, then auto-unblock once Spicetify ships a
+              verified classmap for it (stay current, never break).
+      block - always freeze on the current version.
+      allow - never block; let Spotify update freely.
 
 ` + utils.Bold("[Preprocesses]") + `
 disable_sentry <0 | 1>
