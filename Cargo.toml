@@ -18,7 +18,6 @@ thiserror = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 toml = "1.1"
-
 tokio = { version = "1.52", features = [
   "rt",
   "rt-multi-thread",
@@ -36,39 +35,30 @@ reqwest = { version = "0.13", default-features = false, features = [
   "stream",
 ] }
 tokio-stream = "0.1"
-
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
 directories = "6.0"
 notify = "9.0.0-rc.4"
 fs4 = "1.1"
 arc-swap = "1.9"
 regex = "1.13"
-
 url = "2.5"
 percent-encoding = "2.3"
 semver = "1.0"
-
 zip = "8.6"
 tar = "0.4"
 sha2 = "0.11"
 hex = "0.4"
 zstd = "0.13"
-
 i18n-embed = { version = "0.16", features = ["fluent-system", "desktop-requester"] }
 i18n-embed-fl = "0.10"
 rust-embed = { version = "8.12", features = ["interpolate-folder-path"] }
-
 clap = { version = "4.6", features = ["derive", "wrap_help"] }
-
 ratatui = "0.30"
 crossterm = { version = "0.29", features = ["event-stream"] }
-
 opener = "0.8"
-
+fork = "0.10"
 color-eyre = "0.6"
-
 windows = { version = "0.62", features = [
   "Win32_System_Threading",
   "Win32_System_Kernel",

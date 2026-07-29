@@ -70,7 +70,8 @@ install_macos() {
 
 install_linux() {
 	bin_dir="$HOME/.local/bin"
-	mkdir -p "$bin_dir"
+	icon_dir="$HOME/.local/share/icons"
+	mkdir -p "$bin_dir" "$icon_dir"
 
 	archive="spicetify-${version}-${arch}-linux.tar.zst"
 	uri="https://github.com/veryboringhwl/app/releases/download/v${version}/${archive}"
@@ -95,16 +96,30 @@ install_linux() {
 	chmod +x "${bin_dir}/spicetify"
 	chmod +x "${bin_dir}/spicetify-daemon"
 
+	# Install custom icon if available
+	icon_path="utilities-terminal"
+	if [ -f "./images/spicetify.png" ]; then
+		cp "./images/spicetify.png" "${icon_dir}/spicetify.png"
+		icon_path="${icon_dir}/spicetify.png"
+	elif [ -f "${temp}/images/spicetify.png" ]; then
+		cp "${temp}/images/spicetify.png" "${icon_dir}/spicetify.png"
+		icon_path="${icon_dir}/spicetify.png"
+	fi
+
 	mkdir -p "$HOME/.local/share/applications"
-	cat > "$HOME/.local/share/applications/spicetify.desktop" << 'DESKTOP_EOF'
+	cat > "$HOME/.local/share/applications/spicetify.desktop" << DESKTOP_EOF
 [Desktop Entry]
 Type=Application
 Name=Spicetify
-Comment=Spicetify CLI
-Icon=utilities-terminal
-Exec=spicetify
+Comment=Customize your Spotify experience
+GenericName=Spotify Customization Tool
+Exec=${bin_dir}/spicetify
+Icon=${icon_path}
 Terminal=true
-Categories=Utility;
+Categories=Audio;Music;Utility;
+Keywords=spotify;customize;theme;plugin;
+StartupNotify=false
+StartupWMClass=spicetify
 DESKTOP_EOF
 
 	install_note=" to ${bin_dir}"

@@ -18,7 +18,13 @@ tar = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
 zstd = { workspace = true }
-reqwest = { workspace = true, default-features = false, features = ["blocking", "json", "rustls", "cookies", "stream"] }
+reqwest = { workspace = true, default-features = false, features = [
+  "blocking",
+  "json",
+  "rustls",
+  "cookies",
+  "stream",
+] }
 url = { workspace = true }
 semver = { workspace = true }
 regex = { workspace = true }
@@ -36,6 +42,6 @@ tokio-stream = { workspace = true }
 [target.'cfg(target_os = "linux")'.dependencies]
 fork = { workspace = true }
 
-[target.'cfg(windows)'.dependencies]
+[target.'cfg(target_os = "windows")'.dependencies]
 windows = { workspace = true }
 windows-registry = { workspace = true }

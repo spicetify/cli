@@ -43,10 +43,10 @@ Copy-Item $daemonExe "dist\portable\spicetify-daemon.exe"
 $outputArch = switch ($platform)
 {
   'x86_64'
-  { 'x64' 
+  { 'x64'
   }
   'aarch64'
-  { 'arm64' 
+  { 'arm64'
   }
 }
 Compress-Archive -Path "dist\portable\*" -DestinationPath "dist\spicetify-$version-windows-$outputArch.zip" -Force
@@ -54,6 +54,7 @@ Remove-Item -LiteralPath "dist\portable" -Recurse -Force
 
 $arch = $outputArch
 
-# Windows runner 2025 default has iscc in PATH
-$innoSetupPath = "C:\Program Files\Inno Setup 7\ISCC.exe"
+# Windows runner 2025 default doesnt have iscc in PATH
+# but it is installed
+$innoSetupPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 & $innoSetupPath /DAppVersion=$version /DArch=$arch /DOutputArch=$outputArch .\installer.iss

@@ -84,7 +84,7 @@ Name: "{app}\bin"
 Root: HKCU; Subkey: "Software\{#AppName}"; ValueType: string; ValueName: "InstallDir"; ValueData: "{app}"; Flags: uninsdeletekey
 
 [Icons]
-Name: "{autoprograms}\Spicetify"; Filename: "wt.exe"; Parameters: "spicetify"; WorkingDir: "{app}"; IconFilename: "{app}\spicetify.ico"
+Name: "{autoprograms}\Spicetify"; Filename: "{app}\bin\spicetify.exe"; WorkingDir: "{app}"; IconFilename: "{app}\spicetify.ico"
 
 [Run]
 Filename: "{app}\bin\spicetify.exe"; Parameters: "init"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Initializing Spicetify..."; Check: IsFreshInstall and not IsUpdating
@@ -94,7 +94,7 @@ Filename: "{app}\bin\spicetify.exe"; Description: "Launch Spicetify"; Flags: now
 [UninstallRun]
 Filename: "{app}\bin\spicetify.exe"; Parameters: "daemon stop"; WorkingDir: "{app}"; Flags: runhidden; RunOnceId: "StopDaemon"
 Filename: "{app}\bin\spicetify.exe"; Parameters: "daemon uninstall"; WorkingDir: "{app}"; Flags: runhidden; RunOnceId: "UninstallDaemon"
-Filename: "{app}\bin\spicetify.exe"; Parameters: "fix"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Reverting Spicetify changes..."; RunOnceId: "FixSpicetify"
+Filename: "{app}\bin\spicetify.exe"; Parameters: "restore"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Reverting Spicetify changes..."; RunOnceId: "RestoreSpicetify"
 
 [Code]
 var

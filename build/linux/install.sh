@@ -3,6 +3,8 @@ set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BIN_DIR="$HOME/.local/bin"
+ICON_DIR="$HOME/.local/share/icons"
+APP_DIR="$HOME/.local/share/applications"
 
 echo "Installing Spicetify to $BIN_DIR..."
 
@@ -11,14 +13,22 @@ cp "$SCRIPT_DIR/spicetify" "$BIN_DIR/spicetify"
 cp "$SCRIPT_DIR/spicetify-daemon" "$BIN_DIR/spicetify-daemon"
 chmod +x "$BIN_DIR/spicetify" "$BIN_DIR/spicetify-daemon"
 
-mkdir -p "$HOME/.local/share/applications"
-cat > "$HOME/.local/share/applications/spicetify.desktop" << 'DESKTOP_EOF'
+# Install app icon
+mkdir -p "$ICON_DIR"
+icon="utilities-terminal"
+if [ -f "$SCRIPT_DIR/../images/spicetify.png" ]; then
+    cp "$SCRIPT_DIR/../images/spicetify.png" "$ICON_DIR/spicetify.png"
+    icon="spicetify"
+fi
+
+mkdir -p "$APP_DIR"
+cat > "$APP_DIR/spicetify.desktop" << DESKTOP_EOF
 [Desktop Entry]
 Type=Application
 Name=Spicetify
-Comment=Spicetify CLI
-Icon=utilities-terminal
+Comment=Make Spotify truly yours
 Exec=spicetify
+Icon=${icon}
 Terminal=true
 Categories=Utility;
 DESKTOP_EOF

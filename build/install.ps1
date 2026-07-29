@@ -60,4 +60,18 @@ Write-Output "Initializing Spicetify..."
 & $Spicetify apply
 
 Write-Output ""
+Write-Output "Creating Start Menu shortcut..."
+
+$Programs = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs"
+if (-not (Test-Path $Programs)) {
+	New-Item -ItemType Directory -Path $Programs -Force | Out-Null
+}
+$WScriptShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WScriptShell.CreateShortcut("$Programs\Spicetify.lnk")
+$Shortcut.TargetPath = "$BinDir\spicetify.exe"
+$Shortcut.WorkingDirectory = "$BinDir"
+$Shortcut.IconLocation = "$BinDir\spicetify.exe"
+$Shortcut.Save()
+
+Write-Output ""
 Write-Output "Done. Run 'spicetify' to get started"
