@@ -252,13 +252,28 @@ async function captureWebpackRequire(maxWaitMs = 30000): Promise<void> {
 
 async function waitForClient(timeoutMs: number): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
+	const spice = () => (globalThis as never as Window).Spicetify as Record<string, any> | undefined;
+	// Base gate: the main view is mounted and the Platform API is up.
 	while (Date.now() < deadline) {
-		if (document.querySelector("main") && (globalThis as never as Window).Spicetify?.Platform) {
-			return true;
-		}
+		if (document.querySelector("main") && spice()?.Platform) break;
 		await new Promise((r) => setTimeout(r, 200));
 	}
-	return false;
+	if (!(document.querySelector("main") && spice()?.Platform)) return false;
+	// Platform lands before the webpack-extracted surface (URI, Mousetrap,
+	// React, ...); a module that touches those at load() time otherwise races
+	// the client and fails to boot. Wait for the client's own webpackLoaded
+	// signal when it exists — it replays for late subscribers, so this resolves
+	// instantly once extraction is done, and is bounded by the same deadline.
+	// Older clients without the signal skip this rather than stalling.
+	const webpackLoaded = spice()?.Events?.webpackLoaded;
+	if (typeof webpackLoaded?.on === "function") {
+		const remaining = Math.max(0, deadline - Date.now());
+		await Promise.race([
+			new Promise<void>((resolve) => webpackLoaded.on(() => resolve())),
+			new Promise<void>((resolve) => setTimeout(resolve, remaining)),
+		]);
+	}
+	return true;
 }
 
 const pendingLocal = new Map<string, { metadata: ModulesManifest["modules"][number]; files: Record<string, string> }>();
