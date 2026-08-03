@@ -156,6 +156,39 @@ func TestModuleMetadataDependenciesArray(t *testing.T) {
 	}
 }
 
+func TestModuleMetadataCompatRoundTrips(t *testing.T) {
+	var m ModuleMetadata
+	raw := `{"name":"stdlib","version":"1.0.0","dependencies":{},"compat":["0.3.0"]}`
+	if err := json.Unmarshal([]byte(raw), &m); err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Compat) != 1 || m.Compat[0] != "0.3.0" {
+		t.Fatalf("compat not parsed: %v", m.Compat)
+	}
+	// The vouch must survive re-marshalling into the manifest, or the
+	// loader never sees it.
+	out, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), `"compat":["0.3.0"]`) {
+		t.Fatalf("compat dropped on marshal: %s", out)
+	}
+	// And omitted entirely when absent, keeping manifests unchanged for
+	// modules that declare nothing.
+	var plainMod ModuleMetadata
+	if err := json.Unmarshal([]byte(`{"name":"x","version":"1.0.0","dependencies":{}}`), &plainMod); err != nil {
+		t.Fatal(err)
+	}
+	out, err = json.Marshal(plainMod)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "compat") {
+		t.Fatalf("empty compat should be omitted: %s", out)
+	}
+}
+
 func TestRewriteFacadeImports(t *testing.T) {
 	dir := t.TempDir()
 	shimmed := map[string]bool{"wpunpk.mix-ABC.js": true}

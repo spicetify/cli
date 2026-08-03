@@ -69,7 +69,12 @@ export class Registry {
 			const depModule = this.modules.get(dep);
 			if (!depModule) return `${identifier} needs ${dep}, which is not installed`;
 			try {
-				if (!satisfies(depModule.version, range)) {
+				// The installed version satisfies the range, or the dependency
+				// vouches for a historical version the range admits (compat) —
+				// the dependency is the party that knows whether its bump broke
+				// anything, not every dependent.
+				const vouched = (v: string) => satisfies(v, range);
+				if (!vouched(depModule.version) && !depModule.compat?.some(vouched)) {
 					return `${identifier} needs ${dep}@${range}, installed is ${depModule.version}`;
 				}
 			} catch (e) {

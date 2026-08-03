@@ -10,6 +10,14 @@ export interface ModuleMetadata {
 	entries: { js?: string; css?: string };
 	hasMixins: boolean;
 	dependencies: Record<string, string>;
+	/**
+	 * Versions this module still answers for, e.g. stdlib 1.0.0 declaring
+	 * ["0.3.0"]. A dependent whose range admits a compat entry loads against
+	 * this version, so bumping a shared dependency does not black out every
+	 * dependent that has not re-declared its range yet. Omit an entry on a
+	 * truly breaking release and the strict refusal returns.
+	 */
+	compat?: string[];
 }
 
 export interface ManifestModule extends ModuleMetadata {

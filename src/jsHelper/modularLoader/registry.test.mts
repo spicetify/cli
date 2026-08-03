@@ -139,6 +139,47 @@ describe("Registry boot", () => {
 		assert.deepEqual(report.loaded, ["base"]);
 	});
 
+	// Compat vouching: a dependency may declare historical versions it still
+	// answers for, so bumping it does not black out every stale dependent.
+	it("loads a dependent whose range the dependency's compat list answers for", async () => {
+		const r = new Registry(
+			manifest([
+				mod("a", "1.0.0", { dependencies: { base: "^0.3.0" } }),
+				mod("base", "1.0.0", { compat: ["0.3.0"] }),
+			]),
+			trackingEffects([]),
+		);
+		const report = await r.boot();
+		assert.deepEqual(report.failed, {});
+		assert.deepEqual(report.loaded.sort(), ["a", "base"]);
+	});
+
+	it("compat does not vouch beyond what it lists", async () => {
+		const r = new Registry(
+			manifest([
+				mod("a", "1.0.0", { dependencies: { base: "^0.2.0" } }),
+				mod("base", "1.0.0", { compat: ["0.3.0"] }),
+			]),
+			trackingEffects([]),
+		);
+		const report = await r.boot();
+		assert.match(report.failed.a, /needs base@\^0\.2\.0/);
+		assert.deepEqual(report.loaded, ["base"]);
+	});
+
+	it("no compat list keeps the strict refusal", async () => {
+		const r = new Registry(
+			manifest([
+				mod("a", "1.0.0", { dependencies: { base: "^0.3.0" } }),
+				mod("base", "1.0.0"),
+			]),
+			trackingEffects([]),
+		);
+		const report = await r.boot();
+		assert.match(report.failed.a, /needs base@\^0\.3\.0/);
+		assert.deepEqual(report.loaded, ["base"]);
+	});
+
 	it("fails dependency cycles", async () => {
 		const r = new Registry(
 			manifest([

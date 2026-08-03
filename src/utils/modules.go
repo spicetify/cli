@@ -19,6 +19,11 @@ type ModuleMetadata struct {
 	Entries      ModuleEntries     `json:"entries"`
 	HasMixins    bool              `json:"hasMixins"`
 	Dependencies map[string]string `json:"dependencies"`
+	// Compat lists historical versions this module still answers for
+	// (e.g. stdlib 1.0.0 declaring ["0.3.0"]); the loader loads dependents
+	// whose declared range admits one of them. Must survive into the
+	// manifest or the loader never sees the vouch.
+	Compat []string `json:"compat,omitempty"`
 }
 
 // UnmarshalJSON tolerates dependencies as either a map or an (empty) array,
