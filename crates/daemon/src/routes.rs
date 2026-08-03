@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
+use axum::Router;
 use axum::extract::State;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{any, get, post};
-use axum::{Json, Router};
 use spicetify::commands::protocol;
 use tokio_stream::StreamExt;
 
 use crate::server::DaemonState;
-use crate::{error, health, proxy};
+use crate::{health, proxy};
 
 pub const ALLOWED_ORIGIN: &str = "https://xpui.app.spotify.com";
 
@@ -19,7 +19,6 @@ pub fn build(state: Arc<DaemonState>) -> Router {
         .route("/health", get(health::handler))
         .route("/rpc", get(ws_handler))
         .route("/shutdown", post(shutdown_handler))
-        .route("/self-update", post(self_update_handler))
         .route("/proxy/{*url}", any(proxy::handler))
         .with_state(state)
 }
@@ -63,36 +62,4 @@ async fn shutdown_handler(State(state): State<Arc<DaemonState>>) -> impl IntoRes
     tracing::info!("{}", spicetify::fl!("shutdown-requested"));
     state.shutdown.notify_waiters();
     (StatusCode::ACCEPTED, spicetify::fl!("daemon-stopping-resp"))
-}
-
-async fn self_update_handler() -> impl IntoResponse {
-    let current_version = spicetify::VERSION;
-
-    match spicetify::update::check_for_update().await {
-        Ok(Some(release)) => {
-            let version = release.version();
-            tracing::info!(%version, %current_version, "self-update check: update available");
-            (
-                StatusCode::OK,
-                Json(serde_json::json!({
-                    "status": "ready",
-                    "version": version,
-                    "current_version": current_version,
-                })),
-            )
-                .into_response()
-        }
-        Ok(None) => {
-            tracing::info!(%current_version, "self-update check: up to date");
-            (
-                StatusCode::OK,
-                Json(serde_json::json!({"status": "up_to_date", "version": current_version})),
-            )
-                .into_response()
-        }
-        Err(e) => {
-            tracing::warn!(error = %e, "self-update check failed");
-            error::from_error(&e)
-        }
-    }
 }

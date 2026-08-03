@@ -2,7 +2,7 @@ use crate::context::AppContext;
 use crate::error::Result;
 use crate::{fl, util};
 
-pub(super) fn execute(ctx: &AppContext) -> Result<()> {
+pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     crate::lifecycle::stop(ctx)?;
 
     let offline_bnk = ctx.offline_bnk_dir.join("offline.bnk");

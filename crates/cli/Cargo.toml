@@ -21,7 +21,6 @@ spicetify = { path = "../spicetify" }
 tui = { path = "../tui" }
 clap = { workspace = true, features = ["derive"] }
 anyhow = { workspace = true }
-color-eyre = { workspace = true }
 i18n-embed-fl = { workspace = true }
 
 [target.'cfg(windows)'.build-dependencies]

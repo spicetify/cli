@@ -1,28 +1,33 @@
+use anyhow::Context;
+
 use crate::error::Result;
 use crate::fl;
 
-pub(crate) fn start() {
-    if let Err(e) = crate::daemon::process::spawn() {
-        tracing::warn!(error = %e, "{}", fl!("failed-spawn-daemon"));
-    } else {
-        tracing::info!("{}", fl!("daemon-starting"));
-    }
+pub(crate) fn start() -> Result<()> {
+    crate::daemon::process::spawn().with_context(|| fl!("failed-spawn-daemon"))?;
+    tracing::info!("{}", fl!("daemon-starting"));
+    Ok(())
 }
 
-pub(crate) fn stop() {
+#[allow(clippy::unnecessary_wraps)]
+pub(crate) fn stop() -> Result<()> {
     crate::daemon::shutdown_daemon();
     tracing::info!("{}", fl!("daemon-stopping-resp"));
+    Ok(())
+}
+
+#[allow(clippy::unnecessary_wraps)]
+pub(crate) fn uninstall() -> Result<()> {
+    crate::daemon::DaemonManager::create().uninstall();
+    Ok(())
 }
 
 pub(crate) fn install() -> Result<()> {
-    Ok(crate::daemon::DaemonManager::create().install()?)
+    crate::daemon::DaemonManager::create().install().map_err(Into::into)
 }
 
-pub(crate) fn uninstall() {
-    crate::daemon::DaemonManager::create().uninstall();
-}
-
-pub(crate) fn status() {
+#[allow(clippy::unnecessary_wraps)]
+pub(crate) fn status() -> Result<()> {
     let running = crate::daemon::is_daemon_running();
     let installed = crate::daemon::DaemonManager::create().is_installed();
 
@@ -30,17 +35,15 @@ pub(crate) fn status() {
         let addr = crate::daemon::bind_addr().to_string();
         tracing::info!("{}", fl!("daemon-running", addr = addr));
         if let Some(health) = crate::daemon::health_check() {
-            if let Some(ver) = health.get("version").and_then(|v| v.as_str()) {
-                tracing::info!("{}", fl!("daemon-status-version", version = ver.to_string()));
-            }
-            if let Some(uptime) = health.get("uptime_secs").and_then(serde_json::Value::as_u64) {
-                tracing::info!("{}", fl!("daemon-status-uptime", uptime = uptime.to_string()));
-            }
-            if let Some(spotify) =
-                health.get("spotify_detected").and_then(serde_json::Value::as_bool)
-            {
-                tracing::info!("{}", fl!("daemon-status-spotify", detected = spotify.to_string()));
-            }
+            tracing::info!("{}", fl!("daemon-status-version", version = health.version));
+            tracing::info!(
+                "{}",
+                fl!("daemon-status-uptime", uptime = health.uptime_secs.to_string())
+            );
+            tracing::info!(
+                "{}",
+                fl!("daemon-status-spotify", detected = health.spotify_detected.to_string())
+            );
         }
     } else {
         tracing::info!("{}", fl!("daemon-not-running-status"));
@@ -51,4 +54,5 @@ pub(crate) fn status() {
     } else {
         tracing::info!("{}", fl!("daemon-auto-start-disabled"));
     }
+    Ok(())
 }

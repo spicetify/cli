@@ -1,9 +1,7 @@
 use std::path::{Path, PathBuf};
 
-fn home_dir() -> PathBuf {
-    directories::UserDirs::new()
-        .map(|u| u.home_dir().to_path_buf())
-        .expect("unable to determine home directory")
+fn base_dirs() -> directories::BaseDirs {
+    directories::BaseDirs::new().expect("unable to determine user directories")
 }
 
 fn is_spotify_dir(path: &Path) -> bool {
@@ -11,8 +9,7 @@ fn is_spotify_dir(path: &Path) -> bool {
 }
 
 pub(crate) fn spicetify_config_dir() -> PathBuf {
-    directories::BaseDirs::new()
-        .map_or_else(|| home_dir().join(".config/spicetify"), |d| d.config_dir().join("spicetify"))
+    base_dirs().config_dir().join("spicetify")
 }
 
 pub(crate) const fn spotify_binary_name() -> &'static str {
@@ -36,7 +33,7 @@ pub(crate) fn spotify_data_dir() -> PathBuf {
         }
     }
 
-    let home = home_dir();
+    let home = base_dirs().home_dir().to_path_buf();
     let p = home.join(
         ".local/share/flatpak/app/com.spotify.Client/x86_64/stable/active/files/extra/share/\
          spotify/",
@@ -57,7 +54,7 @@ pub(crate) fn spotify_exec() -> PathBuf {
 }
 
 pub(crate) fn offline_bnk_dir() -> PathBuf {
-    let home = home_dir();
+    let home = base_dirs().home_dir().to_path_buf();
 
     let snap_home = home.join("snap/spotify/common");
     let home = if snap_home.is_dir() { snap_home } else { home };
@@ -67,10 +64,31 @@ pub(crate) fn offline_bnk_dir() -> PathBuf {
         return flatpak_home.join("cache/spotify");
     }
 
-    directories::BaseDirs::new()
-        .map_or_else(|| home.join(".cache/spotify"), |d| d.cache_dir().join("spotify"))
+    base_dirs().cache_dir().join("spotify")
 }
 
 pub(crate) fn portable_config_dir() -> Option<PathBuf> {
     None
+}
+
+pub(crate) fn register_url_scheme() {
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let Some(base_dirs) = directories::BaseDirs::new() else {
+        return;
+    };
+    let apps_dir = base_dirs.home_dir().join(".local/share/applications");
+    if let Err(e) = std::fs::create_dir_all(&apps_dir) {
+        tracing::warn!(error = %e, "failed to create applications dir for URL scheme");
+        return;
+    }
+    let desktop = format!(
+        "[Desktop Entry]\nType=Application\nName=Spicetify Protocol Handler\nExec={} protocol \
+         %u\nStartupNotify=false\nMimeType=x-scheme-handler/spicetify;\nNoDisplay=true\n",
+        exe.display()
+    );
+    if let Err(e) = std::fs::write(apps_dir.join("spicetify-protocol.desktop"), desktop) {
+        tracing::warn!(error = %e, "failed to write desktop file for URL scheme");
+    }
 }

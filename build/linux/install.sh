@@ -73,7 +73,7 @@ export PATH="$BIN_DIR:$PATH"
 
 echo ""
 echo "Initializing Spicetify..."
-"$BIN_DIR/spicetify" init
+"$BIN_DIR/spicetify" init --yes
 "$BIN_DIR/spicetify" apply
 
 echo ""

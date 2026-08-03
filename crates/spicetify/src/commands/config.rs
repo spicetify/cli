@@ -2,7 +2,8 @@ use crate::context::AppContext;
 use crate::error::Result;
 use crate::fl;
 
-pub(crate) fn run(ctx: &AppContext) {
+#[allow(clippy::unnecessary_wraps)]
+pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     tracing::info!("{}", fl!("config-mirror", value = if ctx.mirror { "true" } else { "false" }));
     tracing::info!("{}", fl!("config-file", path = ctx.config_file.to_string_lossy()));
     tracing::info!("{}", fl!("config-root", path = ctx.config_root.to_string_lossy()));
@@ -15,6 +16,7 @@ pub(crate) fn run(ctx: &AppContext) {
         "{}",
         fl!("config-offline-bnk-dir", path = ctx.offline_bnk_dir.to_string_lossy())
     );
+    Ok(())
 }
 
 pub(crate) fn open_folder(ctx: &AppContext) -> Result<()> {

@@ -57,58 +57,87 @@ impl HookSet {
 }
 
 const CACHE_TTL: Duration = Duration::from_secs(30);
+const GITHUB_RELEASES_URL: &str = "https://api.github.com/repos/veryboringhwl/hooks/releases";
 
-static HTTP_CLIENT: LazyLock<reqwest::blocking::Client> = LazyLock::new(|| {
-    reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .user_agent("spicetify")
-        .build()
-        .expect("failed to create HTTP client")
+static BLOCKING_CLIENT: LazyLock<reqwest::blocking::Client> = LazyLock::new(|| {
+    crate::http::blocking_client(30).expect("failed to create blocking HTTP client")
 });
 
-static ASYNC_HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
-    reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .user_agent("spicetify")
-        .build()
-        .expect("failed to create async HTTP client")
-});
+static ASYNC_CLIENT: LazyLock<reqwest::Client> =
+    LazyLock::new(|| crate::http::client(30).expect("failed to create async HTTP client"));
 
 type CacheEntry = Option<(Instant, Vec<HookSet>)>;
 
 static HOOK_SETS_CACHE: LazyLock<Mutex<CacheEntry>> = LazyLock::new(|| Mutex::new(None));
 
 #[must_use]
-pub fn http_client() -> &'static reqwest::blocking::Client {
-    &HTTP_CLIENT
+pub fn blocking_client() -> &'static reqwest::blocking::Client {
+    &BLOCKING_CLIENT
 }
 
-pub fn fetch_hook_sets() -> Result<Vec<HookSet>, anyhow::Error> {
+fn check_cache() -> Option<Vec<HookSet>> {
     if let Ok(cache) = HOOK_SETS_CACHE.lock()
         && let Some((fetched_at, sets)) = &*cache
         && fetched_at.elapsed() < CACHE_TTL
     {
-        return Ok(sets.clone());
+        Some(sets.clone())
+    } else {
+        None
     }
+}
 
-    let response = HTTP_CLIENT
-        .get("https://api.github.com/repos/veryboringhwl/hooks/releases?per_page=10")
-        .send()
-        .map_err(|e| anyhow::anyhow!("failed to fetch releases: {e}"))?;
-
-    let releases: Vec<GitHubRelease> =
-        response.json().map_err(|e| anyhow::anyhow!("failed to parse releases: {e}"))?;
-
-    let sets: Vec<HookSet> = releases.iter().filter_map(parse_release).collect();
-
+fn store_cache(sets: &[HookSet]) {
     if let Ok(mut cache) = HOOK_SETS_CACHE.lock() {
-        *cache = Some((Instant::now(), sets.clone()));
+        *cache = Some((Instant::now(), sets.to_vec()));
     }
+}
 
+fn parse_releases(bytes: &[u8]) -> Result<Vec<HookSet>, anyhow::Error> {
+    let releases: Vec<GitHubRelease> = serde_json::from_slice(bytes)
+        .map_err(|e| anyhow::anyhow!("failed to parse releases: {e}"))?;
+    Ok(releases.iter().filter_map(parse_release_entry).collect())
+}
+
+fn process_response(bytes: &[u8]) -> Result<Vec<HookSet>, anyhow::Error> {
+    let sets = parse_releases(bytes)?;
+    store_cache(&sets);
     Ok(sets)
 }
 
-fn parse_release(release: &GitHubRelease) -> Option<HookSet> {
+pub fn fetch_hook_sets() -> Result<Vec<HookSet>, anyhow::Error> {
+    if let Some(sets) = check_cache() {
+        return Ok(sets);
+    }
+
+    let response = BLOCKING_CLIENT
+        .get(GITHUB_RELEASES_URL)
+        .send()
+        .map_err(|e| anyhow::anyhow!("failed to fetch releases: {e}"))?;
+
+    let bytes =
+        response.bytes().map_err(|e| anyhow::anyhow!("failed to read release body: {e}"))?;
+
+    process_response(&bytes)
+}
+
+pub async fn fetch_hook_sets_async() -> Result<Vec<HookSet>, anyhow::Error> {
+    if let Some(sets) = check_cache() {
+        return Ok(sets);
+    }
+
+    let response = ASYNC_CLIENT
+        .get(GITHUB_RELEASES_URL)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("failed to fetch releases: {e}"))?;
+
+    let bytes =
+        response.bytes().await.map_err(|e| anyhow::anyhow!("failed to read release body: {e}"))?;
+
+    process_response(&bytes)
+}
+
+fn parse_release_entry(release: &GitHubRelease) -> Option<HookSet> {
     let body = release.body.as_deref().unwrap_or("");
 
     let Some(min_caps) = MIN_RE.captures(body) else {
@@ -150,30 +179,4 @@ fn parse_release(release: &GitHubRelease) -> Option<HookSet> {
         spotify_version_req,
         download_url: asset.browser_download_url.clone(),
     })
-}
-
-pub async fn fetch_hook_sets_async() -> Result<Vec<HookSet>, anyhow::Error> {
-    if let Ok(cache) = HOOK_SETS_CACHE.lock()
-        && let Some((fetched_at, sets)) = &*cache
-        && fetched_at.elapsed() < CACHE_TTL
-    {
-        return Ok(sets.clone());
-    }
-
-    let response = ASYNC_HTTP_CLIENT
-        .get("https://api.github.com/repos/veryboringhwl/hooks/releases")
-        .send()
-        .await
-        .map_err(|e| anyhow::anyhow!("failed to fetch releases: {e}"))?;
-
-    let releases: Vec<GitHubRelease> =
-        response.json().await.map_err(|e| anyhow::anyhow!("failed to parse releases: {e}"))?;
-
-    let sets: Vec<HookSet> = releases.iter().filter_map(parse_release).collect();
-
-    if let Ok(mut cache) = HOOK_SETS_CACHE.lock() {
-        *cache = Some((Instant::now(), sets.clone()));
-    }
-
-    Ok(sets)
 }

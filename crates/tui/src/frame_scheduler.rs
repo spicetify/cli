@@ -13,7 +13,7 @@ impl FrameRequester {
     pub(crate) fn new(draw_tx: broadcast::Sender<()>) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         let scheduler = FrameScheduler { rx, draw_tx, limiter: FrameRateLimiter::default() };
-        let _ = tokio::spawn(scheduler.run());
+        drop(tokio::spawn(scheduler.run()));
         Self { tx }
     }
 
@@ -38,14 +38,16 @@ struct FrameScheduler {
 
 impl FrameScheduler {
     async fn run(mut self) {
-        const ONE_YEAR: Duration = Duration::from_hours(8760);
         let mut next: Option<Instant> = None;
         loop {
-            // dont draw if no scheduled
-            // same way codex does
-            let target = next.unwrap_or_else(|| Instant::now() + ONE_YEAR);
-            let deadline = tokio::time::sleep_until(target.into());
-            tokio::pin!(deadline);
+            let target = next;
+            let sleep = async {
+                match target {
+                    Some(t) => tokio::time::sleep_until(t.into()).await,
+                    None => std::future::pending::<()>().await,
+                }
+            };
+            tokio::pin!(sleep);
 
             tokio::select! {
                 draw_at = self.rx.recv() => {
@@ -53,10 +55,9 @@ impl FrameScheduler {
                     let clamped = self.limiter.clamp(draw_at);
                     next = Some(next.map_or(clamped, |cur| cur.min(clamped)));
                 }
-                () = &mut deadline => {
-                    if next.is_some() {
-                        next = None;
-                        self.limiter.record(target);
+                () = &mut sleep => {
+                    if let Some(t) = next.take() {
+                        self.limiter.record(t);
                         if let Err(e) = self.draw_tx.send(()) {
                             tracing::warn!(error = %e, "draw broadcast channel closed");
                             break;

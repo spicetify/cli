@@ -39,11 +39,6 @@ impl StoreIdentifier {
     }
 
     #[must_use]
-    pub(crate) fn as_string(&self) -> String {
-        format!("{}@{}", self.module_identifier, self.version)
-    }
-
-    #[must_use]
     pub(crate) fn store_path(&self, store_root: &Path) -> PathBuf {
         store_root.join(&self.module_identifier).join(&self.version)
     }
@@ -51,6 +46,12 @@ impl StoreIdentifier {
     #[must_use]
     pub(crate) fn module_link_path(&self, modules_root: &Path) -> PathBuf {
         modules_root.join(&self.module_identifier)
+    }
+}
+
+impl std::fmt::Display for StoreIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}@{}", self.module_identifier, self.version)
     }
 }
 
@@ -63,8 +64,10 @@ pub(crate) struct Store {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Module {
-    pub(crate) v: BTreeMap<String, Store>,
-    pub(crate) enabled: String,
+    #[serde(rename = "v")]
+    pub(crate) versions: BTreeMap<String, Store>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) enabled: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,12 +81,12 @@ impl Vault {
     }
 
     pub(crate) fn get_store_mut(&mut self, id: &StoreIdentifier) -> Option<&mut Store> {
-        self.modules.get_mut(&id.module_identifier).and_then(|m| m.v.get_mut(&id.version))
+        self.modules.get_mut(&id.module_identifier).and_then(|m| m.versions.get_mut(&id.version))
     }
 
     pub(crate) fn set_store(&mut self, id: &StoreIdentifier, store: Store) {
         let m = self.get_module_mut(&id.module_identifier);
-        let _ = m.v.insert(id.version.clone(), store);
+        drop(m.versions.insert(id.version.clone(), store));
     }
 }
 

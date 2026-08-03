@@ -14,27 +14,8 @@ use crate::error::Result;
 
 const GITHUB_API: &str = "https://api.github.com/repos/veryboringhwl/app/releases/latest";
 
-fn http_client() -> Result<reqwest::Client> {
-    let ua = format!("spicetify/{}", crate::VERSION);
-    let mut headers = reqwest::header::HeaderMap::new();
-    let _ = headers.insert(
-        reqwest::header::USER_AGENT,
-        reqwest::header::HeaderValue::from_str(&ua).expect("valid user agent"),
-    );
-    let _ = headers.insert(
-        reqwest::header::ACCEPT,
-        reqwest::header::HeaderValue::from_static("application/vnd.github.v3+json"),
-    );
-
-    reqwest::Client::builder()
-        .default_headers(headers)
-        .timeout(Duration::from_secs(15))
-        .build()
-        .map_err(Into::into)
-}
-
 pub async fn check_for_update() -> Result<Option<ReleaseInfo>> {
-    let client = http_client()?;
+    let client = crate::http::github_client()?;
     let response = client
         .get(GITHUB_API)
         .send()
@@ -79,12 +60,13 @@ pub async fn download_update(
     download_with_progress(&asset.browser_download_url, &archive_path, &on_progress).await?;
 
     if let Some(checksum_asset) = release.find_checksum_asset(&asset.name) {
-        if let Err(e) = fetch_and_verify_checksum(checksum_asset, &archive_path).await {
-            tracing::warn!(error = %e, "checksum verification failed, continuing anyway");
-        }
+        fetch_and_verify_checksum(checksum_asset, &archive_path).await?;
     } else {
         let computed = release::compute_sha256(&archive_path).unwrap_or_default();
-        tracing::info!(sha256 = %computed, path = %archive_path.display(), "no checksum asset in release; computed sha256");
+        anyhow::bail!(
+            "no checksum asset found in release for {}; computed sha256: {computed}",
+            asset.name,
+        );
     }
 
     extract_archive(&archive_path, &staging_dir)?;
@@ -109,7 +91,14 @@ pub fn install_update(staged: &StagedUpdate) -> Result<()> {
         let daemon_path = install_dir.join(crate::daemon::daemon_binary_name());
         if daemon_path.exists() {
             crate::daemon::shutdown_daemon();
-            std::thread::sleep(Duration::from_millis(300));
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while crate::daemon::is_daemon_running() {
+                if std::time::Instant::now() > deadline {
+                    tracing::warn!("daemon did not shut down within 5s; replacing binary anyway");
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
             replace_binary(daemon, &daemon_path).context("failed to replace daemon binary")?;
         }
     }
@@ -126,8 +115,6 @@ pub fn install_update(staged: &StagedUpdate) -> Result<()> {
         .args(&args)
         .spawn()
         .context("failed to spawn updated binary")?;
-
-    std::thread::sleep(Duration::from_millis(200));
 
     tracing::info!(pid = child.id(), "spawned updated process, exiting");
     std::process::exit(0);
@@ -163,9 +150,17 @@ fn replace_binary(new: &Path, target: &Path) -> Result<()> {
     })?;
 
     if let Err(e) = std::fs::rename(new, target) {
-        let _ = std::fs::rename(&backup, target);
+        if let Err(rollback) = std::fs::rename(&backup, target) {
+            tracing::error!(
+                error = %e,
+                rollback_error = %rollback,
+                "binary replace failed; rollback also failed; attempting copy as fallback"
+            );
+        } else {
+            tracing::warn!(error = %e, "binary rename failed, rolled back; attempting copy");
+        }
 
-        let _ = std::fs::copy(new, target).with_context(|| {
+        let copied = std::fs::copy(new, target).with_context(|| {
             format!(
                 "failed to copy {} to {} after rename failed ({e}); target {}",
                 new.display(),
@@ -173,6 +168,14 @@ fn replace_binary(new: &Path, target: &Path) -> Result<()> {
                 if target.exists() { "restored from backup" } else { "lost" },
             )
         })?;
+        if copied == 0 {
+            anyhow::bail!(
+                "copy of {} to {} wrote 0 bytes; target {}",
+                new.display(),
+                target.display(),
+                if target.exists() { "restored from backup" } else { "lost" },
+            );
+        }
 
         tracing::warn!("rename failed ({e}), used copy instead");
         if let Err(e) = std::fs::remove_file(new) {
@@ -180,7 +183,9 @@ fn replace_binary(new: &Path, target: &Path) -> Result<()> {
         }
     }
 
-    let _ = std::fs::remove_file(&backup);
+    if let Err(e) = std::fs::remove_file(&backup) {
+        tracing::warn!(error = %e, "failed to remove backup binary");
+    }
 
     #[cfg(unix)]
     {
@@ -219,10 +224,7 @@ async fn download_with_progress(
     dest: &Path,
     on_progress: &(impl Fn(u64, u64) + Send + 'static),
 ) -> Result<()> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(300))
-        .build()
-        .context("failed to build download client")?;
+    let client = crate::http::download_client()?;
 
     let response = client
         .get(url)
@@ -302,10 +304,7 @@ async fn fetch_and_verify_checksum(
     checksum_asset: &release::ReleaseAsset,
     archive_path: &Path,
 ) -> Result<()> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .context("failed to build checksum client")?;
+    let client = crate::http::client(30)?;
 
     let response = client
         .get(&checksum_asset.browser_download_url)

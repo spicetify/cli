@@ -85,7 +85,10 @@ impl AppContext {
             cfg.offline_bnk_dir.clone().unwrap_or_else(platform::default_offline_bnk_dir);
 
         let config_file = config_root.join(Self::config_filename());
+        #[cfg(windows)]
         let is_store = data_dir.to_string_lossy().contains("WindowsApps");
+        #[cfg(not(windows))]
+        let is_store = false;
         let mirror = cfg.mirror || is_store;
 
         Ok(Self {
@@ -144,7 +147,7 @@ impl SharedContext {
 }
 
 pub fn build_context(
-    mirror: bool,
+    mirror: Option<bool>,
     spotify_data_dir: Option<&str>,
     spotify_exec: Option<&str>,
     offline_bnk_dir: Option<&str>,
@@ -153,7 +156,9 @@ pub fn build_context(
     let config_file = config_root.join("config.toml");
     let mut cfg = Config::load(&config_file)?;
 
-    cfg.mirror = cfg.mirror || mirror;
+    if let Some(v) = mirror {
+        cfg.mirror = v;
+    }
     if let Some(v) = spotify_data_dir {
         cfg.spotify_data_dir = Some(PathBuf::from(v));
     }

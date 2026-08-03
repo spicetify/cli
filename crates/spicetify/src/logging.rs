@@ -1,5 +1,3 @@
-// i dont think this is right?
-// TODO: copy how codex does it
 use std::fmt;
 
 use anyhow::Result;
@@ -15,6 +13,12 @@ use crate::hooks::{HookSet, ResolvedHookSets};
 pub struct LogLine {
     pub level: Level,
     pub message: String,
+}
+
+impl From<String> for LogLine {
+    fn from(message: String) -> Self {
+        Self { level: Level::INFO, message }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -55,6 +59,7 @@ pub fn init_for_file(path: &std::path::Path) -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(default_filter())
         .with_target(true)
+        .with_ansi(false)
         .with_writer(std::sync::Mutex::new(file))
         .try_init()
         .map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -86,12 +91,9 @@ where
         let mut visitor = MessageVisitor::default();
         event.record(&mut visitor);
         let message = visitor.into_message();
-        if self
-            .tx
-            .send(TuiEvent::Log(LogLine { level: *event.metadata().level(), message }))
-            .is_err()
-        {
-            tracing::warn!("tui log channel closed");
+        let tui_event = TuiEvent::Log(LogLine { level: *event.metadata().level(), message });
+        if let Err(e) = self.tx.send(tui_event) {
+            tracing::debug!(error = %e, "tui log receiver dropped");
         }
     }
 }

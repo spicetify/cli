@@ -4,6 +4,10 @@ use std::sync::LazyLock;
 
 use tracing;
 
+fn base_dirs() -> directories::BaseDirs {
+    directories::BaseDirs::new().expect("unable to determine user directories")
+}
+
 struct SpotifyPackage {
     family_name: String,
     install_location: PathBuf,
@@ -83,10 +87,7 @@ static VARIANT: LazyLock<Variant> = LazyLock::new(|| {
 });
 
 pub(crate) fn spicetify_config_dir() -> PathBuf {
-    directories::BaseDirs::new().map_or_else(
-        || PathBuf::from(r"C:\Users\Default\AppData\Local\Spicetify"),
-        |d| d.data_local_dir().join("Spicetify"),
-    )
+    base_dirs().data_local_dir().join("Spicetify")
 }
 
 pub(crate) const fn spotify_binary_name() -> &'static str {
@@ -95,10 +96,7 @@ pub(crate) const fn spotify_binary_name() -> &'static str {
 
 pub(crate) fn spotify_data_dir() -> PathBuf {
     match &*VARIANT {
-        Variant::Normal => directories::BaseDirs::new().map_or_else(
-            || PathBuf::from(r"C:\Users\Default\AppData\Roaming\Spotify"),
-            |d| d.data_dir().join("Spotify"),
-        ),
+        Variant::Normal => base_dirs().data_dir().join("Spotify"),
         Variant::MsStore => SPOTIFY_PACKAGE
             .as_ref()
             .expect("MsStore variant set but no install dir available")
@@ -109,36 +107,25 @@ pub(crate) fn spotify_data_dir() -> PathBuf {
 
 pub(crate) fn spotify_exec() -> PathBuf {
     match &*VARIANT {
-        Variant::Normal => directories::BaseDirs::new().map_or_else(
-            || PathBuf::from(r"C:\Users\Default\AppData\Roaming\Spotify\Spotify.exe"),
-            |d| d.data_dir().join("Spotify").join("Spotify.exe"),
-        ),
+        Variant::Normal => base_dirs().data_dir().join("Spotify").join("Spotify.exe"),
         Variant::MsStore => {
-            let local = directories::BaseDirs::new()
-                .map_or_else(PathBuf::new, |d| d.data_local_dir().to_path_buf());
-            local.join("Microsoft").join("WindowsApps").join("Spotify.exe")
+            base_dirs().data_local_dir().join("Microsoft").join("WindowsApps").join("Spotify.exe")
         }
     }
 }
 
 pub(crate) fn offline_bnk_dir() -> PathBuf {
     match &*VARIANT {
-        Variant::Normal => directories::BaseDirs::new().map_or_else(
-            || PathBuf::from(r"C:\Users\Default\AppData\Local\Spotify"),
-            |d| d.data_local_dir().join("Spotify"),
-        ),
-        Variant::MsStore => directories::BaseDirs::new().map_or_else(
-            || PathBuf::from(r"C:\Users\Default\AppData\Local\Spotify"),
-            |d| {
-                let pkg =
-                    SPOTIFY_PACKAGE.as_ref().expect("MsStore variant set but no package info");
-                d.data_local_dir()
-                    .join("Packages")
-                    .join(&pkg.family_name)
-                    .join("LocalState")
-                    .join("Spotify")
-            },
-        ),
+        Variant::Normal => base_dirs().data_local_dir().join("Spotify"),
+        Variant::MsStore => {
+            let pkg = SPOTIFY_PACKAGE.as_ref().expect("MsStore variant set but no package info");
+            base_dirs()
+                .data_local_dir()
+                .join("Packages")
+                .join(&pkg.family_name)
+                .join("LocalState")
+                .join("Spotify")
+        }
     }
 }
 
@@ -157,4 +144,36 @@ pub(crate) fn portable_config_dir() -> Option<PathBuf> {
         }
     }
     None
+}
+
+pub(crate) fn register_url_scheme() {
+    use windows_registry::CURRENT_USER;
+
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let scheme_key = r"Software\Classes\spicetify";
+    let key = match CURRENT_USER.create(scheme_key) {
+        Ok(k) => k,
+        Err(e) => {
+            tracing::warn!(error = %e, "failed to create spicetify URL scheme registry key");
+            return;
+        }
+    };
+    if let Err(e) = key.set_string("", "URL:spicetify") {
+        tracing::warn!(error = %e, "failed to set spicetify URL scheme default value");
+    }
+    if let Err(e) = key.set_string("URL Protocol", "") {
+        tracing::warn!(error = %e, "failed to set spicetify URL Protocol value");
+    }
+    let cmd_key = match CURRENT_USER.create(format!("{scheme_key}\\shell\\open\\command")) {
+        Ok(k) => k,
+        Err(e) => {
+            tracing::warn!(error = %e, "failed to create spicetify URL scheme command key");
+            return;
+        }
+    };
+    if let Err(e) = cmd_key.set_string("", format!("\"{}\" protocol \"%1\"", exe.display())) {
+        tracing::warn!(error = %e, "failed to set spicetify URL scheme command");
+    }
 }

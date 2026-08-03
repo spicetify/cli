@@ -6,6 +6,7 @@ pub mod daemon;
 pub mod error;
 pub use i18n_embed_fl;
 pub mod hooks;
+pub mod http;
 pub mod lifecycle;
 pub mod locale;
 pub mod logging;

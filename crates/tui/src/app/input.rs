@@ -1,6 +1,7 @@
 use std::mem;
 
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers, MouseButton, MouseEventKind};
+use ratatui::layout::Position;
 use spicetify::commands::{Command, PkgAction, SyncTarget};
 use spicetify::hooks;
 use spicetify::logging::TuiEvent;
@@ -79,12 +80,12 @@ impl TuiApp {
                 if selector.is_auto_detect_selected() {
                     let ctx = self.ctx.clone();
                     let tx = self.tx.clone();
-                    let _ = tokio::task::spawn_blocking(move || {
+                    drop(tokio::task::spawn_blocking(move || {
                         let resolved = hooks::resolve_hook_sets(selector.sets, &ctx);
                         if tx.send(TuiEvent::HookSetsResolved { resolved }).is_err() {
                             tracing::warn!("hook sets resolved receiver dropped");
                         }
-                    });
+                    }));
                 } else if let Some(set) = selector.selected_set() {
                     let url = set.download_url.clone();
                     let label = set.display_label();
@@ -220,9 +221,13 @@ impl TuiApp {
                 self.run_command(cmd, &label);
             }
             KeyCode::Backspace => {
-                let _ = input.buffer.pop();
+                if input.buffer.pop().is_none() {
+                    tracing::debug!("backspace pressed with empty input buffer");
+                }
             }
-            KeyCode::Char(c) => {
+            KeyCode::Char(c)
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
                 input.buffer.push(c);
             }
             _ => {}
@@ -234,26 +239,14 @@ impl TuiApp {
     }
 
     pub(crate) fn click_on_back(&self, col: u16, row: u16) -> bool {
-        let Some(rect) = self.layout.back_rect else { return false };
-        col >= rect.x
-            && col < rect.x.saturating_add(rect.width)
-            && row >= rect.y
-            && row < rect.y.saturating_add(rect.height)
+        self.layout.back_rect.is_some_and(|r| r.contains(Position::new(col, row)))
     }
 
     pub(crate) fn click_in_menu(&self, col: u16, row: u16) -> bool {
-        let Some(rect) = self.layout.menu_rect else { return false };
-        col >= rect.x
-            && col < rect.x.saturating_add(rect.width)
-            && row >= rect.y
-            && row < rect.y.saturating_add(rect.height)
+        self.layout.menu_rect.is_some_and(|r| r.contains(Position::new(col, row)))
     }
 
     pub(crate) fn mouse_in_log(&self, col: u16, row: u16) -> bool {
-        let Some(rect) = self.layout.log_rect else { return false };
-        col >= rect.x
-            && col < rect.x.saturating_add(rect.width)
-            && row >= rect.y
-            && row < rect.y.saturating_add(rect.height)
+        self.layout.log_rect.is_some_and(|r| r.contains(Position::new(col, row)))
     }
 }

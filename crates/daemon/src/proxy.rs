@@ -80,24 +80,24 @@ pub async fn handler(
 fn cors_preflight() -> Response {
     let mut headers = HeaderMap::new();
     apply_cors(&mut headers);
-    let _ = headers.insert(
+    drop(headers.insert(
         "access-control-allow-methods",
         HeaderValue::from_static("GET, POST, PUT, DELETE, PATCH, OPTIONS"),
-    );
-    let _ = headers.insert(
+    ));
+    drop(headers.insert(
         "access-control-allow-headers",
         HeaderValue::from_static("content-type, x-set-headers"),
-    );
-    let _ = headers.insert("access-control-max-age", HeaderValue::from_static("86400"));
+    ));
+    drop(headers.insert("access-control-max-age", HeaderValue::from_static("86400")));
     (StatusCode::NO_CONTENT, headers, Json(serde_json::json!({}))).into_response()
 }
 
 pub fn apply_cors(h: &mut HeaderMap) {
-    let _ = h.insert("access-control-allow-origin", HeaderValue::from_static(ALLOWED_ORIGIN));
-    let _ = h.insert("access-control-allow-credentials", HeaderValue::from_static("true"));
-    let _ = h.insert("access-control-allow-private-network", HeaderValue::from_static("true"));
-    let _ = h.insert("access-control-expose-headers", HeaderValue::from_static("*"));
-    let _ = h.insert("vary", HeaderValue::from_static("Origin"));
+    drop(h.insert("access-control-allow-origin", HeaderValue::from_static(ALLOWED_ORIGIN)));
+    drop(h.insert("access-control-allow-credentials", HeaderValue::from_static("true")));
+    drop(h.insert("access-control-allow-private-network", HeaderValue::from_static("true")));
+    drop(h.insert("access-control-expose-headers", HeaderValue::from_static("*")));
+    drop(h.insert("vary", HeaderValue::from_static("Origin")));
 }
 
 fn build_upstream_request(
@@ -149,20 +149,22 @@ fn apply_response_headers(h: &mut HeaderMap, upstream_headers: &HeaderMap) {
         if k.as_str().eq_ignore_ascii_case("set-cookie") {
             continue;
         }
-        let _ = h.insert(k, v.clone());
+        drop(h.insert(k, v.clone()));
     }
     let cookie_vals: Vec<_> =
         upstream_headers.get_all("set-cookie").iter().filter_map(|v| v.to_str().ok()).collect();
     for val in &cookie_vals {
-        if let Ok(v) = HeaderValue::from_str(val) {
-            let _ = h.append("x-set-cookie", v);
+        if let Ok(v) = HeaderValue::from_str(val)
+            && !h.append("x-set-cookie", v)
+        {
+            tracing::debug!("failed to append x-set-cookie header");
         }
     }
     if let Some(loc) = h.get("location").and_then(|v| v.to_str().ok()) {
         let escaped = percent_encode(loc.as_bytes(), PATH_ESCAPE);
         let redirect = format!("http://{}/proxy/{escaped}", spicetify::daemon::bind_addr());
         if let Ok(v) = HeaderValue::from_str(&redirect) {
-            let _ = h.insert("location", v);
+            drop(h.insert("location", v));
         }
     }
 }

@@ -1,4 +1,3 @@
-// do we even add localisation?
 use std::sync::LazyLock;
 
 // used i18n_embed as thats what cosmic de does

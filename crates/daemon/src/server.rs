@@ -37,10 +37,7 @@ pub fn run() -> anyhow::Result<()> {
 }
 
 fn start(ctx: AppContext) -> anyhow::Result<()> {
-    let _lock = acquire_instance_lock(&ctx.config_root).map_err(|e| {
-        tracing::error!(error = %e, "another daemon is already running");
-        anyhow::anyhow!(e)
-    })?;
+    let _lock = acquire_instance_lock(&ctx.config_root)?;
 
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -53,7 +50,7 @@ fn start(ctx: AppContext) -> anyhow::Result<()> {
         let config_watcher_active = Arc::new(AtomicBool::new(false));
         let state = Arc::new(DaemonState {
             ctx: Arc::clone(&shared),
-            client: build_http_client()?,
+            client: spicetify::http::proxy_client()?,
             shutdown: Arc::clone(&shutdown),
             startup: std::time::Instant::now(),
             apps_watcher_active: Arc::clone(&apps_watcher_active),
@@ -73,14 +70,6 @@ fn start(ctx: AppContext) -> anyhow::Result<()> {
 
         run_server(state, shutdown, apps, cfg).await
     })
-}
-
-fn build_http_client() -> anyhow::Result<reqwest::Client> {
-    Ok(reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .redirect(reqwest::redirect::Policy::none())
-        .cookie_store(true)
-        .build()?)
 }
 
 async fn run_server(
@@ -134,7 +123,7 @@ async fn run_server(
 }
 
 #[cfg(windows)]
-fn acquire_instance_lock(_config_root: &std::path::Path) -> Result<LockGuard, String> {
+fn acquire_instance_lock(_config_root: &std::path::Path) -> anyhow::Result<LockGuard> {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
 
@@ -158,22 +147,23 @@ fn acquire_instance_lock(_config_root: &std::path::Path) -> Result<LockGuard, St
                 }
             }
         }
-        return Err("instance already exists".to_string());
+        return Err(anyhow::anyhow!("daemon instance already exists"));
     }
     let handle = handle.expect("CreateMutexW returns Ok for fixed-name mutex");
     Ok(LockGuard { inner: LockInner::Windows(WindowsMutex(handle)) })
 }
 
 #[cfg(unix)]
-fn acquire_instance_lock(config_root: &std::path::Path) -> Result<LockGuard, String> {
+fn acquire_instance_lock(config_root: &std::path::Path) -> anyhow::Result<LockGuard> {
     let lock_path = config_root.join(INSTANCE_MUTEX_PATH);
     let file = std::fs::OpenOptions::new()
         .create(true)
         .truncate(true)
         .write(true)
         .open(&lock_path)
-        .map_err(|e| format!("failed to open lock file: {e}"))?;
-    fs4::FileExt::try_lock(&file).map_err(|_| "another daemon is already running".to_string())?;
+        .map_err(|e| anyhow::anyhow!("failed to open lock file: {e}"))?;
+    fs4::FileExt::try_lock(&file)
+        .map_err(|_| anyhow::anyhow!("another daemon is already running"))?;
     Ok(LockGuard { inner: LockInner::Unix { _file: file, path: lock_path } })
 }
 

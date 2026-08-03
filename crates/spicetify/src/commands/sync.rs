@@ -26,23 +26,14 @@ pub(crate) fn run(ctx: &AppContext, target: &SyncTarget) -> Result<()> {
                 anyhow::bail!("no hook set supports Spotify {version}");
             }
 
-            let mut matching = resolved.matching;
-            matching.sort_by(|a, b| {
-                let va = semver::Version::parse(&a.hooks_version).ok();
-                let vb = semver::Version::parse(&b.hooks_version).ok();
-                vb.cmp(&va)
-            });
-            let set = matching.first().expect("matching is non-empty");
+            let set = resolved.best_match().expect("matching is non-empty");
             tracing::info!("using hook set v{} ({})", set.hooks_version, set.display_label());
-            set.download_url.clone()
+            set.download_url
         }
         SyncTarget::Url(url) => url.clone(),
     };
 
-    let client = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(30))
-        .build()
-        .map_err(|e| anyhow::anyhow!("failed to create HTTP client: {e}"))?;
+    let client = hooks::blocking_client();
     let bytes = client
         .get(&url)
         .send()

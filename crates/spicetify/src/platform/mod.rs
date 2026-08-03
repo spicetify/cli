@@ -45,3 +45,7 @@ pub fn coerce_spotify_exec_path(raw: &Path) -> PathBuf {
 pub fn default_offline_bnk_dir() -> PathBuf {
     imp::offline_bnk_dir()
 }
+
+pub fn register_url_scheme() {
+    imp::register_url_scheme();
+}

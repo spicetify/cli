@@ -43,21 +43,24 @@ pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let mut v = vault::load(&paths.vault_path)?;
     let store = v
         .get_store_mut(id)
-        .ok_or_else(|| anyhow::anyhow!(fl!("missing-store", id = id.as_string())))?;
+        .ok_or_else(|| anyhow::anyhow!(fl!("missing-store", id = id.to_string())))?;
     let artifact =
         store.artifacts.first().ok_or_else(|| anyhow::anyhow!(fl!("store-no-artifacts")))?;
 
     let dest = id.store_path(&paths.store_root);
     if artifact.starts_with("http://") || artifact.starts_with("https://") {
         fs::create_dir_all(&dest)?;
-        let response = reqwest::blocking::get(artifact)
+        let client = crate::http::blocking_client(30)
+            .map_err(|e| anyhow::anyhow!("failed to build HTTP client: {e}"))?;
+        let response = client
+            .get(artifact)
+            .send()
             .map_err(|e| anyhow::anyhow!("{}: {e}", fl!("proxy-request-failed")))?;
         let bytes = response
             .bytes()
             .map_err(|e| anyhow::anyhow!("{}: {e}", fl!("proxy-request-failed")))?;
         let archive_path = dest.join("artifact.zip");
         fs::write(&archive_path, &bytes)?;
-        // TODO: verify checksum against store.checksum before extracting
         super::util::archive::unzip_file(&archive_path, &dest)?;
         if let Err(e) = fs::remove_file(&archive_path)
             && e.kind() != std::io::ErrorKind::NotFound
@@ -78,13 +81,13 @@ pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let mut v = vault::load(&paths.vault_path)?;
     let enabled = {
         let module = v.get_module_mut(&id.module_identifier);
-        if !id.version.is_empty() && !module.v.contains_key(&id.version) {
-            return Err(anyhow::anyhow!(fl!("missing-store", id = id.as_string())));
+        if !id.version.is_empty() && !module.versions.contains_key(&id.version) {
+            return Err(anyhow::anyhow!(fl!("missing-store", id = id.to_string())));
         }
-        if module.enabled == id.version {
+        if module.enabled.as_deref() == Some(&id.version) {
             return Ok(());
         }
-        module.enabled.clone_from(&id.version);
+        module.enabled = (!id.version.is_empty()).then(|| id.version.clone());
         module.enabled.clone()
     };
 
@@ -94,17 +97,10 @@ pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     }
 
     let link = id.module_link_path(&paths.modules_root);
-    if let Err(e) = fs::remove_file(&link)
-        && e.kind() != std::io::ErrorKind::NotFound
-    {
-        tracing::warn!(error = %e, path = %link.display(), "failed to remove file");
+    if let Err(e) = crate::util::remove_dir_link(&link) {
+        tracing::warn!(error = %e, path = %link.display(), "failed to remove link");
     }
-    if let Err(e) = fs::remove_dir_all(&link)
-        && e.kind() != std::io::ErrorKind::NotFound
-    {
-        tracing::warn!(error = %e, path = %link.display(), "failed to remove directory");
-    }
-    if !enabled.is_empty() {
+    if enabled.is_some() {
         let src = id.store_path(&paths.store_root);
         super::util::link::create_dir_link(&src, &link)?;
     }
@@ -115,18 +111,16 @@ pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
 pub(crate) fn delete(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     vault::mutate(&paths.vault_path, |v| {
         let module = v.get_module_mut(&id.module_identifier);
-        if module.enabled == id.version {
-            module.enabled.clear();
+        if module.enabled.as_deref() == Some(&id.version) {
+            module.enabled = None;
             if !id.module_identifier.contains('/') {
                 let link = id.module_link_path(&paths.modules_root);
-                if let Err(e) = fs::remove_file(&link)
-                    && e.kind() != std::io::ErrorKind::NotFound
-                {
-                    tracing::warn!(error = %e, path = %link.display(), "failed to remove file");
+                if let Err(e) = crate::util::remove_dir_link(&link) {
+                    tracing::warn!(error = %e, path = %link.display(), "failed to remove link");
                 }
             }
         }
-        if let Some(store) = module.v.get_mut(&id.version) {
+        if let Some(store) = module.versions.get_mut(&id.version) {
             store.installed = false;
         }
         true
@@ -142,7 +136,7 @@ pub(crate) fn delete(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
 pub(crate) fn remove_store(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     vault::mutate(&paths.vault_path, |v| {
         let module = v.get_module_mut(&id.module_identifier);
-        let _ = module.v.remove(&id.version);
+        drop(module.versions.remove(&id.version));
         true
     })?;
     Ok(())

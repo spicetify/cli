@@ -123,9 +123,9 @@ impl InputState {
 
 #[derive(Debug, Clone, Copy)]
 pub struct LayoutState {
-    pub menu_rect: Option<Rect>,
-    pub body_rect: Option<Rect>,
-    pub log_rect: Option<Rect>,
+    pub(crate) menu_rect: Option<Rect>,
+    pub(crate) body_rect: Option<Rect>,
+    pub(crate) log_rect: Option<Rect>,
     pub(crate) clear_rect: Option<Rect>,
     pub(crate) back_rect: Option<Rect>,
     pub(crate) dialog_rect: Option<Rect>,
@@ -150,7 +150,7 @@ pub struct TuiApp {
     pub daemon_running: bool,
     pub daemon_installed: bool,
 
-    pub layout: LayoutState,
+    pub(crate) layout: LayoutState,
 
     pub tx: TuiEventSender,
     rx: tokio::sync::mpsc::UnboundedReceiver<TuiEvent>,
@@ -410,7 +410,7 @@ impl TuiApp {
     }
 
     fn run_action(&mut self, action: MenuAction) {
-        self.run_command(action.to_command(), &action.label());
+        self.run_command(action.into_command(), &action.label());
         self.cmd.current = Some(action);
     }
 
@@ -485,12 +485,23 @@ impl TuiApp {
 
         let tx = self.tx.clone();
 
-        let _ = tokio::task::spawn(async move {
-            let sets = hooks::manifest::fetch_hook_sets_async().await.unwrap_or_default();
-            if tx.send(TuiEvent::HookManifestFetched { sets }).is_err() {
-                tracing::warn!("hook manifest receiver dropped");
+        drop(tokio::task::spawn(async move {
+            match hooks::manifest::fetch_hook_sets_async().await {
+                Ok(sets) => {
+                    if let Err(e) = tx.send(TuiEvent::HookManifestFetched { sets }) {
+                        tracing::warn!(error = %e, "hook manifest receiver dropped");
+                    }
+                }
+                Err(e) => {
+                    if let Err(e) = tx.send(TuiEvent::Log(LogLine {
+                        level: Level::ERROR,
+                        message: format!("failed to fetch hook sets: {e}"),
+                    })) {
+                        tracing::warn!(error = %e, "hook manifest error receiver dropped");
+                    }
+                }
             }
-        });
+        }));
     }
 
     fn reconcile_hook_manifest(&mut self, sets: Vec<hooks::HookSet>) {
@@ -499,7 +510,7 @@ impl TuiApp {
                 .push(LogLine { level: Level::ERROR, message: fl!("hooks-manifest-empty") });
             return;
         }
-        self.hook_selector = Some(HookSelector::new(sets, &[]));
+        self.hook_selector = Some(HookSelector::new(sets));
         self.frame_requester.schedule();
     }
 
@@ -531,13 +542,7 @@ impl TuiApp {
                     ));
                     return;
                 }
-                let mut matching = resolved.matching;
-                matching.sort_by(|a, b| {
-                    let va = semver::Version::parse(&a.hooks_version).ok();
-                    let vb = semver::Version::parse(&b.hooks_version).ok();
-                    vb.cmp(&va)
-                });
-                let set = matching.into_iter().next().expect("non-empty after empty check");
+                let set = resolved.best_match().expect("non-empty after empty check");
                 let label = set.display_label();
                 self.log_viewer.push(format!("using hook set v{} ({})", set.hooks_version, label));
                 self.run_command(Command::Sync(SyncTarget::Url(set.download_url)), &label);

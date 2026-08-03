@@ -62,6 +62,15 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Generate checksums
+        run: |
+          cd dist
+          for f in *; do
+            if [ -f "$f" ]; then
+              sha256sum "$f" > "$f.sha256"
+            fi
+          done
+
       - name: Attest
         uses: actions/attest@v4
         with:

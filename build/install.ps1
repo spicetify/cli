@@ -56,7 +56,7 @@ $Spicetify = "${BinDir}\spicetify.exe"
 
 Write-Output ""
 Write-Output "Initializing Spicetify..."
-& $Spicetify init
+& $Spicetify init --yes
 & $Spicetify apply
 
 Write-Output ""

@@ -17,4 +17,3 @@ i18n-embed-fl = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
 tracing = { workspace = true }
-semver = { workspace = true }

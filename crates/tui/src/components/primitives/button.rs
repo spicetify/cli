@@ -1,5 +1,5 @@
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Position, Rect};
 use ratatui::style::Style;
 use ratatui::text::Span;
 use ratatui::widgets::Paragraph;
@@ -14,11 +14,7 @@ pub(crate) fn draw_button(
     mouse_active: bool,
     focused: bool,
 ) {
-    let hovered = mouse_active
-        && mouse_pos.1 >= rect.y
-        && mouse_pos.1 < rect.y.saturating_add(rect.height)
-        && mouse_pos.0 >= rect.x
-        && mouse_pos.0 < rect.x.saturating_add(rect.width);
+    let hovered = mouse_active && rect.contains(Position::new(mouse_pos.0, mouse_pos.1));
     let style = if hovered || (!mouse_active && focused) {
         theme::highlight()
     } else {
@@ -28,8 +24,5 @@ pub(crate) fn draw_button(
 }
 
 pub(crate) fn hit_test(rect: Rect, col: u16, row: u16) -> bool {
-    col >= rect.x
-        && col < rect.x.saturating_add(rect.width)
-        && row >= rect.y
-        && row < rect.y.saturating_add(rect.height)
+    rect.contains(Position::new(col, row))
 }

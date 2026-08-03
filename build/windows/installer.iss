@@ -87,7 +87,7 @@ Root: HKCU; Subkey: "Software\{#AppName}"; ValueType: string; ValueName: "Instal
 Name: "{autoprograms}\Spicetify"; Filename: "{app}\bin\spicetify.exe"; WorkingDir: "{app}"; IconFilename: "{app}\spicetify.ico"
 
 [Run]
-Filename: "{app}\bin\spicetify.exe"; Parameters: "init"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Initializing Spicetify..."; Check: IsFreshInstall and not IsUpdating
+Filename: "{app}\bin\spicetify.exe"; Parameters: "init --yes"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Initializing Spicetify..."; Check: IsFreshInstall and not IsUpdating
 Filename: "{app}\bin\spicetify.exe"; Parameters: "apply"; WorkingDir: "{app}"; Flags: runhidden; StatusMsg: "Applying Spicetify..."; Check: IsFreshInstall and not IsUpdating
 Filename: "{app}\bin\spicetify.exe"; Description: "Launch Spicetify"; Flags: nowait postinstall shellexec; WorkingDir: "{app}"; Check: not IsUpdating
 

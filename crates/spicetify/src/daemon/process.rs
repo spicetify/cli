@@ -23,12 +23,12 @@ pub fn spawn() -> Result<(), DaemonSpawnError> {
     }
     let exe = super::daemon_binary_path()?;
     let mut cmd = Command::new(&exe);
-    let _ = cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    let mut cmd = cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
 
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
-        let _ = cmd.process_group(0);
+        cmd = cmd.process_group(0);
     }
     #[cfg(windows)]
     {
@@ -37,7 +37,7 @@ pub fn spawn() -> Result<(), DaemonSpawnError> {
         use windows::Win32::System::Threading::{
             CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, DETACHED_PROCESS
         };
-        let _ =
+        cmd =
             cmd.creation_flags((CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS).0);
     }
     let mut child = cmd.spawn()?;

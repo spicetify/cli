@@ -4,7 +4,7 @@ use crate::context::AppContext;
 use crate::error::Result;
 use crate::{fl, util};
 
-pub fn execute(ctx: &AppContext) -> Result<()> {
+pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     let dest_apps = ctx.dest_apps_path();
     let spa = ctx.spotify_apps_path().join("xpui.spa");
     let dest_xpui = dest_apps.join("xpui");
@@ -76,34 +76,10 @@ pub fn execute(ctx: &AppContext) -> Result<()> {
 
     crate::lifecycle::start(ctx)?;
 
-    #[cfg(target_os = "linux")]
-    register_url_scheme();
+    crate::platform::register_url_scheme();
 
     tracing::info!("{}", fl!("applied-patches"));
     Ok(())
-}
-
-#[cfg(target_os = "linux")]
-fn register_url_scheme() {
-    let Ok(exe) = std::env::current_exe() else {
-        return;
-    };
-    let Some(base_dirs) = directories::BaseDirs::new() else {
-        return;
-    };
-    let apps_dir = base_dirs.home_dir().join(".local/share/applications");
-    if let Err(e) = std::fs::create_dir_all(&apps_dir) {
-        tracing::warn!(error = %e, "failed to create applications dir for URL scheme");
-        return;
-    }
-    let desktop = format!(
-        "[Desktop Entry]\nType=Application\nName=Spicetify Protocol Handler\nExec={} protocol \
-         %u\nStartupNotify=false\nMimeType=x-scheme-handler/spicetify;\nNoDisplay=true\n",
-        exe.display()
-    );
-    if let Err(e) = std::fs::write(apps_dir.join("spicetify-protocol.desktop"), desktop) {
-        tracing::warn!(error = %e, "failed to write desktop file for URL scheme");
-    }
 }
 
 fn cleanup_tmp(tmp: &Path) {

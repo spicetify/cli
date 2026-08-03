@@ -1,7 +1,7 @@
 mod app;
 pub(crate) mod components;
 mod frame_scheduler;
-pub mod log_buffer;
+pub(crate) mod log_buffer;
 mod render;
 pub mod theme;
 
@@ -15,7 +15,6 @@ use crossterm::terminal::{
     EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode
 };
 use i18n_embed_fl as _;
-pub use log_buffer::LogBuffer;
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use tokio::sync::broadcast;
@@ -23,7 +22,7 @@ use tokio::sync::broadcast;
 use crate::frame_scheduler::FrameRequester;
 
 pub fn run(
-    mirror: bool,
+    mirror: Option<bool>,
     spotify_data_dir: Option<&str>,
     spotify_exec: Option<&str>,
     offline_bnk_dir: Option<&str>,

@@ -7,7 +7,7 @@ use crate::error::Result;
 use crate::fl;
 use crate::module::{self, ModulePaths, Store};
 
-pub fn run(ctx: &AppContext, uri: &str) -> Result<()> {
+pub(crate) fn run(ctx: &AppContext, uri: &str) -> Result<()> {
     let response = handle(ctx, uri)?;
     if !response.is_empty() {
         let outbound = format!("spotify:app:rpc:{response}");
@@ -128,7 +128,7 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
 
 fn require_id(query: &[(Cow<'_, str>, Cow<'_, str>)]) -> Result<module::vault::StoreIdentifier> {
     let raw = require_param(query, "id")?;
-    module::vault::StoreIdentifier::parse(&raw).map_err(|e| anyhow::anyhow!(e.to_string()))
+    Ok(module::vault::StoreIdentifier::parse(&raw)?)
 }
 
 fn require_param(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Result<String> {

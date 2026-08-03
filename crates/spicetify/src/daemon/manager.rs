@@ -125,15 +125,7 @@ impl WindowsDaemonManager {
             .map_err(registry_err)?;
 
         tracing::info!("registering spicetify:// URL scheme");
-        let scheme_key = r"Software\Classes\spicetify";
-        let key = CURRENT_USER.create(scheme_key).map_err(registry_err)?;
-        key.set_string("", "URL:spicetify").map_err(registry_err)?;
-        key.set_string("URL Protocol", "").map_err(registry_err)?;
-        let key = CURRENT_USER
-            .create(format!("{scheme_key}\\shell\\open\\command"))
-            .map_err(registry_err)?;
-        key.set_string("", format!("\"{}\" protocol \"%1\"", exe.display()))
-            .map_err(registry_err)?;
+        crate::platform::register_url_scheme();
 
         tracing::info!("spawning daemon process");
         super::process::spawn()?;

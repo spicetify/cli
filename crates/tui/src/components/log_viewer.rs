@@ -22,7 +22,7 @@ impl LogViewer {
         Self { buffer: LogBuffer::new(capacity), scroll: 0, visible_lines: 0 }
     }
 
-    pub(crate) fn push(&mut self, entry: impl Into<crate::log_buffer::LogEntry>) {
+    pub(crate) fn push(&mut self, entry: impl Into<spicetify::logging::LogLine>) {
         if self.scroll > 0 {
             self.scroll = self.scroll.saturating_add(1);
         }

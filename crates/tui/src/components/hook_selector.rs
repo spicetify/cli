@@ -9,30 +9,30 @@ use crate::components::primitives::list as nav_list;
 use crate::theme::{SPICE_ORANGE, TEXT_MUTED};
 
 const AUTO_DETECT_LABEL: &str = "Auto-detect Spotify version";
-const AUTO_THRESHOLD: usize = 1;
+const AUTO_DETECT_ROWS: usize = 1;
 
 #[derive(Debug)]
 pub(crate) struct HookSelector {
     pub(crate) sets: Vec<HookSet>,
     pub(crate) selected: usize,
     pub(crate) scroll: usize,
+    pub(crate) visible_rows: usize,
     list_state: ListState,
 }
 
 impl HookSelector {
-    pub(crate) fn new(sets: Vec<HookSet>, matching_indices: &[usize]) -> Self {
+    pub(crate) fn new(sets: Vec<HookSet>) -> Self {
         let mut list_state = ListState::default();
-        let first = matching_indices.first().copied().map_or(0, |i| i + AUTO_THRESHOLD);
-        list_state.select(Some(first));
+        list_state.select(Some(0));
 
-        Self { sets, selected: first, scroll: 0, list_state }
+        Self { sets, selected: 0, scroll: 0, visible_rows: 0, list_state }
     }
 
     pub(crate) fn selected_set(&self) -> Option<&HookSet> {
-        if self.selected < AUTO_THRESHOLD {
+        if self.selected < AUTO_DETECT_ROWS {
             return None;
         }
-        self.sets.get(self.selected - AUTO_THRESHOLD)
+        self.sets.get(self.selected - AUTO_DETECT_ROWS)
     }
 
     pub(crate) fn is_auto_detect_selected(&self) -> bool {
@@ -40,21 +40,21 @@ impl HookSelector {
     }
 
     pub(crate) fn item_count(&self) -> usize {
-        AUTO_THRESHOLD + self.sets.len()
+        AUTO_DETECT_ROWS + self.sets.len()
     }
 
     pub(crate) fn move_up(&mut self) {
         let count = self.item_count();
         nav_list::move_selection(&mut self.selected, -1, count);
         self.list_state.select(Some(self.selected));
-        nav_list::ensure_visible(self.selected, &mut self.scroll, 0);
+        nav_list::ensure_visible(self.selected, &mut self.scroll, self.visible_rows);
     }
 
     pub(crate) fn move_down(&mut self) {
         let count = self.item_count();
         nav_list::move_selection(&mut self.selected, 1, count);
         self.list_state.select(Some(self.selected));
-        nav_list::ensure_visible(self.selected, &mut self.scroll, 0);
+        nav_list::ensure_visible(self.selected, &mut self.scroll, self.visible_rows);
     }
 
     fn labels(&self) -> Vec<String> {
@@ -76,6 +76,8 @@ impl HookSelector {
             width: area.width.saturating_sub(4),
             height: area.height.saturating_sub(5),
         };
+
+        self.visible_rows = list_area.height.max(1) as usize;
 
         frame.render_widget(
             Paragraph::new(Line::from(Span::styled(

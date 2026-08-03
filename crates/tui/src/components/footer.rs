@@ -34,10 +34,8 @@ pub(crate) fn render(frame: &mut Frame<'_>, area: Rect, ctx: &FooterCtx) {
         let mut act = vec![help_row("enter", "select"), help_row("q/^c", "quit")];
         if matches!(ctx.page, Page::Category(_)) {
             nav.push(help_row("←/h", "back"));
-            act.push(help_row("pgdn", "log ↓"));
-        } else {
-            act.push(help_row("pgdn", "log ↓"));
         }
+        act.push(help_row("pgdn", "log ↓"));
         (nav, act)
     };
 

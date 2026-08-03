@@ -1,6 +1,5 @@
 use crate::context::AppContext;
 use crate::error::Result;
-use crate::fl;
 
 pub mod apply;
 mod config;
@@ -54,58 +53,22 @@ pub enum PkgAction {
     Enable { id: String },
 }
 
-impl Command {
-    #[must_use]
-    pub fn success_message(&self) -> Option<String> {
-        match self {
-            Self::Apply => Some(fl!("applied-patches")),
-            Self::Restore => Some(fl!("restored-stock")),
-            Self::Dev => Some(fl!("app-developer-enabled")),
-            Self::Daemon(DaemonAction::Start) => Some(fl!("daemon-starting")),
-            Self::Daemon(DaemonAction::Stop) => Some(fl!("daemon-stopping-resp")),
-            Self::Daemon(DaemonAction::Install) => Some(fl!("daemon-enabling")),
-            Self::Daemon(DaemonAction::Uninstall) => Some(fl!("daemon-disabling")),
-            Self::Init => Some(fl!("initialised-spicetify")),
-            Self::Pkg(PkgAction::Install { .. }) => Some(fl!("module-added")),
-            Self::Pkg(PkgAction::Delete { .. }) => Some(fl!("module-deleted")),
-            Self::Pkg(PkgAction::Enable { .. }) => Some(fl!("module-enabled")),
-            Self::Sync(_) => Some(fl!("hooks-updated")),
-            _ => None,
-        }
-    }
-}
-
 pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
     match cmd {
-        Command::Apply => apply::execute(ctx),
+        Command::Apply => apply::run(ctx),
         Command::Config(action) => match action {
-            ConfigAction::Show => {
-                config::run(ctx);
-                Ok(())
-            }
+            ConfigAction::Show => config::run(ctx),
             ConfigAction::OpenFolder => config::open_folder(ctx),
         },
         Command::Daemon(action) => match action {
-            DaemonAction::Start => {
-                daemon::start();
-                Ok(())
-            }
-            DaemonAction::Stop => {
-                daemon::stop();
-                Ok(())
-            }
+            DaemonAction::Start => daemon::start(),
+            DaemonAction::Stop => daemon::stop(),
             DaemonAction::Install => daemon::install(),
-            DaemonAction::Uninstall => {
-                daemon::uninstall();
-                Ok(())
-            }
-            DaemonAction::Status => {
-                daemon::status();
-                Ok(())
-            }
+            DaemonAction::Uninstall => daemon::uninstall(),
+            DaemonAction::Status => daemon::status(),
         },
-        Command::Dev => dev::execute(ctx),
-        Command::Restore => restore::execute(ctx),
+        Command::Dev => dev::run(ctx),
+        Command::Restore => restore::run(ctx),
         Command::Init => init::run(ctx),
         Command::Pkg(action) => match action {
             PkgAction::Install { id, url } => {

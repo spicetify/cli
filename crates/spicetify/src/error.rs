@@ -7,7 +7,8 @@ pub fn format_chain(err: &anyhow::Error) -> String {
     for (i, cause) in err.chain().enumerate() {
         if i == 0 {
             out.push_str(&cause.to_string());
-        } else if write!(out, "\n  caused by: {cause}").is_err() {
+        } else {
+            write!(out, "\n  caused by: {cause}").expect("writing to a String is infallible");
         }
     }
     out

@@ -1,15 +1,14 @@
-// if spotify updates it doesnt apply whenit auto starts
-// its a bit too slow and restart fixes
-// TODO: FIX THIS
+// FIXME: auto-apply after Spotify update does not trigger reliably.
+// The watcher detects the xpui.spa change but the apply is often too
+// slow and races with Spotify startup. Restarting Spotify resolves it.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use notify::{Event, EventKind, RecursiveMode, Watcher};
-use spicetify::commands::apply;
 use spicetify::context::{AppContext, SharedContext};
-use spicetify::fl;
+use spicetify::{commands, fl};
 use tokio::sync::{Notify, mpsc};
 
 const DEBOUNCE: Duration = Duration::from_millis(500);
@@ -44,7 +43,7 @@ pub fn spawn_apps_watcher(
             is_xpui_change,
             move || {
                 let arc = shared.load_full();
-                if let Err(e) = apply::execute(&arc) {
+                if let Err(e) = commands::dispatch(&commands::Command::Apply, &arc) {
                     tracing::warn!(error = %e, "auto-apply failed");
                 }
             },
@@ -139,14 +138,17 @@ async fn run_loop<P, A>(
     }
 }
 
-fn is_xpui_change(event: &Event) -> bool {
-    event.paths.iter().any(|p| p.file_name().and_then(|s| s.to_str()) == Some("xpui.spa"))
+fn is_file_change(event: &Event, filename: &str) -> bool {
+    event.paths.iter().any(|p| p.file_name().and_then(|s| s.to_str()) == Some(filename))
         && matches!(event.kind, EventKind::Create(_) | EventKind::Modify(_))
 }
 
+fn is_xpui_change(event: &Event) -> bool {
+    is_file_change(event, "xpui.spa")
+}
+
 fn is_config_change(event: &Event) -> bool {
-    event.paths.iter().any(|p| p.file_name().and_then(|s| s.to_str()) == Some("config.toml"))
-        && matches!(event.kind, EventKind::Create(_) | EventKind::Modify(_))
+    is_file_change(event, "config.toml")
 }
 
 fn rebuild_context(

@@ -32,7 +32,7 @@ main() {
 
 	echo ""
 	echo "Initializing Spicetify..."
-	"${bin_dir}/spicetify" init
+	"${bin_dir}/spicetify" init --yes
 	"${bin_dir}/spicetify" apply
 
 	echo ""

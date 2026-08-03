@@ -7,7 +7,7 @@ pub(crate) fn create_dir_link(target: &Path, link: &Path) -> Result<()> {
         std::fs::create_dir_all(parent)?;
     }
     if link.exists() {
-        remove_link(link)?;
+        remove_dir_link(link)?;
     }
     #[cfg(unix)]
     {
@@ -23,7 +23,7 @@ pub(crate) fn create_dir_link(target: &Path, link: &Path) -> Result<()> {
 }
 
 #[cfg(windows)]
-fn remove_link(link: &Path) -> Result<()> {
+pub(crate) fn remove_dir_link(link: &Path) -> Result<()> {
     if let Err(e) = std::fs::remove_dir(link)
         && e.kind() != std::io::ErrorKind::NotFound
     {
@@ -33,7 +33,7 @@ fn remove_link(link: &Path) -> Result<()> {
 }
 
 #[cfg(not(windows))]
-fn remove_link(link: &Path) -> Result<()> {
+pub(crate) fn remove_dir_link(link: &Path) -> Result<()> {
     match std::fs::remove_file(link) {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),

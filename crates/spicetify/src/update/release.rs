@@ -1,4 +1,3 @@
-use hex;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 

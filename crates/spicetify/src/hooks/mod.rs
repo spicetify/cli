@@ -1,7 +1,7 @@
 pub mod manifest;
 pub mod version_detect;
 
-pub use manifest::{HookSet, http_client};
+pub use manifest::{HookSet, blocking_client};
 
 use crate::context::AppContext;
 
@@ -14,13 +14,17 @@ pub struct ResolvedHookSets {
 
 impl ResolvedHookSets {
     #[must_use]
-    pub fn has_exactly_one_match(&self) -> bool {
-        self.matching.len() == 1
-    }
-
-    #[must_use]
-    pub fn single_match(&self) -> Option<&HookSet> {
-        if self.matching.len() == 1 { self.matching.first() } else { None }
+    pub fn best_match(&self) -> Option<HookSet> {
+        if self.matching.is_empty() {
+            return None;
+        }
+        let mut sorted = self.matching.clone();
+        sorted.sort_by(|a, b| {
+            let va = semver::Version::parse(&a.hooks_version).ok();
+            let vb = semver::Version::parse(&b.hooks_version).ok();
+            vb.cmp(&va)
+        });
+        sorted.into_iter().next()
     }
 }
 

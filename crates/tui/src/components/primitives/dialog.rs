@@ -1,5 +1,5 @@
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Position, Rect};
 use ratatui::style::Style;
 use ratatui::widgets::{Block, Borders, Clear};
 
@@ -17,7 +17,6 @@ pub(crate) enum DialogAreaHit {
 
 pub(crate) struct DialogArea {
     pub outer: Rect,
-    pub inner: Rect,
 }
 
 fn centered(term: Rect, width: u16, height: u16) -> Rect {
@@ -56,12 +55,11 @@ pub(crate) fn draw_dialog(
 
     let block =
         Block::default().borders(Borders::ALL).border_style(Style::default().fg(SPICE_ORANGE));
-    let inner = block.inner(outer);
     frame.render_widget(block, outer);
 
     draw_close_button(frame, outer, mouse_pos, mouse_active);
 
-    DialogArea { outer, inner }
+    DialogArea { outer }
 }
 
 pub(crate) fn draw_dialog_styled(
@@ -81,21 +79,16 @@ pub(crate) fn draw_dialog_styled(
     if let Some(title) = title {
         block = block.title(title).title_style(Style::default().fg(TEXT_MUTED));
     }
-    let inner = block.inner(outer);
     frame.render_widget(block, outer);
 
     draw_close_button(frame, outer, mouse_pos, mouse_active);
 
-    DialogArea { outer, inner }
+    DialogArea { outer }
 }
 
 pub(crate) fn dialog_hit_test(dialog_rect: Option<Rect>, col: u16, row: u16) -> DialogAreaHit {
     let Some(outer) = dialog_rect else { return DialogAreaHit::Background };
-    if col < outer.x
-        || col >= outer.x.saturating_add(outer.width)
-        || row < outer.y
-        || row >= outer.y.saturating_add(outer.height)
-    {
+    if !outer.contains(Position::new(col, row)) {
         return DialogAreaHit::Background;
     }
     let cr = close_rect(outer);

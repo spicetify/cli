@@ -4,14 +4,16 @@ use crate::context::AppContext;
 use crate::error::Result;
 use crate::fl;
 
-pub(super) fn execute(ctx: &AppContext) -> Result<()> {
+pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     if !has_spa_backups(ctx)? {
         return Err(anyhow::anyhow!(fl!("already-stock")));
     }
 
     crate::daemon::shutdown_daemon();
 
-    super::daemon::uninstall();
+    if let Err(e) = super::daemon::uninstall() {
+        tracing::warn!(error = %e, "failed to uninstall daemon auto-start");
+    }
 
     crate::lifecycle::stop(ctx)?;
 
