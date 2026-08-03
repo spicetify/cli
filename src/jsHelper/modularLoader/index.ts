@@ -324,6 +324,10 @@ async function boot(): Promise<BootReport | null> {
 		void bootClient(createTransformRegistry());
 		return null;
 	}
+	// The staged truth, captured before local installs mutate the manifest, so
+	// removeLocal can revert an override to its staged copy.
+	const stagedMeta = new Map(manifest.modules.map((m) => [m.identifier, { ...m }]));
+
 	// Merge localStorage-installed modules (the store) into the manifest,
 	// remapping their MAP.* sources against the bundled classmap. A staged
 	// copy of the same module defers to the local one only when the local is
@@ -475,12 +479,22 @@ async function boot(): Promise<BootReport | null> {
 		const wasLocal = registry.hasLocal(id);
 		await registry.unload(id);
 		deleteLocalModule(id);
-		if (wasLocal) {
-			registry.unregisterLocal(id);
-			delete report.failed[id];
+		if (!wasLocal) return;
+		registry.unregisterLocal(id);
+		delete report.failed[id];
+		const staged = stagedMeta.get(id);
+		if (staged) {
+			// The override shadowed a staged copy — revert to it live instead
+			// of leaving the module gone until restart.
+			registry.restage(staged);
 			const at = manifest.modules.findIndex((m) => m.identifier === id);
-			if (at >= 0) manifest.modules.splice(at, 1);
+			if (at >= 0) manifest.modules[at] = staged;
+			else manifest.modules.push(staged);
+			await registry.enable(id, report);
+			return;
 		}
+		const at = manifest.modules.findIndex((m) => m.identifier === id);
+		if (at >= 0) manifest.modules.splice(at, 1);
 	};
 	(modules as Record<string, unknown>).listLocal = () => loadLocalModules();
 	return report;

@@ -462,3 +462,23 @@ describe("local module registry state", () => {
 		assert.ok(calls.some((c) => c.startsWith("import:") && c.includes("/modules/tree/mod.js")));
 		assert.ok(!calls.some((c) => c.startsWith("importSource:")));
 	});
+
+	it("restage reverts a local override to the on-disk staged copy", async () => {
+		const calls: string[] = [];
+		const js = { over: { load: () => calls.push("load:override") } };
+		const r = new Registry(manifest([mod("over", "1.0.0")]), trackingEffects(calls, js));
+		// a local override is registered and loaded
+		r.registerLocal({ metadata: mod("over", "2.0.0"), files: { "index.js": "x" } });
+		await r.enable("over", { loaded: [], failed: {} });
+		assert.ok(calls.some((c) => c.startsWith("importSource:")), "override loads from pushed source");
+		// remove it: unload, then restage the staged metadata and re-enable
+		await r.unload("over");
+		r.unregisterLocal("over");
+		r.restage(mod("over", "1.0.0"));
+		calls.length = 0;
+		const report = { loaded: [] as string[], failed: {} };
+		await r.enable("over", report);
+		assert.deepEqual(report.loaded, ["over"]);
+		assert.ok(calls.includes("import:/modules/over/index.js"), "staged loads from disk URL, not pushed source");
+		assert.ok(!calls.some((c) => c.startsWith("importSource:")), "no pushed source used after restage");
+	});

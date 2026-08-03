@@ -156,6 +156,18 @@ export class Registry {
 		return this.mappedLocals.has(identifier);
 	}
 
+	// restage re-registers a staged (non-local) module from its manifest
+	// metadata, dropping any local override traces so a following enable()
+	// loads the on-disk staged copy. Used when a local override that shadowed
+	// a staged module is removed, to revert to staged without a restart.
+	restage(meta: ManifestModule): void {
+		this.modules.set(meta.identifier, meta);
+		this.localFiles.delete(meta.identifier);
+		this.mappedLocals.delete(meta.identifier);
+		this.jsIndexes.delete(meta.identifier);
+		this.states.delete(meta.identifier);
+	}
+
 	private localFiles = new Map<string, Record<string, string>>();
 	private mappedLocals = new Set<string>();
 
