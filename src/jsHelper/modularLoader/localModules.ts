@@ -5,6 +5,9 @@ export interface LocalModuleRecord {
 	sidecar: { installed_version: string; classmap_base: string; allow_stale: boolean };
 	files: Record<string, string>;
 	installedAt: number;
+	// The classmap key the files were remapped against at install time.
+	// Absent on older records, which then always defer to a staged copy.
+	remapKey?: string;
 }
 
 const PREFIX = "spicetify.modules.local.";
@@ -16,6 +19,68 @@ const PREFIX = "spicetify.modules.local.";
 // origin.
 export function absolutizeLoaderUrls(src: string, origin: string): string {
 	return src.replace(/(["'])\/(modules|hooks)\//g, (_, quote, root) => `${quote}${origin}/${root}/`);
+}
+
+import { satisfies } from "./semver-lite.ts";
+
+// localWins decides whether a local record overrides a staged copy of the
+// same module: only when strictly newer AND remapped against the classmap
+// this boot runs on. Anything else defers to staged — the copy that went
+// through the full remap pipeline. Version-blind shadowing made store
+// updates of staged modules silently revert on restart.
+export function localWins(
+	stagedVersion: string,
+	record: { metadata: { version: string }; remapKey?: string },
+	classmapKey: string,
+): boolean {
+	if (!record.remapKey || record.remapKey !== classmapKey) return false;
+	try {
+		return satisfies(record.metadata.version, `>${stagedVersion}`);
+	} catch {
+		return false;
+	}
+}
+
+// A tree record carries js files beyond its single entry (stdlib-style).
+// Its cross-file imports resolve by URL, so serving it locally needs the
+// import-map override rather than the single-entry blob.
+export function isTreeRecord(record: { metadata: { entries: { js?: string } }; files: Record<string, string> }): boolean {
+	const entry = record.metadata.entries.js;
+	return Object.keys(record.files).some((f) => f.endsWith(".js") && !f.endsWith(".js.map") && f !== entry);
+}
+
+// rewriteRelativeImports resolves ./ and ../ specifiers in a local file
+// against its own path inside the module, emitting absolute URLs. Blob
+// sources have a non-hierarchical base, so relative specifiers cannot
+// survive; the emitted URLs go back through the import map.
+export function rewriteRelativeImports(src: string, moduleId: string, filePath: string, origin: string): string {
+	const dir = filePath.split("/").slice(0, -1);
+	return src.replace(/(["'])(\.\.?\/[^"']+)\1/g, (whole, quote, spec) => {
+		const parts = [...dir];
+		for (const seg of (spec as string).split("/")) {
+			if (seg === "." || seg === "") continue;
+			else if (seg === "..") parts.pop();
+			else parts.push(seg);
+		}
+		return `${quote}${origin}/modules/${moduleId}/${parts.join("/")}${quote}`;
+	});
+}
+
+// buildImportMapEntries blobs every js file of a tree record (imports
+// rewritten to absolute URLs) and returns the URL -> blob map entries.
+export function buildImportMapEntries(record: LocalModuleRecord, origin: string): Record<string, string> {
+	const entries: Record<string, string> = {};
+	for (const [file, content] of Object.entries(record.files)) {
+		if (!file.endsWith(".js") || file.endsWith(".js.map")) continue;
+		const rewritten = absolutizeLoaderUrls(
+			rewriteRelativeImports(content, record.metadata.identifier, file, origin),
+			origin,
+		);
+		entries[`${origin}/modules/${record.metadata.identifier}/${file}`] = URL.createObjectURL(
+			new Blob([rewritten], { type: "text/javascript" }),
+		);
+	}
+	return entries;
 }
 
 // remapSource mirrors the CLI's RemapClassmapReferences for in-client

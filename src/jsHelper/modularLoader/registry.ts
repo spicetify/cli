@@ -106,7 +106,11 @@ export class Registry {
 		if (!m.entries.js) return null;
 		let index = this.jsIndexes.get(m.identifier);
 		if (!index) {
-			const local = this.getLocalFile(m.identifier, m.entries.js);
+			// Mapped locals import by URL: the boot import map serves every
+			// file of the tree from its local blob, entry included.
+			const local = this.mappedLocals.has(m.identifier)
+				? undefined
+				: this.getLocalFile(m.identifier, m.entries.js);
 			if (local !== undefined) {
 				index = await this.effects.importSource(local);
 			} else {
@@ -122,9 +126,12 @@ export class Registry {
 	registerLocal(record: {
 		metadata: ManifestModule;
 		files: Record<string, string>;
+		mapped?: boolean;
 	}): void {
 		this.localFiles.set(record.metadata.identifier, record.files);
 		this.modules.set(record.metadata.identifier, record.metadata);
+		if (record.mapped) this.mappedLocals.add(record.metadata.identifier);
+		else this.mappedLocals.delete(record.metadata.identifier);
 		// New content must not run behind an index cached from a previous
 		// install (or from the staged copy this local install overrides).
 		this.jsIndexes.delete(record.metadata.identifier);
@@ -142,9 +149,15 @@ export class Registry {
 		this.localFiles.delete(identifier);
 		this.jsIndexes.delete(identifier);
 		this.states.delete(identifier);
+		this.mappedLocals.delete(identifier);
+	}
+
+	isMappedLocal(identifier: string): boolean {
+		return this.mappedLocals.has(identifier);
 	}
 
 	private localFiles = new Map<string, Record<string, string>>();
+	private mappedLocals = new Set<string>();
 
 	protected getLocalFile(identifier: string, entry: string): string | undefined {
 		return this.localFiles.get(identifier)?.[entry];

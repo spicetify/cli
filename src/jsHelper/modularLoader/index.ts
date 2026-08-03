@@ -1,5 +1,14 @@
 import { pushDiagnostic } from "./diagnostics.ts";
-import { absolutizeLoaderUrls, deleteLocalModule, loadLocalModules, remapSource, saveLocalModule } from "./localModules.ts";
+import {
+	absolutizeLoaderUrls,
+	buildImportMapEntries,
+	deleteLocalModule,
+	isTreeRecord,
+	loadLocalModules,
+	localWins,
+	remapSource,
+	saveLocalModule,
+} from "./localModules.ts";
 import { Registry, type BootReport } from "./registry.ts";
 import { createTransformRegistry, transformPath } from "./transforms.ts";
 import { applyTransformsOffthread } from "./transformWorker.ts";
@@ -276,7 +285,10 @@ async function waitForClient(timeoutMs: number): Promise<boolean> {
 	return true;
 }
 
-const pendingLocal = new Map<string, { metadata: ModulesManifest["modules"][number]; files: Record<string, string> }>();
+const pendingLocal = new Map<
+	string,
+	{ metadata: ModulesManifest["modules"][number]; files: Record<string, string>; mapped?: boolean }
+>();
 
 async function boot(): Promise<BootReport | null> {
 	// Module bugs must not brick the client: its global handler turns any
@@ -301,31 +313,54 @@ async function boot(): Promise<BootReport | null> {
 		return null;
 	}
 	// Merge localStorage-installed modules (the store) into the manifest,
-	// remapping their MAP.* sources against the bundled classmap.
+	// remapping their MAP.* sources against the bundled classmap. A staged
+	// copy of the same module defers to the local one only when the local is
+	// strictly newer and was remapped against this boot's classmap; otherwise
+	// staged wins (it went through the full remap pipeline).
+	const importMapEntries: Record<string, string> = {};
 	if (manifest.classmap) {
 		for (const record of loadLocalModules()) {
+			const id = record.metadata.identifier;
 			try {
-				// A CLI-staged install of the same module wins over a stale
-				// localStorage copy: the staged one went through the full
-				// remap pipeline against the current classmap.
-				const staged = manifest.modules.find((m) => m.identifier === record.metadata.identifier);
-				if (staged) {
-					log("info")(
-						`local module ${record.metadata.identifier}@${record.metadata.version} shadowed by staged install (${staged.version})`,
-					);
-					continue;
+				const stagedAt = manifest.modules.findIndex((m) => m.identifier === id);
+				if (stagedAt >= 0) {
+					const staged = manifest.modules[stagedAt];
+					if (!localWins(staged.version, record, manifest.classmapKey)) {
+						log("info")(
+							`local module ${id}@${record.metadata.version} shadowed by staged install (${staged.version})`,
+						);
+						continue;
+					}
+					log("info")(`local module ${id}@${record.metadata.version} overrides staged ${staged.version}`);
+					manifest.modules.splice(stagedAt, 1, { ...record.metadata });
+				} else {
+					manifest.modules.push({ ...record.metadata });
 				}
 				const files: Record<string, string> = {};
 				for (const [name, content] of Object.entries(record.files)) {
 					files[name] = remapSource(content, manifest.classmap);
 				}
-				manifest.modules.push({ ...record.metadata });
+				// Tree records (js beyond the entry) resolve cross-file imports
+				// by URL; an import map serves every file from a blob, so the
+				// code that runs is the code the registry claims.
+				const mapped = isTreeRecord(record);
+				if (mapped) {
+					Object.assign(importMapEntries, buildImportMapEntries({ ...record, files }, location.origin));
+				}
 				// registerLocal below wires the file contents into the registry
-				pendingLocal.set(record.metadata.identifier, { metadata: record.metadata, files });
+				pendingLocal.set(id, { metadata: record.metadata, files, mapped });
 			} catch (e) {
-				log("error")(`local module ${record.metadata.identifier} failed to remap: ${(e as Error).message}`);
+				log("error")(`local module ${id} failed to remap: ${(e as Error).message}`);
 			}
 		}
+	}
+	// Injected before any module import so every /modules/<id>/ URL of an
+	// overridden tree module resolves to its local blob.
+	if (Object.keys(importMapEntries).length > 0) {
+		const script = document.createElement("script");
+		script.type = "importmap";
+		script.textContent = JSON.stringify({ imports: importMapEntries });
+		document.head.appendChild(script);
 	}
 
 	const transforms = createTransformRegistry();
@@ -398,7 +433,13 @@ async function boot(): Promise<BootReport | null> {
 		for (const [name, content] of Object.entries(record.files)) {
 			files[name] = remapSource(content, manifest.classmap);
 		}
-		saveLocalModule(id, { ...record, files, installedAt: Date.now() } as never);
+		saveLocalModule(id, { ...record, files, installedAt: Date.now(), remapKey: manifest.classmapKey } as never);
+		// Tree records serve through the boot import map; URLs imported this
+		// session keep their cached modules, so the registry stays on the
+		// running code and the new version takes over on the next boot.
+		if (isTreeRecord({ metadata: record.metadata, files })) {
+			return { requiresRestart: true };
+		}
 		registry.registerLocal({ metadata: record.metadata, files });
 		// The manifest is the row source for management UIs; mirror the boot
 		// merge so a live install is visible without a restart.
@@ -408,6 +449,12 @@ async function boot(): Promise<BootReport | null> {
 		return registry.enable(id, report);
 	};
 	(modules as Record<string, unknown>).removeLocal = async (id: string) => {
+		// A mapped tree module's files are cached in the module graph; the
+		// removal lands, but the running code only reverts on restart.
+		if (registry.isMappedLocal(id)) {
+			deleteLocalModule(id);
+			return { requiresRestart: true };
+		}
 		const wasLocal = registry.hasLocal(id);
 		await registry.unload(id);
 		deleteLocalModule(id);

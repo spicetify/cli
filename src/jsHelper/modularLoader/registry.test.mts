@@ -448,3 +448,17 @@ describe("local module registry state", () => {
 		assert.match(report.failed.gone, /unknown module/);
 	});
 });
+
+	it("mapped locals import by URL so the boot import map serves them", async () => {
+		const calls: string[] = [];
+		const r = new Registry(manifest([mod("tree", "1.0.0", { entries: { js: "mod.js" } })]), trackingEffects(calls));
+		r.registerLocal({
+			metadata: mod("tree", "1.0.1", { entries: { js: "mod.js" } }),
+			files: { "mod.js": "export default async () => {};", "deps.js": "" },
+			mapped: true,
+		});
+		const report = await r.boot();
+		assert.deepEqual(report.failed, {});
+		assert.ok(calls.some((c) => c.startsWith("import:") && c.includes("/modules/tree/mod.js")));
+		assert.ok(!calls.some((c) => c.startsWith("importSource:")));
+	});
