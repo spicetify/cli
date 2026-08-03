@@ -131,6 +131,10 @@ export function saveLocalModule(id: string, record: LocalModuleRecord): void {
 	localStorage.setItem(PREFIX + id, JSON.stringify(record));
 }
 
+export function hasLocalRecord(id: string): boolean {
+	return localStorage.getItem(PREFIX + id) !== null;
+}
+
 export function deleteLocalModule(id: string): void {
 	localStorage.removeItem(PREFIX + id);
 }

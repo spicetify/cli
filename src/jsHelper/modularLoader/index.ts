@@ -3,6 +3,7 @@ import {
 	absolutizeLoaderUrls,
 	buildImportMapEntries,
 	deleteLocalModule,
+	hasLocalRecord,
 	isTreeRecord,
 	loadLocalModules,
 	localWins,
@@ -30,6 +31,17 @@ const log =
 
 async function importJs(path: string) {
 	return (await import(/* webpackIgnore: true */ path)) as never;
+}
+
+// Inject an import map so the given /modules/<id>/ URLs resolve to local
+// blobs. Chrome (M133+) merges multiple import maps, so this works mid-session
+// for URLs that have not been imported yet.
+function injectImportMap(entries: Record<string, string>): void {
+	if (Object.keys(entries).length === 0) return;
+	const script = document.createElement("script");
+	script.type = "importmap";
+	script.textContent = JSON.stringify({ imports: entries });
+	document.head.appendChild(script);
 }
 
 function importSource(content: string) {
@@ -356,12 +368,7 @@ async function boot(): Promise<BootReport | null> {
 	}
 	// Injected before any module import so every /modules/<id>/ URL of an
 	// overridden tree module resolves to its local blob.
-	if (Object.keys(importMapEntries).length > 0) {
-		const script = document.createElement("script");
-		script.type = "importmap";
-		script.textContent = JSON.stringify({ imports: importMapEntries });
-		document.head.appendChild(script);
-	}
+	injectImportMap(importMapEntries);
 
 	const transforms = createTransformRegistry();
 	const registry = new Registry(manifest, {
@@ -434,13 +441,20 @@ async function boot(): Promise<BootReport | null> {
 			files[name] = remapSource(content, manifest.classmap);
 		}
 		saveLocalModule(id, { ...record, files, installedAt: Date.now(), remapKey: manifest.classmapKey } as never);
-		// Tree records serve through the boot import map; URLs imported this
-		// session keep their cached modules, so the registry stays on the
-		// running code and the new version takes over on the next boot.
-		if (isTreeRecord({ metadata: record.metadata, files })) {
+
+		const tree = isTreeRecord({ metadata: record.metadata, files });
+		// A tree module's cross-file imports resolve by URL. If it is already
+		// loaded this session those URLs are in the ES module cache and cannot
+		// be swapped — the new code only takes over on the next boot. A tree
+		// module that is not loaded yet gets an import map so its entry and
+		// siblings all resolve to these blobs, and it enables live.
+		if (tree && registry.isLoaded(id)) {
 			return { requiresRestart: true };
 		}
-		registry.registerLocal({ metadata: record.metadata, files });
+		if (tree) {
+			injectImportMap(buildImportMapEntries({ ...record, files }, location.origin));
+		}
+		registry.registerLocal({ metadata: record.metadata, files, mapped: tree });
 		// The manifest is the row source for management UIs; mirror the boot
 		// merge so a live install is visible without a restart.
 		if (!manifest.modules.some((m) => m.identifier === id)) {
@@ -449,6 +463,9 @@ async function boot(): Promise<BootReport | null> {
 		return registry.enable(id, report);
 	};
 	(modules as Record<string, unknown>).removeLocal = async (id: string) => {
+		// removeLocal removes a local override; with none, do nothing rather
+		// than unload a staged module that only happens to share the id.
+		if (!registry.hasLocal(id) && !hasLocalRecord(id)) return;
 		// A mapped tree module's files are cached in the module graph; the
 		// removal lands, but the running code only reverts on restart.
 		if (registry.isMappedLocal(id)) {
