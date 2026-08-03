@@ -20,12 +20,12 @@ describe("remapSource", () => {
 });
 
 describe("absolutizeLoaderUrls", () => {
-	it("qualifies absolute /modules and /hooks specifiers for blob execution", () => {
-		const src = `import{a}from"/modules/stdlib/mod.js";import("/hooks/util.js");fetch('/modules/x/y.css')`;
+	it("qualifies absolute /modules specifiers for blob execution", () => {
+		const src = `import{a}from"/modules/stdlib/mod.js";fetch('/modules/x/y.css')`;
 		const out = absolutizeLoaderUrls(src, "https://xpui.app.spotify.com");
 		assert.equal(
 			out,
-			`import{a}from"https://xpui.app.spotify.com/modules/stdlib/mod.js";import("https://xpui.app.spotify.com/hooks/util.js");fetch('https://xpui.app.spotify.com/modules/x/y.css')`,
+			`import{a}from"https://xpui.app.spotify.com/modules/stdlib/mod.js";fetch('https://xpui.app.spotify.com/modules/x/y.css')`,
 		);
 	});
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
@@ -133,28 +132,8 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 		outDir := filepath.Join(extractedXpuiPath, "modules", m.Identifier)
 		staged := ModuleManifest{Identifier: m.Identifier, ModuleMetadata: m.ModuleMetadata}
 
-		// pkg artifacts are pre-tailored for a base classmap; re-aim them at
-		// the target. Source modules (MAP.* references) remap directly.
-		sidecar := readModuleSidecar(modulesRoot, m.Identifier)
-		base := sidecar.ClassmapBase
-		hooksEra := base != ""
-		var baseCm Classmap
-		retarget := false
-		if base != "" && base != classmapKey {
-			basePath, err := FindClassmapFile(base)
-			if err != nil {
-				PrintWarning(fmt.Sprintf("Skipping module %s: built for classmap %s, which is not available locally", m.Identifier, base))
-				continue
-			}
-			if baseCm, err = LoadClassmap(basePath); err != nil {
-				PrintWarning(fmt.Sprintf("Skipping module %s: %v", m.Identifier, err))
-				continue
-			}
-			retarget = true
-		}
-
 		os.RemoveAll(outDir)
-		if err := stageModuleTree(modulesRoot, m.Identifier, outDir, baseCm, cm, stale, retarget, sidecar.AllowStale, hooksEra); err != nil {
+		if err := stageModuleTree(modulesRoot, m.Identifier, outDir, cm, stale); err != nil {
 			os.RemoveAll(outDir)
 			PrintWarning(fmt.Sprintf("Skipping module %s: %v", m.Identifier, err))
 			continue
@@ -180,185 +159,11 @@ func StageModules(modulesRoot, extractedXpuiPath string, modules []ModuleManifes
 	return manifest, nil
 }
 
-// moduleSidecar is written by `spicetify pkg install` next to metadata.json.
-type moduleSidecar struct {
-	InstalledVersion string `json:"installed_version"`
-	ClassmapBase     string `json:"classmap_base"`
-	AllowStale       bool   `json:"allow_stale,omitempty"`
-}
-
-func readModuleSidecar(modulesRoot, identifier string) moduleSidecar {
-	raw, err := os.ReadFile(filepath.Join(modulesRoot, identifier, "spicetify-module.json"))
-	if err != nil {
-		return moduleSidecar{}
-	}
-	var sc moduleSidecar
-	if json.Unmarshal(raw, &sc) != nil {
-		return moduleSidecar{}
-	}
-	return sc
-}
-
-// hooksEraPlatformShim replaces src/expose/Platform.js in hooks-era
-// artifacts: the original exposes the Platform object through a runtime
-// source transform of the client core bundle, which never executes on
-// snapshot builds. The wrapper already captures the same object at runtime.
-const hooksEraPlatformShim = `// Rewritten at staging time by spicetify (hooks-era artifact compat).
-// The original exposes Platform via a runtime source transform of the client
-// core bundle, which never executes on snapshot builds. Resolve lazily: the
-// mixin phase imports this module before the client (and Spicetify._platform)
-// exists, so capture must happen on first use, not at import time.
-let cached;
-function resolvePlatform() {
-	if (cached === undefined) {
-		cached = globalThis.Spicetify?._platform ?? null;
-	}
-	return cached ?? undefined;
-}
-
-export const Platform = new Proxy({}, {
-	get: (_, key) => {
-		const p = resolvePlatform();
-		if (!p) return undefined;
-		if (key in p) return p[key];
-		if (typeof key === "string" && key.startsWith("get") && typeof p.getRegistry === "function") {
-			const description = key.slice(3);
-			for (const s of p.getRegistry()._map.keys()) {
-				if (s.description === description) return () => p.getRegistry().resolve(s);
-			}
-		}
-		return undefined;
-	},
-	has: (_, key) => {
-		const p = resolvePlatform();
-		if (!p) return false;
-		if (key in p) return true;
-		if (typeof key === "string" && key.startsWith("get") && typeof p.getRegistry === "function") {
-			const description = key.slice(3);
-			for (const s of p.getRegistry()._map.keys()) {
-				if (s.description === description) return true;
-			}
-		}
-		return false;
-	},
-});
-`
-
-// hooksEraCompatPatches maps module-relative paths to replacement content
-// applied to hooks-era (retargeted) artifacts at staging time.
-const hooksEraWpunpkShim = `// Rewritten at staging time by spicetify (hooks-era artifact compat).
-// The original registers a capture chunk in the chunk array before the
-// client boots, which is fatal to the snapshot runtime. The modular loader
-// captures __webpack_require__ itself once the client is up; this module
-// forwards to it lazily and keeps the hooks-era contract intact.
-
-class Subject {
-	constructor() {
-		this.observers = new Set();
-	}
-	subscribe(fn) {
-		this.observers.add(fn);
-		return { unsubscribe: () => this.observers.delete(fn) };
-	}
-	next(value) {
-		for (const fn of this.observers) fn(value);
-	}
-}
-
-class BehaviorSubject extends Subject {
-	constructor(value) {
-		super();
-		this.value = value;
-	}
-	subscribe(fn) {
-		const sub = super.subscribe(fn);
-		fn(this.value);
-		return sub;
-	}
-	next(value) {
-		this.value = value;
-		super.next(value);
-	}
-	getValue() {
-		return this.value;
-	}
-}
-
-export { Subject, BehaviorSubject };
-
-export const chunkLoadedSubjectPre = new Subject();
-export const chunkLoadedSubjectPost = new Subject();
-export const moduleLoadedSubject = new Subject();
-
-const pendingHooks = [];
-export const postWebpackRequireHooks = {
-	push(hook) {
-		if (typeof globalThis.__webpack_require__ === "function") {
-			try {
-				hook(globalThis.__webpack_require__);
-			} catch (e) {
-				console.error(e);
-			}
-			return 0;
-		}
-		pendingHooks.push(hook);
-		return pendingHooks.length;
-	},
-};
-
-export const webpackRequire = new Proxy(function () {}, {
-	get: (_, k) => globalThis.__webpack_require__?.[k] ?? (k === "m" ? {} : undefined),
-	apply: (_, __, args) => globalThis.__webpack_require__(...args),
-});
-
-const drain = () => {
-	if (typeof globalThis.__webpack_require__ !== "function") return false;
-	for (const hook of pendingHooks.splice(0)) {
-		try {
-			hook(globalThis.__webpack_require__);
-		} catch (e) {
-			console.error(e);
-		}
-	}
-	return true;
-};
-let tries = 0;
-const timer = setInterval(() => {
-	if (drain() || ++tries > 400) clearInterval(timer);
-}, 50);
-`
-
-// hooksEraCompatPatchFor returns the replacement shim for hooks-era module
-// files, detected by content (layout-proof: works for both the 2024
-// src-tree artifacts and flat bundled layouts).
-func hooksEraCompatPatchFor(content string) string {
-	switch {
-	case strings.Contains(content, "__Platform={"):
-		return hooksEraPlatformShim
-	case strings.Contains(content, "webpackChunkclient_web") && strings.Contains(content, "webpackRequire"):
-		return hooksEraWpunpkShim
-	default:
-		return ""
-	}
-}
-
-func isTextEntry(rel string) bool {
-	switch strings.ToLower(filepath.Ext(rel)) {
-	case ".js", ".mjs", ".css", ".ts", ".tsx", ".jsx":
-		return true
-	default:
-		return false
-	}
-}
-
 // stageModuleTree stages a whole module directory, remapping text sources
 // and copying everything else verbatim.
-// Compat patches apply to any hooks-era artifact (sidecar present),
-// whether or not the base classmap differs from the target.
-func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap, stale map[string]bool, retarget, allowStale, hooksEra bool) error {
+func stageModuleTree(modulesRoot, identifier, outDir string, cm Classmap, stale map[string]bool) error {
 	srcRoot := filepath.Join(modulesRoot, identifier)
-	shimmed := map[string]bool{}
-	err := filepath.WalkDir(srcRoot, func(path string, d os.DirEntry, err error) error {
+	return filepath.WalkDir(srcRoot, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -373,22 +178,9 @@ func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap
 			return nil
 		}
 		destDir := filepath.Join(outDir, filepath.Dir(rel))
-		if hooksEra && isTextEntry(rel) {
-			content, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			if replacement := hooksEraCompatPatchFor(string(content)); replacement != "" {
-				if err := os.MkdirAll(destDir, 0755); err != nil {
-					return err
-				}
-				shimmed[filepath.Base(rel)] = true
-				return os.WriteFile(filepath.Join(outDir, rel), []byte(replacement), 0644)
-			}
-		}
 		switch strings.ToLower(filepath.Ext(rel)) {
 		case ".js", ".mjs", ".css", ".ts", ".tsx", ".jsx":
-			if _, err := stageEntry(modulesRoot, identifier, rel, destDir, baseCm, cm, stale, retarget, allowStale); err != nil {
+			if _, err := stageEntry(modulesRoot, identifier, rel, destDir, cm, stale); err != nil {
 				return err
 			}
 		default:
@@ -405,61 +197,10 @@ func stageModuleTree(modulesRoot, identifier, outDir string, baseCm, cm Classmap
 		}
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-	if len(shimmed) > 0 {
-		return rewriteFacadeImports(outDir, shimmed)
-	}
-	return nil
 }
 
-// rewriteFacadeImports fixes bundled facades that import from a shimmed
-// chunk with minified alias names: the shim exports readable names, so
-// `a as webpackRequire` collapses to `webpackRequire`.
-var facadeImportRe = regexp.MustCompile(`import\s+\{[^}]+\}\s+from\s+["']\.\/[^"']+["']`)
-
-var aliasRe = regexp.MustCompile(`\b([a-zA-Z_$][\w$]*)\s+as\s+([a-zA-Z_$][\w$]*)`)
-
-func rewriteFacadeImports(outDir string, shimmed map[string]bool) error {
-	return filepath.WalkDir(outDir, func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".js") {
-			return err
-		}
-		if shimmed[filepath.Base(path)] {
-			return nil
-		}
-		raw, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		content := string(raw)
-		changed := false
-		out := facadeImportRe.ReplaceAllStringFunc(content, func(stmt string) string {
-			for base := range shimmed {
-				if strings.Contains(stmt, base) {
-					changed = true
-					return aliasRe.ReplaceAllString(stmt, "$2")
-				}
-			}
-			return stmt
-		})
-		if !changed {
-			return nil
-		}
-		return os.WriteFile(path, []byte(out), 0644)
-	})
-}
-
-func stageEntry(modulesRoot, identifier, entry, outDir string, baseCm, cm Classmap, stale map[string]bool, retarget, allowStale bool) (string, error) {
-	srcPath := filepath.Join(modulesRoot, identifier, entry)
-	if retarget {
-		if allowStale {
-			return retargetModuleEntryLenient(srcPath, outDir, baseCm, cm, stale)
-		}
-		return retargetModuleEntry(srcPath, outDir, baseCm, cm, stale)
-	}
-	return remapModuleEntry(srcPath, outDir, cm, stale)
+func stageEntry(modulesRoot, identifier, entry, outDir string, cm Classmap, stale map[string]bool) (string, error) {
+	return remapModuleEntry(filepath.Join(modulesRoot, identifier, entry), outDir, cm, stale)
 }
 
 // remapModuleEntry remaps one entry file into the staging dir and returns
@@ -473,43 +214,6 @@ func remapModuleEntry(srcPath, outDir string, cm Classmap, stale map[string]bool
 	if err != nil {
 		return "", err
 	}
-	return writeStagedEntry(srcPath, outDir, remapped)
-}
-
-// retargetModuleEntry rewrites an entry built against baseCm to the target
-// classmap (pkg-installed pre-tailored artifacts).
-func retargetModuleEntry(srcPath, outDir string, baseCm, cm Classmap, stale map[string]bool) (string, error) {
-	return retargetModuleEntryWith(srcPath, outDir, baseCm, cm, stale, false)
-}
-
-func retargetModuleEntryLenient(srcPath, outDir string, baseCm, cm Classmap, stale map[string]bool) (string, error) {
-	return retargetModuleEntryWith(srcPath, outDir, baseCm, cm, stale, true)
-}
-
-func retargetModuleEntryWith(srcPath, outDir string, baseCm, cm Classmap, stale map[string]bool, lenient bool) (string, error) {
-	raw, err := os.ReadFile(srcPath)
-	if err != nil {
-		return "", fmt.Errorf("cannot read %s: %w", srcPath, err)
-	}
-	remapped, err := retargetClassmapHashes(string(raw), baseCm, cm, stale, lenient)
-	if err != nil {
-		return "", err
-	}
-	// hooks-era artifacts capture webpack require via the webpack 4 chunk
-	// global; current clients are rspack-based and use a different name.
-	remapped = strings.ReplaceAll(remapped, "webpackChunkclient_web", "rspackChunkclient_web")
-	// Registered symbols throw in this runtime's chunk loader, and a
-	// constant chunk id goes stale across boots; use a per-boot unique id.
-	remapped = strings.ReplaceAll(remapped,
-		`Symbol.for("spicetify.webpack.chunk.id")`,
-		`(globalThis.__spicetifyChunkId ??= "spicetify.webpack.chunk.id." + Date.now())`)
-	// wpunpk.js expects the capture chunk at index 0 with a fixed id; the
-	// deferred capture appends it with a unique id, so match by prefix and
-	// neutralize the exact-match assertion.
-	remapped = strings.ReplaceAll(remapped,
-		"if (index === 0) {",
-		`if (Array.isArray(chunk[0]) && String(chunk[0][0]).startsWith("spicetify.webpack.chunk.id")) {`)
-	remapped = strings.ReplaceAll(remapped, "assertEquals(chunk[0], [", "0 && assertEquals(chunk[0], [")
 	return writeStagedEntry(srcPath, outDir, remapped)
 }
 
@@ -627,17 +331,5 @@ func StageModularApply(extractedXpuiPath, spotifyVersion, classmapKey string, en
 	if err != nil || manifest == nil || len(manifest.Modules) == 0 {
 		return manifest, err
 	}
-	// hooks-era artifacts import /hooks/* runtime helpers; ship the compat
-	// pack so they resolve inside the client.
-	if hooksDir := filepath.Join(GetJsHelperDir(), "hooks"); dirExists(hooksDir) {
-		if err := Copy(hooksDir, filepath.Join(extractedXpuiPath, "hooks"), true, nil); err != nil {
-			PrintWarning("cannot stage hooks compat pack: " + err.Error())
-		}
-	}
 	return manifest, nil
-}
-
-func dirExists(path string) bool {
-	st, err := os.Stat(path)
-	return err == nil && st.IsDir()
 }

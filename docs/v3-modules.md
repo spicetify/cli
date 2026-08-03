@@ -25,7 +25,7 @@ Rules: `version` is required (semver), at least one of `entries.js` /
 `entries.css`, and `dependencies` maps module identifiers to semver ranges
 (also accepts an empty array for none, for compatibility with 2024 metadata).
 A `spicetify-module.json` sidecar is added by `spicetify pkg install` with
-`installed_version`, `classmap_base`, and `allow_stale`.
+`installed_version` and the verified `checksum`.
 
 ## Class references (`MAP.*`)
 
@@ -43,11 +43,6 @@ classmap (`RemapClassmapReferences`):
 - A path that resolves to a leaf becomes a quoted class literal.
 - A path that is missing or marked stale in the target classmap fails the
   whole module. Skipped modules are reported, never silently broken.
-
-Pre-tailored artifacts (built for an older classmap, version suffix
-`+cm-<key>`) are retargeted instead: every leaf hash of the build classmap is
-rewritten to the leaf at the same path in the target classmap, strict by
-default. `pkg install --allow-stale` keeps old hashes for retired paths.
 
 ## Runtime lifecycle
 
@@ -105,9 +100,9 @@ logic with a real lifecycle.
 ## Platform access
 
 - `Spicetify.Platform` (the classic wrapper API) is fully available.
-- hooks-era `src/expose/Platform.js` is bridged: it resolves
-  `Spicetify._platform` lazily and answers registry symbol getters on demand.
-- `src/wpunpk.mix.js` is bridged to a lazy proxy over
+- stdlib exposes the same object lazily through `src/expose/Platform.ts`,
+  answering registry symbol getters on demand.
+- stdlib's `wpunpk` surface is a lazy proxy over
   `globalThis.__webpack_require__`, which the loader captures after the
   client is up. `webpackRequire.m` and `webpackRequire(id)` work.
 
@@ -122,8 +117,7 @@ logic with a real lifecycle.
   push/forEach trap is ported for compatibility, not fidelity.
 - **Retired classmap paths.** Paths that no longer exist in the client
   (currently: topbar icon wrapper, upgrade button, settings text input)
-  stay stale; modules referencing them fail unless installed with
-  `--allow-stale`.
+  stay stale; modules referencing them fail to stage.
 - **`dependencies` on remote modules.** The runtime only loads installed
   modules; `pkg install` fetches them at apply time.
 
@@ -161,14 +155,13 @@ in the module's `spicetify-module.json` sidecar.
 ## The full flow
 
 ```
-module source (MAP.*)          or   pre-tailored artifact (+cm-1020040)
-        |                                  |
-        |   stitch (rolldown,              |   RetargetClassmapHashes
-        |   MAP-intact)                    |
-        v                                  v
+module source (MAP.*)
+        |
+        |   stitch (rolldown, MAP-intact)
+        v
   RemapClassmapReferences (at apply, per installed classmap)
-        |                                  |
-        +-------- staged into xpui --------+
+        |
+        staged into xpui
                      |
         preprocess (css-map overlay merged)
                      |
@@ -192,8 +185,8 @@ pnpm stitch modules/stdlib        # auto-detects the classmap
 pnpm stitch --classmap 1020092    # or pass a key/path explicitly
 ```
 
-- Bundles TS/TSX with rolldown (lazy chunks preserved, `/hooks/*` and
-  `https://` imports external).
+- Bundles TS/TSX with rolldown (lazy chunks preserved, `https://`
+  imports external).
 - Compiles `index.scss` to `index.css`.
 - Emits `dist/<name>@<version>/` with `metadata.json` and the
   `spicetify-module.json` sidecar.

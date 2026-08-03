@@ -189,36 +189,6 @@ func TestModuleMetadataCompatRoundTrips(t *testing.T) {
 	}
 }
 
-func TestRewriteFacadeImports(t *testing.T) {
-	dir := t.TempDir()
-	shimmed := map[string]bool{"wpunpk.mix-ABC.js": true}
-	files := map[string]string{
-		"wpunpk.mix-ABC.js": `export const webpackRequire = {};`,
-		"wpunpk.mix-DEF.js": `import { a as webpackRequire, t as chunkLoadedSubjectPost } from "./wpunpk.mix-ABC.js";
-export { webpackRequire, chunkLoadedSubjectPost };`,
-		"other.js": `import { a as somethingElse } from "./other-dep.js";`,
-	}
-	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0600); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	if err := rewriteFacadeImports(dir, shimmed); err != nil {
-		t.Fatal(err)
-	}
-
-	facade, _ := os.ReadFile(filepath.Join(dir, "wpunpk.mix-DEF.js"))
-	got := string(facade)
-	if !strings.Contains(got, "import { webpackRequire, chunkLoadedSubjectPost } from") {
-		t.Fatalf("aliases not collapsed:\n%s", got)
-	}
-	other, _ := os.ReadFile(filepath.Join(dir, "other.js"))
-	if !strings.Contains(string(other), "a as somethingElse") {
-		t.Fatalf("unrelated import was rewritten:\n%s", other)
-	}
-}
-
 func TestManifestEnvHonestSerialization(t *testing.T) {
 	modulesRoot := t.TempDir()
 	writeModule(t, modulesRoot, "plain", testMetadata, `export function load() {}`, `.x {}`)

@@ -12,13 +12,12 @@ export interface LocalModuleRecord {
 
 const PREFIX = "spicetify.modules.local.";
 
-// absolutizeLoaderUrls rewrites absolute /modules and /hooks import
-// specifiers to fully qualified URLs. Local installs execute through
-// blob: URLs, whose non-hierarchical base cannot resolve even absolute
-// paths; the staged copies those imports point at live on the page
-// origin.
+// absolutizeLoaderUrls rewrites absolute /modules import specifiers to
+// fully qualified URLs. Local installs execute through blob: URLs, whose
+// non-hierarchical base cannot resolve even absolute paths; the staged
+// copies those imports point at live on the page origin.
 export function absolutizeLoaderUrls(src: string, origin: string): string {
-	return src.replace(/(["'])\/(modules|hooks)\//g, (_, quote, root) => `${quote}${origin}/${root}/`);
+	return src.replace(/(["'])\/modules\//g, (_, quote) => `${quote}${origin}/modules/`);
 }
 
 import { satisfies } from "./semver-lite.ts";

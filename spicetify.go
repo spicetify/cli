@@ -35,7 +35,6 @@ var (
 	liveRefresh             = false
 	bypassAdminCheck        = false
 	forceUnsupportedSpotify = false
-	pkgAllowStale           = false
 )
 
 func init() {
@@ -74,8 +73,6 @@ func init() {
 			bypassAdminCheck = true
 		case "--force-unsupported-spotify":
 			forceUnsupportedSpotify = true
-		case "--allow-stale":
-			pkgAllowStale = true
 		case "-c", "--config":
 			log.Println(cmd.GetConfigPath())
 			os.Exit(0)
@@ -129,7 +126,7 @@ func init() {
 		os.Exit(1)
 	}
 
-	for _, strip := range []string{"--bypass-admin", "--force-unsupported-spotify", "--allow-stale"} {
+	for _, strip := range []string{"--bypass-admin", "--force-unsupported-spotify"} {
 		for i, flag := range flags {
 			if flag == strip {
 				flags = append(flags[:i], flags[i+1:]...)
@@ -142,7 +139,6 @@ func init() {
 	utils.MigrateFolders()
 	cmd.InitConfig(quiet)
 	cmd.SetForceUnsupportedSpotify(forceUnsupportedSpotify)
-	cmd.SetPkgAllowStale(pkgAllowStale)
 
 	if len(commands) < 1 {
 		help()

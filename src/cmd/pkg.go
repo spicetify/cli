@@ -56,13 +56,6 @@ func vaultURLs() []string {
 	return urls
 }
 
-var pkgAllowStale bool
-
-// SetPkgAllowStale enables per-module stale-path leniency for pkg installs.
-func SetPkgAllowStale(allow bool) {
-	pkgAllowStale = allow
-}
-
 type vaultVersion struct {
 	Artifacts []string `json:"artifacts"`
 	Checksum  string   `json:"checksum,omitempty"`
@@ -97,10 +90,10 @@ func ModulePkg(args []string) {
 		pkgTrust(args[1])
 	case "install":
 		if len(args) < 2 {
-			utils.PrintError("usage: spicetify pkg install <id> [--allow-stale]")
+			utils.PrintError("usage: spicetify pkg install <id>")
 			os.Exit(1)
 		}
-		pkgInstall(args[1], pkgAllowStale)
+		pkgInstall(args[1])
 	case "delete":
 		if len(args) < 2 {
 			utils.PrintError("usage: spicetify pkg delete <id>")
@@ -145,20 +138,6 @@ func resolveVersion(m vaultModule) (string, error) {
 	}
 	sort.Strings(versions)
 	return versions[len(versions)-1], nil
-}
-
-// ClassmapBaseFromVersion extracts the classmap key embedded in tailored
-// module versions (e.g. "0.2.2+cm-1020040-ly32efah" -> "1020040").
-func ClassmapBaseFromVersion(version string) string {
-	i := strings.Index(version, "+cm-")
-	if i < 0 {
-		return ""
-	}
-	rest := version[i+4:]
-	if j := strings.IndexByte(rest, '-'); j >= 0 {
-		rest = rest[:j]
-	}
-	return rest
 }
 
 func pkgList() {
@@ -210,9 +189,6 @@ func pkgListVault(v *vault, vaultURL string) {
 		m := v.Modules[id]
 		version, _ := resolveVersion(m)
 		line := fmt.Sprintf("  %s (%s)", id, version)
-		if base := ClassmapBaseFromVersion(version); base != "" {
-			line += fmt.Sprintf(" [built for classmap %s]", base)
-		}
 		if iv, ok := installed[id]; ok {
 			line += fmt.Sprintf(" — installed (%s)", iv)
 		}
@@ -221,7 +197,7 @@ func pkgListVault(v *vault, vaultURL string) {
 	fmt.Println()
 }
 
-func pkgInstall(identifier string, allowStale bool) {
+func pkgInstall(identifier string) {
 	var m vaultModule
 	var version string
 	for _, vaultURL := range vaultURLs() {
@@ -302,8 +278,8 @@ func pkgInstall(identifier string, allowStale bool) {
 
 	sidecar := map[string]any{
 		"installed_version": version,
-		"classmap_base":     ClassmapBaseFromVersion(version),
-		"allow_stale":       allowStale,
+		"classmap_base":     "",
+		"allow_stale":       false,
 		"checksum":          m.V[version].Checksum,
 	}
 	raw, _ := json.MarshalIndent(sidecar, "", "  ")
@@ -312,12 +288,6 @@ func pkgInstall(identifier string, allowStale bool) {
 	}
 
 	utils.PrintSuccess(fmt.Sprintf("Installed %s@%s to %s", identifier, version, dest))
-	if base := sidecar["classmap_base"]; base != "" {
-		utils.PrintInfo("Built for classmap " + base.(string) + "; it will be re-targeted at apply time.")
-	}
-	if allowStale {
-		utils.PrintWarning("allow_stale enabled: paths retired in the target classmap keep their old classes (cosmetic breakage possible).")
-	}
 }
 
 // verifyChecksum checks the artifact against the vault-declared checksum.
