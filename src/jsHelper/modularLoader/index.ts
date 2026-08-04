@@ -10,10 +10,10 @@ import {
 	remapSource,
 	saveLocalModule,
 } from "./localModules.ts";
-import { Registry, type BootReport } from "./registry.ts";
+import { type BootReport, Registry } from "./registry.ts";
 import { createTransformRegistry, transformPath } from "./transforms.ts";
 import { applyTransformsOffthread } from "./transformWorker.ts";
-import { entryUrl, type ModulesManifest } from "./types.ts";
+import { type ModulesManifest, entryUrl } from "./types.ts";
 
 declare global {
 	var __SPICETIFY_MODULAR_MANIFEST__: ModulesManifest;
@@ -52,6 +52,12 @@ function importSource(content: string) {
 }
 
 async function cssFromSource(text: string): Promise<CSSStyleSheet | string> {
+	// Constructable stylesheets silently drop @import rules (per spec),
+	// which classic themes rely on for web fonts; those sheets go through
+	// adoptCss's <style> element path instead, where @import works. A
+	// false positive (say, "@import" in a comment) only costs the
+	// constructable fast path, never correctness.
+	if (/@import\b/.test(text)) return text;
 	if ("adoptedStyleSheets" in document && typeof CSSStyleSheet !== "undefined") {
 		const sheet = new CSSStyleSheet();
 		await sheet.replace(text);
@@ -112,7 +118,7 @@ function hexToRgb(hex: string): string | null {
 	const h = hex.replace("#", "");
 	if (!/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(h)) return null;
 	const full = h.length === 3 ? [...h].map((c) => c + c).join("") : h;
-	return `${parseInt(full.slice(0, 2), 16)},${parseInt(full.slice(2, 4), 16)},${parseInt(full.slice(4, 6), 16)}`;
+	return `${Number.parseInt(full.slice(0, 2), 16)},${Number.parseInt(full.slice(2, 4), 16)},${Number.parseInt(full.slice(4, 6), 16)}`;
 }
 
 // applyVars sets one scheme's --spice-* variables on :root, mirroring
