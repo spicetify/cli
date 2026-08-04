@@ -395,6 +395,10 @@ async function boot(): Promise<BootReport | null> {
 		cssFromSource,
 		adoptCss,
 		applyScheme,
+		activeThemePref: {
+			get: () => localStorage.getItem("spicetify:modules:activeTheme"),
+			set: (id) => localStorage.setItem("spicetify:modules:activeTheme", id),
+		},
 		createTransformer: () => transforms.factory,
 		log,
 	});

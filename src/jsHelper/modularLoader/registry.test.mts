@@ -482,3 +482,78 @@ describe("local module registry state", () => {
 		assert.ok(calls.includes("import:/modules/over/index.js"), "staged loads from disk URL, not pushed source");
 		assert.ok(!calls.some((c) => c.startsWith("importSource:")), "no pushed source used after restage");
 	});
+
+describe("single active theme", () => {
+	const theme = (id: string, css: string) => mod(id, "1.0.0", { tags: ["theme"], entries: { css } });
+
+	it("boot loads only the last eligible theme", async () => {
+		const r = new Registry(
+			manifest([theme("theme-a", "a.css"), mod("ext", "1.0.0"), theme("theme-b", "b.css")]),
+			trackingEffects([]),
+		);
+		const report = await r.boot();
+		assert.deepEqual(report.failed, {});
+		assert.equal(r.isLoaded("theme-a"), false);
+		assert.equal(r.isLoaded("theme-b"), true);
+		assert.equal(r.isLoaded("ext"), true);
+	});
+
+	it("enabling a theme unloads the loaded one", async () => {
+		const calls: string[] = [];
+		const r = new Registry(manifest([theme("theme-a", "a.css"), theme("theme-b", "b.css")]), trackingEffects(calls));
+		const report = await r.boot();
+		assert.equal(r.isLoaded("theme-b"), true);
+		assert.equal(await r.enable("theme-a", report), true);
+		assert.equal(r.isLoaded("theme-a"), true);
+		assert.equal(r.isLoaded("theme-b"), false);
+		assert.ok(calls.some((c) => c.startsWith("unadopt:") && c.includes("b.css")));
+	});
+
+	it("enabling a non-theme leaves the active theme alone", async () => {
+		const r = new Registry(manifest([theme("theme-a", "a.css"), mod("ext", "1.0.0")]), trackingEffects([]));
+		const report = await r.boot();
+		await r.unload("ext");
+		await r.enable("ext", report);
+		assert.equal(r.isLoaded("theme-a"), true);
+	});
+});
+
+describe("active theme preference", () => {
+	const theme = (id: string) => mod(id, "1.0.0", { tags: ["theme"], entries: { css: `${id}.css` } });
+	const withPref = (initial: string | null) => {
+		const box = { value: initial };
+		const effects: Effects = {
+			...trackingEffects([]),
+			activeThemePref: { get: () => box.value, set: (id) => (box.value = id) },
+		};
+		return { box, effects };
+	};
+
+	it("boot prefers the persisted theme over manifest order", async () => {
+		const { effects } = withPref("theme-a");
+		const r = new Registry(manifest([theme("theme-a"), theme("theme-b")]), effects);
+		await r.boot();
+		assert.equal(r.isLoaded("theme-a"), true);
+		assert.equal(r.isLoaded("theme-b"), false);
+	});
+
+	it("boot ignores a stale preference for a missing theme", async () => {
+		const { effects } = withPref("gone");
+		const r = new Registry(manifest([theme("theme-a"), theme("theme-b")]), effects);
+		await r.boot();
+		assert.equal(r.isLoaded("theme-b"), true);
+	});
+
+	it("enabling a theme persists it; enabling a non-theme does not", async () => {
+		const { box, effects } = withPref(null);
+		const r = new Registry(manifest([theme("theme-a"), mod("ext", "1.0.0")]), effects);
+		const report = await r.boot();
+		assert.equal(box.value, null, "boot alone records no preference");
+		await r.unload("theme-a");
+		await r.enable("theme-a", report);
+		assert.equal(box.value, "theme-a");
+		await r.unload("ext");
+		await r.enable("ext", report);
+		assert.equal(box.value, "theme-a");
+	});
+});

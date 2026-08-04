@@ -1,11 +1,11 @@
 import { satisfies } from "./semver-lite.ts";
 import {
-	entryUrl,
 	type DisposeFn,
 	type Effects,
 	type JsIndex,
 	type ManifestModule,
 	type ModulesManifest,
+	entryUrl,
 } from "./types.ts";
 
 export interface BootReport {
@@ -219,12 +219,41 @@ export class Registry {
 
 	}
 
+	private isTheme(identifier: string): boolean {
+		return this.modules.get(identifier)?.tags?.includes("theme") ?? false;
+	}
+
+	// Themes fight over the same client chrome: loading one unloads the
+	// rest, so the single-theme invariant holds for every install path
+	// (store, manager, dev pushes), not just the store UI.
+	private async unloadOtherThemes(identifier: string): Promise<void> {
+		if (!this.isTheme(identifier)) return;
+		for (const id of this.modules.keys()) {
+			if (id !== identifier && this.isTheme(id) && this.isLoaded(id)) {
+				this.effects.log("info", `unloading theme ${id}: one theme at a time`);
+				await this.unload(id);
+			}
+		}
+	}
+
 	// runLoads executes preload/css/load for all eligible modules, after the
 	// client is up. Call runMixins first during early boot.
 	async runLoads(report: BootReport): Promise<void> {
 		const eligible = this.eligibleOrder(report);
+		// Nothing persists enabled/disabled across restarts, so two installed
+		// themes would otherwise both load at boot. The persisted preference
+		// (last theme the user enabled) wins; without one, the last eligible
+		// theme does — local installs register after staged modules, so that
+		// is the most recent install.
+		const themes = eligible.filter((id) => !report.failed[id] && this.isTheme(id));
+		const preferred = this.effects.activeThemePref?.get();
+		const bootTheme = preferred && themes.includes(preferred) ? preferred : themes[themes.length - 1];
 		for (const id of eligible) {
 			if (report.failed[id]) continue;
+			if (this.isTheme(id) && id !== bootTheme) {
+				this.effects.log("info", `skipping theme ${id}: ${bootTheme} is active (one theme at a time)`);
+				continue;
+			}
 			const m = this.modules.get(id)!;
 			const blockedBy = Object.keys(m.dependencies).find((dep) => report.failed[dep]);
 			if (blockedBy) {
@@ -329,6 +358,7 @@ export class Registry {
 			report.failed[identifier] = problem;
 			return false;
 		}
+		await this.unloadOtherThemes(identifier);
 		try {
 			const index = await this.jsIndexOf(m);
 			const state = this.state(identifier);
@@ -353,6 +383,7 @@ export class Registry {
 			const loaded = await index?.load?.(ctx);
 			if (loaded) state.disposers.push(loaded);
 			state.loaded = true;
+			if (this.isTheme(identifier)) this.effects.activeThemePref?.set(identifier);
 			// A module that failed earlier (boot or a previous enable) is no
 			// longer failed; leaving the stale reason makes list() lie.
 			delete report.failed[identifier];

@@ -68,6 +68,10 @@ export interface Effects {
 	adoptCss(sheet: unknown): DisposeFn;
 	createTransformer(): TransformerShim;
 	applyScheme?(identifier: string, source?: string): Promise<DisposeFn | null>;
+	// Persisted "last theme the user enabled": boot prefers it over manifest
+	// order, so a runtime theme switch survives restarts even though module
+	// enabled/disabled state otherwise does not.
+	activeThemePref?: { get(): string | null; set(identifier: string): void };
 	log(level: "info" | "error", ...args: unknown[]): void;
 }
 
