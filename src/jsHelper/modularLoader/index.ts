@@ -78,8 +78,15 @@ export function parseColorSchemes(text: string): Record<string, Record<string, s
 	const out: Record<string, Record<string, string>> = {};
 	let current = "";
 	for (const line of text.split("\n")) {
-		const trimmed = line.trim();
-		if (!trimmed || trimmed.startsWith(";") || trimmed.startsWith("#")) continue;
+		const raw = line.trim();
+		if (!raw || raw.startsWith(";") || raw.startsWith("#")) continue;
+		// Classic themes annotate values inline ("main = 000000 ; the sky").
+		// Carrying that into the value makes the whole custom-property
+		// declaration invalid, and the browser drops it silently, leaving the
+		// key on whatever the previously applied theme set.
+		const comment = raw.indexOf(";");
+		const trimmed = comment < 0 ? raw : raw.slice(0, comment).trim();
+		if (!trimmed) continue;
 		const section = trimmed.match(/^\[(.+)\]$/);
 		if (section) {
 			current = section[1].trim();

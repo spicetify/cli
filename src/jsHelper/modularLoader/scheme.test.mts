@@ -26,6 +26,11 @@ button_bg = bd93f9
 	it("skips malformed lines", () => {
 		assert.deepEqual(parseColorIni("nonsense\na=b\n= x\n"), { a: "b" });
 	});
+
+	it("strips inline comments from values", () => {
+		const ini = "[Base]\nmain = 000000 ; becomes transparent via javascript\nsidebar = 142b44; bottom of sky\ntext = FFFFFF\n";
+		assert.deepEqual(parseColorIni(ini), { main: "000000", sidebar: "142b44", text: "FFFFFF" });
+	});
 });
 
 describe("parseColorSchemes", () => {
@@ -43,6 +48,10 @@ describe("parseColorSchemes", () => {
 
 	it("drops empty sections", () => {
 		assert.deepEqual(Object.keys(parseColorSchemes("[Empty]\n[Real]\na = b\n")), ["Real"]);
+	});
+
+	it("strips inline comments from section headers", () => {
+		assert.deepEqual(Object.keys(parseColorSchemes("[Base] ; the default sky\na = b\n")), ["Base"]);
 	});
 });
 
