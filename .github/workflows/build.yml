@@ -47,8 +47,8 @@ jobs:
       - name: Run Go tests
         run: go test ./...
 
-      - name: Run modular loader tests
-        run: node --test src/jsHelper/modularLoader/
+      - name: Run jsHelper tests
+        run: node --test "src/jsHelper/**/*.test.mts"
 
       - name: Run classmap tooling tests
         run: python3 -m unittest scripts.test_classmap_capture
