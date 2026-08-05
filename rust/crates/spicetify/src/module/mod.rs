@@ -1,4 +1,6 @@
 pub(crate) mod vault;
+pub(crate) mod expose;
+pub(crate) mod stage;
 
 use std::fs;
 use std::path::{Path, PathBuf};
