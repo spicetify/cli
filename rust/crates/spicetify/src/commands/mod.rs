@@ -4,15 +4,15 @@ use crate::error::Result;
 pub mod apply;
 mod config;
 mod daemon;
-mod diagnostics;
-mod pkg;
 mod dev;
+mod diagnostics;
 mod init;
+mod pkg;
 pub mod protocol;
 mod restore;
 mod self_update;
 mod sync;
-pub(crate) mod updates;
+pub mod updates;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConfigAction {

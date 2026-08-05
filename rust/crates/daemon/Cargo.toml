@@ -30,6 +30,9 @@ percent-encoding = { workspace = true }
 tracing = { workspace = true }
 i18n-embed-fl = { workspace = true }
 
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+
 [target.'cfg(unix)'.dependencies]
 fs4 = { workspace = true }
 

@@ -73,9 +73,10 @@ fn patch_update_endpoint(raw: &mut [u8], block: bool) -> bool {
     let mut changed = false;
     let mut off = 0usize;
     while off < raw.len() {
-        let Some(i) = raw.get(off..).and_then(|tail| {
-            tail.windows(from.len()).position(|w| w == from).map(|i| i + off)
-        }) else {
+        let Some(i) = raw
+            .get(off..)
+            .and_then(|tail| tail.windows(from.len()).position(|w| w == from).map(|i| i + off))
+        else {
             break;
         };
         let start = i + ENDPOINT_PREFIX.len();
@@ -104,7 +105,7 @@ fn spotify_binary(ctx: &AppContext) -> PathBuf {
 /// Whether the installed binary currently has its updater neutered. Valid only
 /// while the endpoint string is stable: a future build that renames it would
 /// read as blocked here, the same assumption the patch itself relies on.
-pub(crate) fn is_blocked(ctx: &AppContext) -> Result<bool> {
+pub fn is_blocked(ctx: &AppContext) -> Result<bool> {
     let raw = std::fs::read(spotify_binary(ctx))?;
     Ok(!contains(&raw, ENDPOINT_LIVE.as_bytes()))
 }
