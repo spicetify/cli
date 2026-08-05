@@ -191,6 +191,7 @@ window.Spicetify = {
           "ReactJSX",
           "_renderNavLinks",
           "Events",
+          "CORSProxy",
         ]),
       },
       {
@@ -309,4 +310,5 @@ window.Spicetify = {
   ReactFlipToolkit: {},
   Snackbar: {},
   Platform: {},
+  CORSProxy: {},
 };

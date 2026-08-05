@@ -1,4 +1,7 @@
 import { waitFor } from "./shared/async.js";
+import { proxiedFetch, proxiedURL, templates } from "./shared/corsProxy.js";
+
+Object.assign(Spicetify.CORSProxy, { url: proxiedURL, fetch: proxiedFetch, templates });
 
 (function waitForPlatform() {
   if (!Spicetify._platform) {
@@ -131,7 +134,6 @@ void (async function addProxyCosmos() {
       return async function (url, body) {
         const urlObj = new URL(url);
 
-        const corsProxyURLTemplate = window.localStorage.getItem("spicetify:corsProxyTemplate") ?? "https://cors-proxy.spicetify.app/{url}";
         const isWebAPI = urlObj.hostname === "api.spotify.com";
         const isSpClientAPI = urlObj.hostname.includes("spotify.com") && urlObj.hostname.includes("spclient");
         const isInternalURL = internalEndpoints.has(urlObj.protocol);
@@ -158,14 +160,6 @@ void (async function addProxyCosmos() {
             finalURL += `${useSeparator ? "&" : "?"}${params.toString()}`;
           } else options.body = !Array.isArray(body) && typeof body === "object" ? JSON.stringify(body) : body;
         }
-        if (shouldUseCORSProxy) {
-          finalURL = corsProxyURLTemplate.replace(/{url}/, finalURL);
-          try {
-            new URL(finalURL);
-          } catch {
-            console.error("[spicetifyWrapper] Invalid CORS Proxy URL template");
-          }
-        }
 
         const Authorization = `Bearer ${Spicetify.Platform.AuthorizationAPI.getState().token.accessToken}`;
         let injectedHeaders = {};
@@ -179,8 +173,10 @@ void (async function addProxyCosmos() {
         }
         Object.assign(options.headers, injectedHeaders);
 
+        const request = shouldUseCORSProxy ? proxiedFetch(finalURL, options) : fetch(finalURL, options);
+
         try {
-          return fetch(finalURL, options).then((res) => {
+          return request.then((res) => {
             if (!res.ok) return { code: res.status, error: res.statusText, message: "Failed to fetch", stack: undefined };
             try {
               return res.clone().json();
