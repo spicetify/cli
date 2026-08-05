@@ -1,5 +1,3 @@
-cargo-features = ["codegen-backend"]
-
 [workspace]
 members = ["crates/spicetify", "crates/cli", "crates/tui", "crates/daemon"]
 resolver = "2"
@@ -22,11 +20,11 @@ strip = true
 
 [profile.dev]
 debug = 0
-codegen-backend = "cranelift"
 panic = "abort"
 
 [workspace.dependencies]
 anyhow = "1.0"
+junction = "2.0"
 thiserror = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

@@ -28,6 +28,21 @@ Supports Windows, MacOS and Linux.
 
 ---
 
+### Rust CLI (in progress, `rust/`)
+
+The v3 CLI is being rebuilt in Rust on the foundation of
+[veryboringhwl/app](https://github.com/veryboringhwl/app) (MIT), imported with
+its history preserved. Until it passes the parity gate on macOS, the Go CLI
+remains the released and default binary on every platform.
+
+---
+
+### Acknowledgements
+
+- [veryboringhwl](https://github.com/veryboringhwl) — author of the Rust app
+  the `rust/` workspace is founded on (extract-and-serve apply model,
+  versioned payload sets, update watcher, protocol handler, TUI).
+
 ### Code Signing Policy
 
 Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org/).

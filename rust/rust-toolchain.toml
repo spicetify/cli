@@ -1,5 +1,6 @@
 [toolchain]
-# needed for junctions on windows
-# and also for nightly fmt
-channel = "nightly-2026-07-30"
+# The junction crate replaces the unstable std junction_point API, so the
+# build needs no nightly. rustfmt.toml's unstable options are ignored on
+# stable; run `cargo +nightly fmt` if you want them applied.
+channel = "stable"
 components = ["rustfmt", "clippy"]

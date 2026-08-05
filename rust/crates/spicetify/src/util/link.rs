@@ -16,7 +16,7 @@ pub(crate) fn create_dir_link(target: &Path, link: &Path) -> Result<()> {
     }
     #[cfg(windows)]
     {
-        std::os::windows::fs::junction_point(target, link)
+        junction::create(target, link)
             .map_err(|e| anyhow::anyhow!("junction create failed: {e}"))?;
         Ok(())
     }

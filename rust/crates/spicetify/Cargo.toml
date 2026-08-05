@@ -43,5 +43,6 @@ tokio-stream = { workspace = true }
 fork = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
+junction = { workspace = true }
 windows = { workspace = true }
 windows-registry = { workspace = true }

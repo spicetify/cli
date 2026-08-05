@@ -10,5 +10,6 @@ linker = "rust-lld.exe"
 # rustflags = ["-C", "link-arg=--ld-path=wild"]
 
 [env]
-# cranelift errors if no env
+# Inherited from the upstream cranelift setup. Harmless on stable; kept until
+# an aws-lc-sys build proves it unnecessary.
 AWS_LC_SYS_NO_U1_BINDINGS = "1"
