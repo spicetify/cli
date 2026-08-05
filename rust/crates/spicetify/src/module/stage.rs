@@ -121,7 +121,8 @@ fn find_classmap_file(config_root: &Path, key: &str) -> Option<PathBuf> {
             .map(|e| e.path())
             .filter(|p| {
                 p.file_name().and_then(|n| n.to_str()).is_some_and(|n| {
-                    n.starts_with("classmap-") && Path::new(n).extension().is_some_and(|e| e == "json")
+                    n.starts_with("classmap-")
+                        && Path::new(n).extension().is_some_and(|e| e == "json")
                 })
             })
             .collect();
@@ -160,7 +161,11 @@ fn resolve_leaf(classmap: &serde_json::Value, dotted: &str) -> Option<String> {
 
 /// Rewrites MAP.* references to quoted class-name literals. Any reference that
 /// does not resolve, or resolves to a stale leaf, fails the whole file.
-fn remap_source(src: &str, classmap: &serde_json::Value, stale: &BTreeSet<String>) -> Result<String> {
+fn remap_source(
+    src: &str,
+    classmap: &serde_json::Value,
+    stale: &BTreeSet<String>,
+) -> Result<String> {
     let mut unresolved = BTreeSet::new();
     let mut hit_stale = BTreeSet::new();
 
@@ -170,7 +175,9 @@ fn remap_source(src: &str, classmap: &serde_json::Value, stale: &BTreeSet<String
             let _ = hit_stale.insert(dotted);
             return caps[0].to_string();
         }
-        if let Some(leaf) = resolve_leaf(classmap, &dotted) { serde_json::to_string(&leaf).unwrap_or_else(|_| caps[0].to_string()) } else {
+        if let Some(leaf) = resolve_leaf(classmap, &dotted) {
+            serde_json::to_string(&leaf).unwrap_or_else(|_| caps[0].to_string())
+        } else {
             let _ = unresolved.insert(dotted);
             caps[0].to_string()
         }
@@ -181,7 +188,10 @@ fn remap_source(src: &str, classmap: &serde_json::Value, stale: &BTreeSet<String
     }
     let mut parts = Vec::new();
     if !unresolved.is_empty() {
-        parts.push(format!("unresolved: {}", unresolved.iter().cloned().collect::<Vec<_>>().join(", ")));
+        parts.push(format!(
+            "unresolved: {}",
+            unresolved.iter().cloned().collect::<Vec<_>>().join(", ")
+        ));
     }
     if !hit_stale.is_empty() {
         parts.push(format!("stale: {}", hit_stale.iter().cloned().collect::<Vec<_>>().join(", ")));
@@ -189,7 +199,12 @@ fn remap_source(src: &str, classmap: &serde_json::Value, stale: &BTreeSet<String
     Err(anyhow::anyhow!("classmap references failed ({})", parts.join("; ")))
 }
 
-fn stage_tree(src_root: &Path, out_dir: &Path, classmap: &serde_json::Value, stale: &BTreeSet<String>) -> Result<()> {
+fn stage_tree(
+    src_root: &Path,
+    out_dir: &Path,
+    classmap: &serde_json::Value,
+    stale: &BTreeSet<String>,
+) -> Result<()> {
     for entry in std::fs::read_dir(src_root)? {
         let entry = entry?;
         let path = entry.path();
@@ -236,14 +251,22 @@ pub(crate) fn stage_modules(
         return Ok(0);
     }
 
-    let key = classmap_key_for_version(spotify_version)
-        .ok_or_else(|| anyhow::anyhow!("cannot derive a classmap key from Spotify version {spotify_version}"))?;
-    let classmap_path = find_classmap_file(config_root, &key).ok_or_else(|| {
-        anyhow::anyhow!("no classmap found for key {key} (set SPICETIFY_CLASSMAPS_DIR or install one)")
+    let key = classmap_key_for_version(spotify_version).ok_or_else(|| {
+        anyhow::anyhow!("cannot derive a classmap key from Spotify version {spotify_version}")
     })?;
-    let classmap: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&classmap_path)?)?;
+    let classmap_path = find_classmap_file(config_root, &key).ok_or_else(|| {
+        anyhow::anyhow!(
+            "no classmap found for key {key} (set SPICETIFY_CLASSMAPS_DIR or install one)"
+        )
+    })?;
+    let classmap: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&classmap_path)?)?;
     let stale = stale_leaves(&classmap_path);
-    tracing::info!("using classmap {} ({} stale leaf/leaves)", classmap_path.display(), stale.len());
+    tracing::info!(
+        "using classmap {} ({} stale leaf/leaves)",
+        classmap_path.display(),
+        stale.len()
+    );
 
     let out_root = xpui.join("modules");
     if let Err(e) = std::fs::remove_dir_all(&out_root)
@@ -254,8 +277,10 @@ pub(crate) fn stage_modules(
     std::fs::create_dir_all(&out_root)?;
 
     let mut staged = Vec::new();
-    let mut entries: Vec<PathBuf> =
-        std::fs::read_dir(modules_root)?.filter_map(std::result::Result::ok).map(|e| e.path()).collect();
+    let mut entries: Vec<PathBuf> = std::fs::read_dir(modules_root)?
+        .filter_map(std::result::Result::ok)
+        .map(|e| e.path())
+        .collect();
     entries.sort();
 
     for dir in entries {
@@ -326,20 +351,23 @@ mod tests {
 
     #[test]
     fn rewrites_references_to_quoted_leaves() {
-        let out = remap_source("const a = MAP.main.navbar.link;", &classmap(), &BTreeSet::new()).expect("remap succeeds");
+        let out = remap_source("const a = MAP.main.navbar.link;", &classmap(), &BTreeSet::new())
+            .expect("remap succeeds");
         assert_eq!(out, r#"const a = "abc123";"#);
     }
 
     #[test]
     fn unresolved_reference_fails_the_file() {
-        let err = remap_source("MAP.main.missing", &classmap(), &BTreeSet::new()).expect_err("remap fails");
+        let err = remap_source("MAP.main.missing", &classmap(), &BTreeSet::new())
+            .expect_err("remap fails");
         assert!(err.to_string().contains("unresolved"), "{err}");
     }
 
     #[test]
     fn stale_leaf_fails_rather_than_shipping_a_bad_hash() {
         let stale: BTreeSet<String> = ["main.navbar.link".to_string()].into_iter().collect();
-        let err = remap_source("MAP.main.navbar.link", &classmap(), &stale).expect_err("remap fails");
+        let err =
+            remap_source("MAP.main.navbar.link", &classmap(), &stale).expect_err("remap fails");
         assert!(err.to_string().contains("stale"), "{err}");
     }
 

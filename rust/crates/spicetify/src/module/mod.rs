@@ -1,6 +1,6 @@
-pub(crate) mod vault;
 pub(crate) mod expose;
 pub(crate) mod stage;
+pub(crate) mod vault;
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -59,8 +59,6 @@ pub(crate) fn modules_dir(config_root: &Path) -> PathBuf {
 const fn needs_migration(canonical_exists: bool, legacy_exists: bool) -> bool {
     !canonical_exists && legacy_exists
 }
-
-
 
 pub(crate) fn initialize(paths: &ModulePaths) -> Result<()> {
     fs::create_dir_all(paths.vault_path.parent().expect("vault_path always has a parent"))?;

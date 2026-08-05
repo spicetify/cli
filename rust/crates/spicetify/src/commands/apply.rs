@@ -256,7 +256,10 @@ mod tests {
         let wrapper = out.find("hooks/spicetifyWrapper.js").expect("wrapper injected");
         let loader = out.find("hooks/modularLoader.js").expect("loader injected");
         let body = out.find(BODY_TAG).expect("body present");
-        assert!(body < wrapper && wrapper < loader, "payload order must be body -> wrapper -> loader");
+        assert!(
+            body < wrapper && wrapper < loader,
+            "payload order must be body -> wrapper -> loader"
+        );
         // Nothing may be deferred: defer would run after the client bundle.
         assert!(!out.contains("defer src='hooks/"));
     }
