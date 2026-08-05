@@ -68,6 +68,13 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         return Err(e);
     }
 
+    // Before the payload and modules are staged: this rewrites the client's
+    // own sources, and both of those are ours to leave alone.
+    if let Err(e) = apply_css_map(ctx, &tmp) {
+        cleanup_tmp(&tmp);
+        return Err(e);
+    }
+
     if let Err(e) = link_runtime_dirs(&ctx.config_root, &tmp) {
         cleanup_tmp(&tmp);
         return Err(e);
@@ -146,6 +153,26 @@ fn find_snapshot(dir: &Path) -> Result<Option<std::path::PathBuf>> {
         })
     });
     Ok(entry.map(|e| e.path()))
+}
+
+// Rewrites the client's hashed class names to the stable semantic names the
+// ecosystem targets. Without it every `.main-*` selector misses: stdlib's
+// registers have nothing to anchor to and themes style nothing.
+fn apply_css_map(ctx: &AppContext, dest: &Path) -> Result<()> {
+    let version = crate::hooks::version_detect::detect_spotify_version(ctx)
+        .map(|v| v.to_string())
+        .unwrap_or_default();
+    let key = crate::module::stage::classmap_key_for_version(&version).unwrap_or_default();
+
+    let Some(map) = crate::module::cssmap::CssMap::load(&ctx.config_root, &key) else {
+        tracing::warn!(
+            "no css map found: the client keeps its hashed class names, so `.main-*` selectors will not match"
+        );
+        return Ok(());
+    };
+    let touched = crate::module::cssmap::apply_to_tree(&map, dest)?;
+    tracing::info!("rewrote class names in {touched} file(s)");
+    Ok(())
 }
 
 // The modular loader boots from <xpui>/modules/manifest.json, which carries the

@@ -28,6 +28,7 @@ reqwest = { workspace = true, default-features = false, features = [
 url = { workspace = true }
 semver = { workspace = true }
 regex = { workspace = true }
+aho-corasick = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 i18n-embed = { workspace = true }

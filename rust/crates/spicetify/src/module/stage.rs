@@ -87,6 +87,10 @@ pub(crate) fn classmap_key_for_version(version: &str) -> Option<String> {
 
 /// Search roots for classmaps: an explicit override, then beside the running
 /// binary, then the config root (matching the Go CLI's search order).
+pub(crate) fn classmap_roots(config_root: &Path) -> Vec<PathBuf> {
+    classmap_search_dirs(config_root)
+}
+
 fn classmap_search_dirs(config_root: &Path) -> Vec<PathBuf> {
     let mut dirs = Vec::new();
     if let Ok(explicit) = std::env::var("SPICETIFY_CLASSMAPS_DIR")

@@ -3091,6 +3091,7 @@ dependencies = [
 name = "spicetify"
 version = "0.0.11"
 dependencies = [
+ "aho-corasick",
  "anyhow",
  "arc-swap",
  "directories",
