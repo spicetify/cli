@@ -9,7 +9,6 @@ use axum::response::{IntoResponse, Response};
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, percent_encode};
 use tokio_stream::StreamExt;
 
-use crate::routes::ALLOWED_ORIGIN;
 use crate::server::DaemonState;
 
 const MAX_REQUEST_BODY: usize = 8 * 1024 * 1024;
@@ -29,6 +28,12 @@ const INFRA_HEADERS: &[&str] = &[
     "content-length",
 ];
 
+pub async fn status() -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "message": format!("Proxy is working as expected (v{})", spicetify::VERSION)
+    }))
+}
+
 pub async fn handler(
     State(state): State<Arc<DaemonState>>,
     Path(url): Path<String>,
@@ -37,25 +42,24 @@ pub async fn handler(
     request: Request,
 ) -> Response {
     if method == Method::OPTIONS {
-        return cors_preflight();
+        return StatusCode::NO_CONTENT.into_response();
     }
 
     let Ok(target) = url::Url::parse(&url) else {
         tracing::warn!(%url, "proxy received invalid URL");
-        return (StatusCode::BAD_REQUEST, spicetify::fl!("proxy-invalid-url")).into_response();
+        return error_response(StatusCode::BAD_REQUEST, spicetify::fl!("proxy-invalid-url"));
     };
 
     let Ok(body_bytes) = axum::body::to_bytes(request.into_body(), MAX_REQUEST_BODY).await else {
         tracing::warn!(%target, "proxy request body exceeds {} bytes limit", MAX_REQUEST_BODY);
-        return (StatusCode::PAYLOAD_TOO_LARGE, spicetify::fl!("proxy-invalid-body"))
-            .into_response();
+        return error_response(StatusCode::PAYLOAD_TOO_LARGE, spicetify::fl!("proxy-invalid-body"));
     };
 
     let upstream = build_upstream_request(&state.client, method, &target, body_bytes, &headers);
 
     let Ok(upstream) = upstream.send().await else {
         tracing::warn!(%target, "upstream proxy request failed");
-        return (StatusCode::BAD_GATEWAY, spicetify::fl!("proxy-request-failed")).into_response();
+        return error_response(StatusCode::BAD_GATEWAY, spicetify::fl!("proxy-request-failed"));
     };
 
     let status = upstream.status();
@@ -69,35 +73,15 @@ pub async fn handler(
     let mut response = match Response::builder().status(status).body(body) {
         Ok(r) => r,
         Err(e) => {
-            return (StatusCode::BAD_GATEWAY, format!("response builder error: {e}"))
-                .into_response();
+            return error_response(StatusCode::BAD_GATEWAY, format!("response builder error: {e}"));
         }
     };
     apply_response_headers(response.headers_mut(), &upstream_headers);
     response
 }
 
-fn cors_preflight() -> Response {
-    let mut headers = HeaderMap::new();
-    apply_cors(&mut headers);
-    drop(headers.insert(
-        "access-control-allow-methods",
-        HeaderValue::from_static("GET, POST, PUT, DELETE, PATCH, OPTIONS"),
-    ));
-    drop(headers.insert(
-        "access-control-allow-headers",
-        HeaderValue::from_static("content-type, x-set-headers"),
-    ));
-    drop(headers.insert("access-control-max-age", HeaderValue::from_static("86400")));
-    (StatusCode::NO_CONTENT, headers, Json(serde_json::json!({}))).into_response()
-}
-
-pub fn apply_cors(h: &mut HeaderMap) {
-    drop(h.insert("access-control-allow-origin", HeaderValue::from_static(ALLOWED_ORIGIN)));
-    drop(h.insert("access-control-allow-credentials", HeaderValue::from_static("true")));
-    drop(h.insert("access-control-allow-private-network", HeaderValue::from_static("true")));
-    drop(h.insert("access-control-expose-headers", HeaderValue::from_static("*")));
-    drop(h.insert("vary", HeaderValue::from_static("Origin")));
+fn error_response(status: StatusCode, message: String) -> Response {
+    (status, message).into_response()
 }
 
 fn build_upstream_request(
@@ -144,9 +128,9 @@ fn build_upstream_request(
 }
 
 fn apply_response_headers(h: &mut HeaderMap, upstream_headers: &HeaderMap) {
-    apply_cors(h);
     for (k, v) in upstream_headers {
-        if k.as_str().eq_ignore_ascii_case("set-cookie") {
+        let name = k.as_str();
+        if name.eq_ignore_ascii_case("set-cookie") || name.starts_with("access-control-") {
             continue;
         }
         drop(h.insert(k, v.clone()));

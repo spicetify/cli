@@ -1,25 +1,40 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::Router;
 use axum::extract::State;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::http::{HeaderMap, StatusCode};
+use axum::http::{HeaderMap, HeaderValue, Method, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{any, get, post};
 use spicetify::commands::protocol;
 use tokio_stream::StreamExt;
+use tower_http::cors::{AllowHeaders, AllowOrigin, CorsLayer, ExposeHeaders};
 
 use crate::server::DaemonState;
 use crate::{health, proxy};
 
 pub const ALLOWED_ORIGIN: &str = "https://xpui.app.spotify.com";
 
+fn cors_layer() -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::exact(HeaderValue::from_static(ALLOWED_ORIGIN)))
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::PATCH])
+        .allow_headers(AllowHeaders::mirror_request())
+        .expose_headers(ExposeHeaders::any())
+        .allow_private_network(true)
+        .max_age(Duration::from_hours(24))
+}
+
 pub fn build(state: Arc<DaemonState>) -> Router {
     Router::new()
         .route("/health", get(health::handler))
         .route("/rpc", get(ws_handler))
         .route("/shutdown", post(shutdown_handler))
+        .route("/proxy", get(proxy::status))
+        .route("/proxy/", get(proxy::status))
         .route("/proxy/{*url}", any(proxy::handler))
+        .layer(cors_layer())
         .with_state(state)
 }
 

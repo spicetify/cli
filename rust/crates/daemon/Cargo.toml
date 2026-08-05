@@ -25,6 +25,7 @@ notify = { workspace = true }
 tokio-stream = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true, features = ["stream"] }
+tower-http = { workspace = true, features = ["cors"] }
 url = { workspace = true }
 percent-encoding = { workspace = true }
 tracing = { workspace = true }
