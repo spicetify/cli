@@ -35,7 +35,7 @@ pub fn spawn() -> Result<(), DaemonSpawnError> {
         use std::os::windows::process::CommandExt;
 
         use windows::Win32::System::Threading::{
-            CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, DETACHED_PROCESS
+            CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, DETACHED_PROCESS,
         };
         cmd =
             cmd.creation_flags((CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS).0);

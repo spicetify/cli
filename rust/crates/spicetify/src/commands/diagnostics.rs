@@ -34,8 +34,8 @@ pub(crate) fn support(ctx: &AppContext) -> Result<()> {
     let staged = std::fs::read_dir(ctx.dest_apps_path().join("xpui").join("modules"))
         .map(|d| d.filter_map(std::result::Result::ok).filter(|e| e.path().is_dir()).count())
         .unwrap_or_default();
-    let blocked = super::updates::is_blocked(ctx)
-        .map_or_else(|_| "unknown".to_string(), |b| b.to_string());
+    let blocked =
+        super::updates::is_blocked(ctx).map_or_else(|_| "unknown".to_string(), |b| b.to_string());
 
     tracing::info!("cli: {} (rust)", env!("CARGO_PKG_VERSION"));
     tracing::info!("spotify: {version}");

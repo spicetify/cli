@@ -153,7 +153,7 @@ fn spawn_binary(ctx: &AppContext) -> Result<()> {
     use std::os::windows::process::CommandExt;
 
     use windows::Win32::System::Threading::{
-        CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, DETACHED_PROCESS
+        CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW, DETACHED_PROCESS,
     };
 
     let exe = &ctx.spotify_exec;

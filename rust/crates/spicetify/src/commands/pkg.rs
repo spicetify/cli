@@ -86,12 +86,7 @@ fn resolve_version(module: &VaultModule) -> Result<String> {
         }
         anyhow::bail!("enabled version {} is not in the vault", module.enabled);
     }
-    module
-        .v
-        .keys()
-        .next_back()
-        .cloned()
-        .ok_or_else(|| anyhow::anyhow!("no versions in the vault"))
+    module.v.keys().next_back().cloned().ok_or_else(|| anyhow::anyhow!("no versions in the vault"))
 }
 
 /// Installed modules, read from disk rather than the vault.
@@ -136,9 +131,7 @@ pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
             }
         };
         let Some(module) = vault.modules.get(identifier) else {
-            near.extend(
-                vault.modules.keys().filter(|k| k.contains(identifier)).take(3).cloned(),
-            );
+            near.extend(vault.modules.keys().filter(|k| k.contains(identifier)).take(3).cloned());
             continue;
         };
         let version = resolve_version(module)?;
@@ -155,7 +148,10 @@ pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
     if near.is_empty() {
         anyhow::bail!("module not found in any vault: {identifier}");
     }
-    anyhow::bail!("module not found in any vault: {identifier} (did you mean: {}?)", near.join(", "))
+    anyhow::bail!(
+        "module not found in any vault: {identifier} (did you mean: {}?)",
+        near.join(", ")
+    )
 }
 
 /// Adds a community vault by name or URL. Only HTTPS origins are accepted:

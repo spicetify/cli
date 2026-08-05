@@ -3,7 +3,9 @@ use std::io::{self, Write};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use i18n_embed_fl as _;
-use spicetify::commands::{Command, ConfigAction, DaemonAction, PkgAction, SyncTarget, UpdatesAction};
+use spicetify::commands::{
+    Command, ConfigAction, DaemonAction, PkgAction, SyncTarget, UpdatesAction,
+};
 use spicetify::{fl, logging};
 
 #[derive(Debug, Parser)]
@@ -73,7 +75,11 @@ enum CliCommand {
     Sync {
         #[arg(long)]
         url: Option<String>,
-        #[arg(long, conflicts_with = "url", help = "Stage a locally built payload directory (development)")]
+        #[arg(
+            long,
+            conflicts_with = "url",
+            help = "Stage a locally built payload directory (development)"
+        )]
         local: Option<String>,
     },
 }

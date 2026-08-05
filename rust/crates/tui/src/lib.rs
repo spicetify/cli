@@ -12,7 +12,7 @@ pub use app::{LayoutState, Page, RunStatus, TuiApp};
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
 use crossterm::execute;
 use crossterm::terminal::{
-    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
 use i18n_embed_fl as _;
 use ratatui::Terminal;
