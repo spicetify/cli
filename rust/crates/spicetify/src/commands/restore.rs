@@ -6,6 +6,15 @@ use crate::fl;
 
 pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     if !has_spa_backups(ctx)? {
+        // No backup of ours, but a patched client on disk means another tool
+        // owns this apply and only that tool can undo it. Saying "already
+        // stock" would send the user away from the only working recovery.
+        if !ctx.mirror
+            && ctx.dest_apps_path().join("xpui").is_dir()
+            && !ctx.spotify_apps_path().join("xpui.spa").is_file()
+        {
+            return Err(anyhow::anyhow!(fl!("foreign-apply")));
+        }
         return Err(anyhow::anyhow!(fl!("already-stock")));
     }
 

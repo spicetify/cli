@@ -1,4 +1,5 @@
 already-applied = Spicetify appears to be already applied!
+foreign-apply = This client was patched by another tool (no xpui.spa and no xpui.spa.backup found). Restore it with the tool that applied it, then re-run apply.
 already-stock = Spotify is already in stock state!
 app-developer-enabled = Enabled chromium devtools!
 app-developer-not-found = Could not find marker in offline.bnk. Try logging in and out of the app

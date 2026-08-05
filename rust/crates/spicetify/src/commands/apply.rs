@@ -10,8 +10,16 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     let dest_xpui = dest_apps.join("xpui");
     let backup = spa.with_extension("spa.backup");
 
-    if !spa.exists() && dest_xpui.exists() {
-        return Err(anyhow::anyhow!(fl!("already-applied")));
+    // The artifacts alone distinguish three states:
+    //   xpui.spa present           -> stock; fresh apply
+    //   xpui.spa.backup present    -> ours; re-apply from that backup
+    //   neither, but xpui/ present -> patched by another tool, which consumed
+    //                                 the archive entirely. Patching over it
+    //                                 would corrupt the client, so refuse and
+    //                                 name the real cause instead of claiming
+    //                                 it is already applied.
+    if !spa.exists() && !ctx.mirror && !backup.exists() && dest_xpui.exists() {
+        return Err(anyhow::anyhow!(fl!("foreign-apply")));
     }
 
     crate::lifecycle::stop(ctx)?;
