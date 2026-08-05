@@ -12,7 +12,7 @@ use tokio_stream::StreamExt;
 
 use crate::error::Result;
 
-const GITHUB_API: &str = "https://api.github.com/repos/veryboringhwl/app/releases/latest";
+const GITHUB_API: &str = "https://api.github.com/repos/spicetify/cli/releases/latest";
 
 pub async fn check_for_update() -> Result<Option<ReleaseInfo>> {
     let client = crate::http::github_client()?;
