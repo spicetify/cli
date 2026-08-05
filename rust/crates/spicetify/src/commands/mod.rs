@@ -11,23 +11,12 @@ mod pkg;
 pub mod protocol;
 mod restore;
 mod self_update;
-mod sync;
 pub mod updates;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConfigAction {
     Show,
     OpenFolder,
-}
-
-#[derive(Debug, Clone)]
-pub enum SyncTarget {
-    Auto,
-    Url(String),
-    /// A locally built payload directory, for developing the client stack
-    /// before it is published. Never reachable from release or self-update
-    /// flows, which resolve through the manifest.
-    Local(std::path::PathBuf),
 }
 
 #[derive(Debug, Clone)]
@@ -41,7 +30,6 @@ pub enum Command {
     Pkg(PkgAction),
     Protocol(String),
     SelfUpdate,
-    Sync(SyncTarget),
     SpotifyUpdates(UpdatesAction),
     Path,
     Support,
@@ -103,7 +91,6 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
             PkgAction::Enable { id } => crate::module::enable_module(&ctx.config_root, id),
         },
         Command::Protocol(uri) => protocol::run(ctx, uri),
-        Command::Sync(target) => sync::run(ctx, target),
         Command::SpotifyUpdates(action) => match action {
             UpdatesAction::Block => updates::set_blocked(ctx, true),
             UpdatesAction::Unblock => updates::set_blocked(ctx, false),

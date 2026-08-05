@@ -1,7 +1,7 @@
 use ratatui::Frame;
 use ratatui::layout::{Position, Rect};
 use ratatui::widgets::ListState;
-use spicetify::commands::{Command, ConfigAction, DaemonAction, SyncTarget};
+use spicetify::commands::{Command, ConfigAction, DaemonAction};
 use spicetify::fl;
 
 use super::super::app::{HoverState, Page};
@@ -13,7 +13,6 @@ const SCROLL_STEP: usize = 3;
 pub(crate) enum MenuAction {
     Apply,
     Restore,
-    Sync,
     Dev,
     Config,
     ConfigOpenFolder,
@@ -34,7 +33,6 @@ impl MenuAction {
         match self {
             Self::Apply => fl!("tui-mn-apply"),
             Self::Restore => fl!("tui-mn-restore"),
-            Self::Sync => fl!("tui-mn-sync"),
             Self::Dev => fl!("tui-mn-dev"),
             Self::Config => fl!("tui-mn-config"),
             Self::ConfigOpenFolder => fl!("tui-mn-config-open-folder"),
@@ -55,7 +53,6 @@ impl MenuAction {
         match self {
             Self::Apply => fl!("tui-mn-apply-desc"),
             Self::Restore => fl!("tui-mn-restore-desc"),
-            Self::Sync => fl!("tui-mn-sync-desc"),
             Self::Dev => fl!("tui-mn-dev-desc"),
             Self::Config => fl!("tui-mn-config-desc"),
             Self::ConfigOpenFolder => fl!("tui-mn-config-open-folder-desc"),
@@ -76,7 +73,6 @@ impl MenuAction {
         match self {
             Self::Apply => Command::Apply,
             Self::Restore => Command::Restore,
-            Self::Sync => Command::Sync(SyncTarget::Auto),
             Self::Dev => Command::Dev,
             Self::Config => Command::Config(ConfigAction::Show),
             Self::ConfigOpenFolder => Command::Config(ConfigAction::OpenFolder),
@@ -142,7 +138,7 @@ impl MenuCategory {
 pub(crate) const CATEGORIES: &[MenuCategory] = &[
     MenuCategory {
         id: CategoryId::Patching,
-        actions: &[MenuAction::Apply, MenuAction::Restore, MenuAction::Sync, MenuAction::Dev],
+        actions: &[MenuAction::Apply, MenuAction::Restore, MenuAction::Dev],
     },
     MenuCategory {
         id: CategoryId::Pkg,

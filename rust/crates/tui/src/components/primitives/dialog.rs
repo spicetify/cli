@@ -42,26 +42,6 @@ fn draw_close_button(
     button::draw_button(frame, " X ", cr, mouse_pos, mouse_active, false);
 }
 
-pub(crate) fn draw_dialog(
-    frame: &mut Frame<'_>,
-    width: u16,
-    height: u16,
-    mouse_pos: (u16, u16),
-    mouse_active: bool,
-) -> DialogArea {
-    let outer = centered(frame.area(), width, height);
-
-    frame.render_widget(Clear, outer);
-
-    let block =
-        Block::default().borders(Borders::ALL).border_style(Style::default().fg(SPICE_ORANGE));
-    frame.render_widget(block, outer);
-
-    draw_close_button(frame, outer, mouse_pos, mouse_active);
-
-    DialogArea { outer }
-}
-
 pub(crate) fn draw_dialog_styled(
     frame: &mut Frame<'_>,
     width: u16,

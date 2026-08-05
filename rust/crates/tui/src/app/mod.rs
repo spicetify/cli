@@ -9,16 +9,15 @@ use crossterm::event::Event;
 use ratatui::Terminal;
 use ratatui::backend::Backend;
 use ratatui::layout::Rect;
-use spicetify::commands::{Command, SyncTarget};
+use spicetify::commands::Command;
 use spicetify::context::AppContext;
 use spicetify::logging::{LogLine, TuiEvent, TuiEventSender};
-use spicetify::{daemon, fl, hooks};
+use spicetify::{daemon, fl};
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt;
 use tracing::Level;
 
 use crate::components::header::Header;
-use crate::components::hook_selector::HookSelector;
 use crate::components::log_viewer::LogViewer;
 use crate::components::menu_list::{ActivateResult, MenuAction, MenuList};
 use crate::frame_scheduler::FrameRequester;
@@ -145,7 +144,6 @@ pub struct TuiApp {
     pub(crate) confirm_quit_yes: bool,
     pub(crate) cmd: CommandState,
     pub(crate) input: Option<InputState>,
-    pub(crate) hook_selector: Option<HookSelector>,
 
     pub daemon_running: bool,
     pub daemon_installed: bool,
@@ -183,7 +181,6 @@ impl TuiApp {
             confirm_quit_yes: true,
             cmd: CommandState { current: None, status: RunStatus::Idle, last_started_at: None },
             input: None,
-            hook_selector: None,
             daemon_running,
             daemon_installed: daemon::DaemonManager::create().is_installed(),
             layout: LayoutState {
@@ -398,9 +395,6 @@ impl TuiApp {
                 self.input =
                     Some(InputState { action, buffer: String::new(), step: InputStep::ModuleId });
             }
-            ActivateResult::RunAction(MenuAction::Sync) => {
-                self.start_hook_manifest_fetch();
-            }
             ActivateResult::RunAction(action) => self.run_action(action),
         }
     }
@@ -479,41 +473,6 @@ impl TuiApp {
         }));
     }
 
-    fn start_hook_manifest_fetch(&mut self) {
-        self.log_viewer.push(">>> Fetching available hook versions...".to_string());
-        self.frame_requester.schedule();
-
-        let tx = self.tx.clone();
-
-        drop(tokio::task::spawn(async move {
-            match hooks::manifest::fetch_hook_sets_async().await {
-                Ok(sets) => {
-                    if let Err(e) = tx.send(TuiEvent::HookManifestFetched { sets }) {
-                        tracing::warn!(error = %e, "hook manifest receiver dropped");
-                    }
-                }
-                Err(e) => {
-                    if let Err(e) = tx.send(TuiEvent::Log(LogLine {
-                        level: Level::ERROR,
-                        message: format!("failed to fetch hook sets: {e}"),
-                    })) {
-                        tracing::warn!(error = %e, "hook manifest error receiver dropped");
-                    }
-                }
-            }
-        }));
-    }
-
-    fn reconcile_hook_manifest(&mut self, sets: Vec<hooks::HookSet>) {
-        if sets.is_empty() {
-            self.log_viewer
-                .push(LogLine { level: Level::ERROR, message: fl!("hooks-manifest-empty") });
-            return;
-        }
-        self.hook_selector = Some(HookSelector::new(sets));
-        self.frame_requester.schedule();
-    }
-
     fn process_tui_event(&mut self, event: TuiEvent) {
         match event {
             TuiEvent::Log(line) => {
@@ -524,29 +483,6 @@ impl TuiApp {
                 self.cmd.current = None;
                 self.cmd.last_started_at = None;
                 self.command_handle = None;
-            }
-            TuiEvent::HookManifestFetched { sets } => {
-                self.reconcile_hook_manifest(sets);
-            }
-            TuiEvent::HookSetsResolved { resolved } => {
-                if let Some(ref version) = resolved.spotify_version {
-                    self.log_viewer.push(format!("detected Spotify {version}"));
-                }
-                if resolved.matching.is_empty() {
-                    let version = resolved
-                        .spotify_version
-                        .map_or_else(|| "unknown".to_string(), |v| v.to_string());
-                    self.log_viewer.push(format!(
-                        "no hook set supports Spotify {version}. Available sets require different \
-                         Spotify versions",
-                    ));
-                    return;
-                }
-                let set = resolved.best_match().expect("non-empty after empty check");
-                let label = set.display_label();
-                self.log_viewer.push(format!("using hook set v{} ({})", set.hooks_version, label));
-                self.run_command(Command::Sync(SyncTarget::Url(set.download_url)), &label);
-                self.cmd.current = Some(MenuAction::Sync);
             }
         }
     }

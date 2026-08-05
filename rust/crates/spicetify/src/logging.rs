@@ -7,8 +7,6 @@ use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::Layer;
 use tracing_subscriber::prelude::*;
 
-use crate::hooks::{HookSet, ResolvedHookSets};
-
 #[derive(Debug, Clone)]
 pub struct LogLine {
     pub level: Level,
@@ -25,8 +23,6 @@ impl From<String> for LogLine {
 pub enum TuiEvent {
     Log(LogLine),
     CommandFinished { success: bool },
-    HookManifestFetched { sets: Vec<HookSet> },
-    HookSetsResolved { resolved: ResolvedHookSets },
 }
 
 pub type TuiEventSender = UnboundedSender<TuiEvent>;

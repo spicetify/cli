@@ -68,7 +68,7 @@ fn vault_urls(ctx: &AppContext) -> Vec<String> {
 }
 
 fn fetch_vault(url: &str) -> Result<Vault> {
-    let body = crate::hooks::blocking_client()
+    let body = crate::http::vault_client()
         .get(url)
         .send()
         .map_err(|e| anyhow::anyhow!("cannot fetch vault {url}: {e}"))?
@@ -160,7 +160,7 @@ pub(crate) fn trust(ctx: &AppContext, target: &str) -> Result<()> {
     let url = if target.starts_with("http") {
         target.to_string()
     } else {
-        let listed: Vec<CommunityVault> = crate::hooks::blocking_client()
+        let listed: Vec<CommunityVault> = crate::http::vault_client()
             .get(COMMUNITY_VAULTS)
             .send()
             .and_then(reqwest::blocking::Response::json)

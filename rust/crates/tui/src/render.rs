@@ -5,7 +5,7 @@ use ratatui::widgets::Paragraph;
 use spicetify::fl;
 
 use crate::app::{Page, TuiApp};
-use crate::components::primitives::{button, dialog, split_pane};
+use crate::components::primitives::{button, split_pane};
 use crate::components::{confirm_quit, details_pane, footer};
 use crate::theme::TEXT_MUTED;
 
@@ -101,19 +101,6 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &mut TuiApp) {
         ));
     }
 
-    if app.hook_selector.is_some() {
-        let area = dialog::draw_dialog(
-            frame,
-            60,
-            18,
-            app.layout.mouse_pos,
-            app.menu.hover.is_mouse_active(),
-        );
-        app.layout.dialog_rect = Some(area.outer);
-        if let Some(ref mut selector) = app.hook_selector {
-            selector.render(frame, area.outer);
-        }
-    }
 }
 
 fn content_area(term: Rect) -> Rect {

@@ -3,9 +3,7 @@ use std::io::{self, Write};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use i18n_embed_fl as _;
-use spicetify::commands::{
-    Command, ConfigAction, DaemonAction, PkgAction, SyncTarget, UpdatesAction,
-};
+use spicetify::commands::{Command, ConfigAction, DaemonAction, PkgAction, UpdatesAction};
 use spicetify::{fl, logging};
 
 #[derive(Debug, Parser)]
@@ -70,17 +68,6 @@ enum CliCommand {
     SpotifyUpdates {
         #[command(subcommand)]
         action: CliUpdatesAction,
-    },
-    #[command(about = "Update hooks to a specific version")]
-    Sync {
-        #[arg(long)]
-        url: Option<String>,
-        #[arg(
-            long,
-            conflicts_with = "url",
-            help = "Stage a locally built payload directory (development)"
-        )]
-        local: Option<String>,
     },
 }
 
@@ -159,11 +146,6 @@ impl From<CliCommand> for Command {
                 CliUpdatesAction::Block => UpdatesAction::Block,
                 CliUpdatesAction::Unblock => UpdatesAction::Unblock,
                 CliUpdatesAction::Status => UpdatesAction::Status,
-            }),
-            CliCommand::Sync { url, local } => Command::Sync(match (url, local) {
-                (_, Some(dir)) => SyncTarget::Local(std::path::PathBuf::from(dir)),
-                (Some(u), None) => SyncTarget::Url(u),
-                (None, None) => SyncTarget::Auto,
             }),
         }
     }

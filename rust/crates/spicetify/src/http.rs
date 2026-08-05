@@ -23,6 +23,13 @@ pub fn blocking_client(timeout_secs: u64) -> Result<reqwest::blocking::Client> {
         .context("failed to build blocking HTTP client")
 }
 
+pub fn vault_client() -> &'static reqwest::blocking::Client {
+    static CLIENT: std::sync::LazyLock<reqwest::blocking::Client> = std::sync::LazyLock::new(|| {
+        blocking_client(30).expect("failed to create blocking HTTP client")
+    });
+    &CLIENT
+}
+
 pub fn github_client() -> Result<reqwest::Client> {
     let mut headers = HeaderMap::new();
     drop(headers.insert(
