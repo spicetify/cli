@@ -12,8 +12,7 @@ pub const LOCAL_MARKER: &str = ".local-payload";
 const WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/spicetifyWrapper.js"));
 const LOADER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/modularLoader.js"));
 
-const FILES: [(&str, &[u8]); 2] =
-    [("spicetifyWrapper.js", WRAPPER), ("modularLoader.js", LOADER)];
+const FILES: [(&str, &[u8]); 2] = [("spicetifyWrapper.js", WRAPPER), ("modularLoader.js", LOADER)];
 
 /// False when the binary was built before `pnpm build:payload` ran.
 #[must_use]

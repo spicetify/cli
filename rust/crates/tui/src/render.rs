@@ -100,7 +100,6 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &mut TuiApp) {
             app.confirm_quit_yes,
         ));
     }
-
 }
 
 fn content_area(term: Rect) -> Rect {

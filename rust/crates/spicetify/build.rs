@@ -28,10 +28,8 @@ fn main() {
 
 /// The cli repo root, four levels above this crate (rust/crates/spicetify).
 fn repo_root() -> PathBuf {
-    let manifest =
-        PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR"));
-    manifest
-        .ancestors()
-        .nth(3)
-        .map_or_else(|| manifest.clone(), Path::to_path_buf)
+    let manifest = PathBuf::from(
+        std::env::var_os("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR"),
+    );
+    manifest.ancestors().nth(3).map_or_else(|| manifest.clone(), Path::to_path_buf)
 }

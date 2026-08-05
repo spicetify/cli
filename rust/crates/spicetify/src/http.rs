@@ -24,9 +24,10 @@ pub fn blocking_client(timeout_secs: u64) -> Result<reqwest::blocking::Client> {
 }
 
 pub fn vault_client() -> &'static reqwest::blocking::Client {
-    static CLIENT: std::sync::LazyLock<reqwest::blocking::Client> = std::sync::LazyLock::new(|| {
-        blocking_client(30).expect("failed to create blocking HTTP client")
-    });
+    static CLIENT: std::sync::LazyLock<reqwest::blocking::Client> =
+        std::sync::LazyLock::new(|| {
+            blocking_client(30).expect("failed to create blocking HTTP client")
+        });
     &CLIENT
 }
 
