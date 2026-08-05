@@ -39,3 +39,4 @@ jsHelper/modularLoader.js.map
 # Modular loader build output
 jsHelper/modularLoader.js
 jsHelper/modularLoader.js.map
+dist/

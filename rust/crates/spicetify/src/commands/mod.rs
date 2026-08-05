@@ -21,6 +21,10 @@ pub enum ConfigAction {
 pub enum SyncTarget {
     Auto,
     Url(String),
+    /// A locally built payload directory, for developing the client stack
+    /// before it is published. Never reachable from release or self-update
+    /// flows, which resolve through the manifest.
+    Local(std::path::PathBuf),
 }
 
 #[derive(Debug, Clone)]

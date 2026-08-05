@@ -62,6 +62,8 @@ enum CliCommand {
     Sync {
         #[arg(long)]
         url: Option<String>,
+        #[arg(long, conflicts_with = "url", help = "Stage a locally built payload directory (development)")]
+        local: Option<String>,
     },
 }
 
@@ -113,9 +115,10 @@ impl From<CliCommand> for Command {
             CliCommand::Pkg { action } => Command::Pkg(action.into()),
             CliCommand::Protocol { uri } => Command::Protocol(uri),
             CliCommand::SelfUpdate => Command::SelfUpdate,
-            CliCommand::Sync { url } => Command::Sync(match url {
-                Some(u) => SyncTarget::Url(u),
-                None => SyncTarget::Auto,
+            CliCommand::Sync { url, local } => Command::Sync(match (url, local) {
+                (_, Some(dir)) => SyncTarget::Local(std::path::PathBuf::from(dir)),
+                (Some(u), None) => SyncTarget::Url(u),
+                (None, None) => SyncTarget::Auto,
             }),
         }
     }

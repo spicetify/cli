@@ -4,7 +4,11 @@ use crate::error::Result;
 use crate::{fl, hooks, util};
 
 pub(crate) fn run(ctx: &AppContext, target: &SyncTarget) -> Result<()> {
+    if let SyncTarget::Local(dir) = target {
+        return sync_local(ctx, dir);
+    }
     let url = match target {
+        SyncTarget::Local(_) => unreachable!("handled above"),
         SyncTarget::Auto => {
             let sets = hooks::manifest::fetch_hook_sets()
                 .map_err(|e| anyhow::anyhow!("failed to fetch available hook sets: {e}"))?;
@@ -49,6 +53,45 @@ pub(crate) fn run(ctx: &AppContext, target: &SyncTarget) -> Result<()> {
     }
     util::untar_zst_bytes(&bytes, &hooks)?;
 
+    tracing::info!("{}", fl!("hooks-updated"));
+    Ok(())
+}
+
+// Staging a payload straight from disk skips the manifest's version matching
+// and integrity checks, so it validates the directory shape itself and is only
+// reachable from an explicit `--local`.
+fn sync_local(ctx: &AppContext, dir: &std::path::Path) -> Result<()> {
+    if !dir.is_dir() {
+        anyhow::bail!("local payload {} is not a directory", dir.display());
+    }
+    for required in ["spicetifyWrapper.js", "modularLoader.js"] {
+        if !dir.join(required).is_file() {
+            anyhow::bail!(
+                "local payload {} is missing {required} (build it with `pnpm build:payload`)",
+                dir.display()
+            );
+        }
+    }
+
+    let hooks = ctx.config_root.join("hooks");
+    if let Err(e) = std::fs::remove_dir_all(&hooks)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        tracing::warn!(error = %e, path = %hooks.display(), "failed to remove directory");
+    }
+    std::fs::create_dir_all(&hooks)?;
+
+    let mut staged = 0usize;
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        std::fs::copy(entry.path(), hooks.join(entry.file_name())).map(|_| ())?;
+        staged += 1;
+    }
+
+    tracing::warn!("staged {staged} file(s) from a local payload: unversioned and unverified");
     tracing::info!("{}", fl!("hooks-updated"));
     Ok(())
 }
