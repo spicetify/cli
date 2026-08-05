@@ -45,7 +45,7 @@ pub async fn handler(
         return StatusCode::NO_CONTENT.into_response();
     }
 
-    let Ok(target) = url::Url::parse(&url) else {
+    let Some(target) = resolve_target(&url, request.uri().query()) else {
         tracing::warn!(%url, "proxy received invalid URL");
         return error_response(StatusCode::BAD_REQUEST, spicetify::fl!("proxy-invalid-url"));
     };
@@ -82,6 +82,21 @@ pub async fn handler(
 
 fn error_response(status: StatusCode, message: String) -> Response {
     (status, message).into_response()
+}
+
+// The target may arrive percent-encoded (the whole URL, query included, lands
+// in the path) or raw, in which case the router splits the target's own query
+// off into the request query. Re-attaching it keeps both spellings equivalent,
+// so callers can substitute a URL into the template without encoding it and
+// still reach the right resource instead of silently querying nothing.
+fn resolve_target(path: &str, query: Option<&str>) -> Option<url::Url> {
+    let mut target = url::Url::parse(path).ok()?;
+    if target.query().is_none()
+        && let Some(query) = query
+    {
+        target.set_query(Some(query));
+    }
+    Some(target)
 }
 
 fn build_upstream_request(
@@ -150,5 +165,43 @@ fn apply_response_headers(h: &mut HeaderMap, upstream_headers: &HeaderMap) {
         if let Ok(v) = HeaderValue::from_str(&redirect) {
             drop(h.insert("location", v));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const RAW: &str = "https://lrclib.net/api/search";
+    const ENCODED: &str = "https://lrclib.net/api/search?q=test";
+
+    #[test]
+    fn raw_target_keeps_the_query_the_router_split_off() {
+        let target = resolve_target(RAW, Some("q=test")).expect("valid target");
+        assert_eq!(target.as_str(), ENCODED);
+    }
+
+    #[test]
+    fn encoded_and_raw_targets_reach_the_same_url() {
+        let encoded = resolve_target(ENCODED, None).expect("valid target");
+        let raw = resolve_target(RAW, Some("q=test")).expect("valid target");
+        assert_eq!(encoded, raw);
+    }
+
+    #[test]
+    fn a_target_carrying_its_own_query_is_left_alone() {
+        let target = resolve_target(ENCODED, Some("injected=1")).expect("valid target");
+        assert_eq!(target.query(), Some("q=test"));
+    }
+
+    #[test]
+    fn a_queryless_request_leaves_a_queryless_target() {
+        let target = resolve_target(RAW, None).expect("valid target");
+        assert_eq!(target.as_str(), RAW);
+    }
+
+    #[test]
+    fn a_non_url_target_is_rejected() {
+        assert!(resolve_target("not-a-url", None).is_none());
     }
 }
