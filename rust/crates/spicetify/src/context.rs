@@ -77,8 +77,14 @@ impl AppContext {
             None => platform::default_spotify_exec(),
         };
 
-        let data_dir = cfg.spotify_data_dir.clone().unwrap_or_else(|| {
-            exec_path.parent().map_or_else(platform::default_spotify_data_dir, Path::to_path_buf)
+        // Only a user-set exec moves the data dir with it. On macOS the two
+        // live in different bundle subdirectories, so deriving the default
+        // data dir from the default exec would point it at Contents/MacOS.
+        let data_dir = cfg.spotify_data_dir.clone().unwrap_or_else(|| match &cfg.spotify_exec {
+            Some(_) => {
+                exec_path.parent().map_or_else(platform::default_spotify_data_dir, Path::to_path_buf)
+            }
+            None => platform::default_spotify_data_dir(),
         });
 
         let offline_bnk_dir =

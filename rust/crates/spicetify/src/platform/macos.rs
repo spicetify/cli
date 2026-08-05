@@ -20,7 +20,7 @@ pub(crate) fn spotify_data_dir() -> PathBuf {
 }
 
 pub(crate) fn spotify_exec() -> PathBuf {
-    spotify_data_dir().join(spotify_binary_name())
+    PathBuf::from("/Applications/Spotify.app/Contents/MacOS").join(spotify_binary_name())
 }
 
 pub(crate) fn offline_bnk_dir() -> PathBuf {
