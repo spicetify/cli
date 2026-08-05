@@ -151,11 +151,7 @@ fn find_snapshot(dir: &Path) -> Result<Option<std::path::PathBuf>> {
 // The modular loader boots from <xpui>/modules/manifest.json, which carries the
 // classmap for this Spotify build alongside each module's metadata.
 fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
-    // The Go CLI installs modules under `Modules`; the imported workspace uses
-    // `modules`. Both are accepted so state written by either binary stages.
-    let capitalised = ctx.config_root.join("Modules");
-    let modules_root =
-        if capitalised.is_dir() { capitalised } else { ctx.config_root.join("modules") };
+    let modules_root = crate::module::modules_dir(&ctx.config_root);
     let version = crate::hooks::version_detect::detect_spotify_version(ctx)
         .map(|v| v.to_string())
         .unwrap_or_default();

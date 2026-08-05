@@ -15,7 +15,7 @@ pub(crate) fn path(ctx: &AppContext) -> Result<()> {
     for (label, value) in [
         ("config root", ctx.config_root.clone()),
         ("config file", ctx.config_file.clone()),
-        ("modules", ctx.config_root.join("Modules")),
+        ("modules", crate::module::modules_dir(&ctx.config_root)),
         ("hooks", ctx.config_root.join("hooks")),
         ("spotify apps", ctx.spotify_apps_path()),
         ("applied client", ctx.dest_apps_path().join("xpui")),

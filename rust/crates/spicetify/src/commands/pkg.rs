@@ -96,7 +96,7 @@ fn resolve_version(module: &VaultModule) -> Result<String> {
 
 /// Installed modules, read from disk rather than the vault.
 fn installed(config_root: &Path) -> Vec<(String, String)> {
-    let root = config_root.join("Modules");
+    let root = crate::module::modules_dir(config_root);
     let Ok(entries) = std::fs::read_dir(root) else { return Vec::new() };
     let mut out: Vec<(String, String)> = entries
         .filter_map(std::result::Result::ok)

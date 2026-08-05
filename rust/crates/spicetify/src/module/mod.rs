@@ -19,13 +19,48 @@ pub(crate) struct ModulePaths {
 
 impl ModulePaths {
     pub(crate) fn from_config_root(root: &Path) -> Self {
+        let modules_root = modules_dir(root);
         Self {
-            vault_path: root.join("modules").join("vault.json"),
+            vault_path: modules_root.join("vault.json"),
             store_root: root.join("store"),
-            modules_root: root.join("modules"),
+            modules_root,
         }
     }
 }
+
+/// The one canonical modules directory, `<config>/modules`.
+///
+/// Older installs used `Modules`. On a case-insensitive filesystem that is
+/// the same directory and this resolves immediately; on a case-sensitive one
+/// it is a genuinely different directory, so it is moved across once. A
+/// failed move is not fatal: the old location keeps working for this run.
+pub(crate) fn modules_dir(config_root: &Path) -> PathBuf {
+    let canonical = config_root.join("modules");
+    let legacy = config_root.join("Modules");
+    if !needs_migration(canonical.is_dir(), legacy.is_dir()) {
+        return canonical;
+    }
+    match fs::rename(&legacy, &canonical) {
+        Ok(()) => {
+            tracing::info!("migrated {} -> {}", legacy.display(), canonical.display());
+            canonical
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "could not migrate {}; using it as-is", legacy.display());
+            legacy
+        }
+    }
+}
+
+/// Whether the legacy directory has to be moved. Split out because the
+/// interesting case only arises on a case-sensitive filesystem, where the two
+/// names are distinct directories; on macOS and Windows they are the same one,
+/// so the branch can never be exercised locally.
+const fn needs_migration(canonical_exists: bool, legacy_exists: bool) -> bool {
+    !canonical_exists && legacy_exists
+}
+
+
 
 pub(crate) fn initialize(paths: &ModulePaths) -> Result<()> {
     fs::create_dir_all(paths.vault_path.parent().expect("vault_path always has a parent"))?;
@@ -199,4 +234,17 @@ fn normalize_url(raw: &str) -> Result<String> {
     }
     let abs = std::env::current_dir()?.join(&path);
     Ok(abs.to_string_lossy().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::needs_migration;
+
+    #[test]
+    fn migrates_only_when_the_legacy_name_is_the_sole_directory() {
+        assert!(needs_migration(false, true), "case-sensitive FS with only Modules");
+        assert!(!needs_migration(true, true), "both present: canonical already wins");
+        assert!(!needs_migration(true, false), "already migrated");
+        assert!(!needs_migration(false, false), "fresh install: nothing to move");
+    }
 }
