@@ -1,0 +1,7 @@
+# Toolchain for the JS side: the client payload the Rust binary embeds.
+# The Rust toolchain is pinned separately by rust/rust-toolchain.toml.
+#
+# pnpm tracks package.json's packageManager field; change both together.
+[tools]
+node = "24.19.0"
+pnpm = "11.9.0"

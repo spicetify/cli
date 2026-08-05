@@ -38,7 +38,7 @@ jobs:
         working-directory: rust
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Show toolchain
         run: rustup show active-toolchain
@@ -46,15 +46,8 @@ jobs:
       # The wrapper and loader are embedded into the binary at compile time, so
       # they must exist before cargo runs: a build without them produces a CLI
       # that refuses to apply.
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+      - name: Setup Node and pnpm
+        uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
 
       - name: Install Node dependencies
         working-directory: .
