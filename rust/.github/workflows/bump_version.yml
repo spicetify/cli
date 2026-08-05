@@ -1,0 +1,59 @@
+name: Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version component to bump"
+        type: choice
+        required: true
+        default: patch
+        options: [patch, minor, major]
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-edit
+
+      - name: Bump version
+        id: version
+        run: |
+          cargo set-version --bump ${{ inputs.bump }}
+          echo "version=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "spicetify") | .version')" >> "$GITHUB_OUTPUT"
+
+      - uses: IAreKyleW00t/verified-bot-commit@v2.3.3
+        with:
+          message: "chore: bump to v${{ steps.version.outputs.version }}"
+          ref: refs/heads/main
+          files: "**"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Actions performed using GITHUB_TOKEN dont trigger workflow runs
+      # can use create-github-app-token instead but needs:
+      # APP_ID and APP_PRIVATE_KEY as repo secrets
+      - uses: actions/github-script@v9
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: ref } = await github.rest.git.getRef({
+              ...context.repo, ref: 'heads/main'
+            });
+            await github.rest.git.createRef({
+              ...context.repo, ref: `refs/tags/v${process.env.VERSION}`, sha: ref.object.sha
+            });
+            await github.rest.actions.createWorkflowDispatch({
+              ...context.repo, workflow_id: 'release.yml', ref: 'main',
+              inputs: { tag: process.env.VERSION }
+            });

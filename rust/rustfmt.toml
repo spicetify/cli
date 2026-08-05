@@ -1,0 +1,18 @@
+style_edition = "2024"
+edition = "2024"
+
+use_small_heuristics = "Max"
+use_field_init_shorthand = true
+reorder_modules = true
+wrap_comments = true
+comment_width = 100
+format_code_in_doc_comments = true
+
+# All unstable options requires nightly (cargo +nightly fmt).
+format_strings = true
+imports_granularity = "Module"
+normalize_comments = true
+group_imports = "StdExternalCrate"
+imports_layout = "Horizontal"
+format_macro_matchers = true
+reorder_impl_items = true

@@ -1,0 +1,41 @@
+name: Build App (Windows)
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Version tag
+        required: true
+        type: string
+      arch:
+        description: Architecture
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Add Rust target
+        run: rustup target add ${{ inputs.arch == 'x86_64' && 'x86_64-pc-windows-msvc' || 'aarch64-pc-windows-msvc' }}
+
+      - name: Build
+        shell: pwsh
+        working-directory: build/windows
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\build.ps1 -version "${{ inputs.tag }}" -platform "${{ inputs.arch }}"
+
+      - name: Attest
+        uses: actions/attest@v4
+        with:
+          subject-path: build/windows/dist/*
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-windows-${{ inputs.arch }}
+          path: build/windows/dist/*

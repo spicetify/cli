@@ -1,0 +1,40 @@
+name: Build App (Linux)
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Version tag
+        required: true
+        type: string
+      arch:
+        description: Architecture
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Add Rust target
+        run: rustup target add x86_64-unknown-linux-gnu
+
+      - name: Build
+        working-directory: build/linux
+        run: |
+          chmod +x build.sh
+          ./build.sh "${{ inputs.tag }}" "${{ inputs.arch }}"
+
+      - name: Attest
+        uses: actions/attest@v4
+        with:
+          subject-path: build/linux/dist/*
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-linux-${{ inputs.arch }}
+          path: build/linux/dist/*

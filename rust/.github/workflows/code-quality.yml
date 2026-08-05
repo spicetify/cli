@@ -1,0 +1,81 @@
+name: Code Quality
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: [main]
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install nightly toolchain
+        run: |
+          rustup toolchain install nightly
+          rustup component add rustfmt --toolchain nightly
+      - name: Check formatting
+        run: cargo +nightly fmt --check
+
+  shear:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install nightly toolchain
+        run: |
+          rustup toolchain install nightly
+      - name: Install cargo-shear
+        run: cargo +nightly install cargo-shear
+      - name: Check unused dependencies
+        run: cargo +nightly shear --deny-warnings
+
+  clippy:
+    name: clippy (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install nightly toolchain
+        shell: bash
+        run: |
+          rustup toolchain install nightly
+          rustup component add clippy --toolchain nightly
+      - name: Clippy
+        shell: bash
+        run: cargo +nightly clippy --release --all-targets -- --deny warnings
+
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+          - language: rust
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{matrix.language}}"

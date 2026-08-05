@@ -1,0 +1,14 @@
+[target.aarch64-pc-windows-msvc]
+linker = "rust-lld.exe"
+
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"
+
+# [target.x86_64-unknown-linux-gnu]
+# # use wild as linker in dev only
+# linker = "clang"
+# rustflags = ["-C", "link-arg=--ld-path=wild"]
+
+[env]
+# cranelift errors if no env
+AWS_LC_SYS_NO_U1_BINDINGS = "1"
