@@ -43,9 +43,6 @@ jobs:
       - name: Show toolchain
         run: rustup show active-toolchain
 
-      # The wrapper and loader are embedded into the binary at compile time, so
-      # they must exist before cargo runs: a build without them produces a CLI
-      # that refuses to apply.
       - name: Setup Node and pnpm
         uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
 
