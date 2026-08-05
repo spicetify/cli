@@ -1,49 +1,49 @@
 name: Rust
 
 on:
-   pull_request:
-      branches:
-         - "main"
-         - "v3-beta"
-         - "*/main/*/**"
-      paths:
-         - "rust/**"
-         - ".github/workflows/rust.yml"
-   push:
-      branches:
-         - "main"
-         - "v3-beta"
-         - "*/main/*/**"
-      paths:
-         - "rust/**"
-         - ".github/workflows/rust.yml"
+  pull_request:
+    branches:
+      - "main"
+      - "v3-beta"
+      - "*/main/*/**"
+    paths:
+      - "rust/**"
+      - ".github/workflows/rust.yml"
+  push:
+    branches:
+      - "main"
+      - "v3-beta"
+      - "*/main/*/**"
+    paths:
+      - "rust/**"
+      - ".github/workflows/rust.yml"
 
 jobs:
-   build:
-      # Windows is in the matrix because the junction crate that replaced the
-      # unstable std junction_point API only compiles there: macOS cannot prove
-      # that swap locally.
-      name: ${{ matrix.os }}
-      runs-on: ${{ matrix.os }}
-      strategy:
-         fail-fast: false
-         matrix:
-            os: [macos-latest, ubuntu-latest, windows-latest]
-      defaults:
-         run:
-            working-directory: rust
-      steps:
-         -  name: Checkout
-            uses: actions/checkout@v7
+  build:
+    # Windows is in the matrix because the junction crate that replaced the
+    # unstable std junction_point API only compiles there: macOS cannot prove
+    # that swap locally.
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
 
-         -  name: Show toolchain
-            run: rustup show active-toolchain
+      - name: Show toolchain
+        run: rustup show active-toolchain
 
-         -  name: Build
-            run: cargo build --workspace --locked
+      - name: Build
+        run: cargo build --workspace --locked
 
-         -  name: Test
-            run: cargo test --workspace --locked
+      - name: Test
+        run: cargo test --workspace --locked
 
-         -  name: Clippy
-            run: cargo clippy --workspace --locked -- -D warnings
+      - name: Clippy
+        run: cargo clippy --workspace --locked -- -D warnings
