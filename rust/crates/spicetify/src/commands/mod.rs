@@ -10,6 +10,7 @@ pub mod protocol;
 mod restore;
 mod self_update;
 mod sync;
+pub(crate) mod updates;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ConfigAction {
@@ -39,6 +40,14 @@ pub enum Command {
     Protocol(String),
     SelfUpdate,
     Sync(SyncTarget),
+    SpotifyUpdates(UpdatesAction),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum UpdatesAction {
+    Block,
+    Unblock,
+    Status,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -83,6 +92,11 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
         },
         Command::Protocol(uri) => protocol::run(ctx, uri),
         Command::Sync(target) => sync::run(ctx, target),
+        Command::SpotifyUpdates(action) => match action {
+            UpdatesAction::Block => updates::set_blocked(ctx, true),
+            UpdatesAction::Unblock => updates::set_blocked(ctx, false),
+            UpdatesAction::Status => updates::status(ctx),
+        },
         Command::SelfUpdate => self_update::run(),
     }
 }
