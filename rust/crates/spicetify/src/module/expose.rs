@@ -79,14 +79,6 @@ static MAIN_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
             once: false,
         },
         Patch {
-            // The modules are built and tested against a client whose test ids
-            // have been stripped, matching the Go CLI.
-            name: "Remove data-testid",
-            pattern: r#""data-testid":"#,
-            replace: |_| "\"\":".to_string(),
-            once: false,
-        },
-        Patch {
             name: "Expose PlatformAPI",
             pattern: r#"((?:setTitlebarHeight|registerFactory)[\w(){}<>:.,&$!=;""?!#%/\- ]+)(\{version:[a-zA-Z_\$][\w\$]*,)"#,
             replace: |c| format!("{}Spicetify._platform={}", group(c, 1), group(c, 2)),
@@ -101,7 +93,9 @@ static MAIN_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
         Patch {
             name: "React Component: Platform Provider",
             pattern: r"(,[$\w]+=)((function\([\w$]{1}\)\{var [\w$]+=[\w$]+\.platform,[\w$]+=[\w$]+\.children,)|(\(\{platform:[\w$]+,children:[\w$]+\}\)=>\{))",
-            replace: |c| format!("{}Spicetify.ReactComponent.PlatformProvider={}", group(c, 1), group(c, 2)),
+            replace: |c| {
+                format!("{}Spicetify.ReactComponent.PlatformProvider={}", group(c, 1), group(c, 2))
+            },
             once: false,
         },
         Patch {
@@ -113,7 +107,9 @@ static MAIN_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
         Patch {
             name: "Spotify Custom Snackbar Interfaces (<=1.2.37)",
             pattern: r"\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;",
-            replace: |c| format!("{}Spicetify.Snackbar.enqueueCustomSnackbar={};", group(c, 0), group(c, 1)),
+            replace: |c| {
+                format!("{}Spicetify.Snackbar.enqueueCustomSnackbar={};", group(c, 0), group(c, 1))
+            },
             once: false,
         },
         Patch {
@@ -125,20 +121,28 @@ static MAIN_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
         Patch {
             name: "Spotify Image Snackbar Interface",
             pattern: r"(=)(\(\({[^}]*,\s*imageSrc)",
-            replace: |c| format!("{}Spicetify.Snackbar.enqueueImageSnackbar={}", group(c, 1), group(c, 2)),
+            replace: |c| {
+                format!("{}Spicetify.Snackbar.enqueueImageSnackbar={}", group(c, 1), group(c, 2))
+            },
             once: false,
         },
         Patch {
             name: "React Component: Navigation for navLinks",
             pattern: r"(;const [\w\d]+=)((?:\(0,[\w\d]+\.memo\))[\(\d,\w\.\){:}=]+=[\d\w]+\.[\d\w]+\.getLocaleForURLPath\(\))",
-            replace: |c| format!("{}Spicetify.ReactComponent.Navigation={}", group(c, 1), group(c, 2)),
+            replace: |c| {
+                format!("{}Spicetify.ReactComponent.Navigation={}", group(c, 1), group(c, 2))
+            },
             once: true,
         },
         Patch {
             name: "Context Menu V2",
             pattern: r#"("Menu".+?children:)([\w$][\w$\d]*)"#,
             replace: |c| {
-                format!("{}[Spicetify.ContextMenuV2.renderItems(),{}].flat()", group(c, 1), group(c, 2))
+                format!(
+                    "{}[Spicetify.ContextMenuV2.renderItems(),{}].flat()",
+                    group(c, 1),
+                    group(c, 2)
+                )
             },
             once: false,
         },
@@ -168,7 +172,9 @@ static VENDOR_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
         Patch {
             name: "Flipper components",
             pattern: r"([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})",
-            replace: |c| format!("{}=Spicetify.ReactFlipToolkit.spring={}", group(c, 1), group(c, 2)),
+            replace: |c| {
+                format!("{}=Spicetify.ReactFlipToolkit.spring={}", group(c, 1), group(c, 2))
+            },
             once: false,
         },
         Patch {
@@ -278,8 +284,11 @@ fn patch_uri_fallback(input: String) -> (String, bool) {
     }
     let Some(end) = end else { return (input, false) };
     let body = &input[start..end];
-    let replacement =
-        if is_class { format!("{body};Spicetify.URI={name};") } else { format!("{body}();Spicetify.URI={name};") };
+    let replacement = if is_class {
+        format!("{body};Spicetify.URI={name};")
+    } else {
+        format!("{body}();Spicetify.URI={name};")
+    };
     (input.replacen(body, &replacement, 1), true)
 }
 
