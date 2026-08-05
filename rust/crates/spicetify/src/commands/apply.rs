@@ -73,6 +73,11 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         return Err(e);
     }
 
+    if let Err(e) = stage_payload(&ctx.config_root, &tmp) {
+        cleanup_tmp(&tmp);
+        return Err(e);
+    }
+
     if let Err(e) = stage_modules(ctx, &tmp) {
         cleanup_tmp(&tmp);
         return Err(e);
@@ -219,18 +224,38 @@ fn patch_index(dest: &Path) -> Result<()> {
 // Modules are staged (copied and classmap-remapped) rather than linked, so
 // `modules` is deliberately absent here: see stage_modules.
 fn link_runtime_dirs(config_root: &Path, dest: &Path) -> Result<()> {
-    for folder in ["hooks", "store"] {
-        let src = config_root.join(folder);
-        let dst = dest.join(folder);
-        tracing::info!(
-            "{}",
-            fl!("linking-dir", dst = dst.to_string_lossy(), src = src.to_string_lossy())
-        );
-        if !src.exists() {
-            std::fs::create_dir_all(&src)?;
-        }
-        util::create_dir_link(&src, &dst)?;
+    let src = config_root.join("store");
+    let dst = dest.join("store");
+    tracing::info!(
+        "{}",
+        fl!("linking-dir", dst = dst.to_string_lossy(), src = src.to_string_lossy())
+    );
+    if !src.exists() {
+        std::fs::create_dir_all(&src)?;
     }
+    util::create_dir_link(&src, &dst)?;
+    Ok(())
+}
+
+// The wrapper and loader the patched index.html loads. They ship inside this
+// binary, so the served payload always matches the code that injected it; a
+// developer payload staged by `sync --local` takes precedence when its marker
+// is present.
+fn stage_payload(config_root: &Path, dest: &Path) -> Result<()> {
+    let local = config_root.join("hooks");
+    let hooks = dest.join("hooks");
+
+    if crate::payload::is_local_override(&local) {
+        tracing::warn!(
+            path = %local.display(),
+            "using a local developer payload instead of the embedded one"
+        );
+        util::create_dir_link(&local, &hooks)?;
+        return Ok(());
+    }
+
+    crate::payload::write_into(&hooks)?;
+    tracing::info!("staged the embedded client payload");
     Ok(())
 }
 

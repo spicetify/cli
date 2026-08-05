@@ -9,6 +9,7 @@ pub mod lifecycle;
 pub mod locale;
 pub mod logging;
 pub(crate) mod module;
+pub mod payload;
 pub mod platform;
 pub mod process;
 pub mod update;

@@ -91,6 +91,10 @@ fn sync_local(ctx: &AppContext, dir: &std::path::Path) -> Result<()> {
         staged += 1;
     }
 
+    // Apply prefers the payload embedded in the binary; this marker is what
+    // makes it defer to the directory instead.
+    std::fs::write(hooks.join(crate::payload::LOCAL_MARKER), b"")?;
+
     tracing::warn!("staged {staged} file(s) from a local payload: unversioned and unverified");
     tracing::info!("{}", fl!("hooks-updated"));
     Ok(())
