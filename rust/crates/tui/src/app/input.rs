@@ -205,7 +205,7 @@ impl TuiApp {
                             InputStep::ModuleId => unreachable!(),
                         };
                         (
-                            Command::Pkg(PkgAction::Install { id: id.clone(), url: buffer }),
+                            Command::Pkg(PkgAction::Install { id: id.clone(), url: Some(buffer) }),
                             format!("pkg install {id}"),
                         )
                     }

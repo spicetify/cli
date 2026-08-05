@@ -110,8 +110,18 @@ enum CliDaemonAction {
 
 #[derive(Debug, Clone, Subcommand)]
 enum CliPkgAction {
-    #[command(about = "Install a package")]
-    Install { id: String, url: String },
+    #[command(about = "List installed modules")]
+    List,
+    #[command(about = "Install a module by identifier (or from an explicit URL)")]
+    Install {
+        id: String,
+        #[arg(help = "Bypass the vault and install this artifact directly")]
+        url: Option<String>,
+    },
+    #[command(about = "Trust a community vault by name or HTTPS URL")]
+    Trust { target: String },
+    #[command(about = "Revoke a trusted community vault")]
+    Untrust { url: String },
     #[command(about = "Delete a package")]
     Delete { id: String },
     #[command(about = "Enable a package")]
@@ -168,7 +178,10 @@ impl From<CliDaemonAction> for DaemonAction {
 impl From<CliPkgAction> for PkgAction {
     fn from(a: CliPkgAction) -> Self {
         match a {
+            CliPkgAction::List => PkgAction::List,
             CliPkgAction::Install { id, url } => PkgAction::Install { id, url },
+            CliPkgAction::Trust { target } => PkgAction::Trust { target },
+            CliPkgAction::Untrust { url } => PkgAction::Untrust { url },
             CliPkgAction::Delete { id } => PkgAction::Delete { id },
             CliPkgAction::Enable { id } => PkgAction::Enable { id },
         }
