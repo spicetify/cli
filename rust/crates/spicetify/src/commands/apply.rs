@@ -237,10 +237,8 @@ fn link_runtime_dirs(config_root: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
-// The wrapper and loader the patched index.html loads. They ship inside this
-// binary, so the served payload always matches the code that injected it; a
-// developer payload staged by `sync --local` takes precedence when its marker
-// is present.
+// The wrapper and loader the patched index.html loads: the embedded copy,
+// unless the config root holds a marked developer payload.
 fn stage_payload(config_root: &Path, dest: &Path) -> Result<()> {
     let local = config_root.join("hooks");
     let hooks = dest.join("hooks");

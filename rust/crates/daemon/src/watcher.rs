@@ -1,8 +1,7 @@
-// Auto-apply sequencing: a Spotify update writes a fresh xpui.spa. The
-// watcher debounces the event burst, defers to an active update block, waits
-// for the updater's own client-restart cycle to settle before applying (apply
-// under a starting client is the race this replaces), and swallows the file
-// events apply itself generates so one update means exactly one apply.
+// Auto-apply sequencing: a Spotify update writes a fresh xpui.spa. The watcher
+// debounces the event burst, defers to an active update block, waits for the
+// client to exit before applying, and swallows the file events apply itself
+// generates, so one update means exactly one apply.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -15,19 +14,15 @@ use tokio::sync::{Notify, mpsc};
 
 const DEBOUNCE: Duration = Duration::from_millis(500);
 
-/// How long trigger-matching events are ignored after an apply: the apply
-/// rewrites xpui.spa (restore, extract, re-rename), and those self-inflicted
-/// events must not schedule another apply.
+/// Trigger-matching events are ignored for this long after an apply, which
+/// rewrites xpui.spa itself while restoring, extracting and re-renaming.
 const SELF_EVENT_COOLDOWN: Duration = Duration::from_secs(5);
 
-/// How long to wait for the client to exit on its own after an update lands.
-/// The updater usually stops and relaunches the client itself; applying in
-/// the middle of that cycle corrupts the swap. Past the grace period the
-/// apply's own stop takes over.
+/// How long the client gets to exit on its own before apply force-stops it.
 const CLIENT_EXIT_GRACE: Duration = Duration::from_secs(15);
 
-/// Settle time after the client is observed down, so an updater that exits
-/// the client and immediately touches more files gets out of the way.
+/// Settle time after the client is observed down, so an updater still touching
+/// files gets out of the way.
 const EXIT_SETTLE: Duration = Duration::from_secs(1);
 
 pub fn spawn_apps_watcher(

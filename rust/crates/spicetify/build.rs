@@ -1,10 +1,7 @@
 // Stages the client payload (spicetifyWrapper.js + modularLoader.js, built by
 // scripts/build-payload.mjs) into OUT_DIR so src/payload.rs can embed it.
-//
-// A missing payload stages an empty placeholder instead of failing: `cargo
-// build` must work on a fresh checkout that has not run the JS build yet. The
-// binary then refuses to apply and says how to build it, rather than silently
-// patching a client with nothing in it.
+// A missing payload stages an empty placeholder; the binary then refuses to
+// apply rather than patching a client with nothing in it.
 
 use std::path::{Path, PathBuf};
 

@@ -1,18 +1,12 @@
 // The client payload the patched index.html loads: our Spicetify wrapper and
-// modular loader, embedded into the binary at build time (see build.rs).
-//
-// Embedding rather than downloading keeps the payload and the binary that
-// injects them at one version: there is no payload feed to resolve, no
-// version skew between them, and nothing to verify at runtime beyond the
-// binary's own integrity.
+// modular loader, embedded into the binary by build.rs.
 
 use std::path::Path;
 
 use crate::error::Result;
 
-/// Marker written by `sync --local`, next to a locally built payload. Apply
-/// honours a config-root payload only when this file is present, so a stale
-/// directory can never silently shadow the embedded one.
+/// Apply serves a payload from the config root only when this marker sits
+/// beside it; otherwise the embedded copy wins.
 pub const LOCAL_MARKER: &str = ".local-payload";
 
 const WRAPPER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/spicetifyWrapper.js"));
@@ -21,8 +15,7 @@ const LOADER: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/modularLoader.js
 const FILES: [(&str, &[u8]); 2] =
     [("spicetifyWrapper.js", WRAPPER), ("modularLoader.js", LOADER)];
 
-/// Whether this binary carries a usable payload. False for a build made
-/// without running the JS build first.
+/// False when the binary was built before `pnpm build:payload` ran.
 #[must_use]
 pub fn is_embedded() -> bool {
     FILES.iter().all(|(_, bytes)| !bytes.is_empty())
@@ -42,8 +35,7 @@ pub fn write_into(dest: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Whether `dir` holds a developer payload that should override the embedded
-/// one: the marker plus every file the patched index.html asks for.
+/// True when `dir` holds the marker plus every file index.html asks for.
 #[must_use]
 pub fn is_local_override(dir: &Path) -> bool {
     dir.join(LOCAL_MARKER).is_file() && FILES.iter().all(|(name, _)| dir.join(name).is_file())
