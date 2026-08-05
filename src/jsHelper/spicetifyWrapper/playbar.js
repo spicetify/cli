@@ -75,8 +75,23 @@ Spicetify.Playbar = (() => {
     }
   }
 
+  // 1.2.94 dropped the main-nowPlayingBar-* classnames and hashes their
+  // replacements, so fall back to the row holding the client's own extra
+  // controls, located from their stable test ids. Queue and mute are excluded:
+  // both sit in their own wrapper, so their parent is not that row.
+  const extraControlsRow = () => {
+    for (const id of ["fullscreen-mode-button", "lyrics-button", "pip-toggle-button"]) {
+      const el = document.querySelector(`[data-testid="${id}"]`);
+      if (el?.parentElement) return el.parentElement;
+    }
+    return null;
+  };
+
   void (async function waitForPlaybarMounted() {
-    rightContainer = await waitFor(() => document.querySelector(".main-nowPlayingBar-right > div"), 300);
+    rightContainer = await waitFor(
+      () => document.querySelector(".main-nowPlayingBar-right > div") ?? extraControlsRow(),
+      300,
+    );
     for (const button of buttonsStash) {
       void addClassname(button);
     }
@@ -84,7 +99,13 @@ Spicetify.Playbar = (() => {
   })();
 
   async function addClassname(element) {
-    const sibling = await waitFor(() => document.querySelector(".main-nowPlayingBar-right .main-genericButton-button"), 300);
+    const sibling = await waitFor(
+      () =>
+        document.querySelector(".main-nowPlayingBar-right .main-genericButton-button") ??
+        extraControlsRow()?.querySelector("button"),
+      300,
+    );
+    if (!sibling) return;
     for (const className of Array.from(sibling.classList)) {
       if (!className.startsWith("main-genericButton")) element.classList.add(className);
     }
