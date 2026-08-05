@@ -197,7 +197,9 @@ fn patch_context_menu(input: String) -> (String, bool) {
         Some((0..=n).map(|i| group(&caps, i)).collect())
     };
 
-    let Some(react) = last(r"([a-zA-Z_\$][\w\$]*)\.useRef", 1).map(|g| g[1].clone()) else {
+    let pick = |g: &[String], i: usize| g.get(i).cloned().unwrap_or_default();
+
+    let Some(react) = last(r"([a-zA-Z_\$][\w\$]*)\.useRef", 1).map(|g| pick(&g, 1)) else {
         return (input, false);
     };
 
@@ -213,7 +215,7 @@ fn patch_context_menu(input: String) -> (String, bool) {
     })
     .map_or_else(
         || ("e.menu".to_string(), "e.trigger".to_string(), "e.triggerRef".to_string()),
-        |g| (g[1].clone(), g[2].clone(), g[3].clone()),
+        |g| (pick(&g, 1), pick(&g, 2), pick(&g, 3)),
     );
 
     let Ok(re) = Regex::new(
@@ -309,7 +311,7 @@ mod tests {
 
     #[test]
     fn exposes_the_platform_object() {
-        let src = r#"registerFactory(a,b){return c}{version:x,container:y}"#;
+        let src = "registerFactory(a,b){return c}{version:x,container:y}";
         let out = expose_apis(src.to_string());
         assert!(out.contains("Spicetify._platform={version:"), "{out}");
     }

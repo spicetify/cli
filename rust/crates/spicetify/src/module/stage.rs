@@ -326,27 +326,27 @@ mod tests {
 
     #[test]
     fn rewrites_references_to_quoted_leaves() {
-        let out = remap_source("const a = MAP.main.navbar.link;", &classmap(), &BTreeSet::new()).unwrap();
+        let out = remap_source("const a = MAP.main.navbar.link;", &classmap(), &BTreeSet::new()).expect("remap succeeds");
         assert_eq!(out, r#"const a = "abc123";"#);
     }
 
     #[test]
     fn unresolved_reference_fails_the_file() {
-        let err = remap_source("MAP.main.missing", &classmap(), &BTreeSet::new()).unwrap_err();
+        let err = remap_source("MAP.main.missing", &classmap(), &BTreeSet::new()).expect_err("remap fails");
         assert!(err.to_string().contains("unresolved"), "{err}");
     }
 
     #[test]
     fn stale_leaf_fails_rather_than_shipping_a_bad_hash() {
         let stale: BTreeSet<String> = ["main.navbar.link".to_string()].into_iter().collect();
-        let err = remap_source("MAP.main.navbar.link", &classmap(), &stale).unwrap_err();
+        let err = remap_source("MAP.main.navbar.link", &classmap(), &stale).expect_err("remap fails");
         assert!(err.to_string().contains("stale"), "{err}");
     }
 
     #[test]
     fn leaves_unrelated_identifiers_alone() {
         let src = "const MAPPED = 1; MAP.main.navbar.link;";
-        let out = remap_source(src, &classmap(), &BTreeSet::new()).unwrap();
+        let out = remap_source(src, &classmap(), &BTreeSet::new()).expect("remap succeeds");
         assert!(out.contains("const MAPPED = 1;"), "{out}");
     }
 }
