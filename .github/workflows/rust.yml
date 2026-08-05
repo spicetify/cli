@@ -8,6 +8,8 @@ on:
       - "*/main/*/**"
     paths:
       - "rust/**"
+      - "src/jsHelper/**"
+      - "scripts/build-payload.mjs"
       - ".github/workflows/rust.yml"
   push:
     branches:
@@ -16,6 +18,8 @@ on:
       - "*/main/*/**"
     paths:
       - "rust/**"
+      - "src/jsHelper/**"
+      - "scripts/build-payload.mjs"
       - ".github/workflows/rust.yml"
 
 jobs:
@@ -38,6 +42,27 @@ jobs:
 
       - name: Show toolchain
         run: rustup show active-toolchain
+
+      # The wrapper and loader are embedded into the binary at compile time, so
+      # they must exist before cargo runs: a build without them produces a CLI
+      # that refuses to apply.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Node dependencies
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+
+      - name: Build client payload
+        working-directory: .
+        run: pnpm build:payload
 
       - name: Build
         run: cargo build --workspace --locked
