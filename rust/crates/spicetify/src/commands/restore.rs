@@ -5,6 +5,10 @@ use crate::error::Result;
 use crate::fl;
 
 pub(crate) fn run(ctx: &AppContext) -> Result<()> {
+    if ctx.mirror {
+        return restore_mirror(ctx);
+    }
+
     if !has_spa_backups(ctx)? {
         // No backup of ours, but a patched client on disk means another tool
         // owns this apply and only that tool can undo it. Saying "already
@@ -18,30 +22,7 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         return Err(anyhow::anyhow!(fl!("already-stock")));
     }
 
-    crate::daemon::shutdown_daemon();
-
-    if let Err(e) = super::daemon::uninstall() {
-        tracing::warn!(error = %e, "failed to uninstall daemon auto-start");
-    }
-
-    crate::lifecycle::stop(ctx)?;
-
-    if ctx.mirror {
-        let mirror_apps = ctx.config_root.join("apps");
-        if let Err(e) = std::fs::remove_dir_all(&mirror_apps)
-            && e.kind() != std::io::ErrorKind::NotFound
-        {
-            tracing::warn!(
-                path = %mirror_apps.display(),
-                error = %e,
-                "{}",
-                fl!("failed-remove-mirrored-apps", path = mirror_apps.to_string_lossy(), err = e.to_string())
-            );
-        }
-        crate::lifecycle::start(ctx)?;
-        tracing::info!("{}", fl!("restored-stock"));
-        return Ok(());
-    }
+    stop_for_restore(ctx)?;
 
     let apps = ctx.spotify_apps_path();
     let mut found = 0usize;
@@ -82,6 +63,41 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
 
     tracing::info!("{}", fl!("restored-stock"));
     Ok(())
+}
+
+// Mirror mode never renames the original `.spa`, so it leaves no backup to key
+// off: the mirrored tree in the config root is the only artifact.
+fn restore_mirror(ctx: &AppContext) -> Result<()> {
+    let mirror_apps = ctx.config_root.join("apps");
+    if !mirror_apps.exists() {
+        return Err(anyhow::anyhow!(fl!("already-stock")));
+    }
+
+    stop_for_restore(ctx)?;
+
+    if let Err(e) = std::fs::remove_dir_all(&mirror_apps)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        return Err(anyhow::anyhow!(fl!(
+            "failed-remove-mirrored-apps",
+            path = mirror_apps.to_string_lossy(),
+            err = e.to_string()
+        )));
+    }
+
+    crate::lifecycle::start(ctx)?;
+    tracing::info!("{}", fl!("restored-stock"));
+    Ok(())
+}
+
+fn stop_for_restore(ctx: &AppContext) -> Result<()> {
+    crate::daemon::shutdown_daemon();
+
+    if let Err(e) = super::daemon::uninstall() {
+        tracing::warn!(error = %e, "failed to uninstall daemon auto-start");
+    }
+
+    crate::lifecycle::stop(ctx)
 }
 
 fn has_spa_backups(ctx: &AppContext) -> Result<bool> {
