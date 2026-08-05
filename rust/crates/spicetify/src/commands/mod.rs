@@ -4,6 +4,7 @@ use crate::error::Result;
 pub mod apply;
 mod config;
 mod daemon;
+mod diagnostics;
 mod dev;
 mod init;
 pub mod protocol;
@@ -41,6 +42,9 @@ pub enum Command {
     SelfUpdate,
     Sync(SyncTarget),
     SpotifyUpdates(UpdatesAction),
+    Path,
+    Support,
+    Restart,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -97,6 +101,9 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
             UpdatesAction::Unblock => updates::set_blocked(ctx, false),
             UpdatesAction::Status => updates::status(ctx),
         },
+        Command::Path => diagnostics::path(ctx),
+        Command::Support => diagnostics::support(ctx),
+        Command::Restart => crate::lifecycle::restart(ctx),
         Command::SelfUpdate => self_update::run(),
     }
 }

@@ -56,6 +56,12 @@ enum CliCommand {
     },
     #[command(name = "protocol", about = "Handle spicetify:// protocol URIs")]
     Protocol { uri: String },
+    #[command(about = "Show the paths spicetify uses")]
+    Path,
+    #[command(about = "Print diagnostics for bug reports")]
+    Support,
+    #[command(about = "Restart the Spotify client")]
+    Restart,
     #[command(about = "Update CLI/TUI to the latest version")]
     SelfUpdate,
     #[command(name = "spotify-updates", about = "Control Spotify's self-updater")]
@@ -129,6 +135,9 @@ impl From<CliCommand> for Command {
             CliCommand::Init { .. } => Command::Init,
             CliCommand::Pkg { action } => Command::Pkg(action.into()),
             CliCommand::Protocol { uri } => Command::Protocol(uri),
+            CliCommand::Path => Command::Path,
+            CliCommand::Support => Command::Support,
+            CliCommand::Restart => Command::Restart,
             CliCommand::SelfUpdate => Command::SelfUpdate,
             CliCommand::SpotifyUpdates { action } => Command::SpotifyUpdates(match action {
                 CliUpdatesAction::Block => UpdatesAction::Block,
