@@ -45,7 +45,10 @@ impl CssMap {
             .and_then(|raw| serde_json::from_str::<BTreeMap<String, String>>(&raw).ok())
             && !overlay.is_empty()
         {
-            tracing::info!("applied css-map overlay for {classmap_key} ({} entries)", overlay.len());
+            tracing::info!(
+                "applied css-map overlay for {classmap_key} ({} entries)",
+                overlay.len()
+            );
             map.extend(overlay);
         }
 
@@ -62,10 +65,8 @@ impl CssMap {
             replacements.push(semantic.clone());
         }
 
-        let replacer = AhoCorasick::builder()
-            .match_kind(MatchKind::LeftmostFirst)
-            .build(&patterns)
-            .ok()?;
+        let replacer =
+            AhoCorasick::builder().match_kind(MatchKind::LeftmostFirst).build(&patterns).ok()?;
         Some(Self { map, replacer, replacements })
     }
 
@@ -184,15 +185,20 @@ mod tests {
             patterns.push(h.clone());
             replacements.push(s.clone());
         }
-        let replacer =
-            AhoCorasick::builder().match_kind(MatchKind::LeftmostFirst).build(&patterns).expect("test patterns build");
+        let replacer = AhoCorasick::builder()
+            .match_kind(MatchKind::LeftmostFirst)
+            .build(&patterns)
+            .expect("test patterns build");
         CssMap { map, replacer, replacements }
     }
 
     #[test]
     fn rewrites_a_bare_class_reference() {
         let m = map_with(&[("n8Bz0c0v17whD3KfMdOk", "main-actionButtons")]);
-        assert_eq!(m.apply_css(".n8Bz0c0v17whD3KfMdOk{color:red}"), ".main-actionButtons{color:red}");
+        assert_eq!(
+            m.apply_css(".n8Bz0c0v17whD3KfMdOk{color:red}"),
+            ".main-actionButtons{color:red}"
+        );
     }
 
     #[test]
