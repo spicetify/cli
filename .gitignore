@@ -1,8 +1,9 @@
-# Executables
-bin
-cli
-spicetify
-spicetify-cli
+# Executables (root-level build artifacts; anchored so they do not swallow the
+# rust/crates/{cli,spicetify} sources)
+/bin
+/cli
+/spicetify
+/spicetify-cli
 *.exe
 
 # MacOS
