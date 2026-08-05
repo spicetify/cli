@@ -65,14 +65,19 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         return Err(e);
     }
 
+    if let Err(e) = stage_modules(ctx, &tmp) {
+        cleanup_tmp(&tmp);
+        return Err(e);
+    }
+
     if dest_xpui.exists() {
         std::fs::remove_dir_all(&dest_xpui)?;
     }
     std::fs::rename(&tmp, &dest_xpui)?;
 
-    if let Err(e) = super::daemon::install() {
-        tracing::warn!(error = %e, "failed to install daemon auto-start");
-    }
+    // The daemon is not auto-installed here: its update watcher would race
+    // apply/restore drills while the watcher's exactly-once sequencing is
+    // still being built. `spicetify daemon install` remains explicit.
 
     crate::lifecycle::start(ctx)?;
 
@@ -97,8 +102,7 @@ fn extract_into(spa: &Path, dest: &Path) -> Result<()> {
 }
 
 fn extract_modules(spotify_data: &Path, offline_bnk_dir: &Path, dest: &Path) -> Result<()> {
-    let snapshot = find_snapshot(spotify_data)
-        .or_else(|_| find_snapshot(offline_bnk_dir))?
+    let snapshot = locate_snapshot(spotify_data, offline_bnk_dir)
         .ok_or_else(|| anyhow::anyhow!(fl!("snapshot-not-found")))?;
 
     let data = std::fs::read(&snapshot)?;
@@ -110,8 +114,19 @@ fn extract_modules(spotify_data: &Path, offline_bnk_dir: &Path, dest: &Path) -> 
                     snapshot.display()
                 )
             })?;
-    std::fs::write(dest.join("xpui-modules.js"), &js)?;
+    let patched = crate::module::expose::expose_apis(js);
+    std::fs::write(dest.join("xpui-modules.js"), patched)?;
     Ok(())
+}
+
+// Search order: the Spotify data dir, then platform-specific locations (macOS
+// keeps the snapshot inside the CEF framework bundle), then the offline-bnk
+// cache. A missing directory is skipped rather than fatal.
+fn locate_snapshot(spotify_data: &Path, offline_bnk_dir: &Path) -> Option<std::path::PathBuf> {
+    let mut dirs = vec![spotify_data.to_path_buf()];
+    dirs.extend(crate::platform::snapshot_dirs());
+    dirs.push(offline_bnk_dir.to_path_buf());
+    dirs.iter().find_map(|dir| find_snapshot(dir).ok().flatten())
 }
 
 fn find_snapshot(dir: &Path) -> Result<Option<std::path::PathBuf>> {
@@ -125,6 +140,41 @@ fn find_snapshot(dir: &Path) -> Result<Option<std::path::PathBuf>> {
     Ok(entry.map(|e| e.path()))
 }
 
+// The modular loader boots from <xpui>/modules/manifest.json, which carries the
+// classmap for this Spotify build alongside each module's metadata.
+fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
+    // The Go CLI installs modules under `Modules`; the imported workspace uses
+    // `modules`. Both are accepted so state written by either binary stages.
+    let capitalised = ctx.config_root.join("Modules");
+    let modules_root =
+        if capitalised.is_dir() { capitalised } else { ctx.config_root.join("modules") };
+    let version = crate::hooks::version_detect::detect_spotify_version(ctx)
+        .map(|v| v.to_string())
+        .unwrap_or_default();
+    if version.is_empty() {
+        tracing::warn!("cannot detect the Spotify version: skipping module staging");
+        return Ok(());
+    }
+
+    match crate::module::stage::stage_modules(
+        &ctx.config_root,
+        &modules_root,
+        dest,
+        &version,
+        env!("CARGO_PKG_VERSION"),
+    ) {
+        Ok(0) => {
+            tracing::warn!("no modules staged: the client will boot without them");
+            Ok(())
+        }
+        Ok(n) => {
+            tracing::info!("staged {n} module(s)");
+            Ok(())
+        }
+        Err(e) => Err(e),
+    }
+}
+
 fn patch_index(dest: &Path) -> Result<()> {
     let index = dest.join("index.html");
     let raw = std::fs::read_to_string(&index)?;
@@ -133,8 +183,10 @@ fn patch_index(dest: &Path) -> Result<()> {
     Ok(())
 }
 
+// Modules are staged (copied and classmap-remapped) rather than linked, so
+// `modules` is deliberately absent here: see stage_modules.
 fn link_runtime_dirs(config_root: &Path, dest: &Path) -> Result<()> {
-    for folder in ["hooks", "modules", "store"] {
+    for folder in ["hooks", "store"] {
         let src = config_root.join(folder);
         let dst = dest.join(folder);
         tracing::info!(
@@ -149,13 +201,65 @@ fn link_runtime_dirs(config_root: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
+// The payload is injected as classic, non-deferred scripts at the top of
+// <body>: the wrapper must run before the client bundle to intercept webpack,
+// and a module script would be deferred until after it. The stock snapshot tag
+// is stripped because the modular loader boots the client itself once mixins
+// have run (it re-injects /xpui-modules.js then /xpui-snapshot.js).
+const SNAPSHOT_TAG: &str = "<script defer=\"defer\" src=\"/xpui-snapshot.js\"></script>";
+const BODY_TAG: &str = "<body>";
+
 fn patch_index_html(input: &str) -> Result<String> {
     let app_version = env!("CARGO_PKG_VERSION");
-    let target = "<script defer=\"defer\" src=\"/xpui-snapshot.js\"></script>";
-    let version_script =
-        format!(r#"<script>globalThis.__SPICETIFY_APP_VERSION__="{app_version}";</script>"#);
-    let hooks_script = r#"<script type="module" src="./hooks/index.js"></script>"#;
-    let replacement = format!("{version_script}{hooks_script}");
-    let idx = input.find(target).ok_or_else(|| anyhow::anyhow!(fl!("index-patch-not-found")))?;
-    Ok(format!("{}{}{}", &input[..idx], replacement, &input[idx + target.len()..]))
+    if !input.contains(SNAPSHOT_TAG) {
+        return Err(anyhow::anyhow!(fl!("index-patch-not-found")));
+    }
+    let body = input.find(BODY_TAG).ok_or_else(|| anyhow::anyhow!(fl!("index-patch-not-found")))?;
+    let insert_at = body + BODY_TAG.len();
+
+    let payload = format!(
+        concat!(
+            "\n<script>globalThis.__SPICETIFY_APP_VERSION__=\"{}\";</script>\n",
+            "<script src='hooks/spicetifyWrapper.js'></script>\n",
+            "<!-- spicetify helpers -->\n",
+            "<script src='hooks/modularLoader.js'></script>\n"
+        ),
+        app_version
+    );
+
+    let patched = format!("{}{}{}", &input[..insert_at], payload, &input[insert_at..]);
+    Ok(patched.replace(SNAPSHOT_TAG, ""))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const STOCK: &str = r#"<!doctype html><html><head><title>Spotify</title></head><body><div class="body-drag-top"></div><script defer="defer" src="/xpui-snapshot.js"></script></body></html>"#;
+
+    #[test]
+    fn injects_payload_and_strips_snapshot_tag() {
+        let out = patch_index_html(STOCK).expect("stock index patches");
+        assert!(out.contains("<script src='hooks/spicetifyWrapper.js'></script>"));
+        assert!(out.contains("<script src='hooks/modularLoader.js'></script>"));
+        assert!(out.contains("__SPICETIFY_APP_VERSION__"));
+        assert!(!out.contains(SNAPSHOT_TAG), "loader re-injects the snapshot itself");
+    }
+
+    #[test]
+    fn wrapper_runs_before_the_client_bundle() {
+        let out = patch_index_html(STOCK).expect("stock index patches");
+        let wrapper = out.find("hooks/spicetifyWrapper.js").expect("wrapper injected");
+        let loader = out.find("hooks/modularLoader.js").expect("loader injected");
+        let body = out.find(BODY_TAG).expect("body present");
+        assert!(body < wrapper && wrapper < loader, "payload order must be body -> wrapper -> loader");
+        // Nothing may be deferred: defer would run after the client bundle.
+        assert!(!out.contains("defer src='hooks/"));
+    }
+
+    #[test]
+    fn refuses_an_index_without_the_snapshot_anchor() {
+        let already = "<html><body></body></html>";
+        assert!(patch_index_html(already).is_err(), "an unrecognised index must not be patched");
+    }
 }
