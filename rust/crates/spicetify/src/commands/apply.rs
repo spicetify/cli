@@ -68,19 +68,21 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         return Err(e);
     }
 
-    // Before the payload and modules are staged: this rewrites the client's
-    // own sources, and both of those are ours to leave alone.
-    if let Err(e) = apply_css_map(ctx, &tmp) {
-        cleanup_tmp(&tmp);
-        return Err(e);
-    }
-
     if let Err(e) = link_runtime_dirs(&ctx.config_root, &tmp) {
         cleanup_tmp(&tmp);
         return Err(e);
     }
 
     if let Err(e) = stage_modules(ctx, &tmp) {
+        cleanup_tmp(&tmp);
+        return Err(e);
+    }
+
+    // Last, so the rename reaches the staged modules too: they carry hashed
+    // class names from the classmap, and this pass renames those same hashes
+    // inside the client. Rewriting only one side leaves module elements
+    // pointing at classes that no longer exist, so they render unstyled.
+    if let Err(e) = apply_css_map(ctx, &tmp) {
         cleanup_tmp(&tmp);
         return Err(e);
     }

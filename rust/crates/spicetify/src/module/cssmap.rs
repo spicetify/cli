@@ -125,7 +125,17 @@ fn find_overlay(config_root: &Path, classmap_key: &str) -> Option<PathBuf> {
     None
 }
 
-/// Rewrites every JS and CSS file under the extracted client in place.
+/// Rewrites every JS and CSS file under the extracted client in place,
+/// **including the staged modules**.
+///
+/// Modules must be rewritten too. The classmap gives them hashed class names,
+/// and this pass renames those same hashes in the client, so skipping modules
+/// leaves them pointing at classes that no longer exist: the element renders
+/// with no styling at all. Running one pass over everything is what keeps the
+/// two maps consistent no matter which names change between Spotify versions.
+///
+/// Symlinks are never followed: `hooks` and `store` link back into the user's
+/// config, and rewriting through them would edit their source files.
 pub(crate) fn apply_to_tree(map: &CssMap, root: &Path) -> Result<usize> {
     let mut touched = 0usize;
     let mut stack = vec![root.to_path_buf()];
@@ -133,13 +143,11 @@ pub(crate) fn apply_to_tree(map: &CssMap, root: &Path) -> Result<usize> {
         for entry in std::fs::read_dir(&dir)? {
             let entry = entry?;
             let path = entry.path();
-            if entry.file_type()?.is_dir() {
-                // Staged modules are remapped through the classmap instead, and
-                // the payload is ours: neither wants the client's class rewrite.
-                let name = entry.file_name();
-                if matches!(name.to_str(), Some("modules" | "hooks" | "store")) {
-                    continue;
-                }
+            let kind = entry.file_type()?;
+            if kind.is_symlink() {
+                continue;
+            }
+            if kind.is_dir() {
                 stack.push(path);
                 continue;
             }
