@@ -194,12 +194,15 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
         return Ok(());
     }
 
+    let updates_blocked = super::updates::is_blocked(ctx).unwrap_or(false);
+
     match crate::module::stage::stage_modules(
         &ctx.config_root,
         &modules_root,
         dest,
         &version,
         env!("CARGO_PKG_VERSION"),
+        updates_blocked,
     ) {
         Ok(0) => {
             tracing::warn!("no modules staged: the client will boot without them");

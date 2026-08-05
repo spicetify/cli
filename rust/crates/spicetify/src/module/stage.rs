@@ -70,6 +70,9 @@ pub(crate) struct ModulesManifest {
     pub spotify_version: String,
     pub classmap_key: String,
     pub cli_version: String,
+    /// Read by the manager module's Updates panel.
+    pub updates_blocked: bool,
+    pub classmap_fallback: bool,
     pub classmap: serde_json::Value,
     pub modules: Vec<StagedModule>,
 }
@@ -105,6 +108,41 @@ fn classmap_search_dirs(config_root: &Path) -> Vec<PathBuf> {
     }
     dirs.push(config_root.join("classmaps"));
     dirs
+}
+
+/// The classmap to stage against: the exact key when it exists, otherwise the
+/// nearest lower key sharing the same major.minor. A Spotify patch release
+/// usually re-hashes nothing, so the previous patch's map still applies;
+/// crossing a minor is not assumed to be safe.
+///
+/// Returns the resolved key and whether it is a fallback.
+fn resolve_classmap_key(config_root: &Path, key: &str) -> Option<(String, bool)> {
+    if find_classmap_file(config_root, key).is_some() {
+        return Some((key.to_string(), false));
+    }
+
+    let target: u64 = key.parse().ok()?;
+
+    let mut available = Vec::new();
+    for root in classmap_search_dirs(config_root) {
+        let Ok(entries) = std::fs::read_dir(&root) else { continue };
+        for entry in entries.filter_map(std::result::Result::ok) {
+            let Some(name) = entry.file_name().to_str().map(String::from) else { continue };
+            let Ok(candidate) = name.parse::<u64>() else { continue };
+            if find_classmap_file(config_root, &name).is_some() {
+                available.push(candidate);
+            }
+        }
+    }
+
+    pick_fallback_key(&available, target).map(|k| (k.to_string(), true))
+}
+
+/// The newest key below `target` that shares its major.minor bucket (the key's
+/// low four digits are the patch).
+fn pick_fallback_key(available: &[u64], target: u64) -> Option<u64> {
+    let bucket = target / 10_000;
+    available.iter().copied().filter(|k| k / 10_000 == bucket && *k < target).max()
 }
 
 /// The preferred classmap file for a key: `classmap.json` when present,
@@ -249,20 +287,29 @@ pub(crate) fn stage_modules(
     xpui: &Path,
     spotify_version: &str,
     cli_version: &str,
+    updates_blocked: bool,
 ) -> Result<usize> {
     if !modules_root.is_dir() {
         tracing::info!("no modules directory at {}: nothing to stage", modules_root.display());
         return Ok(0);
     }
 
-    let key = classmap_key_for_version(spotify_version).ok_or_else(|| {
+    let wanted = classmap_key_for_version(spotify_version).ok_or_else(|| {
         anyhow::anyhow!("cannot derive a classmap key from Spotify version {spotify_version}")
     })?;
-    let classmap_path = find_classmap_file(config_root, &key).ok_or_else(|| {
+    let (key, classmap_fallback) = resolve_classmap_key(config_root, &wanted).ok_or_else(|| {
         anyhow::anyhow!(
-            "no classmap found for key {key} (set SPICETIFY_CLASSMAPS_DIR or install one)"
+            "no classmap found for key {wanted} (set SPICETIFY_CLASSMAPS_DIR or install one)"
         )
     })?;
+    if classmap_fallback {
+        tracing::warn!(
+            "no classmap for {wanted}; falling back to {key}. Modules may misbehave if this \
+             Spotify build re-hashed class names"
+        );
+    }
+    let classmap_path = find_classmap_file(config_root, &key)
+        .ok_or_else(|| anyhow::anyhow!("classmap for key {key} disappeared while resolving it"))?;
     let classmap: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&classmap_path)?)?;
     let stale = stale_leaves(&classmap_path);
@@ -331,6 +378,8 @@ pub(crate) fn stage_modules(
         spotify_version: spotify_version.to_string(),
         classmap_key: key,
         cli_version: cli_version.to_string(),
+        updates_blocked,
+        classmap_fallback,
         classmap,
         modules: staged,
     };
@@ -344,6 +393,31 @@ mod tests {
 
     fn classmap() -> serde_json::Value {
         serde_json::json!({ "main": { "navbar": { "link": "abc123" } } })
+    }
+
+    #[test]
+    fn falls_back_to_the_nearest_lower_patch() {
+        let available = [1_020_045, 1_020_092, 1_020_094];
+        assert_eq!(
+            pick_fallback_key(&available, 1_020_095),
+            Some(1_020_094),
+            "the newest lower key in the same major.minor wins"
+        );
+    }
+
+    #[test]
+    fn never_falls_back_across_a_minor_or_upwards() {
+        let available = [1_020_094];
+        assert_eq!(
+            pick_fallback_key(&available, 1_030_001),
+            None,
+            "a minor bump must not reuse the previous minor's map"
+        );
+        assert_eq!(
+            pick_fallback_key(&available, 1_020_001),
+            None,
+            "a higher key must never satisfy a lower one"
+        );
     }
 
     #[test]
