@@ -92,3 +92,9 @@ pub(crate) fn register_url_scheme() {
         tracing::warn!(error = %e, "failed to write desktop file for URL scheme");
     }
 }
+
+// The v8 snapshot sits beside the app resources on this platform; no extra
+// search directories are needed.
+pub(crate) fn snapshot_dirs() -> Vec<PathBuf> {
+    Vec::new()
+}
