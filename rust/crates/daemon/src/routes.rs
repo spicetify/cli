@@ -21,6 +21,16 @@ pub const ALLOWED_ORIGIN: &str = "https://xpui.app.spotify.com";
 /// software off the proxy.
 pub use spicetify::daemon::token::HEADER as TOKEN_HEADER;
 
+/// Subprotocol prefix a browser uses to present the token on a WebSocket.
+/// `fetch` can set headers and `WebSocket` cannot, so the handshake's
+/// `Sec-WebSocket-Protocol` offer is the only channel the client page has.
+pub const TOKEN_PROTOCOL_PREFIX: &str = "spicetify.token.";
+
+/// Marks an RPC reply as a failure. The success replies are
+/// `spicetify:<module>:1`, so a caller cannot otherwise tell an error from a
+/// command that answers with nothing.
+pub const ERROR_PREFIX: &str = "error:";
+
 /// Whether a request presents the daemon token. Missing token file means the
 /// client was never patched by this install, so nothing is authorised.
 pub fn authorized(state: &DaemonState, headers: &HeaderMap) -> bool {
@@ -30,6 +40,31 @@ pub fn authorized(state: &DaemonState, headers: &HeaderMap) -> bool {
         .get(TOKEN_HEADER)
         .and_then(|v| v.to_str().ok())
         .is_some_and(|presented| spicetify::daemon::token::matches(&expected, presented))
+}
+
+/// The token offered as a `Sec-WebSocket-Protocol` value, with the protocol
+/// string it was carried in. The protocol has to be echoed on the response or
+/// the browser fails the handshake.
+fn offered_token(headers: &HeaderMap) -> Option<(String, String)> {
+    headers
+        .get("sec-websocket-protocol")
+        .and_then(|v| v.to_str().ok())?
+        .split(',')
+        .map(str::trim)
+        .find_map(|proto| {
+            proto.strip_prefix(TOKEN_PROTOCOL_PREFIX).map(|tok| (proto.to_string(), tok.to_string()))
+        })
+}
+
+/// Whether a WebSocket handshake is authorised, by header or by subprotocol.
+/// Returns the subprotocol to echo, when that is how the token arrived.
+fn ws_authorized(state: &DaemonState, headers: &HeaderMap) -> Option<Option<String>> {
+    if authorized(state, headers) {
+        return Some(None);
+    }
+    let expected = spicetify::daemon::token::read(&state.ctx.load().config_root)?;
+    let (proto, presented) = offered_token(headers)?;
+    spicetify::daemon::token::matches(&expected, &presented).then_some(Some(proto))
 }
 
 fn cors_layer() -> CorsLayer {
@@ -66,11 +101,15 @@ async fn ws_handler(
         return (StatusCode::FORBIDDEN, "origin not allowed").into_response();
     }
 
-    if !authorized(&state, &headers) {
+    let Some(echo) = ws_authorized(&state, &headers) else {
         tracing::warn!("WebSocket connection rejected: missing or invalid daemon token");
         return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
-    }
+    };
 
+    let ws = match echo {
+        Some(proto) => ws.protocols([proto]),
+        None => ws,
+    };
     ws.on_upgrade(move |socket| handle_ws(socket, state))
 }
 
@@ -85,8 +124,15 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<DaemonState>) {
                         tracing::warn!(error = %e, "failed to send ws message");
                     }
                 }
+                // A caller that acts on the reply cannot distinguish failure
+                // from a command whose reply is empty by design, so failures
+                // are reported rather than only logged.
                 Err(e) => {
                     tracing::warn!("{}", spicetify::fl!("protocol-error", err = e.to_string()));
+                    let reply = format!("{ERROR_PREFIX}{e}");
+                    if let Err(e) = socket.send(Message::Text(reply.into())).await {
+                        tracing::warn!(error = %e, "failed to send ws message");
+                    }
                 }
                 _ => {}
             }
@@ -108,4 +154,37 @@ async fn shutdown_handler(
     tracing::info!("{}", spicetify::fl!("shutdown-requested"));
     state.shutdown.notify_waiters();
     (StatusCode::ACCEPTED, spicetify::fl!("daemon-stopping-resp")).into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn headers(protocols: &str) -> HeaderMap {
+        let mut h = HeaderMap::new();
+        let _ =
+            h.insert("sec-websocket-protocol", HeaderValue::from_str(protocols).expect("header"));
+        h
+    }
+
+    #[test]
+    fn reads_the_token_from_a_subprotocol_offer() {
+        let (proto, token) =
+            offered_token(&headers("spicetify.token.abc123")).expect("token is offered");
+        assert_eq!(token, "abc123");
+        assert_eq!(proto, "spicetify.token.abc123", "the offer has to be echoed verbatim");
+    }
+
+    #[test]
+    fn picks_the_token_out_of_a_multi_protocol_offer() {
+        let (_, token) =
+            offered_token(&headers("chat, spicetify.token.abc123, superchat")).expect("token");
+        assert_eq!(token, "abc123");
+    }
+
+    #[test]
+    fn ignores_an_offer_carrying_no_token() {
+        assert!(offered_token(&headers("chat, superchat")).is_none());
+        assert!(offered_token(&HeaderMap::new()).is_none());
+    }
 }
