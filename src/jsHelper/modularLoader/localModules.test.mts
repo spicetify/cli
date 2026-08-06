@@ -1,6 +1,28 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { absolutizeLoaderUrls, isTreeRecord, localWins, remapSource, rewriteRelativeImports } from "./localModules.ts";
+import { absolutizeLoaderUrls, isTreeRecord, localWins, remapSource, removalPlan, rewriteRelativeImports } from "./localModules.ts";
+
+describe("removalPlan", () => {
+	it("drops a shadowed record without unloading the staged copy that serves it", () => {
+		assert.equal(
+			removalPlan({ running: false, record: true, mapped: false }),
+			"record-only",
+			"unloading here takes down the staged module, and the revert path is skipped, so it stays down until restart",
+		);
+	});
+
+	it("unloads and reverts only when the override is the code actually running", () => {
+		assert.equal(removalPlan({ running: true, record: true, mapped: false }), "unload-and-revert");
+	});
+
+	it("defers a mapped tree module to a restart", () => {
+		assert.equal(removalPlan({ running: true, record: true, mapped: true }), "requires-restart");
+	});
+
+	it("does nothing when the id has no local anything", () => {
+		assert.equal(removalPlan({ running: false, record: false, mapped: false }), "nothing");
+	});
+});
 
 describe("remapSource", () => {
 	const classmap = {

@@ -126,6 +126,19 @@ export function loadLocalModules(): LocalModuleRecord[] {
 	return out;
 }
 
+// What removeLocal has to do, given what the id currently has behind it.
+// "record-only" is the case worth naming: a stored record that the staged
+// copy already shadows has nothing running to revert, so unloading would take
+// the staged module down instead of the override.
+export type RemovalPlan = "nothing" | "record-only" | "requires-restart" | "unload-and-revert";
+
+export function removalPlan(state: { running: boolean; record: boolean; mapped: boolean }): RemovalPlan {
+	if (!state.running && !state.record) return "nothing";
+	if (state.mapped) return "requires-restart";
+	if (!state.running) return "record-only";
+	return "unload-and-revert";
+}
+
 export function saveLocalModule(id: string, record: LocalModuleRecord): void {
 	localStorage.setItem(PREFIX + id, JSON.stringify(record));
 }

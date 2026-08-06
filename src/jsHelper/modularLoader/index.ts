@@ -8,6 +8,7 @@ import {
 	loadLocalModules,
 	localWins,
 	remapSource,
+	removalPlan,
 	saveLocalModule,
 } from "./localModules.ts";
 import { type BootReport, Registry } from "./registry.ts";
@@ -484,19 +485,24 @@ async function boot(): Promise<BootReport | null> {
 		return registry.enable(id, report);
 	};
 	(modules as Record<string, unknown>).removeLocal = async (id: string) => {
-		// removeLocal removes a local override; with none, do nothing rather
-		// than unload a staged module that only happens to share the id.
-		if (!registry.hasLocal(id) && !hasLocalRecord(id)) return;
+		const plan = removalPlan({
+			running: registry.hasLocal(id),
+			record: hasLocalRecord(id),
+			mapped: registry.isMappedLocal(id),
+		});
+		if (plan === "nothing") return;
 		// A mapped tree module's files are cached in the module graph; the
 		// removal lands, but the running code only reverts on restart.
-		if (registry.isMappedLocal(id)) {
+		if (plan === "requires-restart") {
 			deleteLocalModule(id);
 			return { requiresRestart: true };
 		}
-		const wasLocal = registry.hasLocal(id);
+		if (plan === "record-only") {
+			deleteLocalModule(id);
+			return;
+		}
 		await registry.unload(id);
 		deleteLocalModule(id);
-		if (!wasLocal) return;
 		registry.unregisterLocal(id);
 		delete report.failed[id];
 		const staged = stagedMeta.get(id);
