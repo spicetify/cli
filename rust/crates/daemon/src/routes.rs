@@ -19,7 +19,7 @@ pub const ALLOWED_ORIGIN: &str = "https://xpui.app.spotify.com";
 /// Header carrying the token apply injected into the patched client. CORS
 /// only constrains browsers, so it is what actually keeps other local
 /// software off the proxy.
-pub const TOKEN_HEADER: &str = "x-spicetify-token";
+pub use spicetify::daemon::token::HEADER as TOKEN_HEADER;
 
 /// Whether a request presents the daemon token. Missing token file means the
 /// client was never patched by this install, so nothing is authorised.
@@ -94,8 +94,18 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<DaemonState>) {
     }
 }
 
-async fn shutdown_handler(State(state): State<Arc<DaemonState>>) -> impl IntoResponse {
+// A cross-origin POST is sent even when the browser refuses to let the page
+// read the reply, so without a token any page the user visits could stop the
+// daemon and silently disable auto re-apply.
+async fn shutdown_handler(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    if !authorized(&state, &headers) {
+        tracing::warn!("shutdown request rejected: missing or invalid daemon token");
+        return (StatusCode::FORBIDDEN, "invalid daemon token".to_string()).into_response();
+    }
     tracing::info!("{}", spicetify::fl!("shutdown-requested"));
     state.shutdown.notify_waiters();
-    (StatusCode::ACCEPTED, spicetify::fl!("daemon-stopping-resp"))
+    (StatusCode::ACCEPTED, spicetify::fl!("daemon-stopping-resp")).into_response()
 }

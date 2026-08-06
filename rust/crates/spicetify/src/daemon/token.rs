@@ -8,6 +8,9 @@ use std::path::{Path, PathBuf};
 
 use crate::error::Result;
 
+/// Header the patched client and the CLI present to the daemon's gated routes.
+pub const HEADER: &str = "x-spicetify-token";
+
 const TOKEN_FILE: &str = "daemon-token";
 const TOKEN_BYTES: usize = 32;
 

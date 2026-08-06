@@ -47,7 +47,13 @@ pub fn health_check() -> Option<HealthInfo> {
 pub fn shutdown_daemon() {
     tracing::info!("Shutting down daemon");
     let client = crate::http::daemon_local_client();
-    if let Err(e) = client.post(format!("http://{BIND_ADDR}/shutdown")).send() {
+    let mut request = client.post(format!("http://{BIND_ADDR}/shutdown"));
+    // The endpoint is token-gated so a web page cannot POST the daemon down;
+    // this side reads the same file the daemon checks against.
+    if let Some(token) = token::read(&crate::platform::default_spicetify_config_dir()) {
+        request = request.header(token::HEADER, token);
+    }
+    if let Err(e) = request.send() {
         tracing::warn!(error = %e, "failed to send shutdown request to daemon");
     }
     force_kill_daemon();

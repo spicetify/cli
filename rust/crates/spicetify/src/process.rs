@@ -40,6 +40,9 @@ pub(crate) fn kill_image(name: &str) {
             .status()
         {
             Ok(s) if s.success() => {}
+            // Exit 1 is "nothing matched", which is the normal outcome when the
+            // process already stopped on its own.
+            Ok(s) if s.code() == Some(1) => tracing::debug!(%name, "no process left to kill"),
             Ok(s) => tracing::warn!(%name, %s, "pkill exited with non-zero status"),
             Err(e) => tracing::warn!(%name, error = %e, "failed to run pkill"),
         }
