@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { chooseScheme, parseColorIni, parseColorSchemes } from "./index.ts";
+import { chooseScheme, fillCanonical, parseColorIni, parseColorSchemes } from "./index.ts";
 
 describe("parseColorIni", () => {
 	it("parses classic color.ini with sections and comments", () => {
@@ -73,5 +73,33 @@ describe("chooseScheme", () => {
 	});
 	it("returns null for an empty file", () => {
 		assert.equal(chooseScheme({}, null), null);
+	});
+});
+
+describe("fillCanonical", () => {
+	it("derives an omitted card from the theme's own background, not a dark default", () => {
+		const out = fillCanonical({ main: "ffe8d9", text: "8f7878" });
+		assert.equal(out.card, "ffe8d9");
+		assert.equal(out["main-elevated"], "ffe8d9");
+	});
+
+	it("never overwrites a declared key", () => {
+		const out = fillCanonical({ main: "ffe8d9", card: "e6cfd7", text: "8f7878" });
+		assert.equal(out.card, "e6cfd7");
+	});
+
+	it("resolves the mutually-referential pair when only one side is declared", () => {
+		assert.equal(fillCanonical({ main: "111", card: "222" })["main-elevated"], "222");
+		assert.equal(fillCanonical({ main: "111", "main-elevated": "333" }).card, "333");
+	});
+
+	it("prefers card-hover for highlight when the theme names one", () => {
+		const out = fillCanonical({ main: "ffe8d9", "card-hover": "ffece4" });
+		assert.equal(out.highlight, "ffece4");
+	});
+
+	it("leaves a scheme that declares everything untouched", () => {
+		const full = { text: "a", subtext: "b", main: "c", card: "d" };
+		assert.deepEqual({ ...full }, { ...full, ...Object.fromEntries(Object.entries(fillCanonical(full)).filter(([k]) => k in full)) });
 	});
 });

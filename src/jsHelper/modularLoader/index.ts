@@ -134,11 +134,55 @@ function hexToRgb(hex: string): string | null {
 	return `${Number.parseInt(full.slice(0, 2), 16)},${Number.parseInt(full.slice(2, 4), 16)},${Number.parseInt(full.slice(4, 6), 16)}`;
 }
 
+// Canonical keys a theme may omit, each with the keys to derive it from,
+// first match wins. The classic pipeline filled these from a fixed dark
+// palette (utils.BaseColorList), which is right for a dark theme and
+// actively wrong for a light one: a theme that never names `card` gets a
+// near-black card over its own pale background, and every module reading
+// var(--spice-card, <dark default>) renders the same way. Deriving from
+// what the theme *did* define keeps an omitted key in the theme's own
+// register instead.
+//
+// Order is load-bearing: entries resolve against keys filled earlier in
+// the same pass, so the mutually-referential pairs (main-elevated/card)
+// both land on `main` when neither is declared.
+const DERIVED_COLORS: Array<[string, string[]]> = [
+	["subtext", ["text"]],
+	["main-elevated", ["card", "main"]],
+	["card", ["main-elevated", "main"]],
+	["highlight", ["card-hover", "main-elevated", "main"]],
+	["highlight-elevated", ["highlight", "main"]],
+	["sidebar", ["main"]],
+	["player", ["main"]],
+	["tab-active", ["card", "main"]],
+	["selected-row", ["text"]],
+	["misc", ["subtext", "text"]],
+	["button", ["button-active", "text"]],
+	["button-active", ["button", "text"]],
+	["button-disabled", ["subtext", "text"]],
+	["shadow", ["text"]],
+	["notification", ["card", "main"]],
+	["notification-error", ["notification", "main"]],
+];
+
+// fillCanonical returns the scheme with omitted canonical keys derived
+// from declared ones. Declared keys are never overwritten.
+export function fillCanonical(scheme: Record<string, string>): Record<string, string> {
+	const out = { ...scheme };
+	for (const [key, sources] of DERIVED_COLORS) {
+		if (out[key] !== undefined) continue;
+		const from = sources.find((s) => out[s] !== undefined);
+		if (from) out[key] = out[from];
+	}
+	return out;
+}
+
 // applyVars sets one scheme's --spice-* variables on :root, mirroring
 // the classic pipeline's getColorCSS. Returns a disposer that restores
 // the previous values.
-function applyVars(scheme: Record<string, string>): () => void {
+function applyVars(rawScheme: Record<string, string>): () => void {
 	const root = document.documentElement;
+	const scheme = fillCanonical(rawScheme);
 	const previous: Record<string, string> = {};
 	for (const [key, value] of Object.entries(scheme)) {
 		const name = `--spice-${key}`;
