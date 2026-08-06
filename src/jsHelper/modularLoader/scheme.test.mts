@@ -27,6 +27,13 @@ button_bg = bd93f9
 		assert.deepEqual(parseColorIni("nonsense\na=b\n= x\n"), { a: "b" });
 	});
 
+	it("lowercases keys like the classic CLI's InsensitiveLoad", () => {
+		// Themes reference --spice-gradienttop; a camelCase gradientTop key
+		// must land on the same variable name.
+		const ini = "[Pink]\ngradientTop = ebaf98\nGradientBottom = f5d4b7\n";
+		assert.deepEqual(parseColorIni(ini), { gradienttop: "ebaf98", gradientbottom: "f5d4b7" });
+	});
+
 	it("strips inline comments from values", () => {
 		const ini = "[Base]\nmain = 000000 ; becomes transparent via javascript\nsidebar = 142b44; bottom of sky\ntext = FFFFFF\n";
 		assert.deepEqual(parseColorIni(ini), { main: "000000", sidebar: "142b44", text: "FFFFFF" });

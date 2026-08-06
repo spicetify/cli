@@ -96,7 +96,12 @@ export function parseColorSchemes(text: string): Record<string, Record<string, s
 		}
 		const eq = trimmed.indexOf("=");
 		if (eq < 0) continue;
-		const key = trimmed.slice(0, eq).trim();
+		// The classic CLI read color.ini with ini.InsensitiveLoad, which
+		// lowercases keys, so themes reference --spice-gradienttop even when
+		// the file says gradientTop. Case-sensitive CSS custom properties
+		// make anything else resolve to nothing. Section (scheme) names keep
+		// their case: they are display labels, not variable names.
+		const key = trimmed.slice(0, eq).trim().toLowerCase();
 		const value = trimmed.slice(eq + 1).trim();
 		if (key && value) (out[current] ??= {})[key] = value;
 	}
