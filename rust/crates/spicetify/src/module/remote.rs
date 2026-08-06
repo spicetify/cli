@@ -67,17 +67,45 @@ pub(crate) fn fetch_classmap(config_root: &Path, wanted_key: &str) -> Result<Str
             .ok_or_else(|| anyhow::anyhow!("no published classmap covers {wanted_key}"))?
     };
 
+    // The index decides both path segments, so neither is trusted to stay
+    // inside the cache directory without checking.
+    if !is_plain_key(&key) {
+        anyhow::bail!("refusing a classmap key that is not a plain number: {key}");
+    }
+
     let entry = index.keys.get(&key).ok_or_else(|| anyhow::anyhow!("key {key} left the index"))?;
+
+    let files: Vec<&FileRef> =
+        [Some(&entry.classmap), entry.meta.as_ref(), entry.css_map_overlay.as_ref()]
+            .into_iter()
+            .flatten()
+            .collect();
+    for file in &files {
+        if !is_plain_file_name(&file.file) {
+            anyhow::bail!("refusing a classmap file name that is not a plain file: {}", file.file);
+        }
+    }
 
     let dest = config_root.join("classmaps").join(&key);
     std::fs::create_dir_all(&dest)?;
 
-    let files = [Some(&entry.classmap), entry.meta.as_ref(), entry.css_map_overlay.as_ref()];
-    for file in files.into_iter().flatten() {
+    for file in files {
         cache_file(&client, &key, file, &dest)?;
     }
 
     Ok(key)
+}
+
+/// Classmap keys are digits only, so they cannot escape the cache directory or
+/// reshape the download URL.
+fn is_plain_key(key: &str) -> bool {
+    !key.is_empty() && key.len() <= 12 && key.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// A single path component: no separators, no traversal, no absolute path.
+fn is_plain_file_name(name: &str) -> bool {
+    !name.contains('\\')
+        && Path::new(name).file_name().and_then(std::ffi::OsStr::to_str) == Some(name)
 }
 
 fn cache_file(
@@ -119,4 +147,31 @@ fn digest(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     hex::encode(hasher.finalize())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_keys_that_are_not_plain_numbers() {
+        assert!(is_plain_key("1020094"));
+        assert!(!is_plain_key(""));
+        assert!(!is_plain_key(".."));
+        assert!(!is_plain_key("../../etc"));
+        assert!(!is_plain_key("1020094/.."));
+        assert!(!is_plain_key("/etc"));
+    }
+
+    #[test]
+    fn rejects_file_names_that_escape_the_cache_dir() {
+        assert!(is_plain_file_name("classmap-19f856aefd5.json"));
+        assert!(is_plain_file_name("META.json"));
+        assert!(!is_plain_file_name(".."));
+        assert!(!is_plain_file_name("../../../../tmp/evil"));
+        assert!(!is_plain_file_name("/etc/passwd"));
+        assert!(!is_plain_file_name("sub/dir.json"));
+        assert!(!is_plain_file_name("..\\..\\evil"));
+        assert!(!is_plain_file_name(""));
+    }
 }
