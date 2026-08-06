@@ -1,0 +1,144 @@
+name: Rust Release
+
+on:
+  push:
+    tags: ["v3*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (must already exist)"
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            asset_os: macos
+            asset_arch: aarch64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset_os: macos
+            asset_arch: x86_64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset_os: linux
+            asset_arch: x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_os: windows
+            asset_arch: x86_64
+    steps:
+      # A dispatch-supplied tag reaches checkout's ref, so it is constrained to
+      # the shape this workflow publishes before anything acts on it.
+      - name: Validate the dispatch tag
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if ! printf '%s' "$TAG" | grep -Eq '^v3[0-9A-Za-z.+-]*$'; then
+            echo "refusing tag '$TAG': expected v3 followed by version characters" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Setup Node and pnpm
+        uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
+
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The wrapper and loader are compiled into the binary, so they must exist
+      # before cargo runs.
+      - name: Build client payload
+        run: pnpm build:payload
+
+      - name: Add target
+        working-directory: rust
+        run: rustup target add ${{ matrix.target }}
+
+      # A tag whose version disagrees with the crate's would ship a binary that
+      # misjudges its own updates.
+      - name: Check the tag matches the crate version
+        shell: bash
+        working-directory: rust
+        env:
+          REF_NAME: ${{ inputs.tag || github.ref_name }}
+        run: |
+          tag_version="${REF_NAME#v}"
+          crate_version="$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)"
+          if [ "$tag_version" != "$crate_version" ]; then
+            echo "tag $tag_version does not match crate version $crate_version" >&2
+            exit 1
+          fi
+          echo "VERSION=$crate_version" >> "$GITHUB_ENV"
+
+      - name: Test
+        working-directory: rust
+        run: cargo test --workspace --locked
+
+      - name: Build
+        working-directory: rust
+        run: cargo build --release --workspace --locked --target ${{ matrix.target }}
+
+      - name: Stage binaries
+        shell: bash
+        run: |
+          mkdir -p staged
+          if [ "${{ matrix.asset_os }}" = "windows" ]; then
+            cp rust/target/${{ matrix.target }}/release/spicetify.exe staged/
+            cp rust/target/${{ matrix.target }}/release/spicetify-daemon.exe staged/
+          else
+            cp rust/target/${{ matrix.target }}/release/spicetify staged/
+            cp rust/target/${{ matrix.target }}/release/spicetify-daemon staged/
+            chmod +x staged/spicetify staged/spicetify-daemon
+          fi
+
+      - name: Attest provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: staged/*
+
+      # Names must match what self-update looks for:
+      # spicetify-<version>-<os>-<arch>.<ext>
+      - name: Package (unix)
+        if: matrix.asset_os != 'windows'
+        shell: bash
+        run: |
+          name="spicetify-${VERSION}-${{ matrix.asset_os }}-${{ matrix.asset_arch }}.tar.zst"
+          tar -cf - -C staged spicetify spicetify-daemon | zstd -19 -o "$name"
+          shasum -a 256 "$name" | cut -d' ' -f1 > "$name.sha256"
+          echo "ASSET=$name" >> "$GITHUB_ENV"
+
+      - name: Package (windows)
+        if: matrix.asset_os == 'windows'
+        shell: pwsh
+        run: |
+          $name = "spicetify-$env:VERSION-${{ matrix.asset_os }}-${{ matrix.asset_arch }}.zip"
+          Compress-Archive -Path staged/* -DestinationPath $name
+          (Get-FileHash $name -Algorithm SHA256).Hash.ToLower() | Out-File -NoNewline "$name.sha256"
+          "ASSET=$name" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Publish
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
+          files: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET }}.sha256
