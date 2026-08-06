@@ -192,6 +192,7 @@ window.Spicetify = {
           "_renderNavLinks",
           "Events",
           "CORSProxy",
+          "Daemon",
         ]),
       },
       {
@@ -311,4 +312,5 @@ window.Spicetify = {
   Snackbar: {},
   Platform: {},
   CORSProxy: {},
+  Daemon: {},
 };

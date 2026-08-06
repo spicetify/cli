@@ -1,7 +1,9 @@
 import { waitFor } from "./shared/async.js";
 import { proxiedFetch, proxiedURL, templates } from "./shared/corsProxy.js";
+import { apply, available, blockUpdates, send, unblockUpdates } from "./shared/daemonRpc.js";
 
 Object.assign(Spicetify.CORSProxy, { url: proxiedURL, fetch: proxiedFetch, templates });
+Object.assign(Spicetify.Daemon, { available, send, apply, blockUpdates, unblockUpdates });
 
 (function waitForPlatform() {
   if (!Spicetify._platform) {
