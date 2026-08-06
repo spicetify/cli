@@ -54,9 +54,8 @@ pub(crate) fn fetch_classmap(config_root: &Path, wanted_key: &str) -> Result<Str
         .and_then(reqwest::blocking::Response::json)
         .map_err(|e| anyhow::anyhow!("cannot fetch the classmap index: {e}"))?;
 
-    let target: u64 = wanted_key
-        .parse()
-        .map_err(|_| anyhow::anyhow!("malformed classmap key {wanted_key}"))?;
+    let target: u64 =
+        wanted_key.parse().map_err(|_| anyhow::anyhow!("malformed classmap key {wanted_key}"))?;
 
     let key = if index.keys.contains_key(wanted_key) {
         wanted_key.to_string()

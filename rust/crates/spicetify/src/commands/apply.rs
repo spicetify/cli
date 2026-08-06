@@ -196,7 +196,9 @@ fn refresh_classmap(ctx: &AppContext, version: &str) {
     match crate::module::remote::fetch_classmap(&ctx.config_root, &wanted) {
         Ok(key) if key == wanted => tracing::info!("classmap {key} is current"),
         Ok(key) => tracing::info!("no published classmap for {wanted}; cached {key} instead"),
-        Err(e) => tracing::warn!(error = %e, "could not refresh the classmap; using what is cached"),
+        Err(e) => {
+            tracing::warn!(error = %e, "could not refresh the classmap; using what is cached");
+        }
     }
 }
 
