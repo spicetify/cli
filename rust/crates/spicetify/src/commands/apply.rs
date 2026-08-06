@@ -182,6 +182,24 @@ fn apply_css_map(ctx: &AppContext, dest: &Path) -> Result<()> {
     Ok(())
 }
 
+// Classmaps are published per Spotify build, so apply pulls the current one
+// before staging. A failure here is not fatal: whatever is already cached (or
+// shipped) still applies, which keeps apply working offline.
+fn refresh_classmap(ctx: &AppContext, version: &str) {
+    if std::env::var_os("SPICETIFY_CLASSMAPS_DIR").is_some() {
+        tracing::debug!("SPICETIFY_CLASSMAPS_DIR is set: skipping the classmap fetch");
+        return;
+    }
+    let Some(wanted) = crate::module::stage::classmap_key_for_version(version) else {
+        return;
+    };
+    match crate::module::remote::fetch_classmap(&ctx.config_root, &wanted) {
+        Ok(key) if key == wanted => tracing::info!("classmap {key} is current"),
+        Ok(key) => tracing::info!("no published classmap for {wanted}; cached {key} instead"),
+        Err(e) => tracing::warn!(error = %e, "could not refresh the classmap; using what is cached"),
+    }
+}
+
 // The modular loader boots from <xpui>/modules/manifest.json, which carries the
 // classmap for this Spotify build alongside each module's metadata.
 fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
@@ -193,6 +211,8 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
         tracing::warn!("cannot detect the Spotify version: skipping module staging");
         return Ok(());
     }
+
+    refresh_classmap(ctx, &version);
 
     let updates_blocked = super::updates::is_blocked(ctx).unwrap_or(false);
 

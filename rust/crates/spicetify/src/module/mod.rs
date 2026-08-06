@@ -1,5 +1,6 @@
 pub(crate) mod cssmap;
 pub(crate) mod expose;
+pub(crate) mod remote;
 pub(crate) mod stage;
 pub(crate) mod vault;
 
