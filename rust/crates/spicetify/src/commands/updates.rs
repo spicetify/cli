@@ -9,7 +9,9 @@
 // remains the reference implementation; the on-disk effects are identical so
 // either binary can read the other's state.
 
-use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
+use std::path::Path;
+use std::path::PathBuf;
 
 use crate::context::AppContext;
 use crate::error::Result;
