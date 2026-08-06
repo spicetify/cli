@@ -180,9 +180,17 @@ export function fillCanonical(scheme: Record<string, string>): Record<string, st
 // applyVars sets one scheme's --spice-* variables on :root, mirroring
 // the classic pipeline's getColorCSS. Returns a disposer that restores
 // the previous values.
+// Marks the document while a theme's variables are on :root. stdlib's
+// client-colour bridge keys off this, so with no theme loaded the bridge
+// contributes nothing and the client keeps the exact look Spotify ships —
+// a `var(--spice-*, <fallback>)` chain could only approximate that, since
+// it would have to restate every client default correctly.
+export const THEMED_CLASS = "spicetify-themed";
+
 function applyVars(rawScheme: Record<string, string>): () => void {
 	const root = document.documentElement;
 	const scheme = fillCanonical(rawScheme);
+	root.classList.add(THEMED_CLASS);
 	const previous: Record<string, string> = {};
 	for (const [key, value] of Object.entries(scheme)) {
 		const name = `--spice-${key}`;
@@ -200,6 +208,9 @@ function applyVars(rawScheme: Record<string, string>): () => void {
 			if (value) root.style.setProperty(name, value);
 			else root.style.removeProperty(name);
 		}
+		// Scheme switches dispose the old vars after applying the new ones,
+		// so the mark only comes off once nothing themed is left on :root.
+		if (!root.style.getPropertyValue("--spice-main")) root.classList.remove(THEMED_CLASS);
 	};
 }
 
