@@ -21,6 +21,7 @@ func Update(currentVersion string) bool {
 	}
 	if currentVersion == tagName {
 		utils.PrintSuccess("Spicetify is up-to-date.")
+		PrintV3Notice()
 		return false
 	}
 
@@ -109,6 +110,7 @@ func Update(currentVersion string) bool {
 
 	utils.CheckExistAndDelete(exeOld)
 	utils.PrintSuccess("Successfully updated Spicetify to v" + tagName)
+	PrintV3Notice()
 	return true
 }
 
