@@ -36,28 +36,21 @@ its history preserved. **The Go CLI remains the released and default binary on
 every platform**; there is no v3 release yet, so `install.sh --v3` has nothing
 to fetch until the first tag lands.
 
-v3 is a different model rather than a faster v2, so upgrading is a reinstall:
+v3 is a different model rather than a faster v2, so upgrading is a reinstall.
+What it changes:
 
-- **Modules replace extensions, custom apps and themes.** One package format
-  with a manifest and declared dependencies, mounted through named surfaces
-  (nav links, top-bar and playbar buttons, routes, panels, menus, settings
-  sections) instead of hand-written selectors.
-- **A store inside the client**, and `spicetify pkg` outside it. Installed
-  versions are kept side by side, so reverting a bad update is enabling the
-  previous one. Community catalogs beyond the default one must be trusted
-  explicitly, and only over HTTPS.
-- **Classmaps decouple modules from Spotify's hashed class names**, fetched and
-  sha256-verified per apply, so a new Spotify build needs a published classmap
-  rather than a CLI release. A missing one falls back to the nearest lower
-  build within the same Spotify minor instead of breaking.
-- **Extract-and-serve apply.** The client is served from a patched directory
-  rather than a repacked archive, so staging a module does not rebuild the app.
-- **An optional daemon** that re-applies after Spotify updates itself, proxies
-  requests the client cannot make directly, and exposes the CLI to the client:
-  a module can trigger an apply or change Spotify's update policy through
-  `Spicetify.Daemon` instead of asking the user to open a terminal. It is
-  token-gated, and the client falls back to showing the command when the
-  daemon is not running.
+- **Customise Spotify without leaving Spotify.** Extensions, custom apps and
+  themes all become one thing (modules), browsable and installable from a store
+  inside the client. Most take effect immediately; the few that need a restart
+  say so. The CLI is still there (`spicetify pkg`) if you prefer it.
+- **A Spotify update no longer means a broken client.** v3 repairs itself after
+  Spotify updates in the background, and a new Spotify build no longer waits on
+  a new Spicetify release to be supported. When something genuinely is not
+  supported yet, the client says which part is degraded instead of silently
+  looking wrong.
+- **An update that goes wrong is recoverable.** Installed versions are kept
+  side by side, so going back is `spicetify pkg enable <module>@<old version>`
+  rather than hunting down an old download.
 
 ---
 
