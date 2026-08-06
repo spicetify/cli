@@ -45,6 +45,11 @@ pub async fn handler(
         return StatusCode::NO_CONTENT.into_response();
     }
 
+    if !crate::routes::authorized(&state, &headers) {
+        tracing::warn!(%url, "proxy request rejected: missing or invalid daemon token");
+        return error_response(StatusCode::FORBIDDEN, "invalid daemon token".to_string());
+    }
+
     let Some(target) = resolve_target(&url, request.uri().query()) else {
         tracing::warn!(%url, "proxy received invalid URL");
         return error_response(StatusCode::BAD_REQUEST, spicetify::fl!("proxy-invalid-url"));
@@ -110,7 +115,9 @@ fn build_upstream_request(
 
     let mut has_user_agent = false;
     for (name, value) in headers {
-        if name == "host" || name == "x-set-headers" {
+        // The daemon token authorises this hop only; forwarding it upstream
+        // would leak it to every proxied host.
+        if name == "host" || name == "x-set-headers" || name == crate::routes::TOKEN_HEADER {
             continue;
         }
         let name_str = name.as_str();

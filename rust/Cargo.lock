@@ -3097,6 +3097,7 @@ dependencies = [
  "arc-swap",
  "directories",
  "fork",
+ "getrandom 0.4.3",
  "hex",
  "i18n-embed",
  "i18n-embed-fl",

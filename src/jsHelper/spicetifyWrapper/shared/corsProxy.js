@@ -43,8 +43,30 @@ export const proxiedURL = (target) => applyTemplate(templates()[0], target);
 // is the upstream's own reply and belongs to the caller. The attempts stay
 // sequential because a fallback is only worth making once the preferred proxy
 // has actually failed.
+// The daemon only answers requests carrying the token apply injected into this
+// page, which is what keeps other local software off it. The token is scoped to
+// that hop, so it is never attached to a template pointing anywhere else.
+export const TOKEN_HEADER = "x-spicetify-token";
+
+const isLoopback = (template) => {
+  try {
+    const { hostname } = new URL(applyTemplate(template, "https://example.com/"));
+    return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "[::1]";
+  } catch {
+    return false;
+  }
+};
+
+export const withToken = (template, options) => {
+  const token = globalThis.__SPICETIFY_DAEMON_TOKEN__;
+  if (!token || !isLoopback(template)) return options;
+  const headers = new Headers(options?.headers || undefined);
+  headers.set(TOKEN_HEADER, token);
+  return { ...options, headers };
+};
+
 export const proxiedFetch = (target, options) => {
-  const attempt = (template) => fetch(applyTemplate(template, target), options);
+  const attempt = (template) => fetch(applyTemplate(template, target), withToken(template, options));
   const [preferred, ...backups] = templates();
   return backups.reduce((pending, template) => pending.catch(() => attempt(template)), attempt(preferred));
 };

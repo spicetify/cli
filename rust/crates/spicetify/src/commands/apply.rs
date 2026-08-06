@@ -58,7 +58,7 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     }
 
     tracing::info!("{}", fl!("patching-index"));
-    if let Err(e) = patch_index(&tmp) {
+    if let Err(e) = patch_index(ctx, &tmp) {
         cleanup_tmp(&tmp);
         return Err(e);
     }
@@ -121,12 +121,31 @@ fn ensure_daemon(ctx: &AppContext) {
     if let Err(e) = super::daemon::install() {
         tracing::warn!(error = %e, "could not enable the daemon at login");
     }
+
     if crate::daemon::is_daemon_running() {
-        return;
+        let running = crate::daemon::health_check().map(|h| h.version);
+        if daemon_is_current(running.as_deref()) {
+            return;
+        }
+        tracing::info!(
+            "restarting the daemon: it is running {} while this CLI is {}",
+            running.as_deref().unwrap_or("an unknown version"),
+            crate::VERSION
+        );
+        if let Err(e) = super::daemon::stop() {
+            tracing::warn!(error = %e, "could not stop the outdated daemon");
+        }
     }
+
     if let Err(e) = super::daemon::start() {
         tracing::warn!(error = %e, "could not start the daemon");
     }
+}
+
+/// A daemon from an older install keeps serving its own behaviour until it is
+/// replaced, so an upgrade only takes effect once the running one matches.
+fn daemon_is_current(running: Option<&str>) -> bool {
+    running == Some(crate::VERSION)
 }
 
 fn cleanup_tmp(tmp: &Path) {
@@ -258,10 +277,13 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
     }
 }
 
-fn patch_index(dest: &Path) -> Result<()> {
+fn patch_index(ctx: &AppContext, dest: &Path) -> Result<()> {
+    // The client is handed the daemon token so its proxy calls are accepted;
+    // nothing else served from this origin can read it.
+    let token = crate::daemon::token::ensure(&ctx.config_root).unwrap_or_default();
     let index = dest.join("index.html");
     let raw = std::fs::read_to_string(&index)?;
-    let patched = patch_index_html(&raw)?;
+    let patched = patch_index_html(&raw, &token)?;
     std::fs::write(&index, patched)?;
     Ok(())
 }
@@ -310,7 +332,7 @@ fn stage_payload(config_root: &Path, dest: &Path) -> Result<()> {
 const SNAPSHOT_TAG: &str = "<script defer=\"defer\" src=\"/xpui-snapshot.js\"></script>";
 const BODY_TAG: &str = "<body>";
 
-fn patch_index_html(input: &str) -> Result<String> {
+fn patch_index_html(input: &str, daemon_token: &str) -> Result<String> {
     let app_version = env!("CARGO_PKG_VERSION");
     if !input.contains(SNAPSHOT_TAG) {
         return Err(anyhow::anyhow!(fl!("index-patch-not-found")));
@@ -320,12 +342,13 @@ fn patch_index_html(input: &str) -> Result<String> {
 
     let payload = format!(
         concat!(
-            "\n<script>globalThis.__SPICETIFY_APP_VERSION__=\"{}\";</script>\n",
+            "\n<script>globalThis.__SPICETIFY_APP_VERSION__=\"{}\";",
+            "globalThis.__SPICETIFY_DAEMON_TOKEN__=\"{}\";</script>\n",
             "<script src='hooks/spicetifyWrapper.js'></script>\n",
             "<!-- spicetify helpers -->\n",
             "<script src='hooks/modularLoader.js'></script>\n"
         ),
-        app_version
+        app_version, daemon_token
     );
 
     let patched = format!("{}{}{}", &input[..insert_at], payload, &input[insert_at..]);
@@ -340,7 +363,7 @@ mod tests {
 
     #[test]
     fn injects_payload_and_strips_snapshot_tag() {
-        let out = patch_index_html(STOCK).expect("stock index patches");
+        let out = patch_index_html(STOCK, "tok").expect("stock index patches");
         assert!(out.contains("<script src='hooks/spicetifyWrapper.js'></script>"));
         assert!(out.contains("<script src='hooks/modularLoader.js'></script>"));
         assert!(out.contains("__SPICETIFY_APP_VERSION__"));
@@ -349,7 +372,7 @@ mod tests {
 
     #[test]
     fn wrapper_runs_before_the_client_bundle() {
-        let out = patch_index_html(STOCK).expect("stock index patches");
+        let out = patch_index_html(STOCK, "tok").expect("stock index patches");
         let wrapper = out.find("hooks/spicetifyWrapper.js").expect("wrapper injected");
         let loader = out.find("hooks/modularLoader.js").expect("loader injected");
         let body = out.find(BODY_TAG).expect("body present");
@@ -364,6 +387,9 @@ mod tests {
     #[test]
     fn refuses_an_index_without_the_snapshot_anchor() {
         let already = "<html><body></body></html>";
-        assert!(patch_index_html(already).is_err(), "an unrecognised index must not be patched");
+        assert!(
+            patch_index_html(already, "tok").is_err(),
+            "an unrecognised index must not be patched"
+        );
     }
 }

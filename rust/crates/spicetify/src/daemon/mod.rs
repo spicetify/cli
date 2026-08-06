@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod manager;
 pub mod process;
+pub mod token;
 
 pub use manager::{DaemonManager, DaemonManagerError};
 

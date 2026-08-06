@@ -96,3 +96,63 @@ describe("proxiedFetch", () => {
     assert.deepEqual(calls, [`https://my-proxy.example/${TARGET}`]);
   });
 });
+
+describe("daemon token", () => {
+  const setToken = (value: string | undefined) => {
+    (globalThis as { __SPICETIFY_DAEMON_TOKEN__?: string }).__SPICETIFY_DAEMON_TOKEN__ = value;
+  };
+
+  // The URL-only stub above cannot see headers, so this one records both.
+  const stubFetchWithOptions = () => {
+    const calls: { url: string; token: string | null }[] = [];
+    (globalThis as { fetch?: unknown }).fetch = (url: string, options?: RequestInit) => {
+      const headers = new Headers(options?.headers || undefined);
+      calls.push({ url, token: headers.get("x-spicetify-token") });
+      return ok(url);
+    };
+    return calls;
+  };
+
+  afterEach(() => setToken(undefined));
+
+  it("sends the token to the daemon", async () => {
+    setOverride(null);
+    setToken("deadbeef");
+    const calls = stubFetchWithOptions();
+    await proxiedFetch(TARGET);
+    assert.equal(calls[0].url, applyTemplate(DAEMON_TEMPLATE, TARGET));
+    assert.equal(calls[0].token, "deadbeef");
+  });
+
+  it("never sends the token to the hosted proxy", async () => {
+    setOverride(HOSTED_TEMPLATE);
+    setToken("deadbeef");
+    const calls = stubFetchWithOptions();
+    await proxiedFetch(TARGET);
+    assert.equal(calls[0].token, null);
+  });
+
+  it("never sends the token to a user override", async () => {
+    setOverride("https://my-proxy.example/{url}");
+    setToken("deadbeef");
+    const calls = stubFetchWithOptions();
+    await proxiedFetch(TARGET);
+    assert.equal(calls[0].token, null);
+  });
+
+  it("omits the header entirely when the client was not given a token", async () => {
+    setOverride(null);
+    setToken(undefined);
+    const calls = stubFetchWithOptions();
+    await proxiedFetch(TARGET);
+    assert.equal(calls[0].token, null);
+  });
+
+  it("keeps caller headers alongside the token", async () => {
+    setOverride(null);
+    setToken("deadbeef");
+    const calls = stubFetchWithOptions();
+    await proxiedFetch(TARGET, { headers: { accept: "application/json" } });
+    assert.equal(calls[0].token, "deadbeef");
+  });
+});

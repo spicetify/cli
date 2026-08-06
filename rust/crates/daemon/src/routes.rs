@@ -16,6 +16,22 @@ use crate::{health, proxy};
 
 pub const ALLOWED_ORIGIN: &str = "https://xpui.app.spotify.com";
 
+/// Header carrying the token apply injected into the patched client. CORS
+/// only constrains browsers, so it is what actually keeps other local
+/// software off the proxy.
+pub const TOKEN_HEADER: &str = "x-spicetify-token";
+
+/// Whether a request presents the daemon token. Missing token file means the
+/// client was never patched by this install, so nothing is authorised.
+pub fn authorized(state: &DaemonState, headers: &HeaderMap) -> bool {
+    let expected = spicetify::daemon::token::read(&state.ctx.load().config_root);
+    let Some(expected) = expected else { return false };
+    headers
+        .get(TOKEN_HEADER)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|presented| spicetify::daemon::token::matches(&expected, presented))
+}
+
 fn cors_layer() -> CorsLayer {
     CorsLayer::new()
         .allow_origin(AllowOrigin::exact(HeaderValue::from_static(ALLOWED_ORIGIN)))
@@ -48,6 +64,11 @@ async fn ws_handler(
     if !origin.is_empty() && origin != ALLOWED_ORIGIN {
         tracing::warn!(%origin, "WebSocket connection rejected: origin not allowed");
         return (StatusCode::FORBIDDEN, "origin not allowed").into_response();
+    }
+
+    if !authorized(&state, &headers) {
+        tracing::warn!("WebSocket connection rejected: missing or invalid daemon token");
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
     }
 
     ws.on_upgrade(move |socket| handle_ws(socket, state))
