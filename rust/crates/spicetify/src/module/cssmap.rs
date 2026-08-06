@@ -25,6 +25,8 @@ use crate::error::Result;
 static BARE_KEY_SPACED: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b[a-zA-Z0-9_]{16,21}[ \t]+:").expect("valid pattern"));
 
+const EMBEDDED_CSS_MAP: &str = include_str!(concat!(env!("OUT_DIR"), "/css-map.json"));
+
 pub(crate) struct CssMap {
     map: BTreeMap<String, String>,
     replacer: AhoCorasick,
@@ -35,10 +37,16 @@ impl CssMap {
     /// Loads the global map, then merges the per-version overlay when one ships
     /// beside the classmap. A missing or malformed overlay is non-fatal.
     pub(crate) fn load(config_root: &Path, classmap_key: &str) -> Option<Self> {
-        let path = find_css_map(config_root)?;
-        let raw = std::fs::read_to_string(&path).ok()?;
+        let (raw, source) = match find_css_map(config_root) {
+            Some(path) => {
+                let raw = std::fs::read_to_string(&path).ok()?;
+                let source = path.display().to_string();
+                (raw, source)
+            }
+            None => (EMBEDDED_CSS_MAP.to_string(), "embedded".to_string()),
+        };
         let mut map: BTreeMap<String, String> = serde_json::from_str(&raw).ok()?;
-        tracing::info!("using css map {} ({} entries)", path.display(), map.len());
+        tracing::info!("using css map {source} ({} entries)", map.len());
 
         if let Some(overlay) = find_overlay(config_root, classmap_key)
             .and_then(|p| std::fs::read_to_string(p).ok())

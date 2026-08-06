@@ -9,7 +9,19 @@ const FILES: [&str; 2] = ["spicetifyWrapper.js", "modularLoader.js"];
 
 fn main() {
     let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").expect("cargo sets OUT_DIR"));
-    let dist = repo_root().join("dist").join("hooks");
+    let root = repo_root();
+    let dist = root.join("dist").join("hooks");
+
+    // The repo's css-map.json is the CLI's own data (per-version overlays are
+    // fetched beside the classmap), so it rides in the binary.
+    let css_map = root.join("css-map.json");
+    println!("cargo:rerun-if-changed={}", css_map.display());
+    let css_bytes = std::fs::read(&css_map).unwrap_or_default();
+    if css_bytes.is_empty() {
+        println!("cargo:warning=css-map.json not found at {}", css_map.display());
+    }
+    std::fs::write(out_dir.join("css-map.json"), css_bytes)
+        .expect("failed to stage the css map into OUT_DIR");
 
     for name in FILES {
         let src = dist.join(name);
