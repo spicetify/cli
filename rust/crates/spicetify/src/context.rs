@@ -8,10 +8,15 @@ use serde::{Deserialize, Serialize};
 use crate::error::Result;
 use crate::platform;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub mirror: bool,
+
+    /// Whether `apply` keeps the daemon installed and running. On by default:
+    /// the daemon is what re-applies spicetify after Spotify updates itself.
+    #[serde(default = "enabled")]
+    pub daemon: bool,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub spotify_data_dir: Option<PathBuf>,
@@ -21,6 +26,22 @@ pub struct Config {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub offline_bnk_dir: Option<PathBuf>,
+}
+
+const fn enabled() -> bool {
+    true
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            mirror: false,
+            daemon: enabled(),
+            spotify_data_dir: None,
+            spotify_exec: None,
+            offline_bnk_dir: None,
+        }
+    }
 }
 
 impl Config {
@@ -65,6 +86,7 @@ pub struct AppContext {
     pub config_file: PathBuf,
     pub config_root: PathBuf,
     pub mirror: bool,
+    pub daemon: bool,
     pub spotify_data_dir: PathBuf,
     pub spotify_exec: PathBuf,
     pub offline_bnk_dir: PathBuf,
@@ -101,6 +123,7 @@ impl AppContext {
             config_file,
             config_root,
             mirror,
+            daemon: cfg.daemon,
             spotify_data_dir: data_dir,
             spotify_exec: exec_path,
             offline_bnk_dir,

@@ -97,9 +97,7 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     }
     std::fs::rename(&tmp, &dest_xpui)?;
 
-    // The daemon is not auto-installed here: its update watcher would race
-    // apply/restore drills while the watcher's exactly-once sequencing is
-    // still being built. `spicetify daemon install` remains explicit.
+    ensure_daemon(ctx);
 
     crate::lifecycle::start(ctx)?;
 
@@ -107,6 +105,28 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
 
     tracing::info!("{}", fl!("applied-patches"));
     Ok(())
+}
+
+// The daemon re-applies spicetify after Spotify updates itself, which is the
+// whole point of having one, so apply keeps it installed and running unless
+// `daemon = false` says otherwise. Failing to start it never fails the apply.
+fn ensure_daemon(ctx: &AppContext) {
+    if !ctx.daemon {
+        tracing::info!(
+            "daemon disabled in config: spicetify will not re-apply itself after a Spotify update"
+        );
+        return;
+    }
+
+    if let Err(e) = super::daemon::install() {
+        tracing::warn!(error = %e, "could not enable the daemon at login");
+    }
+    if crate::daemon::is_daemon_running() {
+        return;
+    }
+    if let Err(e) = super::daemon::start() {
+        tracing::warn!(error = %e, "could not start the daemon");
+    }
 }
 
 fn cleanup_tmp(tmp: &Path) {

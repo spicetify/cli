@@ -6,6 +6,7 @@ use crate::module::{self, ModulePaths};
 pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     let cfg = Config {
         mirror: ctx.mirror,
+        daemon: ctx.daemon,
         spotify_data_dir: Some(ctx.spotify_data_dir.clone()),
         spotify_exec: Some(ctx.spotify_exec.clone()),
         offline_bnk_dir: Some(ctx.offline_bnk_dir.clone()),

@@ -9,8 +9,16 @@ pub(crate) fn start() -> Result<()> {
     Ok(())
 }
 
+// The launch agent is KeepAlive, so it must be unloaded before the shutdown
+// request or the supervisor immediately starts the daemon back up and `stop`
+// looks like it did nothing. Auto-start is re-enabled by the next apply.
 #[allow(clippy::unnecessary_wraps)]
 pub(crate) fn stop() -> Result<()> {
+    let manager = crate::daemon::DaemonManager::create();
+    if manager.is_installed() {
+        manager.uninstall();
+        tracing::info!("disabled daemon auto-start; the next apply turns it back on");
+    }
     crate::daemon::shutdown_daemon();
     tracing::info!("{}", fl!("daemon-stopping-resp"));
     Ok(())

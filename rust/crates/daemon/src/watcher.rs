@@ -18,8 +18,10 @@ const DEBOUNCE: Duration = Duration::from_millis(500);
 /// rewrites xpui.spa itself while restoring, extracting and re-renaming.
 const SELF_EVENT_COOLDOWN: Duration = Duration::from_secs(5);
 
-/// How long the client gets to exit on its own before apply force-stops it.
-const CLIENT_EXIT_GRACE: Duration = Duration::from_secs(15);
+/// How long to wait for the client to exit on its own. The daemon runs
+/// unattended, so it never force-quits a client the user may be listening to;
+/// past this ceiling the re-apply is skipped and left to the next trigger.
+const CLIENT_EXIT_CEILING: Duration = Duration::from_mins(30);
 
 /// Settle time after the client is observed down, so an updater still touching
 /// files gets out of the way.
@@ -86,20 +88,21 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
         }
     }
 
-    let deadline = std::time::Instant::now() + CLIENT_EXIT_GRACE;
-    let mut observed_exit = false;
+    let deadline = std::time::Instant::now() + CLIENT_EXIT_CEILING;
+    let mut waited = false;
     while spicetify::lifecycle::is_running(ctx) {
         if std::time::Instant::now() >= deadline {
-            tracing::info!(
-                "client still running {}s after the update event; proceeding with a forced stop",
-                CLIENT_EXIT_GRACE.as_secs()
+            tracing::warn!(
+                "Spotify is still running {} minutes after the update; skipping the re-apply \
+                 rather than closing it. Run `spicetify apply` when convenient.",
+                CLIENT_EXIT_CEILING.as_secs() / 60
             );
-            break;
+            return;
         }
-        observed_exit = true;
-        std::thread::sleep(Duration::from_millis(250));
+        waited = true;
+        std::thread::sleep(Duration::from_secs(2));
     }
-    if observed_exit {
+    if waited {
         std::thread::sleep(EXIT_SETTLE);
     }
 
