@@ -51,6 +51,9 @@ enum ProtocolAction {
     Remove,
     FastDelete,
     FastRemove,
+    Apply,
+    BlockUpdates,
+    UnblockUpdates,
 }
 
 impl ProtocolAction {
@@ -65,6 +68,9 @@ impl ProtocolAction {
             "remove" => Self::Remove,
             "fast-delete" => Self::FastDelete,
             "fast-remove" => Self::FastRemove,
+            "apply" => Self::Apply,
+            "block-updates" => Self::BlockUpdates,
+            "unblock-updates" => Self::UnblockUpdates,
             _ => return None,
         })
     }
@@ -123,7 +129,27 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
             }
             Ok(())
         }
+        // apply stops and relaunches the client, so a caller inside it is
+        // killed before any reply reaches it. That is expected: treat it as
+        // fire-and-forget rather than waiting on a response.
+        ProtocolAction::Apply => super::apply::run(ctx),
+        ProtocolAction::BlockUpdates => set_updates_blocked(ctx, true),
+        ProtocolAction::UnblockUpdates => set_updates_blocked(ctx, false),
     }
+}
+
+/// Changing the update policy patches Spotify's binary, which means stopping
+/// the client; `set_blocked` leaves it stopped because a terminal caller
+/// relaunches it themselves. A caller inside the client cannot, so bring it
+/// back rather than having the user's Spotify vanish on a button press. A
+/// no-op change never stops it, so only relaunch what was actually running.
+fn set_updates_blocked(ctx: &AppContext, block: bool) -> Result<()> {
+    let was_running = crate::lifecycle::is_running(ctx);
+    super::updates::set_blocked(ctx, block)?;
+    if was_running && !crate::lifecycle::is_running(ctx) {
+        crate::lifecycle::start(ctx)?;
+    }
+    Ok(())
 }
 
 fn require_id(query: &[(Cow<'_, str>, Cow<'_, str>)]) -> Result<module::vault::StoreIdentifier> {
