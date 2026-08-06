@@ -140,7 +140,7 @@ fn resolve_classmap_key(config_root: &Path, key: &str) -> Option<(String, bool)>
 
 /// The newest key below `target` that shares its major.minor bucket (the key's
 /// low four digits are the patch).
-fn pick_fallback_key(available: &[u64], target: u64) -> Option<u64> {
+pub(crate) fn pick_fallback_key(available: &[u64], target: u64) -> Option<u64> {
     let bucket = target / 10_000;
     available.iter().copied().filter(|k| k / 10_000 == bucket && *k < target).max()
 }
