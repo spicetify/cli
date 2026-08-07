@@ -29,8 +29,10 @@ const EMBEDDED_CSS_MAP: &str = include_str!(concat!(env!("OUT_DIR"), "/css-map.j
 
 pub(crate) struct CssMap {
     map: BTreeMap<String, String>,
-    replacer: AhoCorasick,
-    replacements: Vec<String>,
+    js_replacer: AhoCorasick,
+    js_replacements: Vec<String>,
+    css_replacer: AhoCorasick,
+    css_replacements: Vec<String>,
 }
 
 impl CssMap {
@@ -60,22 +62,37 @@ impl CssMap {
             map.extend(overlay);
         }
 
-        // Two patterns per key. The `key:` form wins because it is listed
-        // first and is the longer match, mirroring the Go replacer's ordering.
-        let mut patterns = Vec::with_capacity(map.len() * 2);
-        let mut replacements = Vec::with_capacity(map.len() * 2);
+        // JS gets two patterns per key. The `key:` form wins because it is
+        // listed first and is the longer match, mirroring the Go replacer's
+        // ordering. CSS gets the bare form only: a hash followed by a colon is
+        // a pseudo-class there (`.hash:hover`), and quoting it as an object key
+        // would turn the selector into `."semantic":hover`, which parses as
+        // nothing and drops the rule.
+        let mut js_patterns = Vec::with_capacity(map.len() * 2);
+        let mut js_replacements = Vec::with_capacity(map.len() * 2);
+        let mut css_patterns = Vec::with_capacity(map.len());
+        let mut css_replacements = Vec::with_capacity(map.len());
         for (hashed, semantic) in &map {
-            patterns.push(format!("{hashed}:"));
-            replacements.push(format!("\"{semantic}\":"));
+            js_patterns.push(format!("{hashed}:"));
+            js_replacements.push(format!("\"{semantic}\":"));
         }
         for (hashed, semantic) in &map {
-            patterns.push(hashed.clone());
-            replacements.push(semantic.clone());
+            js_patterns.push(hashed.clone());
+            js_replacements.push(semantic.clone());
+            css_patterns.push(hashed.clone());
+            css_replacements.push(semantic.clone());
         }
 
-        let replacer =
-            AhoCorasick::builder().match_kind(MatchKind::LeftmostFirst).build(&patterns).ok()?;
-        Some(Self { map, replacer, replacements })
+        let build = |patterns: &[String]| {
+            AhoCorasick::builder().match_kind(MatchKind::LeftmostFirst).build(patterns).ok()
+        };
+        Some(Self {
+            map,
+            js_replacer: build(&js_patterns)?,
+            js_replacements,
+            css_replacer: build(&css_patterns)?,
+            css_replacements,
+        })
     }
 
     /// JS sources: normalise spaced bare keys, then rewrite every occurrence.
@@ -88,12 +105,12 @@ impl CssMap {
                 None => matched.to_string(),
             }
         });
-        self.replacer.replace_all(&normalised, &self.replacements)
+        self.js_replacer.replace_all(&normalised, &self.js_replacements)
     }
 
     /// CSS sources carry no object keys, so the bare rewrite is enough.
     pub(crate) fn apply_css(&self, content: &str) -> String {
-        self.replacer.replace_all(content, &self.replacements)
+        self.css_replacer.replace_all(content, &self.css_replacements)
     }
 }
 
@@ -183,21 +200,33 @@ mod tests {
     fn map_with(pairs: &[(&str, &str)]) -> CssMap {
         let map: BTreeMap<String, String> =
             pairs.iter().map(|(k, v)| ((*k).to_string(), (*v).to_string())).collect();
-        let mut patterns = Vec::new();
-        let mut replacements = Vec::new();
+        let mut js_patterns = Vec::new();
+        let mut js_replacements = Vec::new();
+        let mut css_patterns = Vec::new();
+        let mut css_replacements = Vec::new();
         for (h, s) in &map {
-            patterns.push(format!("{h}:"));
-            replacements.push(format!("\"{s}\":"));
+            js_patterns.push(format!("{h}:"));
+            js_replacements.push(format!("\"{s}\":"));
         }
         for (h, s) in &map {
-            patterns.push(h.clone());
-            replacements.push(s.clone());
+            js_patterns.push(h.clone());
+            js_replacements.push(s.clone());
+            css_patterns.push(h.clone());
+            css_replacements.push(s.clone());
         }
-        let replacer = AhoCorasick::builder()
-            .match_kind(MatchKind::LeftmostFirst)
-            .build(&patterns)
-            .expect("test patterns build");
-        CssMap { map, replacer, replacements }
+        let build = |patterns: &[String]| {
+            AhoCorasick::builder()
+                .match_kind(MatchKind::LeftmostFirst)
+                .build(patterns)
+                .expect("test patterns build")
+        };
+        CssMap {
+            map,
+            js_replacer: build(&js_patterns),
+            js_replacements,
+            css_replacer: build(&css_patterns),
+            css_replacements,
+        }
     }
 
     #[test]
@@ -206,6 +235,15 @@ mod tests {
         assert_eq!(
             m.apply_css(".n8Bz0c0v17whD3KfMdOk{color:red}"),
             ".main-actionButtons{color:red}"
+        );
+    }
+
+    #[test]
+    fn leaves_a_pseudo_class_selector_unquoted() {
+        let m = map_with(&[("n8Bz0c0v17whD3KfMdOk", "main-actionButtons")]);
+        assert_eq!(
+            m.apply_css(".n8Bz0c0v17whD3KfMdOk:not([aria-checked=true]):hover{color:red}"),
+            ".main-actionButtons:not([aria-checked=true]):hover{color:red}"
         );
     }
 
