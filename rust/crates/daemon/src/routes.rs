@@ -56,15 +56,34 @@ fn offered_token(headers: &HeaderMap) -> Option<(String, String)> {
         })
 }
 
+/// The outcome of a WebSocket handshake's token check. Three states, because
+/// how the token arrived decides the response: only the subprotocol route has
+/// something the browser needs echoed back.
+enum WsAuth {
+    Rejected,
+    /// Token presented in the `x-spicetify-token` header.
+    ByHeader,
+    /// Token presented in the `Sec-WebSocket-Protocol` offer, carrying the
+    /// protocol string to echo.
+    BySubprotocol(String),
+}
+
 /// Whether a WebSocket handshake is authorised, by header or by subprotocol.
-/// Returns the subprotocol to echo, when that is how the token arrived.
-fn ws_authorized(state: &DaemonState, headers: &HeaderMap) -> Option<Option<String>> {
+fn ws_authorized(state: &DaemonState, headers: &HeaderMap) -> WsAuth {
     if authorized(state, headers) {
-        return Some(None);
+        return WsAuth::ByHeader;
     }
-    let expected = spicetify::daemon::token::read(&state.ctx.load().config_root)?;
-    let (proto, presented) = offered_token(headers)?;
-    spicetify::daemon::token::matches(&expected, &presented).then_some(Some(proto))
+    let Some(expected) = spicetify::daemon::token::read(&state.ctx.load().config_root) else {
+        return WsAuth::Rejected;
+    };
+    let Some((proto, presented)) = offered_token(headers) else {
+        return WsAuth::Rejected;
+    };
+    if spicetify::daemon::token::matches(&expected, &presented) {
+        WsAuth::BySubprotocol(proto)
+    } else {
+        WsAuth::Rejected
+    }
 }
 
 fn cors_layer() -> CorsLayer {
@@ -101,14 +120,13 @@ async fn ws_handler(
         return (StatusCode::FORBIDDEN, "origin not allowed").into_response();
     }
 
-    let Some(echo) = ws_authorized(&state, &headers) else {
-        tracing::warn!("WebSocket connection rejected: missing or invalid daemon token");
-        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
-    };
-
-    let ws = match echo {
-        Some(proto) => ws.protocols([proto]),
-        None => ws,
+    let ws = match ws_authorized(&state, &headers) {
+        WsAuth::Rejected => {
+            tracing::warn!("WebSocket connection rejected: missing or invalid daemon token");
+            return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+        }
+        WsAuth::ByHeader => ws,
+        WsAuth::BySubprotocol(proto) => ws.protocols([proto]),
     };
     ws.on_upgrade(move |socket| handle_ws(socket, state))
 }
