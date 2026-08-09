@@ -76,37 +76,79 @@ pub(crate) fn add_store(paths: &ModulePaths, id: &StoreIdentifier, store: Store)
     Ok(())
 }
 
+/// Compares a downloaded artifact against the checksum the vault recorded
+/// for it. `sha256:` prefixed or bare, either case.
+fn verify_checksum(expected: &str, bytes: &[u8]) -> Result<()> {
+    // Lowercase before stripping: an upper-case prefix is the same claim,
+    // and stripping first would leave it in the compared value.
+    let want = expected.trim().to_ascii_lowercase();
+    let want = want.trim_start_matches("sha256:");
+    let got = remote::digest(bytes);
+    if want != got {
+        anyhow::bail!("checksum mismatch: the vault declares sha256:{want}, the download is sha256:{got}");
+    }
+    Ok(())
+}
+
 pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let mut v = vault::load(&paths.vault_path)?;
     let store = v
         .get_store_mut(id)
         .ok_or_else(|| anyhow::anyhow!(fl!("missing-store", id = id.to_string())))?;
-    let artifact =
-        store.artifacts.first().ok_or_else(|| anyhow::anyhow!(fl!("store-no-artifacts")))?;
+    if store.artifacts.is_empty() {
+        anyhow::bail!(fl!("store-no-artifacts"));
+    }
 
     let dest = id.store_path(&paths.store_root);
-    if artifact.starts_with("http://") || artifact.starts_with("https://") {
-        fs::create_dir_all(&dest)?;
+    let mut downloaded = None;
+    let mut failures = Vec::new();
+    for artifact in &store.artifacts {
+        if !(artifact.starts_with("http://") || artifact.starts_with("https://")) {
+            // A local path is a developer's build linked in place; nothing
+            // to download and nothing to verify.
+            super::util::link::create_dir_link(Path::new(artifact), &dest)?;
+            store.installed = true;
+            vault::save(&paths.vault_path, &v)?;
+            return Ok(());
+        }
         let client = crate::http::blocking_client(30)
             .map_err(|e| anyhow::anyhow!("failed to build HTTP client: {e}"))?;
-        let response = client
-            .get(artifact)
-            .send()
-            .map_err(|e| anyhow::anyhow!("{}: {e}", fl!("proxy-request-failed")))?;
-        let bytes = response
-            .bytes()
-            .map_err(|e| anyhow::anyhow!("{}: {e}", fl!("proxy-request-failed")))?;
-        let archive_path = dest.join("artifact.zip");
-        fs::write(&archive_path, &bytes)?;
-        super::util::archive::unzip_file(&archive_path, &dest)?;
-        if let Err(e) = fs::remove_file(&archive_path)
-            && e.kind() != std::io::ErrorKind::NotFound
-        {
-            tracing::warn!(error = %e, "failed to clean up downloaded zip");
+        // Artifacts are listed in preference order and later entries are
+        // mirrors of the same bytes, so a host that has gone away costs an
+        // attempt rather than the install.
+        match client.get(artifact).send().and_then(reqwest::blocking::Response::bytes) {
+            Ok(bytes) => {
+                downloaded = Some(bytes);
+                break;
+            }
+            Err(e) => failures.push(format!("{artifact}: {e}")),
         }
+    }
+    let Some(bytes) = downloaded else {
+        anyhow::bail!("{}: {}", fl!("proxy-request-failed"), failures.join("; "));
+    };
+
+    // The registry indexes bytes it never wrote, so this is the check that
+    // makes an install trustworthy. A missing checksum is loud rather than
+    // fatal: local and hand-pointed artifacts legitimately have none.
+    if store.checksum.is_empty() {
+        tracing::warn!(
+            "{id}: no checksum in the vault; installing unverified (sha256:{})",
+            remote::digest(&bytes)
+        );
     } else {
-        let src = Path::new(artifact);
-        super::util::link::create_dir_link(src, &dest)?;
+        verify_checksum(&store.checksum, &bytes)?;
+        tracing::info!("{id}: checksum verified");
+    }
+
+    fs::create_dir_all(&dest)?;
+    let archive_path = dest.join("artifact.zip");
+    fs::write(&archive_path, &bytes)?;
+    super::util::archive::unzip_file(&archive_path, &dest)?;
+    if let Err(e) = fs::remove_file(&archive_path)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        tracing::warn!(error = %e, "failed to clean up downloaded zip");
     }
 
     store.installed = true;
@@ -193,15 +235,36 @@ pub(crate) fn parse_enable_id(raw: &str) -> Result<StoreIdentifier> {
     }
 }
 
+/// Installs an artifact named directly rather than resolved from the vault.
+/// There is no checksum to hold it to, so the install says so and prints the
+/// digest it got, which is the only thing the user can compare against.
 pub(crate) fn install_from_url(config_root: &Path, id_str: &str, url: &str) -> Result<()> {
+    tracing::warn!(
+        "installing {id_str} from an explicit URL: the vault is bypassed, so nothing verifies these bytes"
+    );
+    install_artifacts(config_root, id_str, vec![normalize_url(url)?], String::new())
+}
+
+/// Installs what the vault resolved: every mirror it listed, held to the
+/// checksum it recorded.
+pub(crate) fn install_from_vault(
+    config_root: &Path,
+    id_str: &str,
+    artifacts: Vec<String>,
+    checksum: String,
+) -> Result<()> {
+    install_artifacts(config_root, id_str, artifacts, checksum)
+}
+
+fn install_artifacts(
+    config_root: &Path,
+    id_str: &str,
+    artifacts: Vec<String>,
+    checksum: String,
+) -> Result<()> {
     let id = StoreIdentifier::parse(id_str)?;
     let paths = ModulePaths::from_config_root(config_root);
-    let normalized = normalize_url(url)?;
-    add_store(
-        &paths,
-        &id,
-        Store { installed: false, artifacts: vec![normalized], checksum: String::new() },
-    )?;
+    add_store(&paths, &id, Store { installed: false, artifacts, checksum })?;
     install(&paths, &id)?;
     tracing::info!("{}", fl!("module-added"));
     Ok(())
@@ -238,7 +301,27 @@ fn normalize_url(raw: &str) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::needs_migration;
+    use super::{needs_migration, verify_checksum};
+
+    #[test]
+    fn accepts_the_checksum_the_vault_recorded_in_either_form() {
+        // sha256 of "spicetify"
+        let bytes = b"spicetify";
+        let hex = super::remote::digest(bytes);
+        assert!(verify_checksum(&format!("sha256:{hex}"), bytes).is_ok());
+        assert!(verify_checksum(&hex, bytes).is_ok(), "a bare digest is the same claim");
+        assert!(
+            verify_checksum(&format!("SHA256:{}", hex.to_uppercase()), bytes).is_ok(),
+            "case is not part of the claim"
+        );
+    }
+
+    #[test]
+    fn refuses_bytes_the_checksum_does_not_describe() {
+        let err = verify_checksum(&format!("sha256:{}", "0".repeat(64)), b"spicetify")
+            .expect_err("a mismatch must not install");
+        assert!(err.to_string().contains("checksum mismatch"), "{err}");
+    }
 
     #[test]
     fn migrates_only_when_the_legacy_name_is_the_sole_directory() {

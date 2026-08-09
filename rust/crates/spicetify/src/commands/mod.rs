@@ -58,8 +58,6 @@ pub enum PkgAction {
     Install { id: String, url: Option<String> },
     Delete { id: String },
     Enable { id: String },
-    Trust { target: String },
-    Untrust { url: String },
 }
 
 pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
@@ -85,8 +83,6 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
                 || pkg::install(ctx, id),
                 |url| crate::module::install_from_url(&ctx.config_root, id, url),
             ),
-            PkgAction::Trust { target } => pkg::trust(ctx, target),
-            PkgAction::Untrust { url } => pkg::untrust(ctx, url),
             PkgAction::Delete { id } => crate::module::delete_module(&ctx.config_root, id),
             PkgAction::Enable { id } => crate::module::enable_module(&ctx.config_root, id),
         },

@@ -1,26 +1,28 @@
 // `pkg`: install modules by identifier, resolved through the vault catalog.
 //
-// The Go CLI's semantics are the contract here: users install by id, not by
-// artifact URL, and community vaults must be trusted before they are
-// consulted. Trust state lives beside the config so either binary can read it.
+// One registry: modules reach users by being submitted to it, where every
+// entry is reviewed, checksummed and revocable. Code from anywhere else is
+// still installable, but only by naming its artifact explicitly, which is a
+// deliberate act rather than a source the CLI consults on its own.
 
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::context::AppContext;
 use crate::error::Result;
 
 const DEFAULT_VAULT: &str = "https://raw.githubusercontent.com/spicetify/modules/main/vault.json";
-const COMMUNITY_VAULTS: &str =
-    "https://raw.githubusercontent.com/spicetify/modules/main/community-vaults.json";
-const TRUSTED_FILE: &str = "trusted-vaults.json";
 
 #[derive(Debug, Deserialize)]
 struct VaultVersion {
     #[serde(default)]
     artifacts: Vec<String>,
+    // Written by the publish pipeline; install refuses bytes that do not
+    // match it.
+    #[serde(default)]
+    checksum: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -35,36 +37,6 @@ struct VaultModule {
 struct Vault {
     #[serde(default)]
     modules: BTreeMap<String, VaultModule>,
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-struct Trusted {
-    #[serde(default)]
-    vaults: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct CommunityVault {
-    name: String,
-    url: String,
-}
-
-fn trusted_path(ctx: &AppContext) -> std::path::PathBuf {
-    ctx.config_root.join(TRUSTED_FILE)
-}
-
-fn load_trusted(ctx: &AppContext) -> Trusted {
-    std::fs::read_to_string(trusted_path(ctx))
-        .ok()
-        .and_then(|raw| serde_json::from_str(&raw).ok())
-        .unwrap_or_default()
-}
-
-/// The default vault plus every trusted community vault, in that order.
-fn vault_urls(ctx: &AppContext) -> Vec<String> {
-    let mut urls = vec![DEFAULT_VAULT.to_string()];
-    urls.extend(load_trusted(ctx).vaults);
-    urls
 }
 
 fn fetch_vault(url: &str) -> Result<Vault> {
@@ -121,82 +93,32 @@ pub(crate) fn list(ctx: &AppContext) -> Result<()> {
 }
 
 pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
-    let mut near = Vec::new();
-    for url in vault_urls(ctx) {
-        let vault = match fetch_vault(&url) {
-            Ok(v) => v,
-            Err(e) => {
-                tracing::warn!("{e}");
-                continue;
-            }
-        };
-        let Some(module) = vault.modules.get(identifier) else {
-            near.extend(vault.modules.keys().filter(|k| k.contains(identifier)).take(3).cloned());
-            continue;
-        };
-        let version = resolve_version(module)?;
-        let Some(artifact) = module.v.get(&version).and_then(|v| v.artifacts.first()) else {
-            anyhow::bail!("{identifier}@{version} has no artifact in {url}");
-        };
-        tracing::info!("found {identifier}@{version} in {url}");
-        return crate::module::install_from_url(
-            &ctx.config_root,
-            &format!("{identifier}@{version}"),
-            artifact,
+    let vault = fetch_vault(DEFAULT_VAULT)?;
+    let Some(module) = vault.modules.get(identifier) else {
+        let near: Vec<String> =
+            vault.modules.keys().filter(|k| k.contains(identifier)).take(3).cloned().collect();
+        if near.is_empty() {
+            anyhow::bail!("module not found in the vault: {identifier}");
+        }
+        anyhow::bail!(
+            "module not found in the vault: {identifier} (did you mean: {}?)",
+            near.join(", ")
         );
-    }
-    if near.is_empty() {
-        anyhow::bail!("module not found in any vault: {identifier}");
-    }
-    anyhow::bail!(
-        "module not found in any vault: {identifier} (did you mean: {}?)",
-        near.join(", ")
-    )
-}
-
-/// Adds a community vault by name or URL. Only HTTPS origins are accepted:
-/// a vault is a source of code that ends up executing in the client.
-pub(crate) fn trust(ctx: &AppContext, target: &str) -> Result<()> {
-    let url = if target.starts_with("http") {
-        target.to_string()
-    } else {
-        let listed: Vec<CommunityVault> = crate::http::vault_client()
-            .get(COMMUNITY_VAULTS)
-            .send()
-            .and_then(reqwest::blocking::Response::json)
-            .map_err(|e| anyhow::anyhow!("cannot fetch the community vault list: {e}"))?;
-        listed
-            .into_iter()
-            .find(|v| v.name == target)
-            .map(|v| v.url)
-            .ok_or_else(|| anyhow::anyhow!("no community vault named {target}"))?
     };
-    if !url.starts_with("https://") {
-        anyhow::bail!("refusing to trust a non-HTTPS vault: {url}");
+    let version = resolve_version(module)?;
+    let Some(entry) = module.v.get(&version) else {
+        anyhow::bail!("{identifier}@{version} is not in the vault");
+    };
+    if entry.artifacts.is_empty() {
+        anyhow::bail!("{identifier}@{version} has no artifact in the vault");
     }
-
-    let mut trusted = load_trusted(ctx);
-    if trusted.vaults.contains(&url) {
-        tracing::info!("already trusted: {url}");
-        return Ok(());
-    }
-    trusted.vaults.push(url.clone());
-    std::fs::write(trusted_path(ctx), serde_json::to_string_pretty(&trusted)?)?;
-    tracing::info!("trusted {url}");
-    Ok(())
-}
-
-pub(crate) fn untrust(ctx: &AppContext, url: &str) -> Result<()> {
-    let mut trusted = load_trusted(ctx);
-    let before = trusted.vaults.len();
-    trusted.vaults.retain(|v| v != url);
-    if trusted.vaults.len() == before {
-        tracing::info!("not trusted: {url}");
-        return Ok(());
-    }
-    std::fs::write(trusted_path(ctx), serde_json::to_string_pretty(&trusted)?)?;
-    tracing::info!("revoked {url}");
-    Ok(())
+    tracing::info!("found {identifier}@{version}");
+    crate::module::install_from_vault(
+        &ctx.config_root,
+        &format!("{identifier}@{version}"),
+        entry.artifacts.clone(),
+        entry.checksum.clone(),
+    )
 }
 
 #[cfg(test)]
@@ -208,7 +130,12 @@ mod tests {
             enabled: enabled.to_string(),
             v: versions
                 .iter()
-                .map(|v| ((*v).to_string(), VaultVersion { artifacts: vec!["a".into()] }))
+                .map(|v| {
+                    (
+                        (*v).to_string(),
+                        VaultVersion { artifacts: vec!["a".into()], checksum: String::new() },
+                    )
+                })
                 .collect(),
         }
     }
