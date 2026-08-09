@@ -121,36 +121,55 @@ logic with a real lifecycle.
 - **`dependencies` on remote modules.** The runtime only loads installed
   modules; `pkg install` fetches them at apply time.
 
-## Vaults and developer ownership
+## The vault, and where modules come from
 
-A **vault** is a plain JSON registry (`modules.<id>.v.<version>.artifacts[]`)
-that `pkg` reads to resolve and download modules. The org vault
-(`spicetify/modules/vault.json`) is written by the publish workflow on tag.
-**Any developer can host their own vault** and have full ownership of their
-distribution: users add the URL to `vault_urls` in config-xpui.ini
-(`-`-separated), and `pkg list` / `pkg install` search every configured
-vault, first match wins.
+A **vault** is a plain JSON registry that `pkg` reads to resolve and
+download modules: card data at `modules.<id>.metadata`, releases at
+`modules.<id>.v.<version>` (`artifacts[]`, `checksum`, optionally inline
+`files` for css-only entries, `hidden` for infrastructure that installs but
+never renders a card). `modules.<id>.enabled` pins a version; without it the
+highest key wins.
+
+There is exactly one registry, `spicetify/modules/vault.json`, and both the
+CLI and the in-client store read it and nothing else. It is built from
+per-module sources (`vault/<id>.json`) so a submission touches one reviewable
+file, and every entry in it has been through the submission validator: the
+artifact downloaded and re-hashed, the card checked against the artifact's own
+metadata, published versions immutable, and an id pinned to the account that
+first published it. A module's code still lives wherever its author wants;
+what is centralised is the index, which is what makes an entry reviewable and
+revocable.
+
+Code from outside the registry installs by naming its artifact, which is a
+deliberate act rather than a source the CLI consults on its own:
 
 ```shell
-spicetify config vault_urls "https://example.com/me/vault.json"
-spicetify pkg install my-module
+spicetify pkg install my-module https://example.com/my-module@1.0.0.zip
 ```
 
-The org also maintains `community-vaults.json`, a vetted list of trusted
-sources. Trust is still explicit, but one command away:
-
-```shell
-spicetify pkg sources          # list vetted community vaults (* = trusted)
-spicetify pkg trust <name>     # add one to your trusted vaults
-```
+`localStorage["spicetify:defaultVaultUrl"]` repoints the store at another
+vault. That is a development lever for previewing a catalog before submitting
+it, not a distribution channel: it replaces the registry rather than adding
+to it.
 
 ## Artifact integrity
 
-Every vault entry may carry a `checksum` (`sha256:<hex>`), written by the
-publish pipeline when it builds a release. `pkg install` verifies the
-downloaded artifact against it: a mismatch aborts the install; a missing
-checksum warns and proceeds (unsigned). The verified checksum is recorded
-in the module's `spicetify-module.json` sidecar.
+Every vault entry carries a `checksum` (`sha256:<hex>`), written by the
+publish pipeline and by `spicetify-kit vault add`. Both installers verify it,
+because the registry indexes bytes it never wrote and the artifact download
+goes through a CORS proxy that is a man in the middle by design.
+
+- **`pkg install`** hashes the download before unpacking. A mismatch aborts
+  the install. An entry with no checksum (a local path, or an artifact named
+  directly on the command line) installs with a warning that prints the digest
+  it got, which is the only thing a user can compare against.
+- **The in-client store** does the same, with the result on the install
+  status line.
+
+`artifacts` is a list in preference order: the author's host first, then this
+org's mirror of the same bytes. Both installers walk it, so a release asset
+that later disappears costs an attempt rather than every install of that
+version. Whichever host answers, the checksum is the same.
 
 ## The full flow
 
