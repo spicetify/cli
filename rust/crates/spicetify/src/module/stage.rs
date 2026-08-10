@@ -26,7 +26,13 @@ const SKIPPED_FILES: [&str; 2] = ["metadata.json", "spicetify-module.json"];
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct ModuleMetadata {
     pub name: String,
-    #[serde(default)]
+    /// What the module is: extension, theme, snippet, app or lib. The loader
+    /// only acts on "theme" (one may be live at a time). Optional because a
+    /// module published before `kind` carries `tags` instead, which the
+    /// loader still falls back to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
     pub version: String,
     #[serde(default)]
