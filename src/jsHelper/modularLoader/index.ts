@@ -529,8 +529,21 @@ async function boot(): Promise<BootReport | null> {
 			} catch {}
 			return true;
 		},
-		enable: (id: string) => registry.enable(id, report),
+		// The user turning a module on: load it, and only if that succeeds
+		// clear the persisted disable. enable() itself no longer touches the
+		// pref, so this is the one path that records "on".
+		enable: async (id: string) => {
+			const ok = await registry.enable(id, report);
+			if (ok) registry.markEnabled(id);
+			return ok;
+		},
 		disable: (id: string) => registry.disable(id),
+		// Transient unload: no persisted disable, for callers that stop a
+		// module without the user asking (single-theme enforcement in the
+		// store, theme-report's bare-client capture, probes). Using disable()
+		// there would durably turn the module off — a crash mid-capture left
+		// the user with no theme booting.
+		unload: (id: string) => registry.unload(id),
 		reload: (id: string) => registry.reload(id, report),
 	};
 
@@ -559,12 +572,19 @@ async function boot(): Promise<BootReport | null> {
 		if (tree) {
 			injectImportMap(buildImportMapEntries({ ...record, files }, location.origin));
 		}
+		// Clear any live instance of a prior version transiently — a persisted
+		// disable here would outlive the reinstall. registerLocal then swaps in
+		// the new files.
+		await registry.unload(id);
 		registry.registerLocal({ metadata: record.metadata, files, mapped: tree });
 		// The manifest is the row source for management UIs; mirror the boot
 		// merge so a live install is visible without a restart.
 		if (!manifest.modules.some((m) => m.identifier === id)) {
 			manifest.modules.push({ ...record.metadata });
 		}
+		// Updating a module the user disabled installs the new files but must
+		// not turn it back on: it stays off this session and every boot after.
+		if (registry.isDisabled(id)) return { disabled: true };
 		return registry.enable(id, report);
 	};
 	(modules as Record<string, unknown>).removeLocal = async (id: string) => {
@@ -578,6 +598,9 @@ async function boot(): Promise<BootReport | null> {
 		// removal lands, but the running code only reverts on restart.
 		if (plan === "requires-restart") {
 			deleteLocalModule(id);
+			// No staged copy is coming back, so a lingering disable would
+			// silently skip the id if it is ever installed again.
+			if (!stagedMeta.has(id)) registry.forgetDisabled(id);
 			return { requiresRestart: true };
 		}
 		// A record the staged copy already shadowed: deleting it changes
@@ -588,6 +611,11 @@ async function boot(): Promise<BootReport | null> {
 			if (!shadowedBy) registry.forgetDisabled(id);
 			return shadowedBy ? { revertedTo: shadowedBy.version } : undefined;
 		}
+		// Whether the override was actually running decides whether the staged
+		// copy should come up: reverting a module the user had disabled (or one
+		// simply not loaded) must not start it, and for a theme that would also
+		// unload the active theme and steal activeThemePref.
+		const wasLoaded = registry.isLoaded(id);
 		await registry.unload(id);
 		deleteLocalModule(id);
 		registry.unregisterLocal(id);
@@ -603,7 +631,7 @@ async function boot(): Promise<BootReport | null> {
 			const at = manifest.modules.findIndex((m) => m.identifier === id);
 			if (at >= 0) manifest.modules[at] = staged;
 			else manifest.modules.push(staged);
-			await registry.enable(id, report);
+			if (wasLoaded && !registry.isDisabled(id)) await registry.enable(id, report);
 			return { revertedTo: staged.version };
 		}
 		registry.forgetDisabled(id);
