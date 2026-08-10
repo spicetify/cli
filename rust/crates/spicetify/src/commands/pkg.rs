@@ -237,6 +237,39 @@ mod tests {
         assert!(resolve_version(&module("", &[])).is_err());
     }
 
+    // Network-gated smoke test for the real seeding path: fetch the registry,
+    // download each system module, verify its checksum, and enable it into a
+    // throwaway config. Run with `cargo test -p spicetify --ignored seed_live`.
+    #[test]
+    #[ignore = "hits the live registry and downloads artifacts"]
+    fn seed_live_installs_and_enables_system_modules() {
+        let root =
+            std::env::temp_dir().join(format!("spicetify-seed-live-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("temp config");
+
+        let vault = fetch_vault(DEFAULT_VAULT).expect("registry reachable");
+        let ctx = AppContext::from_config(root.clone(), &crate::context::Config::default())
+            .expect("context");
+        for id in SYSTEM_MODULES {
+            let result = seed_system_module(&ctx, &vault, id);
+            assert!(result.is_ok(), "seed {id}: {:?}", result.err());
+        }
+
+        let modules_root = crate::module::modules_dir(&root);
+        for id in SYSTEM_MODULES {
+            let link = modules_root.join(id);
+            assert!(link.exists(), "{id} enabled and reachable through modules/");
+            assert!(
+                link.join("metadata.json").is_file(),
+                "{id} unpacked with its metadata"
+            );
+        }
+        assert!(missing_system_modules(&modules_root).is_empty(), "nothing left to seed");
+
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
     #[test]
     fn seeds_only_the_system_modules_that_are_absent() {
         let dir = std::env::temp_dir().join(format!("spicetify-seed-{}", std::process::id()));
