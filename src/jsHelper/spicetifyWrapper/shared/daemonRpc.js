@@ -86,3 +86,13 @@ export const send = (uri, { expectReply = true } = {}) =>
 export const apply = () => send("spicetify:0:apply", { expectReply: false });
 export const blockUpdates = () => send("spicetify:0:block-updates", { expectReply: false });
 export const unblockUpdates = () => send("spicetify:0:unblock-updates", { expectReply: false });
+
+// Uninstall a module the CLI staged on disk, which `Spicetify.Modules` cannot
+// touch: removeLocal only owns localStorage records. `fast-delete` drops the
+// enable link and the unpacked copy, but the client keeps serving the tree
+// that was staged at the last apply, so the removal is only visible after one.
+// The apply restarts Spotify, so the caller must warn first.
+export const uninstallStaged = async (id, version) => {
+  await send(`spicetify:${id}:fast-delete?id=${encodeURIComponent(`${id}@${version}`)}`);
+  return apply();
+};
