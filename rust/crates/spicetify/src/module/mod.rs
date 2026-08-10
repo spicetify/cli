@@ -116,7 +116,15 @@ pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
         // Artifacts are listed in preference order and later entries are
         // mirrors of the same bytes, so a host that has gone away costs an
         // attempt rather than the install.
-        match client.get(artifact).send().and_then(reqwest::blocking::Response::bytes) {
+        // error_for_status first: reqwest calls a 404 Ok, so without it a
+        // deleted release asset would be "downloaded" as an error page and
+        // the mirror after it in the list would never be tried.
+        match client
+            .get(artifact)
+            .send()
+            .and_then(reqwest::blocking::Response::error_for_status)
+            .and_then(reqwest::blocking::Response::bytes)
+        {
             Ok(bytes) => {
                 downloaded = Some(bytes);
                 break;
@@ -176,12 +184,15 @@ pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     }
 
     let link = id.module_link_path(&paths.modules_root);
-    if let Err(e) = crate::util::remove_dir_link(&link) {
-        tracing::warn!(error = %e, path = %link.display(), "failed to remove link");
-    }
-    if enabled.is_some() {
+    if let Some(_version) = enabled.as_ref() {
+        // create_dir_link replaces whatever is there, including a real
+        // directory: switching a hand-staged build over to a store version is
+        // what `pkg enable` is for.
         let src = id.store_path(&paths.store_root);
         super::util::link::create_dir_link(&src, &link)?;
+    } else if let Err(e) = crate::util::remove_link_only(&link) {
+        // Disabling must never delete a developer's staged directory.
+        tracing::warn!(error = %e, path = %link.display(), "failed to remove link");
     }
     vault::save(&paths.vault_path, &v)?;
     Ok(())
@@ -194,7 +205,9 @@ pub(crate) fn delete(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
             module.enabled = None;
             if !id.module_identifier.contains('/') {
                 let link = id.module_link_path(&paths.modules_root);
-                if let Err(e) = crate::util::remove_dir_link(&link) {
+                // Deleting a package unlinks it; it never deletes a real
+                // directory, which is a developer's own staged build.
+                if let Err(e) = crate::util::remove_link_only(&link) {
                     tracing::warn!(error = %e, path = %link.display(), "failed to remove link");
                 }
             }
