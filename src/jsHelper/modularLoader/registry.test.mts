@@ -557,3 +557,115 @@ describe("active theme preference", () => {
 		assert.equal(box.value, "theme-a");
 	});
 });
+
+describe("persisted disable", () => {
+	const theme = (id: string) => mod(id, "1.0.0", { tags: ["theme"], entries: { css: `${id}.css` } });
+
+	// One box standing in for the localStorage-backed pair, so a test can
+	// assert what the next boot would read as well as what this one did.
+	const withPrefs = (disabled: string[] = [], activeTheme: string | null = null, calls: string[] = []) => {
+		const box = { disabled: new Set(disabled), activeTheme };
+		const effects: Effects = {
+			...trackingEffects(calls),
+			activeThemePref: { get: () => box.activeTheme, set: (id) => (box.activeTheme = id) },
+			disabledPref: {
+				get: () => [...box.disabled],
+				add: (id) => box.disabled.add(id),
+				remove: (id) => box.disabled.delete(id),
+			},
+		};
+		return { box, effects };
+	};
+
+	it("boot skips a disabled module entirely", async () => {
+		const calls: string[] = [];
+		const { effects } = withPrefs(["ext"], null, calls);
+		const r = new Registry(manifest([mod("ext", "1.0.0", { hasMixins: true }), mod("other", "1.0.0")]), effects);
+		const report = await r.boot();
+		assert.equal(r.isLoaded("ext"), false);
+		assert.equal(r.isLoaded("other"), true);
+		assert.deepEqual(report.failed, {}, "a disabled module is not a failure");
+		assert.ok(!calls.some((c) => c.includes("/ext/")), "no mixin or load runs for it");
+	});
+
+	it("disable persists and unloads; enable clears it", async () => {
+		const { box, effects } = withPrefs();
+		const r = new Registry(manifest([mod("ext", "1.0.0")]), effects);
+		const report = await r.boot();
+		assert.equal(r.isLoaded("ext"), true);
+		assert.equal(await r.disable("ext"), true);
+		assert.deepEqual([...box.disabled], ["ext"]);
+		assert.equal(r.isLoaded("ext"), false);
+		assert.equal(await r.enable("ext", report), true);
+		assert.deepEqual([...box.disabled], []);
+	});
+
+	it("disable records a module that was already unloaded", async () => {
+		const { box, effects } = withPrefs();
+		const r = new Registry(manifest([mod("ext", "1.0.0")]), effects);
+		await r.boot();
+		await r.unload("ext");
+		assert.equal(await r.disable("ext"), false, "nothing left to unload");
+		assert.deepEqual([...box.disabled], ["ext"], "the choice is still recorded");
+	});
+
+	it("a failed enable stays disabled", async () => {
+		const { box, effects } = withPrefs(["ext"]);
+		const r = new Registry(manifest([mod("ext", "1.0.0")]), {
+			...effects,
+			importJs: () => Promise.reject(new Error("boom")),
+		});
+		const report = await r.boot();
+		assert.equal(await r.enable("ext", report), false);
+		assert.deepEqual([...box.disabled], ["ext"]);
+	});
+
+	it("switching themes does not disable the one being replaced", async () => {
+		const { box, effects } = withPrefs();
+		const r = new Registry(manifest([theme("theme-a"), theme("theme-b")]), effects);
+		const report = await r.boot();
+		await r.enable("theme-a", report);
+		assert.equal(r.isLoaded("theme-b"), false);
+		assert.deepEqual([...box.disabled], [], "an internal unload persists nothing");
+	});
+
+	it("a disabled preferred theme boots with no theme at all", async () => {
+		const { effects } = withPrefs(["theme-a"], "theme-a");
+		const r = new Registry(manifest([theme("theme-a"), theme("theme-b")]), effects);
+		await r.boot();
+		assert.equal(r.isLoaded("theme-a"), false);
+		assert.equal(r.isLoaded("theme-b"), false, "no other theme is promoted in its place");
+	});
+
+	it("disabling the active theme survives the next boot", async () => {
+		const { box, effects } = withPrefs([], null);
+		const first = new Registry(manifest([theme("theme-a"), theme("theme-b")]), effects);
+		const report = await first.boot();
+		await first.enable("theme-a", report);
+		assert.equal(box.activeTheme, "theme-a");
+		await first.disable("theme-a");
+
+		const second = new Registry(manifest([theme("theme-a"), theme("theme-b")]), effects);
+		await second.boot();
+		assert.equal(second.isLoaded("theme-a"), false);
+		assert.equal(second.isLoaded("theme-b"), false);
+	});
+
+	it("a dependent of a disabled module fails by name instead of half-loading", async () => {
+		const { effects } = withPrefs(["stdlib"]);
+		const r = new Registry(
+			manifest([mod("stdlib", "1.0.0"), mod("ext", "1.0.0", { dependencies: { stdlib: "^1.0.0" } })]),
+			effects,
+		);
+		const report = await r.boot();
+		assert.equal(r.isLoaded("ext"), false);
+		assert.equal(report.failed.ext, "dependency stdlib is disabled");
+	});
+
+	it("no disabledPref effect means nothing is ever disabled", async () => {
+		const r = new Registry(manifest([mod("ext", "1.0.0")]), trackingEffects([]));
+		await r.boot();
+		assert.equal(r.isLoaded("ext"), true);
+		assert.equal(await r.disable("ext"), true, "disable still unloads without persistence");
+	});
+});

@@ -183,9 +183,17 @@ export class Registry {
 		return this.effects.loadCss(entryUrl(m.identifier, m.entries.css!));
 	}
 
-	private eligibleOrder(report: BootReport): string[] {
+	private disabledSet(): Set<string> {
+		return new Set(this.effects.disabledPref?.get() ?? []);
+	}
+
+	private eligibleOrder(report: BootReport, disabled: Set<string>): string[] {
 		const eligible: string[] = [];
 		for (const id of this.topoOrder()) {
+			// A disabled module is skipped before its dependencies are even
+			// checked: it must not mixin, load, or report a problem it is not
+			// being asked to solve.
+			if (disabled.has(id)) continue;
 			const problem = this.checkDependencies(id, new Set());
 			if (problem) {
 				// eligibleOrder runs for both mixins and loads; log once.
@@ -201,7 +209,7 @@ export class Registry {
 	// runMixins executes the mixin phase for all eligible modules. It must
 	// complete before the client bundle boots for interceptions to work.
 	async runMixins(report: BootReport): Promise<void> {
-		const eligible = this.eligibleOrder(report);
+		const eligible = this.eligibleOrder(report, this.disabledSet());
 		for (const id of eligible) {
 			const m = this.modules.get(id)!;
 			if (!m.hasMixins) continue;
@@ -239,15 +247,24 @@ export class Registry {
 	// runLoads executes preload/css/load for all eligible modules, after the
 	// client is up. Call runMixins first during early boot.
 	async runLoads(report: BootReport): Promise<void> {
-		const eligible = this.eligibleOrder(report);
-		// Nothing persists enabled/disabled across restarts, so two installed
-		// themes would otherwise both load at boot. The persisted preference
-		// (last theme the user enabled) wins; without one, the last eligible
-		// theme does — local installs register after staged modules, so that
-		// is the most recent install.
+		const disabled = this.disabledSet();
+		const eligible = this.eligibleOrder(report, disabled);
+		// Two installed themes would otherwise both load at boot. The persisted
+		// preference (last theme the user enabled) wins; without one, the last
+		// eligible theme does — local installs register after staged modules,
+		// so that is the most recent install.
 		const themes = eligible.filter((id) => !report.failed[id] && this.isTheme(id));
 		const preferred = this.effects.activeThemePref?.get();
-		const bootTheme = preferred && themes.includes(preferred) ? preferred : themes[themes.length - 1];
+		// A disabled preference means the user turned their theme off. Falling
+		// through to the "last installed theme" rule there would promote an
+		// arbitrary other theme in its place, which reads as the disable being
+		// ignored.
+		const bootTheme =
+			preferred && disabled.has(preferred)
+				? undefined
+				: preferred && themes.includes(preferred)
+					? preferred
+					: themes[themes.length - 1];
 		for (const id of eligible) {
 			if (report.failed[id]) continue;
 			if (this.isTheme(id) && id !== bootTheme) {
@@ -255,9 +272,14 @@ export class Registry {
 				continue;
 			}
 			const m = this.modules.get(id)!;
-			const blockedBy = Object.keys(m.dependencies).find((dep) => report.failed[dep]);
+			// A disabled dependency is not a failure of its own, but a dependent
+			// that loads against it half-works silently (stdlib's registers
+			// never mount, and nothing says why).
+			const blockedBy = Object.keys(m.dependencies).find((dep) => report.failed[dep] || disabled.has(dep));
 			if (blockedBy) {
-				report.failed[id] = `dependency ${blockedBy} failed`;
+				report.failed[id] = disabled.has(blockedBy)
+					? `dependency ${blockedBy} is disabled`
+					: `dependency ${blockedBy} failed`;
 				continue;
 			}
 			if (m.hasMixins && !this.state(id).mixedIn) {
@@ -384,6 +406,9 @@ export class Registry {
 			if (loaded) state.disposers.push(loaded);
 			state.loaded = true;
 			if (this.isTheme(identifier)) this.effects.activeThemePref?.set(identifier);
+			// Only a load that actually succeeded clears the persisted disable,
+			// so a module that cannot start is not recorded as enabled.
+			this.effects.disabledPref?.remove(identifier);
 			// A module that failed earlier (boot or a previous enable) is no
 			// longer failed; leaving the stale reason makes list() lie.
 			delete report.failed[identifier];
@@ -393,6 +418,22 @@ export class Registry {
 			report.failed[identifier] = `load failed: ${(e as Error).message}`;
 			return false;
 		}
+	}
+
+	// disable is the explicit counterpart to enable: it records the choice so
+	// the next boot skips the module, then unloads. Internal unloads (theme
+	// switching, dependency cascades, reload) go through unload() directly and
+	// persist nothing — otherwise switching themes would permanently disable
+	// the one being replaced.
+	async disable(identifier: string): Promise<boolean> {
+		this.effects.disabledPref?.add(identifier);
+		return this.unload(identifier);
+	}
+
+	// forget drops a removed module's persisted disable so the id does not
+	// linger in the set after the module is gone.
+	forgetDisabled(identifier: string): void {
+		this.effects.disabledPref?.remove(identifier);
 	}
 
 	async reload(identifier: string, report: BootReport): Promise<boolean> {

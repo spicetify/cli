@@ -69,9 +69,13 @@ export interface Effects {
 	createTransformer(): TransformerShim;
 	applyScheme?(identifier: string, source?: string): Promise<DisposeFn | null>;
 	// Persisted "last theme the user enabled": boot prefers it over manifest
-	// order, so a runtime theme switch survives restarts even though module
-	// enabled/disabled state otherwise does not.
+	// order, so a runtime theme switch survives restarts.
 	activeThemePref?: { get(): string | null; set(identifier: string): void };
+	// Persisted set of modules the user explicitly disabled. Boot skips them
+	// entirely (mixins included), so turning a module off lasts until it is
+	// turned back on. Only disable()/enable() write here: internal unloads
+	// (theme switching, dependency cascades) persist nothing.
+	disabledPref?: { get(): string[]; add(identifier: string): void; remove(identifier: string): void };
 	log(level: "info" | "error", ...args: unknown[]): void;
 }
 
