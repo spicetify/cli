@@ -255,6 +255,11 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
 
     refresh_classmap(ctx, &version);
 
+    // A fresh config has no modules, so without this the client boots with no
+    // stdlib and no store and the user has no way in. Runs before staging so
+    // anything seeded is staged in this same apply; a no-op once they exist.
+    super::pkg::ensure_system_modules(ctx);
+
     let updates_blocked = super::updates::is_blocked(ctx).unwrap_or(false);
 
     match crate::module::stage::stage_modules(

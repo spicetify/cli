@@ -92,6 +92,67 @@ pub(crate) fn list(ctx: &AppContext) -> Result<()> {
     Ok(())
 }
 
+/// The infrastructure a usable v3 client needs: stdlib is the foundation
+/// every module builds on, and the store is how a user installs anything else
+/// without the CLI. Not `manager`, which the store supersedes.
+const SYSTEM_MODULES: &[&str] = &["stdlib", "store"];
+
+/// Which system modules are not present on disk. Absence is the signal: a
+/// disabled module keeps its directory, so this never re-seeds one the user
+/// turned off, and a deliberate `pkg delete` of stdlib or store leaves a
+/// client that cannot manage itself, so bringing it back is recovery.
+fn missing_system_modules(modules_root: &Path) -> Vec<&'static str> {
+    SYSTEM_MODULES.iter().copied().filter(|id| !modules_root.join(id).exists()).collect()
+}
+
+/// Installs and enables any absent system module from the registry, so a fresh
+/// `apply` produces a client that can manage itself rather than a patched
+/// Spotify with no stdlib and no store.
+///
+/// Best-effort by design, like the classmap fetch beside it: an unreachable
+/// vault or a failed download warns and leaves the rest of the apply to
+/// proceed, and a module already on disk is left alone for the store to
+/// update. Disk-backed on purpose, so the store's later updates (which shadow
+/// it through localStorage) always have a working version to fall back to.
+pub(crate) fn ensure_system_modules(ctx: &AppContext) {
+    let modules_root = crate::module::modules_dir(&ctx.config_root);
+    let missing = missing_system_modules(&modules_root);
+    if missing.is_empty() {
+        return;
+    }
+    let vault = match fetch_vault(DEFAULT_VAULT) {
+        Ok(vault) => vault,
+        Err(e) => {
+            tracing::warn!("cannot seed system modules ({}): {e}", missing.join(", "));
+            return;
+        }
+    };
+    for id in missing {
+        if let Err(e) = seed_system_module(ctx, &vault, id) {
+            tracing::warn!("could not seed system module {id}: {e}");
+        }
+    }
+}
+
+fn seed_system_module(ctx: &AppContext, vault: &Vault, id: &str) -> Result<()> {
+    let module = vault.modules.get(id).ok_or_else(|| anyhow::anyhow!("not in the registry"))?;
+    let version = resolve_version(module)?;
+    let entry = module.v.get(&version).ok_or_else(|| anyhow::anyhow!("{version} is not in the registry"))?;
+    if entry.artifacts.is_empty() {
+        anyhow::bail!("{id}@{version} has no artifact");
+    }
+    let tag = format!("{id}@{version}");
+    crate::module::install_from_vault(
+        &ctx.config_root,
+        &tag,
+        entry.artifacts.clone(),
+        entry.checksum.clone(),
+    )?;
+    crate::module::enable_module(&ctx.config_root, &tag)?;
+    tracing::info!("seeded system module {tag}");
+    Ok(())
+}
+
 /// The checksum the registry recorded for `id@version`, if it carries that
 /// version at all.
 ///
@@ -174,5 +235,22 @@ mod tests {
     #[test]
     fn rejects_an_empty_vault_entry() {
         assert!(resolve_version(&module("", &[])).is_err());
+    }
+
+    #[test]
+    fn seeds_only_the_system_modules_that_are_absent() {
+        let dir = std::env::temp_dir().join(format!("spicetify-seed-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp dir");
+
+        assert_eq!(missing_system_modules(&dir), vec!["stdlib", "store"], "a fresh config needs both");
+
+        std::fs::create_dir_all(dir.join("stdlib")).expect("stdlib dir");
+        assert_eq!(missing_system_modules(&dir), vec!["store"], "an installed module is left alone");
+
+        std::fs::create_dir_all(dir.join("store")).expect("store dir");
+        assert!(missing_system_modules(&dir).is_empty(), "nothing to seed once both exist");
+
+        std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 }
