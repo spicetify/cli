@@ -1,9 +1,16 @@
 export type DisposeFn = () => void | Promise<void>;
 export type SyncOrAsync<T> = T | Promise<T>;
 
+// What a module *is*, which is the only classification the loader acts on:
+// exactly one theme may be live at a time. It replaced a free-form `tags`
+// list where the load-bearing "theme" entry sat among decorative ones.
+export type ModuleKind = "extension" | "theme" | "snippet" | "app" | "lib";
+
 export interface ModuleMetadata {
 	name: string;
-	tags: string[];
+	kind?: ModuleKind;
+	/** Pre-`kind` metadata, still staged by an older CLI. Read through kindOf. */
+	tags?: string[];
 	version: string;
 	authors: string[];
 	description: string;
@@ -81,4 +88,15 @@ export interface Effects {
 
 export function entryUrl(identifier: string, entry: string): string {
 	return `/modules/${identifier}/${entry}`;
+}
+
+const KINDS: ModuleKind[] = ["extension", "theme", "snippet", "app", "lib"];
+
+// A module's kind, falling back to the legacy tag list so a client staged by
+// a pre-`kind` CLI, or a local record installed from an older vault, still
+// resolves its themes. Anything unrecognised is an extension, which is the
+// inert answer: it never joins the single-theme contest.
+export function kindOf(meta: { kind?: string; tags?: string[] } | undefined): ModuleKind {
+	if (meta?.kind && (KINDS as string[]).includes(meta.kind)) return meta.kind as ModuleKind;
+	return KINDS.find((kind) => meta?.tags?.includes(kind)) ?? "extension";
 }

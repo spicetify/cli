@@ -8,7 +8,6 @@ function mod(id: string, version: string, over: Partial<ManifestModule> = {}): M
 	return {
 		identifier: id,
 		name: id,
-		tags: [],
 		version,
 		authors: [],
 		description: "",
@@ -484,7 +483,7 @@ describe("local module registry state", () => {
 	});
 
 describe("single active theme", () => {
-	const theme = (id: string, css: string) => mod(id, "1.0.0", { tags: ["theme"], entries: { css } });
+	const theme = (id: string, css: string) => mod(id, "1.0.0", { kind: "theme", entries: { css } });
 
 	it("boot loads only the last eligible theme", async () => {
 		const r = new Registry(
@@ -519,7 +518,7 @@ describe("single active theme", () => {
 });
 
 describe("active theme preference", () => {
-	const theme = (id: string) => mod(id, "1.0.0", { tags: ["theme"], entries: { css: `${id}.css` } });
+	const theme = (id: string) => mod(id, "1.0.0", { kind: "theme", entries: { css: `${id}.css` } });
 	const withPref = (initial: string | null) => {
 		const box = { value: initial };
 		const effects: Effects = {
@@ -558,8 +557,43 @@ describe("active theme preference", () => {
 	});
 });
 
+describe("module kind", () => {
+	it("treats a pre-`kind` module tagged theme as a theme", async () => {
+		// A client staged by an older CLI, or a record installed from an older
+		// vault, still has to obey the single-theme rule.
+		const legacy = (id: string) => mod(id, "1.0.0", { tags: ["theme"], entries: { css: `${id}.css` } });
+		const r = new Registry(manifest([legacy("theme-a"), legacy("theme-b")]), trackingEffects([]));
+		await r.boot();
+		assert.equal(r.isLoaded("theme-a"), false);
+		assert.equal(r.isLoaded("theme-b"), true, "only one theme loads");
+	});
+
+	it("`kind` wins over a stale tag list", async () => {
+		const r = new Registry(
+			manifest([
+				mod("a", "1.0.0", { kind: "extension", tags: ["theme"], entries: { css: "a.css" } }),
+				mod("b", "1.0.0", { kind: "theme", entries: { css: "b.css" } }),
+			]),
+			trackingEffects([]),
+		);
+		await r.boot();
+		assert.equal(r.isLoaded("a"), true, "not a theme, so not in the contest");
+		assert.equal(r.isLoaded("b"), true);
+	});
+
+	it("a module declaring neither is an extension, never a theme", async () => {
+		const r = new Registry(
+			manifest([mod("plain", "1.0.0"), mod("theme-a", "1.0.0", { kind: "theme", entries: { css: "t.css" } })]),
+			trackingEffects([]),
+		);
+		await r.boot();
+		assert.equal(r.isLoaded("plain"), true);
+		assert.equal(r.isLoaded("theme-a"), true);
+	});
+});
+
 describe("persisted disable", () => {
-	const theme = (id: string) => mod(id, "1.0.0", { tags: ["theme"], entries: { css: `${id}.css` } });
+	const theme = (id: string) => mod(id, "1.0.0", { kind: "theme", entries: { css: `${id}.css` } });
 
 	// One box standing in for the localStorage-backed pair, so a test can
 	// assert what the next boot would read as well as what this one did.

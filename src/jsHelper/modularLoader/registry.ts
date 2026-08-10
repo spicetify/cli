@@ -6,6 +6,7 @@ import {
 	type ManifestModule,
 	type ModulesManifest,
 	entryUrl,
+	kindOf,
 } from "./types.ts";
 
 export interface BootReport {
@@ -228,7 +229,7 @@ export class Registry {
 	}
 
 	private isTheme(identifier: string): boolean {
-		return this.modules.get(identifier)?.tags?.includes("theme") ?? false;
+		return kindOf(this.modules.get(identifier)) === "theme";
 	}
 
 	// Themes fight over the same client chrome: loading one unloads the
