@@ -64,7 +64,18 @@ function Get-Spicetify {
   [CmdletBinding()]
   param ()
   begin {
-    if ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
+    if ($v3) {
+      # v3 asset names come from the Rust CLI's own target triple, so that
+      # `spicetify self-update` resolves the same file this script installs.
+      # Only x86_64 is built today.
+      if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
+        Write-Warning -Message "v3 has no build for $env:PROCESSOR_ARCHITECTURE yet. Windows x86_64 is available."
+        Pause
+        exit
+      }
+      $architecture = 'x86_64'
+    }
+    elseif ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
       $architecture = 'x64'
     }
     elseif ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') {
@@ -74,14 +85,29 @@ function Get-Spicetify {
       $architecture = 'x32'
     }
     if ($v) {
-      if ($v -match '^\d+\.\d+\.\d+$') {
+      if ($v -match '^\d+\.\d+\.\d+') {
         $targetVersion = $v
       }
       else {
-        Write-Warning -Message "You have specified an invalid spicetify version: $v `nThe version must be in the following format: 1.2.3"
+        Write-Warning -Message "You have specified an invalid spicetify version: $v `nThe version must start in the following format: 1.2.3"
         Pause
         exit
       }
+    }
+    elseif ($v3) {
+      # v3 ships as prereleases, which /releases/latest never returns, so the
+      # newest v3 tag is picked out of the full list (newest first).
+      Write-Host -Object 'Fetching the latest spicetify v3 version...' -NoNewline
+      $releases = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/cli/releases'
+      $targetVersion = $releases.tag_name | Where-Object { $_ -like 'v3*' } | Select-Object -First 1
+      if (-not $targetVersion) {
+        Write-Unsuccess
+        Write-Warning -Message 'No v3 release published yet. Remove $v3 to install the current stable release.'
+        Pause
+        exit
+      }
+      $targetVersion = $targetVersion -replace '^v', ''
+      Write-Success
     }
     else {
       Write-Host -Object 'Fetching the latest spicetify version...' -NoNewline
@@ -194,6 +220,14 @@ Write-Host -Object 'to get started'
 #endregion Spicetify
 
 #region Marketplace
+# v3 ships its own store inside the client, so the Marketplace (a v2 custom
+# app) is neither needed nor compatible.
+if ($v3) {
+  Write-Host -Object "`nOpen Spotify and click" -NoNewline
+  Write-Host -Object ' Module Store ' -NoNewline -ForegroundColor 'Cyan'
+  Write-Host -Object 'in the sidebar to install themes and extensions.'
+  return
+}
 $Host.UI.RawUI.Flushinputbuffer()
 $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
     (New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Install Spicetify Marketplace."),
