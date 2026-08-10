@@ -2,6 +2,7 @@ const kuroshiroPath = "https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshi
 const kuromojiPath = "https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js";
 const aromanize = "https://cdn.jsdelivr.net/npm/aromanize@0.1.5/aromanize.min.js";
 const openCCPath = "https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.min.js";
+const pinyinProPath = "https://cdn.jsdelivr.net/npm/pinyin-pro@3.28.1/dist/index.min.js";
 
 const dictPath = "https:/cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict";
 
@@ -19,13 +20,17 @@ class Translator {
 		this.createTranslator(lang);
 	}
 
-	includeExternal(url) {
-		if ((CONFIG.visual.translate || this.isUsingNetease) && !document.querySelector(`script[src="${url}"]`)) {
+	includeExternal(url, forceInclude = false) {
+		if ((forceInclude || CONFIG.visual.translate || this.isUsingNetease) && !document.querySelector(`script[src="${url}"]`)) {
 			const script = document.createElement("script");
 			script.setAttribute("type", "text/javascript");
 			script.setAttribute("src", url);
 			document.head.appendChild(script);
 		}
+	}
+
+	isUsingRomanization() {
+		return CONFIG.visual["romanization"] && CONFIG.visual["romanization"] !== "none";
 	}
 
 	injectExternals(lang) {
@@ -39,6 +44,7 @@ class Translator {
 				break;
 			case "zh":
 				this.includeExternal(openCCPath);
+				this.includeExternal(pinyinProPath, this.isUsingRomanization());
 				break;
 		}
 	}
@@ -101,16 +107,23 @@ class Translator {
 				this.Aromanize = Aromanize;
 				this.finished.ko = true;
 				break;
-			case "zh":
-				if (this.OpenCC) return;
-				if (typeof OpenCC === "undefined") {
+			case "zh": {
+				const needsOpenCC = CONFIG.visual.translate || this.isUsingNetease;
+				const needsPinyin = this.isUsingRomanization();
+				if (needsOpenCC && typeof OpenCC === "undefined") {
+					await Translator.#sleep(50);
+					return this.createTranslator(lang);
+				}
+				if (needsPinyin && typeof pinyinPro === "undefined") {
 					await Translator.#sleep(50);
 					return this.createTranslator(lang);
 				}
 
-				this.OpenCC = OpenCC;
+				if (needsOpenCC && !this.OpenCC) this.OpenCC = OpenCC;
+				if (needsPinyin && !this.pinyinPro) this.pinyinPro = pinyinPro;
 				this.finished.zh = true;
 				break;
+			}
 		}
 	}
 
@@ -148,6 +161,15 @@ class Translator {
 		});
 
 		return converter(text);
+	}
+
+	async convertToPinyin(text) {
+		if (!this.finished.zh || !this.pinyinPro) {
+			await Translator.#sleep(100);
+			return this.convertToPinyin(text);
+		}
+
+		return this.pinyinPro.pinyin(text, { toneType: "symbol", nonZh: "consecutive" });
 	}
 
 	/**
