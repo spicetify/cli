@@ -134,18 +134,10 @@ function hexToRgb(hex: string): string | null {
 	return `${Number.parseInt(full.slice(0, 2), 16)},${Number.parseInt(full.slice(2, 4), 16)},${Number.parseInt(full.slice(4, 6), 16)}`;
 }
 
-// Canonical keys a theme may omit, each with the keys to derive it from,
-// first match wins. The classic pipeline filled these from a fixed dark
-// palette (utils.BaseColorList), which is right for a dark theme and
-// actively wrong for a light one: a theme that never names `card` gets a
-// near-black card over its own pale background, and every module reading
-// var(--spice-card, <dark default>) renders the same way. Deriving from
-// what the theme *did* define keeps an omitted key in the theme's own
-// register instead.
-//
-// Order is load-bearing: entries resolve against keys filled earlier in
-// the same pass, so the mutually-referential pairs (main-elevated/card)
-// both land on `main` when neither is declared.
+// Canonical keys a theme may omit, each with the keys to derive it from;
+// first match wins. Order is load-bearing: entries resolve against keys
+// filled earlier in the same pass, so the mutually-referential
+// main-elevated/card pair both land on `main` when neither is declared.
 const DERIVED_COLORS: Array<[string, string[]]> = [
 	["subtext", ["text"]],
 	["main-elevated", ["card", "main"]],
@@ -165,8 +157,8 @@ const DERIVED_COLORS: Array<[string, string[]]> = [
 	["notification-error", ["notification", "main"]],
 ];
 
-// fillCanonical returns the scheme with omitted canonical keys derived
-// from declared ones. Declared keys are never overwritten.
+// Returns the scheme with omitted canonical keys derived from declared
+// ones. A declared key is never overwritten.
 export function fillCanonical(scheme: Record<string, string>): Record<string, string> {
 	const out = { ...scheme };
 	for (const [key, sources] of DERIVED_COLORS) {
@@ -177,16 +169,13 @@ export function fillCanonical(scheme: Record<string, string>): Record<string, st
 	return out;
 }
 
+// Present on <html> while a theme's variables are on :root; stdlib's
+// client-color bridge is scoped to it.
+export const THEMED_CLASS = "spicetify-themed";
+
 // applyVars sets one scheme's --spice-* variables on :root, mirroring
 // the classic pipeline's getColorCSS. Returns a disposer that restores
 // the previous values.
-// Marks the document while a theme's variables are on :root. stdlib's
-// client-colour bridge keys off this, so with no theme loaded the bridge
-// contributes nothing and the client keeps the exact look Spotify ships —
-// a `var(--spice-*, <fallback>)` chain could only approximate that, since
-// it would have to restate every client default correctly.
-export const THEMED_CLASS = "spicetify-themed";
-
 function applyVars(rawScheme: Record<string, string>): () => void {
 	const root = document.documentElement;
 	const scheme = fillCanonical(rawScheme);
@@ -208,8 +197,8 @@ function applyVars(rawScheme: Record<string, string>): () => void {
 			if (value) root.style.setProperty(name, value);
 			else root.style.removeProperty(name);
 		}
-		// Scheme switches dispose the old vars after applying the new ones,
-		// so the mark only comes off once nothing themed is left on :root.
+		// A scheme switch applies the new vars before disposing the old, so
+		// the mark only lifts once nothing themed is left on :root.
 		if (!root.style.getPropertyValue("--spice-main")) root.classList.remove(THEMED_CLASS);
 	};
 }
