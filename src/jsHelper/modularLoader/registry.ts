@@ -381,6 +381,16 @@ export class Registry {
 			report.failed[identifier] = problem;
 			return false;
 		}
+		// A dependency the user disabled satisfies checkDependencies (it is
+		// present at a good version) but never ran load(), so a dependent that
+		// enabled against it would half-work in silence. runLoads guards this
+		// at boot; enable() has to as well, or a post-boot Enable slips past.
+		const disabled = this.disabledSet();
+		const disabledDep = Object.keys(m.dependencies).find((dep) => disabled.has(dep));
+		if (disabledDep) {
+			report.failed[identifier] = `dependency ${disabledDep} is disabled`;
+			return false;
+		}
 		await this.unloadOtherThemes(identifier);
 		try {
 			const index = await this.jsIndexOf(m);
@@ -407,9 +417,11 @@ export class Registry {
 			if (loaded) state.disposers.push(loaded);
 			state.loaded = true;
 			if (this.isTheme(identifier)) this.effects.activeThemePref?.set(identifier);
-			// Only a load that actually succeeded clears the persisted disable,
-			// so a module that cannot start is not recorded as enabled.
-			this.effects.disabledPref?.remove(identifier);
+			// enable() loads; it does NOT clear the persisted disable. The
+			// machinery calls it too (install, revert-to-staged, reload), and
+			// none of those is the user turning the module back on. Only the
+			// user-facing Modules.enable wrapper clears the pref, so a failed
+			// install or a live restage can never quietly un-disable a module.
 			// A module that failed earlier (boot or a previous enable) is no
 			// longer failed; leaving the stale reason makes list() lie.
 			delete report.failed[identifier];
@@ -421,14 +433,27 @@ export class Registry {
 		}
 	}
 
-	// disable is the explicit counterpart to enable: it records the choice so
-	// the next boot skips the module, then unloads. Internal unloads (theme
-	// switching, dependency cascades, reload) go through unload() directly and
-	// persist nothing — otherwise switching themes would permanently disable
-	// the one being replaced.
+	// disable records the choice so the next boot skips the module, then
+	// unloads. Only the user-facing Modules.disable wrapper reaches this;
+	// internal unloads (theme switching, dependency cascades, reload, tooling)
+	// go through unload() directly and persist nothing — otherwise switching
+	// themes would permanently disable the one being replaced.
 	async disable(identifier: string): Promise<boolean> {
 		this.effects.disabledPref?.add(identifier);
 		return this.unload(identifier);
+	}
+
+	// markEnabled clears a module's persisted disable. Split from enable()
+	// because loading (enable) and "the user turned this back on" (this) are
+	// different events: install and revert-to-staged load without enabling.
+	markEnabled(identifier: string): void {
+		this.effects.disabledPref?.remove(identifier);
+	}
+
+	// isDisabled reports the persisted choice, so callers that load outside
+	// enable() (install, revert) can respect it.
+	isDisabled(identifier: string): boolean {
+		return this.disabledSet().has(identifier);
 	}
 
 	// forget drops a removed module's persisted disable so the id does not

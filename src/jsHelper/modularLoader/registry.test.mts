@@ -622,7 +622,7 @@ describe("persisted disable", () => {
 		assert.ok(!calls.some((c) => c.includes("/ext/")), "no mixin or load runs for it");
 	});
 
-	it("disable persists and unloads; enable clears it", async () => {
+	it("disable persists and unloads; markEnabled clears it", async () => {
 		const { box, effects } = withPrefs();
 		const r = new Registry(manifest([mod("ext", "1.0.0")]), effects);
 		const report = await r.boot();
@@ -630,8 +630,23 @@ describe("persisted disable", () => {
 		assert.equal(await r.disable("ext"), true);
 		assert.deepEqual([...box.disabled], ["ext"]);
 		assert.equal(r.isLoaded("ext"), false);
+		// enable() loads but does not clear the pref: that is the wrapper's job.
 		assert.equal(await r.enable("ext", report), true);
+		assert.deepEqual([...box.disabled], ["ext"], "loading alone does not un-disable");
+		r.markEnabled("ext");
 		assert.deepEqual([...box.disabled], []);
+	});
+
+	it("enable() does not clear the pref, so a failed reinstall cannot un-disable", async () => {
+		// Models install/revert loading a module without the user asking:
+		// enable() must leave the disabled set exactly as it found it.
+		const { box, effects } = withPrefs(["ext"]);
+		const r = new Registry(manifest([mod("ext", "1.0.0")]), effects);
+		const report = await r.boot();
+		assert.equal(r.isLoaded("ext"), false, "boot skipped it");
+		assert.equal(await r.enable("ext", report), true, "enable still loads on demand");
+		assert.deepEqual([...box.disabled], ["ext"], "but the persisted choice is untouched");
+		assert.equal(r.isDisabled("ext"), true);
 	});
 
 	it("disable records a module that was already unloaded", async () => {
@@ -693,6 +708,20 @@ describe("persisted disable", () => {
 		);
 		const report = await r.boot();
 		assert.equal(r.isLoaded("ext"), false);
+		assert.equal(report.failed.ext, "dependency stdlib is disabled");
+	});
+
+	it("enable() refuses a dependent when its dependency is disabled", async () => {
+		// The post-boot path: the dependency is present at a satisfying version
+		// (checkDependencies passes) but was never loaded, so enabling the
+		// dependent would leave it half-working. It must fail by name instead.
+		const { effects } = withPrefs(["stdlib"]);
+		const r = new Registry(
+			manifest([mod("stdlib", "1.0.0"), mod("ext", "1.0.0", { dependencies: { stdlib: "^1.0.0" } })]),
+			effects,
+		);
+		const report = await r.boot();
+		assert.equal(await r.enable("ext", report), false);
 		assert.equal(report.failed.ext, "dependency stdlib is disabled");
 	});
 
