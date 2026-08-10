@@ -84,7 +84,18 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
         ProtocolAction::Add | ProtocolAction::FastInstall | ProtocolAction::FastEnable => {
             let id = require_id(&query)?;
             let artifacts = get_all_params(&query, "artifacts");
-            let checksum = get_param(&query, "checksum").unwrap_or_default();
+            // The checksum comes from the registry, never from the caller.
+            // Anything that can reach this handler (page JS through
+            // Spicetify.Daemon, a spicetify:// link) could otherwise supply
+            // the hash of its own bytes and have them verified against
+            // themselves, which is no verification at all.
+            let checksum = crate::commands::pkg::registry_checksum(&id.module_identifier, &id.version)
+                .unwrap_or_default();
+            if checksum.is_empty() {
+                tracing::warn!(
+                    "{id}: not in the registry, so there is no checksum to verify these bytes against"
+                );
+            }
             module::add_store(&paths, &id, Store { installed: false, artifacts, checksum })?;
             if matches!(action, ProtocolAction::Add) {
                 return Ok(());
@@ -165,9 +176,6 @@ fn require_param(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Result<St
         .ok_or_else(|| anyhow::anyhow!("missing '{key}' query parameter"))
 }
 
-fn get_param(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Option<String> {
-    query.iter().find(|(k, _)| k == key).map(|(_, v)| v.to_string())
-}
 
 fn get_all_params(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Vec<String> {
     query.iter().filter(|(k, _)| k == key).map(|(_, v)| v.to_string()).collect()

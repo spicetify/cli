@@ -92,6 +92,19 @@ pub(crate) fn list(ctx: &AppContext) -> Result<()> {
     Ok(())
 }
 
+/// The checksum the registry recorded for `id@version`, if it carries that
+/// version at all.
+///
+/// Callers that did not resolve the module themselves (the `spicetify://`
+/// handler, and so anything in the client that reaches it) use this rather
+/// than a checksum handed to them, so the bytes are held to what was
+/// published rather than to whatever the caller claims they should hash to.
+pub(crate) fn registry_checksum(identifier: &str, version: &str) -> Option<String> {
+    let vault = fetch_vault(DEFAULT_VAULT).ok()?;
+    let entry = vault.modules.get(identifier)?.v.get(version)?;
+    (!entry.checksum.is_empty()).then(|| entry.checksum.clone())
+}
+
 pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
     let vault = fetch_vault(DEFAULT_VAULT)?;
     let Some(module) = vault.modules.get(identifier) else {
