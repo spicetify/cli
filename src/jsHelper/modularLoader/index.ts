@@ -205,6 +205,39 @@ function applyVars(rawScheme: Record<string, string>): () => void {
 
 const SCHEME_PREF = (identifier: string) => `spicetify:scheme:${identifier}`;
 
+const DISABLED_KEY = "spicetify:modules:disabled";
+
+// The persisted disable set. Reads tolerate anything (a hand-edited key, a
+// half-written value) by falling back to "nothing is disabled": refusing to
+// boot any module because one localStorage entry is malformed would be a far
+// worse failure than ignoring the preference.
+const disabledPref = {
+	get(): string[] {
+		try {
+			const raw: unknown = JSON.parse(localStorage.getItem(DISABLED_KEY) ?? "[]");
+			return Array.isArray(raw) ? raw.filter((id): id is string => typeof id === "string") : [];
+		} catch {
+			return [];
+		}
+	},
+	write(ids: string[]): void {
+		try {
+			if (ids.length) localStorage.setItem(DISABLED_KEY, JSON.stringify(ids));
+			else localStorage.removeItem(DISABLED_KEY);
+		} catch {
+			// Storage being unavailable must not stop the unload itself.
+		}
+	},
+	add(identifier: string): void {
+		const ids = this.get();
+		if (!ids.includes(identifier)) this.write([...ids, identifier]);
+	},
+	remove(identifier: string): void {
+		const ids = this.get();
+		if (ids.includes(identifier)) this.write(ids.filter((id) => id !== identifier));
+	},
+};
+
 // Live scheme state per module, so schemes can be listed and switched
 // without a reload.
 const schemeState = new Map<
@@ -449,6 +482,7 @@ async function boot(): Promise<BootReport | null> {
 			get: () => localStorage.getItem("spicetify:modules:activeTheme"),
 			set: (id) => localStorage.setItem("spicetify:modules:activeTheme", id),
 		},
+		disabledPref,
 		createTransformer: () => transforms.factory,
 		log,
 	});
@@ -496,7 +530,7 @@ async function boot(): Promise<BootReport | null> {
 			return true;
 		},
 		enable: (id: string) => registry.enable(id, report),
-		disable: (id: string) => registry.unload(id),
+		disable: (id: string) => registry.disable(id),
 		reload: (id: string) => registry.reload(id, report),
 	};
 
@@ -546,9 +580,13 @@ async function boot(): Promise<BootReport | null> {
 			deleteLocalModule(id);
 			return { requiresRestart: true };
 		}
+		// A record the staged copy already shadowed: deleting it changes
+		// nothing that is running, so say which version stays.
 		if (plan === "record-only") {
 			deleteLocalModule(id);
-			return;
+			const shadowedBy = stagedMeta.get(id);
+			if (!shadowedBy) registry.forgetDisabled(id);
+			return shadowedBy ? { revertedTo: shadowedBy.version } : undefined;
 		}
 		await registry.unload(id);
 		deleteLocalModule(id);
@@ -557,14 +595,18 @@ async function boot(): Promise<BootReport | null> {
 		const staged = stagedMeta.get(id);
 		if (staged) {
 			// The override shadowed a staged copy — revert to it live instead
-			// of leaving the module gone until restart.
+			// of leaving the module gone until restart. The module is still
+			// installed afterwards, which callers have to be able to tell:
+			// reporting this as a removal is how "Remove" came to leave a
+			// module running.
 			registry.restage(staged);
 			const at = manifest.modules.findIndex((m) => m.identifier === id);
 			if (at >= 0) manifest.modules[at] = staged;
 			else manifest.modules.push(staged);
 			await registry.enable(id, report);
-			return;
+			return { revertedTo: staged.version };
 		}
+		registry.forgetDisabled(id);
 		const at = manifest.modules.findIndex((m) => m.identifier === id);
 		if (at >= 0) manifest.modules.splice(at, 1);
 	};
