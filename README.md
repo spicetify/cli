@@ -30,14 +30,8 @@ Supports Windows, MacOS and Linux.
 
 ### v3: the Rust CLI (in progress, `rust/`)
 
-The v3 CLI is being rebuilt in Rust on the foundation of
-[veryboringhwl/app](https://github.com/veryboringhwl/app) (MIT), imported with
-its history preserved. **The Go CLI remains the released and default binary on
-every platform**; there is no v3 release yet, so `install.sh --v3` has nothing
-to fetch until the first tag lands.
-
-v3 is a different model rather than a faster v2, so upgrading is a reinstall.
-What it changes:
+The v3 CLI is being rebuilt in Rust. v3 is a different model rather than a
+faster v2, so upgrading is a reinstall. What it changes:
 
 - **Customise Spotify without leaving Spotify.** Extensions, custom apps and
   themes all become one thing (modules), browsable and installable from a store
@@ -53,12 +47,6 @@ What it changes:
   rather than hunting down an old download.
 
 ---
-
-### Acknowledgements
-
-- [veryboringhwl](https://github.com/veryboringhwl) — author of the Rust app
-  the `rust/` workspace is founded on (extract-and-serve apply model,
-  versioned payload sets, update watcher, protocol handler, TUI).
 
 ### Code Signing Policy
 
