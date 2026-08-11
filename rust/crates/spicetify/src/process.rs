@@ -78,17 +78,37 @@ pub fn spawn_detached(ctx: &AppContext) -> Result<()> {
 }
 
 #[cfg(target_os = "macos")]
-fn spawn_macos(_ctx: &AppContext) -> Result<()> {
+fn spawn_macos(ctx: &AppContext) -> Result<()> {
+    // Launch the bundle that was actually resolved, not a hardcoded one:
+    // `open -a` on a path that does not exist starts nothing, and the caller
+    // then waits out its timeout with no idea why.
+    let bundle = macos_bundle(&ctx.spotify_exec);
     let child = Command::new("open")
-        .args(["-a", "/Applications/Spotify.app", "--args"])
+        .arg("-a")
+        .arg(&bundle)
+        .arg("--args")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|e| anyhow::anyhow!("failed to launch Spotify via open: {e}"))?;
+        .map_err(|e| {
+            anyhow::anyhow!("failed to launch Spotify via open -a {}: {e}", bundle.display())
+        })?;
     std::mem::forget(child);
-    tracing::info!("Spotify launched via open -a /Applications/Spotify.app");
+    tracing::info!("Spotify launched via open -a {}", bundle.display());
     Ok(())
+}
+
+/// `<bundle>/Contents/MacOS/Spotify` back up to `<bundle>`. Falls back to the
+/// executable itself, which `open -a` also accepts, when the path is not
+/// shaped like a bundle.
+#[cfg(target_os = "macos")]
+fn macos_bundle(exec: &std::path::Path) -> std::path::PathBuf {
+    exec.parent()
+        .and_then(std::path::Path::parent)
+        .and_then(std::path::Path::parent)
+        .filter(|p| p.extension().is_some_and(|ext| ext == "app"))
+        .map_or_else(|| exec.to_path_buf(), std::path::Path::to_path_buf)
 }
 
 #[cfg(windows)]
@@ -185,4 +205,31 @@ pub fn force_kill_spotify(ctx: &AppContext) {
 
     tracing::info!("force-killing Spotify processes");
     kill_image(image);
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::macos_bundle;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn bundle_is_derived_from_the_resolved_executable() {
+        // The launch path must follow detection: a hardcoded /Applications
+        // "launches" nothing on a ~/Applications install and the caller then
+        // waits out its start timeout.
+        assert_eq!(
+            macos_bundle(Path::new("/Users/me/Applications/Spotify.app/Contents/MacOS/Spotify")),
+            PathBuf::from("/Users/me/Applications/Spotify.app")
+        );
+        assert_eq!(
+            macos_bundle(Path::new("/Applications/Spotify.app/Contents/MacOS/Spotify")),
+            PathBuf::from("/Applications/Spotify.app")
+        );
+    }
+
+    #[test]
+    fn a_non_bundle_executable_is_used_as_is() {
+        let exec = Path::new("/opt/spotify/spotify");
+        assert_eq!(macos_bundle(exec), exec.to_path_buf(), "open -a accepts the binary too");
+    }
 }

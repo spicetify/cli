@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::LazyLock;
 
@@ -46,13 +46,19 @@ fn detect_version(exec_path: &Path) -> Result<String> {
         }
     }
 
-    let output = Command::new("sh")
-        .args([
-            "-c",
-            "defaults read /Applications/Spotify.app/Contents/Info CFBundleShortVersionString",
-        ])
+    // Same bundle the caller resolved, not a hardcoded one: on an install in
+    // ~/Applications a fixed /Applications path reads nothing and the version
+    // comes back undetectable.
+    let info_plist = app_base
+        .map_or_else(|| PathBuf::from("/Applications/Spotify.app"), Path::to_path_buf)
+        .join("Contents")
+        .join("Info");
+    let output = Command::new("defaults")
+        .arg("read")
+        .arg(&info_plist)
+        .arg("CFBundleShortVersionString")
         .output()
-        .map_err(|e| anyhow::anyhow!("failed to read Info.plist: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("failed to read {}: {e}", info_plist.display()))?;
 
     if output.status.success() {
         let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
