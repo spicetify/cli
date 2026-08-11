@@ -4,6 +4,33 @@ use crate::context::AppContext;
 use crate::error::Result;
 use crate::{fl, util};
 
+const APPLY_LOCK_FILE: &str = "spicetify-apply.lock";
+
+// The foreground CLI and daemon both enter this command and mutate the same
+// xpui.spa, backup and xpui.tmp paths. Keep one persistent lock file: deleting
+// it on drop could let a third process lock a new inode while a waiter still
+// owns the old one.
+#[derive(Debug)]
+struct ApplyLock {
+    _file: std::fs::File,
+}
+
+fn acquire_apply_lock(config_root: &Path) -> Result<ApplyLock> {
+    std::fs::create_dir_all(config_root)
+        .map_err(fs_err("creating the config root at", config_root))?;
+    let path = config_root.join(APPLY_LOCK_FILE);
+    let file = std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(&path)
+        .map_err(fs_err("opening the apply lock at", &path))?;
+
+    file.lock()
+        .map_err(|e| anyhow::anyhow!("locking the apply operation at {}: {e}", path.display()))?;
+    Ok(ApplyLock { _file: file })
+}
+
 // Attaches the operation and path to a filesystem error, so an apply failure
 // says which file it choked on and what it was doing, not a bare errno. Every
 // failure in this path has to name its own reason.
@@ -12,6 +39,7 @@ fn fs_err<'a>(doing: &'a str, path: &'a Path) -> impl FnOnce(std::io::Error) -> 
 }
 
 pub(crate) fn run(ctx: &AppContext) -> Result<()> {
+    let _apply_lock = acquire_apply_lock(&ctx.config_root)?;
     let dest_apps = ctx.dest_apps_path();
     let spa = ctx.spotify_apps_path().join("xpui.spa");
     let dest_xpui = dest_apps.join("xpui");
@@ -428,5 +456,51 @@ mod tests {
             patch_index_html(already, "tok").is_err(),
             "an unrecognised index must not be patched"
         );
+    }
+
+    #[test]
+    fn waits_for_another_apply_to_release_the_apply_lock() {
+        let root =
+            std::env::temp_dir().join(format!("spicetify-apply-lock-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("temp config root");
+
+        let lock_path = root.join("spicetify-apply.lock");
+        let held_lock = std::fs::OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .write(true)
+            .open(&lock_path)
+            .expect("apply lock file");
+        held_lock.try_lock().expect("simulate the other process");
+
+        let ctx = AppContext {
+            config_file: root.join("config.toml"),
+            config_root: root.clone(),
+            mirror: true,
+            daemon: false,
+            spotify_data_dir: root.join("missing-spotify-data"),
+            spotify_exec: root.join("spicetify-test-missing-spotify"),
+            offline_bnk_dir: root.join("missing-offline-bnk"),
+        };
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        let apply = std::thread::spawn(move || {
+            tx.send(run(&ctx)).expect("test receiver remains available");
+        });
+        assert!(
+            rx.recv_timeout(std::time::Duration::from_millis(100)).is_err(),
+            "the second apply must wait while the lock is held"
+        );
+
+        drop(held_lock);
+        let error = rx
+            .recv_timeout(std::time::Duration::from_secs(2))
+            .expect("the waiting apply continues after the lock is released")
+            .expect_err("the synthetic Spotify install has no xpui.spa");
+        assert!(error.to_string().contains("xpui.spa"), "unexpected error: {error:#}");
+
+        apply.join().expect("waiting apply thread exits");
+        std::fs::remove_dir_all(&root).expect("cleanup temp config root");
     }
 }
