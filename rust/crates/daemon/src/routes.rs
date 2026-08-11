@@ -52,7 +52,9 @@ fn offered_token(headers: &HeaderMap) -> Option<(String, String)> {
         .split(',')
         .map(str::trim)
         .find_map(|proto| {
-            proto.strip_prefix(TOKEN_PROTOCOL_PREFIX).map(|tok| (proto.to_string(), tok.to_string()))
+            proto
+                .strip_prefix(TOKEN_PROTOCOL_PREFIX)
+                .map(|tok| (proto.to_string(), tok.to_string()))
         })
 }
 

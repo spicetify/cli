@@ -85,7 +85,9 @@ fn verify_checksum(expected: &str, bytes: &[u8]) -> Result<()> {
     let want = want.trim_start_matches("sha256:");
     let got = remote::digest(bytes);
     if want != got {
-        anyhow::bail!("checksum mismatch: the vault declares sha256:{want}, the download is sha256:{got}");
+        anyhow::bail!(
+            "checksum mismatch: the vault declares sha256:{want}, the download is sha256:{got}"
+        );
     }
     Ok(())
 }

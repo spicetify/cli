@@ -225,8 +225,12 @@ mod tests {
     #[test]
     fn fixup_drops_a_stale_data_dir_so_detection_can_run() {
         let mut cfg = Config {
-            spotify_data_dir: Some(PathBuf::from("/spicetify-nonexistent/Spotify.app/Contents/Resources")),
-            spotify_exec: Some(PathBuf::from("/spicetify-nonexistent/Spotify.app/Contents/MacOS/Spotify")),
+            spotify_data_dir: Some(PathBuf::from(
+                "/spicetify-nonexistent/Spotify.app/Contents/Resources",
+            )),
+            spotify_exec: Some(PathBuf::from(
+                "/spicetify-nonexistent/Spotify.app/Contents/MacOS/Spotify",
+            )),
             ..Config::default()
         };
         // Neither path exists: the stale-config shape that shadowed detection

@@ -33,7 +33,8 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
 
     if !spa.exists() && !ctx.mirror && backup.exists() {
         tracing::info!("{}", fl!("restoring-spa-backup", path = spa.to_string_lossy()));
-        std::fs::rename(&backup, &spa).map_err(fs_err("restoring xpui.spa from the backup at", &spa))?;
+        std::fs::rename(&backup, &spa)
+            .map_err(fs_err("restoring xpui.spa from the backup at", &spa))?;
     }
 
     // Names the path on failure: a bare "Permission denied" here means the
@@ -109,9 +110,11 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     }
 
     if dest_xpui.exists() {
-        std::fs::remove_dir_all(&dest_xpui).map_err(fs_err("removing the previous xpui at", &dest_xpui))?;
+        std::fs::remove_dir_all(&dest_xpui)
+            .map_err(fs_err("removing the previous xpui at", &dest_xpui))?;
     }
-    std::fs::rename(&tmp, &dest_xpui).map_err(fs_err("installing the patched client to", &dest_xpui))?;
+    std::fs::rename(&tmp, &dest_xpui)
+        .map_err(fs_err("installing the patched client to", &dest_xpui))?;
 
     ensure_daemon(ctx);
 

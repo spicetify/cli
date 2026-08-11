@@ -137,7 +137,10 @@ pub(crate) fn ensure_system_modules(ctx: &AppContext) {
 fn seed_system_module(ctx: &AppContext, vault: &Vault, id: &str) -> Result<()> {
     let module = vault.modules.get(id).ok_or_else(|| anyhow::anyhow!("not in the registry"))?;
     let version = resolve_version(module)?;
-    let entry = module.v.get(&version).ok_or_else(|| anyhow::anyhow!("{version} is not in the registry"))?;
+    let entry = module
+        .v
+        .get(&version)
+        .ok_or_else(|| anyhow::anyhow!("{version} is not in the registry"))?;
     if entry.artifacts.is_empty() {
         anyhow::bail!("{id}@{version} has no artifact");
     }
@@ -243,8 +246,7 @@ mod tests {
     #[test]
     #[ignore = "hits the live registry and downloads artifacts"]
     fn seed_live_installs_and_enables_system_modules() {
-        let root =
-            std::env::temp_dir().join(format!("spicetify-seed-live-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("spicetify-seed-live-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).expect("temp config");
 
@@ -260,10 +262,7 @@ mod tests {
         for id in SYSTEM_MODULES {
             let link = modules_root.join(id);
             assert!(link.exists(), "{id} enabled and reachable through modules/");
-            assert!(
-                link.join("metadata.json").is_file(),
-                "{id} unpacked with its metadata"
-            );
+            assert!(link.join("metadata.json").is_file(), "{id} unpacked with its metadata");
         }
         assert!(missing_system_modules(&modules_root).is_empty(), "nothing left to seed");
 
@@ -276,10 +275,18 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("temp dir");
 
-        assert_eq!(missing_system_modules(&dir), vec!["stdlib", "store"], "a fresh config needs both");
+        assert_eq!(
+            missing_system_modules(&dir),
+            vec!["stdlib", "store"],
+            "a fresh config needs both"
+        );
 
         std::fs::create_dir_all(dir.join("stdlib")).expect("stdlib dir");
-        assert_eq!(missing_system_modules(&dir), vec!["store"], "an installed module is left alone");
+        assert_eq!(
+            missing_system_modules(&dir),
+            vec!["store"],
+            "an installed module is left alone"
+        );
 
         std::fs::create_dir_all(dir.join("store")).expect("store dir");
         assert!(missing_system_modules(&dir).is_empty(), "nothing to seed once both exist");

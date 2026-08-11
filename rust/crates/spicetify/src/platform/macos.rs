@@ -23,8 +23,10 @@ pub(crate) const fn spotify_binary_name() -> &'static str {
 /// location, fall back to the per-user one, then to Launch Services, and
 /// finally name `/Applications` so an error still points somewhere real.
 fn spotify_app_bundle() -> PathBuf {
-    let candidates =
-        [PathBuf::from("/Applications/Spotify.app"), base_dirs().home_dir().join("Applications/Spotify.app")];
+    let candidates = [
+        PathBuf::from("/Applications/Spotify.app"),
+        base_dirs().home_dir().join("Applications/Spotify.app"),
+    ];
     resolve_bundle(&candidates, spotlight_spotify)
 }
 
@@ -192,7 +194,8 @@ mod tests {
         // would be skipped like an empty leftover Spotify.app.
         let present = dir.clone();
         std::fs::create_dir_all(present.join("Contents").join("MacOS")).expect("bundle dirs");
-        std::fs::write(present.join("Contents").join("MacOS").join("Spotify"), b"").expect("bundle exec");
+        std::fs::write(present.join("Contents").join("MacOS").join("Spotify"), b"")
+            .expect("bundle exec");
         // A sentinel from spotlight proves it was never consulted: the valid
         // candidate short-circuits before the fallback runs.
         let sentinel = PathBuf::from("/sentinel/Spotify.app");
@@ -205,7 +208,10 @@ mod tests {
     fn resolve_bundle_falls_back_to_spotlight_then_applications() {
         let missing = PathBuf::from("/definitely/not/here/Spotify.app");
         let spotlit = PathBuf::from("/Users/someone/Applications/Spotify.app");
-        assert_eq!(resolve_bundle(std::slice::from_ref(&missing), || Some(spotlit.clone())), spotlit);
+        assert_eq!(
+            resolve_bundle(std::slice::from_ref(&missing), || Some(spotlit.clone())),
+            spotlit
+        );
         assert_eq!(
             resolve_bundle(&[missing], || None),
             PathBuf::from("/Applications/Spotify.app"),

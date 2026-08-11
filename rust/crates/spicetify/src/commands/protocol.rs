@@ -89,8 +89,9 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
             // Spicetify.Daemon, a spicetify:// link) could otherwise supply
             // the hash of its own bytes and have them verified against
             // themselves, which is no verification at all.
-            let checksum = crate::commands::pkg::registry_checksum(&id.module_identifier, &id.version)
-                .unwrap_or_default();
+            let checksum =
+                crate::commands::pkg::registry_checksum(&id.module_identifier, &id.version)
+                    .unwrap_or_default();
             if checksum.is_empty() {
                 tracing::warn!(
                     "{id}: not in the registry, so there is no checksum to verify these bytes against"
@@ -175,7 +176,6 @@ fn require_param(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Result<St
         .map(|(_, v)| v.to_string())
         .ok_or_else(|| anyhow::anyhow!("missing '{key}' query parameter"))
 }
-
 
 fn get_all_params(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Vec<String> {
     query.iter().filter(|(k, _)| k == key).map(|(_, v)| v.to_string()).collect()
