@@ -233,3 +233,64 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod hardcoded_path_guard {
+    /// No file outside this one may name `/Applications/Spotify.app`.
+    ///
+    /// Five separate hardcoded copies of that path shipped before this guard:
+    /// the data dir, the executable, the CEF snapshot dir, the launcher, and
+    /// the version-detect fallback. Each one worked on a machine with Spotify
+    /// in `/Applications` and broke silently on the per-user install location,
+    /// and each was found only by a user hitting it. Detection lives here, so
+    /// everything else derives its paths from the context.
+    #[test]
+    fn spotify_paths_are_not_hardcoded_elsewhere() {
+        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut offenders = Vec::new();
+        let mut stack = vec![src.clone()];
+        while let Some(dir) = stack.pop() {
+            for entry in std::fs::read_dir(&dir).expect("readable source dir").flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    stack.push(path);
+                    continue;
+                }
+                if path.extension().is_none_or(|e| e != "rs") {
+                    continue;
+                }
+                // This module owns detection, so it is the one place allowed
+                // to name the default location.
+                if path.ends_with("platform/macos.rs") {
+                    continue;
+                }
+                let text = std::fs::read_to_string(&path).expect("readable source file");
+                // Stop at the test module: fixtures legitimately name concrete
+                // paths, and by convention they sit at the end of the file.
+                // Matches both #[cfg(test)] and #[cfg(all(test, ...))].
+                let code_only = text
+                    .find("#[cfg(test)]")
+                    .into_iter()
+                    .chain(text.find("#[cfg(all(test"))
+                    .min()
+                    .map_or(text.as_str(), |i| &text[..i]);
+                for (n, line) in code_only.lines().enumerate() {
+                    let code = line.split("//").next().unwrap_or(line);
+                    if code.contains("/Applications/Spotify.app") {
+                        offenders.push(format!(
+                            "{}:{}: {}",
+                            path.strip_prefix(&src).unwrap_or(&path).display(),
+                            n + 1,
+                            line.trim()
+                        ));
+                    }
+                }
+            }
+        }
+        assert!(
+            offenders.is_empty(),
+            "hardcoded Spotify paths must derive from the resolved context instead:\n{}",
+            offenders.join("\n")
+        );
+    }
+}

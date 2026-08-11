@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::sync::LazyLock;
 
@@ -46,13 +46,17 @@ fn detect_version(exec_path: &Path) -> Result<String> {
         }
     }
 
-    // Same bundle the caller resolved, not a hardcoded one: on an install in
-    // ~/Applications a fixed /Applications path reads nothing and the version
-    // comes back undetectable.
-    let info_plist = app_base
-        .map_or_else(|| PathBuf::from("/Applications/Spotify.app"), Path::to_path_buf)
-        .join("Contents")
-        .join("Info");
+    // Falls back to the bundle's Info.plist, still derived from the resolved
+    // executable. No hardcoded location: if the exec is not bundle-shaped
+    // there is nothing trustworthy to read, and guessing a path produces a
+    // confidently wrong answer instead of an honest failure.
+    let Some(bundle) = app_base.filter(|p| p.extension().is_some_and(|e| e == "app")) else {
+        return Err(anyhow::anyhow!(
+            "unable to detect Spotify version: {} is not inside a .app bundle",
+            exec_path.display()
+        ));
+    };
+    let info_plist = bundle.join("Contents").join("Info");
     let output = Command::new("defaults")
         .arg("read")
         .arg(&info_plist)
