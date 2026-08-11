@@ -114,24 +114,23 @@ impl CssMap {
     }
 }
 
-fn search_dirs(config_root: &Path) -> Vec<PathBuf> {
+fn search_dirs(config_root: &Path, explicit: Option<PathBuf>) -> Vec<PathBuf> {
     let mut dirs = Vec::new();
-    if let Ok(explicit) = std::env::var("SPICETIFY_CSS_MAP")
-        && !explicit.trim().is_empty()
-    {
-        dirs.push(PathBuf::from(explicit));
+    if let Some(explicit) = explicit {
+        dirs.push(explicit);
     }
-    if let Ok(exe) = std::env::current_exe()
-        && let Some(parent) = exe.parent()
-    {
-        dirs.push(parent.to_path_buf());
-    }
+    // v2 archives installed css-map.json beside the executable. Searching
+    // there would let that legacy file silently shadow v3's embedded map.
     dirs.push(config_root.to_path_buf());
     dirs
 }
 
 fn find_css_map(config_root: &Path) -> Option<PathBuf> {
-    for dir in search_dirs(config_root) {
+    let explicit = std::env::var("SPICETIFY_CSS_MAP")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from);
+    for dir in search_dirs(config_root, explicit) {
         let direct = if dir.is_file() { dir.clone() } else { dir.join("css-map.json") };
         if direct.is_file() {
             return Some(direct);
@@ -264,5 +263,20 @@ mod tests {
         let m = map_with(&[("n8Bz0c0v17whD3KfMdOk", "main-actionButtons")]);
         let src = ".someOtherHashedName{}";
         assert_eq!(m.apply_css(src), src);
+    }
+
+    #[test]
+    fn does_not_search_for_a_legacy_map_beside_the_executable() {
+        let config_root = PathBuf::from("configured-css-map-root");
+
+        assert_eq!(search_dirs(&config_root, None), vec![config_root]);
+    }
+
+    #[test]
+    fn keeps_an_explicit_override_ahead_of_the_config_root() {
+        let explicit = PathBuf::from("explicit-css-map.json");
+        let config_root = PathBuf::from("configured-css-map-root");
+
+        assert_eq!(search_dirs(&config_root, Some(explicit.clone())), vec![explicit, config_root]);
     }
 }
