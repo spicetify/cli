@@ -1,8 +1,15 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::context::AppContext;
 use crate::error::Result;
 use crate::{fl, util};
+
+// Attaches the operation and path to a filesystem error, so an apply failure
+// says which file it choked on and what it was doing, not a bare errno. Every
+// failure in this path has to name its own reason.
+fn fs_err<'a>(doing: &'a str, path: &'a Path) -> impl FnOnce(std::io::Error) -> anyhow::Error + 'a {
+    move |e| anyhow::anyhow!("{doing} {}: {e}", path.display())
+}
 
 pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     let dest_apps = ctx.dest_apps_path();
@@ -26,7 +33,7 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
 
     if !spa.exists() && !ctx.mirror && backup.exists() {
         tracing::info!("{}", fl!("restoring-spa-backup", path = spa.to_string_lossy()));
-        std::fs::rename(&backup, &spa)?;
+        std::fs::rename(&backup, &spa).map_err(fs_err("restoring xpui.spa from the backup at", &spa))?;
     }
 
     // Names the path on failure: a bare "Permission denied" here means the
@@ -102,9 +109,9 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     }
 
     if dest_xpui.exists() {
-        std::fs::remove_dir_all(&dest_xpui)?;
+        std::fs::remove_dir_all(&dest_xpui).map_err(fs_err("removing the previous xpui at", &dest_xpui))?;
     }
-    std::fs::rename(&tmp, &dest_xpui)?;
+    std::fs::rename(&tmp, &dest_xpui).map_err(fs_err("installing the patched client to", &dest_xpui))?;
 
     ensure_daemon(ctx);
 
@@ -172,10 +179,16 @@ fn extract_into(spa: &Path, dest: &Path) -> Result<()> {
 }
 
 fn extract_modules(spotify_data: &Path, offline_bnk_dir: &Path, dest: &Path) -> Result<()> {
-    let snapshot = locate_snapshot(spotify_data, offline_bnk_dir)
-        .ok_or_else(|| anyhow::anyhow!(fl!("snapshot-not-found")))?;
+    let snapshot = locate_snapshot(spotify_data, offline_bnk_dir).ok_or_else(|| {
+        let searched = snapshot_search_dirs(spotify_data, offline_bnk_dir)
+            .iter()
+            .map(|d| d.display().to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        anyhow::anyhow!("{}; searched: {searched}", fl!("snapshot-not-found"))
+    })?;
 
-    let data = std::fs::read(&snapshot)?;
+    let data = std::fs::read(&snapshot).map_err(fs_err("reading the v8 snapshot at", &snapshot))?;
     let js =
         util::extract_utf16le_between(&data, "var __webpack_modules__={", "xpui-modules.js.map")
             .ok_or_else(|| {
@@ -185,21 +198,28 @@ fn extract_modules(spotify_data: &Path, offline_bnk_dir: &Path, dest: &Path) -> 
                 )
             })?;
     let patched = crate::module::expose::expose_apis(js);
-    std::fs::write(dest.join("xpui-modules.js"), patched)?;
+    let out = dest.join("xpui-modules.js");
+    std::fs::write(&out, patched).map_err(fs_err("writing", &out))?;
     Ok(())
 }
 
 // Search order: the Spotify data dir, then platform-specific locations (macOS
 // keeps the snapshot inside the CEF framework bundle), then the offline-bnk
 // cache. A missing directory is skipped rather than fatal.
-fn locate_snapshot(spotify_data: &Path, offline_bnk_dir: &Path) -> Option<std::path::PathBuf> {
+fn snapshot_search_dirs(spotify_data: &Path, offline_bnk_dir: &Path) -> Vec<PathBuf> {
     let mut dirs = vec![spotify_data.to_path_buf()];
     dirs.extend(crate::platform::snapshot_dirs(spotify_data));
     dirs.push(offline_bnk_dir.to_path_buf());
-    dirs.iter().find_map(|dir| find_snapshot(dir).ok().flatten())
+    dirs
 }
 
-fn find_snapshot(dir: &Path) -> Result<Option<std::path::PathBuf>> {
+fn locate_snapshot(spotify_data: &Path, offline_bnk_dir: &Path) -> Option<PathBuf> {
+    snapshot_search_dirs(spotify_data, offline_bnk_dir)
+        .iter()
+        .find_map(|dir| find_snapshot(dir).ok().flatten())
+}
+
+fn find_snapshot(dir: &Path) -> Result<Option<PathBuf>> {
     let entry = std::fs::read_dir(dir)?.filter_map(std::io::Result::ok).find(|e| {
         e.file_name().to_str().is_some_and(|n| {
             n.starts_with("v8_context_snapshot")
@@ -296,9 +316,9 @@ fn patch_index(ctx: &AppContext, dest: &Path) -> Result<()> {
     // nothing else served from this origin can read it.
     let token = crate::daemon::token::ensure(&ctx.config_root).unwrap_or_default();
     let index = dest.join("index.html");
-    let raw = std::fs::read_to_string(&index)?;
+    let raw = std::fs::read_to_string(&index).map_err(fs_err("reading", &index))?;
     let patched = patch_index_html(&raw, &token)?;
-    std::fs::write(&index, patched)?;
+    std::fs::write(&index, patched).map_err(fs_err("writing", &index))?;
     Ok(())
 }
 
@@ -312,7 +332,7 @@ fn link_runtime_dirs(config_root: &Path, dest: &Path) -> Result<()> {
         fl!("linking-dir", dst = dst.to_string_lossy(), src = src.to_string_lossy())
     );
     if !src.exists() {
-        std::fs::create_dir_all(&src)?;
+        std::fs::create_dir_all(&src).map_err(fs_err("creating", &src))?;
     }
     util::create_dir_link(&src, &dst)?;
     Ok(())
