@@ -3,7 +3,7 @@ members = ["crates/spicetify", "crates/cli", "crates/tui", "crates/daemon"]
 resolver = "2"
 
 [workspace.package]
-version = "3.0.0-beta.2"
+version = "3.0.0-beta.3"
 edition = "2024"
 rust-version = "1.95"
 repository = "https://github.com/veryboringhwl/app"
