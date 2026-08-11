@@ -29,7 +29,16 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         std::fs::rename(&backup, &spa)?;
     }
 
-    std::fs::create_dir_all(&dest_apps)?;
+    // Names the path on failure: a bare "Permission denied" here means the
+    // resolved Spotify directory is not writable (often a system-wide install,
+    // or a bundle detection that missed the real location), and the errno
+    // alone does not say which directory to look at.
+    std::fs::create_dir_all(&dest_apps).map_err(|e| {
+        anyhow::anyhow!(
+            "cannot prepare {}: {e}. If Spotify is installed elsewhere, set spotify_data_dir in config.toml",
+            dest_apps.display()
+        )
+    })?;
     tracing::info!(
         "{}",
         fl!("extracting-spa", src = spa.to_string_lossy(), dest = dest_xpui.to_string_lossy())
@@ -185,7 +194,7 @@ fn extract_modules(spotify_data: &Path, offline_bnk_dir: &Path, dest: &Path) -> 
 // cache. A missing directory is skipped rather than fatal.
 fn locate_snapshot(spotify_data: &Path, offline_bnk_dir: &Path) -> Option<std::path::PathBuf> {
     let mut dirs = vec![spotify_data.to_path_buf()];
-    dirs.extend(crate::platform::snapshot_dirs());
+    dirs.extend(crate::platform::snapshot_dirs(spotify_data));
     dirs.push(offline_bnk_dir.to_path_buf());
     dirs.iter().find_map(|dir| find_snapshot(dir).ok().flatten())
 }

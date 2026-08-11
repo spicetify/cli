@@ -15,12 +15,50 @@ pub(crate) const fn spotify_binary_name() -> &'static str {
     "Spotify"
 }
 
+/// The Spotify.app bundle. Spotify's installer drops it in `~/Applications`
+/// for a non-admin install and in `/Applications` for a system one, so
+/// neither can be assumed: guessing `/Applications` when the app is in
+/// `~/Applications` makes `apply` write under a directory the user cannot
+/// touch and fail with a bare "Permission denied". Prefer the standard
+/// location, fall back to the per-user one, then to Launch Services, and
+/// finally name `/Applications` so an error still points somewhere real.
+fn spotify_app_bundle() -> PathBuf {
+    let candidates =
+        [PathBuf::from("/Applications/Spotify.app"), base_dirs().home_dir().join("Applications/Spotify.app")];
+    resolve_bundle(&candidates, spotlight_spotify)
+}
+
+fn resolve_bundle(candidates: &[PathBuf], spotlight: impl Fn() -> Option<PathBuf>) -> PathBuf {
+    candidates
+        .iter()
+        .find(|p| p.exists())
+        .cloned()
+        .or_else(spotlight)
+        .unwrap_or_else(|| PathBuf::from("/Applications/Spotify.app"))
+}
+
+/// Asks Launch Services where Spotify actually is, for the case where it sits
+/// in neither common location. Best-effort: a missing `mdfind` or a disabled
+/// Spotlight just means the caller uses its own fallback.
+fn spotlight_spotify() -> Option<PathBuf> {
+    let out = std::process::Command::new("mdfind")
+        .arg("kMDItemCFBundleIdentifier == 'com.spotify.client'")
+        .output()
+        .ok()?;
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(PathBuf::from)
+        .find(|p| p.extension().is_some_and(|ext| ext == "app") && p.exists())
+}
+
 pub(crate) fn spotify_data_dir() -> PathBuf {
-    PathBuf::from("/Applications/Spotify.app/Contents/Resources")
+    spotify_app_bundle().join("Contents").join("Resources")
 }
 
 pub(crate) fn spotify_exec() -> PathBuf {
-    PathBuf::from("/Applications/Spotify.app/Contents/MacOS").join(spotify_binary_name())
+    spotify_app_bundle().join("Contents").join("MacOS").join(spotify_binary_name())
 }
 
 pub(crate) fn offline_bnk_dir() -> PathBuf {
@@ -29,10 +67,17 @@ pub(crate) fn offline_bnk_dir() -> PathBuf {
 
 // macOS ships the v8 snapshot inside the CEF framework bundle rather than
 // beside the app resources, so neither the data dir nor PersistentCache
-// contains it.
-pub(crate) fn snapshot_dirs() -> Vec<PathBuf> {
+// contains it. Derived from the resolved data dir (`<bundle>/Contents/
+// Resources`) rather than re-detected, so a `spotify_data_dir` override in
+// config.toml moves the snapshot lookup with it instead of stranding it at
+// the default location.
+pub(crate) fn snapshot_dirs(data_dir: &Path) -> Vec<PathBuf> {
+    // <bundle>/Contents/Resources -> <bundle>
+    let Some(bundle) = data_dir.parent().and_then(Path::parent) else { return Vec::new() };
     vec![
-        PathBuf::from("/Applications/Spotify.app/Contents/Frameworks")
+        bundle
+            .join("Contents")
+            .join("Frameworks")
             .join("Chromium Embedded Framework.framework")
             .join("Resources"),
     ]
@@ -124,4 +169,50 @@ fn run(program: &str, args: &[&std::ffi::OsStr]) -> crate::error::Result<()> {
         anyhow::bail!("{program} failed: {}", String::from_utf8_lossy(&out.stderr).trim());
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resolve_bundle_prefers_an_existing_candidate() {
+        let dir = std::env::temp_dir().join(format!("spicetify-bundle-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp bundle");
+        let missing = dir.join("nope/Spotify.app");
+        let present = dir.clone();
+        // A sentinel from spotlight proves it was never consulted: the
+        // existing candidate short-circuits before the fallback runs.
+        let sentinel = PathBuf::from("/sentinel/Spotify.app");
+        let got = resolve_bundle(&[missing, present.clone()], || Some(sentinel.clone()));
+        assert_eq!(got, present);
+        std::fs::remove_dir_all(&dir).expect("cleanup");
+    }
+
+    #[test]
+    fn resolve_bundle_falls_back_to_spotlight_then_applications() {
+        let missing = PathBuf::from("/definitely/not/here/Spotify.app");
+        let spotlit = PathBuf::from("/Users/someone/Applications/Spotify.app");
+        assert_eq!(resolve_bundle(std::slice::from_ref(&missing), || Some(spotlit.clone())), spotlit);
+        assert_eq!(
+            resolve_bundle(&[missing], || None),
+            PathBuf::from("/Applications/Spotify.app"),
+            "with nothing found, the error still names a real path",
+        );
+    }
+
+    #[test]
+    fn snapshot_dir_follows_the_data_dir_bundle() {
+        // A config override sends the snapshot lookup to the same bundle, not
+        // the hardcoded /Applications one.
+        let data = PathBuf::from("/Users/me/Applications/Spotify.app/Contents/Resources");
+        let dirs = snapshot_dirs(&data);
+        assert_eq!(
+            dirs,
+            vec![PathBuf::from(
+                "/Users/me/Applications/Spotify.app/Contents/Frameworks/Chromium Embedded Framework.framework/Resources"
+            )]
+        );
+    }
 }

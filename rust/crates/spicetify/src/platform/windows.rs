@@ -180,6 +180,6 @@ pub(crate) fn register_url_scheme() {
 
 // The v8 snapshot sits beside the app resources on this platform; no extra
 // search directories are needed.
-pub(crate) fn snapshot_dirs() -> Vec<PathBuf> {
+pub(crate) fn snapshot_dirs(_data_dir: &Path) -> Vec<PathBuf> {
     Vec::new()
 }

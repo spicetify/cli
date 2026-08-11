@@ -49,8 +49,8 @@ pub fn default_offline_bnk_dir() -> PathBuf {
 /// Extra platform-specific directories to search for the v8 context snapshot,
 /// tried after the Spotify data dir and before the offline-bnk fallback.
 #[must_use]
-pub fn snapshot_dirs() -> Vec<PathBuf> {
-    imp::snapshot_dirs()
+pub fn snapshot_dirs(data_dir: &Path) -> Vec<PathBuf> {
+    imp::snapshot_dirs(data_dir)
 }
 
 pub fn register_url_scheme() {
