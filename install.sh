@@ -195,7 +195,19 @@ log "Run 'spicetify --help' to get started"
 
 if [ "$channel" = "v3" ]; then
     log "This is a v3 preview. Modules are managed in-app through the Module Store, so there is no Marketplace step."
-    log "Next: run 'spicetify init' then 'spicetify apply'."
+    # Apply now as a convenience. This patches Spotify and restarts it, and it
+    # seeds the store so it is waiting in the sidebar. A soft step on purpose:
+    # Spotify may not be installed or logged in yet, so a failure here leaves
+    # the CLI installed and tells the user to apply once that is sorted. Not
+    # 'init', which is a destructive reset (it deletes installed modules) and
+    # apply does not need it.
+    log "Patching Spotify (this restarts it)..."
+    if "$exe" apply; then
+        log "Done. Open Spotify and click Module Store in the sidebar."
+    else
+        log "Install finished, but 'spicetify apply' did not complete. Fix the reported cause, then run: spicetify apply"
+        log "If it cannot find Spotify, 'spicetify config' shows the paths it resolved."
+    fi
     exit 0
 fi
 

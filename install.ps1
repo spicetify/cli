@@ -223,9 +223,22 @@ Write-Host -Object 'to get started'
 # v3 ships its own store inside the client, so the Marketplace (a v2 custom
 # app) is neither needed nor compatible.
 if ($v3) {
-  Write-Host -Object "`nOpen Spotify and click" -NoNewline
-  Write-Host -Object ' Module Store ' -NoNewline -ForegroundColor 'Cyan'
-  Write-Host -Object 'in the sidebar to install themes and extensions.'
+  # Apply now as a convenience. This patches Spotify, restarts it, and seeds
+  # the store into the sidebar. Soft on purpose: Spotify may not be installed
+  # or logged in yet, so a failure leaves the CLI installed and tells the user
+  # to apply once that is sorted. No 'init', which is a destructive reset.
+  $spicetifyExe = Join-Path $spicetifyFolderPath 'spicetify.exe'
+  Write-Host -Object "`nPatching Spotify (this restarts it)..."
+  & $spicetifyExe apply
+  if ($LASTEXITCODE -eq 0) {
+    Write-Host -Object 'Done. Open Spotify and click' -NoNewline
+    Write-Host -Object ' Module Store ' -NoNewline -ForegroundColor 'Cyan'
+    Write-Host -Object 'in the sidebar.'
+  }
+  else {
+    Write-Host -Object "Install finished, but 'spicetify apply' did not complete. Fix the reported cause, then run: spicetify apply" -ForegroundColor 'Yellow'
+    Write-Host -Object "If it cannot find Spotify, 'spicetify config' shows the paths it resolved."
+  }
   return
 }
 $Host.UI.RawUI.Flushinputbuffer()
