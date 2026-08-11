@@ -67,16 +67,28 @@ impl Config {
         Ok(())
     }
 
+    // Self-heals a config written by an older build or copied from another
+    // machine: a spotify path that no longer points at a real install is
+    // dropped so detection runs, rather than failing apply on a stale path.
     fn fixup(&mut self) {
         if let Some(p) = &self.spotify_exec {
             let resolved = platform::coerce_spotify_exec_path(p);
             if !resolved.is_file() {
                 tracing::warn!(
-                    "spotify_exec path is stale, will use default: {}",
+                    "spotify_exec in config.toml points at {}, which does not exist; re-detecting Spotify",
                     resolved.display()
                 );
                 self.spotify_exec = None;
             }
+        }
+        if let Some(p) = &self.spotify_data_dir
+            && !p.is_dir()
+        {
+            tracing::warn!(
+                "spotify_data_dir in config.toml points at {}, which does not exist; re-detecting Spotify",
+                p.display()
+            );
+            self.spotify_data_dir = None;
         }
     }
 }
@@ -204,4 +216,34 @@ pub fn build_context(
 pub fn build_fresh_context() -> Result<AppContext> {
     let config_root = platform::default_spicetify_config_dir();
     AppContext::from_config(config_root, &Config::default())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fixup_drops_a_stale_data_dir_so_detection_can_run() {
+        let mut cfg = Config {
+            spotify_data_dir: Some(PathBuf::from("/spicetify-nonexistent/Spotify.app/Contents/Resources")),
+            spotify_exec: Some(PathBuf::from("/spicetify-nonexistent/Spotify.app/Contents/MacOS/Spotify")),
+            ..Config::default()
+        };
+        // Neither path exists: the stale-config shape that shadowed detection
+        // on a machine with Spotify in ~/Applications. A bogus root keeps the
+        // test independent of where Spotify actually is on this machine.
+        cfg.fixup();
+        assert!(cfg.spotify_data_dir.is_none(), "a data dir that is not a real install is dropped");
+        assert!(cfg.spotify_exec.is_none(), "a stale exec is dropped");
+    }
+
+    #[test]
+    fn fixup_keeps_a_data_dir_that_exists() {
+        let dir = std::env::temp_dir().join(format!("spicetify-cfg-{}", std::process::id()));
+        fs::create_dir_all(&dir).expect("temp data dir");
+        let mut cfg = Config { spotify_data_dir: Some(dir.clone()), ..Config::default() };
+        cfg.fixup();
+        assert_eq!(cfg.spotify_data_dir.as_deref(), Some(dir.as_path()));
+        fs::remove_dir_all(&dir).expect("cleanup");
+    }
 }

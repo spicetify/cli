@@ -31,10 +31,17 @@ fn spotify_app_bundle() -> PathBuf {
 fn resolve_bundle(candidates: &[PathBuf], spotlight: impl Fn() -> Option<PathBuf>) -> PathBuf {
     candidates
         .iter()
-        .find(|p| p.exists())
+        .find(|p| is_spotify_bundle(p))
         .cloned()
         .or_else(spotlight)
         .unwrap_or_else(|| PathBuf::from("/Applications/Spotify.app"))
+}
+
+/// A real Spotify bundle holds the executable; a leftover or empty
+/// `Spotify.app` directory does not, and must not be chosen over the real
+/// install (which may sit in the other location).
+fn is_spotify_bundle(bundle: &Path) -> bool {
+    bundle.join("Contents").join("MacOS").join(spotify_binary_name()).is_file()
 }
 
 /// Asks Launch Services where Spotify actually is, for the case where it sits
@@ -50,7 +57,7 @@ fn spotlight_spotify() -> Option<PathBuf> {
         .map(str::trim)
         .filter(|line| !line.is_empty())
         .map(PathBuf::from)
-        .find(|p| p.extension().is_some_and(|ext| ext == "app") && p.exists())
+        .find(|p| is_spotify_bundle(p))
 }
 
 pub(crate) fn spotify_data_dir() -> PathBuf {
@@ -181,9 +188,13 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("temp bundle");
         let missing = dir.join("nope/Spotify.app");
+        // A real bundle: has the executable, so it counts. A bare directory
+        // would be skipped like an empty leftover Spotify.app.
         let present = dir.clone();
-        // A sentinel from spotlight proves it was never consulted: the
-        // existing candidate short-circuits before the fallback runs.
+        std::fs::create_dir_all(present.join("Contents").join("MacOS")).expect("bundle dirs");
+        std::fs::write(present.join("Contents").join("MacOS").join("Spotify"), b"").expect("bundle exec");
+        // A sentinel from spotlight proves it was never consulted: the valid
+        // candidate short-circuits before the fallback runs.
         let sentinel = PathBuf::from("/sentinel/Spotify.app");
         let got = resolve_bundle(&[missing, present.clone()], || Some(sentinel.clone()));
         assert_eq!(got, present);
