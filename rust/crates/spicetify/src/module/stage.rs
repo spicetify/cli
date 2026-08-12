@@ -75,6 +75,11 @@ pub(crate) struct StagedModule {
 pub(crate) struct ModulesManifest {
     pub spotify_version: String,
     pub classmap_key: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub classmap_spotify: Option<String>,
+    pub classmap_verified: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supported_spotify: Option<String>,
     pub cli_version: String,
     /// Read by the manager module's Updates panel.
     pub updates_blocked: bool,
@@ -92,6 +97,16 @@ pub(crate) fn classmap_key_for_version(version: &str) -> Option<String> {
     let minor: u32 = parts.next()?.trim().parse().ok()?;
     let patch: u32 = parts.next()?.trim().parse().ok()?;
     Some(format!("{major}{minor:02}{patch:04}"))
+}
+
+/// Manager and classmap selection operate on Spotify's major.minor.patch
+/// line. The fourth desktop build component does not affect compatibility.
+pub(crate) fn spotify_version_line(version: &str) -> Option<String> {
+    let mut parts = version.split('.');
+    let major: u32 = parts.next()?.trim().parse().ok()?;
+    let minor: u32 = parts.next()?.trim().parse().ok()?;
+    let patch: u32 = parts.next()?.trim().parse().ok()?;
+    Some(format!("{major}.{minor}.{patch}"))
 }
 
 /// Search roots for classmaps: an explicit override, then beside the running
@@ -151,13 +166,28 @@ pub(crate) fn pick_fallback_key(available: &[u64], target: u64) -> Option<u64> {
     available.iter().copied().filter(|k| k / 10_000 == bucket && *k < target).max()
 }
 
-/// The preferred classmap file for a key: `classmap.json` when present,
-/// otherwise the highest-sorting `classmap-*.json`.
+/// The preferred classmap file for a key. In the config cache, the consumed
+/// index is authoritative so an older hashed artifact cannot win by filename.
+/// Developer/binary roots without that index retain the legacy discovery
+/// order: `classmap.json`, then the highest-sorting `classmap-*.json`.
 fn find_classmap_file(config_root: &Path, key: &str) -> Option<PathBuf> {
     for root in classmap_search_dirs(config_root) {
         let dir = root.join(key);
         if !dir.is_dir() {
             continue;
+        }
+        if root == config_root.join("classmaps") {
+            match super::remote::indexed_classmap_file(config_root, key) {
+                super::remote::IndexedClassmapFile::File(file) => {
+                    let indexed = dir.join(file);
+                    if indexed.is_file() {
+                        return Some(indexed);
+                    }
+                    continue;
+                }
+                super::remote::IndexedClassmapFile::Absent => continue,
+                super::remote::IndexedClassmapFile::NoIndex => {}
+            }
         }
         let direct = dir.join("classmap.json");
         if direct.is_file() {
@@ -319,6 +349,7 @@ pub(crate) fn stage_modules(
     let classmap: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&classmap_path)?)?;
     let stale = stale_leaves(&classmap_path);
+    let support = super::remote::classmap_support(config_root, &key, &classmap_path);
     tracing::info!(
         "using classmap {} ({} stale leaf/leaves)",
         classmap_path.display(),
@@ -383,6 +414,9 @@ pub(crate) fn stage_modules(
     let manifest = ModulesManifest {
         spotify_version: spotify_version.to_string(),
         classmap_key: key,
+        classmap_verified: support.selected_spotify.is_some(),
+        classmap_spotify: support.selected_spotify,
+        supported_spotify: support.latest_spotify,
         cli_version: cli_version.to_string(),
         updates_blocked,
         classmap_fallback,
@@ -396,6 +430,14 @@ pub(crate) fn stage_modules(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn scratch(name: &str) -> PathBuf {
+        let root =
+            std::env::temp_dir().join(format!("spicetify-stage-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).expect("scratch root");
+        root
+    }
 
     fn classmap() -> serde_json::Value {
         serde_json::json!({ "main": { "navbar": { "link": "abc123" } } })
@@ -431,6 +473,64 @@ mod tests {
         assert_eq!(classmap_key_for_version("1.2.94.583").as_deref(), Some("1020094"));
         assert_eq!(classmap_key_for_version("1.2.38.720").as_deref(), Some("1020038"));
         assert_eq!(classmap_key_for_version("nonsense"), None);
+        assert_eq!(spotify_version_line("1.2.96.518").as_deref(), Some("1.2.96"));
+        assert_eq!(spotify_version_line("1.2.96").as_deref(), Some("1.2.96"));
+    }
+
+    #[test]
+    fn cached_index_filename_beats_a_stale_higher_sorting_artifact() {
+        let root = scratch("indexed-file");
+        let dir = root.join("classmaps/1020096");
+        std::fs::create_dir_all(&dir).expect("classmap dir");
+        std::fs::write(dir.join("classmap-new.json"), "{}").expect("new map");
+        std::fs::write(dir.join("classmap-zzz-stale.json"), "{}").expect("stale map");
+        std::fs::write(
+            root.join("classmaps/index.json"),
+            r#"{"keys":{"1020096":{"classmap":{"file":"classmap-new.json","sha256":"unused"}}}}"#,
+        )
+        .expect("index");
+
+        assert_eq!(
+            find_classmap_file(&root, "1020096").as_deref(),
+            Some(dir.join("classmap-new.json").as_path())
+        );
+        std::fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn cached_index_excludes_a_stale_key_that_it_does_not_publish() {
+        let root = scratch("index-excludes-stale-key");
+        let stale = root.join("classmaps/1020097");
+        std::fs::create_dir_all(&stale).expect("stale key dir");
+        std::fs::write(stale.join("classmap-stale.json"), "{}").expect("stale map");
+        std::fs::write(
+            root.join("classmaps/index.json"),
+            r#"{"keys":{"1020096":{"classmap":{"file":"classmap-current.json","sha256":"unused"}}}}"#,
+        )
+        .expect("index");
+
+        assert_eq!(find_classmap_file(&root, "1020097"), None);
+        std::fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn stamps_verified_support_into_the_loader_manifest() {
+        let manifest = ModulesManifest {
+            spotify_version: "1.2.96.518".to_string(),
+            classmap_key: "1020096".to_string(),
+            classmap_spotify: Some("1.2.96".to_string()),
+            classmap_verified: true,
+            supported_spotify: Some("1.2.97".to_string()),
+            cli_version: "3.0.0-beta.6".to_string(),
+            updates_blocked: false,
+            classmap_fallback: false,
+            classmap: serde_json::json!({}),
+            modules: Vec::new(),
+        };
+        let json = serde_json::to_value(manifest).expect("manifest serializes");
+        assert_eq!(json["classmapSpotify"], "1.2.96");
+        assert_eq!(json["classmapVerified"], true);
+        assert_eq!(json["supportedSpotify"], "1.2.97");
     }
 
     #[test]

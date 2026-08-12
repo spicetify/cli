@@ -39,6 +39,10 @@ export interface ModulesManifest {
 	// Apply-time environment facts (absent in manifests from older CLIs).
 	cliVersion?: string;
 	updatesBlocked?: boolean;
+	classmapSpotify?: string;
+	classmapVerified?: boolean;
+	supportedSpotify?: string;
+	classmapFallback?: boolean;
 	classmap?: Classmap;
 	modules: ManifestModule[];
 }
