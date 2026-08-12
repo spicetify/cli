@@ -23,9 +23,9 @@
  *
  * Paths
  * -----
- *   --report/--classmap/--out may be given explicitly, or derived from
- *   --out-dir / CLASSMAP_OUT_DIR as report.json, classmap.json and
- *   cdp-e2e-report.json inside that directory. One of the two is required.
+ *   --classmap/--out may be given explicitly, or derived from --out-dir /
+ *   CLASSMAP_OUT_DIR. --report is optional; when omitted, every classmap leaf
+ *   is probed directly.
  *
  * Exit codes
  * ----------
@@ -34,11 +34,12 @@
  *   2  hit rate below threshold
  */
 
-import http from "node:http";
+import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
+import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI_ROOT = path.resolve(__dirname, "..");
@@ -115,15 +116,27 @@ function parseArgs(argv) {
         if (a.startsWith("-")) throw new Error(`Unknown flag: ${a}`);
     }
   }
+  if (args.help) return args;
+  if (!["hash", "semantic", "both"].includes(args.mode)) {
+    throw new Error(`invalid mode: ${args.mode}`);
+  }
+  if (!Number.isFinite(args.minHitRate) || args.minHitRate < 0 || args.minHitRate > 1) {
+    throw new Error(`invalid min hit rate: ${args.minHitRate}`);
+  }
+  if (!Number.isFinite(args.timeoutMs) || args.timeoutMs <= 0) {
+    throw new Error(`invalid timeout: ${args.timeoutMs}`);
+  }
+  if (!Number.isInteger(args.port) || args.port < 1 || args.port > 65535) {
+    throw new Error(`invalid port: ${args.port}`);
+  }
   // Derive report/classmap/out from --out-dir when not given explicitly.
-  if (!args.report || !args.classmap || !args.out) {
+  if (!args.classmap || !args.out) {
     if (!args.outDir) {
       throw new Error(
-        "Pass --report/--classmap/--out explicitly, or set --out-dir (or CLASSMAP_OUT_DIR) " +
-          "to derive them as <out-dir>/{report,classmap,cdp-e2e-report}.json",
+        "Pass --classmap and --out explicitly, or set --out-dir (or CLASSMAP_OUT_DIR) " +
+          "to derive them as <out-dir>/{classmap,cdp-e2e-report}.json",
       );
     }
-    args.report ??= path.join(args.outDir, "report.json");
     args.classmap ??= path.join(args.outDir, "classmap.json");
     args.out ??= path.join(args.outDir, "cdp-e2e-report.json");
   }
@@ -160,11 +173,16 @@ async function waitForCdp(host, port, timeoutMs) {
   let lastErr;
   while (Date.now() < deadline) {
     try {
+      // The version and target list belong to the same readiness attempt.
+      // eslint-disable-next-line no-await-in-loop
       const version = await httpGetJson(`http://${host}:${port}/json/version`);
+      // eslint-disable-next-line no-await-in-loop
       const targets = await httpGetJson(`http://${host}:${port}/json`);
       return { version, targets };
     } catch (e) {
       lastErr = e;
+      // Polling is deliberately sequential to preserve the timeout budget.
+      // eslint-disable-next-line no-await-in-loop
       await sleep(500);
     }
   }
@@ -180,29 +198,23 @@ async function waitForCdp(host, port, timeoutMs) {
 
 function pickXpuiTarget(targets) {
   const pages = targets.filter((t) => t.type === "page");
-  return (
-    pages.find((t) => (t.url || "").includes("xpui.app.spotify.com")) ||
-    pages.find((t) => (t.url || "").includes("index.html")) ||
-    pages[0]
-  );
+  return pages.find((t) => (t.url || "").includes("xpui.app.spotify.com")) || pages.find((t) => (t.url || "").includes("index.html")) || pages[0];
 }
 
 function loadChecks({ reportPath, classmapPath, cssMapPath }) {
-  const cssMap = fs.existsSync(cssMapPath)
-    ? JSON.parse(fs.readFileSync(cssMapPath, "utf8"))
-    : {};
+  const cssMap = fs.existsSync(cssMapPath) ? JSON.parse(fs.readFileSync(cssMapPath, "utf8")) : {};
 
   /** @type {{path:string, hash:string, semantic:string|null, confidence:string}[]} */
   let checks = [];
 
-  if (fs.existsSync(reportPath)) {
+  if (reportPath && fs.existsSync(reportPath)) {
     const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
     for (const m of [...(report.matched || []), ...(report.identity || [])]) {
       const hash = m.new || m.class;
       checks.push({
         path: m.path,
         hash,
-        semantic: cssMap[hash] || null,
+        semantic: semanticClassName(hash, cssMap),
         confidence: m.confidence || "",
       });
     }
@@ -215,7 +227,7 @@ function loadChecks({ reportPath, classmapPath, cssMapPath }) {
         checks.push({
           path: parts.join("."),
           hash: node,
-          semantic: cssMap[node] || null,
+          semantic: semanticClassName(node, cssMap),
           confidence: "",
         });
       }
@@ -229,6 +241,13 @@ function loadChecks({ reportPath, classmapPath, cssMapPath }) {
   const byPath = new Map();
   for (const c of checks) byPath.set(c.path, c);
   return [...byPath.values()];
+}
+
+function semanticClassName(className, cssMap) {
+  return className
+    .split(/\s+/)
+    .map((token) => cssMap[token] || token)
+    .join(" ");
 }
 
 class CdpSession {
@@ -273,10 +292,7 @@ class CdpSession {
       awaitPromise: true,
     });
     if (result.exceptionDetails) {
-      const text =
-        result.exceptionDetails.exception?.description ||
-        result.exceptionDetails.text ||
-        "evaluate failed";
+      const text = result.exceptionDetails.exception?.description || result.exceptionDetails.text || "evaluate failed";
       throw new Error(text);
     }
     return result.result?.value;
@@ -485,6 +501,12 @@ const NAV_STEPS = [
   },
 ];
 
+function navigationSucceeded(result) {
+  return (
+    typeof result === "string" && !/^(?:nav-failed|context-menu-dispatched|no-track-row|sort-not-found|no-settings-scroll-target)(?::|$)/.test(result)
+  );
+}
+
 function buildProbeExpression(checks) {
   return `(() => {
     const checks = ${JSON.stringify(checks)};
@@ -585,8 +607,7 @@ function maybeRestartSpicetify() {
 async function main() {
   if (typeof WebSocket === "undefined") {
     console.error(
-      `This script needs Node.js >= 22 (global WebSocket client). Current: ${process.version}. ` +
-        `Upgrade Node or run with a newer runtime.`,
+      `This script needs Node.js >= 22 (global WebSocket client). Current: ${process.version}. ` + `Upgrade Node or run with a newer runtime.`,
     );
     process.exit(1);
   }
@@ -620,6 +641,7 @@ async function main() {
   await session.connect();
 
   const steps = [];
+  const navigation = { attempted: 0, succeeded: 0, failed: [] };
   let rows = [];
 
   const runProbe = async (label) => {
@@ -637,18 +659,25 @@ async function main() {
 
   if (args.navigate) {
     // --deep runs the full recipe list; plain --navigate keeps shell-level steps only.
-    const stepsToRun = args.deep
-      ? NAV_STEPS
-      : NAV_STEPS.filter((s) =>
-          ["home", "search", "library", "settings"].includes(s.name),
-        );
+    const stepsToRun = args.deep ? NAV_STEPS : NAV_STEPS.filter((s) => ["home", "search", "library", "settings"].includes(s.name));
     for (const step of stepsToRun) {
+      navigation.attempted++;
       try {
+        // Navigation recipes are stateful and must run in order.
+        // eslint-disable-next-line no-await-in-loop
         const navResult = await session.evaluate(step.expr);
         console.log(`  navigate:${step.name} -> ${navResult}`);
+        if (!navigationSucceeded(navResult)) {
+          navigation.failed.push({ name: step.name, error: String(navResult) });
+          continue;
+        }
+        // eslint-disable-next-line no-await-in-loop
         await sleep(step.waitMs || 1200);
+        // eslint-disable-next-line no-await-in-loop
         await runProbe(`after:${step.name}`);
+        navigation.succeeded++;
       } catch (e) {
+        navigation.failed.push({ name: step.name, error: String(e?.message || e) });
         console.warn(`  navigate:${step.name} failed: ${e.message}`);
       }
     }
@@ -658,9 +687,14 @@ async function main() {
   const report = {
     generatedAt: new Date().toISOString(),
     cdp: { host: args.host, port: args.port, page: page.url, browser: version },
+    classmap: {
+      sha256: crypto.createHash("sha256").update(fs.readFileSync(args.classmap)).digest("hex"),
+    },
     mode: args.mode,
     minHitRate: args.minHitRate,
     navigate: args.navigate,
+    deep: args.deep,
+    navigation,
     steps,
     summary: {
       total: summary.total,
@@ -675,16 +709,11 @@ async function main() {
   fs.mkdirSync(path.dirname(args.out), { recursive: true });
   fs.writeFileSync(args.out, JSON.stringify(report, null, 2) + "\n");
   console.log(`\nWrote ${args.out}`);
-  console.log(
-    `Overall hit rate (${args.mode}): ${(summary.hitRate * 100).toFixed(1)}% ` +
-      `(${summary.hits}/${summary.total})`,
-  );
+  console.log(`Overall hit rate (${args.mode}): ${(summary.hitRate * 100).toFixed(1)}% ` + `(${summary.hits}/${summary.total})`);
 
   console.log("\nPresent:");
   for (const r of summary.rows.filter((r) => r.hit)) {
-    console.log(
-      `  ✓ ${r.path}  hash=${r.byHash} sem=${r.bySem}  ${r.semantic || r.hash}`,
-    );
+    console.log(`  ✓ ${r.path}  hash=${r.byHash} sem=${r.bySem}  ${r.semantic || r.hash}`);
   }
   console.log("\nMissing on probed pages:");
   for (const r of summary.rows.filter((r) => !r.hit)) {
@@ -694,9 +723,7 @@ async function main() {
   session.close();
 
   if (summary.hitRate + 1e-9 < args.minHitRate) {
-    console.error(
-      `\nFAIL: hit rate ${summary.hitRate.toFixed(3)} < min ${args.minHitRate}`,
-    );
+    console.error(`\nFAIL: hit rate ${summary.hitRate.toFixed(3)} < min ${args.minHitRate}`);
     process.exit(2);
   }
   console.log("\nPASS");

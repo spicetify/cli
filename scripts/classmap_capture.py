@@ -42,6 +42,7 @@ Examples
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -717,31 +718,37 @@ def cmd_migrate(args: argparse.Namespace) -> int:
     return 0 if stats["unmatched"] == 0 or args.allow_partial else 1
 
 
-def cmd_verify(args: argparse.Namespace) -> int:
-    css_map = load_css_map(args.css_map)
-    target_css = read_css_sources(args.target_spa, args.target_css_dir, args.target_css)
+def verify_classmap(
+    classmap: dict,
+    target_css: str,
+    css_map: dict[str, str],
+    report: dict | None = None,
+    target_version: str | None = None,
+    classmap_sha256: str | None = None,
+) -> dict:
     target_sigs = class_signatures(target_css)
     inv = inventory_classes(target_css)
-
-    report = None
-    if args.report:
-        report = json.loads(Path(args.report).read_text())
-
-    classmap = json.loads(Path(args.classmap).read_text())
     leaves = iter_leaves(classmap)
 
     rows = []
     for path, cls in leaves:
         dotted = ".".join(path)
+        classes = cls.split()
+        semantics = [css_map[token] for token in classes if token in css_map]
+        semantic = css_map.get(cls) or (" ".join(semantics) if semantics else None)
+        missing_classes = [token for token in classes if token not in target_sigs and token not in inv]
         row = {
             "path": dotted,
             "class": cls,
-            "in_target_css": cls in target_sigs or cls in inv,
-            "css_rule_count": len(target_sigs.get(cls, [])),
-            "selector_hits": inv.get(cls, 0),
-            "in_css_map": cls in css_map,
-            "semantic": css_map.get(cls),
-            "semantic_score": round(semantic_overlap(path, css_map[cls]), 4) if cls in css_map else 0.0,
+            "classes": classes,
+            "missing_classes": missing_classes,
+            "in_target_css": not missing_classes,
+            "css_rule_count": sum(len(target_sigs.get(token, [])) for token in classes),
+            "selector_hits": sum(inv.get(token, 0) for token in classes),
+            "in_css_map": bool(semantics),
+            "semantics": semantics,
+            "semantic": semantic,
+            "semantic_score": round(max((semantic_overlap(path, name) for name in semantics), default=0.0), 4),
         }
         # attach migrate confidence if available
         if report:
@@ -775,18 +782,41 @@ def cmd_verify(args: argparse.Namespace) -> int:
         summary[r["verdict"]] += 1
 
     out = {
+        "target": {
+            "spotify_version": target_version,
+            "css_sha256": hashlib.sha256(target_css.encode()).hexdigest(),
+            "classmap_sha256": classmap_sha256,
+        },
         "summary": dict(summary),
         "rows": rows,
     }
+    return out
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    css_map = load_css_map(args.css_map)
+    target_css = read_css_sources(args.target_spa, args.target_css_dir, args.target_css)
+    report = json.loads(Path(args.report).read_text()) if args.report else None
+    classmap = json.loads(Path(args.classmap).read_text())
+    classmap_sha256 = hashlib.sha256(Path(args.classmap).read_bytes()).hexdigest()
+    out = verify_classmap(
+        classmap,
+        target_css,
+        css_map,
+        report,
+        target_version=args.target_version,
+        classmap_sha256=classmap_sha256,
+    )
+
     if args.out:
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(out, indent=2) + "\n")
         print(f"wrote {args.out}")
 
-    print("verify summary:", dict(summary))
+    print("verify summary:", out["summary"])
     print()
     print(f"{'VERDICT':<20} {'CONF':<16} {'PATH':<45} CLASS -> semantic")
-    for r in sorted(rows, key=lambda x: (x["verdict"], x["path"])):
+    for r in sorted(out["rows"], key=lambda x: (x["verdict"], x["path"])):
         print(
             f"{r['verdict']:<20} {str(r.get('migrate_confidence', '-')):<16} "
             f"{r['path']:<45} {r['class']} -> {r.get('semantic') or '-'}"
@@ -975,6 +1005,7 @@ def main(argv: list[str] | None = None) -> int:
     p_ver.add_argument("--target-css-dir")
     p_ver.add_argument("--target-css", action="append")
     p_ver.add_argument("--out")
+    p_ver.add_argument("--target-version", help="Exact Spotify version used for target provenance")
     p_ver.set_defaults(func=cmd_verify)
 
     p_dt = sub.add_parser("devtools", help="Emit DevTools console snippet for matched paths")

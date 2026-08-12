@@ -6,6 +6,7 @@ Run with: python3 -m unittest scripts.test_classmap_capture -v
 
 from __future__ import annotations
 
+import hashlib
 import sys
 import unittest
 from pathlib import Path
@@ -76,6 +77,59 @@ class TestVersionToKey(unittest.TestCase):
         self.assertEqual(cc.version_to_key("1.2.45"), "1020045")
         self.assertEqual(cc.version_to_key("1.2.93"), "1020093")
         self.assertEqual(cc.version_to_key("1.2.8"), "1020008")
+
+
+class TestVerifyClassmap(unittest.TestCase):
+    def test_multi_class_leaf_is_present_when_every_token_exists(self):
+        result = cc.verify_classmap(
+            {"settings": {"text_input": "formInputAA formControlBB encore-text-body-medium"}},
+            ".formInputAA { color: red; } .formControlBB { color: blue; } "
+            ".encore-text-body-medium { font-size: 1rem; }",
+            {},
+        )
+
+        row = result["rows"][0]
+        self.assertTrue(row["in_target_css"])
+        self.assertEqual(row["missing_classes"], [])
+        self.assertEqual(row["selector_hits"], 3)
+
+    def test_multi_class_leaf_reports_only_the_missing_tokens(self):
+        result = cc.verify_classmap(
+            {"settings": {"text_input": "formInputAA missingControlBB"}},
+            ".formInputAA { color: red; }",
+            {},
+        )
+
+        row = result["rows"][0]
+        self.assertFalse(row["in_target_css"])
+        self.assertEqual(row["missing_classes"], ["missingControlBB"])
+        self.assertEqual(row["verdict"], "missing_in_css")
+
+    def test_multi_class_leaf_reports_token_semantics(self):
+        result = cc.verify_classmap(
+            {"settings": {"text_input": "formInputAA formControlBB"}},
+            ".formInputAA { color: red; } .formControlBB { color: blue; }",
+            {"formInputAA": "x-settings-input", "formControlBB": "x-settings-control"},
+        )
+
+        row = result["rows"][0]
+        self.assertTrue(row["in_css_map"])
+        self.assertEqual(
+            row["semantics"],
+            ["x-settings-input", "x-settings-control"],
+        )
+
+    def test_static_report_includes_target_digest_provenance(self):
+        css = ".topbarHashAA { color: red; }"
+        result = cc.verify_classmap(
+            {"main": {"topbar": {"wrapper": "topbarHashAA"}}},
+            css,
+            {},
+            target_version="1.2.96.518",
+        )
+
+        self.assertEqual(result["target"]["spotify_version"], "1.2.96.518")
+        self.assertEqual(result["target"]["css_sha256"], hashlib.sha256(css.encode()).hexdigest())
 
 
 class TestMigrateClassmap(unittest.TestCase):
