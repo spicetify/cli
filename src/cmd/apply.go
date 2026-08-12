@@ -268,7 +268,7 @@ func pushExtensions(destExt string, list ...string) {
 					mapping := utils.FindSymbol("", lines[i], []string{
 						`//\s*spicetify_map\{(.+?)\}\{(.+?)\}`,
 					})
-					if len(mapping) > 0 {
+					if len(mapping) > 0 && i+1 < len(lines) {
 						lines[i+1] = strings.Replace(lines[i+1], mapping[0], mapping[1], 1)
 					}
 				}
