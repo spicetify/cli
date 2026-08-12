@@ -286,7 +286,14 @@ func main() {
 				cmds = append([]string{"restore"}, cmds...)
 			}
 
-			cmd := exec.Command(ex, cmds...)
+			// Forward parsed global options so child processes behave like
+			// the parent, e.g. --bypass-admin and --no-restart.
+			childFlags := slices.Clone(flags)
+			if bypassAdminCheck {
+				childFlags = append(childFlags, "--bypass-admin")
+			}
+
+			cmd := exec.Command(ex, append(childFlags, cmds...)...)
 			utils.CmdScanner(cmd)
 
 			// Re-run the remaining command chain with the updated binary.
@@ -296,7 +303,7 @@ func main() {
 				return c == "update" || c == "upgrade"
 			})
 			if len(remaining) > 0 {
-				cmd = exec.Command(ex, remaining...)
+				cmd = exec.Command(ex, append(childFlags, remaining...)...)
 				utils.CmdScanner(cmd)
 			}
 		}
