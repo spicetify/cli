@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
-	"strings"
 	"sync"
 
 	colorable "github.com/mattn/go-colorable"
@@ -290,8 +289,16 @@ func main() {
 			cmd := exec.Command(ex, cmds...)
 			utils.CmdScanner(cmd)
 
-			cmd = exec.Command(ex, strings.Join(commands[:], " "))
-			utils.CmdScanner(cmd)
+			// Re-run the remaining command chain with the updated binary.
+			// Commands must be passed as separate arguments, exec.Command
+			// does not split on spaces.
+			remaining := slices.DeleteFunc(slices.Clone(commands), func(c string) bool {
+				return c == "update" || c == "upgrade"
+			})
+			if len(remaining) > 0 {
+				cmd = exec.Command(ex, remaining...)
+				utils.CmdScanner(cmd)
+			}
 		}
 
 		spotStat := spotifystatus.Get(spotifyPath)
