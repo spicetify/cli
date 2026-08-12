@@ -239,6 +239,7 @@ func startDebugger() {
 		utils.PrintInfo("Restarted Spotify with debugger on. Waiting...")
 		for len(utils.GetDebuggerPath()) == 0 {
 			// Wait until debugger is up
+			time.Sleep(500 * time.Millisecond)
 		}
 	}
 	autoReloadFunc = func() {
