@@ -92,14 +92,14 @@ pub(crate) fn list(ctx: &AppContext) -> Result<()> {
     Ok(())
 }
 
-/// The infrastructure a usable v3 client needs: stdlib is the foundation
-/// every module builds on, and the store is how a user installs anything else
-/// without the CLI. Not `manager`, which the store supersedes.
-const SYSTEM_MODULES: &[&str] = &["stdlib", "store"];
+/// The infrastructure a usable v3 client needs: stdlib is the foundation,
+/// the store installs modules, and manager provides the profile-menu settings
+/// and recovery surface. They are independently useful management surfaces.
+const SYSTEM_MODULES: &[&str] = &["stdlib", "store", "manager"];
 
 /// Which system modules are not present on disk. Absence is the signal: a
 /// disabled module keeps its directory, so this never re-seeds one the user
-/// turned off, and a deliberate `pkg delete` of stdlib or store leaves a
+/// turned off, and a deliberate `pkg delete` of a system module leaves a
 /// client that cannot manage itself, so bringing it back is recovery.
 fn missing_system_modules(modules_root: &Path) -> Vec<&'static str> {
     SYSTEM_MODULES.iter().copied().filter(|id| !modules_root.join(id).exists()).collect()
@@ -107,7 +107,7 @@ fn missing_system_modules(modules_root: &Path) -> Vec<&'static str> {
 
 /// Installs and enables any absent system module from the registry, so a fresh
 /// `apply` produces a client that can manage itself rather than a patched
-/// Spotify with no stdlib and no store.
+/// Spotify without one of its built-in management surfaces.
 ///
 /// Best-effort by design, like the classmap fetch beside it: an unreachable
 /// vault or a failed download warns and leaves the rest of the apply to
@@ -277,19 +277,26 @@ mod tests {
 
         assert_eq!(
             missing_system_modules(&dir),
-            vec!["stdlib", "store"],
-            "a fresh config needs both"
+            vec!["stdlib", "store", "manager"],
+            "a fresh config needs every management surface"
         );
 
         std::fs::create_dir_all(dir.join("stdlib")).expect("stdlib dir");
         assert_eq!(
             missing_system_modules(&dir),
-            vec!["store"],
+            vec!["store", "manager"],
             "an installed module is left alone"
         );
 
         std::fs::create_dir_all(dir.join("store")).expect("store dir");
-        assert!(missing_system_modules(&dir).is_empty(), "nothing to seed once both exist");
+        assert_eq!(
+            missing_system_modules(&dir),
+            vec!["manager"],
+            "manager is a system module in its own right"
+        );
+
+        std::fs::create_dir_all(dir.join("manager")).expect("manager dir");
+        assert!(missing_system_modules(&dir).is_empty(), "nothing to seed once all exist");
 
         std::fs::remove_dir_all(&dir).expect("cleanup");
     }
