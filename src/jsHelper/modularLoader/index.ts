@@ -15,6 +15,7 @@ import { type BootReport, Registry } from "./registry.ts";
 import { createTransformRegistry, transformPath } from "./transforms.ts";
 import { applyTransformsOffthread } from "./transformWorker.ts";
 import { type ModulesManifest, entryUrl } from "./types.ts";
+import { captureWebpackRequire as waitForWebpackCapture } from "./webpackCapture.ts";
 
 declare global {
 	var __SPICETIFY_MODULAR_MANIFEST__: ModulesManifest;
@@ -343,26 +344,26 @@ async function bootClient(transforms: ReturnType<typeof createTransformRegistry>
 // fatal to boot or silently deferred). hooks-era modules read the result
 // through the wpunpk compat proxy.
 async function captureWebpackRequire(maxWaitMs = 30000): Promise<void> {
-	const deadline = Date.now() + maxWaitMs;
-	while (Date.now() < deadline) {
-		const q = (globalThis as never as Record<string, unknown>).rspackChunkclient_web as unknown[];
-		if (Array.isArray(q) && q.push !== Array.prototype.push) {
-			try {
-				q.push([
-					[`spicetify.webpack.chunk.id.${Date.now()}`],
-					{},
-					(re: unknown) => {
-						(globalThis as never as Record<string, unknown>).__webpack_require__ = re;
-						return re;
-					},
-				]);
-				log("info")("captured webpack require");
-			} catch (e) {
-				log("error")("webpack require capture failed", e);
-			}
+	const globals = globalThis as never as Record<string, unknown>;
+	try {
+		const captured = await waitForWebpackCapture({
+			maxWaitMs,
+			now: Date.now,
+			wait: () => new Promise((resolve) => setTimeout(resolve, 500)),
+			getQueue: () => {
+				const queue = globals.rspackChunkclient_web as unknown[];
+				return Array.isArray(queue) && queue.push !== Array.prototype.push ? queue : undefined;
+			},
+			getCaptured: () => globals.__webpack_require__,
+			setCaptured: (require) => (globals.__webpack_require__ = require),
+		});
+		if (captured) {
+			log("info")("captured webpack require");
 			return;
 		}
-		await new Promise((r) => setTimeout(r, 500));
+	} catch (e) {
+		log("error")("webpack require capture failed", e);
+		return;
 	}
 	log("error")("webpack require capture timed out");
 }
@@ -502,7 +503,7 @@ async function boot(): Promise<BootReport | null> {
 	if (!(await waitForClient(15000))) {
 		log("error")("client did not come up in time; running module loads anyway");
 	}
-	void captureWebpackRequire();
+	await captureWebpackRequire();
 	await registry.runLoads(report);
 
 	globalThis.Spicetify = globalThis.Spicetify ?? {};
