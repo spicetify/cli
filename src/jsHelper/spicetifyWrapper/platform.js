@@ -1,8 +1,15 @@
 import { waitFor } from "./shared/async.js";
-import { proxiedFetch, proxiedURL, templates } from "./shared/corsProxy.js";
+import { configuration, configure, isValidTemplate, proxiedFetch, proxiedURL, templates } from "./shared/corsProxy.js";
 import { apply, available, blockUpdates, send, unblockUpdates, uninstallStaged } from "./shared/daemonRpc.js";
 
-Object.assign(Spicetify.CORSProxy, { url: proxiedURL, fetch: proxiedFetch, templates });
+Object.assign(Spicetify.CORSProxy, {
+  url: proxiedURL,
+  fetch: proxiedFetch,
+  templates,
+  configuration,
+  configure,
+  isValidTemplate,
+});
 Object.assign(Spicetify.Daemon, { available, send, apply, blockUpdates, unblockUpdates, uninstallStaged });
 
 (function waitForPlatform() {

@@ -1,13 +1,33 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { DAEMON_TEMPLATE, HOSTED_TEMPLATE, applyTemplate, proxiedFetch, proxiedURL, templates } from "./corsProxy.js";
+import {
+  DAEMON_TEMPLATE,
+  HOSTED_TEMPLATE,
+  applyTemplate,
+  configuration,
+  configure,
+  isValidTemplate,
+  proxiedFetch,
+  proxiedURL,
+  templates,
+} from "./corsProxy.js";
 
 const TARGET = "https://lrclib.net/api/search?q=test";
 
+let storedOverride: string | null = null;
 const setOverride = (value: string | null) => {
+  storedOverride = value;
   (globalThis as { window?: unknown }).window = {
-    localStorage: { getItem: () => value },
+    localStorage: {
+      getItem: () => storedOverride,
+      setItem: (_key: string, next: string) => {
+        storedOverride = next;
+      },
+      removeItem: () => {
+        storedOverride = null;
+      },
+    },
   };
 };
 
@@ -40,6 +60,44 @@ describe("templates", () => {
 
   it("ignores an override that cannot produce a URL", () => {
     setOverride("not-a-url-template");
+    assert.deepEqual(templates(), [DAEMON_TEMPLATE, HOSTED_TEMPLATE]);
+  });
+
+  it("ignores a URL that cannot substitute the requested target", () => {
+    setOverride("https://my-proxy.example/static");
+    assert.deepEqual(templates(), [DAEMON_TEMPLATE, HOSTED_TEMPLATE]);
+  });
+});
+
+describe("configuration", () => {
+  it("describes the automatic daemon-to-hosted chain", () => {
+    setOverride(null);
+    assert.deepEqual(configuration(), {
+      mode: "automatic",
+      template: null,
+      automaticTemplates: [DAEMON_TEMPLATE, HOSTED_TEMPLATE],
+    });
+  });
+
+  it("switches between a validated custom template and the automatic chain", () => {
+    setOverride(null);
+    const custom = "https://my-proxy.example/{url}";
+    assert.equal(isValidTemplate(custom), true);
+    assert.deepEqual(configure({ mode: "custom", template: custom }), {
+      mode: "custom",
+      template: custom,
+      automaticTemplates: [DAEMON_TEMPLATE, HOSTED_TEMPLATE],
+    });
+    assert.deepEqual(templates(), [custom]);
+    assert.equal(configure({ mode: "automatic" }).mode, "automatic");
+    assert.deepEqual(templates(), [DAEMON_TEMPLATE, HOSTED_TEMPLATE]);
+  });
+
+  it("rejects invalid modes and custom templates without changing the active chain", () => {
+    setOverride(null);
+    assert.throws(() => configure({ mode: "custom", template: "https://example.com/static" }), TypeError);
+    assert.throws(() => configure({ mode: "elsewhere" }), TypeError);
+    assert.equal(isValidTemplate("javascript:{url}"), false);
     assert.deepEqual(templates(), [DAEMON_TEMPLATE, HOSTED_TEMPLATE]);
   });
 });
@@ -134,6 +192,14 @@ describe("daemon token", () => {
 
   it("never sends the token to a user override", async () => {
     setOverride("https://my-proxy.example/{url}");
+    setToken("deadbeef");
+    const calls = stubFetchWithOptions();
+    await proxiedFetch(TARGET);
+    assert.equal(calls[0].token, null);
+  });
+
+  it("never sends the token to a loopback custom override", async () => {
+    setOverride("http://localhost:9000/custom/{url}");
     setToken("deadbeef");
     const calls = stubFetchWithOptions();
     await proxiedFetch(TARGET);

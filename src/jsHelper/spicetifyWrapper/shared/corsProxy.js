@@ -12,7 +12,17 @@ export const applyTemplate = (template, target) => template.replace("{url}", tar
 // A template that cannot produce a URL would fail every proxied request, so a
 // typo degrades to the normal chain instead of taking the client's fetches
 // down with it.
-const override = () => {
+export const isValidTemplate = (template) => {
+  if (typeof template !== "string" || !template.includes("{url}")) return false;
+  try {
+    const parsed = new URL(applyTemplate(template, "https://example.com/"));
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+export const getOverride = () => {
   let stored = null;
   try {
     stored = window.localStorage.getItem(OVERRIDE_KEY) || null;
@@ -20,19 +30,36 @@ const override = () => {
     return null;
   }
   if (!stored) return null;
-  try {
-    void new URL(applyTemplate(stored, "https://example.com/"));
-    return stored;
-  } catch {
-    console.error(`[spicetifyWrapper] ignoring invalid ${OVERRIDE_KEY}: ${stored}`);
-    return null;
+  if (isValidTemplate(stored)) return stored;
+  console.error(`[spicetifyWrapper] ignoring invalid ${OVERRIDE_KEY}: ${stored}`);
+  return null;
+};
+
+export const configuration = () => {
+  const template = getOverride();
+  return {
+    mode: template ? "custom" : "automatic",
+    template,
+    automaticTemplates: [DAEMON_TEMPLATE, HOSTED_TEMPLATE],
+  };
+};
+
+export const configure = ({ mode, template } = {}) => {
+  if (mode === "automatic") {
+    window.localStorage.removeItem(OVERRIDE_KEY);
+    return configuration();
   }
+  if (mode !== "custom" || !isValidTemplate(template)) {
+    throw new TypeError('A custom CORS proxy must be an absolute URL template containing "{url}"');
+  }
+  window.localStorage.setItem(OVERRIDE_KEY, template);
+  return configuration();
 };
 
 // An explicit override is a deliberate choice, so it replaces the whole chain
 // rather than becoming a third rung in it.
 export const templates = () => {
-  const chosen = override();
+  const chosen = getOverride();
   return chosen ? [chosen] : [DAEMON_TEMPLATE, HOSTED_TEMPLATE];
 };
 
@@ -48,18 +75,9 @@ export const proxiedURL = (target) => applyTemplate(templates()[0], target);
 // that hop, so it is never attached to a template pointing anywhere else.
 export const TOKEN_HEADER = "x-spicetify-token";
 
-const isLoopback = (template) => {
-  try {
-    const { hostname } = new URL(applyTemplate(template, "https://example.com/"));
-    return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "[::1]";
-  } catch {
-    return false;
-  }
-};
-
 export const withToken = (template, options) => {
   const token = globalThis.__SPICETIFY_DAEMON_TOKEN__;
-  if (!token || !isLoopback(template)) return options;
+  if (!token || template !== DAEMON_TEMPLATE) return options;
   const headers = new Headers(options?.headers || undefined);
   headers.set(TOKEN_HEADER, token);
   return { ...options, headers };
