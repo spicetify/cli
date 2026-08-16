@@ -225,7 +225,7 @@ func isValidForWatching() bool {
 	status := spotifystatus.Get(appDestPath)
 
 	if !status.IsModdable() {
-		utils.PrintError(`You haven't applied. Run "spicetify apply" once before entering watch mode`)
+		utils.PrintError(`You haven't applied. Run "spicetify apply" once first`)
 		return false
 	}
 

@@ -349,6 +349,9 @@ func main() {
 		case "restart":
 			cmd.SpotifyRestart()
 
+		case "reload":
+			cmd.Reload()
+
 		case "auto":
 			cmd.Auto(version)
 			shouldRestart = true
@@ -395,6 +398,12 @@ watch               Enter watch mode.
 
 
 restart             Restart Spotify client.
+
+reload              Push the active theme's colors/CSS (and JS/assets if enabled)
+                    into an already-running Spotify client without restarting it,
+                    so the window stays open and playback keeps running.
+                    The first run needs one restart to enable a live connection;
+                    every run after that updates colors live, no restart needed.
 
 ` + utils.Bold("NON-CHAINABLE COMMANDS") + `
 spotify-updates     Block Spotify updates by patching spotify executable.
