@@ -62,6 +62,13 @@ describe("semver-lite", () => {
 		assert.ok(satisfies("0.0.3", "^0.0.3"));
 		assert.ok(satisfies("0.0.4", "^0.0.3") === false);
 	});
+
+	it("treats a major-only caret or tilde as that major, not an error", () => {
+		assert.ok(satisfies("1.2.3", "^1"));
+		assert.ok(satisfies("2.0.0", "^1") === false);
+		assert.ok(satisfies("1.2.3", "~1"));
+		assert.ok(satisfies("1.2.3", "^1.x"));
+	});
 });
 
 describe("Registry boot", () => {

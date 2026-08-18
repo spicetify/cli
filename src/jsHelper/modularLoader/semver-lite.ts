@@ -46,6 +46,8 @@ export function satisfies(version: string, range: string): boolean {
 			if (!m) return false;
 			const [, op = "", maj, min, pat] = m;
 			if (min === "x" || min === "*" || min === undefined) {
+				// ^1 and ~1 both mean >=1.0.0 <2.0.0; neither is a comparator.
+				if (op === "^" || op === "~") return v.major === +maj;
 				return satisfyComparator(v, op || ">=", { major: +maj, minor: 0, patch: 0 }) &&
 					(op ? true : v.major === +maj);
 			}
