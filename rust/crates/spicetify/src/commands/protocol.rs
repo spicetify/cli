@@ -93,6 +93,16 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
                 crate::commands::pkg::registry_checksum(&id.module_identifier, &id.version)
                     .unwrap_or_default();
             if checksum.is_empty() {
+                // For any other module this degrades to an unverified
+                // install with a warning; for the store, an unverified
+                // replacement is an uninstall with extra steps, so it is
+                // refused outright.
+                if id.module_identifier == "store" {
+                    return Err(anyhow::anyhow!(fl!(
+                        "protocol-error",
+                        err = "the store can only be installed from a registry-verified artifact"
+                    )));
+                }
                 tracing::warn!(
                     "{id}: not in the registry, so there is no checksum to verify these bytes against"
                 );
@@ -115,6 +125,11 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
         }
         ProtocolAction::Enable => {
             let id = module::parse_enable_id(&require_param(&query, "id")?)?;
+            // An empty version is the disable spelling: it drops the enable
+            // link, which for the store is an uninstall by another name.
+            if id.version.is_empty() {
+                refuse_store_removal(&id)?;
+            }
             module::enable(&paths, &id)?;
             Ok(())
         }
@@ -200,4 +215,29 @@ fn get_all_params(query: &[(Cow<'_, str>, Cow<'_, str>)], key: &str) -> Vec<Stri
 
 fn launch_uri(uri: &str) -> Result<()> {
     opener::open(uri).map_err(|e| anyhow::anyhow!("failed to open URI '{uri}': {e}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn id(module: &str, version: &str) -> module::vault::StoreIdentifier {
+        module::vault::StoreIdentifier {
+            module_identifier: module.to_string(),
+            version: version.to_string(),
+        }
+    }
+
+    #[test]
+    fn refuses_removing_the_store_at_any_version() {
+        assert!(refuse_store_removal(&id("store", "1.6.1")).is_err());
+        assert!(refuse_store_removal(&id("store", "")).is_err());
+    }
+
+    #[test]
+    fn matches_the_store_id_exactly() {
+        assert!(refuse_store_removal(&id("bookmark", "0.4.0")).is_ok());
+        assert!(refuse_store_removal(&id("someone/store", "1.0.0")).is_ok());
+        assert!(refuse_store_removal(&id("store-theme", "1.0.0")).is_ok());
+    }
 }
