@@ -48,7 +48,7 @@ fn fetch_vault_body(url: &str) -> Result<String> {
         .map_err(|e| anyhow::anyhow!("cannot read vault {url}: {e}"))
 }
 
-const VAULT_CACHE_TTL: std::time::Duration = std::time::Duration::from_secs(5 * 60);
+const VAULT_CACHE_TTL: std::time::Duration = std::time::Duration::from_mins(5);
 
 fn vault_cache_path(config_root: &Path) -> std::path::PathBuf {
     config_root.join("cache").join("vault.json")
