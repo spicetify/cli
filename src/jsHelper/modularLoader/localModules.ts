@@ -139,6 +139,15 @@ export function removalPlan(state: { running: boolean; record: boolean; mapped: 
 	return "unload-and-revert";
 }
 
+// The store is the client's recovery surface: with it gone there is no way
+// to reinstall anything from inside the client, so a removal that would
+// leave no store behind at all is refused. Deleting a store override that a
+// staged copy backs is a revert, not an uninstall, and stays allowed.
+export function removalRefusal(id: string, hasStagedCopy: boolean): string | null {
+	if (id !== "store" || hasStagedCopy) return null;
+	return "the store cannot be uninstalled";
+}
+
 export function saveLocalModule(id: string, record: LocalModuleRecord): void {
 	localStorage.setItem(PREFIX + id, JSON.stringify(record));
 }

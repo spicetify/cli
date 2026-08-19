@@ -9,6 +9,7 @@ import {
 	localWins,
 	remapSource,
 	removalPlan,
+	removalRefusal,
 	saveLocalModule,
 } from "./localModules.ts";
 import { type BootReport, Registry } from "./registry.ts";
@@ -595,6 +596,8 @@ async function boot(): Promise<BootReport | null> {
 			mapped: registry.isMappedLocal(id),
 		});
 		if (plan === "nothing") return;
+		const refusal = removalRefusal(id, stagedMeta.has(id));
+		if (refusal) throw new Error(refusal);
 		// A mapped tree module's files are cached in the module graph; the
 		// removal lands, but the running code only reverts on restart.
 		if (plan === "requires-restart") {

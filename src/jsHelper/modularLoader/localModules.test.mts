@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { absolutizeLoaderUrls, isTreeRecord, localWins, remapSource, removalPlan, rewriteRelativeImports } from "./localModules.ts";
+import {
+	absolutizeLoaderUrls,
+	isTreeRecord,
+	localWins,
+	remapSource,
+	removalPlan,
+	removalRefusal,
+	rewriteRelativeImports,
+} from "./localModules.ts";
 
 describe("removalPlan", () => {
 	it("drops a shadowed record without unloading the staged copy that serves it", () => {
@@ -21,6 +29,21 @@ describe("removalPlan", () => {
 
 	it("does nothing when the id has no local anything", () => {
 		assert.equal(removalPlan({ running: false, record: false, mapped: false }), "nothing");
+	});
+});
+
+describe("removalRefusal", () => {
+	it("refuses to remove the store when no staged copy would remain", () => {
+		assert.equal(removalRefusal("store", false), "the store cannot be uninstalled");
+	});
+
+	it("allows reverting a store override to its staged copy", () => {
+		assert.equal(removalRefusal("store", true), null);
+	});
+
+	it("never blocks any other module", () => {
+		assert.equal(removalRefusal("bookmark", false), null);
+		assert.equal(removalRefusal("stdlib", false), null);
 	});
 });
 
