@@ -93,14 +93,21 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
                 crate::commands::pkg::registry_checksum(&id.module_identifier, &id.version)
                     .unwrap_or_default();
             if checksum.is_empty() {
-                // For any other module this degrades to an unverified
-                // install with a warning; for the store, an unverified
-                // replacement is an uninstall with extra steps, so it is
-                // refused outright.
-                if id.module_identifier == "store" {
+                // For an ordinary module this degrades to an unverified
+                // install with a warning. The system modules are refused
+                // outright: replacing the store unverified is an uninstall
+                // with extra steps, and the in-client stdlib update path
+                // promises that disk staging is registry-verified. An
+                // unreachable registry looks identical to an absent entry
+                // here, and refusing is the right answer for both.
+                const SYSTEM: &[&str] = &["stdlib", "store", "manager"];
+                if SYSTEM.contains(&id.module_identifier.as_str()) {
                     return Err(anyhow::anyhow!(fl!(
                         "protocol-error",
-                        err = "the store can only be installed from a registry-verified artifact"
+                        err = format!(
+                            "{} can only be installed from a registry-verified artifact",
+                            id.module_identifier
+                        )
                     )));
                 }
                 tracing::warn!(
