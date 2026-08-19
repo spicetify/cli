@@ -120,16 +120,19 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
         }
         ProtocolAction::Delete => {
             let id = require_id(&query)?;
+            refuse_store_removal(&id)?;
             module::delete(&paths, &id)?;
             Ok(())
         }
         ProtocolAction::Remove => {
             let id = require_id(&query)?;
+            refuse_store_removal(&id)?;
             module::remove_store(&paths, &id)?;
             Ok(())
         }
         ProtocolAction::FastDelete | ProtocolAction::FastRemove => {
             let id = require_id(&query)?;
+            refuse_store_removal(&id)?;
             let disable_id = module::vault::StoreIdentifier {
                 module_identifier: id.module_identifier.clone(),
                 version: String::new(),
@@ -160,6 +163,20 @@ fn set_updates_blocked(ctx: &AppContext, block: bool) -> Result<()> {
     super::updates::set_blocked(ctx, block)?;
     if was_running && !crate::lifecycle::is_running(ctx) {
         crate::lifecycle::start(ctx)?;
+    }
+    Ok(())
+}
+
+/// The store is the client's recovery surface: with it gone nothing can be
+/// reinstalled from inside the client, so protocol callers (page JS through
+/// the daemon socket, a `spicetify://` link) can never delete it. The
+/// terminal commands stay able to, as does deleting files by hand.
+fn refuse_store_removal(id: &module::vault::StoreIdentifier) -> Result<()> {
+    if id.module_identifier == "store" {
+        return Err(anyhow::anyhow!(fl!(
+            "protocol-error",
+            err = "the store cannot be uninstalled"
+        )));
     }
     Ok(())
 }
