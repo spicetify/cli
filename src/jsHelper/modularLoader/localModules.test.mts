@@ -33,17 +33,24 @@ describe("removalPlan", () => {
 });
 
 describe("removalRefusal", () => {
-	it("refuses to remove the store when no staged copy would remain", () => {
-		assert.equal(removalRefusal("store", false), "the store cannot be uninstalled");
+	it("refuses to remove the running store when no staged copy would remain", () => {
+		assert.match(removalRefusal("store", false, "unload-and-revert") ?? "", /cannot be uninstalled/);
+		assert.match(removalRefusal("store", false, "requires-restart") ?? "", /cannot be uninstalled/);
 	});
 
 	it("allows reverting a store override to its staged copy", () => {
-		assert.equal(removalRefusal("store", true), null);
+		assert.equal(removalRefusal("store", true, "unload-and-revert"), null);
+	});
+
+	it("allows clearing a dead store record that is not running", () => {
+		// A record that failed to parse or remap never ran; deleting it
+		// changes nothing live, and refusing would make it unremovable.
+		assert.equal(removalRefusal("store", false, "record-only"), null);
 	});
 
 	it("never blocks any other module", () => {
-		assert.equal(removalRefusal("bookmark", false), null);
-		assert.equal(removalRefusal("stdlib", false), null);
+		assert.equal(removalRefusal("bookmark", false, "unload-and-revert"), null);
+		assert.equal(removalRefusal("stdlib", false, "requires-restart"), null);
 	});
 });
 

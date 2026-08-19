@@ -596,7 +596,7 @@ async function boot(): Promise<BootReport | null> {
 			mapped: registry.isMappedLocal(id),
 		});
 		if (plan === "nothing") return;
-		const refusal = removalRefusal(id, stagedMeta.has(id));
+		const refusal = removalRefusal(id, stagedMeta.has(id), plan);
 		if (refusal) throw new Error(refusal);
 		// A mapped tree module's files are cached in the module graph; the
 		// removal lands, but the running code only reverts on restart.

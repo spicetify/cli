@@ -141,11 +141,13 @@ export function removalPlan(state: { running: boolean; record: boolean; mapped: 
 
 // The store is the client's recovery surface: with it gone there is no way
 // to reinstall anything from inside the client, so a removal that would
-// leave no store behind at all is refused. Deleting a store override that a
-// staged copy backs is a revert, not an uninstall, and stays allowed.
-export function removalRefusal(id: string, hasStagedCopy: boolean): string | null {
-	if (id !== "store" || hasStagedCopy) return null;
-	return "the store cannot be uninstalled";
+// take down the running store with nothing staged behind it is refused.
+// Two removals stay allowed: reverting an override a staged copy backs,
+// and clearing a "record-only" record, which is not running (a parse or
+// remap failure left it inert) and whose deletion changes nothing live.
+export function removalRefusal(id: string, hasStagedCopy: boolean, plan: RemovalPlan): string | null {
+	if (id !== "store" || hasStagedCopy || plan === "record-only") return null;
+	return "the store cannot be uninstalled from the client; use `spicetify pkg delete` in a terminal";
 }
 
 export function saveLocalModule(id: string, record: LocalModuleRecord): void {
