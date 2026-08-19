@@ -24,7 +24,10 @@ export const available = async () => {
 // A command whose reply never arrives is not necessarily a failure: `apply`
 // stops the client mid-request, so the socket dies before answering. Those
 // commands pass `expectReply: false` and resolve as soon as the send lands.
-export const send = (uri, { expectReply = true } = {}) =>
+// Long-running commands (a fast-enable downloading an artifact through
+// mirror fallbacks) pass their own `timeoutMs`; the default suits the
+// commands that answer immediately.
+export const send = (uri, { expectReply = true, timeoutMs = TIMEOUT_MS } = {}) =>
   new Promise((resolve, reject) => {
     const token = globalThis.__SPICETIFY_DAEMON_TOKEN__;
     if (!token) {
@@ -52,10 +55,7 @@ export const send = (uri, { expectReply = true } = {}) =>
       }
       fn(value);
     };
-    const timer = setTimeout(
-      () => finish(reject, new Error(`daemon did not answer ${uri} within ${TIMEOUT_MS}ms`)),
-      TIMEOUT_MS,
-    );
+    const timer = setTimeout(() => finish(reject, new Error(`daemon did not answer ${uri} within ${timeoutMs}ms`)), timeoutMs);
 
     socket.onopen = () => {
       socket.send(uri);
@@ -71,8 +71,7 @@ export const send = (uri, { expectReply = true } = {}) =>
     };
     // The daemon refuses the handshake for a bad token or a foreign origin,
     // and the browser reports both as a bare error with no status.
-    socket.onerror = () =>
-      finish(reject, new Error("daemon refused the connection (is it running, and is this a v3 apply?)"));
+    socket.onerror = () => finish(reject, new Error("daemon refused the connection (is it running, and is this a v3 apply?)"));
     socket.onclose = () => {
       if (expectReply) finish(reject, new Error("daemon closed the connection without answering"));
     };
