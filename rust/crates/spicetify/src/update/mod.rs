@@ -12,7 +12,11 @@ use tokio_stream::StreamExt;
 
 use crate::error::Result;
 
-const GITHUB_API: &str = "https://api.github.com/repos/spicetify/cli/releases/latest";
+// The release list, not `/releases/latest`: v3 ships as prereleases, which
+// that endpoint never returns (it serves the newest stable, still a v2 tag),
+// so self-update on a beta compared itself against v2 and always answered
+// "already up to date". install.sh lists releases for the same reason.
+const GITHUB_API: &str = "https://api.github.com/repos/spicetify/cli/releases?per_page=30";
 
 pub async fn check_for_update() -> Result<Option<ReleaseInfo>> {
     let client = crate::http::github_client()?;
@@ -21,13 +25,25 @@ pub async fn check_for_update() -> Result<Option<ReleaseInfo>> {
         .send()
         .await
         .and_then(reqwest::Response::error_for_status)
-        .context("failed to fetch latest release")?;
+        .context("failed to fetch the release list")?;
 
-    let release: ReleaseInfo = response.json().await.context("failed to parse release JSON")?;
+    let releases: Vec<ReleaseInfo> = response.json().await.context("failed to parse release JSON")?;
     let current = Version::parse(crate::VERSION).context("invalid current version")?;
-    let latest = Version::parse(&release.version()).context("invalid latest release version")?;
+    Ok(newest_release(releases, &current))
+}
 
-    if latest > current { Ok(Some(release)) } else { Ok(None) }
+/// The newest release by semver precedence when it is newer than `current`.
+/// Prereleases are candidates on purpose (they are the only v3 releases);
+/// semver already ranks `3.0.0` above `3.0.0-beta.*`, so once a stable v3
+/// exists it wins naturally, and the v2 era's tags lose on major.
+/// Unparsable tags are skipped.
+fn newest_release(releases: Vec<ReleaseInfo>, current: &Version) -> Option<ReleaseInfo> {
+    releases
+        .into_iter()
+        .filter_map(|release| Version::parse(&release.version()).ok().map(|v| (v, release)))
+        .max_by(|(a, _), (b, _)| a.cmp(b))
+        .filter(|(version, _)| version > current)
+        .map(|(_, release)| release)
 }
 
 #[derive(Debug)]
@@ -322,4 +338,47 @@ async fn fetch_and_verify_checksum(
 
     release::verify_checksum(archive_path, expected).context("checksum verification failed")?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn release(tag: &str) -> ReleaseInfo {
+        ReleaseInfo {
+            tag_name: tag.to_string(),
+            name: String::new(),
+            body: String::new(),
+            assets: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn offers_the_newest_prerelease_over_a_stable_v2() {
+        // The /releases/latest endpoint served v2.44.0 to v3 betas, which
+        // made every self-update a no-op; the list-based picker must rank
+        // the v3 prereleases above the v2 stables.
+        let current = Version::parse("3.0.0-beta.5").expect("current");
+        let picked = newest_release(
+            vec![release("v3.0.0-beta.7"), release("v2.44.0"), release("v3.0.0-beta.6")],
+            &current,
+        )
+        .expect("an update is offered");
+        assert_eq!(picked.tag_name, "v3.0.0-beta.7");
+    }
+
+    #[test]
+    fn stays_put_when_nothing_newer_exists() {
+        let current = Version::parse("3.0.0-beta.7").expect("current");
+        assert!(newest_release(vec![release("v3.0.0-beta.7"), release("v2.44.0")], &current).is_none());
+        assert!(newest_release(vec![release("not-a-version")], &current).is_none());
+    }
+
+    #[test]
+    fn a_stable_v3_wins_over_its_own_prereleases() {
+        let current = Version::parse("3.0.0-beta.7").expect("current");
+        let picked = newest_release(vec![release("v3.0.0"), release("v3.0.0-beta.9")], &current)
+            .expect("stable outranks beta");
+        assert_eq!(picked.tag_name, "v3.0.0");
+    }
 }
