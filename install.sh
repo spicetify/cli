@@ -159,7 +159,9 @@ check() {
 
     # Still checking again, in case touch command failed
     if [ -f "$shellrc" ]; then
-        if ! grep -q "$spicetify_install" "$shellrc"; then
+        # An entry written as $HOME/.spicetify (or ~/.spicetify) counts too;
+        # matching only the expanded path re-appends on every install.
+        if ! grep -Eq "(${spicetify_install}|\\\$HOME/\\.spicetify|~/\\.spicetify)" "$shellrc"; then
             log "APPENDING $spicetify_install to PATH in $shellrc"
             if ! endswith_newline "$shellrc"; then
                 echo >> "$shellrc"
