@@ -89,9 +89,12 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
             // Spicetify.Daemon, a spicetify:// link) could otherwise supply
             // the hash of its own bytes and have them verified against
             // themselves, which is no verification at all.
-            let checksum =
-                crate::commands::pkg::registry_checksum(&id.module_identifier, &id.version)
-                    .unwrap_or_default();
+            let checksum = crate::commands::pkg::registry_checksum(
+                &ctx.config_root,
+                &id.module_identifier,
+                &id.version,
+            )
+            .unwrap_or_default();
             if checksum.is_empty() {
                 // For an ordinary module this degrades to an unverified
                 // install with a warning. The system modules are refused

@@ -39,14 +39,76 @@ struct Vault {
     modules: BTreeMap<String, VaultModule>,
 }
 
-fn fetch_vault(url: &str) -> Result<Vault> {
-    let body = crate::http::vault_client()
+fn fetch_vault_body(url: &str) -> Result<String> {
+    crate::http::vault_client()
         .get(url)
         .send()
         .map_err(|e| anyhow::anyhow!("cannot fetch vault {url}: {e}"))?
         .text()
-        .map_err(|e| anyhow::anyhow!("cannot read vault {url}: {e}"))?;
-    serde_json::from_str(&body).map_err(|e| anyhow::anyhow!("malformed vault {url}: {e}"))
+        .map_err(|e| anyhow::anyhow!("cannot read vault {url}: {e}"))
+}
+
+const VAULT_CACHE_TTL: std::time::Duration = std::time::Duration::from_secs(5 * 60);
+
+fn vault_cache_path(config_root: &Path) -> std::path::PathBuf {
+    config_root.join("cache").join("vault.json")
+}
+
+/// The registry, served through a short-lived disk cache. A fresh cached
+/// copy skips the network entirely: `apply` is a recovery path and must not
+/// stall behind a hung fetch, and one store-driven update otherwise touches
+/// the vault up to three times (catalog, checksum, refresh). A failed fetch
+/// falls back to whatever is cached, however stale, with a warning, so an
+/// offline apply still evaluates the system modules instead of skipping.
+fn cached_vault(config_root: &Path) -> Result<Vault> {
+    vault_via_cache(
+        &vault_cache_path(config_root),
+        VAULT_CACHE_TTL,
+        std::time::SystemTime::now(),
+        || fetch_vault_body(DEFAULT_VAULT),
+    )
+}
+
+fn read_cached_vault(path: &Path) -> Option<Vault> {
+    serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()
+}
+
+fn vault_via_cache(
+    path: &Path,
+    ttl: std::time::Duration,
+    now: std::time::SystemTime,
+    fetch: impl FnOnce() -> Result<String>,
+) -> Result<Vault> {
+    let fresh = std::fs::metadata(path)
+        .and_then(|meta| meta.modified())
+        .ok()
+        .and_then(|modified| now.duration_since(modified).ok())
+        .is_some_and(|age| age <= ttl);
+    // A corrupt cache never satisfies a read, fresh or stale, so it simply
+    // falls through to the fetch.
+    if fresh && let Some(vault) = read_cached_vault(path) {
+        return Ok(vault);
+    }
+    match fetch() {
+        Ok(body) => {
+            let vault = serde_json::from_str(&body)
+                .map_err(|e| anyhow::anyhow!("malformed vault {DEFAULT_VAULT}: {e}"))?;
+            if let Some(dir) = path.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            if let Err(e) = std::fs::write(path, &body) {
+                tracing::warn!("cannot cache the vault at {}: {e}", path.display());
+            }
+            Ok(vault)
+        }
+        Err(e) => match read_cached_vault(path) {
+            Some(vault) => {
+                tracing::warn!("vault fetch failed ({e}); using the cached copy");
+                Ok(vault)
+            }
+            None => Err(e),
+        },
+    }
 }
 
 /// The pinned `enabled` version when the vault names one, otherwise the
@@ -122,7 +184,7 @@ const SYSTEM_MODULES: &[&str] = &["stdlib", "store", "manager"];
 /// because a client without its management surfaces cannot recover itself.
 pub(crate) fn ensure_system_modules(ctx: &AppContext) {
     let paths = crate::module::ModulePaths::from_config_root(&ctx.config_root);
-    let vault = match fetch_vault(DEFAULT_VAULT) {
+    let vault = match cached_vault(&ctx.config_root) {
         Ok(vault) => vault,
         Err(e) => {
             tracing::warn!("cannot check system modules against the registry: {e}");
@@ -182,11 +244,7 @@ fn local_intent_blocks(module: &crate::module::vault::Module) -> bool {
         None => has_installed,
         Some(pin) => {
             let Ok(pin) = semver::Version::parse(pin) else { return false };
-            module
-                .versions
-                .keys()
-                .filter_map(|v| semver::Version::parse(v).ok())
-                .any(|v| v > pin)
+            module.versions.keys().filter_map(|v| semver::Version::parse(v).ok()).any(|v| v > pin)
         }
     }
 }
@@ -227,7 +285,12 @@ fn should_stage(present: bool, installed: Option<&str>, target: &str, target_pin
     }
 }
 
-fn seed_system_module(ctx: &AppContext, id: &str, version: &str, entry: &VaultVersion) -> Result<()> {
+fn seed_system_module(
+    ctx: &AppContext,
+    id: &str,
+    version: &str,
+    entry: &VaultVersion,
+) -> Result<()> {
     if entry.artifacts.is_empty() {
         anyhow::bail!("{id}@{version} has no artifact");
     }
@@ -250,14 +313,18 @@ fn seed_system_module(ctx: &AppContext, id: &str, version: &str, entry: &VaultVe
 /// handler, and so anything in the client that reaches it) use this rather
 /// than a checksum handed to them, so the bytes are held to what was
 /// published rather than to whatever the caller claims they should hash to.
-pub(crate) fn registry_checksum(identifier: &str, version: &str) -> Option<String> {
-    let vault = fetch_vault(DEFAULT_VAULT).ok()?;
+pub(crate) fn registry_checksum(
+    config_root: &Path,
+    identifier: &str,
+    version: &str,
+) -> Option<String> {
+    let vault = cached_vault(config_root).ok()?;
     let entry = vault.modules.get(identifier)?.v.get(version)?;
     (!entry.checksum.is_empty()).then(|| entry.checksum.clone())
 }
 
 pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
-    let vault = fetch_vault(DEFAULT_VAULT)?;
+    let vault = cached_vault(&ctx.config_root)?;
     let Some(module) = vault.modules.get(identifier) else {
         let near: Vec<String> =
             vault.modules.keys().filter(|k| k.contains(identifier)).take(3).cloned().collect();
@@ -331,9 +398,61 @@ mod tests {
     #[test]
     fn leaves_current_and_developer_installs_alone() {
         assert!(!should_stage(true, Some("1.10.0"), "1.10.0", false), "current stays");
-        assert!(!should_stage(true, Some("1.11.0"), "1.10.0", false), "ahead of the registry stays");
+        assert!(
+            !should_stage(true, Some("1.11.0"), "1.10.0", false),
+            "ahead of the registry stays"
+        );
         assert!(!should_stage(true, None, "1.10.0", false), "a real directory is a dev build");
-        assert!(!should_stage(true, Some("not-semver"), "1.10.0", false), "garbage is not evidence");
+        assert!(
+            !should_stage(true, Some("not-semver"), "1.10.0", false),
+            "garbage is not evidence"
+        );
+    }
+
+    #[test]
+    fn the_vault_cache_short_circuits_refreshes_and_falls_back() {
+        use std::time::{Duration, SystemTime};
+        let dir = std::env::temp_dir().join(format!("spicetify-vaultcache-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let path = dir.join("vault.json");
+        let ttl = Duration::from_secs(300);
+        let body = |id: &str| format!(r#"{{"modules":{{"{id}":{{"v":{{"1.0.0":{{}}}}}}}}}}"#);
+
+        std::fs::write(&path, body("cached")).expect("seed cache");
+        let now = SystemTime::now();
+
+        let fresh = vault_via_cache(&path, ttl, now, || panic!("a fresh cache must not fetch"))
+            .expect("served from cache");
+        assert!(fresh.modules.contains_key("cached"));
+
+        let later = now + Duration::from_secs(600);
+        let refreshed =
+            vault_via_cache(&path, ttl, later, || Ok(body("fetched"))).expect("refetched");
+        assert!(refreshed.modules.contains_key("fetched"));
+        assert!(
+            std::fs::read_to_string(&path).expect("cache file").contains("fetched"),
+            "a successful fetch rewrites the cache"
+        );
+
+        let offline = vault_via_cache(&path, ttl, later + Duration::from_secs(600), || {
+            Err(anyhow::anyhow!("network down"))
+        })
+        .expect("stale fallback");
+        assert!(offline.modules.contains_key("fetched"), "a failed fetch serves the stale copy");
+
+        let missing = dir.join("absent.json");
+        assert!(
+            vault_via_cache(&missing, ttl, later, || Err(anyhow::anyhow!("network down"))).is_err(),
+            "no cache and no network is an error"
+        );
+
+        std::fs::write(&path, "not json").expect("corrupt cache");
+        let repaired = vault_via_cache(&path, ttl, SystemTime::now(), || Ok(body("repaired")))
+            .expect("corrupt cache refetches even while fresh");
+        assert!(repaired.modules.contains_key("repaired"));
+
+        std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 
     #[test]
@@ -402,7 +521,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).expect("temp config");
 
-        let vault = fetch_vault(DEFAULT_VAULT).expect("registry reachable");
+        let vault = cached_vault(&root).expect("registry reachable");
         let ctx = AppContext::from_config(root.clone(), &crate::context::Config::default())
             .expect("context");
         for id in SYSTEM_MODULES {
