@@ -88,10 +88,7 @@ Spicetify.Playbar = (() => {
   };
 
   void (async function waitForPlaybarMounted() {
-    rightContainer = await waitFor(
-      () => document.querySelector(".main-nowPlayingBar-right > div") ?? extraControlsRow(),
-      300,
-    );
+    rightContainer = await waitFor(() => document.querySelector(".main-nowPlayingBar-right > div") ?? extraControlsRow(), 300);
     for (const button of buttonsStash) {
       void addClassname(button);
     }
@@ -100,9 +97,7 @@ Spicetify.Playbar = (() => {
 
   async function addClassname(element) {
     const sibling = await waitFor(
-      () =>
-        document.querySelector(".main-nowPlayingBar-right .main-genericButton-button") ??
-        extraControlsRow()?.querySelector("button"),
+      () => document.querySelector(".main-nowPlayingBar-right .main-genericButton-button") ?? extraControlsRow()?.querySelector("button"),
       300,
     );
     if (!sibling) return;
