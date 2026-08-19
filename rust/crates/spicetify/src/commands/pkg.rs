@@ -50,7 +50,9 @@ fn fetch_vault(url: &str) -> Result<Vault> {
 }
 
 /// The pinned `enabled` version when the vault names one, otherwise the
-/// highest key. Mirrors the Go CLI's resolution.
+/// highest version by semver precedence. The map's own key order is
+/// lexicographic, which puts 1.7.0 above 1.10.0; a key that does not parse
+/// as semver ranks below every one that does.
 fn resolve_version(module: &VaultModule) -> Result<String> {
     if !module.enabled.is_empty() {
         if module.v.contains_key(&module.enabled) {
@@ -58,7 +60,12 @@ fn resolve_version(module: &VaultModule) -> Result<String> {
         }
         anyhow::bail!("enabled version {} is not in the vault", module.enabled);
     }
-    module.v.keys().next_back().cloned().ok_or_else(|| anyhow::anyhow!("no versions in the vault"))
+    module
+        .v
+        .keys()
+        .max_by_key(|k| semver::Version::parse(k).ok())
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("no versions in the vault"))
 }
 
 /// Installed modules, read from disk rather than the vault.
@@ -227,6 +234,12 @@ mod tests {
     fn falls_back_to_the_highest_version() {
         let m = module("", &["0.1.0", "0.2.0"]);
         assert_eq!(resolve_version(&m).expect("resolves"), "0.2.0");
+    }
+
+    #[test]
+    fn ranks_versions_by_semver_not_key_order() {
+        let m = module("", &["1.7.0", "1.10.0", "1.2.0"]);
+        assert_eq!(resolve_version(&m).expect("resolves"), "1.10.0");
     }
 
     #[test]
