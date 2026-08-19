@@ -12,12 +12,19 @@ pub struct ReleaseAsset {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ReleaseInfo {
     pub tag_name: String,
-    #[serde(default)]
+    // GitHub sends explicit `null` for a release created without a name or
+    // body (every workflow-cut v3 release), and `#[serde(default)]` alone
+    // only covers a MISSING field, so both need the null-tolerant path.
+    #[serde(default, deserialize_with = "null_as_default")]
     pub name: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_default")]
     pub body: String,
     #[serde(default)]
     pub assets: Vec<ReleaseAsset>,
+}
+
+fn null_as_default<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
+    Ok(Option::<String>::deserialize(deserializer)?.unwrap_or_default())
 }
 
 impl ReleaseInfo {
@@ -103,4 +110,27 @@ pub enum ChecksumError {
     Mismatch { expected: String, actual: String },
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deserializes_the_real_release_list_shape() {
+        // Trimmed from the live GitHub API: workflow-cut releases carry
+        // explicit nulls for name and body, which is what broke the first
+        // list-based self-update in the field.
+        let json = r#"[
+            {"tag_name": "v3.0.0-beta.8", "name": null, "body": null,
+             "assets": [{"name": "spicetify-3.0.0-beta.8-macos-aarch64.tar.gz",
+                         "browser_download_url": "https://example.com/a.tar.gz", "size": 1}]},
+            {"tag_name": "v2.44.0", "name": "v2.44.0", "body": "notes", "assets": []}
+        ]"#;
+        let releases: Vec<ReleaseInfo> = serde_json::from_str(json).expect("null fields tolerated");
+        assert_eq!(releases.len(), 2);
+        assert_eq!(releases[0].version(), "3.0.0-beta.8");
+        assert_eq!(releases[0].name, "");
+        assert_eq!(releases[1].body, "notes");
+    }
 }
