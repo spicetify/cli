@@ -104,50 +104,130 @@ pub(crate) fn list(ctx: &AppContext) -> Result<()> {
 /// and recovery surface. They are independently useful management surfaces.
 const SYSTEM_MODULES: &[&str] = &["stdlib", "store", "manager"];
 
-/// Which system modules are not present on disk. Absence is the signal: a
-/// disabled module keeps its directory, so this never re-seeds one the user
-/// turned off, and a deliberate `pkg delete` of a system module leaves a
-/// client that cannot manage itself, so bringing it back is recovery.
-fn missing_system_modules(modules_root: &Path) -> Vec<&'static str> {
-    SYSTEM_MODULES.iter().copied().filter(|id| !modules_root.join(id).exists()).collect()
-}
-
-/// Installs and enables any absent system module from the registry, so a fresh
-/// `apply` produces a client that can manage itself rather than a patched
-/// Spotify without one of its built-in management surfaces.
+/// Installs any absent system module and refreshes any outdated store-managed
+/// one from the registry, so every `apply` leaves a client that can manage
+/// itself over a current disk baseline. The baseline is what actually runs
+/// after a Spotify update: the new build changes the classmap key, which
+/// shadows every localStorage record until the store re-remaps them, and the
+/// window in between is served entirely from these copies.
 ///
 /// Best-effort by design, like the classmap fetch beside it: an unreachable
 /// vault or a failed download warns and leaves the rest of the apply to
-/// proceed, and a module already on disk is left alone for the store to
-/// update. Disk-backed on purpose, so the store's later updates (which shadow
-/// it through localStorage) always have a working version to fall back to.
+/// proceed. Only links into the store tree are ever replaced; a developer's
+/// real directory or a link into their own build output is never judged
+/// against the registry. Deliberate user intent recorded in the local vault
+/// wins over freshness: a module disabled while still installed stays off,
+/// and a hand-pin (an enabled version below one still installed) stays
+/// pinned; a `pkg delete`, which clears the installed flags, still re-seeds,
+/// because a client without its management surfaces cannot recover itself.
 pub(crate) fn ensure_system_modules(ctx: &AppContext) {
-    let modules_root = crate::module::modules_dir(&ctx.config_root);
-    let missing = missing_system_modules(&modules_root);
-    if missing.is_empty() {
-        return;
-    }
+    let paths = crate::module::ModulePaths::from_config_root(&ctx.config_root);
     let vault = match fetch_vault(DEFAULT_VAULT) {
         Ok(vault) => vault,
         Err(e) => {
-            tracing::warn!("cannot seed system modules ({}): {e}", missing.join(", "));
+            tracing::warn!("cannot check system modules against the registry: {e}");
             return;
         }
     };
-    for id in missing {
-        if let Err(e) = seed_system_module(ctx, &vault, id) {
-            tracing::warn!("could not seed system module {id}: {e}");
+    let intent = crate::module::vault::load(&paths.vault_path).unwrap_or_default();
+    for id in SYSTEM_MODULES {
+        if intent.modules.get(*id).is_some_and(local_intent_blocks) {
+            continue;
+        }
+        let present = paths.modules_root.join(id).exists();
+        let installed = store_managed_version(&paths.modules_root, &paths.store_root, id);
+        let Some(module) = vault.modules.get(*id) else {
+            tracing::warn!("system module {id} is not in the registry");
+            continue;
+        };
+        let target = match resolve_version(module) {
+            Ok(version) => version,
+            Err(e) => {
+                tracing::warn!("cannot resolve system module {id}: {e}");
+                continue;
+            }
+        };
+        if !should_stage(present, installed.as_deref(), &target, !module.enabled.is_empty()) {
+            continue;
+        }
+        let Some(entry) = module.v.get(&target) else {
+            tracing::warn!("system module {id}@{target} is not in the registry");
+            continue;
+        };
+        if let Err(e) = seed_system_module(ctx, id, &target, entry) {
+            tracing::warn!("could not stage system module {id}@{target}: {e}");
+            continue;
+        }
+        // The version this refresh just superseded would otherwise sit in
+        // the store tree forever, a megabyte per release.
+        if let Some(old) = installed.filter(|old| old != &target) {
+            let superseded = crate::module::vault::StoreIdentifier {
+                module_identifier: (*id).to_string(),
+                version: old,
+            };
+            if let Err(e) = crate::module::delete(&paths, &superseded) {
+                tracing::warn!("could not collect superseded {superseded}: {e}");
+            }
         }
     }
 }
 
-fn seed_system_module(ctx: &AppContext, vault: &Vault, id: &str) -> Result<()> {
-    let module = vault.modules.get(id).ok_or_else(|| anyhow::anyhow!("not in the registry"))?;
-    let version = resolve_version(module)?;
-    let entry = module
-        .v
-        .get(&version)
-        .ok_or_else(|| anyhow::anyhow!("{version} is not in the registry"))?;
+/// Whether the local vault records intent this refresh must not override:
+/// disabled while still installed, or pinned to an enabled version below one
+/// that is still installed (the only way a downgrade comes about by hand).
+/// A deleted module has no installed versions left and is fair game.
+fn local_intent_blocks(module: &crate::module::vault::Module) -> bool {
+    let has_installed = module.versions.values().any(|store| store.installed);
+    match &module.enabled {
+        None => has_installed,
+        Some(pin) => {
+            let Ok(pin) = semver::Version::parse(pin) else { return false };
+            module
+                .versions
+                .keys()
+                .filter_map(|v| semver::Version::parse(v).ok())
+                .any(|v| v > pin)
+        }
+    }
+}
+
+/// The version behind `modules_root/<id>` when it is a store-managed link:
+/// such a link resolves into `store/<id>/<version>`, so the resolved
+/// directory name is the version. Anything else (a real directory, a link
+/// into a developer's build output, a dangling link) resolves elsewhere or
+/// not at all and yields `None`.
+fn store_managed_version(modules_root: &Path, store_root: &Path, id: &str) -> Option<String> {
+    let resolved = std::fs::canonicalize(modules_root.join(id)).ok()?;
+    let store = std::fs::canonicalize(store_root.join(id)).ok()?;
+    if !resolved.starts_with(&store) {
+        return None;
+    }
+    Some(resolved.file_name()?.to_str()?.to_string())
+}
+
+/// Whether the registry's `target` should replace what is on disk: an absent
+/// module is always staged; a store-managed one for a strictly newer semver,
+/// or for any different version when the registry pins `target` (a pin is a
+/// maintainer rolling a bad release back, the one case where moving
+/// backwards is right). `installed: None` on a present module is not
+/// store-managed and is never replaced.
+fn should_stage(present: bool, installed: Option<&str>, target: &str, target_pinned: bool) -> bool {
+    if !present {
+        return true;
+    }
+    let Some(installed) = installed else { return false };
+    match (semver::Version::parse(target), semver::Version::parse(installed)) {
+        (Ok(target), Ok(installed)) => {
+            if target_pinned {
+                return target != installed;
+            }
+            target > installed
+        }
+        _ => false,
+    }
+}
+
+fn seed_system_module(ctx: &AppContext, id: &str, version: &str, entry: &VaultVersion) -> Result<()> {
     if entry.artifacts.is_empty() {
         anyhow::bail!("{id}@{version} has no artifact");
     }
@@ -159,7 +239,7 @@ fn seed_system_module(ctx: &AppContext, vault: &Vault, id: &str) -> Result<()> {
         entry.checksum.clone(),
     )?;
     crate::module::enable_module(&ctx.config_root, &tag)?;
-    tracing::info!("seeded system module {tag}");
+    tracing::info!("staged system module {tag}");
     Ok(())
 }
 
@@ -243,6 +323,65 @@ mod tests {
     }
 
     #[test]
+    fn stages_absent_and_outdated_store_managed_modules() {
+        assert!(should_stage(false, None, "1.10.0", false), "absent is always seeded");
+        assert!(should_stage(true, Some("1.5.2"), "1.10.0", false), "stale baseline refreshes");
+    }
+
+    #[test]
+    fn leaves_current_and_developer_installs_alone() {
+        assert!(!should_stage(true, Some("1.10.0"), "1.10.0", false), "current stays");
+        assert!(!should_stage(true, Some("1.11.0"), "1.10.0", false), "ahead of the registry stays");
+        assert!(!should_stage(true, None, "1.10.0", false), "a real directory is a dev build");
+        assert!(!should_stage(true, Some("not-semver"), "1.10.0", false), "garbage is not evidence");
+    }
+
+    #[test]
+    fn a_registry_pin_moves_the_install_in_either_direction() {
+        assert!(should_stage(true, Some("1.10.1"), "1.10.0", true), "a pin is a rollback signal");
+        assert!(!should_stage(true, Some("1.10.0"), "1.10.0", true), "already on the pin");
+    }
+
+    fn intent(enabled: Option<&str>, versions: &[(&str, bool)]) -> crate::module::vault::Module {
+        crate::module::vault::Module {
+            enabled: enabled.map(str::to_string),
+            versions: versions
+                .iter()
+                .map(|(v, installed)| {
+                    (
+                        (*v).to_string(),
+                        crate::module::Store {
+                            installed: *installed,
+                            artifacts: Vec::new(),
+                            checksum: String::new(),
+                        },
+                    )
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn honours_disable_and_hand_pins_but_not_deletion() {
+        assert!(
+            local_intent_blocks(&intent(None, &[("1.10.0", true)])),
+            "disabled while installed stays off"
+        );
+        assert!(
+            !local_intent_blocks(&intent(None, &[("1.10.0", false)])),
+            "a deleted module is recovery, not intent"
+        );
+        assert!(
+            local_intent_blocks(&intent(Some("1.7.0"), &[("1.7.0", true), ("1.10.0", true)])),
+            "an enabled version below an installed newer one is a hand pin"
+        );
+        assert!(
+            !local_intent_blocks(&intent(Some("1.10.0"), &[("1.10.0", true)])),
+            "enabled at the newest installed version is the normal state"
+        );
+    }
+
+    #[test]
     fn rejects_a_pin_that_is_not_in_the_vault() {
         let m = module("9.9.9", &["1.0.0"]);
         assert!(resolve_version(&m).is_err());
@@ -267,7 +406,10 @@ mod tests {
         let ctx = AppContext::from_config(root.clone(), &crate::context::Config::default())
             .expect("context");
         for id in SYSTEM_MODULES {
-            let result = seed_system_module(&ctx, &vault, id);
+            let module = vault.modules.get(*id).expect("registry carries every system module");
+            let version = resolve_version(module).expect("resolvable");
+            let entry = module.v.get(&version).expect("resolved version has an entry");
+            let result = seed_system_module(&ctx, id, &version, entry);
             assert!(result.is_ok(), "seed {id}: {:?}", result.err());
         }
 
@@ -277,39 +419,54 @@ mod tests {
             assert!(link.exists(), "{id} enabled and reachable through modules/");
             assert!(link.join("metadata.json").is_file(), "{id} unpacked with its metadata");
         }
-        assert!(missing_system_modules(&modules_root).is_empty(), "nothing left to seed");
+        let paths = crate::module::ModulePaths::from_config_root(&root);
+        for id in SYSTEM_MODULES {
+            assert!(
+                store_managed_version(&paths.modules_root, &paths.store_root, id).is_some(),
+                "{id} is store-managed after seeding"
+            );
+        }
 
         std::fs::remove_dir_all(&root).expect("cleanup");
     }
 
     #[test]
-    fn seeds_only_the_system_modules_that_are_absent() {
-        let dir = std::env::temp_dir().join(format!("spicetify-seed-{}", std::process::id()));
+    fn recognises_store_managed_installs_by_their_resolved_path() {
+        let dir = std::env::temp_dir().join(format!("spicetify-managed-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).expect("temp dir");
+        let modules = dir.join("modules");
+        let store = dir.join("store");
+        std::fs::create_dir_all(modules.join("manager")).expect("real dir");
+        std::fs::create_dir_all(store.join("stdlib").join("1.10.0")).expect("store copy");
+        std::fs::create_dir_all(store.join("store")).expect("store dir without an install");
+        std::fs::create_dir_all(dir.join("dist").join("store@dev")).expect("dev build");
+        crate::util::link::create_dir_link(
+            &store.join("stdlib").join("1.10.0"),
+            &modules.join("stdlib"),
+        )
+        .expect("store link");
+        crate::util::link::create_dir_link(
+            &dir.join("dist").join("store@dev"),
+            &modules.join("store"),
+        )
+        .expect("dev link");
 
+        assert_eq!(store_managed_version(&modules, &store, "stdlib").as_deref(), Some("1.10.0"));
         assert_eq!(
-            missing_system_modules(&dir),
-            vec!["stdlib", "store", "manager"],
-            "a fresh config needs every management surface"
+            store_managed_version(&modules, &store, "manager"),
+            None,
+            "a real directory is a developer's build"
         );
-
-        std::fs::create_dir_all(dir.join("stdlib")).expect("stdlib dir");
         assert_eq!(
-            missing_system_modules(&dir),
-            vec!["store", "manager"],
-            "an installed module is left alone"
+            store_managed_version(&modules, &store, "store"),
+            None,
+            "a link outside the store tree is a developer's build"
         );
-
-        std::fs::create_dir_all(dir.join("store")).expect("store dir");
         assert_eq!(
-            missing_system_modules(&dir),
-            vec!["manager"],
-            "manager is a system module in its own right"
+            store_managed_version(&modules, &store, "bookmark"),
+            None,
+            "absent resolves to nothing"
         );
-
-        std::fs::create_dir_all(dir.join("manager")).expect("manager dir");
-        assert!(missing_system_modules(&dir).is_empty(), "nothing to seed once all exist");
 
         std::fs::remove_dir_all(&dir).expect("cleanup");
     }
