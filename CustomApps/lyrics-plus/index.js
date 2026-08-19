@@ -72,8 +72,8 @@ const CONFIG = {
 	providers: {
 		lrclib: {
 			on: getConfig("lyrics-plus:provider:lrclib:on"),
-			desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
-			modes: [SYNCED, UNSYNCED],
+			desc: "Lyrics sourced from lrclib.net. Supports karaoke, synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
+			modes: [KARAOKE, SYNCED, UNSYNCED],
 		},
 		musixmatch: {
 			on: getConfig("lyrics-plus:provider:musixmatch:on"),
