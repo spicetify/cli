@@ -172,9 +172,18 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
         // apply stops and relaunches the client, so a caller inside it is
         // killed before any reply reaches it. That is expected: treat it as
         // fire-and-forget rather than waiting on a response.
-        ProtocolAction::Apply => super::apply::run(ctx),
-        ProtocolAction::BlockUpdates => set_updates_blocked(ctx, true),
-        ProtocolAction::UnblockUpdates => set_updates_blocked(ctx, false),
+        ProtocolAction::Apply => {
+            let guard = super::guard::try_acquire(&ctx.config_root)?;
+            super::apply::run(ctx, &guard)
+        }
+        ProtocolAction::BlockUpdates => {
+            let _guard = super::guard::try_acquire(&ctx.config_root)?;
+            set_updates_blocked(ctx, true)
+        }
+        ProtocolAction::UnblockUpdates => {
+            let _guard = super::guard::try_acquire(&ctx.config_root)?;
+            set_updates_blocked(ctx, false)
+        }
     }
 }
 

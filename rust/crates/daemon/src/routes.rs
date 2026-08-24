@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use axum::Json;
 use axum::Router;
 use axum::extract::State;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
@@ -12,6 +13,7 @@ use tokio_stream::StreamExt;
 use tower_http::cors::{AllowHeaders, AllowOrigin, CorsLayer, ExposeHeaders};
 
 use crate::server::DaemonState;
+use crate::update_job::RendererEvent;
 use crate::{health, proxy};
 
 pub const ALLOWED_ORIGIN: &str = "https://xpui.app.spotify.com";
@@ -104,11 +106,50 @@ pub fn build(state: Arc<DaemonState>) -> Router {
         .route("/rpc", get(ws_handler))
         .route("/window-controls", get(window_controls_handler))
         .route("/shutdown", post(shutdown_handler))
+        .route("/jobs/update-and-apply", get(update_job_status).post(update_job_admit))
+        .route("/jobs/update-and-apply/event", post(update_job_event))
         .route("/proxy", get(proxy::status))
         .route("/proxy/", get(proxy::status))
         .route("/proxy/{*url}", any(proxy::handler))
         .layer(cors_layer())
         .with_state(state)
+}
+
+async fn update_job_status(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    if !authorized(&state, &headers) {
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+    }
+    (StatusCode::OK, Json(state.update_job.status())).into_response()
+}
+
+async fn update_job_admit(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    if !authorized(&state, &headers) {
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+    }
+    match state.update_job.admit().await {
+        Ok(admission) => (StatusCode::ACCEPTED, Json(admission)).into_response(),
+        Err(message) => (StatusCode::CONFLICT, message).into_response(),
+    }
+}
+
+async fn update_job_event(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+    Json(event): Json<RendererEvent>,
+) -> impl IntoResponse {
+    if !authorized(&state, &headers) {
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+    }
+    match state.update_job.renderer_event(event).await {
+        Ok(ack) => (StatusCode::OK, Json(ack)).into_response(),
+        Err(message) => (StatusCode::CONFLICT, message).into_response(),
+    }
 }
 
 async fn ws_handler(

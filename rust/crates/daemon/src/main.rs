@@ -7,6 +7,7 @@ pub mod health;
 pub mod proxy;
 pub mod routes;
 pub mod server;
+pub mod update_job;
 pub mod watcher;
 #[cfg(windows)]
 mod window_controls;

@@ -12,9 +12,12 @@
 #[path = "updates_windows.rs"]
 mod windows;
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", test))]
+use std::ffi::OsStr;
+#[cfg(any(target_os = "macos", test))]
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::context::AppContext;
 use crate::error::Result;
@@ -93,16 +96,24 @@ fn patch_update_endpoint(raw: &mut [u8], block: bool) -> bool {
     changed
 }
 
-/// macOS uses the bundle's `MacOS` binary rather than the resource directory.
+/// The client executable to patch. On macOS the launchable binary lives in
+/// the bundle's `MacOS` directory, not beside the resources the data dir points
+/// at, so resolve it rather than trusting the configured exec path.
 fn spotify_binary(ctx: &AppContext) -> PathBuf {
     #[cfg(target_os = "macos")]
     {
-        let candidate = ctx.spotify_data_dir.join("..").join("MacOS").join("Spotify");
-        if candidate.exists() {
+        if let Some(candidate) = macos_spotify_binary_path(&ctx.spotify_data_dir)
+            && candidate.exists()
+        {
             return candidate;
         }
     }
     ctx.spotify_exec.clone()
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn macos_spotify_binary_path(data_dir: &Path) -> Option<PathBuf> {
+    Some(data_dir.parent()?.join("MacOS").join("Spotify"))
 }
 
 /// A missing endpoint is unknown, not evidence that a block was applied.
@@ -159,6 +170,47 @@ fn remember(ctx: &AppContext, block: bool) {
     if let Err(e) = cfg.save(&ctx.config_file) {
         tracing::warn!(error = %e, "could not record the update policy; it will not survive a Spotify update");
     }
+}
+
+/// Persist and verify the durable update intent. Unlike the legacy terminal
+/// helper this is strict: an acknowledged update job must not open a temporary
+/// updater aperture unless the replacement will be re-blocked after restart.
+pub fn persist_block_intent(ctx: &AppContext) -> Result<()> {
+    let mut cfg = crate::context::Config::load(&ctx.config_file)?;
+    cfg.block_spotify_updates = Some(true);
+    cfg.save(&ctx.config_file)?;
+    let verified = crate::context::Config::load(&ctx.config_file)?;
+    if verified.block_spotify_updates != Some(true) {
+        anyhow::bail!("could not verify block_spotify_updates = true in config.toml");
+    }
+    Ok(())
+}
+
+/// Reversible admission probe for every bundle location the transaction will
+/// mutate. Opening the executable writable catches macOS App Management/TCC
+/// denials before Spotify is stopped; the sibling probe catches apply's Apps
+/// tree writes without changing the installed archive.
+pub fn preflight_mutation(ctx: &AppContext) -> Result<()> {
+    let binary = spotify_binary(ctx);
+    let binary_file = std::fs::OpenOptions::new()
+        .write(true)
+        .open(&binary)
+        .map_err(|e| anyhow::anyhow!("cannot modify {}: {e}", binary.display()))?;
+    drop(binary_file);
+
+    let apps = ctx.spotify_apps_path();
+    std::fs::create_dir_all(&apps)?;
+    let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
+    let probe = apps.join(format!(".spicetify-update-preflight-{}-{nonce}", std::process::id()));
+    let probe_file = std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&probe)
+        .map_err(|e| anyhow::anyhow!("cannot modify {}: {e}", apps.display()))?;
+    drop(probe_file);
+    std::fs::remove_file(&probe)
+        .map_err(|e| anyhow::anyhow!("cannot remove mutation probe {}: {e}", probe.display()))?;
+    Ok(())
 }
 
 /// Re-applies a remembered block. A Spotify update replaces the binary the
@@ -230,11 +282,15 @@ fn set_binary_blocked(ctx: &AppContext, block: bool) -> Result<()> {
         }
         set_cache_lock(block);
     }
-    #[cfg(not(target_os = "macos"))]
-    let _ = original;
-
     tracing::info!("{} Spotify updates", if block { "Disabled" } else { "Enabled" });
     Ok(())
+}
+
+/// Changes only the installed binary. The durable intent is deliberately not
+/// touched: update jobs briefly open this aperture while keeping the user's
+/// requested block true in config.
+pub fn set_blocked_temporarily(ctx: &AppContext, block: bool) -> Result<()> {
+    set_blocked(ctx, block)
 }
 
 /// Toggles the immutable flag on Spotify's update cache directory. Current
@@ -253,15 +309,105 @@ fn set_cache_lock(block: bool) {
 
 #[cfg(target_os = "macos")]
 fn codesign_bundle(binary: &Path) -> Result<()> {
-    let bundle = binary.join("..").join("..").join("..");
+    let bundle = spotify_bundle_for_binary(binary)?;
+    // The updater's ticket vouches for Spotify's Developer ID signature.
+    // `codesign --force` replaces that signature but leaves the now-mismatched
+    // ticket behind, which Gatekeeper reports as altered software.
+    remove_stale_stapled_ticket(&bundle)?;
     let out = std::process::Command::new("codesign")
         .args(["--force", "--deep", "--sign", "-"])
         .arg(&bundle)
         .output()?;
-    if out.status.success() {
+    if !out.status.success() {
+        return Err(anyhow::anyhow!("{}", String::from_utf8_lossy(&out.stderr).trim()));
+    }
+    Ok(())
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn spotify_bundle_for_binary(binary: &Path) -> Result<PathBuf> {
+    let macos = binary.parent();
+    let contents = macos.and_then(Path::parent);
+    let bundle = contents.and_then(Path::parent);
+    match (macos, contents, bundle) {
+        (Some(macos), Some(contents), Some(bundle))
+            if macos.file_name() == Some(OsStr::new("MacOS"))
+                && contents.file_name() == Some(OsStr::new("Contents"))
+                && bundle.extension() == Some(OsStr::new("app")) =>
+        {
+            Ok(bundle.to_path_buf())
+        }
+        _ => anyhow::bail!(
+            "Spotify executable is not inside an expected .app/Contents/MacOS bundle: {}",
+            binary.display()
+        ),
+    }
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn remove_stale_stapled_ticket(bundle: &Path) -> Result<()> {
+    let ticket = bundle.join("Contents").join("CodeResources");
+    match std::fs::remove_file(&ticket) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(anyhow::anyhow!(
+            "could not remove stale notarization ticket {}: {e}",
+            ticket.display()
+        )),
+    }
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn gatekeeper_scan_result(success: bool, stdout: &str, stderr: &str) -> Result<()> {
+    if success {
         return Ok(());
     }
-    Err(anyhow::anyhow!("{}", String::from_utf8_lossy(&out.stderr).trim()))
+    let detail = if stderr.trim().is_empty() { stdout.trim() } else { stderr.trim() };
+    anyhow::bail!("the completed Spotify bundle failed Gatekeeper policy: {detail}")
+}
+
+#[cfg(target_os = "macos")]
+fn verify_gatekeeper_policy(bundle: &Path) -> Result<()> {
+    let scanner = Path::new("/usr/bin/gktool");
+    if !scanner.is_file() {
+        tracing::debug!("gktool is unavailable; skipping the Gatekeeper policy preflight");
+        return Ok(());
+    }
+    tracing::info!(bundle = %bundle.display(), "verifying the completed Spotify bundle against Gatekeeper policy");
+    let out = std::process::Command::new(scanner).arg("scan").arg(bundle).output()?;
+    gatekeeper_scan_result(
+        out.status.success(),
+        &String::from_utf8_lossy(&out.stdout),
+        &String::from_utf8_lossy(&out.stderr),
+    )
+}
+
+/// `apply` modifies sealed resources after the endpoint patch was signed.
+/// Re-seal the finished bundle and verify it before launch; otherwise a newly
+/// downloaded app is rejected as damaged even though the executable patch
+/// itself was signed successfully.
+#[cfg(target_os = "macos")]
+pub fn finalize_app_signature(ctx: &AppContext) -> Result<()> {
+    let binary = spotify_binary(ctx);
+    codesign_bundle(&binary)?;
+    let bundle = spotify_bundle_for_binary(&binary)?;
+
+    let out = std::process::Command::new("codesign")
+        .args(["--verify", "--deep", "--strict"])
+        .arg(&bundle)
+        .output()?;
+    if !out.status.success() {
+        return Err(anyhow::anyhow!(
+            "the completed Spotify bundle did not pass signature verification: {}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        ));
+    }
+    verify_gatekeeper_policy(&bundle)
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn finalize_app_signature(_ctx: &AppContext) -> Result<()> {
+    Ok(())
 }
 
 pub(crate) fn status(ctx: &AppContext) -> Result<()> {
@@ -284,10 +430,7 @@ mod tests {
         std::fs::create_dir_all(&root).expect("fixture directory");
         let launcher = root.join("Spotify.exe");
         std::fs::write(&launcher, b"").expect("fixture executable");
-        let cfg = crate::context::Config {
-            spotify_exec: Some(launcher),
-            ..Default::default()
-        };
+        let cfg = crate::context::Config { spotify_exec: Some(launcher), ..Default::default() };
         AppContext::from_config(root, &cfg).expect("fixture context")
     }
 
@@ -349,6 +492,73 @@ mod tests {
         let mut raw = image(ENDPOINT_LIVE);
         assert!(patch_update_endpoint(&mut raw, true));
         assert!(!patch_update_endpoint(&mut raw, true), "already blocked: nothing to change");
+    }
+
+    #[test]
+    fn removes_only_the_stale_stapled_notarization_ticket() {
+        let root = std::env::temp_dir().join(format!(
+            "spicetify-stapled-ticket-test-{}-{}",
+            std::process::id(),
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        let contents = root.join("Spotify.app/Contents");
+        let signature = contents.join("_CodeSignature");
+        std::fs::create_dir_all(&signature).unwrap();
+        let ticket = contents.join("CodeResources");
+        let resource_seal = signature.join("CodeResources");
+        std::fs::write(&ticket, b"stale notarization ticket").unwrap();
+        std::fs::write(&resource_seal, b"active resource seal").unwrap();
+
+        remove_stale_stapled_ticket(&root.join("Spotify.app")).unwrap();
+
+        assert!(!ticket.exists(), "the stale top-level ticket must be removed");
+        assert_eq!(std::fs::read(&resource_seal).unwrap(), b"active resource seal");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn rejects_gatekeeper_policy_failure_even_after_codesign() {
+        let error = gatekeeper_scan_result(
+            false,
+            "Scan completed, but failed because the software has been altered.",
+            "",
+        )
+        .unwrap_err();
+
+        assert!(error.to_string().contains("software has been altered"));
+    }
+
+    #[test]
+    fn derives_the_bundle_without_traversing_through_the_executable() {
+        let binary = Path::new("/Applications/Spotify.app/Contents/MacOS/Spotify");
+        assert_eq!(
+            spotify_bundle_for_binary(binary).unwrap(),
+            Path::new("/Applications/Spotify.app")
+        );
+    }
+
+    #[test]
+    fn refuses_to_sign_outside_the_expected_app_bundle_layout() {
+        for binary in [
+            Path::new("/Applications/Spotify.app/MacOS/Spotify"),
+            Path::new("/Applications/Spotify/Contents/MacOS/Spotify"),
+            Path::new("/tmp/Contents/Resources/Spotify"),
+        ] {
+            assert!(
+                spotify_bundle_for_binary(binary).is_err(),
+                "unexpectedly accepted {}",
+                binary.display()
+            );
+        }
+    }
+
+    #[test]
+    fn derives_the_macos_binary_without_parent_segments() {
+        let data_dir = Path::new("/Applications/Spotify.app/Contents/Resources");
+        assert_eq!(
+            macos_spotify_binary_path(data_dir).unwrap(),
+            Path::new("/Applications/Spotify.app/Contents/MacOS/Spotify")
+        );
     }
 
     #[test]

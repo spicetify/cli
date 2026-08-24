@@ -38,7 +38,10 @@ fn fs_err<'a>(doing: &'a str, path: &'a Path) -> impl FnOnce(std::io::Error) -> 
     move |e| anyhow::anyhow!("{doing} {}: {e}", path.display())
 }
 
-pub(crate) fn run(ctx: &AppContext) -> Result<()> {
+pub fn run(
+    ctx: &AppContext,
+    _operation_guard: &super::guard::DisruptiveOperationGuard,
+) -> Result<()> {
     let _apply_lock = acquire_apply_lock(&ctx.config_root)?;
     let dest_apps = ctx.dest_apps_path();
     let spa = ctx.spotify_apps_path().join("xpui.spa");
@@ -168,6 +171,11 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     }
     std::fs::rename(&tmp, &dest_xpui)
         .map_err(fs_err("installing the patched client to", &dest_xpui))?;
+
+    // The update block's endpoint patch is signed while modules are staged,
+    // before xpui.tmp replaces the served tree. Seal and verify the final
+    // bundle, not that intermediate resource set.
+    super::updates::finalize_app_signature(ctx)?;
 
     ensure_daemon(ctx);
 
@@ -408,19 +416,64 @@ fn patch_index(ctx: &AppContext, dest: &Path) -> Result<()> {
 }
 
 // Modules are staged (copied and classmap-remapped) rather than linked, so
-// `modules` is deliberately absent here: see stage_modules.
+// `modules` is deliberately absent here: see stage_modules. macOS also needs
+// the store snapshot copied: a sealed app bundle cannot point at resources
+// outside itself through a symlink and still pass Gatekeeper validation.
 fn link_runtime_dirs(config_root: &Path, dest: &Path) -> Result<()> {
     let src = config_root.join("store");
     let dst = dest.join("store");
+    if !src.exists() {
+        std::fs::create_dir_all(&src).map_err(fs_err("creating", &src))?;
+    }
+    stage_runtime_dir(&src, &dst)?;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn stage_runtime_dir(src: &Path, dst: &Path) -> Result<()> {
+    tracing::info!(src = %src.display(), dst = %dst.display(), "copying runtime directory into the signed app bundle");
+    copy_dir_snapshot(src, dst, &mut std::collections::HashSet::new())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn stage_runtime_dir(src: &Path, dst: &Path) -> Result<()> {
     tracing::info!(
         "{}",
         fl!("linking-dir", dst = dst.to_string_lossy(), src = src.to_string_lossy())
     );
-    if !src.exists() {
-        std::fs::create_dir_all(&src).map_err(fs_err("creating", &src))?;
+    util::create_dir_link(src, dst)
+}
+
+#[cfg(target_os = "macos")]
+fn copy_dir_snapshot(
+    src: &Path,
+    dst: &Path,
+    ancestors: &mut std::collections::HashSet<PathBuf>,
+) -> Result<()> {
+    let canonical = std::fs::canonicalize(src).map_err(fs_err("resolving", src))?;
+    if !ancestors.insert(canonical.clone()) {
+        anyhow::bail!("runtime directory contains a symlink cycle at {}", src.display());
     }
-    util::create_dir_link(&src, &dst)?;
-    Ok(())
+    std::fs::create_dir_all(dst).map_err(fs_err("creating", dst))?;
+    let result = (|| {
+        for entry in std::fs::read_dir(src).map_err(fs_err("reading", src))? {
+            let entry = entry.map_err(fs_err("reading an entry under", src))?;
+            let source = entry.path();
+            let target = dst.join(entry.file_name());
+            let metadata = std::fs::metadata(&source).map_err(fs_err("resolving", &source))?;
+            if metadata.is_dir() {
+                copy_dir_snapshot(&source, &target, ancestors)?;
+            } else if metadata.is_file() {
+                let _bytes = std::fs::copy(&source, &target)
+                    .map_err(fs_err("copying into the signed app bundle at", &target))?;
+            } else {
+                anyhow::bail!("unsupported runtime entry at {}", source.display());
+            }
+        }
+        Ok(())
+    })();
+    debug_assert!(ancestors.remove(&canonical));
+    result
 }
 
 // The wrapper and loader the patched index.html loads: the embedded copy,
@@ -434,7 +487,7 @@ fn stage_payload(config_root: &Path, dest: &Path) -> Result<()> {
             path = %local.display(),
             "using a local developer payload instead of the embedded one"
         );
-        util::create_dir_link(&local, &hooks)?;
+        stage_runtime_dir(&local, &hooks)?;
         return Ok(());
     }
 
@@ -564,7 +617,9 @@ mod tests {
 
         let (tx, rx) = std::sync::mpsc::channel();
         let apply = std::thread::spawn(move || {
-            tx.send(run(&ctx)).expect("test receiver remains available");
+            let guard = super::super::guard::try_acquire(&ctx.config_root)
+                .expect("synthetic apply owns the disruptive-operation guard");
+            tx.send(run(&ctx, &guard)).expect("test receiver remains available");
         });
         assert!(
             rx.recv_timeout(std::time::Duration::from_millis(100)).is_err(),
@@ -580,5 +635,30 @@ mod tests {
 
         apply.join().expect("waiting apply thread exits");
         std::fs::remove_dir_all(&root).expect("cleanup temp config root");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn rejects_a_runtime_directory_symlink_cycle() {
+        use std::os::unix::fs::symlink;
+
+        let root = std::env::temp_dir().join(format!(
+            "spicetify-runtime-cycle-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        let src = root.join("src");
+        let nested = src.join("nested");
+        std::fs::create_dir_all(&nested).expect("runtime fixture");
+        symlink(&src, nested.join("back-to-root")).expect("cycle symlink");
+
+        let error = stage_runtime_dir(&src, &root.join("dst"))
+            .expect_err("a cycle must fail before recursively expanding it");
+        assert!(error.to_string().contains("symlink cycle"), "unexpected error: {error:#}");
+
+        std::fs::remove_dir_all(root).expect("cleanup runtime fixture");
     }
 }
