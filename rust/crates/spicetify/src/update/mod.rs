@@ -27,7 +27,8 @@ pub async fn check_for_update() -> Result<Option<ReleaseInfo>> {
         .and_then(reqwest::Response::error_for_status)
         .context("failed to fetch the release list")?;
 
-    let releases: Vec<ReleaseInfo> = response.json().await.context("failed to parse release JSON")?;
+    let releases: Vec<ReleaseInfo> =
+        response.json().await.context("failed to parse release JSON")?;
     let current = Version::parse(crate::VERSION).context("invalid current version")?;
     Ok(newest_release(releases, &current))
 }
@@ -370,7 +371,9 @@ mod tests {
     #[test]
     fn stays_put_when_nothing_newer_exists() {
         let current = Version::parse("3.0.0-beta.7").expect("current");
-        assert!(newest_release(vec![release("v3.0.0-beta.7"), release("v2.44.0")], &current).is_none());
+        assert!(
+            newest_release(vec![release("v3.0.0-beta.7"), release("v2.44.0")], &current).is_none()
+        );
         assert!(newest_release(vec![release("not-a-version")], &current).is_none());
     }
 
