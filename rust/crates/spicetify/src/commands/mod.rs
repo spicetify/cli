@@ -88,8 +88,8 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
         },
         Command::Protocol(uri) => protocol::run(ctx, uri),
         Command::SpotifyUpdates(action) => match action {
-            UpdatesAction::Block => updates::set_blocked(ctx, true),
-            UpdatesAction::Unblock => updates::set_blocked(ctx, false),
+            UpdatesAction::Block => updates::set_blocked_and_remember(ctx, true),
+            UpdatesAction::Unblock => updates::set_blocked_and_remember(ctx, false),
             UpdatesAction::Status => updates::status(ctx),
         },
         Command::Path => diagnostics::path(ctx),

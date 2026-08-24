@@ -26,6 +26,13 @@ pub struct Config {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub offline_bnk_dir: Option<PathBuf>,
+
+    /// Whether the user asked for Spotify's self-updater to stay disabled.
+    /// The block itself is a patch of Spotify's binary, so a successful
+    /// update erases it; this remembers the intent across that, and apply
+    /// re-asserts it. Absent means "never asked", which is left alone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block_spotify_updates: Option<bool>,
 }
 
 const fn enabled() -> bool {
@@ -40,6 +47,7 @@ impl Default for Config {
             spotify_data_dir: None,
             spotify_exec: None,
             offline_bnk_dir: None,
+            block_spotify_updates: None,
         }
     }
 }
@@ -102,6 +110,8 @@ pub struct AppContext {
     pub spotify_data_dir: PathBuf,
     pub spotify_exec: PathBuf,
     pub offline_bnk_dir: PathBuf,
+    /// The persisted update policy; see `Config::block_spotify_updates`.
+    pub block_spotify_updates: Option<bool>,
 }
 
 impl AppContext {
@@ -139,6 +149,7 @@ impl AppContext {
             spotify_data_dir: data_dir,
             spotify_exec: exec_path,
             offline_bnk_dir,
+            block_spotify_updates: cfg.block_spotify_updates,
         })
     }
 
@@ -221,6 +232,26 @@ pub fn build_fresh_context() -> Result<AppContext> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_update_policy_round_trips_and_stays_absent_until_asked() {
+        // The block is a patch of Spotify's binary, so a successful update
+        // erases it; config is the only place the intent can survive. An
+        // untouched config must stay silent rather than claiming a policy
+        // the user never set.
+        let quiet = toml::to_string_pretty(&Config::default()).expect("serializes");
+        assert!(!quiet.contains("block_spotify_updates"), "an unset policy is not written");
+
+        let blocked = Config { block_spotify_updates: Some(true), ..Config::default() };
+        let text = toml::to_string_pretty(&blocked).expect("serializes");
+        assert!(text.contains("block_spotify_updates = true"));
+        let parsed: Config = toml::from_str(&text).expect("parses");
+        assert_eq!(parsed.block_spotify_updates, Some(true));
+
+        // A config written before this field existed parses as "never asked".
+        let legacy: Config = toml::from_str("mirror = false\ndaemon = true\n").expect("parses");
+        assert_eq!(legacy.block_spotify_updates, None);
+    }
 
     #[test]
     fn fixup_drops_a_stale_data_dir_so_detection_can_run() {

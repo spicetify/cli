@@ -320,6 +320,10 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
     // Runs before staging so anything seeded is staged in this same apply; a
     // no-op once they exist.
     super::pkg::ensure_system_modules(ctx);
+    // A Spotify update wipes the binary patch that blocks its updater, and
+    // apply is what runs right after one; restore the user's stated policy
+    // here rather than leaving them silently unprotected.
+    super::updates::reassert_block(ctx);
 
     let updates_blocked = super::updates::is_blocked(ctx).unwrap_or(false);
 
@@ -483,6 +487,7 @@ mod tests {
             spotify_data_dir: root.join("missing-spotify-data"),
             spotify_exec: root.join("spicetify-test-missing-spotify"),
             offline_bnk_dir: root.join("missing-offline-bnk"),
+            block_spotify_updates: None,
         };
 
         let (tx, rx) = std::sync::mpsc::channel();

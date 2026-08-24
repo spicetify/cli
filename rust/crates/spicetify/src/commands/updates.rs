@@ -120,6 +120,42 @@ fn contains(haystack: &[u8], needle: &[u8]) -> bool {
 /// re-signed afterwards, because Apple Silicon refuses to launch an altered
 /// executable; if signing fails the original bytes are restored rather than
 /// leaving an unlaunchable client.
+/// Records the requested policy in config.toml so it survives the update
+/// that erases the patch it is written into, then applies it.
+pub(crate) fn set_blocked_and_remember(ctx: &AppContext, block: bool) -> Result<()> {
+    if ctx.block_spotify_updates != Some(block) {
+        let mut cfg = crate::context::Config::load(&ctx.config_file).unwrap_or_default();
+        cfg.block_spotify_updates = Some(block);
+        if let Err(e) = cfg.save(&ctx.config_file) {
+            tracing::warn!(error = %e, "could not record the update policy; it will not survive a Spotify update");
+        }
+    }
+    set_blocked(ctx, block)
+}
+
+/// Re-applies a remembered block. A Spotify update replaces the binary the
+/// block is patched into, so without this the user silently loses the
+/// protection they asked for on the first update that gets through.
+pub(crate) fn reassert_block(ctx: &AppContext) {
+    if ctx.block_spotify_updates != Some(true) {
+        return;
+    }
+    match is_blocked(ctx) {
+        Ok(true) => {}
+        Ok(false) => {
+            tracing::info!(
+                "Spotify updates are unblocked but config asks for them blocked; re-blocking"
+            );
+            if let Err(e) = set_blocked(ctx, true) {
+                tracing::warn!(error = %e, "could not re-block Spotify updates");
+            }
+        }
+        Err(e) => {
+            tracing::warn!(error = %e, "cannot read the update policy from the Spotify binary")
+        }
+    }
+}
+
 pub(crate) fn set_blocked(ctx: &AppContext, block: bool) -> Result<()> {
     let path = spotify_binary(ctx);
     let mut raw = std::fs::read(&path)?;
