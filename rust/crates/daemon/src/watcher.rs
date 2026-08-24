@@ -76,10 +76,18 @@ pub fn spawn_apps_watcher(
 
 /// One auto-apply attempt, ordered after the updater's own restart cycle.
 fn auto_apply(ctx: &AppContext, nth: u32) {
+    // A stock xpui.spa with no served tree means an update already replaced
+    // the client and spicetify is genuinely off. The update block governs
+    // Spotify's updater, not repairs: skipping here would strand the user
+    // on a vanilla client with the daemon watching silently.
+    let unapplied = ctx.spotify_apps_path().join("xpui.spa").is_file();
     match commands::updates::is_blocked(ctx) {
-        Ok(true) => {
-            tracing::info!("update block is active; skipping auto-apply");
+        Ok(true) if !unapplied => {
+            tracing::info!("update block is active and the client is applied; skipping auto-apply");
             return;
+        }
+        Ok(true) => {
+            tracing::info!("update block is active but the client is unapplied; repairing anyway");
         }
         Ok(false) => {}
         Err(e) => {
@@ -90,6 +98,15 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
 
     let deadline = std::time::Instant::now() + CLIENT_EXIT_CEILING;
     let mut waited = false;
+    if spicetify::lifecycle::is_running(ctx) {
+        // Make the polite wait visible: from the outside it looks like the
+        // daemon missed the update, when it is deliberately refusing to
+        // close a client the user may be listening to.
+        tracing::info!(
+            "a Spotify update landed; waiting up to {} minutes for the client to exit before re-applying",
+            CLIENT_EXIT_CEILING.as_secs() / 60
+        );
+    }
     while spicetify::lifecycle::is_running(ctx) {
         if std::time::Instant::now() >= deadline {
             tracing::warn!(
