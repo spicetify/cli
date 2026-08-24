@@ -124,19 +124,38 @@ fn contains(haystack: &[u8], needle: &[u8]) -> bool {
 /// that erases the patch it is written into, then applies it.
 pub(crate) fn set_blocked_and_remember(ctx: &AppContext, block: bool) -> Result<()> {
     if ctx.block_spotify_updates != Some(block) {
-        let mut cfg = crate::context::Config::load(&ctx.config_file).unwrap_or_default();
-        cfg.block_spotify_updates = Some(block);
-        if let Err(e) = cfg.save(&ctx.config_file) {
-            tracing::warn!(error = %e, "could not record the update policy; it will not survive a Spotify update");
-        }
+        remember(ctx, block);
     }
     set_blocked(ctx, block)
+}
+
+/// Writes the policy to config.toml, leaving the rest of the file's settings
+/// as they are. Best-effort: failing to record it costs the block on the next
+/// update, which is worth a warning rather than failing the command.
+fn remember(ctx: &AppContext, block: bool) {
+    let mut cfg = crate::context::Config::load(&ctx.config_file).unwrap_or_default();
+    cfg.block_spotify_updates = Some(block);
+    if let Err(e) = cfg.save(&ctx.config_file) {
+        tracing::warn!(error = %e, "could not record the update policy; it will not survive a Spotify update");
+    }
 }
 
 /// Re-applies a remembered block. A Spotify update replaces the binary the
 /// block is patched into, so without this the user silently loses the
 /// protection they asked for on the first update that gets through.
 pub(crate) fn reassert_block(ctx: &AppContext) {
+    // Installs blocked before the policy was recorded anywhere carry their
+    // intent only in the patched binary, which the next update erases. Adopt
+    // it the first time we see it, so those users are protected too rather
+    // than only ones who re-run the command. An unblocked client is left
+    // silent: absent means "never asked", not "asked for updates".
+    if ctx.block_spotify_updates.is_none() {
+        if is_blocked(ctx).unwrap_or(false) {
+            tracing::info!("recording the existing Spotify update block so it survives an update");
+            remember(ctx, true);
+        }
+        return;
+    }
     if ctx.block_spotify_updates != Some(true) {
         return;
     }
@@ -151,7 +170,7 @@ pub(crate) fn reassert_block(ctx: &AppContext) {
             }
         }
         Err(e) => {
-            tracing::warn!(error = %e, "cannot read the update policy from the Spotify binary")
+            tracing::warn!(error = %e, "cannot read the update policy from the Spotify binary");
         }
     }
 }
