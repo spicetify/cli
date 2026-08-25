@@ -4,5 +4,7 @@ allowBuilds:
   esbuild: true
 
 resolutionMode: "highest"
-minimumReleaseAge: 1440
+minimumReleaseAge: 10080
 minimumReleaseAgeIgnoreMissingTime: true
+trustPolicy: no-downgrade
+blockExoticSubdeps: true
