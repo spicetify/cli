@@ -72,15 +72,20 @@ const ProviderLRCLIB = (() => {
 		}
 
 		function finishWord() {
-			if (!line || !word || word.text === undefined || word.start_ms === undefined || word.end_ms === undefined) return;
-			line.words.push({ word: word.text, time: Math.max(word.end_ms - word.start_ms, 0) });
+			if (!line || !word || word.text === undefined || word.start_ms === undefined) return;
+			line.words.push({ word: word.text, start_ms: word.start_ms, end_ms: word.end_ms });
 			word = null;
 		}
 
 		function finishLine() {
 			finishWord();
 			if (line && line.start_ms !== undefined && line.words.length) {
-				result.push({ startTime: line.start_ms, text: line.words });
+				const words = line.words.map((currentWord, index) => {
+					const nextWord = line.words[index + 1];
+					const end = currentWord.end_ms ?? nextWord?.start_ms ?? line.end_ms ?? currentWord.start_ms;
+					return { word: currentWord.word, time: Math.max(end - currentWord.start_ms, 0) };
+				});
+				result.push({ startTime: line.start_ms, text: words });
 			}
 			line = null;
 		}
@@ -98,11 +103,12 @@ const ProviderLRCLIB = (() => {
 				word = { text: parseValue(content.slice("- text:".length)) };
 				continue;
 			}
-			const timestamp = content.match(/^start_ms:\s*(\d+(?:\.\d+)?)/) || content.match(/^end_ms:\s*(\d+(?:\.\d+)?)/);
+			const timestamp = content.match(/^(start_ms|end_ms):\s*(\d+(?:\.\d+)?)/);
 			if (timestamp) {
-				const key = content.startsWith("start_ms:") ? "start_ms" : "end_ms";
-				if (word) word[key] = Number(timestamp[1]);
-				else if (line) line[key] = Number(timestamp[1]);
+				const key = timestamp[1];
+				const value = Number(timestamp[2]);
+				if (indentation >= 6 && word) word[key] = value;
+				else if (line) line[key] = value;
 			}
 		}
 		finishLine();
