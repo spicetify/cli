@@ -1097,6 +1097,9 @@ type githubRelease = utils.GithubRelease
 
 func splitVersion(version string) ([3]int, error) {
 	vstring := version
+	if len(vstring) == 0 {
+		return [3]int{}, errors.New("invalid version string")
+	}
 	if vstring[0:1] == "v" {
 		vstring = version[1:]
 	}

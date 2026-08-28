@@ -62,7 +62,6 @@ func Unzip(src, dest string) error {
 			err = os.MkdirAll(fdir, 0700)
 			if err != nil {
 				log.Fatal(err)
-				return err
 			}
 			f, err := os.OpenFile(
 				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)

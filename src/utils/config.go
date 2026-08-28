@@ -317,7 +317,7 @@ func linuxApp() string {
 		_, err := os.Stat(filepath.Join(ReplaceEnvVarsInString(v), "Apps"))
 		_, err2 := os.Stat(filepath.Join(ReplaceEnvVarsInString(v), "spotify"))
 		if err == nil && err2 == nil {
-			return v
+			return ReplaceEnvVarsInString(v)
 		}
 	}
 

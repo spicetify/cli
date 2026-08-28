@@ -121,12 +121,14 @@ func init() {
 		pterm.DisableOutput()
 	}
 
+	// Running as administrator/root is discouraged because Spotify normally
+	// runs as a normal user and may be unable to read files written with admin
+	// privileges (resulting in a black/blank window). We no longer hard-fail on
+	// this: instead we warn and continue so spicetify can be installed/run from
+	// an elevated shell. Pass --bypass-admin to suppress the warning entirely.
 	if isAdmin.Check(bypassAdminCheck) {
-		utils.PrintError("Spicetify should NOT be run with administrator or root privileges")
-		utils.PrintError("Doing so can cause Spotify to show a black/blank window after applying!")
-		utils.PrintError("This happens because Spotify (running as a normal user) can't access files modified with admin privileges")
-		utils.PrintInfo("If you understand the risks and need to continue, you can use the '--bypass-admin' flag.")
-		os.Exit(1)
+		utils.PrintWarning("Running as administrator/root is not recommended: Spotify (running as a normal user) may be unable to access files modified with admin privileges, which can cause a black/blank window after applying.")
+		utils.PrintInfo("Continuing anyway. If you hit a blank window, re-install Spotify and run spicetify from a normal (non-admin) user, or pass '--bypass-admin' to silence this warning.")
 	}
 
 	for i, flag := range flags {
