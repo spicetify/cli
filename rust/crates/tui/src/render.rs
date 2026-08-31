@@ -1,5 +1,5 @@
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::Style;
 use ratatui::widgets::Paragraph;
 use spicetify::fl;
@@ -10,17 +10,55 @@ use crate::components::{confirm_quit, details_pane, footer};
 use crate::theme::TEXT_MUTED;
 
 pub(crate) fn draw(frame: &mut Frame<'_>, app: &mut TuiApp) {
-    let content = content_area(frame.area());
+    let term_area = frame.area();
 
-    let [brand, _, body, log, _, footer_area] = Layout::vertical([
-        Constraint::Length(1),
-        Constraint::Length(1),
-        Constraint::Length(8),
-        Constraint::Min(12),
-        Constraint::Length(1),
-        Constraint::Length(3),
-    ])
-    .areas::<6>(content);
+    if term_area.width < 45 || term_area.height < 15 {
+        let text = format!(
+            "Terminal too small\nMinimum: 45x15 | Current: {}x{}",
+            term_area.width, term_area.height
+        );
+        let warning = Paragraph::new(text)
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(TEXT_MUTED));
+
+        let vertical =
+            Layout::vertical([Constraint::Fill(1), Constraint::Length(2), Constraint::Fill(1)])
+                .split(term_area);
+
+        frame.render_widget(warning, vertical[1]);
+        return;
+    }
+
+    let content = content_area(term_area);
+
+    let (brand, body, log, footer_area) = if content.width >= 100 {
+        let [brand, _, main_area, _, footer_area] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Min(6),
+            Constraint::Length(1),
+            Constraint::Length(3),
+        ])
+        .areas::<5>(content);
+
+        let [body, log] =
+            Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .areas::<2>(main_area);
+
+        (brand, body, log, footer_area)
+    } else {
+        let [brand, _, body, log, _, footer_area] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(8),
+            Constraint::Min(4),
+            Constraint::Length(1),
+            Constraint::Length(3),
+        ])
+        .areas::<6>(content);
+
+        (brand, body, log, footer_area)
+    };
 
     app.layout.log_rect = Some(log);
     app.header.render(frame, brand);
@@ -72,7 +110,14 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &mut TuiApp) {
     details_pane::render(frame, pane.right_area, &details_ctx);
 
     app.log_viewer.render(frame, log, "log");
-    let clear_rect = Rect { x: log.x + log.width.saturating_sub(5), y: log.y, width: 5, height: 1 };
+
+    let button_w = log.width.min(5);
+    let clear_rect = Rect {
+        x: log.x + log.width.saturating_sub(button_w),
+        y: log.y,
+        width: button_w,
+        height: 1,
+    };
     app.layout.clear_rect = Some(clear_rect);
     button::draw_button(
         frame,
@@ -103,13 +148,20 @@ pub(crate) fn draw(frame: &mut Frame<'_>, app: &mut TuiApp) {
 }
 
 fn content_area(term: Rect) -> Rect {
-    let content_width = term.width.saturating_sub(3).min(78);
-    let h_margin = (term.width.saturating_sub(content_width)) / 2;
+    let h_margin = if term.width >= 120 {
+        2
+    } else if term.width >= 80 {
+        1
+    } else {
+        0
+    };
+    let v_margin = u16::from(term.height >= 24);
+
     Rect {
         x: term.x.saturating_add(h_margin),
-        y: term.y.saturating_add(4),
-        width: content_width.max(1),
-        height: term.height.saturating_sub(8).max(1),
+        y: term.y.saturating_add(v_margin),
+        width: term.width.saturating_sub(h_margin * 2).max(1),
+        height: term.height.saturating_sub(v_margin * 2).max(1),
     }
 }
 
@@ -123,7 +175,7 @@ fn draw_version(frame: &mut Frame<'_>) {
         Rect {
             x: area.width.saturating_sub(w).saturating_sub(1),
             y: area.height.saturating_sub(1),
-            width: w,
+            width: w.min(area.width),
             height: 1,
         },
     );
