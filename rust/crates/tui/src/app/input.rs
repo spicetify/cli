@@ -58,6 +58,9 @@ impl TuiApp {
 
     pub(crate) fn handle_mouse(&mut self, mouse: crossterm::event::MouseEvent) {
         self.layout.mouse_pos = (mouse.column, mouse.row);
+        if !self.layout.mouse_interactions_enabled() {
+            return;
+        }
 
         if self.confirm_quit_open {
             if let MouseEventKind::Up(MouseButton::Left) = mouse.kind {
@@ -192,5 +195,43 @@ impl TuiApp {
 
     pub(crate) fn mouse_in_log(&self, col: u16, row: u16) -> bool {
         self.layout.log_rect.is_some_and(|r| r.contains(Position::new(col, row)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crossterm::event::{KeyModifiers, MouseEvent};
+
+    use super::*;
+    use crate::app::{InputState, Page, test_app};
+
+    fn mouse(kind: MouseEventKind) -> MouseEvent {
+        MouseEvent { kind, column: 3, row: 4, modifiers: KeyModifiers::NONE }
+    }
+
+    #[tokio::test]
+    async fn disabled_mouse_interactions_preserve_hidden_state() {
+        let mut app = test_app();
+        app.layout.clear_interaction_regions();
+        app.input = Some(InputState {
+            action: MenuAction::PkgDelete,
+            buffer: "module-id".to_string(),
+            step: InputStep::ModuleId,
+        });
+
+        app.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)));
+
+        assert_eq!(app.layout.mouse_pos, (3, 4));
+        assert_eq!(app.input.as_ref().map(|input| input.buffer.as_str()), Some("module-id"));
+
+        app.input = None;
+        app.confirm_quit_open = true;
+        app.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Left)));
+        assert!(app.confirm_quit_open);
+
+        app.confirm_quit_open = false;
+        app.menu.page = Page::Category(0);
+        app.handle_mouse(mouse(MouseEventKind::Up(MouseButton::Right)));
+        assert_eq!(app.menu.page, Page::Category(0));
     }
 }
