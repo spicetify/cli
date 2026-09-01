@@ -352,7 +352,9 @@ async function captureWebpackRequire(maxWaitMs = 30000): Promise<void> {
 			now: Date.now,
 			wait: () => new Promise((resolve) => setTimeout(resolve, 500)),
 			getQueue: () => {
-				const queue = globals.rspackChunkclient_web as unknown[];
+				// rspack builds (1.2.9x) and older webpack builds (still current
+				// on Linux, e.g. 1.2.84) name the chunk queue differently.
+				const queue = (globals.rspackChunkclient_web ?? globals.webpackChunkclient_web) as unknown[];
 				return Array.isArray(queue) && queue.push !== Array.prototype.push ? queue : undefined;
 			},
 			getCaptured: () => globals.__webpack_require__,
