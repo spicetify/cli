@@ -120,7 +120,7 @@ impl InputState {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct LayoutState {
     pub(crate) menu_rect: Option<Rect>,
     pub(crate) body_rect: Option<Rect>,
@@ -129,6 +129,17 @@ pub struct LayoutState {
     pub(crate) back_rect: Option<Rect>,
     pub(crate) dialog_rect: Option<Rect>,
     pub(crate) mouse_pos: (u16, u16),
+}
+
+impl LayoutState {
+    pub(crate) fn clear_interaction_regions(&mut self) {
+        let mouse_pos = self.mouse_pos;
+        *self = Self { mouse_pos, ..Self::default() };
+    }
+
+    pub(crate) fn mouse_interactions_enabled(&self) -> bool {
+        self.body_rect.is_some()
+    }
 }
 
 #[derive(Debug)]
@@ -183,15 +194,7 @@ impl TuiApp {
             input: None,
             daemon_running,
             daemon_installed: daemon::DaemonManager::create().is_installed(),
-            layout: LayoutState {
-                menu_rect: None,
-                body_rect: None,
-                log_rect: None,
-                clear_rect: None,
-                back_rect: None,
-                dialog_rect: None,
-                mouse_pos: (0, 0),
-            },
+            layout: LayoutState::default(),
             tx,
             rx,
             command_handle: None,
@@ -288,6 +291,7 @@ impl TuiApp {
                 self.handle_mouse(mouse);
                 true
             }
+            Some(Ok(Event::Resize(_, _))) => true,
             _ => false,
         }
     }
@@ -514,4 +518,36 @@ fn spawn_daemon_poller(
             }
         }
     });
+}
+
+#[cfg(test)]
+fn test_app() -> TuiApp {
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+    let (draw_tx, _) = broadcast::channel(1);
+    let frame_requester = FrameRequester::new(draw_tx.clone());
+    let ctx = AppContext {
+        config_file: std::path::PathBuf::new(),
+        config_root: std::path::PathBuf::new(),
+        mirror: false,
+        daemon: false,
+        spotify_data_dir: std::path::PathBuf::new(),
+        spotify_exec: std::path::PathBuf::new(),
+        offline_bnk_dir: std::path::PathBuf::new(),
+        block_spotify_updates: None,
+    };
+
+    TuiApp::new(ctx, tx, rx, frame_requester, draw_tx)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn resize_events_request_redraw() {
+        let mut app = test_app();
+
+        assert!(app.handle_terminal_event(Some(Ok(Event::Resize(80, 24)))));
+        assert!(!app.handle_terminal_event(Some(Ok(Event::FocusGained))));
+    }
 }
