@@ -400,15 +400,27 @@ fn stage_payload(config_root: &Path, dest: &Path) -> Result<()> {
 // is stripped because the modular loader boots the client itself once mixins
 // have run (it re-injects /xpui-modules.js then /xpui-snapshot.js).
 const SNAPSHOT_TAG: &str = "<script defer=\"defer\" src=\"/xpui-snapshot.js\"></script>";
-const BODY_TAG: &str = "<body>";
+const BODY_TAG: &str = "<body";
+
+// The body tag is not always bare: Linux builds ship
+// `<body class="encore-dark-theme encore-layout-themes">`, so the insertion
+// point is the closing `>` of the opening tag, wherever its attributes end.
+fn body_insert_at(input: &str) -> Option<usize> {
+    let start = input.find(BODY_TAG)?;
+    let rest = &input[start + BODY_TAG.len()..];
+    if !rest.starts_with('>') && !rest.starts_with(|c: char| c.is_ascii_whitespace()) {
+        return None;
+    }
+    let close = rest.find('>')?;
+    Some(start + BODY_TAG.len() + close + 1)
+}
 
 fn patch_index_html(input: &str, daemon_token: &str) -> Result<String> {
     let app_version = env!("CARGO_PKG_VERSION");
     if !input.contains(SNAPSHOT_TAG) {
         return Err(anyhow::anyhow!(fl!("index-patch-not-found")));
     }
-    let body = input.find(BODY_TAG).ok_or_else(|| anyhow::anyhow!(fl!("index-patch-not-found")))?;
-    let insert_at = body + BODY_TAG.len();
+    let insert_at = body_insert_at(input).ok_or_else(|| anyhow::anyhow!(fl!("index-patch-not-found")))?;
 
     let payload = format!(
         concat!(
@@ -452,6 +464,18 @@ mod tests {
         );
         // Nothing may be deferred: defer would run after the client bundle.
         assert!(!out.contains("defer src='hooks/"));
+    }
+
+    #[test]
+    fn patches_a_body_tag_with_attributes() {
+        let stock_linux = STOCK.replace(
+            "<body>",
+            r#"<body class="encore-dark-theme encore-layout-themes">"#,
+        );
+        let out = patch_index_html(&stock_linux, "tok").expect("attributed body patches");
+        let class_attr = out.find("encore-dark-theme").expect("body attributes kept");
+        let wrapper = out.find("hooks/spicetifyWrapper.js").expect("wrapper injected");
+        assert!(class_attr < wrapper, "payload lands inside body, after the opening tag");
     }
 
     #[test]
