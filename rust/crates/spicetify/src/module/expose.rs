@@ -4,11 +4,14 @@
 // find Platform, URI, Snackbar and friends because these rewrites hang them
 // off `Spicetify.*` first.
 //
-// Ported from the Go CLI's preprocess.exposeAPIs_main / exposeAPIs_vendor
-// (src/preprocess/preprocess.go), tuned against real minified builds. Where
-// a Spotify update reshaped the code, a re-derived variant sits beside the
-// original: the old pattern still serves the older builds the classmaps
-// cover, and the pair counts as one surface for miss reporting.
+// Every patch targets one file: xpui-modules.js, extracted from the v8
+// snapshot (apply.rs). The Go-era split between an xpui.js and a vendor
+// bundle is gone from every build the CLI supports (MIN_SUPPORTED_SPOTIFY in
+// hooks/version_detect.rs), so there is one list, and a patch earns its place
+// by matching a supported build rather than by the era it was written for.
+// The `expose_hits_on_real_bundles` test below measures exactly that against
+// real extracted bundles; run it whenever a Spotify update lands before
+// deciding a pattern is dead or re-deriving one.
 
 use std::sync::LazyLock;
 
@@ -19,11 +22,8 @@ use regex::{Captures, Regex};
 enum OnMiss {
     /// A miss means a Spotify update moved code and the surface is gone: warn.
     Warn,
-    /// The patch is one variant of a surface; warn only when every variant
-    /// in the named group missed.
-    Group(&'static str),
-    /// A miss is expected on current builds (the target feature was removed
-    /// from the client, or the wrapper rebuilds the surface at runtime).
+    /// A miss is expected on some supported builds (the target left the
+    /// client, or the wrapper rebuilds the surface at runtime).
     Quiet,
 }
 
@@ -68,41 +68,13 @@ fn apply(input: String, patch: &Patch) -> (String, bool) {
     (out, hit)
 }
 
-static MAIN_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
+// Hit counts per patch on real bundles, measured 2026-09-02 with the
+// harness below (1.2.84 = last pre-rspack Linux build, 1.2.96 = current):
+// a patch that matched neither was removed.
+static PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
     vec![
         Patch {
-            name: "showNotification",
-            pattern: r"(?:\w+ |,)([\w$]+)=(\([\w$]+=[\w$]+\.dispatch)",
-            replace: |c| {
-                let name = group(c, 1);
-                format!(
-                    ";globalThis.Spicetify.showNotification=(message,isError=false,msTimeout)=>{name}({{message,feedbackType:isError?\"ERROR\":\"NOTICE\",msTimeout}});const {name}={}",
-                    group(c, 2)
-                )
-            },
-            once: false,
-            // the wrapper synthesizes showNotification from
-            // Snackbar.enqueueSnackbar at runtime, so a miss here costs nothing
-            // on builds where the dispatch shape is gone
-            on_miss: OnMiss::Quiet,
-        },
-        Patch {
-            name: "Remove list of exclusive shows",
-            pattern: r#"\["spotify:show.+?\]"#,
-            replace: |_| "[]".to_string(),
-            once: false,
-            // the exclusive-shows list left the client bundle in 1.2.9x
-            on_miss: OnMiss::Quiet,
-        },
-        Patch {
-            name: "Remove Star Wars easter eggs",
-            pattern: r"\w+\(\)\.createElement\(\w+,\{onChange:this\.handleSaberStateChange\}\),",
-            replace: |_| String::new(),
-            once: false,
-            // the saber easter egg left the client bundle
-            on_miss: OnMiss::Quiet,
-        },
-        Patch {
+            // 1.2.84: 1, 1.2.96: 1
             name: "Expose PlatformAPI",
             pattern: r#"((?:setTitlebarHeight|registerFactory)[\w(){}<>:.,&$!=;""?!#%/\- ]+)(\{version:[a-zA-Z_\$][\w\$]*,)"#,
             replace: |c| format!("{}Spicetify._platform={}", group(c, 1), group(c, 2)),
@@ -110,25 +82,20 @@ static MAIN_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
             on_miss: OnMiss::Warn,
         },
         Patch {
-            name: "Redux store",
-            pattern: r"(,[\w$]+=)(([$\w,.:=;(){}]+\(\{session:[\w$]+,features:[\w$]+,seoExperiment:[\w$]+\}))",
-            replace: |c| format!("{}Spicetify.Platform.ReduxStore={}", group(c, 1), group(c, 2)),
-            once: false,
-            on_miss: OnMiss::Group("redux-store"),
-        },
-        Patch {
-            // 1.2.9x builds the store inside an IIFE taking two arguments,
-            // so the assignment the old pattern keyed on is gone. This one
+            // 1.2.84: 0, 1.2.96: 1. The store is created inside an IIFE
+            // invoked with the session/features/seoExperiment object; this
             // anchors on the only `return (0,createStore)((0,combineReducers)({`
-            // whose IIFE is invoked with the session/features/seoExperiment
-            // object, and routes the created store through the global.
-            name: "Redux store (1.2.9x)",
+            // in that IIFE and routes the created store through the global.
+            // 1.2.84 builds the store another way and has no seoExperiment
+            // key at all, so ReduxStore is not exposed there yet.
+            name: "Redux store",
             pattern: r"return(\(0,[\w$]+\.[\w$]+\)\(\(0,[\w$]+\.[\w$]+\)\(\{(?s:.{0,1500}?)\)\}\(\{session:[\w$]+,features:[\w$]+,seoExperiment:[\w$]+\},\{platform:)",
             replace: |c| format!("return Spicetify.Platform.ReduxStore={}", group(c, 1)),
             once: true,
-            on_miss: OnMiss::Group("redux-store"),
+            on_miss: OnMiss::Warn,
         },
         Patch {
+            // 1.2.84: 0, 1.2.96: 2
             name: "React Component: Platform Provider",
             pattern: r"(,[$\w]+=)((function\([\w$]{1}\)\{var [\w$]+=[\w$]+\.platform,[\w$]+=[\w$]+\.children,)|(\(\{platform:[\w$]+,children:[\w$]+\}\)=>\{))",
             replace: |c| {
@@ -138,63 +105,37 @@ static MAIN_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
             on_miss: OnMiss::Warn,
         },
         Patch {
-            name: "Prevent breaking popupLyrics",
-            pattern: r"document.pictureInPictureElement&&\(\w+.current=[!\w]+,document\.exitPictureInPicture\(\)\),\w+\.current=null",
-            replace: |_| String::new(),
-            once: false,
-            // the PiP-exit block this removed was rewritten out of the client in
-            // 1.2.9x
-            on_miss: OnMiss::Quiet,
-        },
-        Patch {
-            name: "Spotify Custom Snackbar Interfaces (<=1.2.37)",
+            // 1.2.84: 1, 1.2.96: 1
+            name: "Spotify Custom Snackbar Interface",
             pattern: r"\b\w\s*\(\)\s*[^;,]*enqueueCustomSnackbar:\s*(\w)\s*[^;]*;",
             replace: |c| {
                 format!("{}Spicetify.Snackbar.enqueueCustomSnackbar={};", group(c, 0), group(c, 1))
             },
             once: false,
-            on_miss: OnMiss::Group("custom-snackbar"),
+            on_miss: OnMiss::Warn,
         },
         Patch {
-            name: "Spotify Custom Snackbar Interfaces (>=1.2.38)",
-            pattern: r"(=)[^=]*\(\)\.enqueueCustomSnackbar;",
-            replace: |c| format!("=Spicetify.Snackbar.enqueueCustomSnackbar{};", group(c, 0)),
-            once: false,
-            on_miss: OnMiss::Group("custom-snackbar"),
-        },
-        Patch {
+            // 1.2.84: 1, 1.2.96: 1. The enqueue arrow is returned through
+            // useCallback rather than assigned.
             name: "Spotify Image Snackbar Interface",
-            // Go's RE2 allows the bare `{` this pattern carries upstream;
-            // the regex crate does not, so it is escaped here.
-            pattern: r"(=)(\(\(\{[^}]*,\s*imageSrc)",
-            replace: |c| {
-                format!("{}Spicetify.Snackbar.enqueueImageSnackbar={}", group(c, 1), group(c, 2))
-            },
-            once: false,
-            on_miss: OnMiss::Group("image-snackbar"),
-        },
-        Patch {
-            // 1.2.9x wraps the enqueue arrow in useCallback, so it is
-            // returned from the hook rather than assigned; the old pattern
-            // keyed on the assignment.
-            name: "Spotify Image Snackbar Interface (1.2.9x)",
             pattern: r"return(\(0,[\w$]+\.useCallback\)\(\(\{message:[\w$]+,\s*imageSrc)",
             replace: |c| format!("return Spicetify.Snackbar.enqueueImageSnackbar={}", group(c, 1)),
             once: false,
-            on_miss: OnMiss::Group("image-snackbar"),
+            on_miss: OnMiss::Warn,
         },
         Patch {
+            // 1.2.84: 1, 1.2.96: 0. The wrapper finds Navigation through
+            // webpack at runtime (react-components.js), so a miss is covered.
             name: "React Component: Navigation for navLinks",
             pattern: r"(;const [\w\d]+=)((?:\(0,[\w\d]+\.memo\))[\(\d,\w\.\){:}=]+=[\d\w]+\.[\d\w]+\.getLocaleForURLPath\(\))",
             replace: |c| {
                 format!("{}Spicetify.ReactComponent.Navigation={}", group(c, 1), group(c, 2))
             },
             once: true,
-            // the wrapper finds Navigation through webpack at runtime
-            // (react-components.js), so a miss here is covered
             on_miss: OnMiss::Quiet,
         },
         Patch {
+            // 1.2.84: 1, 1.2.96: 1
             name: "Context Menu V2",
             pattern: r#"("Menu".+?children:)([\w$][\w$\d]*)"#,
             replace: |c| {
@@ -207,19 +148,8 @@ static MAIN_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
             once: false,
             on_miss: OnMiss::Warn,
         },
-    ]
-});
-
-static VENDOR_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
-    vec![
         Patch {
-            name: "Spicetify.URI",
-            pattern: r",(\w+)\.prototype\.toAppType",
-            replace: |c| format!(",(globalThis.Spicetify.URI={}){}", group(c, 1), group(c, 0)),
-            once: false,
-            on_miss: OnMiss::Group("uri"),
-        },
-        Patch {
+            // 1.2.84: 1, 1.2.96: 1
             name: "Map styled-components classes",
             pattern: r"(\w+ [\w$_]+)=[\w$_]+\([\w$_]+>>>0\)",
             replace: |c| format!("{}=Spicetify._getStyledClassName(arguments,this)", group(c, 1)),
@@ -227,6 +157,7 @@ static VENDOR_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
             on_miss: OnMiss::Warn,
         },
         Patch {
+            // 1.2.84: 2, 1.2.96: 2
             name: "Tippy.js",
             pattern: r"([\w\$_]+)\.setDefaultProps=",
             replace: |c| format!("Spicetify.Tippy={};{}", group(c, 1), group(c, 0)),
@@ -234,17 +165,18 @@ static VENDOR_PATCHES: LazyLock<Vec<Patch>> = LazyLock::new(|| {
             on_miss: OnMiss::Warn,
         },
         Patch {
+            // 1.2.84: 1, 1.2.96: 0. react-flip-toolkit left the client in
+            // 1.2.9x; nothing remains to expose there.
             name: "Flipper components",
             pattern: r"([\w$]+)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})",
             replace: |c| {
                 format!("{}=Spicetify.ReactFlipToolkit.spring={}", group(c, 1), group(c, 2))
             },
             once: false,
-            // react-flip-toolkit left the vendor bundle in 1.2.9x; nothing
-            // remains to expose on current builds
             on_miss: OnMiss::Quiet,
         },
         Patch {
+            // 1.2.84: 1, 1.2.96: 1
             name: "Snackbar",
             pattern: r"\w+\s*=\s*\w\.call\(this,[^)]+\)\s*\|\|\s*this\)\.enqueueSnackbar",
             replace: |c| format!("Spicetify.Snackbar={}", group(c, 0)),
@@ -311,8 +243,10 @@ fn patch_context_menu(input: String) -> (String, bool) {
     (out, hit)
 }
 
-/// Late URI fallback for builds where the `toAppType` pattern no longer
-/// matches: finds the URI class body by scanning balanced braces.
+/// Exposes `Spicetify.URI` by finding the URI class body (the one carrying
+/// `hasBase62Id`) and scanning its balanced braces. A regex over the class
+/// prototype used to do this; it stopped matching before 1.2.80, while this
+/// scan holds on every supported build (1.2.84 and 1.2.96 measured).
 fn patch_uri_fallback(input: String) -> (String, bool) {
     if input.contains("Spicetify.URI") {
         return (input, false);
@@ -367,37 +301,23 @@ fn patch_uri_fallback(input: String) -> (String, bool) {
 #[must_use]
 pub(crate) fn expose_apis(input: String) -> String {
     let (mut out, _) = patch_context_menu(input);
-    let mut missed: Vec<&Patch> = Vec::new();
-    let mut hit_groups: Vec<&'static str> = Vec::new();
+    let mut missed: Vec<&'static str> = Vec::new();
 
-    for patch in MAIN_PATCHES.iter().chain(VENDOR_PATCHES.iter()) {
+    for patch in PATCHES.iter() {
         let (next, hit) = apply(out, patch);
         out = next;
-        if hit {
-            if let OnMiss::Group(g) = patch.on_miss {
-                hit_groups.push(g);
-            }
-        } else {
-            missed.push(patch);
+        if !hit && matches!(patch.on_miss, OnMiss::Warn) {
+            missed.push(patch.name);
         }
     }
 
-    let (out, fallback_hit) = patch_uri_fallback(out);
-    if fallback_hit {
-        hit_groups.push("uri");
+    let (out, uri_hit) = patch_uri_fallback(out);
+    if !uri_hit {
+        missed.push("Spicetify.URI");
     }
 
-    let report: Vec<&str> = missed
-        .iter()
-        .filter(|p| match p.on_miss {
-            OnMiss::Warn => true,
-            OnMiss::Group(g) => !hit_groups.contains(&g),
-            OnMiss::Quiet => false,
-        })
-        .map(|p| p.name)
-        .collect();
-    if !report.is_empty() {
-        tracing::warn!("api exposure patches that did not match: {}", report.join(", "));
+    if !missed.is_empty() {
+        tracing::warn!("api exposure patches that did not match: {}", missed.join(", "));
     }
     out
 }
@@ -414,10 +334,10 @@ mod tests {
     }
 
     #[test]
-    fn exposes_uri_from_the_prototype_pattern() {
-        let src = r",n.prototype.toAppType=function(){}";
+    fn exposes_uri_by_scanning_the_class_body() {
+        let src = "class n{constructor(e){this.hasBase62Id=!0}}";
         let out = expose_apis(src.to_string());
-        assert!(out.contains("globalThis.Spicetify.URI=n"), "{out}");
+        assert!(out.contains("Spicetify.URI=n;"), "{out}");
     }
 
     #[test]
@@ -438,8 +358,37 @@ mod tests {
         // the regex crate (e.g. a bare `{` literal); a pattern that fails to
         // compile is skipped at apply time with only a log line to show for
         // it, so catch that here instead.
-        for patch in MAIN_PATCHES.iter().chain(VENDOR_PATCHES.iter()) {
+        for patch in PATCHES.iter() {
             assert!(Regex::new(patch.pattern).is_ok(), "invalid pattern: {}", patch.name);
+        }
+    }
+
+    /// Reports each patch's hit count against real extracted bundles, the
+    /// question every Spotify update raises. Run by hand:
+    ///
+    /// ```sh
+    /// SPICETIFY_EXPOSE_BUNDLES=/path/xpui-modules-a.js:/path/xpui-modules-b.js \
+    ///   cargo test -p spicetify expose_hits_on_real_bundles -- --ignored --nocapture
+    /// ```
+    #[test]
+    #[ignore = "needs real bundles via SPICETIFY_EXPOSE_BUNDLES"]
+    fn expose_hits_on_real_bundles() {
+        let Ok(paths) = std::env::var("SPICETIFY_EXPOSE_BUNDLES") else {
+            eprintln!("SPICETIFY_EXPOSE_BUNDLES unset; nothing to measure");
+            return;
+        };
+        for path in paths.split(':').filter(|p| !p.is_empty()) {
+            let src = std::fs::read_to_string(path).expect("bundle readable");
+            eprintln!("== {path} ({} bytes)", src.len());
+            let (_, cm) = patch_context_menu(src.clone());
+            eprintln!("{:>6}  {}", if cm { "hit" } else { "MISS" }, "Context menu provider (patch_context_menu)");
+            for patch in PATCHES.iter() {
+                let re = Regex::new(patch.pattern).expect("pattern compiles");
+                let n = re.find_iter(&src).count();
+                eprintln!("{:>6}  {}", n, patch.name);
+            }
+            let (_, uri) = patch_uri_fallback(src);
+            eprintln!("{:>6}  {}", if uri { "hit" } else { "MISS" }, "URI fallback (patch_uri_fallback)");
         }
     }
 
