@@ -57,6 +57,21 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         return Err(anyhow::anyhow!(fl!("foreign-apply")));
     }
 
+    // Refuse before anything destructive: the first steps stop the client
+    // and rename xpui.spa, so a client this CLI cannot patch must be turned
+    // away here rather than left without a servable xpui.
+    match crate::hooks::version_detect::detect_spotify_version(ctx) {
+        Ok(version) if !crate::hooks::version_detect::spotify_supported(&version) => {
+            return Err(anyhow::anyhow!(fl!(
+                "spotify-too-old",
+                version = version.to_string(),
+                min = crate::hooks::version_detect::MIN_SUPPORTED_SPOTIFY.to_string()
+            )));
+        }
+        Ok(_) => {}
+        Err(e) => tracing::warn!(error = %e, "could not detect the Spotify version before apply"),
+    }
+
     crate::lifecycle::stop(ctx)?;
 
     if !spa.exists() && !ctx.mirror && backup.exists() {

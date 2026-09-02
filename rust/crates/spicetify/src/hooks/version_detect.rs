@@ -10,6 +10,15 @@ use crate::error::Result;
 static VERSION_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(\d+\.\d+\.\d+)").expect("valid regex"));
 
+/// The oldest client `apply` will touch. Below it the index.html and bundle
+/// layout predate the patcher and the exposure patches, and a failed apply
+/// past the backup rename leaves a client with no servable xpui.
+pub const MIN_SUPPORTED_SPOTIFY: semver::Version = semver::Version::new(1, 2, 80);
+
+pub fn spotify_supported(version: &semver::Version) -> bool {
+    *version >= MIN_SUPPORTED_SPOTIFY
+}
+
 pub fn detect_spotify_version(ctx: &AppContext) -> Result<semver::Version> {
     let exe = &ctx.spotify_exec;
     let version_str = detect_version(exe)?;
@@ -125,4 +134,18 @@ fn detect_version(exec_path: &Path) -> Result<String> {
     }
 
     Err(anyhow::anyhow!("unable to detect Spotify version on Windows"))
+}
+
+#[cfg(test)]
+mod floor_tests {
+    use super::*;
+
+    #[test]
+    fn the_floor_admits_1_2_80_and_refuses_older() {
+        assert!(spotify_supported(&semver::Version::new(1, 2, 80)));
+        assert!(spotify_supported(&semver::Version::new(1, 2, 84)));
+        assert!(spotify_supported(&semver::Version::new(1, 3, 0)));
+        assert!(!spotify_supported(&semver::Version::new(1, 2, 79)));
+        assert!(!spotify_supported(&semver::Version::new(1, 2, 45)));
+    }
 }

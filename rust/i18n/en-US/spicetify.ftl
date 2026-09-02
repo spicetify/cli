@@ -57,6 +57,7 @@ spotify-restarted = Restarted Spotify
 spotify-started = Started Spotify
 spotify-start-timeout = Spotify did not start within { $secs } seconds
 spotify-stopping = Stopping Spotify (if running)
+spotify-too-old = Spotify { $version } is older than the oldest build this CLI supports ({ $min }). Update Spotify, or use the v2 CLI for this client.
 store-no-artifacts = store has no artifacts
 tui-actions = Actions
 tui-error = error
