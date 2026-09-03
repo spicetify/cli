@@ -6,6 +6,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
+use anyhow::Context as _;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
@@ -24,6 +25,9 @@ fn base_url() -> String {
 #[derive(Debug, Deserialize)]
 struct Index {
     keys: BTreeMap<String, IndexEntry>,
+    /// The exposure patch set (module/expose.rs), published at the repo root.
+    #[serde(default)]
+    expose: Option<FileRef>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -87,6 +91,24 @@ pub(crate) fn fetch_classmap(config_root: &Path, wanted_key: &str) -> Result<Str
     let index: Index = serde_json::from_slice(&index_bytes)
         .map_err(|e| anyhow::anyhow!("malformed classmap index: {e}"))?;
 
+    // The patch set is independent of the key: cache it before key
+    // resolution so a build no classmap covers still gets current patches.
+    if let Some(expose) = &index.expose {
+        let cache_root = config_root.join("classmaps");
+        if expose.file != super::expose::EXPOSE_FILE {
+            tracing::warn!(
+                "refusing an expose entry not named {}: {}",
+                super::expose::EXPOSE_FILE,
+                expose.file
+            );
+        } else if let Err(e) = std::fs::create_dir_all(&cache_root)
+            .context("creating the classmap cache directory")
+            .and_then(|()| cache_file(&client, None, expose, &cache_root))
+        {
+            tracing::warn!(error = %e, "could not refresh the exposure patches; using what is cached");
+        }
+    }
+
     let target: u64 =
         wanted_key.parse().map_err(|_| anyhow::anyhow!("malformed classmap key {wanted_key}"))?;
 
@@ -122,7 +144,7 @@ pub(crate) fn fetch_classmap(config_root: &Path, wanted_key: &str) -> Result<Str
     std::fs::create_dir_all(&dest)?;
 
     for file in files {
-        cache_file(&client, &key, file, &dest)?;
+        cache_file(&client, Some(&key), file, &dest)?;
     }
 
     // Keep the successfully-consumed index beside the cache. Staging uses it
@@ -219,9 +241,11 @@ fn is_plain_file_name(name: &str) -> bool {
         && Path::new(name).file_name().and_then(std::ffi::OsStr::to_str) == Some(name)
 }
 
+/// `key` is the classmap key directory the file lives under; `None` is a file
+/// published at the repo root (the exposure patch set).
 fn cache_file(
     client: &reqwest::blocking::Client,
-    key: &str,
+    key: Option<&str>,
     file: &FileRef,
     dest: &Path,
 ) -> Result<()> {
@@ -232,7 +256,10 @@ fn cache_file(
         return Ok(());
     }
 
-    let url = format!("{}/{key}/{}", base_url(), file.file);
+    let url = match key {
+        Some(key) => format!("{}/{key}/{}", base_url(), file.file),
+        None => format!("{}/{}", base_url(), file.file),
+    };
     let bytes = client
         .get(&url)
         .send()
@@ -250,7 +277,11 @@ fn cache_file(
     }
 
     std::fs::write(&path, &bytes)?;
-    tracing::info!("cached classmap file {key}/{}", file.file);
+    if let Some(key) = key {
+        tracing::info!("cached classmap file {key}/{}", file.file);
+    } else {
+        tracing::info!("cached {}", file.file);
+    }
     Ok(())
 }
 

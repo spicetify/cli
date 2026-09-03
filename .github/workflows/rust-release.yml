@@ -88,6 +88,19 @@ jobs:
           fi
           echo "VERSION=$crate_version" >> "$GITHUB_ENV"
 
+      # The embedded copy is the offline baseline for the exposure patches
+      # spicetify/classmaps publishes; a release built from a stale copy
+      # degrades every first run without network.
+      - name: Check the embedded exposure patches match the published set
+        shell: bash
+        run: |
+          published=$(curl -fsSL https://raw.githubusercontent.com/spicetify/classmaps/main/index.json | jq -r '.expose.sha256')
+          local=$(openssl dgst -sha256 -r expose.json | cut -d' ' -f1)
+          if [ "$published" != "$local" ]; then
+            echo "expose.json ($local) differs from the published set ($published); sync it before releasing" >&2
+            exit 1
+          fi
+
       - name: Test
         working-directory: rust
         run: cargo test --workspace --locked

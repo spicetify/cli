@@ -60,7 +60,7 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
     // Refuse before anything destructive: the first steps stop the client
     // and rename xpui.spa, so a client this CLI cannot patch must be turned
     // away here rather than left without a servable xpui.
-    match crate::hooks::version_detect::detect_spotify_version(ctx) {
+    let detected = match crate::hooks::version_detect::detect_spotify_version(ctx) {
         Ok(version) if !crate::hooks::version_detect::spotify_supported(&version) => {
             return Err(anyhow::anyhow!(fl!(
                 "spotify-too-old",
@@ -68,9 +68,12 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
                 min = crate::hooks::version_detect::MIN_SUPPORTED_SPOTIFY.to_string()
             )));
         }
-        Ok(_) => {}
-        Err(e) => tracing::warn!(error = %e, "could not detect the Spotify version before apply"),
-    }
+        Ok(version) => Some(version),
+        Err(e) => {
+            tracing::warn!(error = %e, "could not detect the Spotify version before apply");
+            None
+        }
+    };
 
     crate::lifecycle::stop(ctx)?;
 
@@ -123,7 +126,14 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         return Err(e);
     }
 
-    if let Err(e) = extract_modules(&ctx.spotify_data_dir, &ctx.offline_bnk_dir, &tmp) {
+    // Refreshes the classmap cache and the exposure patches together: the
+    // patches are applied to the bundle extracted next, so they must be
+    // current before that step, not at module staging.
+    if let Some(version) = &detected {
+        refresh_classmap(ctx, &version.to_string());
+    }
+
+    if let Err(e) = extract_modules(ctx, &tmp) {
         cleanup_tmp(&tmp);
         return Err(e);
     }
@@ -224,7 +234,9 @@ fn extract_into(spa: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
-fn extract_modules(spotify_data: &Path, offline_bnk_dir: &Path, dest: &Path) -> Result<()> {
+fn extract_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
+    let spotify_data: &Path = &ctx.spotify_data_dir;
+    let offline_bnk_dir: &Path = &ctx.offline_bnk_dir;
     let snapshot = locate_snapshot(spotify_data, offline_bnk_dir).ok_or_else(|| {
         let searched = snapshot_search_dirs(spotify_data, offline_bnk_dir)
             .iter()
@@ -243,7 +255,8 @@ fn extract_modules(spotify_data: &Path, offline_bnk_dir: &Path, dest: &Path) -> 
                     snapshot.display()
                 )
             })?;
-    let patched = crate::module::expose::expose_apis(js);
+    let patches = crate::module::expose::load_patches(&ctx.config_root);
+    let patched = crate::module::expose::expose_apis(js, &patches);
     let out = dest.join("xpui-modules.js");
     std::fs::write(&out, patched).map_err(fs_err("writing", &out))?;
     Ok(())
@@ -327,8 +340,6 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
         tracing::warn!("cannot detect the Spotify version: skipping module staging");
         return Ok(());
     }
-
-    refresh_classmap(ctx, &version);
 
     // A fresh config has no modules, so without this the client boots without
     // its library, store, or manager surfaces and the user has no way in.
@@ -435,7 +446,8 @@ fn patch_index_html(input: &str, daemon_token: &str) -> Result<String> {
     if !input.contains(SNAPSHOT_TAG) {
         return Err(anyhow::anyhow!(fl!("index-patch-not-found")));
     }
-    let insert_at = body_insert_at(input).ok_or_else(|| anyhow::anyhow!(fl!("index-patch-not-found")))?;
+    let insert_at =
+        body_insert_at(input).ok_or_else(|| anyhow::anyhow!(fl!("index-patch-not-found")))?;
 
     let payload = format!(
         concat!(
@@ -483,10 +495,8 @@ mod tests {
 
     #[test]
     fn patches_a_body_tag_with_attributes() {
-        let stock_linux = STOCK.replace(
-            "<body>",
-            r#"<body class="encore-dark-theme encore-layout-themes">"#,
-        );
+        let stock_linux =
+            STOCK.replace("<body>", r#"<body class="encore-dark-theme encore-layout-themes">"#);
         let out = patch_index_html(&stock_linux, "tok").expect("attributed body patches");
         let class_attr = out.find("encore-dark-theme").expect("body attributes kept");
         let wrapper = out.find("hooks/spicetifyWrapper.js").expect("wrapper injected");
