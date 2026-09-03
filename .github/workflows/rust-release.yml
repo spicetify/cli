@@ -92,6 +92,9 @@ jobs:
       # spicetify/classmaps publishes; a release built from a stale copy
       # degrades every first run without network.
       - name: Check the embedded exposure patches match the published set
+        # Repo state, not per-target: one job is enough, and the Linux
+        # runner has the tools without Git Bash caveats.
+        if: matrix.asset_os == 'linux'
         shell: bash
         run: |
           published=$(curl -fsSL https://raw.githubusercontent.com/spicetify/classmaps/main/index.json | jq -r '.expose.sha256')
