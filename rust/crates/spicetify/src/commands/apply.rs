@@ -190,27 +190,50 @@ fn ensure_daemon(ctx: &AppContext) {
         return;
     }
 
+    if crate::daemon::is_daemon_running() {
+        let running = crate::daemon::health_check().map(|h| h.version);
+        if !daemon_is_current(running.as_deref()) {
+            tracing::info!(
+                "restarting the daemon: it is running {} while this CLI is {}",
+                running.as_deref().unwrap_or("an unknown version"),
+                crate::VERSION
+            );
+            // stop() also unregisters auto-start, which is what makes the
+            // replacement stick: a KeepAlive supervisor would otherwise
+            // revive the old binary the moment it exits.
+            if let Err(e) = super::daemon::stop() {
+                tracing::warn!(error = %e, "could not stop the outdated daemon");
+            }
+        }
+    }
+
+    // Registers auto-start with this CLI's own daemon binary. This runs after
+    // any stop because stop unregisters; registering first left every
+    // upgrade with the registration undone and the daemon back unsupervised.
     if let Err(e) = super::daemon::install() {
         tracing::warn!(error = %e, "could not enable the daemon at login");
     }
 
-    if crate::daemon::is_daemon_running() {
-        let running = crate::daemon::health_check().map(|h| h.version);
-        if daemon_is_current(running.as_deref()) {
-            return;
-        }
-        tracing::info!(
-            "restarting the daemon: it is running {} while this CLI is {}",
-            running.as_deref().unwrap_or("an unknown version"),
-            crate::VERSION
-        );
-        if let Err(e) = super::daemon::stop() {
-            tracing::warn!(error = %e, "could not stop the outdated daemon");
-        }
-    }
-
-    if let Err(e) = super::daemon::start() {
+    // A supervisor that starts what it registers (systemd, launchd) has the
+    // daemon up by now or within a moment; only spawn when nothing answers,
+    // so there is never a second, unsupervised copy beside the managed one.
+    if !daemon_comes_up(std::time::Duration::from_secs(2))
+        && let Err(e) = super::daemon::start()
+    {
         tracing::warn!(error = %e, "could not start the daemon");
+    }
+}
+
+fn daemon_comes_up(within: std::time::Duration) -> bool {
+    let deadline = std::time::Instant::now() + within;
+    loop {
+        if crate::daemon::is_daemon_running() {
+            return true;
+        }
+        if std::time::Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(200));
     }
 }
 
