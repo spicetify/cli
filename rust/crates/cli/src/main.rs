@@ -1,7 +1,8 @@
 use std::io::{self, Write};
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::CompleteEnv;
 use i18n_embed_fl as _;
 use spicetify::commands::{Command, ConfigAction, DaemonAction, PkgAction, UpdatesAction};
 use spicetify::{fl, logging};
@@ -172,6 +173,9 @@ impl From<CliPkgAction> for PkgAction {
 
 fn main() {
     spicetify::locale::localize();
+    // Intercepts a `COMPLETE=<shell>` invocation to generate shell completions
+    // and exits, otherwise falls through to normal startup.
+    CompleteEnv::with_factory(SpicetifyCli::command).complete();
     if let Err(err) = run() {
         eprintln!("{} {err:#}", fl!("fatal-prefix"));
         std::process::exit(1);

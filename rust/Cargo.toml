@@ -55,6 +55,7 @@ i18n-embed = { version = "0.16", features = ["fluent-system", "desktop-requester
 i18n-embed-fl = "0.10"
 rust-embed = { version = "8.12", features = ["interpolate-folder-path"] }
 clap = { version = "4.6", features = ["derive", "wrap_help"] }
+clap_complete = { version = "4.6", features = ["unstable-dynamic"] }
 ratatui = "0.30"
 crossterm = { version = "0.29", features = ["event-stream"] }
 opener = "0.8"
