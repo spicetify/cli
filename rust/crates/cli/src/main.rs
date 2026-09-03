@@ -172,10 +172,12 @@ impl From<CliPkgAction> for PkgAction {
 }
 
 fn main() {
-    spicetify::locale::localize();
     // Intercepts a `COMPLETE=<shell>` invocation to generate shell completions
     // and exits, otherwise falls through to normal startup.
+    // Must run before locale::localize() to avoid unnecessary overhead on
+    // every tab-completion keystroke.
     CompleteEnv::with_factory(SpicetifyCli::command).complete();
+    spicetify::locale::localize();
     if let Err(err) = run() {
         eprintln!("{} {err:#}", fl!("fatal-prefix"));
         std::process::exit(1);
