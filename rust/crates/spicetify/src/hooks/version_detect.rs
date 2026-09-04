@@ -118,6 +118,14 @@ fn detect_version(exec_path: &Path) -> Result<String> {
 
 #[cfg(windows)]
 fn detect_version(exec_path: &Path) -> Result<String> {
+    // PowerShell takes seconds to start; there is nothing for it to read
+    // when the executable is not there, so answer without spawning it.
+    if !exec_path.is_file() {
+        return Err(anyhow::anyhow!(
+            "unable to detect Spotify version: {} does not exist",
+            exec_path.display()
+        ));
+    }
     let ps_script =
         format!("(Get-Item -LiteralPath '{}').VersionInfo.ProductVersion", exec_path.display());
 

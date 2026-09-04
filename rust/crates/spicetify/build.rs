@@ -23,6 +23,16 @@ fn main() {
     std::fs::write(out_dir.join("css-map.json"), css_bytes)
         .expect("failed to stage the css map into OUT_DIR");
 
+    // The exposure patch set is published by spicetify/classmaps and fetched
+    // at apply time; this copy is the offline baseline.
+    // A binary without one would expose nothing, so its absence fails the
+    // build rather than shipping an inert CLI.
+    let expose = root.join("expose.json");
+    println!("cargo:rerun-if-changed={}", expose.display());
+    std::fs::copy(&expose, out_dir.join("expose.json"))
+        .map(drop)
+        .expect("expose.json is required beside css-map.json at the cli repo root");
+
     for name in FILES {
         let src = dist.join(name);
         println!("cargo:rerun-if-changed={}", src.display());

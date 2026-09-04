@@ -1,0 +1,94 @@
+{
+  "$comment": "Apply-time source patches that expose Spotify internals on the Spicetify global, applied to the xpui-modules.js extracted from the v8 snapshot. Fetched by the CLI through index.json; the CLI embeds a copy as its offline baseline. `replace` is a capture-group template (${0} whole match, ${N} group N; `$$` for a literal dollar). `once` stops after the first match. `onMiss` is `warn` (a miss means a Spotify update moved the code) or `quiet` (a miss is expected on some supported builds). `note` records the measured hit count per build.",
+  "version": 1,
+  "patches": [
+    {
+      "name": "Expose PlatformAPI",
+      "note": "1.2.84: 1, 1.2.96: 1.",
+      "pattern": "((?:setTitlebarHeight|registerFactory)[\\w(){}<>:.,&$!=;\"\"?!#%/\\- ]+)(\\{version:[a-zA-Z_\\$][\\w\\$]*,)",
+      "replace": "${1}Spicetify._platform=${2}",
+      "once": false,
+      "onMiss": "warn"
+    },
+    {
+      "name": "Redux store",
+      "note": "1.2.84: 0, 1.2.96: 1. The store is created inside an IIFE invoked with the session/features/seoExperiment object; this anchors on the only `return (0,createStore)((0,combineReducers)({` in that IIFE and routes the created store through the global. 1.2.84 builds the store another way and has no seoExperiment key at all, so ReduxStore is not exposed there yet.",
+      "pattern": "return(\\(0,[\\w$]+\\.[\\w$]+\\)\\(\\(0,[\\w$]+\\.[\\w$]+\\)\\(\\{(?s:.{0,1500}?)\\)\\}\\(\\{session:[\\w$]+,features:[\\w$]+,seoExperiment:[\\w$]+\\},\\{platform:)",
+      "replace": "return Spicetify.Platform.ReduxStore=${1}",
+      "once": true,
+      "onMiss": "warn"
+    },
+    {
+      "name": "React Component: Platform Provider",
+      "note": "1.2.84: 0, 1.2.96: 2.",
+      "pattern": "(,[$\\w]+=)((function\\([\\w$]{1}\\)\\{var [\\w$]+=[\\w$]+\\.platform,[\\w$]+=[\\w$]+\\.children,)|(\\(\\{platform:[\\w$]+,children:[\\w$]+\\}\\)=>\\{))",
+      "replace": "${1}Spicetify.ReactComponent.PlatformProvider=${2}",
+      "once": false,
+      "onMiss": "warn"
+    },
+    {
+      "name": "Spotify Custom Snackbar Interface",
+      "note": "1.2.84: 1, 1.2.96: 1.",
+      "pattern": "\\b\\w\\s*\\(\\)\\s*[^;,]*enqueueCustomSnackbar:\\s*(\\w)\\s*[^;]*;",
+      "replace": "${0}Spicetify.Snackbar.enqueueCustomSnackbar=${1};",
+      "once": false,
+      "onMiss": "warn"
+    },
+    {
+      "name": "Spotify Image Snackbar Interface",
+      "note": "1.2.84: 1, 1.2.96: 1. The enqueue arrow is returned through useCallback rather than assigned.",
+      "pattern": "return(\\(0,[\\w$]+\\.useCallback\\)\\(\\(\\{message:[\\w$]+,\\s*imageSrc)",
+      "replace": "return Spicetify.Snackbar.enqueueImageSnackbar=${1}",
+      "once": false,
+      "onMiss": "warn"
+    },
+    {
+      "name": "React Component: Navigation for navLinks",
+      "note": "1.2.84: 1, 1.2.96: 0. The wrapper finds Navigation through webpack at runtime (react-components.js), so a miss is covered.",
+      "pattern": "(;const [\\w\\d]+=)((?:\\(0,[\\w\\d]+\\.memo\\))[\\(\\d,\\w\\.\\){:}=]+=[\\d\\w]+\\.[\\d\\w]+\\.getLocaleForURLPath\\(\\))",
+      "replace": "${1}Spicetify.ReactComponent.Navigation=${2}",
+      "once": true,
+      "onMiss": "quiet"
+    },
+    {
+      "name": "Context Menu V2",
+      "note": "1.2.84: 1, 1.2.96: 1.",
+      "pattern": "(\"Menu\".+?children:)([\\w$][\\w$\\d]*)",
+      "replace": "${1}[Spicetify.ContextMenuV2.renderItems(),${2}].flat()",
+      "once": false,
+      "onMiss": "warn"
+    },
+    {
+      "name": "Map styled-components classes",
+      "note": "1.2.84: 1, 1.2.96: 1.",
+      "pattern": "(\\w+ [\\w$_]+)=[\\w$_]+\\([\\w$_]+>>>0\\)",
+      "replace": "${1}=Spicetify._getStyledClassName(arguments,this)",
+      "once": false,
+      "onMiss": "warn"
+    },
+    {
+      "name": "Tippy.js",
+      "note": "1.2.84: 2, 1.2.96: 2.",
+      "pattern": "([\\w\\$_]+)\\.setDefaultProps=",
+      "replace": "Spicetify.Tippy=${1};${0}",
+      "once": false,
+      "onMiss": "warn"
+    },
+    {
+      "name": "Flipper components",
+      "note": "1.2.84: 1, 1.2.96: 0. react-flip-toolkit left the client in 1.2.9x; nothing remains to expose there.",
+      "pattern": "([\\w$]+)=((?:function|\\()([\\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})",
+      "replace": "${1}=Spicetify.ReactFlipToolkit.spring=${2}",
+      "once": false,
+      "onMiss": "quiet"
+    },
+    {
+      "name": "Snackbar",
+      "note": "1.2.84: 1, 1.2.96: 1.",
+      "pattern": "\\w+\\s*=\\s*\\w\\.call\\(this,[^)]+\\)\\s*\\|\\|\\s*this\\)\\.enqueueSnackbar",
+      "replace": "Spicetify.Snackbar=${0}",
+      "once": false,
+      "onMiss": "warn"
+    }
+  ]
+}
