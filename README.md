@@ -46,31 +46,6 @@ faster v2, so upgrading is a reinstall. What it changes:
   side by side, so going back is `spicetify pkg enable <module>@<old version>`
   rather than hunting down an old download.
 
-#### Shell completions
-
-The v3 CLI can complete commands and options in Bash, Zsh, Fish, PowerShell,
-and Elvish.
-
-<!-- prettier-ignore -->
-> [!NOTE]
-> Shell completion is experimental. Generate the registration code when your
-> shell starts so it stays compatible after Spicetify updates.
-
-Add the command for your shell to its startup file:
-
-- Bash (`~/.bashrc`): `source <(COMPLETE=bash spicetify)`
-- Zsh (`~/.zshrc`): `source <(COMPLETE=zsh spicetify)`
-- Fish (`~/.config/fish/completions/spicetify.fish`):
-  `COMPLETE=fish spicetify | source`
-- PowerShell (`$PROFILE`):
-
-  ```powershell
-  $env:COMPLETE = "powershell"; spicetify | Out-String | Invoke-Expression; Remove-Item Env:\COMPLETE
-  ```
-
-- Elvish (`~/.elvish/rc.elv`):
-  `eval (E:COMPLETE=elvish spicetify | slurp)`
-
 ---
 
 ### Code Signing Policy

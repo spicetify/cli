@@ -139,9 +139,66 @@ export PATH="\$PATH:$spicetify_install"
 EOINFO
 }
 
+# BEGIN shell completion helpers
 endswith_newline() {
-    [ "$(od -An -c "$1" | tail -1 | grep -o '.$')" = "\n" ]
+    [ ! -s "$1" ] || [ "$(od -An -c "$1" | tail -1 | grep -o '.$')" = "\n" ]
 }
+
+append_completion() {
+    shellrc=$1
+    completion=$2
+
+    if ! mkdir -p "$(dirname "$shellrc")" || ! touch "$shellrc"; then
+        log "Could not update $shellrc. Add this line manually:"
+        log "$completion"
+        return
+    fi
+
+    if grep -Fq "$completion" "$shellrc"; then
+        log "spicetify completion already set in $shellrc, continuing..."
+        return
+    fi
+
+    log "ADDING spicetify completion to $shellrc"
+    if ! endswith_newline "$shellrc"; then
+        echo >> "$shellrc"
+    fi
+    echo "$completion" >> "$shellrc"
+}
+
+install_shell_completion() {
+    if [ "$channel" != "v3" ]; then
+        return 0
+    fi
+
+    case ${SHELL:-} in
+        *zsh)
+            shellrc=${ZDOTDIR:-$HOME}/.zshrc
+            append_completion "$shellrc" "source <(COMPLETE=zsh spicetify)"
+        ;;
+        *bash)
+            found_bashrc=0
+            for shellrc in "$HOME/.bashrc" "$HOME/.bash_profile"; do
+                if [ -f "$shellrc" ]; then
+                    append_completion "$shellrc" "source <(COMPLETE=bash spicetify)"
+                    found_bashrc=1
+                fi
+            done
+            if [ "$found_bashrc" -eq 0 ]; then
+                append_completion "$HOME/.bashrc" "source <(COMPLETE=bash spicetify)"
+            fi
+        ;;
+        *fish)
+            shellrc=${XDG_CONFIG_HOME:-$HOME/.config}/fish/completions/spicetify.fish
+            append_completion "$shellrc" "COMPLETE=fish spicetify | source"
+        ;;
+        *elvish)
+            append_completion "$HOME/.elvish/rc.elv" "eval (E:COMPLETE=elvish spicetify | slurp)"
+        ;;
+        *) log "Shell completion was not configured for ${SHELL:-the current shell}." ;;
+    esac
+}
+# END shell completion helpers
 
 check() {
     path="export PATH=\$PATH:$spicetify_install"
@@ -154,7 +211,10 @@ check() {
     # Create shellrc if it doesn't exist
     if ! [ -f "$shellrc" ]; then
         log "CREATING $shellrc"
-        touch "$shellrc"
+        if ! mkdir -p "$(dirname "$shellrc")" || ! touch "$shellrc"; then
+            notfound
+            return
+        fi
     fi
 
     # Still checking again, in case touch command failed
@@ -183,8 +243,11 @@ case $SHELL in
         [ -f "$HOME/.bash_profile" ] && check ".bash_profile"
     ;;
     *fish) check ".config/fish/config.fish" "fish_add_path $spicetify_install" ;;
+    *elvish) check ".elvish/rc.elv" "set E:PATH = '$spicetify_install:'\$E:PATH" ;;
     *) notfound ;;
 esac
+
+install_shell_completion
 
 case ":$PATH:" in
     *":$spicetify_install:"*) ;;
