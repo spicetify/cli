@@ -1,10 +1,6 @@
 #!/usr/bin/env sh
 set -eu
 
-if [ "${CI:-}" = true ]; then
-    set -x
-fi
-
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
 temp_dir=$(mktemp -d)
 trap 'rm -rf "$temp_dir"' EXIT
@@ -21,7 +17,7 @@ log() { :; }
 assert_one_line() {
     file=$1
     expected=$2
-    actual=$(grep -Fxc "$expected" "$file")
+    actual=$(grep -Fxc "$expected" "$file" || true)
     if [ "$actual" -ne 1 ]; then
         echo "Expected one completion line in $file, found $actual" >&2
         exit 1
@@ -40,8 +36,10 @@ run_case() {
     (
         HOME=$case_home
         SHELL="/bin/$shell_name"
+        XDG_CONFIG_HOME="$case_home/.config"
+        ZDOTDIR=$case_home
         channel=v3
-        export HOME SHELL
+        export HOME SHELL XDG_CONFIG_HOME ZDOTDIR
         install_shell_completion
         install_shell_completion
     )
