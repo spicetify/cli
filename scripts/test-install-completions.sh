@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
 set -eu
 
+if [ "${CI:-}" = true ]; then
+    set -x
+fi
+
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
 temp_dir=$(mktemp -d)
 trap 'rm -rf "$temp_dir"' EXIT
