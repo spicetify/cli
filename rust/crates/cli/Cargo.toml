@@ -20,6 +20,7 @@ ProductName = "Spicetify"
 spicetify = { path = "../spicetify" }
 tui = { path = "../tui" }
 clap = { workspace = true, features = ["derive"] }
+clap_complete = { workspace = true }
 anyhow = { workspace = true }
 i18n-embed-fl = { workspace = true }
 

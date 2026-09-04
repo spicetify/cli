@@ -155,6 +155,38 @@ function Add-SpicetifyToPath {
   }
 }
 
+function Add-SpicetifyCompletion {
+  [CmdletBinding()]
+  param (
+    [string] $ProfilePath = $PROFILE
+  )
+  begin {
+    Write-Host -Object 'Adding spicetify shell completion...' -NoNewline
+    $completion = '$env:COMPLETE = "powershell"; spicetify | Out-String | Invoke-Expression; Remove-Item Env:\COMPLETE'
+  }
+  process {
+    $profileDirectory = Split-Path -Parent $ProfilePath
+    if (-not (Test-Path -LiteralPath $profileDirectory)) {
+      New-Item -ItemType Directory -Path $profileDirectory -Force | Out-Null
+    }
+    if (-not (Test-Path -LiteralPath $ProfilePath)) {
+      New-Item -ItemType File -Path $ProfilePath -Force | Out-Null
+    }
+
+    $alreadyInstalled = Select-String -LiteralPath $ProfilePath -SimpleMatch $completion -Quiet
+    if (-not $alreadyInstalled) {
+      $profileContent = Get-Content -LiteralPath $ProfilePath -Raw
+      if ($profileContent.Length -gt 0 -and -not $profileContent.EndsWith("`n")) {
+        Add-Content -LiteralPath $ProfilePath -Value ([Environment]::NewLine) -NoNewline
+      }
+      Add-Content -LiteralPath $ProfilePath -Value $completion
+    }
+  }
+  end {
+    Write-Success
+  }
+}
+
 function Install-Spicetify {
   [CmdletBinding()]
   param ()
@@ -214,6 +246,9 @@ else {
 #region Spicetify
 Move-OldSpicetifyFolder
 Install-Spicetify
+if ($v3) {
+  Add-SpicetifyCompletion
+}
 Write-Host -Object "`nRun" -NoNewline
 Write-Host -Object ' spicetify -h ' -NoNewline -ForegroundColor 'Cyan'
 Write-Host -Object 'to get started'
