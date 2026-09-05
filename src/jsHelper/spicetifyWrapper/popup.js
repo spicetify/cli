@@ -1,8 +1,5 @@
-let stylesInjected = false;
-
 function injectStyles() {
-  if (stylesInjected) return;
-  stylesInjected = true;
+  if (document.querySelector("style.spicetify-popup-modal")) return;
 
   const style = document.createElement("style");
   style.className = "spicetify-popup-modal";
