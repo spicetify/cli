@@ -433,7 +433,7 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "cli"
-version = "3.0.0-beta.12"
+version = "3.0.0-beta.13"
 dependencies = [
  "anyhow",
  "clap",
@@ -662,16 +662,19 @@ dependencies = [
 
 [[package]]
 name = "daemon"
-version = "3.0.0-beta.12"
+version = "3.0.0-beta.13"
 dependencies = [
  "anyhow",
  "axum",
+ "cc",
  "fs4",
+ "hex",
  "i18n-embed-fl",
  "notify",
  "percent-encoding",
  "reqwest",
  "serde_json",
+ "sha2 0.11.0",
  "spicetify",
  "tokio",
  "tokio-stream",
@@ -3112,7 +3115,7 @@ dependencies = [
 
 [[package]]
 name = "spicetify"
-version = "3.0.0-beta.12"
+version = "3.0.0-beta.13"
 dependencies = [
  "aho-corasick",
  "anyhow",
@@ -3710,7 +3713,7 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tui"
-version = "3.0.0-beta.12"
+version = "3.0.0-beta.13"
 dependencies = [
  "anyhow",
  "crossterm",

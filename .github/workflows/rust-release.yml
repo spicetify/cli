@@ -106,7 +106,7 @@ jobs:
 
       - name: Test
         working-directory: rust
-        run: cargo test --workspace --locked
+        run: cargo test --workspace --locked --features daemon/native-window-controls-tests
 
       - name: Build
         working-directory: rust

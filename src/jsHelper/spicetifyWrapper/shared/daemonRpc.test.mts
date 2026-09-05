@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { send, TOKEN_PROTOCOL_PREFIX } from "./daemonRpc.js";
+import { acquireWindowControls, send, TOKEN_PROTOCOL_PREFIX } from "./daemonRpc.js";
 
 type Handler = ((ev: { data?: unknown }) => void) | null;
 
@@ -47,6 +47,59 @@ afterEach(() => {
 });
 
 describe("daemon rpc", () => {
+  it("holds native controls until release is acknowledged", async () => {
+    install();
+    let disconnected = false;
+    const pending = acquireWindowControls(() => {
+      disconnected = true;
+    });
+    const socket = FakeSocket.last!;
+    assert.equal(socket.url, "ws://127.0.0.1:7967/window-controls");
+    assert.deepEqual(socket.protocols, [`${TOKEN_PROTOCOL_PREFIX}tok123`]);
+    socket.onmessage!({ data: "ready" });
+    const lease = await pending;
+    assert.equal(socket.closed, false);
+    const release = lease.release();
+    assert.equal(lease.release(), release);
+    assert.deepEqual(socket.sent, ["release"]);
+    assert.equal(socket.closed, false);
+    socket.onmessage!({ data: "released" });
+    await release;
+    socket.onclose!();
+    assert.equal(disconnected, false);
+  });
+
+  it("reports an unexpected native disconnect once", async () => {
+    install();
+    let disconnected = 0;
+    const pending = acquireWindowControls(() => {
+      disconnected++;
+    });
+    const socket = FakeSocket.last!;
+    socket.onmessage!({ data: "ready" });
+    const lease = await pending;
+    socket.onerror!();
+    socket.onclose!();
+    await lease.release();
+    assert.equal(disconnected, 1);
+  });
+
+  it("rejects native acquisition when the daemon is incompatible", async () => {
+    install();
+    const pending = acquireWindowControls(() => {});
+    FakeSocket.last!.onerror!();
+    await assert.rejects(pending, /compatible running daemon/);
+  });
+
+  it("rejects a lost release acknowledgement", async () => {
+    install();
+    const pending = acquireWindowControls(() => {}, { timeoutMs: 10 });
+    const socket = FakeSocket.last!;
+    socket.onmessage!({ data: "ready" });
+    const lease = await pending;
+    await assert.rejects(lease.release(), /timed out/);
+    assert.equal(socket.closed, true);
+  });
   it("carries the token in the subprotocol, because WebSocket cannot set headers", async () => {
     install();
     const pending = send("spicetify:client:block-updates");

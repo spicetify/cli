@@ -8,6 +8,8 @@ pub mod proxy;
 pub mod routes;
 pub mod server;
 pub mod watcher;
+#[cfg(windows)]
+mod window_controls;
 
 fn main() {
     spicetify::locale::localize();

@@ -21,6 +21,68 @@ export const available = async () => {
   }
 };
 
+// The open socket owns the Windows hit-test filter. Release is acknowledged
+// only after the daemon removes it, so a new owner can safely acquire it.
+export const acquireWindowControls = (onDisconnect, { timeoutMs = TIMEOUT_MS } = {}) =>
+  new Promise((resolve, reject) => {
+    const token = globalThis.__SPICETIFY_DAEMON_TOKEN__;
+    if (!token) return reject(new Error("no daemon token"));
+    const socket = new WebSocket("ws://127.0.0.1:7967/window-controls", [`${TOKEN_PROTOCOL_PREFIX}${token}`]);
+    let state = "pending";
+    let releasePromise;
+    let releaseResolve;
+    let releaseReject;
+    let timer;
+    const fail = (error) => {
+      const previous = state;
+      if (previous === "closed") return;
+      state = "closed";
+      clearTimeout(timer);
+      socket.close();
+      if (previous === "pending") reject(error);
+      else if (previous === "releasing") releaseReject(error);
+      else onDisconnect(error);
+    };
+    const armTimeout = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fail(new Error("native window controls timed out")), timeoutMs);
+    };
+    armTimeout();
+    socket.onmessage = ({ data }) => {
+      if (data === "ready" && state === "pending") {
+        clearTimeout(timer);
+        state = "ready";
+        resolve({
+          release() {
+            if (releasePromise) return releasePromise;
+            if (state === "closed") return Promise.resolve();
+            state = "releasing";
+            releasePromise = new Promise((yes, no) => {
+              releaseResolve = yes;
+              releaseReject = no;
+            });
+            armTimeout();
+            try {
+              socket.send("release");
+            } catch (error) {
+              fail(error);
+            }
+            return releasePromise;
+          },
+        });
+      } else if (data === "released" && state === "releasing") {
+        clearTimeout(timer);
+        state = "closed";
+        socket.close();
+        releaseResolve();
+      } else {
+        fail(new Error(String(data).startsWith(ERROR_PREFIX) ? String(data).slice(ERROR_PREFIX.length) : "native window controls disconnected"));
+      }
+    };
+    socket.onerror = () => fail(new Error("native window controls require a compatible running daemon"));
+    socket.onclose = () => fail(new Error("native window controls disconnected"));
+  });
+
 // A command whose reply never arrives is not necessarily a failure: `apply`
 // stops the client mid-request, so the socket dies before answering. Those
 // commands pass `expectReply: false` and resolve as soon as the send lands.

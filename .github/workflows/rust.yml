@@ -75,7 +75,7 @@ jobs:
         run: cargo build --workspace --locked
 
       - name: Test
-        run: cargo test --workspace --locked
+        run: cargo test --workspace --locked --features daemon/native-window-controls-tests
 
       - name: Clippy
         run: cargo clippy --workspace --locked -- -D warnings

@@ -102,6 +102,7 @@ pub fn build(state: Arc<DaemonState>) -> Router {
     Router::new()
         .route("/health", get(health::handler))
         .route("/rpc", get(ws_handler))
+        .route("/window-controls", get(window_controls_handler))
         .route("/shutdown", post(shutdown_handler))
         .route("/proxy", get(proxy::status))
         .route("/proxy/", get(proxy::status))
@@ -131,6 +132,30 @@ async fn ws_handler(
         WsAuth::BySubprotocol(proto) => ws.protocols([proto]),
     };
     ws.on_upgrade(move |socket| handle_ws(socket, state))
+}
+
+async fn window_controls_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    if headers.get("origin").and_then(|value| value.to_str().ok()) != Some(ALLOWED_ORIGIN) {
+        return (StatusCode::FORBIDDEN, "origin not allowed").into_response();
+    }
+    let ws = match ws_authorized(&state, &headers) {
+        WsAuth::Rejected => return (StatusCode::FORBIDDEN, "invalid daemon token").into_response(),
+        WsAuth::ByHeader => ws,
+        WsAuth::BySubprotocol(protocol) => ws.protocols([protocol]),
+    };
+    #[cfg(windows)]
+    return ws
+        .on_upgrade(move |socket| crate::window_controls::serve(socket, state))
+        .into_response();
+    #[cfg(not(windows))]
+    {
+        let _ = ws;
+        (StatusCode::NOT_IMPLEMENTED, "native window controls require Windows").into_response()
+    }
 }
 
 async fn handle_ws(mut socket: WebSocket, state: Arc<DaemonState>) {
