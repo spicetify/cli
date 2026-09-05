@@ -1,12 +1,7 @@
 let stylesInjected = false;
 
-// Spotify removed the Track Credits modal component its markup was borrowed from,
-// so the classes below no longer carry any styling from Spotify's stylesheets.
-// They are kept on the elements for theme compatibility, while the `spicetify-popup-*`
-// classes own the layout. Rules are wrapped in `:where()` so they contribute no
-// specificity -- themes and extensions override them without needing `!important`.
 function injectStyles() {
-  if (stylesInjected || document.querySelector("style.spicetify-popup-modal")) return;
+  if (stylesInjected) return;
   stylesInjected = true;
 
   const style = document.createElement("style");
