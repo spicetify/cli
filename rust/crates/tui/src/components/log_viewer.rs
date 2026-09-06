@@ -74,6 +74,7 @@ impl LogViewer {
                 let level_str = format!("{:<5}", entry.level.as_str());
                 Line::from(vec![
                     Span::styled(level_str, Style::default().fg(level_color)),
+                    Span::raw(" "),
                     Span::styled(&entry.message, Style::default().fg(msg_color)),
                 ])
             })
