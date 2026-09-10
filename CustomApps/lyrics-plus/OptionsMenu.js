@@ -142,6 +142,8 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 			none: "None",
 		};
 
+		let romanizationOptions = {};
+
 		const musixmatchDisplay = new Intl.DisplayNames(["en"], { type: "language" });
 		const availableMusixmatchLanguages = Array.isArray(musixmatchLanguages) ? [...new Set(musixmatchLanguages.filter(Boolean))] : [];
 		const activeMusixmatchLanguage = musixmatchSelectedLanguage && musixmatchSelectedLanguage !== "none" ? musixmatchSelectedLanguage : null;
@@ -205,6 +207,10 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 					hk: "Traditional Chinese (Hong Kong)",
 					tw: "Traditional Chinese (Taiwan)",
 				};
+				romanizationOptions = {
+					none: "None",
+					pinyin: "Pinyin (拼音)",
+				};
 				break;
 			}
 		}
@@ -241,6 +247,15 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 				renderInline: true,
 				// for songs in languages that support translation but not Convert (e.g., English), the option is disabled.
 				when: () => friendlyLanguage,
+			},
+			{
+				desc: "Romanization",
+				key: "romanization",
+				type: ConfigSelection,
+				options: romanizationOptions,
+				renderInline: true,
+				// only Chinese has a romanization option (Pinyin) for now.
+				when: () => friendlyLanguage === "chinese",
 			},
 			{
 				desc: "Convert",
@@ -374,6 +389,14 @@ const AdjustmentsMenu = react.memo(({ mode, hasPerformer }) => {
 								{
 									desc: "Font size",
 									key: "font-size",
+									type: ConfigAdjust,
+									min: fontSizeLimit.min,
+									max: fontSizeLimit.max,
+									step: fontSizeLimit.step,
+								},
+								{
+									desc: "Romanization font size",
+									key: "romanization-font-size",
 									type: ConfigAdjust,
 									min: fontSizeLimit.min,
 									max: fontSizeLimit.max,

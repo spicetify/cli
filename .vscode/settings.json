@@ -6,7 +6,16 @@
 	"[powershell]": {
 		"editor.defaultFormatter": "ms-vscode.powershell"
 	},
-	"[javascript][typescript][json]": {
-		"editor.defaultFormatter": "biomejs.biome"
+	"[javascript]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode"
+	},
+	"[jsonc]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode"
 	}
 }

@@ -146,7 +146,13 @@ esac
 
 echo
 log "spicetify v$tag was installed successfully to $spicetify_install"
-log "Run 'spicetify --help' to get started"
+if [ -n "${shellrc:-}" ] && [ -f "$shellrc" ]; then
+    log "Open a new terminal or reload your shell profile to use spicetify:"
+    log "  source \"$shellrc\""
+    log "Then run 'spicetify --help' to get started"
+else
+    log "After adding spicetify to your PATH, run 'spicetify --help' to get started"
+fi
 
 echo "Do you want to install spicetify Marketplace? (Y/n)"
 read -r choice < /dev/tty

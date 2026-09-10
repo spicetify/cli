@@ -252,7 +252,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 					}
 
 					// to avoid syntaxerror on Spotify 1.2.78 and above
-					if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch < 78 {
+					if spotifyMajor == 1 && spotifyMinor == 2 && spotifyPatch < 78 {
 						utils.ReplaceOnce(&content, `\(\({[^}]*,\s*imageSrc`, func(submatches ...string) string {
 							return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
 						})
@@ -296,7 +296,8 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 				}
 				if fileName == "xpui.css" || fileName == "xpui-snapshot.css" {
 					content = content + `
-					.main-gridContainer-fixedWidth{grid-template-columns:repeat(auto-fill,var(--column-width));width:calc((var(--column-count) - 1) * var(--grid-gap) + var(--column-count) * var(--column-width))}.main-cardImage-imageWrapper{background-color:var(--card-color,#333);border-radius:var(--card-image-radius,6px);box-shadow:0 8px 24px rgba(0,0,0,.5);padding-bottom:100%;position:relative;width:100%}.main-cardImage-circular{--card-image-radius:50%}.main-card-imagePlaceholder,.main-cardImage-image{height:100%;left:0;position:absolute;top:0;width:100%}.main-card-card{border-radius:8px;-webkit-box-flex:1;background:var(--spice-player);-ms-flex:1;flex:1;isolation:isolate;padding:16px;position:relative;-webkit-transition:background-color .3s;transition:background-color .3s;width:100%}.main-card-card:hover,.main-card-card[data-context-menu-open=true]{background:var(--spice-card)}.main-card-card:focus-within{background:var(--spice-card)}.main-card-card .main-card-cardLink{position:absolute;z-index:0}.RjYPjR7FsVf42b3a5Efm:before,.Z78JmW4GUvvxLXSFjb7R:not(:last-child):after{content:"\2022";margin:0 4px}.main-card-card a,.main-card-card button{position:relative;z-index:1}.main-card-cardLink{bottom:0;content:"";cursor:pointer;left:0;overflow:hidden;right:0;text-indent:100%;top:0;white-space:nowrap;z-index:0}.main-card-cardTitle{z-index:1}.main-card-cardTitleLink:focus,.main-card-cardTitleLink:hover{text-decoration:none}.Wmr5qZ5jui6X37XCrChA{opacity:0}.main-card-newEpisodeIndicator{margin-top:3px}.main-card-imageContainer{pointer-events:none;position:relative}.main-card-imageContainerOld,.main-card-imageContainerSkeleton{margin-bottom:16px}.main-card-cardMetadata{min-height:62px;line-clamp:2;-webkit-line-clamp:2;overflow:hidden;text-overflow:ellipsis}.main-card-DownloadStatusIndicator{bottom:12px;inset-inline-end:12px;position:absolute}.main-card-PlayButtonContainer{border-radius:500px;bottom:8px;-webkit-box-shadow:0 8px 8px rgba(var(--spice-rgb-shadow),.3);box-shadow:0 8px 8px rgba(var(--spice-rgb-shadow),.3);inset-inline-end:8px;opacity:0;pointer-events:none;position:absolute;-webkit-transform:translateY(8px);transform:translateY(8px);z-index:2}@media(pointer:coarse){.main-card-PlayButtonContainer{display:none}}@media(prefers-reduced-motion:no-preference){.main-card-PlayButtonContainer{-webkit-transition:opacity .2s ease-out,-webkit-transform .2s ease-out;transition:transform .2s ease-out,opacity .2s ease-out,-webkit-transform .2s ease-out}}.main-card-PlayButtonContainerVisible{opacity:1;pointer-events:auto;position:absolute;-webkit-transform:translateY(0);transform:translateY(0)}.main-card-cardContainer{--animation-speed:0.2s!important;white-space:normal}.main-card-card:hover .main-card-PlayButtonContainer,.main-card-cardContainer:hover .main-card-PlayButtonContainer{opacity:1;-webkit-transform:translateY(0);transform:translateY(0)}.main-card-card:focus-within .main-card-PlayButtonContainer,.main-card-cardContainer:focus-within{opacity:1;-webkit-transform:translateY(0);transform:translateY(0)}@media(pointer:fine){.main-card-card .main-card-cardLink:hover{cursor:pointer}.main-card-card:hover .main-card-PlayButtonContainer,.main-card-cardContainer:hover .main-card-PlayButtonContainer{opacity:1;pointer-events:auto;position:absolute}.main-card-card:focus-within .main-card-PlayButtonContainer,.main-card-cardContainer:focus-within .main-card-PlayButtonContainer{opacity:1;pointer-events:auto;position:absolute}}.main-card-cardMetadata,.v3isO2phyJAoZRkmme0G{display:-webkit-box;-webkit-box-orient:vertical}`
+						.main-gridContainer-fixedWidth{grid-template-columns:repeat(auto-fill,var(--column-width));width:calc((var(--column-count) - 1) * var(--grid-gap) + var(--column-count) * var(--column-width))}.main-cardImage-imageWrapper{background-color:var(--card-color,#333);border-radius:var(--card-image-radius,6px);box-shadow:0 8px 24px rgba(0,0,0,.5);padding-bottom:100%;position:relative;width:100%}.main-cardImage-circular{--card-image-radius:50%}.main-card-imagePlaceholder,.main-cardImage-image{height:100%;left:0;position:absolute;top:0;width:100%}.main-card-card{border-radius:8px;-webkit-box-flex:1;background:var(--spice-player);-ms-flex:1;flex:1;isolation:isolate;padding:16px;position:relative;-webkit-transition:background-color .3s;transition:background-color .3s;width:100%}.main-card-card:hover,.main-card-card[data-context-menu-open=true]{background:var(--spice-card)}.main-card-card:focus-within{background:var(--spice-card)}.main-card-card .main-card-cardLink{position:absolute;z-index:0}.RjYPjR7FsVf42b3a5Efm:before,.Z78JmW4GUvvxLXSFjb7R:not(:last-child):after{content:"\2022";margin:0 4px}.main-card-card a,.main-card-card button{position:relative;z-index:1}.main-card-cardLink{bottom:0;content:"";cursor:pointer;left:0;overflow:hidden;right:0;text-indent:100%;top:0;white-space:nowrap;z-index:0}.main-card-cardTitle{z-index:1}.main-card-cardTitleLink:focus,.main-card-cardTitleLink:hover{text-decoration:none}.Wmr5qZ5jui6X37XCrChA{opacity:0}.main-card-newEpisodeIndicator{margin-top:3px}.main-card-imageContainer{pointer-events:none;position:relative}.main-card-imageContainerOld,.main-card-imageContainerSkeleton{margin-bottom:16px}.main-card-cardMetadata{min-height:62px;line-clamp:2;-webkit-line-clamp:2;overflow:hidden;text-overflow:ellipsis}.main-card-DownloadStatusIndicator{bottom:12px;inset-inline-end:12px;position:absolute}.main-card-PlayButtonContainer{border-radius:500px;bottom:8px;-webkit-box-shadow:0 8px 8px rgba(var(--spice-rgb-shadow),.3);box-shadow:0 8px 8px rgba(var(--spice-rgb-shadow),.3);inset-inline-end:8px;opacity:0;pointer-events:none;position:absolute;-webkit-transform:translateY(8px);transform:translateY(8px);z-index:2}@media(pointer:coarse){.main-card-PlayButtonContainer{display:none}}@media(prefers-reduced-motion:no-preference){.main-card-PlayButtonContainer{-webkit-transition:opacity .2s ease-out,-webkit-transform .2s ease-out;transition:transform .2s ease-out,opacity .2s ease-out,-webkit-transform .2s ease-out}}.main-card-PlayButtonContainerVisible{opacity:1;pointer-events:auto;position:absolute;-webkit-transform:translateY(0);transform:translateY(0)}.main-card-cardContainer{--animation-speed:0.2s!important;white-space:normal}.main-card-card:hover .main-card-PlayButtonContainer,.main-card-cardContainer:hover .main-card-PlayButtonContainer{opacity:1;-webkit-transform:translateY(0);transform:translateY(0)}.main-card-card:focus-within .main-card-PlayButtonContainer,.main-card-cardContainer:focus-within{opacity:1;-webkit-transform:translateY(0);transform:translateY(0)}@media(pointer:fine){.main-card-card .main-card-cardLink:hover{cursor:pointer}.main-card-card:hover .main-card-PlayButtonContainer,.main-card-cardContainer:hover .main-card-PlayButtonContainer{opacity:1;pointer-events:auto;position:absolute}.main-card-card:focus-within .main-card-PlayButtonContainer,.main-card-cardContainer:focus-within .main-card-PlayButtonContainer{opacity:1;pointer-events:auto;position:absolute}}.main-card-cardMetadata,.v3isO2phyJAoZRkmme0G{display:-webkit-box;-webkit-box-orient:vertical}
+					`
 				}
 				return content
 			})
@@ -344,6 +345,20 @@ func StartCSS(extractedAppsPath string) {
 }
 
 func colorVariableReplace(content string) string {
+	hexAlphaReplacement := func(maxValue float64) func(submatches ...string) string {
+		return func(submatches ...string) string {
+			alpha, err := strconv.ParseUint(submatches[1], 16, 8)
+			if err != nil {
+				return submatches[0]
+			}
+
+			return fmt.Sprintf(
+				"rgba(var(--spice-rgb-text),%s)",
+				strconv.FormatFloat(float64(alpha)/maxValue, 'f', -1, 64),
+			)
+		}
+	}
+
 	colorPatches := []Patch{
 		{
 			Name:  "CSS: --spice-player",
@@ -400,6 +415,16 @@ func colorVariableReplace(content string) string {
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-sidebar)"
 			},
+		},
+		{
+			Name:        "CSS: --spice-rgb-text (8-digit hex)",
+			Regex:       `(?i)#ffffff([0-9a-f]{2})\b`,
+			Replacement: hexAlphaReplacement(255),
+		},
+		{
+			Name:        "CSS: --spice-rgb-text (4-digit hex)",
+			Regex:       `(?i)#fff([0-9a-f])\b`,
+			Replacement: hexAlphaReplacement(15),
 		},
 		{
 			Name:  "CSS: --spice-text",
@@ -462,6 +487,13 @@ func colorVariableReplace(content string) string {
 			Regex: `#(e22134|cd1a2b)\b`,
 			Replacement: func(submatches ...string) string {
 				return "var(--spice-notification-error)"
+			},
+		},
+		{
+			Name:  "CSS (rgba): --spice-rgb-text",
+			Regex: `(?i)rgba\(\s*255\s*,\s*255\s*,\s*255\s*,`,
+			Replacement: func(submatches ...string) string {
+				return "rgba(var(--spice-rgb-text),"
 			},
 		},
 		{

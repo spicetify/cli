@@ -360,7 +360,7 @@ func insertCustomAppChunkMap(jsPath string, flags Flag) {
 
 		utils.ReplaceOnce(
 			&content,
-			`(\.f\.miniCss=function\(\w+,\w+\).*?\(\{)([0-9:,]+)(\}\)\[\w+\])`,
+			`(\.f\.miniCss=function\(\w+,\w+(?:,\w+)?\).*?\(\{)([0-9:,]+)(\}\)\[\w+\])`,
 			func(submatches ...string) string {
 				return fmt.Sprintf("%s%s%s%s", submatches[1], submatches[2], cssEnableMap, submatches[3])
 			})

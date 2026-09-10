@@ -170,7 +170,7 @@ const KaraokeLine = ({ text, isActive, position, startTime, endTime }) => {
 	});
 };
 
-const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara }) => {
+const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara, romanization }) => {
 	const [position, setPosition] = useState(0);
 	const activeLineEle = useRef();
 	const lyricContainerEle = useRef();
@@ -182,6 +182,17 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 			setPosition(newPos + delay);
 		}
 	});
+
+	const romanizationByTime = useMemo(() => {
+		if (!romanization) return null;
+		const map = {};
+		for (const line of romanization) {
+			if (line.startTime != null) {
+				map[line.startTime] = line.text;
+			}
+		}
+		return map;
+	}, [romanization]);
 
 	const lyricWithEmptyLines = useMemo(
 		() =>
@@ -319,6 +330,10 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 
 				const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
+				const romanizedText = CONFIG.visual["romanization"] !== "none" && !isPause ? romanizationByTime?.[startTime] : null;
+				const lineTextStr = (typeof lineText === "object" ? lineText?.props?.children?.[0] : lineText) ?? "";
+				const showRomanizedLine = romanizedText && romanizedText.replace(/\s+/g, "") !== String(lineTextStr).replace(/\s+/g, "");
+
 				return react.createElement(
 					"div",
 					{
@@ -368,6 +383,17 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara 
 								},
 							},
 							text
+						),
+					showRomanizedLine &&
+						react.createElement(
+							"p",
+							{
+								style: {
+									opacity: 0.5,
+									fontSize: "var(--lyrics-romanization-font-size)",
+								},
+							},
+							romanizedText
 						)
 				);
 			})
@@ -536,10 +562,21 @@ function isInViewport(element) {
 	);
 }
 
-const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKara }) => {
+const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKara, romanization }) => {
 	const [position, setPosition] = useState(() => Spicetify.Player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay);
 	const activeLineRef = useRef(null);
 	const pageRef = useRef(null);
+
+	const romanizationByTime = useMemo(() => {
+		if (!romanization) return null;
+		const map = {};
+		for (const line of romanization) {
+			if (line.startTime != null) {
+				map[line.startTime] = line.text;
+			}
+		}
+		return map;
+	}, [romanization]);
 
 	useTrackPosition(() => {
 		if (!Spicetify.Player.data.is_paused) {
@@ -648,6 +685,10 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 
 			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
 
+			const romanizedText = CONFIG.visual["romanization"] !== "none" && !isPause ? romanizationByTime?.[startTime] : null;
+			const lineTextStr = (typeof lineText === "object" ? lineText?.props?.children?.[0] : lineText) ?? "";
+			const showRomanizedLine = romanizedText && romanizedText.replace(/\s+/g, "") !== String(lineTextStr).replace(/\s+/g, "");
+
 			return react.createElement(
 				"div",
 				{
@@ -692,6 +733,14 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 							},
 						},
 						text
+					),
+				showRomanizedLine &&
+					react.createElement(
+						"p",
+						{
+							style: { opacity: 0.5, fontSize: "var(--lyrics-romanization-font-size)" },
+						},
+						romanizedText
 					)
 			);
 		}),
@@ -706,7 +755,7 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 	);
 });
 
-const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
+const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright, romanization }) => {
 	return react.createElement(
 		"div",
 		{
@@ -731,6 +780,10 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 						: "";
 
 			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
+
+			const romanizedText = CONFIG.visual["romanization"] !== "none" ? romanization?.[index]?.text : null;
+			const lineTextStr = (typeof lineText === "object" ? lineText?.props?.children?.[0] : lineText) ?? "";
+			const showRomanizedLine = romanizedText && romanizedText.replace(/\s+/g, "") !== String(lineTextStr).replace(/\s+/g, "");
 
 			return react.createElement(
 				"div",
@@ -765,6 +818,14 @@ const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
 							},
 						},
 						text
+					),
+				showRomanizedLine &&
+					react.createElement(
+						"p",
+						{
+							style: { opacity: 0.5, fontSize: "var(--lyrics-romanization-font-size)" },
+						},
+						romanizedText
 					)
 			);
 		}),

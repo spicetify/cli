@@ -52,8 +52,14 @@ func init() {
 	log.SetOutput(colorable.NewColorableStdout())
 
 	// Separates flags and commands
+	parseFlags := true
 	for _, v := range os.Args[1:] {
-		if len(v) > 0 && v[0] == '-' {
+		if parseFlags && v == "--" {
+			parseFlags = false
+			continue
+		}
+
+		if parseFlags && len(v) > 0 && v[0] == '-' {
 			if len(v) > 2 && v[1] != '-' {
 				for _, char := range v[1:] {
 					flags = append(flags, "-"+string(char))
@@ -494,6 +500,8 @@ upgrade|update      Update spicetify to the latest version if an update is avail
 
 --bypass-admin      Bypass admin or root (sudo) check. NOT RECOMMENDED
 
+--                  Stop parsing flags; treat remaining arguments as command values
+
 -c, --config        Print config file path and quit
 
 -h, --help          Print this help text and quit
@@ -532,6 +540,8 @@ replace_colors <0 | 1>
 spotify_launch_flags <string>
     Command-line flags used when launching/restarting Spotify.
     Separate each flag with "|".
+    To set flags from the CLI, place "--" before the value.
+    Example: spicetify config spotify_launch_flags -- "--flag-1|--flag-2"
     List of valid flags: https://spicetify.app/docs/development/spotify-cli-flags
 
 always_enable_devtools <0 | 1>

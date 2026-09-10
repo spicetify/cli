@@ -127,7 +127,7 @@ export function exposeRuntimeResolvers({ cache, chunks, modules, functionModules
     Spicetify.ReactQuery.useInfiniteQuery = Object.values(require(infiniteQueryChunk[0])).find((m) => typeof m === "function");
   }
 
-  if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find((m) => m?.RGBA);
+  if (Spicetify.Color) Spicetify.Color.CSSFormat = modules.find((m) => typeof m?.RGBA === "number");
 
   // Combine snackbar and notification
   (function bindShowNotification(attempt = 0) {
