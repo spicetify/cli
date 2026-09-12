@@ -36,6 +36,25 @@ fn sanitize_version(raw: &str) -> String {
         .unwrap_or_else(|| raw.trim().to_string())
 }
 
+/// True when a version probe answered with "nothing": an empty string or the
+/// literal placeholders macOS tools emit for a missing attribute (`(null)`,
+/// `null`). `mdls -raw` prints `(null)` when the bundle has no kMDItemVersion
+/// (e.g. a Brew-installed Spotify.app whose Spotlight metadata is absent), and
+/// treating that literal as a version makes semver parsing fail with
+/// `failed to parse Spotify version '(null)'`, which in turn makes `apply`
+/// skip module staging entirely.
+fn is_missing_version(raw: &str) -> bool {
+    let trimmed = raw.trim();
+    // `defaults` and `mdls` output is occasionally wrapped in quotes.
+    let unquoted = trimmed
+        .trim_matches('"')
+        .trim_matches('\'')
+        .trim();
+    unquoted.is_empty()
+        || unquoted.eq_ignore_ascii_case("(null)")
+        || unquoted.eq_ignore_ascii_case("null")
+}
+
 #[cfg(target_os = "macos")]
 fn detect_version(exec_path: &Path) -> Result<String> {
     let app_base = exec_path.parent().and_then(|p| p.parent()).and_then(|p| p.parent());
@@ -49,7 +68,7 @@ fn detect_version(exec_path: &Path) -> Result<String> {
             .map_err(|e| anyhow::anyhow!("failed to run mdls: {e}"))?;
         if output.status.success() {
             let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !version.is_empty() {
+            if !is_missing_version(&version) {
                 return Ok(version);
             }
         }
@@ -75,7 +94,7 @@ fn detect_version(exec_path: &Path) -> Result<String> {
 
     if output.status.success() {
         let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !version.is_empty() {
+        if !is_missing_version(&version) {
             return Ok(version);
         }
     }
@@ -108,7 +127,7 @@ fn detect_version(exec_path: &Path) -> Result<String> {
         Command::new("rpm").args(["-q", "--queryformat", "%{VERSION}", "spotify-client"]).output()
     {
         let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !version.is_empty() {
+        if !is_missing_version(&version) {
             return Ok(version);
         }
     }
@@ -136,7 +155,7 @@ fn detect_version(exec_path: &Path) -> Result<String> {
 
     if output.status.success() {
         let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !version.is_empty() {
+        if !is_missing_version(&version) {
             return Ok(version);
         }
     }
@@ -155,5 +174,35 @@ mod floor_tests {
         assert!(spotify_supported(&semver::Version::new(1, 3, 0)));
         assert!(!spotify_supported(&semver::Version::new(1, 2, 79)));
         assert!(!spotify_supported(&semver::Version::new(1, 2, 45)));
+    }
+
+    #[test]
+    fn mdls_null_placeholders_count_as_missing() {
+        // `mdls -raw` prints `(null)` when Spotlight has no kMDItemVersion
+        // for the bundle (brew installs): it must fall back to Info.plist
+        // instead of being parsed as a version. See #3924 / #3923.
+        assert!(is_missing_version(""));
+        assert!(is_missing_version("   "));
+        assert!(is_missing_version("(null)"));
+        assert!(is_missing_version(" (null) \n"));
+        assert!(is_missing_version("\"(null)\""));
+        assert!(is_missing_version("'(null)'"));
+        assert!(is_missing_version("(NULL)"));
+        assert!(is_missing_version("null"));
+        assert!(is_missing_version("\"null\""));
+    }
+
+    #[test]
+    fn real_versions_are_not_missing() {
+        assert!(!is_missing_version("1.2.99.317"));
+        assert!(!is_missing_version("1.2.99.317.g9bd8c54d\n"));
+        assert!(!is_missing_version("\"1.2.99\""));
+    }
+
+    #[test]
+    fn sanitize_extracts_semver_from_full_build_strings() {
+        assert_eq!(sanitize_version("1.2.99.317.g9bd8c54d"), "1.2.99");
+        assert_eq!(sanitize_version("  1.3.0\n"), "1.3.0");
+        assert_eq!(sanitize_version("\"1.2.96\""), "1.2.96");
     }
 }
