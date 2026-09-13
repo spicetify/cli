@@ -49,7 +49,8 @@ fn detect_version(exec_path: &Path) -> Result<String> {
             .map_err(|e| anyhow::anyhow!("failed to run mdls: {e}"))?;
         if output.status.success() {
             let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !version.is_empty() {
+            // Treat "(null)" from mdls as no result and use the defaults fallback
+            if !version.is_empty() && !version.eq_ignore_ascii_case("(null)") {
                 return Ok(version);
             }
         }
