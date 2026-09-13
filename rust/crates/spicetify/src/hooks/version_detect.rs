@@ -49,7 +49,7 @@ fn detect_version(exec_path: &Path) -> Result<String> {
             .map_err(|e| anyhow::anyhow!("failed to run mdls: {e}"))?;
         if output.status.success() {
             let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            // Treat "(null)" from mdls as no result and use the defaults fallback
+            // Treat "(null)" from mdls as no result and use the Info.plist fallback
             if !version.is_empty() && !version.eq_ignore_ascii_case("(null)") {
                 return Ok(version);
             }
@@ -66,11 +66,10 @@ fn detect_version(exec_path: &Path) -> Result<String> {
             exec_path.display()
         ));
     };
-    let info_plist = bundle.join("Contents").join("Info");
-    let output = Command::new("defaults")
-        .arg("read")
+    let info_plist = bundle.join("Contents").join("Info.plist");
+    let output = Command::new("plutil")
+        .args(["-extract", "CFBundleShortVersionString", "raw", "-o", "-"])
         .arg(&info_plist)
-        .arg("CFBundleShortVersionString")
         .output()
         .map_err(|e| anyhow::anyhow!("failed to read {}: {e}", info_plist.display()))?;
 
@@ -148,6 +147,39 @@ fn detect_version(exec_path: &Path) -> Result<String> {
 #[cfg(test)]
 mod floor_tests {
     use super::*;
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn reads_version_from_info_plist_when_spotlight_has_no_metadata() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock")
+            .as_nanos();
+        let root = std::env::temp_dir()
+            .join(format!("spicetify-version-detect-{}-{unique}", std::process::id()));
+        let contents = root.join("Spotify.app").join("Contents");
+        let executable = contents.join("MacOS").join("Spotify");
+        std::fs::create_dir_all(executable.parent().expect("executable parent"))
+            .expect("create fake Spotify bundle");
+        std::fs::write(
+            contents.join("Info.plist"),
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleShortVersionString</key>
+    <string>1.2.97.270</string>
+</dict>
+</plist>
+"#,
+        )
+        .expect("write Info.plist");
+
+        let detected = detect_version(&executable);
+        std::fs::remove_dir_all(&root).expect("remove fake Spotify bundle");
+
+        assert_eq!(detected.expect("detect version from Info.plist"), "1.2.97.270");
+    }
 
     #[test]
     fn the_floor_admits_1_2_80_and_refuses_older() {
