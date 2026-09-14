@@ -903,6 +903,7 @@ fn atomic_write_json(path: &Path, job: &PersistedUpdateJob) -> anyhow::Result<()
     std::io::Write::write_all(&mut file, &bytes)?;
     file.sync_all()?;
     replace_state_file(&tmp, path)?;
+    #[cfg(not(windows))]
     sync_parent_dir(parent)?;
     Ok(())
 }
@@ -937,13 +938,6 @@ fn replace_state_file(tmp: &Path, path: &Path) -> std::io::Result<()> {
 #[cfg(not(windows))]
 fn sync_parent_dir(parent: &Path) -> std::io::Result<()> {
     std::fs::File::open(parent)?.sync_all()
-}
-
-#[cfg(windows)]
-fn sync_parent_dir(_parent: &Path) -> std::io::Result<()> {
-    // Windows does not permit opening directories through File::open.
-    // The temporary file itself is flushed before the atomic rename.
-    Ok(())
 }
 
 fn transition_to_securing(job: &mut PersistedUpdateJob, outcome: PendingOutcome) {
