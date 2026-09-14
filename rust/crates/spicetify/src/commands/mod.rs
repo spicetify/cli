@@ -6,6 +6,7 @@ mod config;
 mod daemon;
 mod dev;
 mod diagnostics;
+pub mod guard;
 mod init;
 mod pkg;
 pub mod protocol;
@@ -62,20 +63,32 @@ pub enum PkgAction {
 
 pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
     match cmd {
-        Command::Apply => apply::run(ctx),
+        Command::Apply => {
+            let guard = guard::try_acquire(&ctx.config_root)?;
+            apply::run(ctx, &guard)
+        }
         Command::Config(action) => match action {
             ConfigAction::Show => config::run(ctx),
             ConfigAction::OpenFolder => config::open_folder(ctx),
         },
         Command::Daemon(action) => match action {
             DaemonAction::Start => daemon::start(),
-            DaemonAction::Stop => daemon::stop(),
+            DaemonAction::Stop => {
+                let _guard = guard::try_acquire(&ctx.config_root)?;
+                daemon::stop()
+            }
             DaemonAction::Install => daemon::install(),
-            DaemonAction::Uninstall => daemon::uninstall(),
+            DaemonAction::Uninstall => {
+                let _guard = guard::try_acquire(&ctx.config_root)?;
+                daemon::uninstall()
+            }
             DaemonAction::Status => daemon::status(),
         },
         Command::Dev => dev::run(ctx),
-        Command::Restore => restore::run(ctx),
+        Command::Restore => {
+            let _guard = guard::try_acquire(&ctx.config_root)?;
+            restore::run(ctx)
+        }
         Command::Init => init::run(ctx),
         Command::Pkg(action) => match action {
             PkgAction::List => pkg::list(ctx),
@@ -87,14 +100,21 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
             PkgAction::Enable { id } => crate::module::enable_module(&ctx.config_root, id),
         },
         Command::Protocol(uri) => protocol::run(ctx, uri),
-        Command::SpotifyUpdates(action) => match action {
-            UpdatesAction::Block => updates::set_blocked_and_remember(ctx, true),
-            UpdatesAction::Unblock => updates::set_blocked_and_remember(ctx, false),
-            UpdatesAction::Status => updates::status(ctx),
-        },
+        Command::SpotifyUpdates(UpdatesAction::Status) => updates::status(ctx),
+        Command::SpotifyUpdates(action) => {
+            let _guard = guard::try_acquire(&ctx.config_root)?;
+            match action {
+                UpdatesAction::Block => updates::set_blocked_and_remember(ctx, true),
+                UpdatesAction::Unblock => updates::set_blocked_and_remember(ctx, false),
+                UpdatesAction::Status => unreachable!("handled above"),
+            }
+        }
         Command::Path => diagnostics::path(ctx),
         Command::Support => diagnostics::support(ctx),
-        Command::Restart => crate::lifecycle::restart(ctx),
+        Command::Restart => {
+            let _guard = guard::try_acquire(&ctx.config_root)?;
+            crate::lifecycle::restart(ctx)
+        }
         Command::SelfUpdate => self_update::run(),
     }
 }

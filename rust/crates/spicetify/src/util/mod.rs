@@ -4,7 +4,9 @@ pub(crate) mod archive;
 pub(crate) mod link;
 
 pub(crate) use archive::{untar_zst_bytes, unzip_file};
-pub(crate) use link::{create_dir_link, remove_link_only};
+#[cfg(not(target_os = "macos"))]
+pub(crate) use link::create_dir_link;
+pub(crate) use link::remove_link_only;
 
 #[derive(Debug, Error)]
 pub(crate) enum ArchiveError {

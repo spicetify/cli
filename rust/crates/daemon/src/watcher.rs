@@ -12,6 +12,8 @@ use spicetify::context::{AppContext, SharedContext};
 use spicetify::{commands, fl};
 use tokio::sync::{Notify, mpsc};
 
+use crate::update_job::UpdateJobHandle;
+
 const DEBOUNCE: Duration = Duration::from_millis(500);
 
 /// Trigger-matching events are ignored for this long after an apply, which
@@ -31,6 +33,7 @@ pub fn spawn_apps_watcher(
     shared: Arc<SharedContext>,
     shutdown: Arc<Notify>,
     active: Arc<AtomicBool>,
+    update_job: UpdateJobHandle,
 ) -> Option<tokio::task::JoinHandle<()>> {
     let apps = (*shared.load_full()).spotify_apps_path();
 
@@ -59,8 +62,13 @@ pub fn spawn_apps_watcher(
             move || {
                 applies += 1;
                 let nth = applies;
+                let update_job = update_job.clone();
                 let ctx = shared.load_full();
                 async move {
+                    if update_job.status().owns_recovery() {
+                        update_job.nudge_apps_changed();
+                        return;
+                    }
                     let joined = tokio::task::spawn_blocking(move || auto_apply(&ctx, nth)).await;
                     if joined.is_err() {
                         tracing::error!("auto-apply task panicked");

@@ -38,6 +38,7 @@ rust-embed = { workspace = true }
 arc-swap = { workspace = true }
 anyhow = { workspace = true }
 opener = { workspace = true }
+fs4 = { workspace = true }
 tokio = { workspace = true, features = ["fs", "io-util"] }
 tokio-stream = { workspace = true }
 

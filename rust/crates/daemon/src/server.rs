@@ -7,7 +7,7 @@ use std::time::Duration;
 use spicetify::context::{AppContext, SharedContext};
 use spicetify::daemon::bind_addr;
 
-use crate::{routes, watcher};
+use crate::{routes, update_job, watcher};
 
 #[cfg(windows)]
 const INSTANCE_MUTEX_NAME: &str = "Spicetify-Daemon-Instance-Mutex";
@@ -25,6 +25,7 @@ pub struct DaemonState {
     pub startup: std::time::Instant,
     pub apps_watcher_active: Arc<AtomicBool>,
     pub config_watcher_active: Arc<AtomicBool>,
+    pub update_job: update_job::UpdateJobHandle,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -48,6 +49,7 @@ fn start(ctx: AppContext) -> anyhow::Result<()> {
         let shutdown = Arc::new(tokio::sync::Notify::new());
         let apps_watcher_active = Arc::new(AtomicBool::new(false));
         let config_watcher_active = Arc::new(AtomicBool::new(false));
+        let update_job = update_job::spawn(Arc::clone(&shared));
         let state = Arc::new(DaemonState {
             ctx: Arc::clone(&shared),
             client: spicetify::http::proxy_client()?,
@@ -55,12 +57,14 @@ fn start(ctx: AppContext) -> anyhow::Result<()> {
             startup: std::time::Instant::now(),
             apps_watcher_active: Arc::clone(&apps_watcher_active),
             config_watcher_active: Arc::clone(&config_watcher_active),
+            update_job: update_job.clone(),
         });
 
         let apps = watcher::spawn_apps_watcher(
             Arc::clone(&shared),
             Arc::clone(&shutdown),
             Arc::clone(&apps_watcher_active),
+            update_job,
         );
         let cfg = watcher::spawn_config_watcher(
             Arc::clone(&shared),
@@ -78,7 +82,7 @@ async fn run_server(
     apps: Option<tokio::task::JoinHandle<()>>,
     cfg: Option<tokio::task::JoinHandle<()>>,
 ) -> anyhow::Result<()> {
-    let app = routes::build(state);
+    let app = routes::build(Arc::clone(&state));
     let listener = tokio::net::TcpListener::bind(bind_addr()).await?;
     tracing::info!("{}", spicetify::fl!("daemon-listening", addr = bind_addr().to_string()));
 
@@ -99,6 +103,11 @@ async fn run_server(
         .await?;
 
     ctrl_c_hdl.abort();
+    state
+        .update_job
+        .shutdown()
+        .await
+        .map_err(|e| anyhow::anyhow!("could not safely stop the update supervisor: {e}"))?;
 
     let timed_out = tokio::time::timeout(SHUTDOWN_GRACE, async {
         if let Some(h) = apps
