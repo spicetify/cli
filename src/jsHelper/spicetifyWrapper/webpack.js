@@ -1,3 +1,4 @@
+import { getWebpackChunkQueue } from "../shared/webpackChunkQueue.js";
 import { refreshNavLinks } from "./custom-apps.js";
 import { waitFor } from "./shared/async.js";
 import { exposeReactComponentsUI } from "./webpack/component-resolvers.js";
@@ -9,8 +10,7 @@ import { createSpicetifyBindings } from "./webpack/spicetify-bindings.js";
 import { waitForURI } from "./webpack/uri.js";
 
 void (async function hotloadWebpackModules() {
-  const getChunkQueue = () => window?.webpackChunkclient_web || window?.rspackChunkclient_web;
-  const chunkQueue = await waitFor(getChunkQueue, 50);
+  const chunkQueue = await waitFor(() => getWebpackChunkQueue(window), 50);
 
   // Force all webpack modules to load
   const require = chunkQueue.push([[Symbol()], {}, (re) => re]);

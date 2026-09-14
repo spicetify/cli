@@ -21,7 +21,7 @@ const targets = [
   {
     entry: resolve(root, "src/jsHelper/modularLoader/index.ts"),
     out: resolve(outDir, "modularLoader.js"),
-    needles: ["spicetify.modules.local.", "[modular-loader]", "/modules/manifest.json", "/xpui-modules.js"],
+    needles: ["spicetify.modules.local.", "[modular-loader]", "/modules/manifest.json", "/xpui-modules.js", "/xpui.js"],
   },
 ];
 

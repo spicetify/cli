@@ -8,11 +8,12 @@
 // spicetify/classmaps and fetched beside the classmaps (remote.rs), so a
 // Spotify update that reshapes the minified code is answered with a data
 // commit rather than a CLI release. The copy at the cli repo root rides in
-// the binary as the offline baseline. Every patch targets one file: the
-// xpui-modules.js extracted from the v8 snapshot (apply.rs). Two rewrites
-// stay in Rust because they read identifiers out of the surrounding code
-// rather than matching a fixed shape: the context-menu provider and the URI
-// class scan.
+// the binary as the offline baseline. Every patch targets the client bundle
+// prepared by apply.rs: xpui-modules.js extracted from the v8 snapshot on
+// older clients, or the xpui.js shipped directly in Spotify 1.3 and newer.
+// Two rewrites stay in Rust because they read identifiers out of the
+// surrounding code rather than matching a fixed shape: the context-menu
+// provider and the URI class scan.
 //
 // The `expose_hits_on_real_bundles` test below measures a patch set against
 // real extracted bundles; run it whenever a Spotify update lands before
