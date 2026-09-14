@@ -260,6 +260,7 @@ fn set_binary_blocked(ctx: &AppContext, block: bool) -> Result<()> {
     let path = spotify_binary(ctx);
     let mut raw = std::fs::read(&path)?;
     let _ = update_block_state(&raw)?;
+    #[cfg(target_os = "macos")]
     let original = raw.clone();
 
     if !patch_update_endpoint(&mut raw, block) {
