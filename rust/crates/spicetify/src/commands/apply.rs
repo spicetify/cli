@@ -63,20 +63,7 @@ pub fn run(
     // Refuse before anything destructive: the first steps stop the client
     // and rename xpui.spa, so a client this CLI cannot patch must be turned
     // away here rather than left without a servable xpui.
-    let detected = match crate::hooks::version_detect::detect_spotify_version(ctx) {
-        Ok(version) if !crate::hooks::version_detect::spotify_supported(&version) => {
-            return Err(anyhow::anyhow!(fl!(
-                "spotify-too-old",
-                version = version.to_string(),
-                min = crate::hooks::version_detect::MIN_SUPPORTED_SPOTIFY.to_string()
-            )));
-        }
-        Ok(version) => Some(version),
-        Err(e) => {
-            tracing::warn!(error = %e, "could not detect the Spotify version before apply");
-            None
-        }
-    };
+    let detected = detect_supported_spotify_version(ctx)?;
 
     crate::lifecycle::stop(ctx)?;
 
@@ -192,6 +179,23 @@ pub fn run(
 
     tracing::info!("{}", fl!("applied-patches"));
     Ok(())
+}
+
+fn detect_supported_spotify_version(ctx: &AppContext) -> Result<Option<semver::Version>> {
+    match crate::hooks::version_detect::detect_spotify_version(ctx) {
+        Ok(version) if !crate::hooks::version_detect::spotify_supported(&version) => {
+            Err(anyhow::anyhow!(fl!(
+                "spotify-too-old",
+                version = version.to_string(),
+                min = crate::hooks::version_detect::MIN_SUPPORTED_SPOTIFY.to_string()
+            )))
+        }
+        Ok(version) => Ok(Some(version)),
+        Err(e) => {
+            tracing::warn!(error = %e, "could not detect the Spotify version before apply");
+            Ok(None)
+        }
+    }
 }
 
 // The daemon re-applies spicetify after Spotify updates itself, which is the
