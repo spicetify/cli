@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, mpsc};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use spicetify::commands::guard::DisruptiveOperationGuard;
@@ -11,37 +11,80 @@ const STATE_FILE: &str = "update-job.json";
 const SCHEMA: u8 = 1;
 const OFFER_TIMEOUT: Duration = Duration::from_mins(10);
 const INSTALL_TIMEOUT: Duration = Duration::from_mins(30);
+const SECURE_TIMEOUT: Duration = Duration::from_mins(2);
+const SECURE_RETRY_INTERVAL: Duration = Duration::from_secs(10);
 const TICK: Duration = Duration::from_secs(1);
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", rename_all_fields = "camelCase")]
 pub enum PublicJobStatus {
     Idle,
-    Accepted { job_id: String, from_version: String },
-    WaitingForUpdate { job_id: String, from_version: String },
-    Downloading { job_id: String, target_version: String },
-    InstallingSpotify { job_id: String, target_version: String },
-    ApplyingSpicetify { job_id: String, target_version: String },
-    Securing { job_id: String, target_version: Option<String>, message: Option<String> },
-    Complete { job_id: String, from_version: String, to_version: String },
-    FailedSafe { job_id: String, code: FailureCode, message: String },
+    Accepted {
+        job_id: String,
+        from_version: String,
+    },
+    WaitingForUpdate {
+        job_id: String,
+        from_version: String,
+    },
+    Downloading {
+        job_id: String,
+        target_version: String,
+    },
+    InstallingSpotify {
+        job_id: String,
+        target_version: String,
+    },
+    ApplyingSpicetify {
+        job_id: String,
+        target_version: String,
+    },
+    Securing {
+        job_id: String,
+        target_version: Option<String>,
+        message: Option<String>,
+        manual_recovery: bool,
+    },
+    Complete {
+        job_id: String,
+        from_version: String,
+        to_version: String,
+    },
+    FailedSafe {
+        job_id: String,
+        code: FailureCode,
+        message: String,
+    },
 }
 
 impl PublicJobStatus {
     #[must_use]
     pub fn owns_recovery(&self) -> bool {
-        !matches!(self, Self::Idle | Self::Complete { .. } | Self::FailedSafe { .. })
+        !matches!(
+            self,
+            Self::Idle
+                | Self::Complete { .. }
+                | Self::FailedSafe { .. }
+                | Self::Securing { manual_recovery: true, .. }
+        )
     }
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum FailureCode {
+    UnsupportedPlatform,
     UnsupportedTarget,
     UpdateUnavailable,
     RendererTimeout,
     SpotifyUpdateFailed,
     ApplyFailed,
+    SecuringFailed,
+}
+
+#[must_use]
+pub const fn supported_on_this_platform() -> bool {
+    cfg!(target_os = "macos")
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -127,6 +170,7 @@ enum PendingOutcome {
 enum TerminalOutcome {
     Complete { from: String, to: String },
     FailedSafe { code: FailureCode, message: String },
+    FailedUnsecured { code: FailureCode, message: String },
 }
 
 enum JobCommand {
@@ -194,12 +238,13 @@ struct Supervisor {
     job: Option<PersistedUpdateJob>,
     snapshot: Arc<RwLock<PublicJobStatus>>,
     guard: Option<DisruptiveOperationGuard>,
+    next_secure_retry: Option<Instant>,
 }
 
 impl Supervisor {
     fn new(shared: Arc<SharedContext>, snapshot: Arc<RwLock<PublicJobStatus>>) -> Self {
         let path = shared.load().config_root.join(STATE_FILE);
-        Self { shared, path, job: None, snapshot, guard: None }
+        Self { shared, path, job: None, snapshot, guard: None, next_secure_retry: None }
     }
 
     fn run(mut self, rx: &mpsc::Receiver<JobCommand>) {
@@ -245,12 +290,42 @@ impl Supervisor {
                 }
             }
         }
+        if self
+            .job
+            .as_mut()
+            .is_some_and(|job| clamp_recovered_securing_deadline(job, securing_deadline()))
+        {
+            let _ = self.persist();
+        }
         if self.is_active()
             && let Ok(ctx) = self.fresh_context()
         {
             self.guard = spicetify::commands::guard::try_acquire(&ctx.config_root).ok();
         }
         self.publish();
+
+        if !supported_on_this_platform() && self.is_active() {
+            let outcome = PendingOutcome::FailedSafe {
+                code: FailureCode::UnsupportedPlatform,
+                message: "Update & Apply is currently supported only on macOS".to_string(),
+            };
+            if self.guard.is_some() {
+                tracing::warn!(
+                    "recovering an update job on a platform where Update & Apply is unsupported"
+                );
+                self.secure(outcome);
+            } else {
+                if let Some(job) = self.job.as_mut() {
+                    transition_to_securing(job, outcome, securing_deadline());
+                }
+                let _ = self.persist();
+                self.publish();
+                tracing::warn!(
+                    "an unsupported-platform update job is waiting for the disruptive-operation lock before securing Spotify"
+                );
+            }
+            return;
+        }
 
         if self.is_active() && self.guard.is_none() {
             tracing::warn!(
@@ -274,6 +349,9 @@ impl Supervisor {
     }
 
     fn admit(&mut self) -> Result<Admission, String> {
+        if !supported_on_this_platform() {
+            return Err("Update & Apply is currently supported only on macOS".to_string());
+        }
         if let Some(id) = self.active_id() {
             return Ok(Admission { job_id: id, disposition: AdmissionDisposition::Joined });
         }
@@ -583,22 +661,28 @@ impl Supervisor {
 
     fn secure(&mut self, outcome: PendingOutcome) {
         if let Some(job) = self.job.as_mut() {
-            transition_to_securing(job, outcome);
+            transition_to_securing(job, outcome, securing_deadline());
         }
+        self.next_secure_retry = None;
         let _ = self.persist();
         self.publish();
         self.retry_securing();
     }
 
     fn retry_securing(&mut self) {
-        let outcome = match self.job.as_ref() {
+        if self.next_secure_retry.is_some_and(|next| Instant::now() < next) {
+            return;
+        }
+        let (outcome, expires_at) = match self.job.as_ref() {
             Some(PersistedUpdateJob::Exposed {
                 phase: ExposedPhase::Securing,
                 pending_outcome: Some(outcome),
+                expires_at,
                 ..
-            }) => outcome.clone(),
+            }) => (outcome.clone(), *expires_at),
             _ => return,
         };
+        let deadline_expired = epoch_secs() >= expires_at;
         let result = self.fresh_context().and_then(|ctx| {
             spicetify::commands::updates::set_blocked_temporarily(&ctx, true)?;
             if !spicetify::commands::updates::is_blocked(&ctx)? {
@@ -608,9 +692,15 @@ impl Supervisor {
             Ok(())
         });
         if let Err(e) = result {
-            if let Some(PersistedUpdateJob::Exposed { last_error, .. }) = self.job.as_mut() {
-                *last_error = Some(format!("could not restore the Spotify update block: {e}"));
+            let failure = format!("could not restore the Spotify update block: {e}");
+            if deadline_expired {
+                self.finish_unsecured(Some(&failure));
+                return;
             }
+            if let Some(PersistedUpdateJob::Exposed { last_error, .. }) = self.job.as_mut() {
+                *last_error = Some(failure);
+            }
+            self.next_secure_retry = Some(Instant::now() + SECURE_RETRY_INTERVAL);
             let _ = self.persist();
             self.publish();
             return;
@@ -626,6 +716,26 @@ impl Supervisor {
         self.job = Some(PersistedUpdateJob::Terminal { schema: SCHEMA, id, outcome: terminal });
         let _ = self.persist();
         self.guard = None;
+        self.next_secure_retry = None;
+        self.publish();
+    }
+
+    fn finish_unsecured(&mut self, last_error: Option<&str>) {
+        let id = self.active_id().unwrap_or_default();
+        let detail = last_error.unwrap_or("the recovery step did not complete");
+        self.job = Some(PersistedUpdateJob::Terminal {
+            schema: SCHEMA,
+            id,
+            outcome: TerminalOutcome::FailedUnsecured {
+                code: FailureCode::SecuringFailed,
+                message: format!(
+                    "Spotify's update block could not be restored before the recovery deadline: {detail}. Fix the reported error, then run `spicetify spotify-updates block`"
+                ),
+            },
+        });
+        let _ = self.persist();
+        self.guard = None;
+        self.next_secure_retry = None;
         self.publish();
     }
 
@@ -818,6 +928,7 @@ fn project_status(job: &PersistedUpdateJob) -> PublicJobStatus {
                 job_id: id.clone(),
                 target_version: target.clone(),
                 message: last_error.clone(),
+                manual_recovery: false,
             },
         },
         PersistedUpdateJob::Terminal { id, outcome, .. } => match outcome {
@@ -830,6 +941,14 @@ fn project_status(job: &PersistedUpdateJob) -> PublicJobStatus {
                 job_id: id.clone(),
                 code: *code,
                 message: message.clone(),
+            },
+            // Older Manager modules already render `securing.message`. Keep that
+            // wire kind so a CLI-only upgrade cannot hide the recovery command.
+            TerminalOutcome::FailedUnsecured { message, .. } => PublicJobStatus::Securing {
+                job_id: id.clone(),
+                target_version: None,
+                message: Some(message.clone()),
+                manual_recovery: true,
             },
         },
     }
@@ -940,7 +1059,22 @@ fn sync_parent_dir(parent: &Path) -> std::io::Result<()> {
     std::fs::File::open(parent)?.sync_all()
 }
 
-fn transition_to_securing(job: &mut PersistedUpdateJob, outcome: PendingOutcome) {
+fn securing_deadline() -> u64 {
+    epoch_secs() + SECURE_TIMEOUT.as_secs()
+}
+
+fn clamp_recovered_securing_deadline(job: &mut PersistedUpdateJob, deadline: u64) -> bool {
+    let PersistedUpdateJob::Exposed { phase: ExposedPhase::Securing, expires_at, .. } = job else {
+        return false;
+    };
+    if *expires_at <= deadline {
+        return false;
+    }
+    *expires_at = deadline;
+    true
+}
+
+fn transition_to_securing(job: &mut PersistedUpdateJob, outcome: PendingOutcome, deadline: u64) {
     match job {
         PersistedUpdateJob::Safe {
             schema,
@@ -948,7 +1082,7 @@ fn transition_to_securing(job: &mut PersistedUpdateJob, outcome: PendingOutcome)
             from,
             supported_ceiling,
             accepted_at,
-            expires_at,
+            expires_at: _,
         } => {
             *job = PersistedUpdateJob::Exposed {
                 schema: *schema,
@@ -956,17 +1090,32 @@ fn transition_to_securing(job: &mut PersistedUpdateJob, outcome: PendingOutcome)
                 from: from.clone(),
                 supported_ceiling: supported_ceiling.clone(),
                 accepted_at: *accepted_at,
-                expires_at: *expires_at,
+                expires_at: deadline,
                 target: None,
                 phase: ExposedPhase::Securing,
                 pending_outcome: Some(outcome),
                 last_error: None,
             };
         }
-        PersistedUpdateJob::Exposed { phase, pending_outcome, last_error, .. } => {
+        PersistedUpdateJob::Exposed {
+            phase,
+            expires_at: current_expiry,
+            pending_outcome,
+            last_error,
+            ..
+        } => {
+            let already_securing = *phase == ExposedPhase::Securing;
             *phase = ExposedPhase::Securing;
-            *pending_outcome = Some(outcome);
-            *last_error = None;
+            if already_securing {
+                *current_expiry = (*current_expiry).min(deadline);
+                if pending_outcome.is_none() {
+                    *pending_outcome = Some(outcome);
+                }
+            } else {
+                *current_expiry = deadline;
+                *pending_outcome = Some(outcome);
+                *last_error = None;
+            }
         }
         PersistedUpdateJob::Terminal { .. } => {}
     }

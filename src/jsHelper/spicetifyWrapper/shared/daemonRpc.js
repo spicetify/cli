@@ -21,6 +21,17 @@ export const available = async () => {
   }
 };
 
+export const updateAndApplySupported = async () => {
+  try {
+    const res = await fetch(HEALTH_URL);
+    if (!res.ok) return null;
+    const info = await res.json();
+    return typeof info?.update_and_apply_supported === "boolean" ? info.update_and_apply_supported : null;
+  } catch {
+    return null;
+  }
+};
+
 // The open socket owns the Windows hit-test filter. Release is acknowledged
 // only after the daemon removes it, so a new owner can safely acquire it.
 export const acquireWindowControls = (onDisconnect, { timeoutMs = TIMEOUT_MS } = {}) =>

@@ -51,6 +51,24 @@ fn spotify_lines_ignore_the_build_component() {
 }
 
 #[test]
+fn update_and_apply_support_matches_the_compiled_platform() {
+    assert_eq!(supported_on_this_platform(), cfg!(target_os = "macos"));
+}
+
+#[cfg(not(target_os = "macos"))]
+#[test]
+fn unsupported_platform_refuses_admission_before_mutating_state() {
+    let root = fixture_root("unsupported-platform");
+    let mut supervisor = supervisor_with(safe_job(), &root);
+    supervisor.job = None;
+
+    let error = supervisor.admit().expect_err("non-macOS admission must fail closed");
+
+    assert!(error.contains("only on macOS"));
+    assert!(supervisor.job.is_none());
+}
+
+#[test]
 fn installed_version_must_match_the_acknowledged_supported_target() {
     assert_eq!(
         installed_update_status("1.2.97", "1.2.99.1", "1.2.99", "1.2.99.2"),
@@ -78,7 +96,7 @@ fn terminal_completion_projects_all_three_facts() {
         outcome: TerminalOutcome::Complete { from: "1.2.94".to_string(), to: "1.2.97".to_string() },
     });
     assert!(matches!(
-        status,
+        &status,
         PublicJobStatus::Complete { from_version, to_version, .. }
             if from_version == "1.2.94" && to_version == "1.2.97"
     ));
@@ -93,12 +111,14 @@ fn safe_failure_enters_retryable_securing_state() {
             code: FailureCode::RendererTimeout,
             message: "renderer timed out".to_string(),
         },
+        123,
     );
 
     assert!(matches!(
         job,
         PersistedUpdateJob::Exposed {
             phase: ExposedPhase::Securing,
+            expires_at: 123,
             target: None,
             pending_outcome: Some(PendingOutcome::FailedSafe {
                 code: FailureCode::RendererTimeout,
@@ -107,6 +127,86 @@ fn safe_failure_enters_retryable_securing_state() {
             ..
         }
     ));
+}
+
+#[test]
+fn terminal_unsecured_failure_is_not_reported_as_safe() {
+    let status = project_status(&PersistedUpdateJob::Terminal {
+        schema: SCHEMA,
+        id: "job".to_string(),
+        outcome: TerminalOutcome::FailedUnsecured {
+            code: FailureCode::SecuringFailed,
+            message: "run the recovery command".to_string(),
+        },
+    });
+
+    assert!(matches!(
+        &status,
+        PublicJobStatus::Securing {
+            message: Some(message),
+            manual_recovery: true,
+            ..
+        } if message == "run the recovery command"
+    ));
+    assert!(!status.owns_recovery());
+    let wire = serde_json::to_value(&status).expect("serialize public status");
+    assert_eq!(wire.get("kind").and_then(serde_json::Value::as_str), Some("securing"));
+    assert_eq!(wire.get("manualRecovery").and_then(serde_json::Value::as_bool), Some(true));
+    assert_eq!(
+        wire.get("message").and_then(serde_json::Value::as_str),
+        Some("run the recovery command")
+    );
+}
+
+#[test]
+fn repeated_securing_transitions_never_extend_the_deadline() {
+    let mut job = exposed_job();
+    transition_to_securing(
+        &mut job,
+        PendingOutcome::FailedSafe {
+            code: FailureCode::ApplyFailed,
+            message: "first failure".to_string(),
+        },
+        100,
+    );
+    transition_to_securing(
+        &mut job,
+        PendingOutcome::FailedSafe {
+            code: FailureCode::RendererTimeout,
+            message: "later failure".to_string(),
+        },
+        200,
+    );
+
+    assert!(matches!(
+        job,
+        PersistedUpdateJob::Exposed {
+            phase: ExposedPhase::Securing,
+            expires_at: 100,
+            pending_outcome: Some(PendingOutcome::FailedSafe {
+                code: FailureCode::ApplyFailed,
+                ..
+            }),
+            ..
+        }
+    ));
+}
+
+#[test]
+fn recovered_legacy_securing_deadline_is_only_clamped_down() {
+    let mut job = exposed_job();
+    transition_to_securing(
+        &mut job,
+        PendingOutcome::FailedSafe {
+            code: FailureCode::ApplyFailed,
+            message: "apply failed".to_string(),
+        },
+        1_000,
+    );
+
+    assert!(clamp_recovered_securing_deadline(&mut job, 200));
+    assert!(!clamp_recovered_securing_deadline(&mut job, 500));
+    assert!(matches!(job, PersistedUpdateJob::Exposed { expires_at: 200, .. }));
 }
 
 #[test]

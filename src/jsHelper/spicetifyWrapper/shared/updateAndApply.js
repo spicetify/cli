@@ -64,7 +64,19 @@ const maintainPolling = () => {
 
 export const sendUpdateEvent = (event) => request(EVENT_URL, { method: "POST", body: JSON.stringify(event) });
 
+export const updateApiSupported = (platform) => {
+  const api = platform?.UpdateAPI;
+  return (
+    typeof api?.subscribe === "function" &&
+    typeof api.prepareUpdate === "function" &&
+    typeof api.applyUpdate === "function"
+  );
+};
+
 export const updateAndApply = async () => {
+  if (!updateApiSupported(globalThis.Spicetify?.Platform)) {
+    throw new DaemonJobError("Spotify's complete updater API is unavailable in this client");
+  }
   const admission = await request(JOB_URL, { method: "POST" });
   // The admission response has reached the renderer. Only this second,
   // acknowledged message lets the daemon open the updater aperture. A lost
@@ -184,8 +196,9 @@ export const installUpdateJobBridge = (platform) => {
     } catch {
       return;
     }
-    const api = platform()?.UpdateAPI;
-    if (!api || typeof api.subscribe !== "function") return;
+    const currentPlatform = platform();
+    if (!updateApiSupported(currentPlatform)) return;
+    const api = currentPlatform.UpdateAPI;
     if (["waiting-for-update", "downloading"].includes(status.kind)) {
       attachUpdater(api, status);
     } else {

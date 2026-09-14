@@ -40,26 +40,6 @@ fn sanitize_version(raw: &str) -> String {
 fn detect_version(exec_path: &Path) -> Result<String> {
     let app_base = exec_path.parent().and_then(|p| p.parent()).and_then(|p| p.parent());
 
-    if let Some(bundle) = app_base
-        && bundle.extension().is_some_and(|e| e == "app")
-    {
-        let output = Command::new("mdls")
-            .args(["-name", "kMDItemVersion", "-raw", &bundle.to_string_lossy()])
-            .output()
-            .map_err(|e| anyhow::anyhow!("failed to run mdls: {e}"))?;
-        if output.status.success() {
-            let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            // Treat "(null)" from mdls as no result and use the Info.plist fallback
-            if !version.is_empty() && !version.eq_ignore_ascii_case("(null)") {
-                return Ok(version);
-            }
-        }
-    }
-
-    // Falls back to the bundle's Info.plist, still derived from the resolved
-    // executable. No hardcoded location: if the exec is not bundle-shaped
-    // there is nothing trustworthy to read, and guessing a path produces a
-    // confidently wrong answer instead of an honest failure.
     let Some(bundle) = app_base.filter(|p| p.extension().is_some_and(|e| e == "app")) else {
         return Err(anyhow::anyhow!(
             "unable to detect Spotify version: {} is not inside a .app bundle",
@@ -76,6 +56,19 @@ fn detect_version(exec_path: &Path) -> Result<String> {
     if output.status.success() {
         let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !version.is_empty() {
+            return Ok(version);
+        }
+    }
+
+    // Spotlight can lag behind an atomic app-bundle replacement, so it is a
+    // fallback rather than the source of truth during update recovery.
+    let output = Command::new("mdls")
+        .args(["-name", "kMDItemVersion", "-raw", &bundle.to_string_lossy()])
+        .output()
+        .map_err(|e| anyhow::anyhow!("failed to run mdls: {e}"))?;
+    if output.status.success() {
+        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !version.is_empty() && !version.eq_ignore_ascii_case("(null)") {
             return Ok(version);
         }
     }
@@ -150,7 +143,7 @@ mod floor_tests {
 
     #[cfg(target_os = "macos")]
     #[test]
-    fn reads_version_from_info_plist_when_spotlight_has_no_metadata() {
+    fn reads_version_from_info_plist_without_waiting_for_spotlight() {
         let unique = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("system clock")

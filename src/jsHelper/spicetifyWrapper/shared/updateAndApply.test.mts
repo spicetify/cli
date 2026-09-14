@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { installUpdateJobBridge, updateAndApply } from "./updateAndApply.js";
+import { installUpdateJobBridge, updateAndApply, updateApiSupported } from "./updateAndApply.js";
 
 type FetchCall = { url: string; method: string; body?: string };
 
@@ -18,11 +18,21 @@ const requestUrl = (input: string | URL | Request) => (typeof input === "string"
 afterEach(() => {
   calls.length = 0;
   delete (globalThis as { __SPICETIFY_DAEMON_TOKEN__?: string }).__SPICETIFY_DAEMON_TOKEN__;
+  delete (globalThis as { Spicetify?: unknown }).Spicetify;
 });
+
+const completeUpdaterApi = {
+  subscribe() {
+    return { cancel() {} };
+  },
+  async prepareUpdate() {},
+  async applyUpdate() {},
+};
 
 describe("acknowledged Spotify update job", () => {
   it("does not open the updater aperture until admission reached the renderer", async () => {
     (globalThis as { __SPICETIFY_DAEMON_TOKEN__?: string }).__SPICETIFY_DAEMON_TOKEN__ = "token";
+    (globalThis as { Spicetify?: unknown }).Spicetify = { Platform: { UpdateAPI: completeUpdaterApi } };
     globalThis.fetch = async (input, options) => {
       calls.push({
         url: requestUrl(input),
@@ -38,6 +48,37 @@ describe("acknowledged Spotify update job", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 5));
     assert.deepEqual(JSON.parse(calls[1]!.body!), { kind: "acceptance-flushed", jobId: "job-1" });
+  });
+
+  it("refuses admission when Spotify exposes only part of the updater API", async () => {
+    (globalThis as { __SPICETIFY_DAEMON_TOKEN__?: string }).__SPICETIFY_DAEMON_TOKEN__ = "token";
+    globalThis.fetch = async (input, options) => {
+      calls.push({
+        url: requestUrl(input),
+        method: options?.method ?? "GET",
+        body: typeof options?.body === "string" ? options.body : undefined,
+      });
+      return response({ jobId: "unexpected" }, 202);
+    };
+
+    const partialApis = [
+      undefined,
+      { subscribe() {} },
+      { subscribe() {}, async prepareUpdate() {} },
+      { subscribe() {}, async applyUpdate() {} },
+    ];
+    for (const UpdateAPI of partialApis) {
+      (globalThis as { Spicetify?: unknown }).Spicetify = { Platform: { UpdateAPI } };
+      await assert.rejects(updateAndApply(), /complete updater API is unavailable/);
+    }
+
+    assert.equal(calls.length, 0, "incomplete renderer APIs must not admit a daemon job");
+  });
+
+  it("recognizes only a complete Spotify updater API", () => {
+    assert.equal(updateApiSupported({ UpdateAPI: completeUpdaterApi }), true);
+    assert.equal(updateApiSupported({ UpdateAPI: { subscribe() {} } }), false);
+    assert.equal(updateApiSupported(undefined), false);
   });
 
   it("prepares and applies only after each daemon acknowledgement", async () => {
