@@ -73,13 +73,22 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
         },
         Command::Daemon(action) => match action {
             DaemonAction::Start => daemon::start(),
-            DaemonAction::Stop => daemon::stop(),
+            DaemonAction::Stop => {
+                let _guard = guard::try_acquire(&ctx.config_root)?;
+                daemon::stop()
+            }
             DaemonAction::Install => daemon::install(),
-            DaemonAction::Uninstall => daemon::uninstall(),
+            DaemonAction::Uninstall => {
+                let _guard = guard::try_acquire(&ctx.config_root)?;
+                daemon::uninstall()
+            }
             DaemonAction::Status => daemon::status(),
         },
         Command::Dev => dev::run(ctx),
-        Command::Restore => restore::run(ctx),
+        Command::Restore => {
+            let _guard = guard::try_acquire(&ctx.config_root)?;
+            restore::run(ctx)
+        }
         Command::Init => init::run(ctx),
         Command::Pkg(action) => match action {
             PkgAction::List => pkg::list(ctx),
@@ -102,7 +111,10 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
         }
         Command::Path => diagnostics::path(ctx),
         Command::Support => diagnostics::support(ctx),
-        Command::Restart => crate::lifecycle::restart(ctx),
+        Command::Restart => {
+            let _guard = guard::try_acquire(&ctx.config_root)?;
+            crate::lifecycle::restart(ctx)
+        }
         Command::SelfUpdate => self_update::run(),
     }
 }

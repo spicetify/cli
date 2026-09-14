@@ -111,7 +111,6 @@ enum ExposedPhase {
     WaitingForOffer,
     Preparing,
     WaitingForReplacement,
-    Recovering,
     ApplyingSpicetify,
     Securing,
 }
@@ -134,7 +133,7 @@ enum JobCommand {
     Admit { reply: oneshot::Sender<Result<Admission, String>> },
     Event { event: RendererEvent, reply: oneshot::Sender<Result<EventAck, String>> },
     AppsChanged,
-    Shutdown,
+    Shutdown { reply: oneshot::Sender<Result<(), String>> },
 }
 
 #[derive(Clone, Debug)]
@@ -169,8 +168,12 @@ impl UpdateJobHandle {
         let _ = self.tx.send(JobCommand::AppsChanged);
     }
 
-    pub fn shutdown(&self) {
-        let _ = self.tx.send(JobCommand::Shutdown);
+    pub async fn shutdown(&self) -> Result<(), String> {
+        let (tx, rx) = oneshot::channel();
+        self.tx
+            .send(JobCommand::Shutdown { reply: tx })
+            .map_err(|_| "update supervisor stopped".to_string())?;
+        rx.await.map_err(|_| "update supervisor stopped".to_string())?
     }
 }
 
@@ -201,6 +204,7 @@ impl Supervisor {
 
     fn run(mut self, rx: &mpsc::Receiver<JobCommand>) {
         self.load_and_reconcile();
+        let mut shutdown_reply = None;
         loop {
             match rx.recv_timeout(TICK) {
                 Ok(JobCommand::Admit { reply }) => {
@@ -210,8 +214,22 @@ impl Supervisor {
                     let _ = reply.send(self.event(event));
                 }
                 Ok(JobCommand::AppsChanged) => self.check_install_facts(),
-                Ok(JobCommand::Shutdown) | Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                Ok(JobCommand::Shutdown { reply }) => {
+                    if self.is_active() {
+                        self.secure_failure(
+                            FailureCode::SpotifyUpdateFailed,
+                            "daemon shutdown interrupted the Spotify update",
+                        );
+                    }
+                    shutdown_reply = Some(reply);
+                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
                 Err(mpsc::RecvTimeoutError::Timeout) => self.tick(),
+            }
+            if shutdown_reply.is_some() && !self.is_active() {
+                let reply = shutdown_reply.take().expect("checked above");
+                let _ = reply.send(Ok(()));
+                break;
             }
         }
     }
@@ -261,6 +279,9 @@ impl Supervisor {
         }
 
         let ctx = self.fresh_context().map_err(|e| e.to_string())?;
+        if ctx.mirror {
+            return Err("Update & Apply is unavailable in mirror mode".to_string());
+        }
         let evidence = admission_evidence(&ctx).map_err(|e| e.to_string())?;
         if version_line(&evidence.supported_ceiling) <= version_line(&evidence.installed) {
             return Err(format!(
@@ -268,14 +289,14 @@ impl Supervisor {
                 evidence.installed
             ));
         }
+        let guard =
+            spicetify::commands::guard::try_acquire(&ctx.config_root).map_err(|e| e.to_string())?;
         spicetify::commands::updates::preflight_mutation(&ctx).map_err(|e| {
             format!(
                 "Spotify cannot be modified by the daemon. Allow Spicetify in System Settings > Privacy & Security > App Management, then retry: {e}"
             )
         })?;
         spicetify::commands::updates::persist_block_intent(&ctx).map_err(|e| e.to_string())?;
-        let guard =
-            spicetify::commands::guard::try_acquire(&ctx.config_root).map_err(|e| e.to_string())?;
 
         let now = epoch_secs();
         let id = format!("{:x}-{:x}", epoch_nanos(), std::process::id());
@@ -287,7 +308,10 @@ impl Supervisor {
             accepted_at: now,
             expires_at: now + OFFER_TIMEOUT.as_secs(),
         });
-        self.persist().map_err(|e| e.to_string())?;
+        if let Err(e) = self.persist() {
+            self.job = None;
+            return Err(e.to_string());
+        }
         self.guard = Some(guard);
         self.publish();
         Ok(Admission { job_id: id, disposition: AdmissionDisposition::Accepted })
@@ -462,7 +486,6 @@ impl Supervisor {
             return;
         }
         let Ok(ctx) = self.fresh_context() else { return };
-        let stock_archive = ctx.spotify_apps_path().join("xpui.spa").is_file();
         let advanced = self
             .installed_version()
             .and_then(|from| {
@@ -471,12 +494,51 @@ impl Supervisor {
                 )
             })
             .unwrap_or(false);
-        if stock_archive || advanced {
+        if advanced {
             self.recover_and_apply(&ctx);
         }
     }
 
     fn recover_and_apply(&mut self, ctx: &AppContext) {
+        let Some((from, target, supported_ceiling)) = self.expected_update() else {
+            self.secure_failure(
+                FailureCode::SpotifyUpdateFailed,
+                "update job has no acknowledged Spotify target",
+            );
+            return;
+        };
+        let to = match spicetify::hooks::version_detect::detect_spotify_version(ctx) {
+            Ok(version) => version.to_string(),
+            Err(e) => {
+                self.secure_failure(
+                    FailureCode::SpotifyUpdateFailed,
+                    &format!("cannot verify the installed Spotify version: {e}"),
+                );
+                return;
+            }
+        };
+        let target_matches = match installed_update_status(&from, &target, &supported_ceiling, &to)
+        {
+            InstalledUpdateStatus::Expected => true,
+            InstalledUpdateStatus::UnexpectedSupported => false,
+            InstalledUpdateStatus::NotAdvanced | InstalledUpdateStatus::Malformed => {
+                self.secure_failure(
+                    FailureCode::SpotifyUpdateFailed,
+                    &format!("Spotify did not advance from {from}; detected {to}"),
+                );
+                return;
+            }
+            InstalledUpdateStatus::AboveCeiling => {
+                self.secure_failure(
+                    FailureCode::UnsupportedTarget,
+                    &format!(
+                        "Spotify installed {to}, above the verified support ceiling {supported_ceiling}"
+                    ),
+                );
+                return;
+            }
+        };
+
         if let Some(PersistedUpdateJob::Exposed { phase, .. }) = self.job.as_mut() {
             *phase = ExposedPhase::ApplyingSpicetify;
         }
@@ -498,32 +560,6 @@ impl Supervisor {
             return;
         }
 
-        let Some(from) = self.installed_version() else {
-            self.secure_failure(
-                FailureCode::ApplyFailed,
-                "update job lost its installed-version evidence",
-            );
-            return;
-        };
-        let to = match spicetify::hooks::version_detect::detect_spotify_version(ctx) {
-            Ok(version) if version_line(&version.to_string()) > version_line(&from) => {
-                version.to_string()
-            }
-            Ok(version) => {
-                self.secure_failure(
-                    FailureCode::SpotifyUpdateFailed,
-                    &format!("Spotify did not advance from {from}; detected {version}"),
-                );
-                return;
-            }
-            Err(e) => {
-                self.secure_failure(
-                    FailureCode::SpotifyUpdateFailed,
-                    &format!("cannot verify the installed Spotify version: {e}"),
-                );
-                return;
-            }
-        };
         if !manifest_proves_apply(ctx, &to) {
             self.secure_failure(
                 FailureCode::ApplyFailed,
@@ -531,7 +567,14 @@ impl Supervisor {
             );
             return;
         }
-        self.secure(PendingOutcome::Complete { from, to });
+        if target_matches {
+            self.secure(PendingOutcome::Complete { from, to });
+        } else {
+            self.secure_failure(
+                FailureCode::SpotifyUpdateFailed,
+                &format!("Spotify installed {to}, but the acknowledged target was {target}"),
+            );
+        }
     }
 
     fn secure_failure(&mut self, code: FailureCode, message: &str) {
@@ -539,12 +582,8 @@ impl Supervisor {
     }
 
     fn secure(&mut self, outcome: PendingOutcome) {
-        if let Some(PersistedUpdateJob::Exposed { phase, pending_outcome, last_error, .. }) =
-            self.job.as_mut()
-        {
-            *phase = ExposedPhase::Securing;
-            *pending_outcome = Some(outcome);
-            *last_error = None;
+        if let Some(job) = self.job.as_mut() {
+            transition_to_securing(job, outcome);
         }
         let _ = self.persist();
         self.publish();
@@ -565,7 +604,7 @@ impl Supervisor {
             if !spicetify::commands::updates::is_blocked(&ctx)? {
                 anyhow::bail!("Spotify binary still exposes its update endpoint");
             }
-            let _ = spicetify::lifecycle::start(&ctx);
+            spicetify::lifecycle::start(&ctx)?;
             Ok(())
         });
         if let Err(e) = result {
@@ -668,9 +707,7 @@ impl Supervisor {
         matches!(
             self.job,
             Some(PersistedUpdateJob::Exposed {
-                phase: ExposedPhase::WaitingForReplacement
-                    | ExposedPhase::Recovering
-                    | ExposedPhase::ApplyingSpicetify,
+                phase: ExposedPhase::WaitingForReplacement | ExposedPhase::ApplyingSpicetify,
                 ..
             })
         )
@@ -686,6 +723,15 @@ impl Supervisor {
                 ..
             } => Some(from.clone()),
             PersistedUpdateJob::Terminal { .. } => None,
+        }
+    }
+
+    fn expected_update(&self) -> Option<(String, String, String)> {
+        match self.job.as_ref()? {
+            PersistedUpdateJob::Exposed {
+                from, target: Some(target), supported_ceiling, ..
+            } => Some((from.clone(), target.clone(), supported_ceiling.clone())),
+            _ => None,
         }
     }
 }
@@ -724,8 +770,20 @@ fn admission_evidence(ctx: &AppContext) -> anyhow::Result<AdmissionEvidence> {
 }
 
 fn manifest_proves_apply(ctx: &AppContext, installed: &str) -> bool {
-    read_manifest(ctx)
-        .is_ok_and(|manifest| version_line(&manifest.spotify_version) == version_line(installed))
+    read_manifest(ctx).is_ok_and(|manifest| manifest_matches_install(&manifest, installed))
+}
+
+fn manifest_matches_install(manifest: &ManifestEvidence, installed: &str) -> bool {
+    let Some(installed) = version_line(installed) else {
+        return false;
+    };
+    manifest.classmap_verified
+        && version_line(&manifest.spotify_version) == Some(installed)
+        && manifest
+            .supported_spotify
+            .as_deref()
+            .and_then(version_line)
+            .is_some_and(|supported| supported >= installed)
 }
 
 fn read_manifest(ctx: &AppContext) -> anyhow::Result<ManifestEvidence> {
@@ -748,12 +806,10 @@ fn project_status(job: &PersistedUpdateJob) -> PublicJobStatus {
                 job_id: id.clone(),
                 target_version: target.clone().unwrap_or_else(|| "unknown".to_string()),
             },
-            ExposedPhase::WaitingForReplacement | ExposedPhase::Recovering => {
-                PublicJobStatus::InstallingSpotify {
-                    job_id: id.clone(),
-                    target_version: target.clone().unwrap_or_else(|| "unknown".to_string()),
-                }
-            }
+            ExposedPhase::WaitingForReplacement => PublicJobStatus::InstallingSpotify {
+                job_id: id.clone(),
+                target_version: target.clone().unwrap_or_else(|| "unknown".to_string()),
+            },
             ExposedPhase::ApplyingSpicetify => PublicJobStatus::ApplyingSpicetify {
                 job_id: id.clone(),
                 target_version: target.clone().unwrap_or_else(|| "unknown".to_string()),
@@ -787,6 +843,40 @@ fn version_line(raw: &str) -> Option<(u64, u64, u64)> {
     Some((major, minor, patch))
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum InstalledUpdateStatus {
+    Expected,
+    UnexpectedSupported,
+    NotAdvanced,
+    AboveCeiling,
+    Malformed,
+}
+
+fn installed_update_status(
+    from: &str,
+    target: &str,
+    supported_ceiling: &str,
+    installed: &str,
+) -> InstalledUpdateStatus {
+    let (Some(from), Some(target), Some(ceiling), Some(installed)) = (
+        version_line(from),
+        version_line(target),
+        version_line(supported_ceiling),
+        version_line(installed),
+    ) else {
+        return InstalledUpdateStatus::Malformed;
+    };
+    if installed <= from {
+        InstalledUpdateStatus::NotAdvanced
+    } else if installed > ceiling {
+        InstalledUpdateStatus::AboveCeiling
+    } else if installed == target {
+        InstalledUpdateStatus::Expected
+    } else {
+        InstalledUpdateStatus::UnexpectedSupported
+    }
+}
+
 fn epoch_secs() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
 }
@@ -812,9 +902,80 @@ fn atomic_write_json(path: &Path, job: &PersistedUpdateJob) -> anyhow::Result<()
         std::fs::OpenOptions::new().create(true).truncate(true).write(true).open(&tmp)?;
     std::io::Write::write_all(&mut file, &bytes)?;
     file.sync_all()?;
-    std::fs::rename(&tmp, path)?;
-    std::fs::File::open(parent)?.sync_all()?;
+    replace_state_file(&tmp, path)?;
+    sync_parent_dir(parent)?;
     Ok(())
+}
+
+#[cfg(not(windows))]
+fn replace_state_file(tmp: &Path, path: &Path) -> std::io::Result<()> {
+    std::fs::rename(tmp, path)
+}
+
+#[cfg(windows)]
+fn replace_state_file(tmp: &Path, path: &Path) -> std::io::Result<()> {
+    use std::os::windows::ffi::OsStrExt;
+
+    use windows::Win32::Storage::FileSystem::{
+        MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
+    };
+    use windows::core::PCWSTR;
+
+    let tmp: Vec<u16> = tmp.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    let path: Vec<u16> = path.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    #[allow(unsafe_code)]
+    unsafe {
+        MoveFileExW(
+            PCWSTR(tmp.as_ptr()),
+            PCWSTR(path.as_ptr()),
+            MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
+        )
+        .map_err(std::io::Error::other)
+    }
+}
+
+#[cfg(not(windows))]
+fn sync_parent_dir(parent: &Path) -> std::io::Result<()> {
+    std::fs::File::open(parent)?.sync_all()
+}
+
+#[cfg(windows)]
+fn sync_parent_dir(_parent: &Path) -> std::io::Result<()> {
+    // Windows does not permit opening directories through File::open.
+    // The temporary file itself is flushed before the atomic rename.
+    Ok(())
+}
+
+fn transition_to_securing(job: &mut PersistedUpdateJob, outcome: PendingOutcome) {
+    match job {
+        PersistedUpdateJob::Safe {
+            schema,
+            id,
+            from,
+            supported_ceiling,
+            accepted_at,
+            expires_at,
+        } => {
+            *job = PersistedUpdateJob::Exposed {
+                schema: *schema,
+                id: id.clone(),
+                from: from.clone(),
+                supported_ceiling: supported_ceiling.clone(),
+                accepted_at: *accepted_at,
+                expires_at: *expires_at,
+                target: None,
+                phase: ExposedPhase::Securing,
+                pending_outcome: Some(outcome),
+                last_error: None,
+            };
+        }
+        PersistedUpdateJob::Exposed { phase, pending_outcome, last_error, .. } => {
+            *phase = ExposedPhase::Securing;
+            *pending_outcome = Some(outcome);
+            *last_error = None;
+        }
+        PersistedUpdateJob::Terminal { .. } => {}
+    }
 }
 
 fn quarantine(path: &Path) {
@@ -828,30 +989,5 @@ fn quarantine(path: &Path) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn spotify_lines_ignore_the_build_component() {
-        assert_eq!(version_line("1.2.97.42"), Some((1, 2, 97)));
-        assert_eq!(version_line("1.2.97"), Some((1, 2, 97)));
-        assert!(version_line("UNKNOWN").is_none());
-    }
-
-    #[test]
-    fn terminal_completion_projects_all_three_facts() {
-        let status = project_status(&PersistedUpdateJob::Terminal {
-            schema: SCHEMA,
-            id: "job".to_string(),
-            outcome: TerminalOutcome::Complete {
-                from: "1.2.94".to_string(),
-                to: "1.2.97".to_string(),
-            },
-        });
-        assert!(matches!(
-            status,
-            PublicJobStatus::Complete { from_version, to_version, .. }
-                if from_version == "1.2.94" && to_version == "1.2.97"
-        ));
-    }
-}
+#[path = "update_job_tests.rs"]
+mod tests;

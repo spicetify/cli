@@ -103,7 +103,11 @@ async fn run_server(
         .await?;
 
     ctrl_c_hdl.abort();
-    state.update_job.shutdown();
+    state
+        .update_job
+        .shutdown()
+        .await
+        .map_err(|e| anyhow::anyhow!("could not safely stop the update supervisor: {e}"))?;
 
     let timed_out = tokio::time::timeout(SHUTDOWN_GRACE, async {
         if let Some(h) = apps
