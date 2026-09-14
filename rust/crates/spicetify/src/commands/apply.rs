@@ -123,20 +123,27 @@ pub fn run(
         }
     }
 
-    tracing::info!("{}", fl!("patching-index"));
-    if let Err(e) = patch_index(ctx, &tmp) {
-        cleanup_tmp(&tmp);
-        return Err(e);
-    }
-
     // Refreshes the classmap cache and the exposure patches together: the
-    // patches are applied to the bundle extracted next, so they must be
+    // patches are applied to the client bundle prepared next, so they must be
     // current before that step, not at module staging.
     if let Some(version) = &detected {
         refresh_classmap(ctx, &version.to_string());
     }
 
-    if let Err(e) = extract_modules(ctx, &tmp) {
+    let client_bundle = match detect_client_bundle(&tmp) {
+        Ok(bundle) => bundle,
+        Err(e) => {
+            cleanup_tmp(&tmp);
+            return Err(e);
+        }
+    };
+    if let Err(e) = prepare_client_bundle(ctx, &tmp, client_bundle) {
+        cleanup_tmp(&tmp);
+        return Err(e);
+    }
+
+    tracing::info!("{}", fl!("patching-index"));
+    if let Err(e) = patch_index(ctx, &tmp, client_bundle) {
         cleanup_tmp(&tmp);
         return Err(e);
     }
@@ -265,7 +272,61 @@ fn extract_into(spa: &Path, dest: &Path) -> Result<()> {
     Ok(())
 }
 
-fn extract_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ClientBundle {
+    Snapshot,
+    Direct,
+}
+
+impl ClientBundle {
+    const fn script_tag(self) -> &'static str {
+        match self {
+            Self::Snapshot => SNAPSHOT_TAG,
+            Self::Direct => DIRECT_BUNDLE_TAG,
+        }
+    }
+
+    const fn loader_value(self) -> &'static str {
+        match self {
+            Self::Snapshot => "snapshot",
+            Self::Direct => "direct",
+        }
+    }
+}
+
+fn detect_client_bundle(dest: &Path) -> Result<ClientBundle> {
+    let index = dest.join("index.html");
+    let raw = std::fs::read_to_string(&index).map_err(fs_err("reading", &index))?;
+    detect_client_bundle_html(&raw)
+}
+
+fn detect_client_bundle_html(index: &str) -> Result<ClientBundle> {
+    match (index.contains(SNAPSHOT_TAG), index.contains(DIRECT_BUNDLE_TAG)) {
+        (true, false) => Ok(ClientBundle::Snapshot),
+        (false, true) => Ok(ClientBundle::Direct),
+        _ => Err(anyhow::anyhow!(fl!("index-patch-not-found"))),
+    }
+}
+
+fn prepare_client_bundle(ctx: &AppContext, dest: &Path, client_bundle: ClientBundle) -> Result<()> {
+    let (output, js) = match client_bundle {
+        ClientBundle::Direct => {
+            let output = dest.join("xpui.js");
+            let js = std::fs::read_to_string(&output)
+                .map_err(fs_err("reading the direct client bundle at", &output))?;
+            (output, js)
+        }
+        ClientBundle::Snapshot => extract_snapshot_bundle(ctx, dest)?,
+    };
+
+    let patches = crate::module::expose::load_patches(&ctx.config_root);
+    let patched = crate::module::expose::expose_apis(js, &patches);
+    std::fs::write(&output, patched)
+        .map_err(fs_err("writing the patched client bundle at", &output))?;
+    Ok(())
+}
+
+fn extract_snapshot_bundle(ctx: &AppContext, dest: &Path) -> Result<(PathBuf, String)> {
     let spotify_data: &Path = &ctx.spotify_data_dir;
     let offline_bnk_dir: &Path = &ctx.offline_bnk_dir;
     let snapshot = locate_snapshot(spotify_data, offline_bnk_dir).ok_or_else(|| {
@@ -286,11 +347,8 @@ fn extract_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
                     snapshot.display()
                 )
             })?;
-    let patches = crate::module::expose::load_patches(&ctx.config_root);
-    let patched = crate::module::expose::expose_apis(js, &patches);
     let out = dest.join("xpui-modules.js");
-    std::fs::write(&out, patched).map_err(fs_err("writing", &out))?;
-    Ok(())
+    Ok((out, js))
 }
 
 // Search order: the Spotify data dir, then platform-specific locations (macOS
@@ -404,13 +462,13 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
     }
 }
 
-fn patch_index(ctx: &AppContext, dest: &Path) -> Result<()> {
+fn patch_index(ctx: &AppContext, dest: &Path, client_bundle: ClientBundle) -> Result<()> {
     // The client is handed the daemon token so its proxy calls are accepted;
     // nothing else served from this origin can read it.
     let token = crate::daemon::token::ensure(&ctx.config_root).unwrap_or_default();
     let index = dest.join("index.html");
     let raw = std::fs::read_to_string(&index).map_err(fs_err("reading", &index))?;
-    let patched = patch_index_html(&raw, &token)?;
+    let patched = patch_index_html(&raw, &token, client_bundle)?;
     std::fs::write(&index, patched).map_err(fs_err("writing", &index))?;
     Ok(())
 }
@@ -498,10 +556,12 @@ fn stage_payload(config_root: &Path, dest: &Path) -> Result<()> {
 
 // The payload is injected as classic, non-deferred scripts at the top of
 // <body>: the wrapper must run before the client bundle to intercept webpack,
-// and a module script would be deferred until after it. The stock snapshot tag
+// and a module script would be deferred until after it. The stock bundle tag
 // is stripped because the modular loader boots the client itself once mixins
-// have run (it re-injects /xpui-modules.js then /xpui-snapshot.js).
+// have run. Spotify 1.3 ships one direct xpui.js bundle; older clients split
+// the modules table into the v8 snapshot and boot it with xpui-snapshot.js.
 const SNAPSHOT_TAG: &str = "<script defer=\"defer\" src=\"/xpui-snapshot.js\"></script>";
+const DIRECT_BUNDLE_TAG: &str = "<script defer=\"defer\" src=\"/xpui.js\"></script>";
 const BODY_TAG: &str = "<body";
 
 // The body tag is not always bare: Linux builds ship
@@ -517,9 +577,14 @@ fn body_insert_at(input: &str) -> Option<usize> {
     Some(start + BODY_TAG.len() + close + 1)
 }
 
-fn patch_index_html(input: &str, daemon_token: &str) -> Result<String> {
+fn patch_index_html(
+    input: &str,
+    daemon_token: &str,
+    client_bundle: ClientBundle,
+) -> Result<String> {
     let app_version = env!("CARGO_PKG_VERSION");
-    if !input.contains(SNAPSHOT_TAG) {
+    let bundle_tag = client_bundle.script_tag();
+    if !input.contains(bundle_tag) {
         return Err(anyhow::anyhow!(fl!("index-patch-not-found")));
     }
     let insert_at =
@@ -528,16 +593,19 @@ fn patch_index_html(input: &str, daemon_token: &str) -> Result<String> {
     let payload = format!(
         concat!(
             "\n<script>globalThis.__SPICETIFY_APP_VERSION__=\"{}\";",
-            "globalThis.__SPICETIFY_DAEMON_TOKEN__=\"{}\";</script>\n",
+            "globalThis.__SPICETIFY_DAEMON_TOKEN__=\"{}\";",
+            "globalThis.__SPICETIFY_CLIENT_BUNDLE_MODE__=\"{}\";</script>\n",
             "<script src='hooks/spicetifyWrapper.js'></script>\n",
             "<!-- spicetify helpers -->\n",
             "<script src='hooks/modularLoader.js'></script>\n"
         ),
-        app_version, daemon_token
+        app_version,
+        daemon_token,
+        client_bundle.loader_value()
     );
 
     let patched = format!("{}{}{}", &input[..insert_at], payload, &input[insert_at..]);
-    Ok(patched.replace(SNAPSHOT_TAG, ""))
+    Ok(patched.replace(bundle_tag, ""))
 }
 
 #[cfg(test)]
@@ -545,10 +613,12 @@ mod tests {
     use super::*;
 
     const STOCK: &str = r#"<!doctype html><html><head><title>Spotify</title></head><body><div class="body-drag-top"></div><script defer="defer" src="/xpui-snapshot.js"></script></body></html>"#;
+    const STOCK_DIRECT: &str = r#"<!doctype html><html><head><title>Spotify</title></head><body><div class="body-drag-top"></div><script defer="defer" src="/xpui.js"></script></body></html>"#;
 
     #[test]
     fn injects_payload_and_strips_snapshot_tag() {
-        let out = patch_index_html(STOCK, "tok").expect("stock index patches");
+        let out =
+            patch_index_html(STOCK, "tok", ClientBundle::Snapshot).expect("stock index patches");
         assert!(out.contains("<script src='hooks/spicetifyWrapper.js'></script>"));
         assert!(out.contains("<script src='hooks/modularLoader.js'></script>"));
         assert!(out.contains("__SPICETIFY_APP_VERSION__"));
@@ -557,7 +627,8 @@ mod tests {
 
     #[test]
     fn wrapper_runs_before_the_client_bundle() {
-        let out = patch_index_html(STOCK, "tok").expect("stock index patches");
+        let out =
+            patch_index_html(STOCK, "tok", ClientBundle::Snapshot).expect("stock index patches");
         let wrapper = out.find("hooks/spicetifyWrapper.js").expect("wrapper injected");
         let loader = out.find("hooks/modularLoader.js").expect("loader injected");
         let body = out.find(BODY_TAG).expect("body present");
@@ -573,19 +644,121 @@ mod tests {
     fn patches_a_body_tag_with_attributes() {
         let stock_linux =
             STOCK.replace("<body>", r#"<body class="encore-dark-theme encore-layout-themes">"#);
-        let out = patch_index_html(&stock_linux, "tok").expect("attributed body patches");
+        let out = patch_index_html(&stock_linux, "tok", ClientBundle::Snapshot)
+            .expect("attributed body patches");
         let class_attr = out.find("encore-dark-theme").expect("body attributes kept");
         let wrapper = out.find("hooks/spicetifyWrapper.js").expect("wrapper injected");
         assert!(class_attr < wrapper, "payload lands inside body, after the opening tag");
     }
 
     #[test]
+    fn injects_payload_and_strips_the_spotify_1_3_bundle_tag() {
+        let out = patch_index_html(STOCK_DIRECT, "tok", ClientBundle::Direct)
+            .expect("Spotify 1.3 index patches");
+        assert!(out.contains("<script src='hooks/spicetifyWrapper.js'></script>"));
+        assert!(out.contains("<script src='hooks/modularLoader.js'></script>"));
+        assert!(out.contains("__SPICETIFY_CLIENT_BUNDLE_MODE__=\"direct\""));
+        assert!(!out.contains(r#"src="/xpui.js""#), "loader boots the direct bundle itself");
+    }
+
+    #[test]
+    fn detects_the_bundle_from_the_stock_index() {
+        assert_eq!(
+            detect_client_bundle_html(STOCK).expect("snapshot index detected"),
+            ClientBundle::Snapshot
+        );
+        assert_eq!(
+            detect_client_bundle_html(STOCK_DIRECT).expect("direct index detected"),
+            ClientBundle::Direct
+        );
+    }
+
+    #[test]
+    fn refuses_ambiguous_bundle_anchors() {
+        let both = STOCK.replace(SNAPSHOT_TAG, &format!("{SNAPSHOT_TAG}{DIRECT_BUNDLE_TAG}"));
+        assert!(detect_client_bundle_html(&both).is_err());
+        assert!(detect_client_bundle_html("<html><body></body></html>").is_err());
+    }
+
+    #[test]
     fn refuses_an_index_without_the_snapshot_anchor() {
         let already = "<html><body></body></html>";
         assert!(
-            patch_index_html(already, "tok").is_err(),
+            patch_index_html(already, "tok", ClientBundle::Snapshot).is_err(),
             "an unrecognised index must not be patched"
         );
+    }
+
+    #[test]
+    fn prepares_a_direct_bundle_with_exposure_patches() {
+        let root =
+            std::env::temp_dir().join(format!("spicetify-direct-bundle-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let xpui = root.join("xpui");
+        let classmaps = root.join("classmaps");
+        std::fs::create_dir_all(&xpui).expect("temporary xpui directory");
+        std::fs::create_dir_all(&classmaps).expect("temporary classmap directory");
+        std::fs::write(xpui.join("xpui.js"), "stockClient();").expect("direct client bundle");
+        std::fs::write(
+            classmaps.join("expose.json"),
+            r#"{"patches":[{"name":"test direct bundle","pattern":"stockClient","replace":"Spicetify.testClient","once":true,"onMiss":"warn"}]}"#,
+        )
+        .expect("controlled exposure patch");
+        let ctx = AppContext {
+            config_file: root.join("config.toml"),
+            config_root: root.clone(),
+            mirror: true,
+            daemon: false,
+            spotify_data_dir: root.clone(),
+            spotify_exec: root.join("Spotify"),
+            offline_bnk_dir: root.clone(),
+            block_spotify_updates: None,
+        };
+
+        prepare_client_bundle(&ctx, &xpui, ClientBundle::Direct).expect("direct bundle patches");
+        assert_eq!(
+            std::fs::read_to_string(xpui.join("xpui.js")).expect("patched direct bundle"),
+            "Spicetify.testClient();"
+        );
+        std::fs::remove_dir_all(root).expect("cleanup direct bundle test");
+    }
+
+    #[test]
+    #[ignore = "requires a stock Spotify 1.3 xpui.spa"]
+    fn prepares_a_real_spotify_1_3_archive() {
+        let archive = std::env::var_os("SPICETIFY_TEST_SPOTIFY_SPA")
+            .map(PathBuf::from)
+            .expect("set SPICETIFY_TEST_SPOTIFY_SPA to a stock Spotify 1.3 xpui.spa");
+        let root =
+            std::env::temp_dir().join(format!("spicetify-spotify-1.3-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let xpui = root.join("xpui");
+
+        extract_into(&archive, &xpui).expect("Spotify 1.3 archive extracts");
+        let ctx = AppContext {
+            config_file: root.join("config.toml"),
+            config_root: root.clone(),
+            mirror: true,
+            daemon: false,
+            spotify_data_dir: root.clone(),
+            spotify_exec: root.join("Spotify"),
+            offline_bnk_dir: root.clone(),
+            block_spotify_updates: None,
+        };
+        let bundle = detect_client_bundle(&xpui).expect("direct bundle detected");
+        assert_eq!(bundle, ClientBundle::Direct);
+        prepare_client_bundle(&ctx, &xpui, bundle).expect("direct bundle patches");
+
+        let direct = std::fs::read_to_string(xpui.join("xpui.js")).expect("patched xpui.js");
+        assert!(direct.contains("Spicetify._platform="), "Platform exposure patch applied");
+        assert!(direct.contains("Spicetify.URI="), "URI exposure patch applied");
+
+        let index = std::fs::read_to_string(xpui.join("index.html")).expect("stock index");
+        let index = patch_index_html(&index, "tok", bundle).expect("Spotify 1.3 index patches");
+        assert!(index.contains("__SPICETIFY_CLIENT_BUNDLE_MODE__=\"direct\""));
+        assert!(!index.contains(DIRECT_BUNDLE_TAG));
+
+        std::fs::remove_dir_all(root).expect("cleanup real archive test");
     }
 
     #[test]

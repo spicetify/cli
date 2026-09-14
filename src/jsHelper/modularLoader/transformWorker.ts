@@ -2,13 +2,13 @@ import type { RegisteredTransform } from "./transforms.ts";
 
 const WORKER_SRC = `
 onmessage = (e) => {
-	const { text, fns } = e.data;
+	const { text, path, fns } = e.data;
 	let out = text;
 	let applied = 0;
 	for (const src of fns) {
 		try {
 			const fn = eval("(" + src + ")");
-			out = fn(out, "/xpui-modules.js");
+			out = fn(out, path);
 			applied++;
 		} catch (err) {
 			// skip broken transform
@@ -23,6 +23,7 @@ onmessage = (e) => {
 // signaling the caller to boot the stock bundle.
 export function applyTransformsOffthread(
 	bundleText: string,
+	bundlePath: string,
 	registered: RegisteredTransform[],
 	timeoutMs: number,
 ): Promise<{ text: string; applied: number } | null> {
@@ -42,6 +43,6 @@ export function applyTransformsOffthread(
 			worker.terminate();
 			resolve(null);
 		};
-		worker.postMessage({ text: bundleText, fns: registered.map((t) => t.fn.toString()) });
+		worker.postMessage({ text: bundleText, path: bundlePath, fns: registered.map((t) => t.fn.toString()) });
 	});
 }

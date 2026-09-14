@@ -17,9 +17,11 @@ import { createTransformRegistry, transformPath } from "./transforms.ts";
 import { applyTransformsOffthread } from "./transformWorker.ts";
 import { type ModulesManifest, entryUrl } from "./types.ts";
 import { captureWebpackRequire as waitForWebpackCapture } from "./webpackCapture.ts";
+import { getWebpackChunkQueue } from "../shared/webpackChunkQueue.js";
 
 declare global {
 	var __SPICETIFY_MODULAR_MANIFEST__: ModulesManifest;
+	var __SPICETIFY_CLIENT_BUNDLE_MODE__: "direct" | "snapshot" | undefined;
 	interface Window {
 		Spicetify?: Record<string, unknown>;
 	}
@@ -296,15 +298,23 @@ async function fetchManifest(): Promise<ModulesManifest | null> {
 	}
 }
 
-const SNAPSHOT_SELECTOR = 'script[src*="xpui-snapshot"]';
+type ClientBootPlan = { kind: "snapshot"; bundle: "/xpui-modules.js"; runtime: "/xpui-snapshot.js" } | { kind: "direct"; bundle: "/xpui.js" };
 
-// When the apply staged modules, preprocess strips the xpui-snapshot tag so
-// this loader controls when the client boots: mixins must run first, or
+function clientBootPlan(): ClientBootPlan {
+	return globalThis.__SPICETIFY_CLIENT_BUNDLE_MODE__ === "direct"
+		? { kind: "direct", bundle: "/xpui.js" }
+		: { kind: "snapshot", bundle: "/xpui-modules.js", runtime: "/xpui-snapshot.js" };
+}
+
+const CLIENT_BUNDLE_SELECTOR = 'script[src="/xpui.js"], script[src*="xpui-snapshot"]';
+
+// When apply stages modules, it strips the stock client bundle tag so this
+// loader controls when either bundle shape boots: mixins must run first, or
 // pre-boot interceptions (webpack require capture, defineProperty patches)
 // miss the client bootstrap. The patched modules bundle must execute before
 // the snapshot runtime, which reads __webpack_modules__ as a free global.
 async function bootClient(transforms: ReturnType<typeof createTransformRegistry>): Promise<void> {
-	if (document.querySelector(SNAPSHOT_SELECTOR)) return;
+	if (document.querySelector(CLIENT_BUNDLE_SELECTOR)) return;
 	const inject = (src: string) => {
 		const script = document.createElement("script");
 		script.src = src;
@@ -312,22 +322,23 @@ async function bootClient(transforms: ReturnType<typeof createTransformRegistry>
 		document.head.appendChild(script);
 	};
 
-	let modulesSrc = "/xpui-modules.js";
+	const boot = clientBootPlan();
+	let bundleSrc = boot.bundle;
 	// Source transforms run offthread, but most hooks-era transforms close over
 	// module imports and cannot survive eval-isolation, and unverifiable pure
 	// ones can break the bundle. They are opt-in for experiments only.
 	const applyEnabled = (globalThis as never as Record<string, unknown>).__SPICETIFY_APPLY_TRANSFORMS__ === true;
-	const matching = transforms.registered.filter((t) => transformPath(t.glob) !== null);
+	const matching = transforms.registered.filter((t) => transformPath(t.glob, boot.bundle) !== null);
 	if (matching.length > 0 && !applyEnabled) {
 		log("info")(`dropping ${matching.length} source transform(s) (set __SPICETIFY_APPLY_TRANSFORMS__ to experiment)`);
 	}
 	if (matching.length > 0 && applyEnabled) {
 		try {
-			const res = await fetch(modulesSrc);
+			const res = await fetch(bundleSrc);
 			if (res.ok) {
-				const result = await applyTransformsOffthread(await res.text(), matching, 10000);
+				const result = await applyTransformsOffthread(await res.text(), boot.bundle, matching, 10000);
 				if (result && result.applied > 0) {
-					modulesSrc = URL.createObjectURL(new Blob([result.text], { type: "text/javascript" }));
+					bundleSrc = URL.createObjectURL(new Blob([result.text], { type: "text/javascript" }));
 					log("info")(`applied ${result.applied} source transform(s) to the client bundle`);
 				}
 			}
@@ -336,8 +347,8 @@ async function bootClient(transforms: ReturnType<typeof createTransformRegistry>
 		}
 	}
 
-	inject(modulesSrc);
-	inject("/xpui-snapshot.js");
+	inject(bundleSrc);
+	if (boot.kind === "snapshot") inject(boot.runtime);
 }
 
 // captureWebpackRequire registers a capture chunk after the client is up
@@ -351,12 +362,7 @@ async function captureWebpackRequire(maxWaitMs = 30000): Promise<void> {
 			maxWaitMs,
 			now: Date.now,
 			wait: () => new Promise((resolve) => setTimeout(resolve, 500)),
-			getQueue: () => {
-				// rspack builds (1.2.9x) and older webpack builds (still current
-				// on Linux, e.g. 1.2.84) name the chunk queue differently.
-				const queue = (globals.rspackChunkclient_web ?? globals.webpackChunkclient_web) as unknown[];
-				return Array.isArray(queue) && queue.push !== Array.prototype.push ? queue : undefined;
-			},
+			getQueue: () => getWebpackChunkQueue(globals),
 			getCaptured: () => globals.__webpack_require__,
 			setCaptured: (require) => (globals.__webpack_require__ = require),
 		});

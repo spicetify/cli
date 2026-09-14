@@ -4,10 +4,30 @@ import { describe, it } from "node:test";
 
 const loaderSource = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
 const captureModule = await import("./webpackCapture.ts").catch(() => undefined);
+const queueModule = await import("../shared/webpackChunkQueue.js");
 
 describe("modular loader boot order", () => {
   it("waits for webpack capture before loading modules", () => {
     assert.match(loaderSource, /await captureWebpackRequire\(\);\s*await registry\.runLoads\(report\);/);
+  });
+
+  it("boots Spotify 1.3 from its direct xpui bundle", () => {
+    assert.match(loaderSource, /__SPICETIFY_CLIENT_BUNDLE_MODE__/);
+    assert.match(loaderSource, /kind:\s*["']direct["']/);
+    assert.match(loaderSource, /bundle:\s*["']\/xpui\.js["']/);
+  });
+
+  it("selects only a queue whose runtime is ready", () => {
+    const unready = [];
+    const scoped = [];
+    scoped.push = () => 1;
+    const direct = [];
+    direct.push = () => 2;
+
+    assert.equal(queueModule.getWebpackChunkQueue({ rspackChunk: unready, rspackChunkclient_web: scoped }), scoped);
+    assert.equal(queueModule.getWebpackChunkQueue({ rspackChunk: direct, rspackChunkclient_web: scoped }), direct);
+    assert.equal(queueModule.getWebpackChunkQueue({ webpackChunkclient_web: scoped }), scoped);
+    assert.equal(queueModule.getWebpackChunkQueue({ rspackChunk: unready }), undefined);
   });
 
   it("reports success only after the rspack callback supplies webpack require", async () => {

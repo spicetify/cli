@@ -27,13 +27,9 @@ export function createTransformRegistry(): TransformRegistry {
 	};
 }
 
-const BUNDLE_CANDIDATES = ["/xpui-modules.js", "/xpui.js", "/vendor~xpui.js"];
-
-export function transformPath(glob: RegExp): string | null {
-	for (const path of BUNDLE_CANDIDATES) {
-		if (glob.test(path)) return path;
-	}
-	return null;
+export function transformPath(glob: RegExp, path: string): string | null {
+	glob.lastIndex = 0;
+	return glob.test(path) ? path : null;
 }
 
 export interface ApplyResult {
@@ -45,12 +41,12 @@ export interface ApplyResult {
 // applyTransforms runs every registered transform whose glob matches the
 // client bundle. Transforms that emit resolve their factory promise with the
 // emitted value.
-export function applyTransforms(bundleText: string, registered: RegisteredTransform[]): ApplyResult {
+export function applyTransforms(bundleText: string, bundlePath: string, registered: RegisteredTransform[]): ApplyResult {
 	let text = bundleText;
 	let applied = 0;
 	const resolutions: Promise<unknown>[] = [];
 	for (const t of registered) {
-		const path = transformPath(t.glob);
+		const path = transformPath(t.glob, bundlePath);
 		if (!path) continue;
 		try {
 			text = t.fn(text, path);
