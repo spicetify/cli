@@ -1,75 +1,76 @@
-# v3
+# Spicetify v3
 
-Spicetify v3 monorepo — a customization framework for the Spotify desktop client.
+This directory contains the Rust CLI, daemon, core library, and TUI for
+Spicetify v3. The active development branch is `v3-beta`.
 
-## Installation (windows only)
+Use the
+[Spicetify v3 installation guide](https://spicetify.app/docs/getting-started)
+for a normal installation. The steps below are for development builds from
+this repository.
 
-> A previous Spicetify v2 installation should be removed or backed up first.
+## Requirements
 
-Download the latest installer from [releases](https://github.com/veryboringhwl/app/releases) (`installer-<version>-windows-x64.exe`) and run it.
+- Rust 1.95 or newer.
+- Node.js 18 or newer.
+- pnpm 8 or newer. The repository pins pnpm 11.9.0.
+- A supported native Spotify desktop installation.
 
-```sh
-spicetify apply
-spicetify sync
-```
+Microsoft Store, Snap, and Flatpak builds are sandboxed and cannot be patched.
 
-Then extract and run these commands in powershell:
+## Build the CLI and daemon
 
-```sh
-cd modules
-deno task fetch
-deno task build
-deno task enable
-```
+Build the JavaScript payload before the Rust binaries. The Rust build embeds
+the generated files from `dist/hooks/`, so a later payload change requires
+another Rust build.
 
-## Building from Source
-
-### Prerequisites
-
-- [Rust](https://www.rust-lang.org/tools/install)
-- [Deno](https://deno.com/)
-- Spotify desktop client `1.2.86` or newer
-
-### 1. App
+From the repository root, run:
 
 ```sh
-cd app && cargo build --release
+pnpm install --frozen-lockfile
+pnpm build:payload
+cd rust
+cargo build --release -p cli -p daemon
 ```
 
-Copy the binary to your Spicetify bin directory:
-
-| Platform      | Path                                         |
-| ------------- | -------------------------------------------- |
-| Windows       | `%LOCALAPPDATA%\Spicetify\bin\spicetify.exe` |
-| macOS / Linux | `~/.config/spicetify/bin/spicetify`          |
-
-### 2. Initialize
+Run the development binary directly:
 
 ```sh
-spicetify init
+./target/release/spicetify --version
+./target/release/spicetify apply
 ```
 
-### 3. Hooks
+Keep `spicetify-daemon` beside `spicetify`. The CLI starts the daemon from its
+own directory.
 
-Windows only
+## Restart the daemon after local changes
+
+A local rebuild keeps the same crate version. The CLI therefore cannot detect
+that a running daemon contains older code. After changing the daemon or shared
+core code, rebuild both binaries and restart the daemon:
 
 ```sh
-cd hooks && deno task test
+cargo build --release -p cli -p daemon
+./target/release/spicetify daemon stop
+./target/release/spicetify daemon start
 ```
 
-Output is written to your Spicetify config directory under `hooks/`.
+## Don't mix v2 and v3 apply state
 
-### 4. Modules
+The Go and Rust CLIs use different backup layouts. Restore Spotify with the
+same CLI that applied it before switching implementations. Mixing the two can
+leave Spotify without a usable `xpui.spa` or `index.html`.
+
+The installer-managed `spicetify` on your `PATH` is not replaced by
+`cargo build`. Use `./target/release/spicetify` when testing local Rust code.
+
+## Verify changes
+
+Run the checks that cover the files you changed. The full Rust checks are:
 
 ```sh
-cd modules
-deno task fetch
-deno task build
-deno task enable
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
 ```
 
-To install a module directly from a prebuilt artifact without building from source:
-
-```
-spicetify:0:fast-enable?id=marketplace@0.0.1&artifacts=https%3A%2F%2Fgithub.com%2FDelusoire%2Fbespoke-modules%2Freleases%2Fdownload%2F2024-08-29%2FDelusoire.marketplace%400.1.3%2Bcm-1020040-ly32efah.zip
-```
+After changing the wrapper or modular loader, rebuild the payload and run the
+relevant Node tests before rebuilding the Rust binaries.
