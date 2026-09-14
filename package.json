@@ -15,7 +15,9 @@
     "esbuild": "0.25.11",
     "oxfmt": "0.56.0",
     "oxlint": "1.71.0",
-    "oxlint-tsgolint": "0.23.0"
+    "oxlint-tsgolint": "0.23.0",
+    "react": "18.3.1",
+    "react-test-renderer": "18.3.1"
   },
   "engines": {
     "node": ">=18",

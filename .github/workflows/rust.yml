@@ -13,6 +13,8 @@ on:
       - "install.ps1"
       - "scripts/test-install-completions.*"
       - "scripts/build-payload.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
       - ".github/workflows/rust.yml"
   push:
     branches:
@@ -26,6 +28,8 @@ on:
       - "install.ps1"
       - "scripts/test-install-completions.*"
       - "scripts/build-payload.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
       - ".github/workflows/rust.yml"
 
 jobs:
@@ -75,6 +79,10 @@ jobs:
       - name: Build client payload
         working-directory: .
         run: pnpm build:payload
+
+      - name: Test client payload
+        working-directory: .
+        run: node --test "src/jsHelper/**/*.test.mts"
 
       - name: Build
         run: cargo build --workspace --locked
