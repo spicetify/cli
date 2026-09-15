@@ -103,12 +103,8 @@ impl PatchSet {
                     continue;
                 }
             };
-            if let Some(n) = template_group_out_of_range(&spec.replace, re.captures_len()) {
-                tracing::warn!(
-                    "patch {} references group {n} but its pattern has {} group(s): skipped",
-                    spec.name,
-                    re.captures_len() - 1
-                );
+            if let Some(name) = missing_template_group(&spec.replace, &re) {
+                tracing::warn!("patch {} references missing group {name}: skipped", spec.name);
                 dropped.push(spec.name);
                 continue;
             }
@@ -138,19 +134,23 @@ impl PatchSet {
     }
 }
 
-/// The first `${N}` or `$N` in `template` naming a group the pattern does not
+/// The first capture reference in `template` naming a group the pattern does not
 /// have. `Captures::expand` would substitute an empty string there, which is
 /// how a typo in a published template would inject broken code into the
 /// client; refusing the patch at load turns that into a diagnostic. `$$` is
 /// the literal-dollar escape and is skipped.
-fn template_group_out_of_range(template: &str, captures_len: usize) -> Option<usize> {
+fn missing_template_group<'a>(template: &'a str, re: &Regex) -> Option<&'a str> {
     static GROUP_RE: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"\$(?:\$|\{([0-9]+)\}|([0-9]+))").expect("valid replacement group pattern")
+        Regex::new(r"\$(?:\$|\{([^}]*)\}|([0-9A-Za-z_]+))")
+            .expect("valid replacement group pattern")
     });
     GROUP_RE.captures_iter(template).find_map(|caps| {
-        let digits = caps.get(1).or_else(|| caps.get(2))?;
-        let group = digits.as_str().parse::<usize>().ok()?;
-        (group >= captures_len).then_some(group)
+        let name = caps.get(1).or_else(|| caps.get(2))?.as_str();
+        let exists = match name.parse::<usize>() {
+            Ok(group) => group < re.captures_len(),
+            Err(_) => re.capture_names().flatten().any(|candidate| candidate == name),
+        };
+        (!exists).then_some(name)
     })
 }
 
@@ -478,30 +478,51 @@ mod tests {
         );
         assert_eq!(s.names().collect::<Vec<_>>(), vec!["ok"]);
         assert_eq!(s.dropped, vec!["typo", "bare"]);
-        assert_eq!(template_group_out_of_range("${0}${1}", 2), None);
-        assert_eq!(template_group_out_of_range("$$2", 2), None);
-        assert_eq!(template_group_out_of_range("${2}", 2), Some(2));
-        assert_eq!(template_group_out_of_range("a$9b", 2), Some(9));
+        let re = Regex::new("(x)").unwrap();
+        assert_eq!(missing_template_group("${0}${1}", &re), None);
+        assert_eq!(missing_template_group("$$2", &re), None);
+        assert_eq!(missing_template_group("${2}", &re), Some("2"));
+        assert_eq!(missing_template_group("a$9b", &re), Some("9b"));
     }
 
     #[test]
-    fn numeric_template_references_preserve_escaping_and_order() {
+    fn template_validation_uses_the_same_reference_names_as_expansion() {
+        for template in
+            ["$1abc", "$1_", "${missing}", "${}", "$999999999999999999999999999999999999"]
+        {
+            let raw = serde_json::json!({"patches":[{"name":"bad", "pattern":"(x)", "replace":template}]}).to_string();
+            let s = set(&raw);
+            assert_eq!(s.len(), 0, "unknown expansion reference accepted: {template}");
+        }
+        let s = set(
+            r#"{"patches":[{"name":"named","pattern":"(?P<word>x)","replace":"${word}-$word-${1}abc-$$1abc"}]}"#,
+        );
+        assert_eq!(expose_apis("x".to_string(), &s), "x-x-xabc-$1abc");
+    }
+
+    #[test]
+    fn template_references_preserve_escaping_and_order() {
+        let re = Regex::new("(x)").unwrap();
         for (template, expected) in [
             ("$0 ${1}", None),
             ("$$2", None),
-            ("$$$2", Some(2)),
+            ("$$$2", Some("2")),
             ("$$$$2", None),
-            ("$1 ${2} $9", Some(2)),
-            ("$9 $2", Some(9)),
+            ("$1 ${2} $9", Some("2")),
+            ("$9 $2", Some("9")),
             ("${2", None),
-            ("${2x}", None),
-            ("${name}", None),
-            ("${${2}", Some(2)),
-            ("é💚${2}", Some(2)),
-            ("$02", Some(2)),
-            ("$999999999999999999999999999999999999 $2", Some(2)),
+            ("${2x}", Some("2x")),
+            ("${name}", Some("name")),
+            ("${${2}", Some("${2")),
+            ("é💚${2}", Some("2")),
+            ("$02", Some("02")),
+            ("${+1}", None),
+            (
+                "$999999999999999999999999999999999999 $2",
+                Some("999999999999999999999999999999999999"),
+            ),
         ] {
-            assert_eq!(template_group_out_of_range(template, 2), expected, "{template:?}");
+            assert_eq!(missing_template_group(template, &re), expected, "{template:?}");
         }
     }
 
