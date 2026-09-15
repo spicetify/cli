@@ -1,4 +1,7 @@
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
+
+use regex::Regex;
 
 use crate::context::AppContext;
 use crate::error::Result;
@@ -567,18 +570,15 @@ fn stage_payload(config_root: &Path, dest: &Path) -> Result<()> {
 const SNAPSHOT_TAG: &str = "<script defer=\"defer\" src=\"/xpui-snapshot.js\"></script>";
 const DIRECT_BUNDLE_TAG: &str = "<script defer=\"defer\" src=\"/xpui.js\"></script>";
 const BODY_TAG: &str = "<body";
+static BODY_OPEN_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"^<body(?:[\t\n\f\r ]+(?:[^"'<>]|"[^"]*"|'[^']*')*)?>"#)
+        .expect("valid body opening tag pattern")
+});
 
-// The body tag is not always bare: Linux builds ship
-// `<body class="encore-dark-theme encore-layout-themes">`, so the insertion
-// point is the closing `>` of the opening tag, wherever its attributes end.
+// Match Spotify's lowercase body tag, including Linux attributes and quoted `>` values.
 fn body_insert_at(input: &str) -> Option<usize> {
     let start = input.find(BODY_TAG)?;
-    let rest = &input[start + BODY_TAG.len()..];
-    if !rest.starts_with('>') && !rest.starts_with(|c: char| c.is_ascii_whitespace()) {
-        return None;
-    }
-    let close = rest.find('>')?;
-    Some(start + BODY_TAG.len() + close + 1)
+    BODY_OPEN_RE.find(&input[start..]).map(|tag| start + tag.end())
 }
 
 fn patch_index_html(
@@ -653,6 +653,47 @@ mod tests {
         let class_attr = out.find("encore-dark-theme").expect("body attributes kept");
         let wrapper = out.find("hooks/spicetifyWrapper.js").expect("wrapper injected");
         assert!(class_attr < wrapper, "payload lands inside body, after the opening tag");
+    }
+
+    #[test]
+    fn body_anchor_consumes_the_complete_opening_tag() {
+        for tag in [
+            "<body>",
+            "<body >",
+            "<body\tclass='theme'\nlang=pt>",
+            "<body\r\nclass=\"theme\"\x0cdata-enabled>",
+            r#"<body class="theme" data-label="a > b">"#,
+            r#"<body data-label='a > "b"' class="theme">"#,
+        ] {
+            let prefix = "<!doctype html><html><head><title>Música</title></head>";
+            let input = format!("{prefix}{tag}<main></main></body></html>");
+            assert_eq!(body_insert_at(&input), Some(prefix.len() + tag.len()), "{tag:?}");
+            for bundle in [ClientBundle::Snapshot, ClientBundle::Direct] {
+                let stock =
+                    format!("{prefix}{tag}{}<main></main></body></html>", bundle.script_tag());
+                let patched = patch_index_html(&stock, "tok", bundle).expect("body patches");
+                assert!(patched.starts_with(&format!("{prefix}{tag}\n<script>")), "{tag:?}");
+                assert!(!patched.contains(bundle.script_tag()));
+            }
+        }
+    }
+
+    #[test]
+    fn body_anchor_refuses_unrecognised_or_unclosed_tags() {
+        for input in [
+            "<html></html>",
+            "<body",
+            "<body class=theme",
+            "<bodyguard>",
+            "<bodyguard><body>",
+            "<BODY>",
+            "<body\u{00a0}class=theme>",
+            "<body\x0bclass=theme>",
+            r#"<body class="unfinished>"#,
+            "<body class='unfinished>",
+        ] {
+            assert_eq!(body_insert_at(input), None, "{input:?}");
+        }
     }
 
     #[test]

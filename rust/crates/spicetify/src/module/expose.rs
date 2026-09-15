@@ -20,6 +20,7 @@
 // deciding a pattern is dead or re-deriving one.
 
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
 use regex::{Captures, Regex};
 use serde::Deserialize;
@@ -143,37 +144,14 @@ impl PatchSet {
 /// client; refusing the patch at load turns that into a diagnostic. `$$` is
 /// the literal-dollar escape and is skipped.
 fn template_group_out_of_range(template: &str, captures_len: usize) -> Option<usize> {
-    let bytes = template.as_bytes();
-    let mut i = 0;
-    while let Some(&b) = bytes.get(i) {
-        if b != b'$' {
-            i += 1;
-            continue;
-        }
-        if bytes.get(i + 1) == Some(&b'$') {
-            i += 2;
-            continue;
-        }
-        let braced = bytes.get(i + 1) == Some(&b'{');
-        let start = if braced { i + 2 } else { i + 1 };
-        let digits: String = bytes
-            .get(start..)
-            .unwrap_or_default()
-            .iter()
-            .take_while(|b| b.is_ascii_digit())
-            .map(|&b| char::from(b))
-            .collect();
-        let end = start + digits.len();
-        if !digits.is_empty()
-            && (!braced || bytes.get(end) == Some(&b'}'))
-            && let Ok(n) = digits.parse::<usize>()
-            && n >= captures_len
-        {
-            return Some(n);
-        }
-        i = end.max(i + 1);
-    }
-    None
+    static GROUP_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"\$(?:\$|\{([0-9]+)\}|([0-9]+))").expect("valid replacement group pattern")
+    });
+    GROUP_RE.captures_iter(template).find_map(|caps| {
+        let digits = caps.get(1).or_else(|| caps.get(2))?;
+        let group = digits.as_str().parse::<usize>().ok()?;
+        (group >= captures_len).then_some(group)
+    })
 }
 
 /// Loads the patch set for this apply. Candidates, first usable wins: an
@@ -254,47 +232,48 @@ fn group(caps: &Captures<'_>, i: usize) -> String {
 /// items. The identifiers are read out of the surrounding minified code, which
 /// is why this is not a plain patch-list entry.
 fn patch_context_menu(input: String) -> (String, bool) {
-    let Ok(crop_re) = Regex::new(r#".*(?:value:"contextmenu"|"[^"]*":"context-menu")"#) else {
-        return (input, false);
-    };
-    let Some(cropped) = crop_re.find(&input).map(|m| m.as_str().to_string()) else {
+    static CROP_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r#".*(?:value:"contextmenu"|"[^"]*":"context-menu")"#)
+            .expect("valid context menu crop pattern")
+    });
+    static REACT_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"([a-zA-Z_\$][\w\$]*)\.useRef").expect("valid React reference pattern")
+    });
+    static MENU_PROPERTIES_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"([a-zA-Z_\$][\w\$]*)=[\w_$]+\.menu[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.trigger[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.triggerRef")
+            .expect("valid menu properties pattern")
+    });
+    static MENU_DESTRUCTURING_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)")
+            .expect("valid menu destructuring pattern")
+    });
+    static PROVIDER_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r#"\(0,([\w_$]+)\.jsx\)\((?:[\w_$]+\.[\w_$]+,\{value:"contextmenu"[^}]+\}\)\}\)|"[\w-]+",\{[^}]+:"context-menu"[^}]+\}\))"#)
+            .expect("valid context menu provider pattern")
+    });
+    let Some(cropped) = CROP_RE.find(&input).map(|m| m.as_str()) else {
         return (input, false);
     };
 
-    let last = |pattern: &str, n: usize| -> Option<Vec<String>> {
-        let re = Regex::new(pattern).ok()?;
-        let caps = re.captures_iter(&cropped).last()?;
+    let last = |re: &Regex, n: usize| -> Option<Vec<String>> {
+        let caps = re.captures_iter(cropped).last()?;
         Some((0..=n).map(|i| group(&caps, i)).collect())
     };
 
     let pick = |g: &[String], i: usize| g.get(i).cloned().unwrap_or_default();
 
-    let Some(react) = last(r"([a-zA-Z_\$][\w\$]*)\.useRef", 1).map(|g| pick(&g, 1)) else {
+    let Some(react) = last(&REACT_RE, 1).map(|g| pick(&g, 1)) else {
         return (input, false);
     };
 
-    let (menu, trigger, target) = last(
-        r"([a-zA-Z_\$][\w\$]*)=[\w_$]+\.menu[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.trigger[^}]*,([a-zA-Z_\$][\w\$]*)=[\w_$]+\.triggerRef",
-        3,
-    )
-    .or_else(|| {
-        last(
-            r"\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)",
-            3,
-        )
-    })
-    .map_or_else(
-        || ("e.menu".to_string(), "e.trigger".to_string(), "e.triggerRef".to_string()),
-        |g| (pick(&g, 1), pick(&g, 2), pick(&g, 3)),
-    );
+    let (menu, trigger, target) =
+        last(&MENU_PROPERTIES_RE, 3).or_else(|| last(&MENU_DESTRUCTURING_RE, 3)).map_or_else(
+            || ("e.menu".to_string(), "e.trigger".to_string(), "e.triggerRef".to_string()),
+            |g| (pick(&g, 1), pick(&g, 2), pick(&g, 3)),
+        );
 
-    let Ok(re) = Regex::new(
-        r#"\(0,([\w_$]+)\.jsx\)\((?:[\w_$]+\.[\w_$]+,\{value:"contextmenu"[^}]+\}\)\}\)|"[\w-]+",\{[^}]+:"context-menu"[^}]+\}\))"#,
-    ) else {
-        return (input, false);
-    };
     let mut hit = false;
-    let out = re
+    let out = PROVIDER_RE
         .replace_all(&input, |caps: &Captures<'_>| {
             hit = true;
             format!(
@@ -312,15 +291,14 @@ fn patch_context_menu(input: String) -> (String, bool) {
 /// prototype used to do this; it stopped matching before 1.2.80, while this
 /// scan holds on every supported build (1.2.84 and 1.2.96 measured).
 fn patch_uri_fallback(input: String) -> (String, bool) {
+    static URI_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"(?:class ([\w$_]+)\{constructor|([\w$_]+)=function\(\)\{function ?[\w$_]+)\([\w$.,={}]+\)\{[\w !?:=.,>&(){}\[\];]*this\.hasBase62Id")
+            .expect("valid URI class pattern")
+    });
     if input.contains("Spicetify.URI") {
         return (input, false);
     }
-    let Ok(re) = Regex::new(
-        r"(?:class ([\w$_]+)\{constructor|([\w$_]+)=function\(\)\{function ?[\w$_]+)\([\w$.,={}]+\)\{[\w !?:=.,>&(){}\[\];]*this\.hasBase62Id",
-    ) else {
-        return (input, false);
-    };
-    let Some(caps) = re.captures(&input) else {
+    let Some(caps) = URI_RE.captures(&input) else {
         return (input, false);
     };
 
@@ -504,6 +482,27 @@ mod tests {
         assert_eq!(template_group_out_of_range("$$2", 2), None);
         assert_eq!(template_group_out_of_range("${2}", 2), Some(2));
         assert_eq!(template_group_out_of_range("a$9b", 2), Some(9));
+    }
+
+    #[test]
+    fn numeric_template_references_preserve_escaping_and_order() {
+        for (template, expected) in [
+            ("$0 ${1}", None),
+            ("$$2", None),
+            ("$$$2", Some(2)),
+            ("$$$$2", None),
+            ("$1 ${2} $9", Some(2)),
+            ("$9 $2", Some(9)),
+            ("${2", None),
+            ("${2x}", None),
+            ("${name}", None),
+            ("${${2}", Some(2)),
+            ("é💚${2}", Some(2)),
+            ("$02", Some(2)),
+            ("$999999999999999999999999999999999999 $2", Some(2)),
+        ] {
+            assert_eq!(template_group_out_of_range(template, 2), expected, "{template:?}");
+        }
     }
 
     #[test]
