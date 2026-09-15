@@ -48,10 +48,8 @@ func init() {
 	}
 
 	log.SetFlags(0)
-	// Supports print color output for Windows
 	log.SetOutput(colorable.NewColorableStdout())
 
-	// Separates flags and commands
 	parseFlags := true
 	for _, v := range os.Args[1:] {
 		if parseFlags && v == "--" {
@@ -84,11 +82,7 @@ func init() {
 			if len(commands) > 0 {
 				kind = commands[0]
 			}
-			if kind == "config" {
-				helpConfig()
-			} else {
-				help()
-			}
+			printHelp(kind)
 
 			os.Exit(0)
 		case "-v", "--version":
@@ -153,7 +147,6 @@ func main() {
 		return
 	}
 
-	// Unchainable commands
 	switch commands[0] {
 	case "config":
 		commands = commands[1:]
@@ -318,7 +311,6 @@ func main() {
 	}
 
 	var shouldRestart bool = false
-	// Chainable commands
 	for _, v := range commands {
 		switch v {
 		case "backup":
@@ -368,6 +360,145 @@ Run "spicetify -h" for a list of valid commands.`))
 	if !noRestart && !slices.Contains(commands, "restart") && shouldRestart {
 		cmd.SpotifyRestart()
 	}
+}
+
+var commandHelp = map[string]string{
+	"backup": `Start backup and preprocessing of app files.
+
+Usage:
+spicetify backup`,
+
+	"apply": `Apply customization.
+
+Usage:
+spicetify apply`,
+
+	"refresh": `Refresh the theme's CSS, JS, colors, and assets.
+Use with flag "-e" to update extensions or with flag "-a" to update custom apps.
+
+Usage:
+spicetify refresh
+spicetify -e refresh
+spicetify -a refresh
+spicetify -e -a refresh`,
+
+	"restore": `Restore Spotify to original state.
+
+Usage:
+spicetify restore`,
+
+	"clear": `Clear current backup files.
+
+Usage:
+spicetify clear`,
+
+	"enable-devtools": `Enable Spotify's developer tools.
+Press Ctrl + Shift + I (Windows/Linux) or Cmd + Option + I (macOS) in the Spotify client to open.
+
+Usage:
+spicetify enable-devtools`,
+
+	"watch": `Enter watch mode.
+To update on change, use with any combination of the following flags:
+    "-e" (for extensions),
+    "-a" (for custom apps),
+    "-s" (for the active theme; color.ini, user.css, theme.js, and assets)
+    "-l" (for all of the above)
+
+Usage:
+spicetify watch
+spicetify -l watch
+spicetify -e watch <extension-name>`,
+
+	"restart": `Restart Spotify client.
+
+Usage:
+spicetify restart`,
+
+	"auto": `Check Spotify's state, re-backup and apply if needed, then launch Spotify client normally.
+
+Usage:
+spicetify auto`,
+
+	"spotify-updates": `Block Spotify updates by patching spotify executable.
+Accepts "block" or "unblock" as the parameter.
+
+Usage:
+spicetify spotify-updates block
+spicetify spotify-updates unblock`,
+
+	"path": `Print path of Spotify's executable, userdata, and more.
+
+1. Print executable path:
+spicetify path
+
+2. Print userdata path:
+spicetify path userdata
+
+3. Print all paths:
+spicetify path all
+
+4. Toggle focus with flags:
+spicetify path <flag> <option>
+
+Available flags and options:
+"-e" (for extensions),
+options: root, extension name, blank for all.
+
+"-a" (for custom apps),
+options: root, <app-name>, blank for all.
+
+"-s" (for the active theme)
+options: root, folder, color, css, js, assets, blank for all.
+
+"-c" (for config.ini)
+options: N/A.`,
+
+	"color": `1. Print all color fields and values.
+spicetify color
+
+Color boxes require 24-bit color (True color) supported terminal to show colors correctly.
+
+2. Change theme's one or multiple color values.
+spicetify color <field> <value> [<field> <value> ...]
+
+<value> can be in hex or decimal (rrr,ggg,bbb) format.
+
+Example usage:
+- Change main to ff0000
+spicetify color main ff0000
+- Change sidebar to 00ff00 and button to 0000ff
+spicetify color sidebar 00ff00 button 0000ff`,
+
+	"config-dir": `Show config directory in file viewer.
+
+Usage:
+spicetify config-dir`,
+
+	"upgrade": `Update spicetify to the latest version if an update is available.
+
+Usage:
+spicetify upgrade`,
+
+	"update": `Update spicetify to the latest version if an update is available.
+
+Usage:
+spicetify update`,
+}
+
+func printHelp(command string) {
+	if command == "config" {
+		helpConfig()
+		return
+	}
+
+	if text, ok := commandHelp[command]; ok {
+		utils.PrintBold("spicetify " + command)
+		log.Println(text)
+		return
+	}
+
+	help()
 }
 
 func help() {
