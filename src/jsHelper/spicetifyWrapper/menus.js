@@ -252,16 +252,27 @@ Spicetify.ContextMenuV2 = (() => {
     registeredItemsVersion++;
   }
 
-  const renderItems = () => {
-    const { props, trigger, target } = Spicetify.React.useContext(Spicetify.ContextMenuV2._context) ?? {};
+  function RegisteredMenuItems({ react, context }) {
+    const { props, trigger, target } = react.useContext(context) ?? {};
 
-    return Spicetify.React.useMemo(
+    return react.useMemo(
       () =>
         Array.from(registeredItems.entries())
           .map(([item, shouldAdd]) => shouldAdd?.(props, trigger, target) && item)
           .filter(Boolean),
       [props, trigger, target, registeredItemsVersion],
     );
+  }
+
+  const renderItems = () => {
+    const react = Spicetify.React;
+    const context = Spicetify.ContextMenuV2._context;
+    if (!context || typeof react?.createElement !== "function" || typeof react.useContext !== "function" || typeof react.useMemo !== "function") {
+      return [];
+    }
+
+    // This call is injected into Spotify's render: capture readiness must not change its hook order.
+    return [react.createElement(RegisteredMenuItems, { key: "spicetify-context-menu-items", react, context })];
   };
 
   return { parseProps, Item, ItemSubMenu, registerItem, unregisterItem, renderItems };
