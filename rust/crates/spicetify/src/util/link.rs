@@ -2,6 +2,45 @@ use std::path::Path;
 
 use crate::error::Result;
 
+pub(crate) fn is_link(meta: &std::fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+        meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+    }
+    #[cfg(not(windows))]
+    {
+        meta.is_symlink()
+    }
+}
+
+/// Refuse links below a trusted root, including dangling links and Windows
+/// junctions. The root itself may be a user's deliberately relocated directory.
+pub(crate) fn ensure_no_links(root: &Path, relative: &Path) -> std::io::Result<()> {
+    let mut path = root.to_path_buf();
+    for component in relative.components() {
+        let name = match component {
+            std::path::Component::Normal(name) => name,
+            std::path::Component::CurDir => continue,
+            _ => return Err(std::io::Error::other("expected a relative path without traversal")),
+        };
+        path.push(name);
+        match std::fs::symlink_metadata(&path) {
+            Ok(meta) if is_link(&meta) => {
+                return Err(std::io::Error::other(format!(
+                    "refusing to follow link at {}",
+                    path.display()
+                )));
+            }
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn create_dir_link(target: &Path, link: &Path) -> Result<()> {
     if let Some(parent) = link.parent() {
         std::fs::create_dir_all(parent)?;

@@ -77,6 +77,12 @@ impl ProtocolAction {
 }
 
 fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
+    let _guard = match action {
+        ProtocolAction::Apply | ProtocolAction::BlockUpdates | ProtocolAction::UnblockUpdates => {
+            None
+        }
+        _ => Some(super::guard::try_acquire(&ctx.config_root)?),
+    };
     let paths = ModulePaths::from_config_root(&ctx.config_root);
     let query: Vec<_> = uri.query_pairs().collect();
 
@@ -91,8 +97,8 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
             // themselves, which is no verification at all.
             let checksum = crate::commands::pkg::registry_checksum(
                 &ctx.config_root,
-                &id.module_identifier,
-                &id.version,
+                id.module_identifier(),
+                id.version(),
             )
             .unwrap_or_default();
             if checksum.is_empty() {
@@ -103,13 +109,12 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
                 // promises that disk staging is registry-verified. An
                 // unreachable registry looks identical to an absent entry
                 // here, and refusing is the right answer for both.
-                const SYSTEM: &[&str] = &["stdlib", "store", "manager"];
-                if SYSTEM.contains(&id.module_identifier.as_str()) {
+                if super::pkg::SYSTEM_MODULES.iter().any(|name| id.is_within_module(name)) {
                     return Err(anyhow::anyhow!(fl!(
                         "protocol-error",
                         err = format!(
                             "{} can only be installed from a registry-verified artifact",
-                            id.module_identifier
+                            id.module_identifier()
                         )
                     )));
                 }
@@ -137,7 +142,7 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
             let id = module::parse_enable_id(&require_param(&query, "id")?)?;
             // An empty version is the disable spelling: it drops the enable
             // link, which for the store is an uninstall by another name.
-            if id.version.is_empty() {
+            if id.version().is_empty() {
                 refuse_store_removal(&id)?;
             }
             module::enable(&paths, &id)?;
@@ -158,10 +163,7 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
         ProtocolAction::FastDelete | ProtocolAction::FastRemove => {
             let id = require_id(&query)?;
             refuse_store_removal(&id)?;
-            let disable_id = module::vault::StoreIdentifier {
-                module_identifier: id.module_identifier.clone(),
-                version: String::new(),
-            };
+            let disable_id = module::vault::StoreIdentifier::disabled(id.module_identifier())?;
             module::enable(&paths, &disable_id)?;
             module::delete(&paths, &id)?;
             if matches!(action, ProtocolAction::FastRemove) {
@@ -206,7 +208,7 @@ fn set_updates_blocked(ctx: &AppContext, block: bool) -> Result<()> {
 /// the daemon socket, a `spicetify://` link) can never delete it. The
 /// terminal commands stay able to, as does deleting files by hand.
 fn refuse_store_removal(id: &module::vault::StoreIdentifier) -> Result<()> {
-    if id.module_identifier == "store" {
+    if id.is_within_module("store") {
         return Err(anyhow::anyhow!(fl!(
             "protocol-error",
             err = "the store cannot be uninstalled"
@@ -241,16 +243,16 @@ mod tests {
     use super::*;
 
     fn id(module: &str, version: &str) -> module::vault::StoreIdentifier {
-        module::vault::StoreIdentifier {
-            module_identifier: module.to_string(),
-            version: version.to_string(),
-        }
+        module::parse_enable_id(&format!("{module}@{version}")).expect("valid test ID")
     }
 
     #[test]
     fn refuses_removing_the_store_at_any_version() {
         assert!(refuse_store_removal(&id("store", "1.6.1")).is_err());
         assert!(refuse_store_removal(&id("store", "")).is_err());
+        for name in ["STORE", "Store", "sToRe", "store/1.6.1", "STORE/1.6.1/nested"] {
+            assert!(refuse_store_removal(&id(name, "1")).is_err(), "{name}");
+        }
     }
 
     #[test]
@@ -258,5 +260,72 @@ mod tests {
         assert!(refuse_store_removal(&id("bookmark", "0.4.0")).is_ok());
         assert!(refuse_store_removal(&id("someone/store", "1.0.0")).is_ok());
         assert!(refuse_store_removal(&id("store-theme", "1.0.0")).is_ok());
+    }
+
+    #[test]
+    fn protocol_refuses_encoded_path_ids_before_package_actions() -> Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-protocol-path-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let ctx = AppContext::from_config(root.clone(), &crate::context::Config::default())?;
+        for action in [
+            "add",
+            "install",
+            "enable",
+            "delete",
+            "remove",
+            "fast-install",
+            "fast-enable",
+            "fast-delete",
+            "fast-remove",
+        ] {
+            for raw in ["../victim@1", "/victim@1", "module@..", "../victim@"] {
+                let mut uri = Url::parse(&format!("spicetify:0:{action}"))?;
+                let _ = uri.query_pairs_mut().append_pair("id", raw);
+                let error = handle(&ctx, uri.as_str()).expect_err("unsafe IDs must be refused");
+                assert!(error.to_string().contains("invalid store id"), "{action} {raw}: {error}");
+                assert!(!root.join("modules").exists(), "validation must precede vault mutation");
+            }
+        }
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn protocol_protects_system_module_aliases_without_mutating_the_store() -> Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-protocol-alias-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        // A fresh empty registry makes the unverified-install check offline.
+        std::fs::create_dir(root.join("cache"))?;
+        std::fs::write(root.join("cache/vault.json"), r#"{"modules":{}}"#)?;
+        std::fs::create_dir_all(root.join("store/store/1"))?;
+        std::fs::write(root.join("store/store/1/keep.txt"), "store payload")?;
+        let ctx = AppContext::from_config(root.clone(), &crate::context::Config::default())?;
+        for module in ["store", "STORE", "Store", "store/1", "STORE/1/nested"] {
+            for action in ["delete", "remove", "fast-delete", "fast-remove", "enable"] {
+                let version = if action == "enable" { "" } else { "1" };
+                let mut uri = Url::parse(&format!("spicetify:0:{action}"))?;
+                let _ = uri.query_pairs_mut().append_pair("id", &format!("{module}@{version}"));
+                let error = handle(&ctx, uri.as_str()).expect_err("the Store must be protected");
+                assert!(error.to_string().contains("cannot be uninstalled"), "{error}");
+            }
+        }
+        for module in ["STORE", "sTdLiB", "Manager", "store/1", "STDLIB/1/nested"] {
+            for action in ["add", "fast-install", "fast-enable"] {
+                let mut uri = Url::parse(&format!("spicetify:0:{action}"))?;
+                let _ = uri.query_pairs_mut().append_pair("id", &format!("{module}@1"));
+                let error = handle(&ctx, uri.as_str()).expect_err("unverified system install");
+                assert!(error.to_string().contains("registry-verified"), "{error}");
+            }
+        }
+        assert!(root.join("store/store/1/keep.txt").is_file());
+        assert!(!root.join("modules").exists());
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
     }
 }

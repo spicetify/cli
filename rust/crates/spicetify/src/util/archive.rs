@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::io::{Cursor, Read, Seek};
 use std::path::Path;
 
 use zip::ZipArchive;
@@ -6,8 +7,15 @@ use zip::ZipArchive;
 use super::ArchiveError;
 
 pub(crate) fn unzip_file(src: &Path, dest: &Path) -> Result<(), ArchiveError> {
-    let file = File::open(src)?;
-    let mut archive = ZipArchive::new(file)?;
+    unzip(File::open(src)?, dest)
+}
+
+pub(crate) fn unzip_bytes(bytes: &[u8], dest: &Path) -> Result<(), ArchiveError> {
+    unzip(Cursor::new(bytes), dest)
+}
+
+fn unzip(reader: impl Read + Seek, dest: &Path) -> Result<(), ArchiveError> {
+    let mut archive = ZipArchive::new(reader)?;
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i)?;
         let raw_name = entry.name().to_string();
@@ -21,6 +29,7 @@ pub(crate) fn unzip_file(src: &Path, dest: &Path) -> Result<(), ArchiveError> {
             continue;
         }
         let safe = safe_relative_path(&raw_name)?;
+        super::link::ensure_no_links(dest, &safe)?;
         let outpath = dest.join(safe);
         if entry.is_dir() {
             std::fs::create_dir_all(&outpath)?;
@@ -29,7 +38,14 @@ pub(crate) fn unzip_file(src: &Path, dest: &Path) -> Result<(), ArchiveError> {
         if let Some(parent) = outpath.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let mut out = File::create(&outpath)?;
+        // Replace the directory entry, never truncate a possibly hard-linked
+        // inode. Exclusive creation also refuses a new link at the leaf.
+        if let Err(e) = std::fs::remove_file(&outpath)
+            && e.kind() != std::io::ErrorKind::NotFound
+        {
+            return Err(e.into());
+        }
+        let mut out = File::create_new(&outpath)?;
         std::io::copy(&mut entry, &mut out).map(|_| ())?;
     }
     Ok(())
@@ -54,7 +70,10 @@ fn safe_relative_path(name: &str) -> Result<std::path::PathBuf, ArchiveError> {
             return Err(ArchiveError::IllegalPath(name.to_string()));
         }
     }
-    Ok(path)
+    Ok(path
+        .components()
+        .filter(|component| !matches!(component, std::path::Component::CurDir))
+        .collect())
 }
 
 #[cfg(test)]
@@ -76,7 +95,8 @@ mod tests {
         let mut archive = zip::ZipWriter::new(file);
         let options = zip::write::SimpleFileOptions::default();
         archive.add_directory("/", options).expect("add Spotify 1.3 root entry");
-        archive.start_file("index.html", options).expect("add index");
+        archive.add_directory("./", options).expect("add relative archive root entry");
+        archive.start_file("./index.html", options).expect("add index");
         archive.write_all(b"<html></html>").expect("write index");
         let _file = archive.finish().expect("finish archive");
 
@@ -97,5 +117,60 @@ mod tests {
                 "{name:?} must stay outside the extraction allowlist"
             );
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn extraction_cannot_overwrite_a_file_through_an_existing_link() -> crate::error::Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-archive-link-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let outside = root.join("outside.txt");
+        std::fs::write(&outside, "user data")?;
+        let output = root.join("output");
+        std::fs::create_dir(&output)?;
+        std::os::unix::fs::symlink(&outside, output.join("index.js"))?;
+        let source = root.join("artifact.zip");
+        let mut archive = zip::ZipWriter::new(File::create(&source)?);
+        archive.start_file("index.js", zip::write::SimpleFileOptions::default())?;
+        archive.write_all(b"replacement")?;
+        drop(archive.finish()?);
+
+        let result = unzip_file(&source, &output);
+        let retained = std::fs::read_to_string(&outside)?;
+        std::fs::remove_dir_all(&root)?;
+        assert_eq!(retained, "user data", "archive extraction escaped its destination");
+        assert!(result.is_err(), "extraction must refuse an existing link");
+        Ok(())
+    }
+
+    #[test]
+    fn extraction_replaces_hard_links_without_overwriting_their_targets() -> crate::error::Result<()>
+    {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-archive-hardlink-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let outside = root.join("outside.txt");
+        std::fs::write(&outside, "user data")?;
+        let output = root.join("output");
+        std::fs::create_dir(&output)?;
+        std::fs::hard_link(&outside, output.join("index.js"))?;
+        let source = root.join("artifact.zip");
+        let mut archive = zip::ZipWriter::new(File::create(&source)?);
+        archive.start_file("index.js", zip::write::SimpleFileOptions::default())?;
+        archive.write_all(b"replacement")?;
+        drop(archive.finish()?);
+
+        unzip_file(&source, &output)?;
+        let retained = std::fs::read_to_string(&outside)?;
+        let installed = std::fs::read_to_string(output.join("index.js"))?;
+        std::fs::remove_dir_all(&root)?;
+        assert_eq!(retained, "user data", "archive extraction followed a hard link");
+        assert_eq!(installed, "replacement");
+        Ok(())
     }
 }

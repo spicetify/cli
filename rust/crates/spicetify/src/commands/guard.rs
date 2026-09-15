@@ -4,9 +4,10 @@ use crate::error::Result;
 
 const LOCK_FILE: &str = "spicetify-disruptive-operation.lock";
 
-/// Serializes operations that stop Spotify or rewrite its application bundle.
-/// The update transaction keeps this guard for its whole lifetime; ordinary
-/// apply/block commands fail fast instead of racing it across processes.
+/// Serializes Spotify lifecycle and package/configuration mutations. Hold this
+/// across path validation and filesystem access so another package operation
+/// cannot replace a checked directory with a link. The update transaction keeps
+/// it for its whole lifetime; competing commands fail fast across processes.
 #[derive(Debug)]
 pub struct DisruptiveOperationGuard {
     _file: std::fs::File,
@@ -18,7 +19,7 @@ pub fn try_acquire(config_root: &Path) -> Result<DisruptiveOperationGuard> {
     let file = std::fs::OpenOptions::new().create(true).truncate(false).write(true).open(&path)?;
     fs4::FileExt::try_lock(&file).map_err(|e| {
         anyhow::anyhow!(
-            "another Spotify update or apply operation is already in progress at {}: {e}",
+            "another Spotify update, apply, or package operation is already in progress at {}: {e}",
             path.display()
         )
     })?;

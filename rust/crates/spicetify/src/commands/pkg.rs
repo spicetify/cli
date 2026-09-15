@@ -164,7 +164,7 @@ pub(crate) fn list(ctx: &AppContext) -> Result<()> {
 /// The infrastructure a usable v3 client needs: stdlib is the foundation,
 /// the store installs modules, and manager provides the profile-menu settings
 /// and recovery surface. They are independently useful management surfaces.
-const SYSTEM_MODULES: &[&str] = &["stdlib", "store", "manager"];
+pub(super) const SYSTEM_MODULES: &[&str] = &["stdlib", "store", "manager"];
 
 /// Installs any absent system module and refreshes any outdated store-managed
 /// one from the registry, so every `apply` leaves a client that can manage
@@ -223,10 +223,14 @@ pub(crate) fn ensure_system_modules(ctx: &AppContext) {
         // The version this refresh just superseded would otherwise sit in
         // the store tree forever, a megabyte per release.
         if let Some(old) = installed.filter(|old| old != &target) {
-            let superseded = crate::module::vault::StoreIdentifier {
-                module_identifier: (*id).to_string(),
-                version: old,
-            };
+            let superseded =
+                match crate::module::vault::StoreIdentifier::parse(&format!("{id}@{old}")) {
+                    Ok(id) => id,
+                    Err(e) => {
+                        tracing::warn!("cannot collect invalid superseded package {id}@{old}: {e}");
+                        continue;
+                    }
+                };
             if let Err(e) = crate::module::delete(&paths, &superseded) {
                 tracing::warn!("could not collect superseded {superseded}: {e}");
             }

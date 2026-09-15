@@ -101,7 +101,7 @@ pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
         anyhow::bail!(fl!("store-no-artifacts"));
     }
 
-    let dest = id.store_path(&paths.store_root);
+    let dest = id.store_path(&paths.store_root)?;
     let mut downloaded = None;
     let mut failures = Vec::new();
     for artifact in &store.artifacts {
@@ -113,6 +113,10 @@ pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
             vault::save(&paths.vault_path, &v)?;
             return Ok(());
         }
+        crate::util::link::ensure_no_links(
+            &paths.store_root,
+            dest.strip_prefix(&paths.store_root)?,
+        )?;
         let client = crate::http::blocking_client(30)
             .map_err(|e| anyhow::anyhow!("failed to build HTTP client: {e}"))?;
         // Artifacts are listed in preference order and later entries are
@@ -151,15 +155,9 @@ pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
         tracing::info!("{id}: checksum verified");
     }
 
+    crate::util::link::ensure_no_links(&paths.store_root, dest.strip_prefix(&paths.store_root)?)?;
     fs::create_dir_all(&dest)?;
-    let archive_path = dest.join("artifact.zip");
-    fs::write(&archive_path, &bytes)?;
-    super::util::archive::unzip_file(&archive_path, &dest)?;
-    if let Err(e) = fs::remove_file(&archive_path)
-        && e.kind() != std::io::ErrorKind::NotFound
-    {
-        tracing::warn!(error = %e, "failed to clean up downloaded zip");
-    }
+    super::util::archive::unzip_bytes(&bytes, &dest)?;
 
     store.installed = true;
     vault::save(&paths.vault_path, &v)?;
@@ -169,18 +167,18 @@ pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
 pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let mut v = vault::load(&paths.vault_path)?;
     let enabled = {
-        let module = v.get_module_mut(&id.module_identifier);
-        if !id.version.is_empty() && !module.versions.contains_key(&id.version) {
+        let module = v.get_module_mut(id.module_identifier());
+        if !id.version().is_empty() && !module.versions.contains_key(id.version()) {
             return Err(anyhow::anyhow!(fl!("missing-store", id = id.to_string())));
         }
-        if module.enabled.as_deref() == Some(&id.version) {
+        if module.enabled.as_deref() == Some(id.version()) {
             return Ok(());
         }
-        module.enabled = (!id.version.is_empty()).then(|| id.version.clone());
+        module.enabled = (!id.version().is_empty()).then(|| id.version().to_string());
         module.enabled.clone()
     };
 
-    if id.module_identifier.contains('/') {
+    if id.module_identifier().contains('/') {
         vault::save(&paths.vault_path, &v)?;
         return Ok(());
     }
@@ -190,7 +188,7 @@ pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
         // create_dir_link replaces whatever is there, including a real
         // directory: switching a hand-staged build over to a store version is
         // what `pkg enable` is for.
-        let src = id.store_path(&paths.store_root);
+        let src = id.store_path(&paths.store_root)?;
         super::util::link::create_dir_link(&src, &link)?;
     } else if let Err(e) = crate::util::remove_link_only(&link) {
         // Disabling must never delete a developer's staged directory.
@@ -201,11 +199,12 @@ pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
 }
 
 pub(crate) fn delete(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
+    let dest = id.store_path(&paths.store_root)?;
     vault::mutate(&paths.vault_path, |v| {
-        let module = v.get_module_mut(&id.module_identifier);
-        if module.enabled.as_deref() == Some(&id.version) {
+        let module = v.get_module_mut(id.module_identifier());
+        if module.enabled.as_deref() == Some(id.version()) {
             module.enabled = None;
-            if !id.module_identifier.contains('/') {
+            if !id.module_identifier().contains('/') {
                 let link = id.module_link_path(&paths.modules_root);
                 // Deleting a package unlinks it; it never deletes a real
                 // directory, which is a developer's own staged build.
@@ -214,40 +213,34 @@ pub(crate) fn delete(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
                 }
             }
         }
-        if let Some(store) = module.versions.get_mut(&id.version) {
+        if let Some(store) = module.versions.get_mut(id.version()) {
             store.installed = false;
         }
         true
     })?;
-    if let Err(e) = fs::remove_dir_all(id.store_path(&paths.store_root))
+    if fs::symlink_metadata(&dest).is_ok_and(|meta| crate::util::link::is_link(&meta)) {
+        crate::util::remove_link_only(&dest)?;
+        return Ok(());
+    }
+    if let Err(e) = fs::remove_dir_all(&dest)
         && e.kind() != std::io::ErrorKind::NotFound
     {
-        tracing::warn!(error = %e, path = %id.store_path(&paths.store_root).display(), "failed to remove directory");
+        tracing::warn!(error = %e, path = %dest.display(), "failed to remove directory");
     }
     Ok(())
 }
 
 pub(crate) fn remove_store(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     vault::mutate(&paths.vault_path, |v| {
-        let module = v.get_module_mut(&id.module_identifier);
-        drop(module.versions.remove(&id.version));
+        let module = v.get_module_mut(id.module_identifier());
+        drop(module.versions.remove(id.version()));
         true
     })?;
     Ok(())
 }
 
 pub(crate) fn parse_enable_id(raw: &str) -> Result<StoreIdentifier> {
-    if let Some(module_identifier) = raw.strip_suffix('@') {
-        if module_identifier.is_empty() || module_identifier.contains('@') {
-            return Err(anyhow::anyhow!(fl!("invalid-store-id")));
-        }
-        Ok(StoreIdentifier {
-            module_identifier: module_identifier.to_string(),
-            version: String::new(),
-        })
-    } else {
-        Ok(StoreIdentifier::parse(raw)?)
-    }
+    Ok(StoreIdentifier::parse_enable(raw)?)
 }
 
 /// Installs an artifact named directly rather than resolved from the vault.
@@ -317,6 +310,143 @@ fn normalize_url(raw: &str) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::{needs_migration, verify_checksum};
+
+    #[test]
+    fn disabling_cannot_bypass_store_id_validation() {
+        for raw in ["../victim@", "/victim@", ".@", "..@", "a/../b@", "a//b@", "CON@"] {
+            assert!(super::parse_enable_id(raw).is_err(), "unsafe disable ID: {raw:?}");
+        }
+        assert!(super::parse_enable_id("module@").is_ok());
+        assert!(super::parse_enable_id("owner/module@").is_ok());
+    }
+
+    #[test]
+    fn deleting_a_traversal_id_preserves_files_outside_the_store() -> crate::error::Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-package-path-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let victim = root.join("victim/1");
+        std::fs::create_dir_all(&victim)?;
+        std::fs::write(victim.join("keep.txt"), "user data")?;
+        std::fs::create_dir(root.join("store"))?;
+
+        let result = super::delete_module(&root, "../victim@1");
+        let retained = victim.join("keep.txt").is_file();
+        std::fs::remove_dir_all(&root)?;
+        assert!(retained, "package deletion escaped the store and removed the sentinel");
+        assert!(result.is_err(), "a traversal ID must be refused");
+        Ok(())
+    }
+
+    #[test]
+    fn nested_package_deletion_is_scoped_to_its_version() -> crate::error::Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-nested-package-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let paths = super::ModulePaths::from_config_root(&root);
+        let id = super::StoreIdentifier::parse("owner/module@1")?;
+        let version = id.store_path(&paths.store_root)?;
+        std::fs::create_dir_all(&version)?;
+        std::fs::create_dir_all(paths.store_root.join("owner/module/2"))?;
+        super::add_store(
+            &paths,
+            &id,
+            super::Store { installed: true, artifacts: vec![], checksum: String::new() },
+        )?;
+        super::delete_module(&root, "owner/module@1")?;
+        assert!(!version.exists());
+        assert!(paths.store_root.join("owner/module/2").is_dir());
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn store_links_cannot_redirect_nested_package_operations() -> crate::error::Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-store-link-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let outside = root.join("outside");
+        std::fs::create_dir_all(outside.join("child/1"))?;
+        std::fs::write(outside.join("child/1/keep.txt"), "user data")?;
+        let paths = super::ModulePaths::from_config_root(&root.join("config"));
+        let local = super::StoreIdentifier::parse("developer@1")?;
+        super::add_store(
+            &paths,
+            &local,
+            super::Store {
+                installed: false,
+                artifacts: vec![outside.to_string_lossy().into_owned()],
+                checksum: String::new(),
+            },
+        )?;
+        super::install(&paths, &local)?;
+        super::enable(&paths, &local)?;
+
+        let nested = super::StoreIdentifier::parse("developer/1/child@1")?;
+        super::add_store(
+            &paths,
+            &nested,
+            super::Store {
+                installed: false,
+                artifacts: vec![outside.to_string_lossy().into_owned()],
+                checksum: String::new(),
+            },
+        )?;
+        let before = std::fs::read(&paths.vault_path)?;
+        assert!(super::delete(&paths, &nested).is_err());
+        assert!(super::install(&paths, &nested).is_err());
+        assert_eq!(
+            std::fs::read(&paths.vault_path)?,
+            before,
+            "refused operations must not mutate the vault"
+        );
+        assert!(outside.join("child/1/keep.txt").is_file());
+
+        // Deleting the developer package removes its links, not their targets.
+        super::delete(&paths, &local)?;
+        assert!(std::fs::symlink_metadata(paths.store_root.join("developer/1")).is_err());
+        assert!(std::fs::symlink_metadata(paths.modules_root.join("developer")).is_err());
+        assert!(outside.join("child/1/keep.txt").is_file());
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn remote_install_refuses_a_linked_destination_before_downloading() -> crate::error::Result<()>
+    {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-install-link-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let outside = root.join("outside");
+        std::fs::create_dir(&outside)?;
+        let paths = super::ModulePaths::from_config_root(&root.join("config"));
+        let id = super::StoreIdentifier::parse("module@1")?;
+        crate::util::link::create_dir_link(&outside, &id.store_path(&paths.store_root)?)?;
+        super::add_store(
+            &paths,
+            &id,
+            super::Store {
+                installed: false,
+                artifacts: vec!["https://unused.invalid/artifact.zip".to_string()],
+                checksum: String::new(),
+            },
+        )?;
+        let error = super::install(&paths, &id).expect_err("linked destination must be refused");
+        assert!(error.to_string().contains("refusing to follow link"), "{error}");
+        crate::util::remove_link_only(&id.store_path(&paths.store_root)?)?;
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
+    }
 
     #[test]
     fn accepts_the_checksum_the_vault_recorded_in_either_form() {
