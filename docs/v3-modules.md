@@ -190,9 +190,11 @@ module source (MAP.*)
    injection -> capture require -> preload/css/load
 ```
 
-Supported Spotify versions only: staging runs only when the installed
-version has `status: modular` in `supported-versions.json` and its classmap
-is present.
+Staging requires a classmap for the installed Spotify version. `apply` uses an
+exact verified map when one is published, or the newest lower patch in the
+same `major.minor` release. It never falls back across a minor release. See
+[`supported-versions.md`](supported-versions.md) for the selection and
+verification rules.
 
 ## Building modules (stitch)
 

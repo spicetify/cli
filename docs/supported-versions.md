@@ -1,82 +1,108 @@
-# supported-versions.json
+# Spotify version support
 
-The allowlist that decides which Spotify versions spicetify will patch.
-Shipped in release archives next to the binary, and searched in this order:
+Spicetify v3 derives Spotify support from the published classmaps index. A new
+verified classmap can support a Spotify release without requiring a new CLI
+release.
 
-1. next to the `spicetify` executable (release installs)
-2. the spicetify config folder (package managers, `go install`)
+## Source of truth
 
-## Schema (version 2)
+[`spicetify/classmaps`](https://github.com/spicetify/classmaps) publishes
+`index.json`. Each entry binds a Spotify `major.minor.patch` version to these
+files and their SHA-256 digests:
 
-```json
-{
-  "schema_version": 2,
-  "updated": "2026-07-21",
-  "policy": "allowlist",
-  "default_map_status": "classic",
-  "versions": ["1.2.93"],
-  "ranges": [{ "min": "1.2.70", "max": "1.2.94", "note": "..." }],
-  "notes": { "1.2.94": "human context" },
-  "maps": {
-    "1.2.94": {
-      "classmap_key": "1020094",
-      "status": "modular",
-      "note": "verification state of this version's classmap"
-    }
-  }
-}
+- A classmap that maps stable module names to the client's hashed classes.
+- An optional CSS-map overlay for classes that changed in that Spotify build.
+- `META.json`, which records the verification status and evidence.
+
+`apply` downloads the index and required files into
+`<config>/classmaps/`. It rejects files whose digest does not match the index.
+A failed refresh is not fatal when a usable cached classmap remains, so an
+already-supported client can still apply offline.
+
+The availability feed at `spicetify/modules/spotify-support.json` has a
+different job. It records the newest Spotify release the project has observed.
+It does not declare support and must not gate an update by itself.
+
+## Classmap selection
+
+The key encodes `major.minor.patch`. For example, Spotify `1.3.0.277` uses
+`1030000`; the fourth build component does not affect compatibility.
+
+Selection follows these rules:
+
+1. Use the exact published key when it exists.
+2. Otherwise, use the newest lower patch in the same `major.minor` release.
+3. Never fall back across a minor release.
+
+A patch fallback logs a warning and writes `classmapFallback: true` to the
+module manifest. A Spotify release with no exact or same-minor classmap fails
+staging instead of silently applying unrelated hashes.
+
+`apply` also rejects Spotify releases older than `1.2.80` before it stops or
+modifies the client.
+
+## Manifest support fields
+
+`apply` writes support provenance to `modules/manifest.json`:
+
+- `spotifyVersion` is the installed Spotify version.
+- `classmapKey` is the selected classmap key.
+- `classmapSpotify` is the Spotify version against which the selected map was
+  verified.
+- `classmapVerified` is true only when the selected classmap and `META.json`
+  match a verified entry in the consumed index.
+- `supportedSpotify` is the newest verified Spotify version in that index.
+- `classmapFallback` reports whether selection used an older patch.
+- `updatesBlocked` reports the installed updater protection at apply time.
+
+Manager combines these local facts with the availability feed. Its
+**supported** badge comes from `supportedSpotify`; its **available** badge
+comes from the observed-version feed.
+
+## Update admission
+
+One-step **Update & Apply** is currently enabled only on macOS. The daemon
+advertises this capability through `/health`, and admission rejects other
+platforms before it writes job state or changes updater protection.
+
+On macOS, admission requires a verified `supportedSpotify` version newer than
+the installed version. Spotify's exact updater offer is authoritative. The
+daemon rejects any offer that is not newer than the installed version or is
+newer than the verified support ceiling.
+
+The renderer must also expose all of `Platform.UpdateAPI.subscribe`,
+`prepareUpdate`, and `applyUpdate`. A partial API fails closed before it admits
+a daemon job.
+
+If recovery cannot prove that Spotify is blocked again, the daemon retries for
+two minutes. It then releases the operation lock and tells the user to run
+`spicetify spotify-updates block`. The public terminal state keeps the existing
+`securing` wire kind with `manualRecovery: true` so older Manager modules still
+show the recovery command.
+
+## Manual update controls
+
+These commands remain available on supported native Spotify installations:
+
+```sh
+spicetify spotify-updates block
+spicetify spotify-updates unblock
+spicetify spotify-updates status
 ```
 
-- `schema_version`: 1 (plain allowlist) or 2 (adds `default_map_status`,
-  `maps`). Unknown versions are rejected.
-- `policy`: only `allowlist`.
-- `versions` / `ranges`: inclusive `major.minor.patch` bounds. Normalized
-  (`1.2.93.4.gabc` -> `1.2.93`).
-- `maps`: optional per-version classmap metadata. `classmap_key` defaults
-  to the version encoding (`1.2.94` -> `1020094`); `status` is `classic` |
-  `modular` | `none`, defaulting to `default_map_status`. Duplicate
-  normalized keys are an error.
+Current Windows clients protect the updater staging directory. macOS and Linux
+patch the update endpoint in Spotify's binary; macOS also signs the changed app
+bundle and applies a secondary update-cache lock.
 
-## Gate behavior
+`block` and `unblock` store the user's intent in `config.toml`. A successful
+Spotify update can replace the installed protection, so `apply` reasserts a
+remembered block.
 
-`backup` and `apply` refuse to run on versions outside the allowlist.
-Deliberately:
+## Developer overrides
 
-- **Missing or malformed list fails open** (warn and continue), so
-  package-manager installs that cannot ship the file keep working.
-- **Undetectable version fails open** (e.g. Linux fresh install with empty
-  prefs).
-- **The version comes from the install, not prefs**: macOS `Info.plist`,
-  Windows exe `ProductVersion`, prefs `app.last-launched-version` only as
-  fallback. Prefs lag real updates.
-- **`auto` never blocks launch**: unsupported or unknown versions warn and
-  start Spotify vanilla.
+Use these environment variables only for local verification:
 
-Inspect any version with `spicetify support [version]`.
-
-Overrides (for developers; the client may break):
-
-- `--force-unsupported-spotify`
-- `spotify_version_check=0` in `config-xpui.ini`
-
-## Update control
-
-Two mechanisms complement the gate:
-
-- `spicetify spotify-updates block|unblock`: on macOS, locks the update
-  staging directory (`chflags uchg`) and rewrites the update endpoint in
-  the Spotify binary (`desktop-update/v2/update` ->
-  `desktop-update/no/thanks`, ad-hoc re-signed). Unblock restores the
-  original binary from `~/.config/spicetify/spotify-binary-backup`.
-  On Windows, the endpoint is patched in `Spotify.exe`. Linux uses the
-  package manager.
-- `block_spotify_updates=1` (config): every successful `apply` re-asserts
-  the block, so the pinned version is self-healing. Opt-in; spicetify never
-  disables updates silently for users who did not ask.
-
-## `status: modular` and classmaps
-
-`maps.<version>.status = "modular"` means a verified classmap exists for
-that version (`classmaps/<key>/classmap.json`, searched next to the binary
-then in the config folder). Only then does the modular apply stage v3
-modules at `backup`/`apply` time. See `docs/v3-modules.md`.
+- `SPICETIFY_CLASSMAPS_DIR` selects a local classmaps root and skips fetching.
+- `SPICETIFY_CLASSMAPS_URL` changes the published index origin.
+- `SPICETIFY_CSS_MAP` selects a CSS map file or directory.
+- `SPICETIFY_EXPOSE_PATCHES` selects a local exposure-patch file.

@@ -18,6 +18,7 @@ pub async fn handler(State(state): State<Arc<DaemonState>>) -> impl IntoResponse
         apps_watcher_active: state.apps_watcher_active.load(Ordering::Acquire),
         config_watcher_active: state.config_watcher_active.load(Ordering::Acquire),
         spotify_detected: ctx.spotify_exec.is_file(),
+        update_and_apply_supported: Some(crate::update_job::supported_on_this_platform()),
     };
 
     (StatusCode::OK, Json(info)).into_response()

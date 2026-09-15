@@ -76,4 +76,6 @@ pub struct HealthInfo {
     pub apps_watcher_active: bool,
     pub config_watcher_active: bool,
     pub spotify_detected: bool,
+    #[serde(default)]
+    pub update_and_apply_supported: Option<bool>,
 }

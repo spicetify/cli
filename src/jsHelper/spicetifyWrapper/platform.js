@@ -1,7 +1,22 @@
 import { waitFor } from "./shared/async.js";
 import { configuration, configure, isValidTemplate, proxiedFetch, proxiedURL, templates } from "./shared/corsProxy.js";
-import { acquireWindowControls, apply, available, blockUpdates, send, unblockUpdates, uninstallStaged } from "./shared/daemonRpc.js";
-import { installUpdateJobBridge, updateAndApply } from "./shared/updateAndApply.js";
+import {
+  acquireWindowControls,
+  apply,
+  available,
+  blockUpdates,
+  send,
+  unblockUpdates,
+  uninstallStaged,
+  updateAndApplySupported as daemonUpdateAndApplySupported,
+} from "./shared/daemonRpc.js";
+import { installUpdateJobBridge, updateAndApply, updateApiSupported } from "./shared/updateAndApply.js";
+
+const updateAndApplySupported = async () => {
+  const daemonSupported = await daemonUpdateAndApplySupported();
+  if (daemonSupported !== true) return daemonSupported;
+  return updateApiSupported(Spicetify.Platform);
+};
 
 Object.assign(Spicetify.CORSProxy, {
   url: proxiedURL,
@@ -19,6 +34,7 @@ Object.assign(Spicetify.Daemon, {
   blockUpdates,
   unblockUpdates,
   uninstallStaged,
+  updateAndApplySupported,
   updateAndApply,
 });
 

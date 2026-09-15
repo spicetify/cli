@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { acquireWindowControls, send, TOKEN_PROTOCOL_PREFIX } from "./daemonRpc.js";
+import { acquireWindowControls, send, TOKEN_PROTOCOL_PREFIX, updateAndApplySupported } from "./daemonRpc.js";
+
+const originalFetch = globalThis.fetch;
 
 type Handler = ((ev: { data?: unknown }) => void) | null;
 
@@ -44,9 +46,36 @@ const install = () => {
 afterEach(() => {
   setToken(undefined);
   FakeSocket.last = null;
+  globalThis.fetch = originalFetch;
 });
 
 describe("daemon rpc", () => {
+  it("reports Update & Apply only when the daemon advertises platform support", async () => {
+    globalThis.fetch = async () => new Response(JSON.stringify({ update_and_apply_supported: true }), { status: 200 });
+    assert.equal(await updateAndApplySupported(), true);
+
+    globalThis.fetch = async () => new Response(JSON.stringify({ update_and_apply_supported: false }), { status: 200 });
+    assert.equal(await updateAndApplySupported(), false);
+  });
+
+  it("does not mistake an old, invalid, or unreachable daemon for an unsupported platform", async () => {
+    for (const body of [{}, { update_and_apply_supported: "true" }, { update_and_apply_supported: 1 }]) {
+      globalThis.fetch = async () => new Response(JSON.stringify(body), { status: 200 });
+      assert.equal(await updateAndApplySupported(), null);
+    }
+
+    globalThis.fetch = async () => new Response("no", { status: 503 });
+    assert.equal(await updateAndApplySupported(), null);
+
+    globalThis.fetch = async () => new Response("not json", { status: 200 });
+    assert.equal(await updateAndApplySupported(), null);
+
+    globalThis.fetch = async () => {
+      throw new Error("offline");
+    };
+    assert.equal(await updateAndApplySupported(), null);
+  });
+
   it("holds native controls until release is acknowledged", async () => {
     install();
     let disconnected = false;
