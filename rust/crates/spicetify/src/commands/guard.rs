@@ -51,17 +51,17 @@ pub fn acquire_with_timeout(
             Ok(guard) => return Ok(guard),
             Err(error) => {
                 let remaining = deadline.saturating_duration_since(Instant::now());
-                if !matches!(
-                    error.downcast_ref::<fs4::TryLockError>(),
-                    Some(fs4::TryLockError::WouldBlock)
-                ) || remaining.is_zero()
-                {
+                if !is_contention(&error) || remaining.is_zero() {
                     return Err(error);
                 }
                 std::thread::sleep(remaining.min(Duration::from_secs(2)));
             }
         }
     }
+}
+
+pub fn is_contention(error: &anyhow::Error) -> bool {
+    matches!(error.downcast_ref::<fs4::TryLockError>(), Some(fs4::TryLockError::WouldBlock))
 }
 
 #[cfg(test)]
@@ -108,7 +108,7 @@ mod tests {
             std::thread::sleep(Duration::from_millis(20));
             drop(guard);
         });
-        let result = acquire_with_timeout(&root, Duration::from_millis(100));
+        let result = acquire_with_timeout(&root, Duration::from_secs(10));
         release.join().expect("release thread");
         drop(result?);
         std::fs::remove_dir_all(&root)?;

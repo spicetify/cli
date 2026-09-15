@@ -104,8 +104,6 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
         }
     }
 
-    let deadline = std::time::Instant::now() + CLIENT_EXIT_CEILING;
-    let mut waited = false;
     if spicetify::lifecycle::is_running(ctx) {
         // Make the polite wait visible: from the outside it looks like the
         // daemon missed the update, when it is deliberately refusing to
@@ -115,44 +113,63 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
             CLIENT_EXIT_CEILING.as_secs() / 60
         );
     }
-    while spicetify::lifecycle::is_running(ctx) {
-        if std::time::Instant::now() >= deadline {
-            tracing::warn!(
-                "Spotify is still running {} minutes after the update; skipping the re-apply \
-                 rather than closing it. Run `spicetify apply` when convenient.",
-                CLIENT_EXIT_CEILING.as_secs() / 60
-            );
-            return;
-        }
-        waited = true;
-        std::thread::sleep(Duration::from_secs(2));
-    }
-    if waited {
-        std::thread::sleep(EXIT_SETTLE);
-    }
-
     tracing::info!(
         nth,
         "auto-apply triggered by a Spotify update; waiting for pending package operations"
     );
-    let guard =
-        match commands::guard::acquire_with_timeout(&ctx.config_root, Duration::from_mins(2)) {
-            Ok(guard) => guard,
-            Err(e) => {
-                tracing::warn!(error = %e, "auto-apply could not acquire the operation guard");
-                return;
-            }
-        };
-    if spicetify::lifecycle::is_running(ctx) {
-        tracing::info!("Spotify restarted while auto-apply was waiting; skipping repair");
-        return;
-    }
+    let guard = match wait_for_idle_guard(&ctx.config_root, CLIENT_EXIT_CEILING, || {
+        spicetify::lifecycle::is_running(ctx)
+    }) {
+        Ok(guard) => guard,
+        Err(e) => {
+            tracing::warn!(error = %e, "auto-apply could not acquire an idle client; run `spicetify apply` when convenient");
+            return;
+        }
+    };
     if !ctx.spotify_apps_path().join("xpui.spa").is_file() {
-        tracing::info!("another operation already repaired Spotify; skipping auto-apply");
+        tracing::info!("stock xpui.spa is no longer present; skipping auto-apply");
         return;
     }
     if let Err(e) = commands::apply::run(ctx, &guard) {
         tracing::warn!(error = %e, "auto-apply failed");
+    }
+}
+
+fn wait_for_idle_guard(
+    config_root: &std::path::Path,
+    timeout: Duration,
+    mut is_running: impl FnMut() -> bool,
+) -> anyhow::Result<commands::guard::DisruptiveOperationGuard> {
+    let deadline = std::time::Instant::now() + timeout;
+    let mut waited = false;
+    loop {
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        if remaining.is_zero() {
+            anyhow::bail!(
+                "Spotify or a package operation is still busy after {} seconds",
+                timeout.as_secs()
+            );
+        }
+        if is_running() {
+            waited = true;
+            std::thread::sleep(remaining.min(Duration::from_secs(2)));
+            continue;
+        }
+        if waited {
+            std::thread::sleep(remaining.min(EXIT_SETTLE));
+            waited = false;
+            continue;
+        }
+        match commands::guard::acquire_with_timeout(
+            config_root,
+            remaining.min(Duration::from_secs(2)),
+        ) {
+            Ok(guard) if !is_running() => return Ok(guard),
+            // Release the guard and resume the polite wait if Spotify relaunched.
+            Ok(_) => waited = true,
+            Err(error) if commands::guard::is_contention(&error) => {}
+            Err(error) => return Err(error),
+        }
     }
 }
 
@@ -281,6 +298,71 @@ mod tests {
     use std::sync::atomic::AtomicU32;
 
     use super::*;
+
+    fn scratch(name: &str) -> anyhow::Result<std::path::PathBuf> {
+        let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_nanos();
+        let root = std::env::temp_dir()
+            .join(format!("spicetify-idle-{name}-{}-{nonce}", std::process::id()));
+        std::fs::create_dir(&root)?;
+        Ok(root)
+    }
+
+    #[test]
+    fn auto_apply_retries_after_a_lock_wait_slice_expires() -> anyhow::Result<()> {
+        let root = scratch("contention")?;
+        let mut competing = Some(commands::guard::try_acquire(&root)?);
+        let mut checks = 0;
+        let result = wait_for_idle_guard(&root, Duration::from_secs(10), || {
+            checks += 1;
+            if checks == 2 {
+                drop(competing.take());
+            }
+            false
+        });
+        drop(competing);
+        drop(result?);
+        assert!(checks >= 3, "retry must recheck the client before and after acquiring");
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn auto_apply_resumes_waiting_when_spotify_relaunches() -> anyhow::Result<()> {
+        let root = scratch("relaunch")?;
+        let mut checks = 0;
+        let result = wait_for_idle_guard(&root, Duration::from_secs(10), || {
+            checks += 1;
+            match checks {
+                // Idle before locking, but restarted by the post-lock check.
+                2 => true,
+                3 => {
+                    // The polite wait must not keep package operations locked.
+                    drop(commands::guard::try_acquire(&root).expect("guard released"));
+                    false
+                }
+                _ => false,
+            }
+        });
+        drop(result?);
+        assert!(checks >= 5, "a restart must resume waiting, not abandon the repair");
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn auto_apply_wait_has_one_deadline_and_preserves_filesystem_errors() -> anyhow::Result<()> {
+        let root = scratch("deadline")?;
+        let guard = commands::guard::try_acquire(&root)?;
+        let error = wait_for_idle_guard(&root, Duration::from_millis(20), || false).unwrap_err();
+        assert!(error.to_string().contains("still busy"));
+        drop(guard);
+        let file = root.join("not-a-directory");
+        std::fs::write(&file, "sentinel")?;
+        let error = wait_for_idle_guard(&file, Duration::from_secs(60), || false).unwrap_err();
+        assert!(error.downcast_ref::<std::io::Error>().is_some());
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
 
     #[expect(clippy::unnecessary_wraps, reason = "matches the channel's item type")]
     fn event() -> notify::Result<Event> {
