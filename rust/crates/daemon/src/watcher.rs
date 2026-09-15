@@ -131,8 +131,27 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
         std::thread::sleep(EXIT_SETTLE);
     }
 
-    tracing::info!(nth, "auto-apply triggered by a Spotify update");
-    if let Err(e) = commands::dispatch(&commands::Command::Apply, ctx) {
+    tracing::info!(
+        nth,
+        "auto-apply triggered by a Spotify update; waiting for pending package operations"
+    );
+    let guard =
+        match commands::guard::acquire_with_timeout(&ctx.config_root, Duration::from_mins(2)) {
+            Ok(guard) => guard,
+            Err(e) => {
+                tracing::warn!(error = %e, "auto-apply could not acquire the operation guard");
+                return;
+            }
+        };
+    if spicetify::lifecycle::is_running(ctx) {
+        tracing::info!("Spotify restarted while auto-apply was waiting; skipping repair");
+        return;
+    }
+    if !ctx.spotify_apps_path().join("xpui.spa").is_file() {
+        tracing::info!("another operation already repaired Spotify; skipping auto-apply");
+        return;
+    }
+    if let Err(e) = commands::apply::run(ctx, &guard) {
         tracing::warn!(error = %e, "auto-apply failed");
     }
 }
