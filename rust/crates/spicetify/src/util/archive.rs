@@ -166,6 +166,8 @@ mod tests {
         drop(archive.finish()?);
 
         unzip_file(&source, &output)?;
+        // Reinstall over the now-regular leaf must remain supported too.
+        unzip_file(&source, &output)?;
         let retained = std::fs::read_to_string(&outside)?;
         let installed = std::fs::read_to_string(output.join("index.js"))?;
         std::fs::remove_dir_all(&root)?;

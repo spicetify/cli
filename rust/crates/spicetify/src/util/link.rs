@@ -3,16 +3,9 @@ use std::path::Path;
 use crate::error::Result;
 
 pub(crate) fn is_link(meta: &std::fs::Metadata) -> bool {
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt;
-        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
-        meta.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
-    }
-    #[cfg(not(windows))]
-    {
-        meta.is_symlink()
-    }
+    // Rust includes Windows name-surrogate reparse points (including junctions),
+    // but not non-redirecting reparse points such as compressed/cloud files.
+    meta.is_symlink()
 }
 
 /// Refuse links below a trusted root, including dangling links and Windows
@@ -57,6 +50,30 @@ pub(crate) fn create_dir_link(target: &Path, link: &Path) -> Result<()> {
     {
         junction::create(target, link)
             .map_err(|e| anyhow::anyhow!("junction create failed: {e}"))?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod classification_tests {
+    use super::*;
+
+    #[test]
+    fn directory_links_are_rejected_but_regular_paths_are_allowed() -> Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root = std::env::temp_dir().join(format!("spicetify-link-kind-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let target = root.join("target");
+        std::fs::create_dir(&target)?;
+        std::fs::write(target.join("index.js"), "sentinel")?;
+        ensure_no_links(&root, Path::new("target/index.js"))?;
+        create_dir_link(&target, &root.join("link"))?;
+        assert!(is_link(&std::fs::symlink_metadata(root.join("link"))?));
+        assert!(ensure_no_links(&root, Path::new("link/index.js")).is_err());
+        remove_link_only(&root.join("link"))?;
+        assert_eq!(std::fs::read_to_string(target.join("index.js"))?, "sentinel");
+        std::fs::remove_dir_all(&root)?;
         Ok(())
     }
 }
