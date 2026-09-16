@@ -9,6 +9,15 @@ use crate::{fl, util};
 
 const APPLY_LOCK_FILE: &str = "spicetify-apply.lock";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApplyMode {
+    Cli {
+        no_cache: bool,
+    },
+    /// Preserve the daemon executing this apply and the CLI's URL registration.
+    Daemon,
+}
+
 // The foreground CLI and daemon both enter this command and mutate the same
 // xpui.spa, backup and xpui.tmp paths. Keep one persistent lock file: deleting
 // it on drop could let a third process lock a new inode while a waiter still
@@ -44,9 +53,9 @@ fn fs_err<'a>(doing: &'a str, path: &'a Path) -> impl FnOnce(std::io::Error) -> 
 pub fn run(
     ctx: &AppContext,
     _operation_guard: &super::guard::DisruptiveOperationGuard,
-    no_cache: bool,
+    mode: ApplyMode,
 ) -> Result<()> {
-    run_inner(ctx, no_cache, true)
+    run_inner(ctx, mode, true)
 }
 
 /// Prepare an isolated installation without stopping or launching the active client.
@@ -57,10 +66,11 @@ pub(crate) fn prepare(
 ) -> Result<()> {
     // Updater changes can stop Spotify too; defer those until activation.
     let staging = AppContext { block_spotify_updates: Some(false), ..ctx.clone() };
-    run_inner(&staging, false, false)
+    run_inner(&staging, ApplyMode::Cli { no_cache: false }, false)
 }
 
-fn run_inner(ctx: &AppContext, no_cache: bool, activate: bool) -> Result<()> {
+fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
+    let no_cache = matches!(mode, ApplyMode::Cli { no_cache: true });
     let _apply_lock = acquire_apply_lock(&ctx.config_root)?;
     let dest_apps = ctx.dest_apps_path();
     let spa = ctx.spotify_apps_path().join("xpui.spa");
@@ -195,12 +205,21 @@ fn run_inner(ctx: &AppContext, no_cache: bool, activate: bool) -> Result<()> {
     super::updates::finalize_app_signature(ctx)?;
 
     if activate {
-        ensure_daemon(ctx);
-        crate::lifecycle::start(ctx)?;
-        crate::platform::register_url_scheme();
+        activate_client(ctx, mode)?;
     }
 
     tracing::info!("{}", fl!("applied-patches"));
+    Ok(())
+}
+
+fn activate_client(ctx: &AppContext, mode: ApplyMode) -> Result<()> {
+    if matches!(mode, ApplyMode::Cli { .. }) {
+        ensure_daemon(ctx);
+    }
+    crate::lifecycle::start(ctx)?;
+    if matches!(mode, ApplyMode::Cli { .. }) {
+        crate::platform::register_url_scheme();
+    }
     Ok(())
 }
 
@@ -871,7 +890,8 @@ mod tests {
         let apply = std::thread::spawn(move || {
             let guard = super::super::guard::try_acquire(&ctx.config_root)
                 .expect("synthetic apply owns the disruptive-operation guard");
-            tx.send(run(&ctx, &guard, false)).expect("test receiver remains available");
+            tx.send(run(&ctx, &guard, ApplyMode::Cli { no_cache: false }))
+                .expect("test receiver remains available");
         });
         assert!(
             rx.recv_timeout(std::time::Duration::from_millis(100)).is_err(),

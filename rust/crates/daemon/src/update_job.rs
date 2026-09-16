@@ -637,7 +637,11 @@ impl Supervisor {
             );
             return;
         };
-        if let Err(e) = spicetify::commands::apply::run(ctx, guard, false) {
+        if let Err(e) = spicetify::commands::apply::run(
+            ctx,
+            guard,
+            spicetify::commands::apply::ApplyMode::Daemon,
+        ) {
             self.secure_failure(
                 FailureCode::ApplyFailed,
                 &format!("Spicetify apply failed after Spotify updated: {e}"),

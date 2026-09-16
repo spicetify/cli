@@ -167,10 +167,8 @@ impl TuiApp {
                 self.input = None;
                 self.run_command(cmd, &label);
             }
-            KeyCode::Backspace => {
-                if input.buffer.pop().is_none() {
-                    tracing::debug!("backspace pressed with empty input buffer");
-                }
+            KeyCode::Backspace if input.buffer.pop().is_none() => {
+                tracing::debug!("backspace pressed with empty input buffer");
             }
             KeyCode::Char(c)
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>

@@ -2,13 +2,14 @@ use std::borrow::Cow;
 
 use url::Url;
 
+use super::apply::ApplyMode;
 use crate::context::AppContext;
 use crate::error::Result;
 use crate::fl;
 use crate::module::{self, ModulePaths, Store};
 
 pub(crate) fn run(ctx: &AppContext, uri: &str) -> Result<()> {
-    let response = handle(ctx, uri)?;
+    let response = handle(ctx, uri, ApplyMode::Cli { no_cache: false })?;
     if !response.is_empty() {
         let outbound = format!("spotify:app:rpc:{response}");
         launch_uri(&outbound)?;
@@ -16,7 +17,7 @@ pub(crate) fn run(ctx: &AppContext, uri: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn handle(ctx: &AppContext, uri: &str) -> Result<String> {
+pub fn handle(ctx: &AppContext, uri: &str, apply_mode: ApplyMode) -> Result<String> {
     let u = Url::parse(uri).map_err(|_| anyhow::anyhow!(fl!("proxy-invalid-url")))?;
     if u.scheme() != "spicetify" {
         return Err(anyhow::anyhow!(fl!("unsupported-scheme")));
@@ -30,7 +31,7 @@ pub fn handle(ctx: &AppContext, uri: &str) -> Result<String> {
     let prefix = format!("spicetify:{module_id}:");
     let action = ProtocolAction::parse(action)
         .ok_or_else(|| anyhow::anyhow!(fl!("protocol-error", err = "unknown action")))?;
-    perform(ctx, action, &u)?;
+    perform(ctx, action, &u, apply_mode)?;
 
     if module_id == "0" {
         return Ok(String::new());
@@ -76,7 +77,12 @@ impl ProtocolAction {
     }
 }
 
-fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
+fn perform(
+    ctx: &AppContext,
+    action: ProtocolAction,
+    uri: &Url,
+    apply_mode: ApplyMode,
+) -> Result<()> {
     let _guard = match action {
         ProtocolAction::Apply | ProtocolAction::BlockUpdates | ProtocolAction::UnblockUpdates => {
             None
@@ -176,7 +182,7 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
         // fire-and-forget rather than waiting on a response.
         ProtocolAction::Apply => {
             let guard = super::guard::try_acquire(&ctx.config_root)?;
-            super::apply::run(ctx, &guard, false)
+            super::apply::run(ctx, &guard, apply_mode)
         }
         ProtocolAction::BlockUpdates => {
             let _guard = super::guard::try_acquire(&ctx.config_root)?;
@@ -284,7 +290,8 @@ mod tests {
             for raw in ["../victim@1", "/victim@1", "module@..", "../victim@"] {
                 let mut uri = Url::parse(&format!("spicetify:0:{action}"))?;
                 let _ = uri.query_pairs_mut().append_pair("id", raw);
-                let error = handle(&ctx, uri.as_str()).expect_err("unsafe IDs must be refused");
+                let error = handle(&ctx, uri.as_str(), ApplyMode::Daemon)
+                    .expect_err("unsafe IDs must be refused");
                 assert!(error.to_string().contains("invalid store id"), "{action} {raw}: {error}");
                 assert!(!root.join("modules").exists(), "validation must precede vault mutation");
             }
@@ -311,7 +318,8 @@ mod tests {
                 let version = if action == "enable" { "" } else { "1" };
                 let mut uri = Url::parse(&format!("spicetify:0:{action}"))?;
                 let _ = uri.query_pairs_mut().append_pair("id", &format!("{module}@{version}"));
-                let error = handle(&ctx, uri.as_str()).expect_err("the Store must be protected");
+                let error = handle(&ctx, uri.as_str(), ApplyMode::Daemon)
+                    .expect_err("the Store must be protected");
                 assert!(error.to_string().contains("cannot be uninstalled"), "{error}");
             }
         }
@@ -319,7 +327,8 @@ mod tests {
             for action in ["add", "fast-install", "fast-enable"] {
                 let mut uri = Url::parse(&format!("spicetify:0:{action}"))?;
                 let _ = uri.query_pairs_mut().append_pair("id", &format!("{module}@1"));
-                let error = handle(&ctx, uri.as_str()).expect_err("unverified system install");
+                let error = handle(&ctx, uri.as_str(), ApplyMode::Daemon)
+                    .expect_err("unverified system install");
                 assert!(error.to_string().contains("registry-verified"), "{error}");
             }
         }

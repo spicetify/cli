@@ -1,4 +1,5 @@
 use std::path::Path;
+#[cfg(not(windows))]
 use std::process::Command;
 use std::sync::LazyLock;
 
@@ -122,7 +123,7 @@ fn detect_version(exec_path: &Path) -> Result<String> {
     let ps_script =
         format!("(Get-Item -LiteralPath '{}').VersionInfo.ProductVersion", exec_path.display());
 
-    let output = Command::new("powershell.exe")
+    let output = crate::process::background_command("powershell.exe")
         .args(["-NoProfile", "-NonInteractive", "-Command", &ps_script])
         .output()
         .map_err(|e| anyhow::anyhow!("failed to run powershell: {e}"))?;
