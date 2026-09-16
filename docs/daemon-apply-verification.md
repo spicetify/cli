@@ -90,8 +90,39 @@ and recovery of hidden window controls after restarting the stopped daemon.
 The native bridge subsequently became unavailable in the current host session.
 Both a fresh connection and a session reset returned `native pipe unavailable`.
 Consequently the fixed build's automatic launch was verified as a process and
-window, not visually inspected. The normal UI Apply action and the first
+window, not visually inspected. The Windows UI Apply action and the first
 patched renderer after an actual Spotify version update still need a native
 end-user pass. The earlier [Windows update report](windows-update-verification.md)
 remains accurate; this run does not clear its first-boot limitation or enable
 Windows Update & Apply in release builds.
+
+
+## macOS visible Store Apply, 2026-09-17
+
+A combined local build at `115d010` included this fix, GraphQL discovery and
+protocol signing (#3951), and launchd reconciliation (#3952). Matching CLI and
+daemon binaries were installed in the normal installation directory after
+backing up both binaries and Spotify. This remains a local build reporting
+3.0.0-beta.17, not a published release.
+
+The fixture used the published, checksum-verified stdlib 1.11.3 artifact,
+installed and applied through the CLI. From the visible Module Store, **Update
+all** staged stdlib 1.12.0. **Apply stdlib update** opened the restart warning.
+**Cancel** preserved the staged update. Reopening the confirmation and clicking
+**Apply and restart** restarted Spotify 1.3.0.277. The Home view and Module Store
+rendered with the existing theme, the Apply banner cleared, and the manifest
+and installed module link both returned to stdlib 1.12.0.
+
+Daemon PID 3060 survived the operation with increasing uptime and an unchanged
+launch-agent plist. The concurrent health sample recorded no failures or uptime
+resets. Both watchers remained active. The watcher observed the temporary stock
+archive during Apply and cancelled its pending repair once that archive was
+consumed. The normal macOS URL handoff, `open spicetify:0:apply`, subsequently
+completed another Apply and restart with the same daemon PID. The registered
+applet passed strict code-signature verification.
+
+Fixture preparation and the URL handoff used CLI commands; the Store update,
+cancellation, confirmation, restart, and returned views were exercised through
+the native UI. This run does not test a Spotify version upgrade, Windows native
+UI behavior, or browser confirmation prompts for custom URL schemes. Evidence
+is retained under `scratchpad/final-reconciliation/` in the local workspace.
