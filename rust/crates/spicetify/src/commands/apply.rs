@@ -55,6 +55,21 @@ pub fn run(
     _operation_guard: &super::guard::DisruptiveOperationGuard,
     mode: ApplyMode,
 ) -> Result<()> {
+    run_inner(ctx, mode, true)
+}
+
+/// Prepare an isolated installation without stopping or launching the active client.
+#[cfg(target_os = "linux")]
+pub(crate) fn prepare(
+    ctx: &AppContext,
+    _operation_guard: &super::guard::DisruptiveOperationGuard,
+) -> Result<()> {
+    // Updater changes can stop Spotify too; defer those until activation.
+    let staging = AppContext { block_spotify_updates: Some(false), ..ctx.clone() };
+    run_inner(&staging, ApplyMode::Cli { no_cache: false }, false)
+}
+
+fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
     let no_cache = matches!(mode, ApplyMode::Cli { no_cache: true });
     let _apply_lock = acquire_apply_lock(&ctx.config_root)?;
     let dest_apps = ctx.dest_apps_path();
@@ -88,7 +103,9 @@ pub fn run(
         refresh_classmap(ctx, &version.to_string(), no_cache)?;
     }
 
-    crate::lifecycle::stop(ctx)?;
+    if activate {
+        crate::lifecycle::stop(ctx)?;
+    }
 
     if !spa.exists() && !ctx.mirror && backup.exists() {
         tracing::info!("{}", fl!("restoring-spa-backup", path = spa.to_string_lossy()));
@@ -187,14 +204,14 @@ pub fn run(
     // bundle, not that intermediate resource set.
     super::updates::finalize_app_signature(ctx)?;
 
-    if matches!(mode, ApplyMode::Cli { .. }) {
-        ensure_daemon(ctx);
-    }
-
-    crate::lifecycle::start(ctx)?;
-
-    if matches!(mode, ApplyMode::Cli { .. }) {
-        crate::platform::register_url_scheme();
+    if activate {
+        if matches!(mode, ApplyMode::Cli { .. }) {
+            ensure_daemon(ctx);
+        }
+        crate::lifecycle::start(ctx)?;
+        if matches!(mode, ApplyMode::Cli { .. }) {
+            crate::platform::register_url_scheme();
+        }
     }
 
     tracing::info!("{}", fl!("applied-patches"));
@@ -221,7 +238,7 @@ fn detect_supported_spotify_version(ctx: &AppContext) -> Result<Option<semver::V
 // The daemon re-applies spicetify after Spotify updates itself, which is the
 // whole point of having one, so apply keeps it installed and running unless
 // `daemon = false` says otherwise. Failing to start it never fails the apply.
-fn ensure_daemon(ctx: &AppContext) {
+pub(crate) fn ensure_daemon(ctx: &AppContext) {
     if !ctx.daemon {
         tracing::info!(
             "daemon disabled in config: spicetify will not re-apply itself after a Spotify update"

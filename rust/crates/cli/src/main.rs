@@ -76,6 +76,48 @@ enum CliCommand {
         #[command(subcommand)]
         action: CliUpdatesAction,
     },
+    #[cfg(target_os = "linux")]
+    #[command(
+        about = "Install and update a user-owned Spotify client from official Linux packages"
+    )]
+    Spotify {
+        #[command(subcommand)]
+        action: CliSpotifyAction,
+    },
+}
+
+#[cfg(target_os = "linux")]
+#[derive(Debug, Clone, Subcommand)]
+enum CliSpotifyAction {
+    #[command(about = "Download Spotify, apply Spicetify, and add a desktop launcher")]
+    Install {
+        #[arg(long, value_enum, default_value = "stable")]
+        channel: SpotifyChannel,
+    },
+    #[command(about = "Update the Spotify installation managed by Spicetify")]
+    Update {
+        #[arg(long, value_enum, help = "Change channel; otherwise keep the installed channel")]
+        channel: Option<SpotifyChannel>,
+    },
+    #[command(about = "Show the installed version and check Spotify's official package feed")]
+    Status,
+}
+
+#[cfg(target_os = "linux")]
+#[derive(Debug, Clone, Copy, clap::ValueEnum)]
+enum SpotifyChannel {
+    Stable,
+    Testing,
+}
+
+#[cfg(target_os = "linux")]
+impl From<SpotifyChannel> for spicetify::commands::spotify::Channel {
+    fn from(value: SpotifyChannel) -> Self {
+        match value {
+            SpotifyChannel::Stable => Self::Stable,
+            SpotifyChannel::Testing => Self::Testing,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Subcommand)]
@@ -150,6 +192,15 @@ impl From<CliCommand> for Command {
                 CliUpdatesAction::Unblock => UpdatesAction::Unblock,
                 CliUpdatesAction::Status => UpdatesAction::Status,
             }),
+            #[cfg(target_os = "linux")]
+            CliCommand::Spotify { action } => {
+                use spicetify::commands::spotify::Action;
+                Command::Spotify(match action {
+                    CliSpotifyAction::Install { channel } => Action::Install(channel.into()),
+                    CliSpotifyAction::Update { channel } => Action::Update(channel.map(Into::into)),
+                    CliSpotifyAction::Status => Action::Status,
+                })
+            }
         }
     }
 }

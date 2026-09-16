@@ -14,7 +14,18 @@ pub(crate) fn background_command(program: impl AsRef<std::ffi::OsStr>) -> Comman
 }
 
 pub(crate) fn process_running(name: &str) -> bool {
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("pgrep").args(["-x", name]).stderr(Stdio::null()).output().is_ok_and(
+            |output| {
+                String::from_utf8_lossy(&output.stdout)
+                    .lines()
+                    .filter_map(|pid| pid.parse::<u32>().ok())
+                    .any(linux_process_alive)
+            },
+        )
+    }
+    #[cfg(target_os = "macos")]
     {
         Command::new("pgrep")
             .args(["-x", name])
@@ -37,6 +48,33 @@ pub(crate) fn process_running(name: &str) -> bool {
                         .windows(b"No tasks are running".len())
                         .any(|w| w == b"No tasks are running")
             })
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn linux_process_alive(pid: u32) -> bool {
+    // pgrep includes unreaped children. They cannot exit again or serve a client.
+    std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| {
+        stat.rsplit_once(')')
+            .and_then(|(_, rest)| rest.split_whitespace().next())
+            .is_some_and(|state| state != "Z" && state != "X")
+    })
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod linux_tests {
+    #[test]
+    fn an_unreaped_child_is_not_a_running_client() {
+        let mut child = std::process::Command::new("sleep").arg("30").spawn().unwrap();
+        assert!(super::linux_process_alive(child.id()));
+        child.kill().unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        while super::linux_process_alive(child.id()) && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        let alive = super::linux_process_alive(child.id());
+        let _ = child.wait().unwrap();
+        assert!(!alive, "a zombie must not prevent Spotify from being relaunched");
     }
 }
 
