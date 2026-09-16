@@ -44,6 +44,7 @@ tokio-stream = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 fork = { workspace = true }
+flate2 = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 junction = { workspace = true }

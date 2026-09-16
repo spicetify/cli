@@ -12,6 +12,8 @@ mod pkg;
 pub mod protocol;
 mod restore;
 mod self_update;
+#[cfg(target_os = "linux")]
+pub mod spotify;
 pub mod updates;
 
 #[derive(Debug, Clone, Copy)]
@@ -22,7 +24,9 @@ pub enum ConfigAction {
 
 #[derive(Debug, Clone)]
 pub enum Command {
-    Apply { no_cache: bool },
+    Apply {
+        no_cache: bool,
+    },
     Config(ConfigAction),
     Daemon(DaemonAction),
     Dev,
@@ -32,6 +36,8 @@ pub enum Command {
     Protocol(String),
     SelfUpdate,
     SpotifyUpdates(UpdatesAction),
+    #[cfg(target_os = "linux")]
+    Spotify(spotify::Action),
     Path,
     Support,
     Restart,
@@ -110,6 +116,8 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
         }
         Command::Protocol(uri) => protocol::run(ctx, uri),
         Command::SpotifyUpdates(UpdatesAction::Status) => updates::status(ctx),
+        #[cfg(target_os = "linux")]
+        Command::Spotify(action) => spotify::run(ctx, action),
         Command::SpotifyUpdates(action) => {
             let _guard = guard::try_acquire(&ctx.config_root)?;
             match action {

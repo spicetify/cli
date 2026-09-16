@@ -1,6 +1,6 @@
 // Auto-apply sequencing: a Spotify update writes a fresh xpui.spa. The watcher
-// debounces the event burst, defers to an active update block, waits for the
-// client to exit before applying, and swallows the file events apply itself
+// debounces the event burst, waits for the client to exit before applying,
+// and swallows the file events apply itself
 // generates, so one update means exactly one apply.
 
 use std::sync::Arc;
@@ -84,24 +84,11 @@ pub fn spawn_apps_watcher(
 
 /// One auto-apply attempt, ordered after the updater's own restart cycle.
 fn auto_apply(ctx: &AppContext, nth: u32) {
-    // A stock xpui.spa with no served tree means an update already replaced
-    // the client and spicetify is genuinely off. The update block governs
-    // Spotify's updater, not repairs: skipping here would strand the user
-    // on a vanilla client with the daemon watching silently.
-    let unapplied = ctx.spotify_apps_path().join("xpui.spa").is_file();
-    match commands::updates::is_blocked(ctx) {
-        Ok(true) if !unapplied => {
-            tracing::info!("update block is active and the client is applied; skipping auto-apply");
-            return;
-        }
-        Ok(true) => {
-            tracing::info!("update block is active but the client is unapplied; repairing anyway");
-        }
-        Ok(false) => {}
-        Err(e) => {
-            tracing::warn!(error = %e, "cannot read update policy; skipping auto-apply");
-            return;
-        }
+    // A stock archive means an update already landed. Repair is needed even
+    // when update protection is blocked or cannot be determined.
+    if !ctx.spotify_apps_path().join("xpui.spa").is_file() {
+        tracing::info!("stock xpui.spa is not present; skipping auto-apply");
+        return;
     }
 
     if spicetify::lifecycle::is_running(ctx) {
@@ -353,12 +340,14 @@ mod tests {
     fn auto_apply_wait_has_one_deadline_and_preserves_filesystem_errors() -> anyhow::Result<()> {
         let root = scratch("deadline")?;
         let guard = commands::guard::try_acquire(&root)?;
-        let error = wait_for_idle_guard(&root, Duration::from_millis(20), || false).unwrap_err();
+        let error = wait_for_idle_guard(&root, Duration::from_millis(20), || false)
+            .expect_err("the operation guard is still held");
         assert!(error.to_string().contains("still busy"));
         drop(guard);
         let file = root.join("not-a-directory");
         std::fs::write(&file, "sentinel")?;
-        let error = wait_for_idle_guard(&file, Duration::from_secs(60), || false).unwrap_err();
+        let error = wait_for_idle_guard(&file, Duration::from_secs(60), || false)
+            .expect_err("the config root is a file");
         assert!(error.downcast_ref::<std::io::Error>().is_some());
         std::fs::remove_dir_all(root)?;
         Ok(())
