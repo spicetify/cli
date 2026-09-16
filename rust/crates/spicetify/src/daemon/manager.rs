@@ -15,6 +15,9 @@ pub enum DaemonManagerError {
     #[error("systemctl error: {0}")]
     Systemctl(String),
 
+    #[error("launchctl error: {0}")]
+    Launchctl(String),
+
     #[error("failed to spawn daemon: {0}")]
     Spawn(#[from] super::process::DaemonSpawnError),
 }
@@ -169,13 +172,53 @@ fn registry_err(e: impl std::fmt::Display) -> DaemonManagerError {
 #[derive(Debug, Clone, Copy)]
 pub struct MacosDaemonManager;
 #[cfg(target_os = "macos")]
+const LAUNCH_AGENT_LABEL: &str = "app.spicetify.daemon";
+
+#[cfg(target_os = "macos")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LaunchAgentInstallAction {
+    Noop,
+    Load,
+    Reload,
+}
+
+#[cfg(target_os = "macos")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum LaunchAgentState {
+    Unloaded,
+    LoadedStopped,
+    Running,
+}
+
+#[cfg(target_os = "macos")]
+fn launch_agent_install_action(
+    existing_plist: Option<&str>,
+    desired_plist: &str,
+    state: LaunchAgentState,
+) -> LaunchAgentInstallAction {
+    if state == LaunchAgentState::Running && existing_plist == Some(desired_plist) {
+        LaunchAgentInstallAction::Noop
+    } else if state == LaunchAgentState::Unloaded {
+        LaunchAgentInstallAction::Load
+    } else {
+        LaunchAgentInstallAction::Reload
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn launch_agent_path(home: &std::path::Path) -> PathBuf {
+    home.join("Library/LaunchAgents").join(format!("{LAUNCH_AGENT_LABEL}.plist"))
+}
+
+#[cfg(target_os = "macos")]
 impl MacosDaemonManager {
     fn install() -> Result<(), DaemonManagerError> {
-        let plist_dir = home_dir()?.join("Library/LaunchAgents");
+        let home = home_dir()?;
+        let plist_dir = home.join("Library/LaunchAgents");
         std::fs::create_dir_all(&plist_dir)?;
         let exe = current_exe()?;
         let daemon_exe = super::daemon_binary_for(&exe);
-        let plist_path = plist_dir.join("app.spicetify.daemon.plist");
+        let plist_path = launch_agent_path(&home);
 
         let plist = format!(
             r#"<?xml version="1.0" encoding="UTF-8"?>
@@ -183,7 +226,7 @@ impl MacosDaemonManager {
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>app.spicetify.daemon</string>
+    <string>{}</string>
     <key>ProgramArguments</key>
     <array>
         <string>{}</string>
@@ -194,18 +237,41 @@ impl MacosDaemonManager {
     <true/>
 </dict>
 </plist>"#,
+            LAUNCH_AGENT_LABEL,
             xml_escape(&daemon_exe.display().to_string())
         );
-        std::fs::write(&plist_path, plist)?;
-        run_launchctl(&["load", "-w"], &plist_path);
-        Ok(())
+        let existing_plist = std::fs::read_to_string(&plist_path).ok();
+        let plist_changed = existing_plist.as_deref() != Some(&plist);
+        let status = launch_agent_status()?;
+        let action = launch_agent_install_action(existing_plist.as_deref(), &plist, status);
+
+        match action {
+            LaunchAgentInstallAction::Noop => Ok(()),
+            LaunchAgentInstallAction::Load => {
+                stop_unmanaged_daemon();
+                if plist_changed {
+                    std::fs::write(&plist_path, &plist)?;
+                }
+                run_launchctl(&["load", "-w"], Some(&plist_path)).map(|_| ())
+            }
+            LaunchAgentInstallAction::Reload => {
+                let _ = run_launchctl(&["remove", LAUNCH_AGENT_LABEL], None)?;
+                stop_unmanaged_daemon();
+                if plist_changed {
+                    std::fs::write(&plist_path, &plist)?;
+                }
+                run_launchctl(&["load", "-w"], Some(&plist_path)).map(|_| ())
+            }
+        }
     }
 
     fn uninstall() {
         if let Ok(home) = home_dir() {
-            let plist_path = home.join("Library/LaunchAgents/app.spicetify.daemon.plist");
+            let plist_path = launch_agent_path(&home);
             if plist_path.exists() {
-                run_launchctl(&["unload", "-w"], &plist_path);
+                if let Err(e) = run_launchctl(&["unload", "-w"], Some(&plist_path)) {
+                    tracing::warn!(error = %e, "failed to unload daemon auto-start");
+                }
                 if let Err(e) = std::fs::remove_file(&plist_path)
                     && e.kind() != std::io::ErrorKind::NotFound
                 {
@@ -216,7 +282,7 @@ impl MacosDaemonManager {
     }
 
     fn is_installed() -> bool {
-        home_dir().is_ok_and(|h| h.join("Library/LaunchAgents/app.spicetify.daemon.plist").exists())
+        home_dir().is_ok_and(|home| launch_agent_path(&home).exists())
     }
 }
 
@@ -308,12 +374,65 @@ fn home_dir() -> Result<PathBuf, DaemonManagerError> {
 }
 
 #[cfg(target_os = "macos")]
-fn run_launchctl(args: &[&str], plist: &std::path::Path) {
-    match std::process::Command::new("launchctl").args(args).arg(plist).status() {
-        Ok(s) if !s.success() => tracing::warn!("launchctl exited with {s}"),
-        Err(e) => tracing::warn!(error = %e, "failed to run launchctl"),
-        _ => {}
+fn launch_agent_status() -> Result<LaunchAgentState, DaemonManagerError> {
+    let output = run_launchctl(&["list"], None)?;
+    Ok(parse_launch_agent_status(&String::from_utf8_lossy(&output)))
+}
+
+#[cfg(target_os = "macos")]
+fn parse_launch_agent_status(list: &str) -> LaunchAgentState {
+    for line in list.lines() {
+        let mut fields = line.split_whitespace();
+        let pid = fields.next();
+        let _ = fields.next();
+        if fields.next() == Some(LAUNCH_AGENT_LABEL) {
+            return if pid.is_some_and(|pid| pid.parse::<u32>().is_ok_and(|pid| pid > 0)) {
+                LaunchAgentState::Running
+            } else {
+                LaunchAgentState::LoadedStopped
+            };
+        }
     }
+    LaunchAgentState::Unloaded
+}
+
+#[cfg(target_os = "macos")]
+fn stop_unmanaged_daemon() {
+    if super::is_daemon_running() {
+        super::shutdown_daemon();
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn run_launchctl(
+    args: &[&str],
+    plist: Option<&std::path::Path>,
+) -> Result<Vec<u8>, DaemonManagerError> {
+    let mut command = std::process::Command::new("launchctl");
+    let _ = command.args(args);
+    if let Some(plist) = plist {
+        let _ = command.arg(plist);
+    }
+
+    launchctl_output(args, command.output()?)
+}
+
+#[cfg(target_os = "macos")]
+fn launchctl_output(
+    args: &[&str],
+    output: std::process::Output,
+) -> Result<Vec<u8>, DaemonManagerError> {
+    if output.status.success() {
+        return Ok(output.stdout);
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+    let detail = if stderr.is_empty() {
+        format!("{} exited with {}", args.join(" "), output.status)
+    } else {
+        format!("{}: {stderr}", args.join(" "))
+    };
+    Err(DaemonManagerError::Launchctl(detail))
 }
 
 #[cfg(target_os = "linux")]
@@ -363,5 +482,138 @@ fn run_systemctl(args: &[&str]) -> Result<(), DaemonManagerError> {
                 std::thread::sleep(Duration::from_millis(50));
             }
         }
+    }
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::{
+        DaemonManagerError, LaunchAgentInstallAction, LaunchAgentState,
+        launch_agent_install_action, launchctl_output, parse_launch_agent_status,
+    };
+    use std::os::unix::process::ExitStatusExt;
+
+    #[test]
+    fn launch_agent_list_distinguishes_running_stopped_and_missing_jobs() {
+        assert_eq!(
+            parse_launch_agent_status("PID\tStatus\tLabel\n123\t0\tapp.spicetify.daemon\n"),
+            LaunchAgentState::Running
+        );
+        assert_eq!(
+            parse_launch_agent_status("PID\tStatus\tLabel\n-\t1\tapp.spicetify.daemon\n"),
+            LaunchAgentState::LoadedStopped
+        );
+        assert_eq!(
+            parse_launch_agent_status("PID\tStatus\tLabel\n123\t0\tapp.spicetify.daemon.other\n"),
+            LaunchAgentState::Unloaded
+        );
+    }
+
+    #[test]
+    fn launchctl_failures_report_command_and_stderr() {
+        let error = launchctl_output(
+            &["load", "-w"],
+            std::process::Output {
+                status: std::process::ExitStatus::from_raw(5 << 8),
+                stdout: Vec::new(),
+                stderr: b"Input/output error\n".to_vec(),
+            },
+        )
+        .expect_err("failed launchctl must not report success");
+        assert!(matches!(error, DaemonManagerError::Launchctl(_)));
+        assert!(error.to_string().contains("load -w: Input/output error"));
+    }
+
+    #[test]
+    fn launchctl_list_failure_is_not_an_unloaded_job() {
+        let error = launchctl_output(
+            &["list"],
+            std::process::Output {
+                status: std::process::ExitStatus::from_raw(1 << 8),
+                stdout: Vec::new(),
+                stderr: Vec::new(),
+            },
+        )
+        .expect_err("an unavailable launchd must not trigger daemon replacement");
+        assert!(error.to_string().contains("list exited with"));
+    }
+
+    #[test]
+    fn successful_launchctl_returns_the_job_list() {
+        let list = b"PID\tStatus\tLabel\n123\t0\tapp.spicetify.daemon\n";
+        let output = launchctl_output(
+            &["list"],
+            std::process::Output {
+                status: std::process::ExitStatus::from_raw(0),
+                stdout: list.to_vec(),
+                stderr: Vec::new(),
+            },
+        )
+        .expect("launchctl succeeded");
+        assert_eq!(output, list);
+    }
+
+    #[test]
+    fn missing_plist_reloads_an_existing_registration() {
+        assert_eq!(
+            launch_agent_install_action(None, "desired plist", LaunchAgentState::Running),
+            LaunchAgentInstallAction::Reload
+        );
+    }
+
+    #[test]
+    fn first_install_loads_the_launch_agent() {
+        assert_eq!(
+            launch_agent_install_action(None, "desired plist", LaunchAgentState::Unloaded),
+            LaunchAgentInstallAction::Load
+        );
+    }
+
+    #[test]
+    fn unchanged_loaded_launch_agent_is_not_loaded_twice() {
+        assert_eq!(
+            launch_agent_install_action(
+                Some("desired plist"),
+                "desired plist",
+                LaunchAgentState::Running,
+            ),
+            LaunchAgentInstallAction::Noop
+        );
+    }
+
+    #[test]
+    fn unchanged_loaded_launch_agent_replaces_an_unmanaged_daemon() {
+        assert_eq!(
+            launch_agent_install_action(
+                Some("desired plist"),
+                "desired plist",
+                LaunchAgentState::LoadedStopped,
+            ),
+            LaunchAgentInstallAction::Reload
+        );
+    }
+
+    #[test]
+    fn unloaded_launch_agent_is_loaded_even_when_plist_is_unchanged() {
+        assert_eq!(
+            launch_agent_install_action(
+                Some("desired plist"),
+                "desired plist",
+                LaunchAgentState::Unloaded,
+            ),
+            LaunchAgentInstallAction::Load
+        );
+    }
+
+    #[test]
+    fn changed_loaded_launch_agent_is_reloaded() {
+        assert_eq!(
+            launch_agent_install_action(
+                Some("old plist"),
+                "desired plist",
+                LaunchAgentState::Running,
+            ),
+            LaunchAgentInstallAction::Reload
+        );
     }
 }
