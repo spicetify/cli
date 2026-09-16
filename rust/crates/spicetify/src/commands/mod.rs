@@ -22,7 +22,7 @@ pub enum ConfigAction {
 
 #[derive(Debug, Clone)]
 pub enum Command {
-    Apply,
+    Apply { no_cache: bool },
     Config(ConfigAction),
     Daemon(DaemonAction),
     Dev,
@@ -63,9 +63,9 @@ pub enum PkgAction {
 
 pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
     match cmd {
-        Command::Apply => {
+        Command::Apply { no_cache } => {
             let guard = guard::try_acquire(&ctx.config_root)?;
-            apply::run(ctx, &guard)
+            apply::run(ctx, &guard, *no_cache)
         }
         Command::Config(action) => match action {
             ConfigAction::Show => config::run(ctx),

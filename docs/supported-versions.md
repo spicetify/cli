@@ -23,6 +23,36 @@ The availability feed at `spicetify/modules/spotify-support.json` has a
 different job. It records the newest Spotify release the project has observed.
 It does not declare support and must not gate an update by itself.
 
+## Refresh a newly published fix
+
+If a published compatibility fix has not reached your client after a normal
+apply, run:
+
+```sh
+spicetify apply --no-cache
+```
+
+This option is available in v3 builds whose `spicetify apply --help` lists
+`--no-cache`. It bypasses local file reuse and CDN caches for the classmap
+index, selected classmap, CSS-map overlay, verification metadata, and exposure
+patches. Downloaded compatibility files must still match the index's SHA-256
+digests. New verified files are saved for later normal and offline applies.
+
+The refresh requires network access. If a download fails or its checksum does
+not match, the command exits before stopping or changing Spotify. Retry when
+the network or published files are available. A normal `spicetify apply`
+continues to allow cached files when a refresh fails.
+
+After a successful apply, return to the restarted Spotify client and check the
+fixed control. This command refreshes compatibility data; update a theme or
+module through the Store separately if the fix also requires a new version.
+It does not clear Spotify's music cache or update Spotify or the CLI.
+
+`SPICETIFY_CLASSMAPS_DIR` selects local files instead of downloading them, so
+combining it with `--no-cache` is an error. Unset it to fetch published files.
+Other explicit local CSS-map and exposure-patch overrides still take priority;
+unset those too when verifying a published fix.
+
 ## Classmap selection
 
 The key encodes `major.minor.patch`. For example, Spotify `1.3.0.277` uses
