@@ -66,6 +66,35 @@ mod tests {
     use super::*;
 
     #[test]
+    fn staging_preflight_accepts_a_running_client_without_writing_its_binary() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        let root =
+            std::env::temp_dir().join(format!("spicetify-update-preflight-{}", std::process::id()));
+        std::fs::create_dir_all(&root).expect("fixture");
+        let executable = root.join("Spotify.exe");
+        std::fs::write(&executable, b"signed launcher").expect("launcher");
+        std::fs::write(root.join("Spotify.dll"), b"signed updater").expect("DLL");
+        let cfg = crate::context::Config {
+            spotify_exec: Some(executable.clone()),
+            offline_bnk_dir: Some(root.clone()),
+            ..Default::default()
+        };
+        let ctx = AppContext::from_config(root.clone(), &cfg).expect("context");
+        let running = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(1)
+            .open(&executable)
+            .expect("running executable lock");
+        assert!(std::fs::OpenOptions::new().write(true).open(&executable).is_err());
+        super::super::preflight_mutation(&ctx).expect("staging preflight");
+        assert_eq!(std::fs::read(&executable).expect("launcher"), b"signed launcher");
+        assert_eq!(std::fs::read_dir(ctx.spotify_apps_path()).expect("Apps").count(), 0);
+        drop(running);
+        std::fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
     fn staging_protection_blocks_writes_and_reverses_without_changing_client_files() {
         let root =
             std::env::temp_dir().join(format!("spicetify-update-acl-{}", std::process::id()));

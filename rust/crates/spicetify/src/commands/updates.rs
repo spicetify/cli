@@ -191,12 +191,23 @@ pub fn persist_block_intent(ctx: &AppContext) -> Result<()> {
 /// denials before Spotify is stopped; the sibling probe catches apply's Apps
 /// tree writes without changing the installed archive.
 pub fn preflight_mutation(ctx: &AppContext) -> Result<()> {
-    let binary = spotify_binary(ctx);
-    let binary_file = std::fs::OpenOptions::new()
-        .write(true)
-        .open(&binary)
-        .map_err(|e| anyhow::anyhow!("cannot modify {}: {e}", binary.display()))?;
-    drop(binary_file);
+    #[cfg(windows)]
+    let patches_binary = !windows::uses_staging(ctx);
+    #[cfg(not(windows))]
+    let patches_binary = true;
+
+    if patches_binary {
+        let binary = spotify_binary(ctx);
+        let binary_file = std::fs::OpenOptions::new()
+            .write(true)
+            .open(&binary)
+            .map_err(|e| anyhow::anyhow!("cannot modify {}: {e}", binary.display()))?;
+        drop(binary_file);
+    }
+    #[cfg(windows)]
+    if !patches_binary {
+        let _ = windows::protection(ctx)?;
+    }
 
     let apps = ctx.spotify_apps_path();
     std::fs::create_dir_all(&apps)?;

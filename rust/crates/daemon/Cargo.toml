@@ -10,6 +10,7 @@ workspace = true
 
 [features]
 native-window-controls-tests = []
+experimental-windows-updates = []
 
 [[bin]]
 name = "spicetify-daemon"

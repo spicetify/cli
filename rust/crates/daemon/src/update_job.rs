@@ -84,7 +84,7 @@ pub enum FailureCode {
 
 #[must_use]
 pub const fn supported_on_this_platform() -> bool {
-    cfg!(target_os = "macos")
+    cfg!(target_os = "macos") || cfg!(all(windows, feature = "experimental-windows-updates"))
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -370,9 +370,12 @@ impl Supervisor {
         let guard =
             spicetify::commands::guard::try_acquire(&ctx.config_root).map_err(|e| e.to_string())?;
         spicetify::commands::updates::preflight_mutation(&ctx).map_err(|e| {
-            format!(
-                "Spotify cannot be modified by the daemon. Allow Spicetify in System Settings > Privacy & Security > App Management, then retry: {e}"
-            )
+            let guidance = if cfg!(target_os = "macos") {
+                "Allow Spicetify in System Settings > Privacy & Security > App Management, then retry"
+            } else {
+                "Check write permissions for the Spotify installation and retry"
+            };
+            format!("Spotify cannot be modified by the daemon. {guidance}: {e}")
         })?;
         spicetify::commands::updates::persist_block_intent(&ctx).map_err(|e| e.to_string())?;
 
@@ -466,7 +469,11 @@ impl Supervisor {
             );
             return;
         }
-        if let Err(e) = spicetify::lifecycle::start(&ctx) {
+        #[cfg(windows)]
+        let launch = spicetify::lifecycle::restart(&ctx);
+        #[cfg(not(windows))]
+        let launch = spicetify::lifecycle::start(&ctx);
+        if let Err(e) = launch {
             self.secure_failure(
                 FailureCode::SpotifyUpdateFailed,
                 &format!("cannot relaunch Spotify for its updater: {e}"),
@@ -791,6 +798,7 @@ impl Supervisor {
 
     fn publish(&self) {
         let status = self.job.as_ref().map_or(PublicJobStatus::Idle, project_status);
+        tracing::info!(?status, "Spotify update job state changed");
         *self.snapshot.write().unwrap_or_else(std::sync::PoisonError::into_inner) = status;
     }
 
