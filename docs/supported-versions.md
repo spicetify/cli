@@ -61,9 +61,14 @@ comes from the observed-version feed.
 
 ## Update admission
 
-One-step **Update & Apply** is currently enabled only on macOS. The daemon
+One-step **Update & Apply** is enabled by default only on macOS. The daemon
 advertises this capability through `/health`, and admission rejects other
 platforms before it writes job state or changes updater protection.
+
+Windows has an opt-in local build feature for verification. Its live update
+transaction passed, but first-boot UI verification remains incomplete; see
+[the Windows verification record](windows-update-verification.md). Release
+builds keep this feature disabled.
 
 On macOS, admission requires a verified `supportedSpotify` version newer than
 the installed version. Spotify's exact updater offer is authoritative. The

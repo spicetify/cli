@@ -90,5 +90,9 @@ jobs:
       - name: Test
         run: cargo test --workspace --locked --features daemon/native-window-controls-tests
 
+      - name: Test experimental Windows updates
+        if: runner.os == 'Windows'
+        run: cargo test -p daemon --locked --features experimental-windows-updates update_job
+
       - name: Clippy
         run: cargo clippy --workspace --locked -- -D warnings
