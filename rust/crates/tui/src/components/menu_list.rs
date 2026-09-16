@@ -71,7 +71,7 @@ impl MenuAction {
     #[must_use]
     pub(crate) fn into_command(self) -> Command {
         match self {
-            Self::Apply => Command::Apply,
+            Self::Apply => Command::Apply { no_cache: false },
             Self::Restore => Command::Restore,
             Self::Dev => Command::Dev,
             Self::Config => Command::Config(ConfigAction::Show),

@@ -79,11 +79,30 @@ pub(crate) fn indexed_classmap_file(config_root: &Path, key: &str) -> IndexedCla
 
 /// Downloads the classmap for `wanted_key`, or the newest published key below
 /// it sharing the same major.minor. Returns the key that was cached.
-pub(crate) fn fetch_classmap(config_root: &Path, wanted_key: &str) -> Result<String> {
-    let client = crate::http::blocking_client(20)?;
+pub(crate) fn fetch_classmap(
+    config_root: &Path,
+    wanted_key: &str,
+    no_cache: bool,
+) -> Result<String> {
+    fetch_classmap_from(config_root, wanted_key, &base_url(), no_cache)
+}
 
-    let index_bytes = client
-        .get(format!("{}/index.json", base_url()))
+fn fetch_classmap_from(
+    config_root: &Path,
+    wanted_key: &str,
+    origin: &str,
+    no_cache: bool,
+) -> Result<String> {
+    let mut nonce = [0; 16];
+    let cache_bust = if no_cache {
+        getrandom::fill(&mut nonce)?;
+        Some(hex::encode(nonce))
+    } else {
+        None
+    };
+    let download = Download { client: crate::http::blocking_client(20)?, origin, cache_bust };
+    let index_bytes = download
+        .get("index.json")?
         .send()
         .and_then(reqwest::blocking::Response::error_for_status)
         .and_then(reqwest::blocking::Response::bytes)
@@ -96,6 +115,13 @@ pub(crate) fn fetch_classmap(config_root: &Path, wanted_key: &str) -> Result<Str
     if let Some(expose) = &index.expose {
         let cache_root = config_root.join("classmaps");
         if expose.file != super::expose::EXPOSE_FILE {
+            if no_cache {
+                anyhow::bail!(
+                    "refusing an expose entry not named {}: {}",
+                    super::expose::EXPOSE_FILE,
+                    expose.file
+                );
+            }
             tracing::warn!(
                 "refusing an expose entry not named {}: {}",
                 super::expose::EXPOSE_FILE,
@@ -103,8 +129,11 @@ pub(crate) fn fetch_classmap(config_root: &Path, wanted_key: &str) -> Result<Str
             );
         } else if let Err(e) = std::fs::create_dir_all(&cache_root)
             .context("creating the classmap cache directory")
-            .and_then(|()| cache_file(&client, None, expose, &cache_root))
+            .and_then(|()| download.cache_file(None, expose, &cache_root))
         {
+            if no_cache {
+                return Err(e.context("could not refresh the exposure patches"));
+            }
             tracing::warn!(error = %e, "could not refresh the exposure patches; using what is cached");
         }
     }
@@ -144,7 +173,7 @@ pub(crate) fn fetch_classmap(config_root: &Path, wanted_key: &str) -> Result<Str
     std::fs::create_dir_all(&dest)?;
 
     for file in files {
-        cache_file(&client, Some(&key), file, &dest)?;
+        download.cache_file(Some(&key), file, &dest)?;
     }
 
     // Keep the successfully-consumed index beside the cache. Staging uses it
@@ -241,48 +270,66 @@ fn is_plain_file_name(name: &str) -> bool {
         && Path::new(name).file_name().and_then(std::ffi::OsStr::to_str) == Some(name)
 }
 
-/// `key` is the classmap key directory the file lives under; `None` is a file
-/// published at the repo root (the exposure patch set).
-fn cache_file(
-    client: &reqwest::blocking::Client,
-    key: Option<&str>,
-    file: &FileRef,
-    dest: &Path,
-) -> Result<()> {
-    let path = dest.join(&file.file);
-    if path.is_file()
-        && std::fs::read(&path).is_ok_and(|bytes| digest(&bytes) == file.sha256.to_lowercase())
-    {
-        return Ok(());
+#[derive(Debug)]
+struct Download<'a> {
+    client: reqwest::blocking::Client,
+    origin: &'a str,
+    cache_bust: Option<String>,
+}
+
+impl Download<'_> {
+    fn get(&self, path: &str) -> Result<reqwest::blocking::RequestBuilder> {
+        let mut url = url::Url::parse(&format!("{}/{path}", self.origin))?;
+        if let Some(nonce) = &self.cache_bust {
+            // A header alone does not bypass GitHub's raw-content CDN cache.
+            let _ = url.query_pairs_mut().append_pair("_spicetify_refresh", nonce);
+        }
+        let request = self.client.get(url);
+        Ok(if self.cache_bust.is_some() {
+            request.header(reqwest::header::CACHE_CONTROL, "no-cache")
+        } else {
+            request
+        })
     }
 
-    let url = match key {
-        Some(key) => format!("{}/{key}/{}", base_url(), file.file),
-        None => format!("{}/{}", base_url(), file.file),
-    };
-    let bytes = client
-        .get(&url)
-        .send()
-        .and_then(reqwest::blocking::Response::error_for_status)
-        .and_then(reqwest::blocking::Response::bytes)
-        .map_err(|e| anyhow::anyhow!("cannot download {url}: {e}"))?;
+    // A missing key addresses root-level exposure patches.
+    fn cache_file(&self, key: Option<&str>, file: &FileRef, dest: &Path) -> Result<()> {
+        let path = dest.join(&file.file);
+        if self.cache_bust.is_none()
+            && path.is_file()
+            && std::fs::read(&path).is_ok_and(|bytes| digest(&bytes) == file.sha256.to_lowercase())
+        {
+            return Ok(());
+        }
 
-    let actual = digest(&bytes);
-    if actual != file.sha256.to_lowercase() {
-        anyhow::bail!(
-            "checksum mismatch for {}: index says {}, download is {actual}",
-            file.file,
-            file.sha256
-        );
-    }
+        let url = match key {
+            Some(key) => format!("{key}/{}", file.file),
+            None => file.file.clone(),
+        };
+        let bytes = self
+            .get(&url)?
+            .send()
+            .and_then(reqwest::blocking::Response::error_for_status)
+            .and_then(reqwest::blocking::Response::bytes)
+            .map_err(|e| anyhow::anyhow!("cannot download {url}: {e}"))?;
 
-    std::fs::write(&path, &bytes)?;
-    if let Some(key) = key {
-        tracing::info!("cached classmap file {key}/{}", file.file);
-    } else {
-        tracing::info!("cached {}", file.file);
+        let actual = digest(&bytes);
+        if actual != file.sha256.to_lowercase() {
+            anyhow::bail!(
+                "checksum mismatch for {}: index says {}, download is {actual}",
+                file.file,
+                file.sha256
+            );
+        }
+
+        std::fs::write(&path, &bytes)?;
+        if let Some(key) = key {
+            tracing::info!("cached classmap file {key}/{}", file.file);
+        } else {
+            tracing::info!("cached {}", file.file);
+        }
+        Ok(())
     }
-    Ok(())
 }
 
 pub(crate) fn digest(bytes: &[u8]) -> String {
@@ -301,6 +348,163 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("scratch dir");
         dir
+    }
+
+    fn serve(
+        replies: Vec<(&'static str, Vec<u8>)>,
+    ) -> (String, std::thread::JoinHandle<Vec<String>>) {
+        use std::io::{Read, Write};
+        use std::time::{Duration, Instant};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind fixture");
+        listener.set_nonblocking(true).expect("nonblocking fixture");
+        let origin = format!("http://{}", listener.local_addr().expect("fixture address"));
+        let worker = std::thread::spawn(move || {
+            let mut requests = Vec::new();
+            for (status, body) in replies {
+                let deadline = Instant::now() + Duration::from_secs(5);
+                let mut stream = loop {
+                    match listener.accept() {
+                        Ok((stream, _)) => break stream,
+                        Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                            assert!(Instant::now() < deadline, "missing fixture request");
+                            std::thread::sleep(Duration::from_millis(10));
+                        }
+                        Err(e) => unreachable!("fixture accept failed: {e}"),
+                    }
+                };
+                stream.set_read_timeout(Some(Duration::from_secs(5))).expect("read timeout");
+                let mut request = Vec::new();
+                while !request.ends_with(b"\r\n\r\n") {
+                    let mut byte = [0];
+                    stream.read_exact(&mut byte).expect("request headers");
+                    request.extend(byte);
+                }
+                requests.push(String::from_utf8(request).expect("HTTP headers"));
+                write!(
+                    stream,
+                    "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    body.len()
+                )
+                .expect("response headers");
+                stream.write_all(&body).expect("response body");
+            }
+            requests
+        });
+        (origin, worker)
+    }
+
+    #[test]
+    fn no_cache_refreshes_the_index_and_every_compatibility_file() {
+        let root = scratch("refresh");
+        let cache = root.join("classmaps");
+        let selected = cache.join("1030000");
+        std::fs::create_dir_all(&selected).expect("cache dir");
+        let classmap = br#"{"main":{}}"#.to_vec();
+        let meta = br#"{"status":"verified"}"#.to_vec();
+        let expose = br#"{"patches":[]}"#.to_vec();
+        let old_overlay = b"{}".to_vec();
+        let overlay = br#"{"newHash":"playback-bar"}"#.to_vec();
+        let file_ref =
+            |file: &str, bytes: &[u8]| serde_json::json!({"file": file, "sha256": digest(bytes)});
+        let index = serde_json::json!({
+            "expose": file_ref("expose.json", &expose),
+            "keys": {"1030000": {
+                "classmap": file_ref("classmap.json", &classmap),
+                "meta": file_ref("META.json", &meta),
+                "cssMapOverlay": file_ref("css-map.json", &overlay)
+            }}
+        });
+        let mut old_index = index.clone();
+        *old_index.pointer_mut("/keys/1030000/cssMapOverlay").expect("overlay entry") =
+            file_ref("css-map.json", &old_overlay);
+        for (path, body) in [
+            (cache.join("expose.json"), &expose),
+            (selected.join("classmap.json"), &classmap),
+            (selected.join("META.json"), &meta),
+            (selected.join("css-map.json"), &old_overlay),
+        ] {
+            std::fs::write(path, body).expect("cached file");
+        }
+        let (origin, worker) = serve(vec![
+            ("200 OK", serde_json::to_vec(&old_index).expect("old index")),
+            ("200 OK", serde_json::to_vec(&index).expect("index")),
+            ("200 OK", expose),
+            ("200 OK", classmap),
+            ("200 OK", meta),
+            ("200 OK", overlay.clone()),
+        ]);
+        assert_eq!(
+            fetch_classmap_from(&root, "1030000", &origin, false).expect("normal cached apply"),
+            "1030000"
+        );
+        assert_eq!(std::fs::read(selected.join("css-map.json")).expect("old overlay"), old_overlay);
+        assert_eq!(
+            fetch_classmap_from(&root, "1030000", &origin, true).expect("fresh apply"),
+            "1030000"
+        );
+        assert_eq!(std::fs::read(selected.join("css-map.json")).expect("new overlay"), overlay);
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(
+                &std::fs::read(cache.join("index.json")).expect("cached index")
+            )
+            .expect("index JSON"),
+            index
+        );
+        let requests = worker.join().expect("fixture completed");
+        assert!(
+            requests.first().expect("normal index request").starts_with("GET /index.json HTTP/1.1")
+        );
+        for (request, path) in requests.iter().skip(1).zip([
+            "index.json",
+            "expose.json",
+            "1030000/classmap.json",
+            "1030000/META.json",
+            "1030000/css-map.json",
+        ]) {
+            assert!(request.starts_with(&format!("GET /{path}?_spicetify_refresh=")), "{request}");
+            assert!(request.to_ascii_lowercase().contains("cache-control: no-cache"), "{request}");
+        }
+        std::fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn no_cache_rejects_bad_downloads_and_retains_the_cached_file() {
+        let root = scratch("bad-download");
+        let old = b"verified cached file";
+        std::fs::write(root.join("css-map.json"), old).expect("old file");
+        let (origin, worker) = serve(vec![("200 OK", b"stale CDN response".to_vec())]);
+        let download = Download {
+            client: crate::http::blocking_client(5).expect("client"),
+            origin: &origin,
+            cache_bust: Some("test-refresh".to_string()),
+        };
+        let error = download
+            .cache_file(
+                None,
+                &FileRef { file: "css-map.json".to_string(), sha256: digest(old) },
+                &root,
+            )
+            .expect_err("bad digest");
+        assert!(error.to_string().contains("checksum mismatch"), "{error}");
+        assert_eq!(std::fs::read(root.join("css-map.json")).expect("retained cache"), old);
+        let _ = worker.join().expect("fixture completed");
+        std::fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn no_cache_propagates_exposure_refresh_failure() {
+        let root = scratch("exposure-failure");
+        let index =
+            serde_json::json!({"keys": {}, "expose": {"file": "expose.json", "sha256": "unused"}});
+        let (origin, worker) = serve(vec![
+            ("200 OK", serde_json::to_vec(&index).expect("index")),
+            ("503 Service Unavailable", Vec::new()),
+        ]);
+        let error = fetch_classmap_from(&root, "1030000", &origin, true)
+            .expect_err("fresh exposure required");
+        assert!(error.to_string().contains("could not refresh the exposure patches"), "{error}");
+        let _ = worker.join().expect("fixture completed");
+        std::fs::remove_dir_all(root).expect("cleanup");
     }
 
     #[test]

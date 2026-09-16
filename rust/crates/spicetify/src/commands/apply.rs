@@ -44,6 +44,7 @@ fn fs_err<'a>(doing: &'a str, path: &'a Path) -> impl FnOnce(std::io::Error) -> 
 pub fn run(
     ctx: &AppContext,
     _operation_guard: &super::guard::DisruptiveOperationGuard,
+    no_cache: bool,
 ) -> Result<()> {
     let _apply_lock = acquire_apply_lock(&ctx.config_root)?;
     let dest_apps = ctx.dest_apps_path();
@@ -67,6 +68,15 @@ pub fn run(
     // and rename xpui.spa, so a client this CLI cannot patch must be turned
     // away here rather than left without a servable xpui.
     let detected = detect_supported_spotify_version(ctx)?;
+
+    // Refresh compatibility files before stopping Spotify, so a required fresh
+    // download can fail without disrupting the installed client.
+    if no_cache && detected.is_none() {
+        anyhow::bail!("cannot refresh compatibility files without a detected Spotify version");
+    }
+    if let Some(version) = &detected {
+        refresh_classmap(ctx, &version.to_string(), no_cache)?;
+    }
 
     crate::lifecycle::stop(ctx)?;
 
@@ -111,13 +121,6 @@ pub fn run(
             cleanup_tmp(&tmp);
             return Err(anyhow::anyhow!("failed to backup xpui.spa: {e}"));
         }
-    }
-
-    // Refreshes the classmap cache and the exposure patches together: the
-    // patches are applied to the client bundle prepared next, so they must be
-    // current before that step, not at module staging.
-    if let Some(version) = &detected {
-        refresh_classmap(ctx, &version.to_string());
     }
 
     let client_bundle = match detect_client_bundle(&tmp) {
@@ -406,23 +409,37 @@ fn apply_css_map(ctx: &AppContext, dest: &Path) -> Result<()> {
 }
 
 // Classmaps are published per Spotify build, so apply pulls the current one
-// before staging. A failure here is not fatal: whatever is already cached (or
-// shipped) still applies, which keeps apply working offline.
-fn refresh_classmap(ctx: &AppContext, version: &str) {
+// before staging. Normal apply can use cached files offline; --no-cache requires
+// a successful refresh instead.
+fn refresh_classmap(ctx: &AppContext, version: &str, no_cache: bool) -> Result<()> {
     if std::env::var_os("SPICETIFY_CLASSMAPS_DIR").is_some() {
+        if no_cache {
+            anyhow::bail!(
+                "--no-cache cannot be used with SPICETIFY_CLASSMAPS_DIR; unset it to fetch published compatibility files"
+            );
+        }
         tracing::debug!("SPICETIFY_CLASSMAPS_DIR is set: skipping the classmap fetch");
-        return;
+        return Ok(());
     }
     let Some(wanted) = crate::module::stage::classmap_key_for_version(version) else {
-        return;
+        anyhow::bail!("cannot derive a classmap key from Spotify version {version}");
     };
-    match crate::module::remote::fetch_classmap(&ctx.config_root, &wanted) {
+    if no_cache {
+        tracing::info!("refreshing compatibility files without local or CDN caches");
+    }
+    match crate::module::remote::fetch_classmap(&ctx.config_root, &wanted, no_cache) {
         Ok(key) if key == wanted => tracing::info!("classmap {key} is current"),
         Ok(key) => tracing::info!("no published classmap for {wanted}; cached {key} instead"),
+        Err(e) if no_cache => {
+            return Err(
+                e.context("--no-cache compatibility refresh failed; Spotify was not changed")
+            );
+        }
         Err(e) => {
             tracing::warn!(error = %e, "could not refresh the classmap; using what is cached");
         }
     }
+    Ok(())
 }
 
 // The modular loader boots from <xpui>/modules/manifest.json, which carries the
@@ -837,7 +854,7 @@ mod tests {
         let apply = std::thread::spawn(move || {
             let guard = super::super::guard::try_acquire(&ctx.config_root)
                 .expect("synthetic apply owns the disruptive-operation guard");
-            tx.send(run(&ctx, &guard)).expect("test receiver remains available");
+            tx.send(run(&ctx, &guard, false)).expect("test receiver remains available");
         });
         assert!(
             rx.recv_timeout(std::time::Duration::from_millis(100)).is_err(),

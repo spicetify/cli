@@ -42,6 +42,12 @@ Run the development binary directly:
 Keep `spicetify-daemon` beside `spicetify`. The CLI starts the daemon from its
 own directory.
 
+To test a just-published compatibility fix without local or CDN caches, run
+`./target/release/spicetify apply --no-cache`. This requires network access and
+refreshes compatibility data, including classmaps and exposure patches. See
+[refreshing a newly published fix](../docs/supported-versions.md#refresh-a-newly-published-fix)
+for scope, failure behavior, and developer overrides.
+
 ## Restart the daemon after local changes
 
 A local rebuild keeps the same crate version. The CLI therefore cannot detect

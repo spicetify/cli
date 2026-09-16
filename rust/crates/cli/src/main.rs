@@ -32,7 +32,13 @@ struct SpicetifyCli {
 #[derive(Debug, Clone, Subcommand)]
 enum CliCommand {
     #[command(about = "Apply Spicetify patches to Spotify")]
-    Apply,
+    Apply {
+        #[arg(
+            long,
+            help = "Refresh compatibility files, bypassing local and CDN caches; requires network access"
+        )]
+        no_cache: bool,
+    },
     #[command(about = "Manage Spicetify configuration")]
     Config {
         #[command(subcommand)]
@@ -121,7 +127,7 @@ enum CliPkgAction {
 impl From<CliCommand> for Command {
     fn from(c: CliCommand) -> Self {
         match c {
-            CliCommand::Apply => Command::Apply,
+            CliCommand::Apply { no_cache } => Command::Apply { no_cache },
             CliCommand::Config { action } => {
                 let action = match action {
                     Some(CliConfigAction::Open) => ConfigAction::OpenFolder,
@@ -227,5 +233,22 @@ fn run() -> Result<()> {
             cli.spotify_exec.as_deref(),
             cli.offline_bnk_dir.as_deref(),
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn apply_cache_flag_reaches_dispatch() {
+        for (args, expected) in
+            [(vec!["spicetify", "apply"], false), (vec!["spicetify", "apply", "--no-cache"], true)]
+        {
+            let cli = SpicetifyCli::try_parse_from(args).expect("valid apply command");
+            let cmd = Command::from(cli.command.expect("apply subcommand"));
+            assert!(matches!(cmd, Command::Apply { no_cache } if no_cache == expected));
+        }
+        assert!(SpicetifyCli::try_parse_from(["spicetify", "restore", "--no-cache"]).is_err());
     }
 }

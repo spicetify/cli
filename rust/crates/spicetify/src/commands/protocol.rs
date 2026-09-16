@@ -176,7 +176,7 @@ fn perform(ctx: &AppContext, action: ProtocolAction, uri: &Url) -> Result<()> {
         // fire-and-forget rather than waiting on a response.
         ProtocolAction::Apply => {
             let guard = super::guard::try_acquire(&ctx.config_root)?;
-            super::apply::run(ctx, &guard)
+            super::apply::run(ctx, &guard, false)
         }
         ProtocolAction::BlockUpdates => {
             let _guard = super::guard::try_acquire(&ctx.config_root)?;
