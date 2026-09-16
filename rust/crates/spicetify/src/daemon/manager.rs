@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use std::time::Duration;
 
 use thiserror::Error;
@@ -18,8 +18,17 @@ pub enum DaemonManagerError {
     #[error("launchctl error: {0}")]
     Launchctl(String),
 
+    #[error("daemon shutdown is incomplete: {0}")]
+    ShutdownIncomplete(String),
+
     #[error("failed to spawn daemon: {0}")]
     Spawn(#[from] super::process::DaemonSpawnError),
+}
+
+impl DaemonManagerError {
+    pub(crate) fn allows_unmanaged_fallback(&self) -> bool {
+        !matches!(self, Self::Launchctl(_) | Self::ShutdownIncomplete(_))
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -248,7 +257,7 @@ impl MacosDaemonManager {
         match action {
             LaunchAgentInstallAction::Noop => Ok(()),
             LaunchAgentInstallAction::Load => {
-                stop_unmanaged_daemon();
+                stop_unmanaged_daemon()?;
                 if plist_changed {
                     std::fs::write(&plist_path, &plist)?;
                 }
@@ -256,7 +265,7 @@ impl MacosDaemonManager {
             }
             LaunchAgentInstallAction::Reload => {
                 let _ = run_launchctl(&["remove", LAUNCH_AGENT_LABEL], None)?;
-                stop_unmanaged_daemon();
+                stop_unmanaged_daemon()?;
                 if plist_changed {
                     std::fs::write(&plist_path, &plist)?;
                 }
@@ -397,9 +406,74 @@ fn parse_launch_agent_status(list: &str) -> LaunchAgentState {
 }
 
 #[cfg(target_os = "macos")]
-fn stop_unmanaged_daemon() {
-    if super::is_daemon_running() {
+fn stop_unmanaged_daemon() -> Result<(), DaemonManagerError> {
+    stop_unmanaged_daemon_and_wait()
+        .map_err(|error| DaemonManagerError::ShutdownIncomplete(error.to_string()))
+}
+
+#[cfg(target_os = "macos")]
+fn stop_unmanaged_daemon_and_wait() -> Result<(), DaemonManagerError> {
+    let path = crate::platform::default_spicetify_config_dir().join("spicetify-daemon.lock");
+    // Keep the original inode open: the daemon unlinks this path before dropping its lock.
+    let lock_file = match std::fs::File::open(path) {
+        Ok(file) => Some(file),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.into()),
+    };
+    if super::is_daemon_running() || daemon_process_running()? {
         super::shutdown_daemon();
+    }
+    wait_for_daemon_exit(lock_file.as_ref(), Duration::from_secs(5), daemon_process_running)
+}
+
+#[cfg(target_os = "macos")]
+fn daemon_process_running() -> Result<bool, DaemonManagerError> {
+    let status = std::process::Command::new("pgrep")
+        .args(["-x", super::daemon_binary_name()])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()?;
+    match status.code() {
+        Some(0) => Ok(true),
+        Some(1) => Ok(false),
+        _ => {
+            Err(std::io::Error::other(format!("failed to inspect daemon process: {status}")).into())
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn wait_for_daemon_exit(
+    lock_file: Option<&std::fs::File>,
+    timeout: Duration,
+    mut process_running: impl FnMut() -> Result<bool, DaemonManagerError>,
+) -> Result<(), DaemonManagerError> {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        let lock_released = if let Some(file) = lock_file {
+            match fs4::FileExt::try_lock(file) {
+                Ok(()) => {
+                    fs4::FileExt::unlock(file)?;
+                    true
+                }
+                Err(fs4::TryLockError::WouldBlock) => false,
+                Err(fs4::TryLockError::Error(error)) => return Err(error.into()),
+            }
+        } else {
+            true
+        };
+        if !process_running()? && lock_released {
+            return Ok(());
+        }
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        if remaining.is_zero() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "daemon did not exit before launch-agent startup; auto-start was not loaded",
+            )
+            .into());
+        }
+        std::thread::sleep(remaining.min(Duration::from_millis(50)));
     }
 }
 
@@ -414,7 +488,10 @@ fn run_launchctl(
         let _ = command.arg(plist);
     }
 
-    launchctl_output(args, command.output()?)
+    let output = command
+        .output()
+        .map_err(|error| DaemonManagerError::Launchctl(format!("{}: {error}", args.join(" "))))?;
+    launchctl_output(args, output)
 }
 
 #[cfg(target_os = "macos")]
@@ -490,8 +567,57 @@ mod tests {
     use super::{
         DaemonManagerError, LaunchAgentInstallAction, LaunchAgentState,
         launch_agent_install_action, launchctl_output, parse_launch_agent_status,
+        wait_for_daemon_exit,
     };
     use std::os::unix::process::ExitStatusExt;
+
+    #[test]
+    fn an_unlinked_instance_lock_still_blocks_loading_after_the_listener_closes()
+    -> anyhow::Result<()> {
+        let path = std::env::temp_dir().join(format!("spicetify-exit-lock-{}", std::process::id()));
+        let owner = std::fs::File::create(&path)?;
+        fs4::FileExt::try_lock(&owner)?;
+        let observer = std::fs::File::open(&path)?;
+        std::fs::remove_file(&path)?;
+        let result = wait_for_daemon_exit(Some(&observer), std::time::Duration::ZERO, || Ok(false));
+        assert!(
+            matches!(result, Err(DaemonManagerError::Io(error)) if error.kind() == std::io::ErrorKind::TimedOut)
+        );
+        drop(owner);
+        wait_for_daemon_exit(Some(&observer), std::time::Duration::ZERO, || Ok(false))?;
+        fs4::FileExt::try_lock(&observer)?;
+        fs4::FileExt::unlock(&observer)?;
+        Ok(())
+    }
+
+    #[test]
+    fn a_process_that_has_not_exited_blocks_loading_without_a_lock_file() {
+        let result = wait_for_daemon_exit(None, std::time::Duration::ZERO, || Ok(true));
+        assert!(
+            matches!(result, Err(DaemonManagerError::Io(error)) if error.kind() == std::io::ErrorKind::TimedOut)
+        );
+    }
+
+    #[test]
+    fn daemon_exit_waits_until_the_process_is_gone() -> anyhow::Result<()> {
+        let mut probes = 0;
+        wait_for_daemon_exit(None, std::time::Duration::from_secs(1), || {
+            probes += 1;
+            Ok(probes < 2)
+        })?;
+        assert_eq!(probes, 2);
+        Ok(())
+    }
+
+    #[test]
+    fn process_inspection_failure_does_not_allow_loading() {
+        let result = wait_for_daemon_exit(None, std::time::Duration::ZERO, || {
+            Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied).into())
+        });
+        assert!(
+            matches!(result, Err(DaemonManagerError::Io(error)) if error.kind() == std::io::ErrorKind::PermissionDenied)
+        );
+    }
 
     #[test]
     fn launch_agent_list_distinguishes_running_stopped_and_missing_jobs() {
