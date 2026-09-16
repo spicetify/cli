@@ -130,7 +130,7 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
         tracing::info!("stock xpui.spa is no longer present; skipping auto-apply");
         return;
     }
-    if let Err(e) = commands::apply::run(ctx, &guard, false) {
+    if let Err(e) = commands::apply::run(ctx, &guard, commands::apply::ApplyMode::Daemon) {
         tracing::warn!(error = %e, "auto-apply failed");
     }
 }

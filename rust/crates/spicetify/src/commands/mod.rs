@@ -65,7 +65,7 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
     match cmd {
         Command::Apply { no_cache } => {
             let guard = guard::try_acquire(&ctx.config_root)?;
-            apply::run(ctx, &guard, *no_cache)
+            apply::run(ctx, &guard, apply::ApplyMode::Cli { no_cache: *no_cache })
         }
         Command::Config(action) => match action {
             ConfigAction::Show => config::run(ctx),
@@ -162,8 +162,12 @@ mod tests {
             "fast-delete",
             "fast-remove",
         ] {
-            let error = protocol::handle(&ctx, &format!("spicetify:0:{action}?id=module%401"))
-                .expect_err("competing protocol mutation");
+            let error = protocol::handle(
+                &ctx,
+                &format!("spicetify:0:{action}?id=module%401"),
+                apply::ApplyMode::Daemon,
+            )
+            .expect_err("competing protocol mutation");
             assert!(error.to_string().contains("already in progress"), "{error}");
         }
         let error =
