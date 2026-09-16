@@ -24,7 +24,7 @@ does not prevent RPC commands from reaching the operation guard.
   fixed handler kept it responsive and passed in 0.06 seconds. The fixture
   refuses a foreign apply before any real Spotify operation.
 - `cargo +1.95.0 test --workspace --locked --features daemon/native-window-controls-tests`:
-  142 passed, three existing real-bundle/platform tests ignored.
+  142 passed, three existing tests requiring real bundles or registry downloads ignored.
 - `cargo +1.95.0 clippy --workspace --locked -- -D warnings`: passed.
   A pre-existing TUI Backspace match required a behavior-preserving lint fix.
 - An additional `--all-targets` Clippy scan found existing test-only warnings
