@@ -264,6 +264,7 @@ fn finish_daemon_startup(
     is_ready: impl FnOnce() -> bool,
     start: impl FnOnce() -> Result<()>,
 ) {
+    let launchd_owns_startup = cfg!(target_os = "macos") && installation.is_ok();
     if let Err(error) = installation {
         tracing::warn!(%error, "could not enable the daemon at login");
         if error
@@ -275,9 +276,16 @@ fn finish_daemon_startup(
         }
     }
 
-    if !is_ready()
-        && let Err(error) = start()
-    {
+    if is_ready() {
+        return;
+    }
+    if launchd_owns_startup {
+        tracing::warn!(
+            "launchd registered the daemon but startup is still pending; skipping unmanaged startup"
+        );
+        return;
+    }
+    if let Err(error) = start() {
         tracing::warn!(%error, "could not start the daemon");
     }
 }
@@ -973,6 +981,20 @@ mod daemon_startup_tests {
             },
         );
         assert!(spawned.get());
+    }
+
+    #[test]
+    fn delayed_registered_supervisor_keeps_startup_ownership_on_macos() {
+        let spawned = Cell::new(false);
+        finish_daemon_startup(
+            Ok(()),
+            || false,
+            || {
+                spawned.set(true);
+                Ok(())
+            },
+        );
+        assert_eq!(spawned.get(), !cfg!(target_os = "macos"));
     }
 
     #[test]
