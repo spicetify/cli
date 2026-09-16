@@ -3,6 +3,16 @@ use std::process::{Command, Stdio};
 use crate::context::AppContext;
 use crate::error::Result;
 
+#[cfg(windows)]
+pub(crate) fn background_command(program: impl AsRef<std::ffi::OsStr>) -> Command {
+    use std::os::windows::process::CommandExt;
+    use windows::Win32::System::Threading::CREATE_NO_WINDOW;
+
+    let mut command = Command::new(program);
+    let _ = command.creation_flags(CREATE_NO_WINDOW.0);
+    command
+}
+
 pub(crate) fn process_running(name: &str) -> bool {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
@@ -15,7 +25,7 @@ pub(crate) fn process_running(name: &str) -> bool {
     }
     #[cfg(windows)]
     {
-        Command::new("tasklist")
+        background_command("tasklist")
             .args(["/FI", &format!("ImageName eq {name}"), "/NH"])
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
@@ -49,7 +59,7 @@ pub(crate) fn kill_image(name: &str) {
     }
     #[cfg(windows)]
     {
-        match Command::new("taskkill")
+        match background_command("taskkill")
             .args(["/F", "/IM", name])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -125,7 +135,7 @@ fn spawn_windows(ctx: &AppContext) -> Result<()> {
         let ps_cmd =
             format!("& \"{}\" --app-directory=\"{}\"", appx_exe.display(), dest_apps.display());
 
-        let child = Command::new("powershell.exe")
+        let child = background_command("powershell.exe")
             .args(["-NoProfile", "-NonInteractive", "-Command", &ps_cmd])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -205,6 +215,22 @@ pub fn force_kill_spotify(ctx: &AppContext) {
 
     tracing::info!("force-killing Spotify processes");
     kill_image(image);
+}
+
+#[cfg(all(test, windows))]
+mod windows_tests {
+    #[test]
+    fn background_helpers_have_no_console_and_preserve_output_and_status() {
+        let output = super::background_command("powershell.exe")
+            .args([
+                "-NoProfile", "-NonInteractive", "-Command",
+                r#"Add-Type 'using System; using System.Runtime.InteropServices; public class ConsoleProbe { [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow(); }'; [ConsoleProbe]::GetConsoleWindow().ToInt64(); exit 7"#,
+            ])
+            .output()
+            .expect("run background console probe");
+        assert_eq!(output.status.code(), Some(7), "child exit status is preserved: {output:?}");
+        assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "0", "no console is allocated");
+    }
 }
 
 #[cfg(all(test, target_os = "macos"))]

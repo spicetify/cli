@@ -117,10 +117,17 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
         nth,
         "auto-apply triggered by a Spotify update; waiting for pending package operations"
     );
-    let guard = match wait_for_idle_guard(&ctx.config_root, CLIENT_EXIT_CEILING, || {
-        spicetify::lifecycle::is_running(ctx)
-    }) {
-        Ok(guard) => guard,
+    let guard = match wait_for_idle_guard(
+        &ctx.config_root,
+        CLIENT_EXIT_CEILING,
+        || ctx.spotify_apps_path().join("xpui.spa").is_file(),
+        || spicetify::lifecycle::is_running(ctx),
+    ) {
+        Ok(Some(guard)) => guard,
+        Ok(None) => {
+            tracing::info!("stock xpui.spa is no longer present; cancelling pending auto-apply");
+            return;
+        }
         Err(e) => {
             tracing::warn!(error = %e, "auto-apply could not acquire an idle client; run `spicetify apply` when convenient");
             return;
@@ -138,11 +145,15 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
 fn wait_for_idle_guard(
     config_root: &std::path::Path,
     timeout: Duration,
+    mut repair_pending: impl FnMut() -> bool,
     mut is_running: impl FnMut() -> bool,
-) -> anyhow::Result<commands::guard::DisruptiveOperationGuard> {
+) -> anyhow::Result<Option<commands::guard::DisruptiveOperationGuard>> {
     let deadline = std::time::Instant::now() + timeout;
     let mut waited = false;
     loop {
+        if !repair_pending() {
+            return Ok(None);
+        }
         let remaining = deadline.saturating_duration_since(std::time::Instant::now());
         if remaining.is_zero() {
             anyhow::bail!(
@@ -164,7 +175,7 @@ fn wait_for_idle_guard(
             config_root,
             remaining.min(Duration::from_secs(2)),
         ) {
-            Ok(guard) if !is_running() => return Ok(guard),
+            Ok(guard) if !is_running() => return Ok(Some(guard)),
             // Release the guard and resume the polite wait if Spotify relaunched.
             Ok(_) => waited = true,
             Err(error) if commands::guard::is_contention(&error) => {}
@@ -312,15 +323,20 @@ mod tests {
         let root = scratch("contention")?;
         let mut competing = Some(commands::guard::try_acquire(&root)?);
         let mut checks = 0;
-        let result = wait_for_idle_guard(&root, Duration::from_secs(10), || {
-            checks += 1;
-            if checks == 2 {
-                drop(competing.take());
-            }
-            false
-        });
+        let result = wait_for_idle_guard(
+            &root,
+            Duration::from_secs(10),
+            || true,
+            || {
+                checks += 1;
+                if checks == 2 {
+                    drop(competing.take());
+                }
+                false
+            },
+        );
         drop(competing);
-        drop(result?);
+        drop(result?.expect("repair remains pending"));
         assert!(checks >= 3, "retry must recheck the client before and after acquiring");
         std::fs::remove_dir_all(root)?;
         Ok(())
@@ -330,20 +346,25 @@ mod tests {
     fn auto_apply_resumes_waiting_when_spotify_relaunches() -> anyhow::Result<()> {
         let root = scratch("relaunch")?;
         let mut checks = 0;
-        let result = wait_for_idle_guard(&root, Duration::from_secs(10), || {
-            checks += 1;
-            match checks {
-                // Idle before locking, but restarted by the post-lock check.
-                2 => true,
-                3 => {
-                    // The polite wait must not keep package operations locked.
-                    drop(commands::guard::try_acquire(&root).expect("guard released"));
-                    false
+        let result = wait_for_idle_guard(
+            &root,
+            Duration::from_secs(10),
+            || true,
+            || {
+                checks += 1;
+                match checks {
+                    // Idle before locking, but restarted by the post-lock check.
+                    2 => true,
+                    3 => {
+                        // The polite wait must not keep package operations locked.
+                        drop(commands::guard::try_acquire(&root).expect("guard released"));
+                        false
+                    }
+                    _ => false,
                 }
-                _ => false,
-            }
-        });
-        drop(result?);
+            },
+        );
+        drop(result?.expect("repair remains pending"));
         assert!(checks >= 5, "a restart must resume waiting, not abandon the repair");
         std::fs::remove_dir_all(root)?;
         Ok(())
@@ -353,13 +374,38 @@ mod tests {
     fn auto_apply_wait_has_one_deadline_and_preserves_filesystem_errors() -> anyhow::Result<()> {
         let root = scratch("deadline")?;
         let guard = commands::guard::try_acquire(&root)?;
-        let error = wait_for_idle_guard(&root, Duration::from_millis(20), || false).unwrap_err();
+        let error = wait_for_idle_guard(&root, Duration::from_millis(20), || true, || false)
+            .expect_err("operation remains locked");
         assert!(error.to_string().contains("still busy"));
         drop(guard);
         let file = root.join("not-a-directory");
         std::fs::write(&file, "sentinel")?;
-        let error = wait_for_idle_guard(&file, Duration::from_secs(60), || false).unwrap_err();
+        let error = wait_for_idle_guard(&file, Duration::from_mins(1), || true, || false)
+            .expect_err("lock path is not a directory");
         assert!(error.downcast_ref::<std::io::Error>().is_some());
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn auto_apply_stops_polling_when_another_apply_consumes_the_archive() -> anyhow::Result<()> {
+        let root = scratch("completed-elsewhere")?;
+        let archive = root.join("xpui.spa");
+        std::fs::write(&archive, "stock")?;
+        let mut process_checks = 0;
+        let result = wait_for_idle_guard(
+            &root,
+            Duration::from_secs(10),
+            || archive.is_file(),
+            || {
+                process_checks += 1;
+                std::fs::remove_file(&archive).expect("another apply consumes the archive");
+                true
+            },
+        )?;
+        assert!(result.is_none(), "completed repair must not wait for Spotify to exit");
+        assert_eq!(process_checks, 1, "polling must stop even though Spotify is still running");
+        drop(commands::guard::try_acquire(&root)?);
         std::fs::remove_dir_all(root)?;
         Ok(())
     }

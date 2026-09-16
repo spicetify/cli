@@ -17,6 +17,13 @@ repairs, and the update transaction preserve their owning daemon. Blocking
 workers are no longer limited to one, so a watcher waiting for Spotify to exit
 does not prevent RPC commands from reaching the operation guard.
 
+The watcher could also keep waiting after another Apply had consumed the stock
+archive. On Windows, each process check launched `tasklist.exe` with a visible
+console. Process sampling confirmed daemon-owned `tasklist.exe` starts about
+2.2 seconds apart, each followed by an `OpenConsole.exe` start. The watcher now
+stops waiting when repair is no longer pending. Windows process and PowerShell
+helpers use `CREATE_NO_WINDOW` so legitimate background checks stay hidden too.
+
 ## Automated checks
 
 - A regression holds the Apply file lock while dispatching a real Apply RPC.
@@ -24,7 +31,11 @@ does not prevent RPC commands from reaching the operation guard.
   fixed handler kept it responsive and passed in 0.06 seconds. The fixture
   refuses a foreign apply before any real Spotify operation.
 - `cargo +1.95.0 test --workspace --locked --features daemon/native-window-controls-tests`:
-  142 passed, three existing tests requiring real bundles or registry downloads ignored.
+  144 passed, three existing tests requiring real bundles or registry downloads ignored.
+- A watcher regression consumes the archive while Spotify remains running and
+  verifies that polling stops and the operation lock remains available.
+- A Windows child-process test verifies that a background PowerShell helper has
+  no console while preserving its output and nonzero exit status.
 - `cargo +1.95.0 clippy --workspace --locked -- -D warnings`: passed.
   A pre-existing TUI Backspace match required a behavior-preserving lint fix.
 - An additional `--all-targets` Clippy scan found existing test-only warnings
@@ -53,6 +64,22 @@ script, **not clicked in the UI**.
 
 Evidence is retained locally under the workspace's
 `scratchpad/daemon-owned-apply/`. It is not a release fixture.
+
+### Follow-up after the console fix
+
+The matching CLI and daemon were rebuilt and installed, then the same diagnostic
+RPC Apply was repeated. All 84 health requests succeeded with a maximum latency
+of 28 ms. Daemon PID 28800 survived; autostart, CLI URL registration, and update
+protection remained intact.
+
+A 45-second process sample spanning Apply and the period after it recorded the
+expected daemon-owned helpers during Apply and no new `OpenConsole.exe` process.
+There were no recurring `tasklist.exe` starts after completion. This run's
+watcher saw the already-applied client and skipped repair; the cancellation of
+an existing wait is covered by the regression test, not this live timing.
+The latest RPC result, Apply log, and helper-process sample are retained in the
+same local evidence directory. This is process-level verification, not a native
+visual pass.
 
 ## End-user coverage and remaining limits
 

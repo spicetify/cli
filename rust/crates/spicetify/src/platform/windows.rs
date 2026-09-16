@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::LazyLock;
 
 use tracing;
@@ -14,9 +13,10 @@ struct SpotifyPackage {
 }
 
 static SPOTIFY_PACKAGE: LazyLock<Option<SpotifyPackage>> = LazyLock::new(|| {
-    let output = match Command::new("powershell")
+    let output = match crate::process::background_command("powershell")
         .args([
             "-NoProfile",
+            "-NonInteractive",
             "-Command",
             "$p=Get-AppxPackage -Name 'SpotifyAB.SpotifyMusic'; if($p){$p.InstallLocation; \
              $p.PackageFamilyName}",
