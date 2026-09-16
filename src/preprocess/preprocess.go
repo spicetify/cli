@@ -954,8 +954,11 @@ func exposeAPIs_main(input string) string {
 		},
 		{
 			Name:  "Remove data-testid",
-			Regex: `"data-testid":`,
+			Regex: `"data-testid":("user-widget-link")?`,
 			Replacement: func(submatches ...string) string {
+				if submatches[1] != "" {
+					return submatches[0]
+				}
 				return `"":`
 			},
 		},

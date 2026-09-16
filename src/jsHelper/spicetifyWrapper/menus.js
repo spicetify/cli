@@ -269,7 +269,10 @@ Spicetify.ContextMenuV2 = (() => {
 
 Spicetify.Menu = (() => {
   const shouldAdd = (_, trigger, target) =>
-    trigger === "click" && (target.classList.contains("main-userWidget-boxCondensed") || target.classList.contains("main-userWidget-box"));
+    trigger === "click" &&
+    (target?.getAttribute("data-testid") === "user-widget-link" ||
+      target?.classList.contains("main-userWidget-boxCondensed") ||
+      target?.classList.contains("main-userWidget-box"));
 
   class Item extends Spicetify.ContextMenuV2.Item {
     constructor(children, isEnabled, onClick, leadingIcon) {
