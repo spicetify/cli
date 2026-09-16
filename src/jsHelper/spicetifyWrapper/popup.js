@@ -4,9 +4,10 @@ function injectStyles() {
   const style = document.createElement("style");
   style.className = "spicetify-popup-modal";
   style.textContent = `
+generic-modal :where(.GenericModal__overlay) { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: rgba(0, 0, 0, .7); }
 generic-modal :where(.spicetify-popup) { display: flex; max-height: calc(100vh - 64px); border-radius: 8px; overflow: hidden; }
 generic-modal :where(.spicetify-popup-container) { display: flex; flex-direction: column; width: 524px; max-width: 100%; min-height: 0; border-radius: 8px; color: var(--spice-text, var(--text-base, #fff)); background-color: var(--spice-player, var(--background-elevated-base, #121212)); }
-generic-modal :where(.spicetify-popup-container-large) { width: 664px; }
+generic-modal .spicetify-popup-container-large { width: 664px; min-width: 0; max-width: calc(100vw - 64px); min-height: 0; max-height: calc(100vh - 64px); }
 generic-modal :where(.spicetify-popup-header) { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 16px; padding: 24px; }
 generic-modal :where(.spicetify-popup-title) { margin: 0; font-size: 1.5rem; font-weight: 700; line-height: 1.3; }
 generic-modal :where(.spicetify-popup-closeBtn) { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; margin-block-start: -8px; margin-inline-end: -8px; border: 0; border-radius: 50%; background-color: transparent; color: var(--spice-subtext, var(--text-subdued, #b3b3b3)); cursor: pointer; }
