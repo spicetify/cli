@@ -271,17 +271,41 @@ pub(crate) fn ensure_daemon(ctx: &AppContext) {
     // Registers auto-start with this CLI's own daemon binary. This runs after
     // any stop because stop unregisters; registering first left every
     // upgrade with the registration undone and the daemon back unsupervised.
-    if let Err(e) = super::daemon::install() {
-        tracing::warn!(error = %e, "could not enable the daemon at login");
+    finish_daemon_startup(
+        super::daemon::install(),
+        || daemon_comes_up(std::time::Duration::from_secs(2)),
+        super::daemon::start,
+    );
+}
+
+fn finish_daemon_startup(
+    installation: Result<()>,
+    is_ready: impl FnOnce() -> bool,
+    start: impl FnOnce() -> Result<()>,
+) {
+    let launchd_owns_startup = cfg!(target_os = "macos") && installation.is_ok();
+    if let Err(error) = installation {
+        tracing::warn!(%error, "could not enable the daemon at login");
+        if error
+            .downcast_ref::<crate::daemon::DaemonManagerError>()
+            .is_some_and(|error| !error.allows_unmanaged_fallback())
+        {
+            tracing::warn!("daemon ownership is unresolved; skipping unmanaged startup");
+            return;
+        }
     }
 
-    // A supervisor that starts what it registers (systemd, launchd) has the
-    // daemon up by now or within a moment; only spawn when nothing answers,
-    // so there is never a second, unsupervised copy beside the managed one.
-    if !daemon_comes_up(std::time::Duration::from_secs(2))
-        && let Err(e) = super::daemon::start()
-    {
-        tracing::warn!(error = %e, "could not start the daemon");
+    if is_ready() {
+        return;
+    }
+    if launchd_owns_startup {
+        tracing::warn!(
+            "launchd registered the daemon but startup is still pending; skipping unmanaged startup"
+        );
+        return;
+    }
+    if let Err(error) = start() {
+        tracing::warn!(%error, "could not start the daemon");
     }
 }
 
@@ -932,5 +956,78 @@ mod tests {
         assert!(error.to_string().contains("symlink cycle"), "unexpected error: {error:#}");
 
         std::fs::remove_dir_all(root).expect("cleanup runtime fixture");
+    }
+}
+
+#[cfg(test)]
+mod daemon_startup_tests {
+    use super::finish_daemon_startup;
+    use crate::daemon::DaemonManagerError;
+    use std::cell::Cell;
+
+    #[test]
+    fn unresolved_supervisor_or_shutdown_never_starts_an_unmanaged_daemon() {
+        for error in [
+            DaemonManagerError::Launchctl("cannot query launchd".to_owned()),
+            DaemonManagerError::ShutdownIncomplete("instance lock is still held".to_owned()),
+        ] {
+            let checked_ready = Cell::new(false);
+            let spawned = Cell::new(false);
+            finish_daemon_startup(
+                Err(error.into()),
+                || {
+                    checked_ready.set(true);
+                    false
+                },
+                || {
+                    spawned.set(true);
+                    Ok(())
+                },
+            );
+            assert!(!checked_ready.get());
+            assert!(!spawned.get());
+        }
+    }
+
+    #[test]
+    fn unsupported_supervisor_still_allows_unmanaged_startup() {
+        let spawned = Cell::new(false);
+        finish_daemon_startup(
+            Err(DaemonManagerError::Unsupported.into()),
+            || false,
+            || {
+                spawned.set(true);
+                Ok(())
+            },
+        );
+        assert!(spawned.get());
+    }
+
+    #[test]
+    fn delayed_registered_supervisor_keeps_startup_ownership_on_macos() {
+        let spawned = Cell::new(false);
+        finish_daemon_startup(
+            Ok(()),
+            || false,
+            || {
+                spawned.set(true);
+                Ok(())
+            },
+        );
+        assert_eq!(spawned.get(), !cfg!(target_os = "macos"));
+    }
+
+    #[test]
+    fn ready_supervised_daemon_does_not_start_another_process() {
+        let spawned = Cell::new(false);
+        finish_daemon_startup(
+            Ok(()),
+            || true,
+            || {
+                spawned.set(true);
+                Ok(())
+            },
+        );
+        assert!(!spawned.get());
     }
 }
