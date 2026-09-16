@@ -205,16 +205,21 @@ fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
     super::updates::finalize_app_signature(ctx)?;
 
     if activate {
-        if matches!(mode, ApplyMode::Cli { .. }) {
-            ensure_daemon(ctx);
-        }
-        crate::lifecycle::start(ctx)?;
-        if matches!(mode, ApplyMode::Cli { .. }) {
-            crate::platform::register_url_scheme();
-        }
+        activate_client(ctx, mode)?;
     }
 
     tracing::info!("{}", fl!("applied-patches"));
+    Ok(())
+}
+
+fn activate_client(ctx: &AppContext, mode: ApplyMode) -> Result<()> {
+    if matches!(mode, ApplyMode::Cli { .. }) {
+        ensure_daemon(ctx);
+    }
+    crate::lifecycle::start(ctx)?;
+    if matches!(mode, ApplyMode::Cli { .. }) {
+        crate::platform::register_url_scheme();
+    }
     Ok(())
 }
 
