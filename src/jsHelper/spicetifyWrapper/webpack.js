@@ -9,7 +9,7 @@ import { createSpicetifyBindings } from "./webpack/spicetify-bindings.js";
 import { waitForURI } from "./webpack/uri.js";
 
 void (async function hotloadWebpackModules() {
-  const getChunkQueue = () => window?.webpackChunkclient_web || window?.rspackChunkclient_web;
+  const getChunkQueue = () => window?.rspackChunk || window?.rspackChunkclient_web || window?.webpackChunkclient_web;
   const chunkQueue = await waitFor(getChunkQueue, 50);
 
   // Force all webpack modules to load

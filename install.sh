@@ -30,6 +30,24 @@ if ! is_root && [ "${override_root:-0}" -eq 0 ]; then
     exit
 fi
 
+spicetify_install="$HOME/.spicetify"
+exe="$spicetify_install/spicetify"
+installed_exe=
+if [ -x "$exe" ]; then
+    installed_exe="$exe"
+elif command -v spicetify >/dev/null 2>&1; then
+    installed_exe=$(command -v spicetify)
+fi
+
+if [ -n "$installed_exe" ]; then
+    echo "Spicetify is already installed. Do you want to fix your installation? (Y/n)"
+    read -r choice < /dev/tty
+    if [ "$choice" != "N" ] && [ "$choice" != "n" ]; then
+        "$installed_exe" update
+        exit 0
+    fi
+fi
+
 # wipe existing log
 > install.log :
 
@@ -67,8 +85,6 @@ log "FETCHING Version $tag"
 download_uri=$releases_uri/download/v$tag/spicetify-$tag-$target.tar.gz
 
 # locations
-spicetify_install="$HOME/.spicetify"
-exe="$spicetify_install/spicetify"
 tar="$spicetify_install/spicetify.tar.gz"
 
 # installing
