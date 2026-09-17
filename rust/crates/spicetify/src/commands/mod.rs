@@ -65,6 +65,7 @@ pub enum PkgAction {
     Install { id: String, url: Option<String> },
     Delete { id: String },
     Enable { id: String },
+    Update { id: Option<String> },
 }
 
 pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
@@ -112,6 +113,7 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
                 ),
                 PkgAction::Delete { id } => crate::module::delete_module(&ctx.config_root, id),
                 PkgAction::Enable { id } => crate::module::enable_module(&ctx.config_root, id),
+                PkgAction::Update { id } => pkg::update(ctx, id.as_deref()),
             }
         }
         Command::Protocol(uri) => protocol::run(ctx, uri),
@@ -155,6 +157,7 @@ mod tests {
             PkgAction::Install { id: "module@1".to_string(), url: None },
             PkgAction::Delete { id: "module@1".to_string() },
             PkgAction::Enable { id: "module@1".to_string() },
+            PkgAction::Update { id: Some("module@1".to_string()) },
         ] {
             let error = dispatch(&Command::Pkg(action), &ctx).expect_err("competing mutation");
             assert!(error.to_string().contains("already in progress"), "{error}");

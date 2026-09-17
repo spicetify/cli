@@ -164,6 +164,11 @@ enum CliPkgAction {
     Delete { id: String },
     #[command(about = "Enable a package")]
     Enable { id: String },
+    #[command(about = "Update installed modules")]
+    Update {
+        #[arg(help = "Module identifier to update (updates all if omitted)")]
+        id: Option<String>,
+    },
 }
 
 impl From<CliCommand> for Command {
@@ -224,6 +229,7 @@ impl From<CliPkgAction> for PkgAction {
             CliPkgAction::Install { id, url } => PkgAction::Install { id, url },
             CliPkgAction::Delete { id } => PkgAction::Delete { id },
             CliPkgAction::Enable { id } => PkgAction::Enable { id },
+            CliPkgAction::Update { id } => PkgAction::Update { id },
         }
     }
 }

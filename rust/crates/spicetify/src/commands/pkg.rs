@@ -356,6 +356,100 @@ pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
     )
 }
 
+pub(crate) fn update(ctx: &AppContext, target_id: Option<&str>) -> Result<()> {
+    let vault = cached_vault(&ctx.config_root)?;
+    let paths = crate::module::ModulePaths::from_config_root(&ctx.config_root);
+    let installed_mods = installed(&ctx.config_root);
+
+    if installed_mods.is_empty() {
+        tracing::info!("no modules installed");
+        return Ok(());
+    }
+
+    if let Some(target) = target_id {
+        let Some((_, current_version)) = installed_mods.iter().find(|(id, _)| id == target) else {
+            anyhow::bail!("module '{target}' is not installed");
+        };
+
+        let Some(module) = vault.modules.get(target) else {
+            anyhow::bail!("module '{target}' is not in the vault");
+        };
+
+        let target_version = resolve_version(module)?;
+        if !should_stage(true, Some(current_version), &target_version, !module.enabled.is_empty()) {
+            tracing::info!("{target} is already up to date ({current_version})");
+            return Ok(());
+        }
+
+        let Some(entry) = module.v.get(&target_version) else {
+            anyhow::bail!("{target}@{target_version} is not in the vault");
+        };
+
+        update_single_module(ctx, &paths, target, current_version, &target_version, entry)?;
+    } else {
+        let mut updated_count = 0;
+        for (id, current_version) in &installed_mods {
+            let Some(module) = vault.modules.get(id) else {
+                continue;
+            };
+
+            let Ok(target_version) = resolve_version(module) else {
+                continue;
+            };
+
+            if should_stage(true, Some(current_version), &target_version, !module.enabled.is_empty())
+                && let Some(entry) = module.v.get(&target_version)
+            {
+                tracing::info!("updating {id}: {current_version} -> {target_version}");
+                if let Err(e) = update_single_module(ctx, &paths, id, current_version, &target_version, entry) {
+                    tracing::warn!("failed to update {id}: {e}");
+                } else {
+                    updated_count += 1;
+                }
+            }
+        }
+
+        if updated_count == 0 {
+            tracing::info!("all modules are up to date");
+        } else {
+            tracing::info!("successfully updated {updated_count} module(s)");
+        }
+    }
+
+    Ok(())
+}
+
+fn update_single_module(
+    ctx: &AppContext,
+    paths: &crate::module::ModulePaths,
+    id: &str,
+    old_version: &str,
+    new_version: &str,
+    entry: &VaultVersion,
+) -> Result<()> {
+    if entry.artifacts.is_empty() {
+        anyhow::bail!("{id}@{new_version} has no artifacts");
+    }
+
+    let tag = format!("{id}@{new_version}");
+    crate::module::install_from_vault(
+        &ctx.config_root,
+        &tag,
+        entry.artifacts.clone(),
+        entry.checksum.clone(),
+    )?;
+    crate::module::enable_module(&ctx.config_root, &tag)?;
+    tracing::info!("updated {id} to {new_version}");
+
+    if old_version != new_version
+        && let Ok(superseded) = crate::module::vault::StoreIdentifier::parse(&format!("{id}@{old_version}"))
+    {
+        let _ = crate::module::delete(paths, &superseded);
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
