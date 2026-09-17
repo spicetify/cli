@@ -524,7 +524,12 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
     // here rather than leaving them silently unprotected.
     super::updates::reassert_block(ctx);
 
-    let updates_blocked = super::updates::is_blocked(ctx).unwrap_or(false);
+    let updates_blocked = super::updates::is_blocked(ctx).ok();
+    #[cfg(target_os = "linux")]
+    let managed_spotify =
+        super::spotify::managed_channel(ctx)?.map(|channel| channel.name().to_string());
+    #[cfg(not(target_os = "linux"))]
+    let managed_spotify = None;
 
     match crate::module::stage::stage_modules(
         &ctx.config_root,
@@ -533,6 +538,7 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
         &version,
         env!("CARGO_PKG_VERSION"),
         updates_blocked,
+        managed_spotify,
     ) {
         Ok(0) => {
             tracing::warn!("no modules staged: the client will boot without them");

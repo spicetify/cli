@@ -108,11 +108,80 @@ pub fn build(state: Arc<DaemonState>) -> Router {
         .route("/shutdown", post(shutdown_handler))
         .route("/jobs/update-and-apply", get(update_job_status).post(update_job_admit))
         .route("/jobs/update-and-apply/event", post(update_job_event))
+        .route("/spotify", get(managed_spotify_status))
+        .route("/spotify/check", post(managed_spotify_check))
+        .route("/spotify/update", post(managed_spotify_update))
         .route("/proxy", get(proxy::status))
         .route("/proxy/", get(proxy::status))
         .route("/proxy/{*url}", any(proxy::handler))
         .layer(cors_layer())
         .with_state(state)
+}
+
+async fn managed_spotify_status(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    if !authorized(&state, &headers) {
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+    }
+    #[cfg(target_os = "linux")]
+    return match tokio::task::spawn_blocking(move || state.managed_spotify.snapshot()).await {
+        Ok(Ok(snapshot)) => Json(snapshot).into_response(),
+        Ok(Err(error)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("cannot read managed Spotify status: {error:#}"),
+        )
+            .into_response(),
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()).into_response(),
+    };
+    #[cfg(not(target_os = "linux"))]
+    Json(serde_json::json!({"installation":{"kind":"external"},"job":{"kind":"idle"}}))
+        .into_response()
+}
+
+async fn managed_spotify_check(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    if !authorized(&state, &headers) {
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+    }
+    #[cfg(target_os = "linux")]
+    return match tokio::task::spawn_blocking(move || {
+        let ctx = state.ctx.load_full();
+        let _guard = spicetify::commands::guard::try_acquire(&ctx.config_root)?;
+        spicetify::commands::spotify::check_update(&ctx)
+    })
+    .await
+    {
+        Ok(Ok(available)) => Json(available).into_response(),
+        Ok(Err(error)) => {
+            (StatusCode::CONFLICT, format!("cannot check Spotify packages: {error:#}"))
+                .into_response()
+        }
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()).into_response(),
+    };
+    #[cfg(not(target_os = "linux"))]
+    (StatusCode::NOT_IMPLEMENTED, "managed Spotify packages require Linux").into_response()
+}
+
+async fn managed_spotify_update(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    if !authorized(&state, &headers) {
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+    }
+    #[cfg(target_os = "linux")]
+    return match tokio::task::spawn_blocking(move || state.managed_spotify.admit()).await {
+        Ok(Ok(admission)) => (StatusCode::ACCEPTED, Json(admission)).into_response(),
+        Ok(Err(error)) => (StatusCode::CONFLICT, format!("cannot start Spotify update: {error:#}"))
+            .into_response(),
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()).into_response(),
+    };
+    #[cfg(not(target_os = "linux"))]
+    (StatusCode::NOT_IMPLEMENTED, "managed Spotify packages require Linux").into_response()
 }
 
 async fn update_job_status(
@@ -245,6 +314,11 @@ async fn shutdown_handler(
     if !authorized(&state, &headers) {
         tracing::warn!("shutdown request rejected: missing or invalid daemon token");
         return (StatusCode::FORBIDDEN, "invalid daemon token".to_string()).into_response();
+    }
+    #[cfg(target_os = "linux")]
+    if state.managed_spotify.running() {
+        return (StatusCode::CONFLICT, "a managed Spotify update is in progress".to_string())
+            .into_response();
     }
     tracing::info!("{}", spicetify::fl!("shutdown-requested"));
     state.shutdown.notify_waiters();

@@ -83,9 +83,13 @@ modifies the client.
   match a verified entry in the consumed index.
 - `supportedSpotify` is the newest verified Spotify version in that index.
 - `classmapFallback` reports whether selection used an older patch.
-- `updatesBlocked` reports the installed updater protection at apply time.
+- `updatesBlocked` reports native updater protection at apply time. It is
+  omitted when protection cannot be determined; `false` means the native
+  updater is known to be unblocked. Managed package updates are separate.
+- `managedSpotify` identifies a Spicetify-owned Linux installation and its
+  package channel, `stable` or `testing`.
 
-Manager combines these local facts with the availability feed. Its
+For native installations, Manager combines these local facts with the availability feed. Its
 **supported** badge comes from `supportedSpotify`; its **available** badge
 comes from the observed-version feed.
 
@@ -125,9 +129,29 @@ spicetify spotify-updates unblock
 spicetify spotify-updates status
 ```
 
-Current Windows clients protect the updater staging directory. macOS and Linux
-patch the update endpoint in Spotify's binary; macOS also signs the changed app
-bundle and applies a secondary update-cache lock.
+Current Windows desktop clients protect the updater staging directory.
+Microsoft Store updates must be managed through Microsoft Store. macOS patches
+the update endpoint in Spotify's binary, signs the changed app bundle, and
+applies a secondary update-cache lock.
+
+On Linux, the binary block only works when its expected endpoint is present.
+An unrecognized endpoint leaves protection unknown. The Linux managed installer
+offers a separate path: `spicetify spotify install` installs a user-owned copy,
+and `spicetify spotify update` explicitly downloads and applies a verified
+package. System package managers do not own that copy. This does not establish
+native updater protection or freeze other Spotify installations.
+
+For managed installations, Manager checks Spotify's Linux package feed and
+offers **Update Spotify & Apply** when a newer package has an exact verified
+classmap. The daemon owns the job, so closing or restarting the renderer does
+not cancel it. It prepares and patches a separate copy before switching the
+configuration, desktop entry, and terminal launcher together. Update progress
+and the final result remain available after Spotify restarts.
+
+If the daemon itself stops during an update, the next start reports the
+interrupted job. Run `spicetify spotify install` to prepare a fresh copy using
+the installation's existing channel, then retry. Updates requested from the
+terminal use the same installer.
 
 `block` and `unblock` store the user's intent in `config.toml`. A successful
 Spotify update can replace the installed protection, so `apply` reasserts a

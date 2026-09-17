@@ -10,6 +10,7 @@ import {
   uninstallStaged,
   updateAndApplySupported as daemonUpdateAndApplySupported,
 } from "./shared/daemonRpc.js";
+import { managedSpotify } from "./shared/managedSpotify.js";
 import { installUpdateJobBridge, updateAndApply, updateApiSupported } from "./shared/updateAndApply.js";
 
 const updateAndApplySupported = async () => {
@@ -36,6 +37,7 @@ Object.assign(Spicetify.Daemon, {
   uninstallStaged,
   updateAndApplySupported,
   updateAndApply,
+  managedSpotify,
 });
 
 installUpdateJobBridge(() => Spicetify.Platform);

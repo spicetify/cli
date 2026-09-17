@@ -23,7 +23,7 @@ pub enum Channel {
 }
 
 impl Channel {
-    fn name(self) -> &'static str {
+    pub(crate) fn name(self) -> &'static str {
         match self {
             Self::Stable => "stable",
             Self::Testing => "testing",
@@ -33,7 +33,7 @@ impl Channel {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Action {
-    Install(Channel),
+    Install(Option<Channel>),
     Update(Option<Channel>),
     Status,
 }
@@ -76,15 +76,49 @@ fn installed(ctx: &AppContext) -> Result<Option<Installation>> {
     Ok(Some(serde_json::from_slice(&record)?))
 }
 
+pub(crate) fn managed_channel(ctx: &AppContext) -> Result<Option<Channel>> {
+    Ok(installed(ctx)?.map(|record| record.channel))
+}
+
 pub fn run(ctx: &AppContext, action: &Action) -> Result<()> {
     ensure!(std::env::consts::ARCH == "x86_64", "Spotify's Linux package requires x86_64");
     if matches!(action, Action::Status) {
         return status(ctx);
     }
     let guard = super::guard::try_acquire(&ctx.config_root)?;
+    run_inner(ctx, *action, &guard, true, &mut |_| Ok(()))
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Phase {
+    Checking,
+    Downloading,
+    Preparing,
+    Activating,
+}
+
+/// The daemon keeps running while it owns the update and follows the new config.
+pub fn update_managed(
+    ctx: &AppContext,
+    guard: &super::guard::DisruptiveOperationGuard,
+    mut progress: impl FnMut(Phase) -> Result<()>,
+) -> Result<()> {
+    run_inner(ctx, Action::Update(None), guard, false, &mut progress)
+}
+
+fn run_inner(
+    ctx: &AppContext,
+    action: Action,
+    guard: &super::guard::DisruptiveOperationGuard,
+    manage_daemon: bool,
+    progress: &mut impl FnMut(Phase) -> Result<()>,
+) -> Result<()> {
+    progress(Phase::Checking)?;
     let current = installed(ctx)?;
     let channel = match action {
-        Action::Install(channel) => *channel,
+        Action::Install(channel) => channel
+            .unwrap_or_else(|| current.as_ref().map_or(Channel::Stable, |record| record.channel)),
         Action::Update(channel) => {
             let current = current.as_ref().context(
                 "Spotify is not managed by Spicetify; run `spicetify spotify install` first",
@@ -105,6 +139,7 @@ pub fn run(ctx: &AppContext, action: &Action) -> Result<()> {
         && current.sha256 == package.sha256
         && actual_version.as_deref() == Some(package.version.as_str())
     {
+        repair_launchers(ctx)?;
         tracing::info!("Spotify {} is already installed", current.version);
         // A channel change can point at exactly the same package.
         let record = Installation {
@@ -116,12 +151,14 @@ pub fn run(ctx: &AppContext, action: &Action) -> Result<()> {
         return Ok(());
     }
     verify_support(ctx, &package.version)?;
+    progress(Phase::Downloading)?;
     let archive = download(&package)?;
     let versions = install_root()?.join("versions");
     fs::create_dir_all(&versions)?;
     let candidate = versions.join(format!("{}-{}", package.version, nonce()?));
     fs::create_dir(&candidate)?;
     let result = (|| {
+        progress(Phase::Preparing)?;
         tracing::info!("Preparing Spotify {} from the {} channel", package.version, channel.name());
         extract_deb(&archive, &candidate)?;
         check_dependencies(&candidate)?;
@@ -135,7 +172,13 @@ pub fn run(ctx: &AppContext, action: &Action) -> Result<()> {
         config.spotify_data_dir = Some(candidate.clone());
         config.mirror = false;
         let next = AppContext::from_config(ctx.config_root.clone(), &config)?;
-        super::apply::prepare(&next, &guard)?;
+        let record = Installation {
+            version: package.version.clone(),
+            channel,
+            sha256: package.sha256.clone(),
+        };
+        fs::write(candidate.join(RECORD), serde_json::to_vec_pretty(&record)?)?;
+        super::apply::prepare(&next, guard)?;
         let manifest: serde_json::Value =
             serde_json::from_slice(&fs::read(candidate.join("Apps/xpui/modules/manifest.json"))?)?;
         ensure!(
@@ -144,10 +187,8 @@ pub fn run(ctx: &AppContext, action: &Action) -> Result<()> {
                     == Some(version_line(&package.version)?.as_str()),
             "prepared client did not use a verified classmap for this Spotify version"
         );
-        let record =
-            Installation { version: package.version.clone(), channel, sha256: package.sha256 };
-        fs::write(candidate.join(RECORD), serde_json::to_vec_pretty(&record)?)?;
-        activate(ctx, &next, &config, &candidate)?;
+        progress(Phase::Activating)?;
+        activate(ctx, &next, &config, &candidate, manage_daemon)?;
         tracing::info!("Spotify {} installed at {}", package.version, candidate.display());
         tracing::info!(
             "Use `spicetify spotify update` for future package updates. Native updater blocking remains a separate check."
@@ -159,6 +200,48 @@ pub fn run(ctx: &AppContext, action: &Action) -> Result<()> {
         tracing::warn!(path = %candidate.display(), "installation did not finish; retained candidate for recovery");
     }
     result
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", rename_all_fields = "camelCase")]
+pub enum InstallationStatus {
+    External,
+    Unavailable { message: String },
+    Managed { version: String, channel: Channel, native_blocked: Option<bool> },
+}
+
+pub fn installation_status(ctx: &AppContext) -> Result<InstallationStatus> {
+    Ok(match installed(ctx)? {
+        None => InstallationStatus::External,
+        Some(record) => InstallationStatus::Managed {
+            version: executable_version(&ctx.spotify_exec)?,
+            channel: record.channel,
+            native_blocked: super::updates::is_blocked(ctx).ok(),
+        },
+    })
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum AvailableUpdate {
+    Current { version: String },
+    Ready { version: String },
+    Unavailable { version: String, message: String },
+}
+
+pub fn check_update(ctx: &AppContext) -> Result<AvailableUpdate> {
+    let current = installed(ctx)?.context("Spotify is not managed by Spicetify")?;
+    let package = latest(current.channel)?;
+    let actual = executable_version(&ctx.spotify_exec)?;
+    if version_parts(&package.version)? <= version_parts(&actual)? {
+        return Ok(AvailableUpdate::Current { version: package.version });
+    }
+    Ok(match verify_support(ctx, &package.version) {
+        Ok(()) => AvailableUpdate::Ready { version: package.version },
+        Err(error) => {
+            AvailableUpdate::Unavailable { version: package.version, message: format!("{error:#}") }
+        }
+    })
 }
 
 fn status(ctx: &AppContext) -> Result<()> {
@@ -541,10 +624,18 @@ fn recovery_error(
     }
 }
 
-fn activate(old: &AppContext, next: &AppContext, config: &Config, candidate: &Path) -> Result<()> {
+fn activate(
+    old: &AppContext,
+    next: &AppContext,
+    config: &Config,
+    candidate: &Path,
+    manage_daemon: bool,
+) -> Result<()> {
     let launcher = base_dirs()?.data_dir().join("applications/spotify.desktop");
     let previous_config = read_optional(&old.config_file)?;
     let previous_launcher = read_optional(&launcher)?;
+    let terminal = terminal_launcher()?;
+    let previous_terminal = read_launcher_link(&terminal)?;
     let desktop =
         desktop_entry(&next.spotify_exec, &candidate.join("icons/spotify-linux-128.png"))?;
     let config_bytes = toml::to_string_pretty(config)?.into_bytes();
@@ -557,10 +648,12 @@ fn activate(old: &AppContext, next: &AppContext, config: &Config, candidate: &Pa
     let was_running = crate::lifecycle::is_running(old);
     let daemon_running = crate::daemon::is_daemon_running();
     let daemon_installed = crate::daemon::DaemonManager::create().is_installed();
-    super::daemon::stop()?;
+    if manage_daemon {
+        super::daemon::stop()?;
+    }
     let result = (|| {
         ensure!(
-            !crate::daemon::is_daemon_running(),
+            !manage_daemon || !crate::daemon::is_daemon_running(),
             "daemon did not stop before changing Spotify paths"
         );
         crate::lifecycle::stop(old)?;
@@ -568,6 +661,7 @@ fn activate(old: &AppContext, next: &AppContext, config: &Config, candidate: &Pa
         replace_and_activate(
             &[(&old.config_file, &config_bytes), (&launcher, desktop.as_bytes())],
             || {
+                replace_launcher_link(&terminal, Some(&next.spotify_exec))?;
                 super::updates::reassert_block(next);
                 if let Ok(blocked) = super::updates::is_blocked(next) {
                     ensure!(
@@ -592,16 +686,20 @@ fn activate(old: &AppContext, next: &AppContext, config: &Config, candidate: &Pa
             ("restore configuration", restore_file(&old.config_file, previous_config.as_deref())),
             ("restore launcher", restore_file(&launcher, previous_launcher.as_deref())),
             (
+                "restore terminal launcher",
+                replace_launcher_link(&terminal, previous_terminal.as_deref()),
+            ),
+            (
                 "restart previous client",
                 if was_running { crate::lifecycle::start(old) } else { Ok(()) },
             ),
             (
                 "restore daemon service",
-                if daemon_installed { super::daemon::install() } else { Ok(()) },
+                if manage_daemon && daemon_installed { super::daemon::install() } else { Ok(()) },
             ),
             (
                 "restart daemon",
-                if daemon_running && !crate::daemon::is_daemon_running() {
+                if manage_daemon && daemon_running && !crate::daemon::is_daemon_running() {
                     super::daemon::start()
                 } else {
                     Ok(())
@@ -610,17 +708,132 @@ fn activate(old: &AppContext, next: &AppContext, config: &Config, candidate: &Pa
         ];
         return Err(recovery_error(error, recovery));
     }
-    super::apply::ensure_daemon(next);
-    crate::platform::register_url_scheme();
+    if manage_daemon {
+        super::apply::ensure_daemon(next);
+        crate::platform::register_url_scheme();
+    }
     if let Some(directory) = launcher.parent() {
         let _ = Command::new("update-desktop-database").arg(directory).output();
     }
+    check_terminal_path(next);
     Ok(())
+}
+
+fn terminal_launcher() -> Result<PathBuf> {
+    Ok(base_dirs()?.home_dir().join(".local/bin/spotify"))
+}
+
+fn read_launcher_link(path: &Path) -> Result<Option<PathBuf>> {
+    match fs::read_link(path) {
+        Ok(target) => Ok(Some(target)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error).with_context(|| format!("cannot replace {}; move the existing file aside to use the managed Spotify launcher", path.display())),
+    }
+}
+
+fn replace_launcher_link(path: &Path, target: Option<&Path>) -> Result<()> {
+    let Some(target) = target else { return restore_file(path, None) };
+    let parent = path.parent().context("launcher has no parent")?;
+    fs::create_dir_all(parent)?;
+    let temporary = parent.join(format!(".spotify-{}", nonce()?));
+    std::os::unix::fs::symlink(target, &temporary)?;
+    if let Err(error) = fs::rename(&temporary, path) {
+        let _ = fs::remove_file(temporary);
+        return Err(error.into());
+    }
+    Ok(())
+}
+
+fn repair_launchers(ctx: &AppContext) -> Result<()> {
+    let terminal = terminal_launcher()?;
+    let previous = read_launcher_link(&terminal)?;
+    let desktop = base_dirs()?.data_dir().join("applications/spotify.desktop");
+    let content = desktop_entry(
+        &ctx.spotify_exec,
+        &ctx.spotify_data_dir.join("icons/spotify-linux-128.png"),
+    )?;
+    let result = replace_and_activate(&[(&desktop, content.as_bytes())], || {
+        replace_launcher_link(&terminal, Some(&ctx.spotify_exec))
+    });
+    if let Err(error) = result {
+        return Err(recovery_error(
+            error,
+            [("restore terminal launcher", replace_launcher_link(&terminal, previous.as_deref()))],
+        ));
+    }
+    check_terminal_path(ctx);
+    Ok(())
+}
+
+fn terminal_path_selects(path: &std::ffi::OsStr, executable: &Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    let Ok(expected) = executable.canonicalize() else { return false };
+    let selected =
+        std::env::split_paths(path).map(|directory| directory.join("spotify")).find(|candidate| {
+            fs::metadata(candidate).is_ok_and(|metadata| {
+                metadata.is_file() && metadata.permissions().mode() & 0o111 != 0
+            })
+        });
+    selected.and_then(|candidate| candidate.canonicalize().ok()) == Some(expected)
+}
+
+fn check_terminal_path(ctx: &AppContext) {
+    if !std::env::var_os("PATH").is_some_and(|path| terminal_path_selects(&path, &ctx.spotify_exec))
+    {
+        tracing::warn!(
+            "The terminal command does not select managed Spotify. Put ~/.local/bin before other Spotify directories in your shell's PATH and reopen your terminal. The desktop launcher already selects the managed copy."
+        );
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn terminal_launcher_switch_and_rollback_preserve_the_previous_target() {
+        let dir = Fixture::new();
+        let launcher = dir.0.join("bin/spotify");
+        let first = dir.0.join("old client/spotify");
+        let second = dir.0.join("new client/spotify");
+        assert!(read_launcher_link(&launcher).expect("missing launcher").is_none());
+        replace_launcher_link(&launcher, Some(&first)).expect("initial launcher");
+        let previous = read_launcher_link(&launcher).expect("snapshot");
+        replace_launcher_link(&launcher, Some(&second)).expect("switch launcher");
+        assert_eq!(fs::read_link(&launcher).expect("target"), second);
+        replace_launcher_link(&launcher, previous.as_deref()).expect("restore launcher");
+        assert_eq!(fs::read_link(&launcher).expect("restored target"), first);
+        replace_launcher_link(&launcher, None).expect("remove new launcher");
+        fs::write(&launcher, b"user script").expect("user launcher");
+        assert!(read_launcher_link(&launcher).is_err());
+        assert_eq!(fs::read(&launcher).expect("user file preserved"), b"user script");
+    }
+
+    #[test]
+    fn terminal_path_check_detects_missing_or_shadowed_managed_launchers() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = Fixture::new();
+        let user = dir.0.join("user-bin");
+        let system = dir.0.join("system-bin");
+        fs::create_dir_all(&user).expect("user bin");
+        fs::create_dir_all(&system).expect("system bin");
+        for parent in [&user, &system] {
+            let executable = parent.join("spotify");
+            fs::write(&executable, b"#!/bin/sh\nexit 0\n").expect("executable");
+            fs::set_permissions(&executable, fs::Permissions::from_mode(0o755))
+                .expect("permissions");
+        }
+        let target = user.join("spotify");
+        assert!(terminal_path_selects(
+            &std::env::join_paths([&user, &system]).expect("PATH"),
+            &target
+        ));
+        assert!(!terminal_path_selects(
+            &std::env::join_paths([&system, &user]).expect("PATH"),
+            &target
+        ));
+        assert!(!terminal_path_selects(&std::env::join_paths([&system]).expect("PATH"), &target));
+    }
 
     struct Fixture(PathBuf);
     impl Fixture {
