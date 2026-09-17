@@ -81,8 +81,11 @@ pub(crate) struct ModulesManifest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub supported_spotify: Option<String>,
     pub cli_version: String,
-    /// Read by the manager module's Updates panel.
-    pub updates_blocked: bool,
+    /// None means native updater protection could not be determined.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updates_blocked: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub managed_spotify: Option<String>,
     pub classmap_fallback: bool,
     pub classmap: serde_json::Value,
     pub modules: Vec<StagedModule>,
@@ -323,7 +326,8 @@ pub(crate) fn stage_modules(
     xpui: &Path,
     spotify_version: &str,
     cli_version: &str,
-    updates_blocked: bool,
+    updates_blocked: Option<bool>,
+    managed_spotify: Option<String>,
 ) -> Result<usize> {
     if !modules_root.is_dir() {
         tracing::info!("no modules directory at {}: nothing to stage", modules_root.display());
@@ -419,6 +423,7 @@ pub(crate) fn stage_modules(
         supported_spotify: support.latest_spotify,
         cli_version: cli_version.to_string(),
         updates_blocked,
+        managed_spotify,
         classmap_fallback,
         classmap,
         modules: staged,
@@ -522,7 +527,8 @@ mod tests {
             classmap_verified: true,
             supported_spotify: Some("1.2.97".to_string()),
             cli_version: "3.0.0-beta.6".to_string(),
-            updates_blocked: false,
+            updates_blocked: Some(false),
+            managed_spotify: None,
             classmap_fallback: false,
             classmap: serde_json::json!({}),
             modules: Vec::new(),
@@ -531,6 +537,31 @@ mod tests {
         assert_eq!(json["classmapSpotify"], "1.2.96");
         assert_eq!(json["classmapVerified"], true);
         assert_eq!(json["supportedSpotify"], "1.2.97");
+    }
+
+    #[test]
+    fn manifest_preserves_unknown_allowed_and_blocked_update_states() {
+        for state in [None, Some(false), Some(true)] {
+            let manifest = ModulesManifest {
+                spotify_version: "1.2.96".to_string(),
+                classmap_key: "1020096".to_string(),
+                classmap_spotify: None,
+                classmap_verified: false,
+                supported_spotify: None,
+                cli_version: "3.0.0-beta.17".to_string(),
+                updates_blocked: state,
+                managed_spotify: Some("testing".into()),
+                classmap_fallback: false,
+                classmap: serde_json::json!({}),
+                modules: Vec::new(),
+            };
+            let json = serde_json::to_value(manifest).expect("manifest serializes");
+            assert_eq!(json.get("managedSpotify"), Some(&serde_json::json!("testing")));
+            match state {
+                Some(blocked) => assert_eq!(json.get("updatesBlocked"), Some(&blocked.into())),
+                None => assert!(json.get("updatesBlocked").is_none()),
+            }
+        }
     }
 
     #[test]

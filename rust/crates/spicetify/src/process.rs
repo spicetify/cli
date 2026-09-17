@@ -54,15 +54,29 @@ pub(crate) fn process_running(name: &str) -> bool {
 #[cfg(target_os = "linux")]
 fn linux_process_alive(pid: u32) -> bool {
     // pgrep includes unreaped children. They cannot exit again or serve a client.
-    std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| {
+    let alive = std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| {
         stat.rsplit_once(')')
             .and_then(|(_, rest)| rest.split_whitespace().next())
             .is_some_and(|state| state != "Z" && state != "X")
-    })
+    });
+    alive
+        && std::fs::read(format!("/proc/{pid}/cmdline")).is_ok_and(|args| !is_version_probe(&args))
+}
+
+#[cfg(target_os = "linux")]
+fn is_version_probe(args: &[u8]) -> bool {
+    args.split(|byte| *byte == 0).skip(1).any(|arg| arg == b"--version")
 }
 
 #[cfg(all(test, target_os = "linux"))]
 mod linux_tests {
+    #[test]
+    fn version_probes_do_not_count_as_a_running_client() {
+        assert!(super::is_version_probe(b"/opt/spotify/spotify\0--version\0"));
+        assert!(!super::is_version_probe(b"/opt/spotify/spotify\0--remote-debugging-port=9229\0"));
+        assert!(!super::is_version_probe(b"/opt/spotify/spotify\0spotify:track:version\0"));
+    }
+
     #[test]
     fn an_unreaped_child_is_not_a_running_client() {
         let mut child = std::process::Command::new("sleep").arg("30").spawn().unwrap();

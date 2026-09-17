@@ -35,6 +35,49 @@ pub fn spawn_apps_watcher(
     active: Arc<AtomicBool>,
     update_job: UpdateJobHandle,
 ) -> Option<tokio::task::JoinHandle<()>> {
+    Some(tokio::spawn(async move {
+        let mut tick = tokio::time::interval(Duration::from_secs(1));
+        loop {
+            let path = shared.load().spotify_apps_path();
+            let stop = Arc::new(Notify::new());
+            let cancelled = Arc::new(AtomicBool::new(false));
+            let task = spawn_apps_watcher_at(
+                Arc::clone(&shared),
+                Arc::clone(&stop),
+                Arc::clone(&active),
+                update_job.clone(),
+                Arc::clone(&cancelled),
+            );
+            let quitting = loop {
+                tokio::select! {
+                    () = shutdown.notified() => break true,
+                    _ = tick.tick() => {
+                        if shared.load().spotify_apps_path() != path || task.as_ref().is_none_or(tokio::task::JoinHandle::is_finished) {
+                            break false;
+                        }
+                    }
+                }
+            };
+            cancelled.store(true, Ordering::Release);
+            stop.notify_one();
+            if let Some(task) = task {
+                let _ = task.await;
+            }
+            active.store(false, Ordering::Release);
+            if quitting {
+                break;
+            }
+        }
+    }))
+}
+
+fn spawn_apps_watcher_at(
+    shared: Arc<SharedContext>,
+    shutdown: Arc<Notify>,
+    active: Arc<AtomicBool>,
+    update_job: UpdateJobHandle,
+    cancelled: Arc<AtomicBool>,
+) -> Option<tokio::task::JoinHandle<()>> {
     let apps = (*shared.load_full()).spotify_apps_path();
 
     let (tx, rx) = mpsc::unbounded_channel();
@@ -64,12 +107,15 @@ pub fn spawn_apps_watcher(
                 let nth = applies;
                 let update_job = update_job.clone();
                 let ctx = shared.load_full();
+                let cancelled = Arc::clone(&cancelled);
                 async move {
                     if update_job.status().owns_recovery() {
                         update_job.nudge_apps_changed();
                         return;
                     }
-                    let joined = tokio::task::spawn_blocking(move || auto_apply(&ctx, nth)).await;
+                    let joined =
+                        tokio::task::spawn_blocking(move || auto_apply(&ctx, nth, &cancelled))
+                            .await;
                     if joined.is_err() {
                         tracing::error!("auto-apply task panicked");
                     }
@@ -83,7 +129,7 @@ pub fn spawn_apps_watcher(
 }
 
 /// One auto-apply attempt, ordered after the updater's own restart cycle.
-fn auto_apply(ctx: &AppContext, nth: u32) {
+fn auto_apply(ctx: &AppContext, nth: u32, cancelled: &AtomicBool) {
     // A stock archive means an update already landed. Repair is needed even
     // when update protection is blocked or cannot be determined.
     if !ctx.spotify_apps_path().join("xpui.spa").is_file() {
@@ -109,6 +155,7 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
         CLIENT_EXIT_CEILING,
         || ctx.spotify_apps_path().join("xpui.spa").is_file(),
         || spicetify::lifecycle::is_running(ctx),
+        cancelled,
     ) {
         Ok(Some(guard)) => guard,
         Ok(None) => {
@@ -120,7 +167,7 @@ fn auto_apply(ctx: &AppContext, nth: u32) {
             return;
         }
     };
-    if !ctx.spotify_apps_path().join("xpui.spa").is_file() {
+    if cancelled.load(Ordering::Acquire) || !ctx.spotify_apps_path().join("xpui.spa").is_file() {
         tracing::info!("stock xpui.spa is no longer present; skipping auto-apply");
         return;
     }
@@ -134,10 +181,15 @@ fn wait_for_idle_guard(
     timeout: Duration,
     mut repair_pending: impl FnMut() -> bool,
     mut is_running: impl FnMut() -> bool,
+    cancelled: &AtomicBool,
 ) -> anyhow::Result<Option<commands::guard::DisruptiveOperationGuard>> {
     let deadline = std::time::Instant::now() + timeout;
     let mut waited = false;
     loop {
+        anyhow::ensure!(
+            !cancelled.load(Ordering::Acquire),
+            "Spotify watch path changed; cancelling the old repair"
+        );
         if !repair_pending() {
             return Ok(None);
         }
@@ -187,7 +239,10 @@ pub fn spawn_config_watcher(
         tracing::warn!("failed to create config watcher");
         return None;
     };
-    if watcher.watch(&config_file, RecursiveMode::NonRecursive).is_err() {
+    // Atomic config replacement removes the watched inode. Watch its parent
+    // so later updates are still observed after an installer activation.
+    let config_parent = config_file.parent()?;
+    if watcher.watch(config_parent, RecursiveMode::NonRecursive).is_err() {
         tracing::warn!("failed to watch config file");
         return None;
     }
@@ -321,6 +376,7 @@ mod tests {
                 }
                 false
             },
+            &AtomicBool::new(false),
         );
         drop(competing);
         drop(result?.expect("repair remains pending"));
@@ -350,6 +406,7 @@ mod tests {
                     _ => false,
                 }
             },
+            &AtomicBool::new(false),
         );
         drop(result?.expect("repair remains pending"));
         assert!(checks >= 5, "a restart must resume waiting, not abandon the repair");
@@ -361,17 +418,80 @@ mod tests {
     fn auto_apply_wait_has_one_deadline_and_preserves_filesystem_errors() -> anyhow::Result<()> {
         let root = scratch("deadline")?;
         let guard = commands::guard::try_acquire(&root)?;
-        let error = wait_for_idle_guard(&root, Duration::from_millis(20), || true, || false)
-            .expect_err("operation remains locked");
+        let error = wait_for_idle_guard(
+            &root,
+            Duration::from_millis(20),
+            || true,
+            || false,
+            &AtomicBool::new(false),
+        )
+        .expect_err("the operation guard is still held");
         assert!(error.to_string().contains("still busy"));
         drop(guard);
         let file = root.join("not-a-directory");
         std::fs::write(&file, "sentinel")?;
-        let error = wait_for_idle_guard(&file, Duration::from_mins(1), || true, || false)
-            .expect_err("lock path is not a directory");
+        let error = wait_for_idle_guard(
+            &file,
+            Duration::from_secs(60),
+            || true,
+            || false,
+            &AtomicBool::new(false),
+        )
+        .expect_err("the config root is a file");
         assert!(error.downcast_ref::<std::io::Error>().is_some());
         std::fs::remove_dir_all(root)?;
         Ok(())
+    }
+
+    #[test]
+    fn path_change_cancels_a_wait_even_with_a_running_client() -> anyhow::Result<()> {
+        let root = scratch("cancel")?;
+        let result = wait_for_idle_guard(
+            &root,
+            Duration::from_secs(1800),
+            || true,
+            || true,
+            &AtomicBool::new(true),
+        );
+        assert!(result.expect_err("cancelled repair").to_string().contains("watch path changed"));
+        drop(commands::guard::try_acquire(&root)?);
+        std::fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn private_stop_is_retained_while_a_trigger_is_busy() {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let stop = Arc::new(Notify::new());
+        let entered = Arc::new(Notify::new());
+        let release = Arc::new(Notify::new());
+        let task = tokio::spawn(run_loop(
+            rx,
+            |_| true,
+            {
+                let entered = Arc::clone(&entered);
+                let release = Arc::clone(&release);
+                move || {
+                    let entered = Arc::clone(&entered);
+                    let release = Arc::clone(&release);
+                    async move {
+                        entered.notify_one();
+                        release.notified().await;
+                    }
+                }
+            },
+            Arc::clone(&stop),
+        ));
+        tx.send(event()).expect("trigger");
+        tokio::time::timeout(Duration::from_secs(3), entered.notified())
+            .await
+            .expect("trigger started");
+        stop.notify_one();
+        release.notify_one();
+        tokio::time::timeout(Duration::from_secs(3), task)
+            .await
+            .expect("watcher stopped")
+            .expect("watcher task");
     }
 
     #[test]
@@ -389,6 +509,7 @@ mod tests {
                 std::fs::remove_file(&archive).expect("another apply consumes the archive");
                 true
             },
+            &AtomicBool::new(false),
         )?;
         assert!(result.is_none(), "completed repair must not wait for Spotify to exit");
         assert_eq!(process_checks, 1, "polling must stop even though Spotify is still running");

@@ -91,8 +91,12 @@ enum CliCommand {
 enum CliSpotifyAction {
     #[command(about = "Download Spotify, apply Spicetify, and add a desktop launcher")]
     Install {
-        #[arg(long, value_enum, default_value = "stable")]
-        channel: SpotifyChannel,
+        #[arg(
+            long,
+            value_enum,
+            help = "Keep the installed channel; new installations default to stable"
+        )]
+        channel: Option<SpotifyChannel>,
     },
     #[command(about = "Update the Spotify installation managed by Spicetify")]
     Update {
@@ -196,7 +200,9 @@ impl From<CliCommand> for Command {
             CliCommand::Spotify { action } => {
                 use spicetify::commands::spotify::Action;
                 Command::Spotify(match action {
-                    CliSpotifyAction::Install { channel } => Action::Install(channel.into()),
+                    CliSpotifyAction::Install { channel } => {
+                        Action::Install(channel.map(Into::into))
+                    }
                     CliSpotifyAction::Update { channel } => Action::Update(channel.map(Into::into)),
                     CliSpotifyAction::Status => Action::Status,
                 })

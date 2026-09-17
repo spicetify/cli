@@ -4,6 +4,8 @@ use i18n_embed_fl as _;
 
 pub mod error;
 pub mod health;
+#[cfg(target_os = "linux")]
+pub mod managed_spotify;
 pub mod proxy;
 pub mod routes;
 pub mod server;
