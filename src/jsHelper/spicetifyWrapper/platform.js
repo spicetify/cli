@@ -49,7 +49,7 @@ function applyScrollingFix() {
 
   // Run only for 1.2.56 and lower
   const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
-  if (version[1] >= 2 && version[2] >= 57) return;
+  if ((version[1] == 2 && version[2] >= 57) || version[1] > 2) return;
 
   const scrollableElements = Array.from(document.querySelectorAll("*:not([data-scroll-optimized])")).filter((el) => {
     if (
@@ -126,7 +126,7 @@ void (async function addProxyCosmos() {
 
       if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop)) return internalFetch;
       const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
-      if (version[1] >= 2 && version[2] < 31) return internalFetch;
+      if (version[1] < 2 || (version[1] == 2 && version[2] < 31)) return internalFetch;
 
       return async function (url, body) {
         const urlObj = new URL(url);
