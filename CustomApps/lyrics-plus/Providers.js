@@ -183,6 +183,11 @@ const Providers = {
 			return result;
 		}
 
+		const karaoke = ProviderLRCLIB.getKaraoke(list);
+		if (karaoke) {
+			result.karaoke = karaoke;
+		}
+
 		const synced = ProviderLRCLIB.getSynced(list);
 		if (synced) {
 			result.synced = synced;
