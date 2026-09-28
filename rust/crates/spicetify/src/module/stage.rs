@@ -140,7 +140,7 @@ pub(crate) fn classmap_search_dirs(config_root: &Path) -> Vec<PathBuf> {
 /// crossing a minor is not assumed to be safe.
 ///
 /// Returns the resolved key and whether it is a fallback.
-fn resolve_classmap_key(config_root: &Path, key: &str) -> Option<(String, bool)> {
+pub(crate) fn resolve_classmap_key(config_root: &Path, key: &str) -> Option<(String, bool)> {
     if find_classmap_file(config_root, key).is_some() {
         return Some((key.to_string(), false));
     }
