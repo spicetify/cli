@@ -849,7 +849,7 @@ const COMMANDS: Record<string, (argv: string[]) => number> = {
     const [migrated, report] = migrateClassmap(baseMap, baseSigs, targetSigs, cssMap, Number(values.threshold));
     for (const m of report.matched) m.confidence = confidenceLabel(m);
 
-    writeJson(values.out, migrated);
+    writeJson(values.out, migrated, true);
     console.log(`wrote classmap ${values.out}`);
     if (values.report) {
       writeJson(values.report, report);
