@@ -5,7 +5,7 @@ if (-not $installation) { throw 'Visual Studio ARM64 C++ tools are required.' }
 $compiler = Join-Path $installation 'VC\Tools\Llvm\ARM64\bin\clang-cl.exe'
 if (-not (Test-Path -LiteralPath $compiler)) { throw 'Install the Visual Studio C++ Clang compiler for ARM64.' }
 $developerShell = Join-Path $installation 'Common7\Tools\VsDevCmd.bat'
-$buildEnvironment = & cmd.exe /d /s /c "`"`"$developerShell`" -arch=arm64 -host_arch=arm64 >nul && set`""
+$buildEnvironment = & cmd.exe /d /s /c "call `"$developerShell`" -arch=arm64 -host_arch=arm64 >nul && set"
 if ($LASTEXITCODE -ne 0) { throw 'Failed to configure the ARM64 C++ environment.' }
 $buildEnvironment | Where-Object { $_ -match '^(INCLUDE|LIB|LIBPATH|PATH)=' } |
     Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
