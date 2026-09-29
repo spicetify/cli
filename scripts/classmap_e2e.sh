@@ -74,7 +74,7 @@ STOCK_SPA_CANDIDATES=(
   "/Applications/Spotify.app/Contents/Resources/Apps/xpui.spa"
   "/Applications/Spotify.app/Contents/Resources/Apps/xpui.spa.bak"
 )
-BASE_CLASSMAP="${BASE_CLASSMAP:-$ROOT/../classmaps/1020040/classmap-190747c4b8f.json}"
+BASE_CLASSMAP="${BASE_CLASSMAP:-$ROOT/../classmaps/1020040/classmap.json}"
 BASE_CSS_DIR="${BASE_CSS_DIR:-$ROOT/../xpui-archive/1.2.40.599}"
 OUT_DIR="${OUT_DIR:-$ROOT/classmaps/1020092}"
 CSS_MAP="${CSS_MAP:-$ROOT/css-map.json}"
