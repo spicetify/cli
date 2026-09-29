@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Full classmap pipeline: migrate → static verify → CDP e2e DOM verify.
+# Full classmap pipeline: migrate → static verify → overlay → CDP e2e DOM verify.
 #
 # Usage:
 #   ./scripts/classmap-e2e.sh
@@ -282,34 +282,8 @@ else
   log "2/4 static verify skipped"
 fi
 
-if [[ "$SKIP_CDP" -eq 0 ]]; then
-  log "3/4 CDP e2e verify"
-  if [[ "$ENSURE_CDP" -eq 1 ]]; then
-    ensure_cdp
-  fi
-  NAV_FLAGS=(--navigate)
-  if [[ "$DEEP" -eq 1 ]]; then
-    NAV_FLAGS=(--deep)
-  fi
-  RESTART_FLAG=()
-  if [[ "$RESTART" -eq 1 ]]; then
-    RESTART_FLAG=(--restart)
-  fi
-  "$NODE" scripts/classmap-cdp-verify.mjs \
-    --port "$CDP_PORT" \
-    --mode both \
-    --classmap "$CLASSMAP_OUT" \
-    --css-map "$CSS_MAP" \
-    --out "$CDP_OUT" \
-    --min-hit-rate "$MIN_HIT_RATE" \
-    "${NAV_FLAGS[@]}" \
-    "${RESTART_FLAG[@]}"
-else
-  log "3/4 CDP e2e skipped"
-fi
-
 if [[ "$SKIP_FLATTEN" -eq 0 ]]; then
-  log "4/4 flatten css-map overlay"
+  log "3/4 flatten css-map overlay"
   for f in "$CLASSMAP_OUT" "$REPORT_OUT"; do
     if [[ ! -f "$f" ]]; then
       echo "Missing $f (run migrate first, or point OUT_DIR at existing artifacts)" >&2
@@ -327,7 +301,36 @@ if [[ "$SKIP_FLATTEN" -eq 0 ]]; then
     --out "$OVERLAY_OUT" \
     --allow-partial
 else
-  log "4/4 flatten skipped"
+  log "3/4 flatten skipped"
+fi
+
+if [[ "$SKIP_CDP" -eq 0 ]]; then
+  log "4/4 CDP e2e verify"
+  if [[ "$ENSURE_CDP" -eq 1 ]]; then
+    ensure_cdp
+  fi
+  NAV_FLAGS=(--navigate)
+  if [[ "$DEEP" -eq 1 ]]; then
+    NAV_FLAGS=(--deep)
+  fi
+  RESTART_FLAG=()
+  if [[ "$RESTART" -eq 1 ]]; then
+    RESTART_FLAG=(--restart)
+  fi
+  OVERLAY_ARGS=()
+  [[ -f "$OVERLAY_OUT" ]] && OVERLAY_ARGS=(--overlay "$OVERLAY_OUT")
+  "$NODE" scripts/classmap-cdp-verify.mjs \
+    --port "$CDP_PORT" \
+    --mode both \
+    --classmap "$CLASSMAP_OUT" \
+    --css-map "$CSS_MAP" \
+    "${OVERLAY_ARGS[@]+${OVERLAY_ARGS[@]}}" \
+    --out "$CDP_OUT" \
+    --min-hit-rate "$MIN_HIT_RATE" \
+    "${NAV_FLAGS[@]}" \
+    "${RESTART_FLAG[@]}"
+else
+  log "4/4 CDP e2e skipped"
 fi
 
 log "Done"

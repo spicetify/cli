@@ -6,6 +6,8 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { loadChecks } from "./classmap-cdp-verify.mjs";
+
 const source = readFileSync(new URL("./classmap-cdp-verify.mjs", import.meta.url), "utf8");
 const verifier = fileURLToPath(new URL("./classmap-cdp-verify.mjs", import.meta.url));
 
@@ -68,3 +70,27 @@ for (const args of [
     assert.match(result.stderr, /invalid/i);
   });
 }
+
+test("an overlay renames classes on top of the CLI css-map", () => {
+  const dir = mkdtempSync(join(tmpdir(), "classmap-cdp-test-"));
+  try {
+    writeFileSync(join(dir, "classmap.json"), '{"topbar":"hashTopAA","nav":"hashNavBB"}\n');
+    writeFileSync(join(dir, "css-map.json"), '{"hashTopAA":"main-topBar-old","hashNavBB":"main-navBar-navBar"}\n');
+    writeFileSync(join(dir, "overlay.json"), '{"hashTopAA":"Root__globalNav"}\n');
+    const checks = loadChecks({
+      reportPath: null,
+      classmapPath: join(dir, "classmap.json"),
+      cssMapPath: join(dir, "css-map.json"),
+      overlayPath: join(dir, "overlay.json"),
+    });
+    assert.deepEqual(
+      checks.map(({ path, semantic }) => ({ path, semantic })),
+      [
+        { path: "topbar", semantic: "Root__globalNav" },
+        { path: "nav", semantic: "main-navBar-navBar" },
+      ],
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

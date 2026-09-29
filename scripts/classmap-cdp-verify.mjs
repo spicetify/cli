@@ -26,6 +26,9 @@
  *   --classmap/--out may be given explicitly, or derived from --out-dir /
  *   CLASSMAP_OUT_DIR. --report is optional; when omitted, every classmap leaf
  *   is probed directly.
+ *   --overlay applies a key's css-map.json on top of --css-map, as apply does,
+ *   so semantic probes use the names the published key gives its classes.
+ *   The report records the digest of both maps.
  *
  * Exit codes
  * ----------
@@ -53,6 +56,7 @@ function parseArgs(argv) {
     report: null,
     classmap: null,
     cssMap: path.join(CLI_ROOT, "css-map.json"),
+    overlay: null,
     out: null,
     navigate: false,
     deep: false,
@@ -85,6 +89,9 @@ function parseArgs(argv) {
         break;
       case "--css-map":
         args.cssMap = path.resolve(take());
+        break;
+      case "--overlay":
+        args.overlay = path.resolve(take());
         break;
       case "--out":
         args.out = path.resolve(take());
@@ -201,8 +208,15 @@ function pickXpuiTarget(targets) {
   return pages.find((t) => (t.url || "").includes("xpui.app.spotify.com")) || pages.find((t) => (t.url || "").includes("index.html")) || pages[0];
 }
 
-function loadChecks({ reportPath, classmapPath, cssMapPath }) {
-  const cssMap = fs.existsSync(cssMapPath) ? JSON.parse(fs.readFileSync(cssMapPath, "utf8")) : {};
+/** The CLI css-map with a key's overlay applied on top, as `apply` merges them. */
+export function effectiveCssMap(cssMapPath, overlayPath) {
+  const base = fs.existsSync(cssMapPath) ? JSON.parse(fs.readFileSync(cssMapPath, "utf8")) : {};
+  const overlay = overlayPath ? JSON.parse(fs.readFileSync(overlayPath, "utf8")) : {};
+  return { ...base, ...overlay };
+}
+
+export function loadChecks({ reportPath, classmapPath, cssMapPath, overlayPath = null }) {
+  const cssMap = effectiveCssMap(cssMapPath, overlayPath);
 
   /** @type {{path:string, hash:string, semantic:string|null, confidence:string}[]} */
   let checks = [];
@@ -634,6 +648,7 @@ async function main() {
     reportPath: args.report,
     classmapPath: args.classmap,
     cssMapPath: args.cssMap,
+    overlayPath: args.overlay,
   });
   console.log(`Loaded ${checks.length} classmap paths`);
 
@@ -690,6 +705,10 @@ async function main() {
     classmap: {
       sha256: crypto.createHash("sha256").update(fs.readFileSync(args.classmap)).digest("hex"),
     },
+    cssMap: {
+      sha256: fs.existsSync(args.cssMap) ? crypto.createHash("sha256").update(fs.readFileSync(args.cssMap)).digest("hex") : null,
+      overlaySha256: args.overlay ? crypto.createHash("sha256").update(fs.readFileSync(args.overlay)).digest("hex") : null,
+    },
     mode: args.mode,
     minHitRate: args.minHitRate,
     navigate: args.navigate,
@@ -730,7 +749,9 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error(err.message || err);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error(err.message || err);
+    process.exit(1);
+  });
+}
