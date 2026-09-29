@@ -453,6 +453,13 @@ function bestMatch(
     return { ...best, rejected: true, reason: "strict region requires semantic agreement", next: scored.slice(1, 4) };
   }
   if (num(best, "semantic_score") <= 0 && num(best, "css_score") < 0.75) return { ...best, rejected: true, next: scored.slice(1, 4) };
+  // An exact tie gives no evidence for either class, so the leaf is left for a human to decide.
+  const same = (row: Row) => ["score", "semantic_score", "css_score"].every((field) => row[field] === best[field]);
+  const tied = scored
+    .slice(1)
+    .filter(same)
+    .map((row) => row.class as string);
+  if (tied.length) return { ...best, rejected: true, reason: `tied with ${tied.length} other candidate(s)`, tied, next: scored.slice(1, 4) };
   return { ...best, alternatives: scored.slice(1, 4) };
 }
 
@@ -522,13 +529,29 @@ export function migrateClassmap(
       // because there is zero CSS similarity evidence behind it.
       let bestSem: [string, string, number] | null = null;
       let bestScore = 0;
+      let tied: string[] = [];
       for (const [h, sem] of cssMap) {
         if (!targetSigs.has(h) || !isHashLike(h)) continue;
         const s = semanticFit(parts, sem);
         if (s > bestScore) {
           bestScore = s;
           bestSem = [h, sem, s];
+          tied = [];
+        } else if (s === bestScore && bestSem) {
+          tied.push(h);
         }
+      }
+      if (bestSem && bestScore >= 0.75 && tied.length) {
+        report.unmatched.push({
+          path: dotted,
+          old: oldHash,
+          reason: `${tied.length + 1} semantic-only candidates tie`,
+          tied: [bestSem[0], ...tied],
+          stale: true,
+          kept: oldHash,
+        });
+        setLeaf(out, parts, oldHash);
+        continue;
       }
       if (bestSem && bestScore >= 0.75) {
         const [newCls, sem, s] = bestSem;

@@ -149,6 +149,33 @@ describe("migrateClassmap", () => {
     assert.equal(report.stats.matched, 0);
   });
 
+  test("rejects a CSS match that ties exactly with another class", () => {
+    const [out, report] = migrateClassmap(
+      { main: { widget: "oldHashAA" } },
+      classSignatures(baseCss),
+      classSignatures(".newHashBB { color: red; padding: 4px; } .twinHashCC { color: red; padding: 4px; }"),
+      new Map(),
+      0.5,
+    );
+    assert.deepEqual(out, { main: { widget: "oldHashAA" } });
+    const best = report.unmatched[0].best as Record<string, unknown>;
+    assert.equal(best.reason, "tied with 1 other candidate(s)");
+    assert.deepEqual(best.tied, ["twinHashCC"]);
+  });
+
+  test("rejects a semantic-only match that ties with another class", () => {
+    const [out, report] = migrateClassmap(
+      { main: { playbar: { controls: "notInBase1" } } },
+      new Map(),
+      classSignatures(".newHashBB { color: red; } .twinHashCC { margin: 0; }"),
+      map({ newHashBB: "nowPlayingBarControls", twinHashCC: "nowPlayingBarControlsAlt" }),
+      0.5,
+    );
+    assert.deepEqual(out, { main: { playbar: { controls: "notInBase1" } } });
+    assert.deepEqual(report.unmatched[0].tied, ["newHashBB", "twinHashCC"]);
+    assert.equal(report.unmatched[0].stale, true);
+  });
+
   test("a semantic-only match has low confidence", () => {
     const [out, report] = migrateClassmap(
       { main: { playbar: { controls: "notInBase1" } } },
