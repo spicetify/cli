@@ -6,8 +6,8 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-const source = readFileSync(new URL("./classmap_cdp_verify.mjs", import.meta.url), "utf8");
-const verifier = fileURLToPath(new URL("./classmap_cdp_verify.mjs", import.meta.url));
+const source = readFileSync(new URL("./classmap-cdp-verify.mjs", import.meta.url), "utf8");
+const verifier = fileURLToPath(new URL("./classmap-cdp-verify.mjs", import.meta.url));
 
 test("CDP reports bind deep mode and the exact classmap digest", () => {
   assert.match(source, /deep:\s*args\.deep/);
