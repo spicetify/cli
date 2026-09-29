@@ -34,8 +34,8 @@ impl ReleaseInfo {
     }
 
     #[must_use]
-    pub fn find_platform_asset(&self) -> Option<&ReleaseAsset> {
-        let candidates = candidate_asset_names(&self.version());
+    pub fn find_platform_asset(&self, arch: &str) -> Option<&ReleaseAsset> {
+        let candidates = candidate_asset_names(&self.version(), arch);
         for name in &candidates {
             if let Some(asset) = self.assets.iter().find(|a| a.name == *name) {
                 return Some(asset);
@@ -57,10 +57,12 @@ impl ReleaseInfo {
 }
 
 #[must_use]
-pub fn candidate_asset_names(version: &str) -> Vec<String> {
-    let arch = std::env::consts::ARCH;
-    let os = std::env::consts::OS;
-    let ext = if cfg!(windows) { "zip" } else { "tar.zst" };
+pub fn candidate_asset_names(version: &str, arch: &str) -> Vec<String> {
+    candidate_asset_names_for(version, std::env::consts::OS, arch)
+}
+
+fn candidate_asset_names_for(version: &str, os: &str, arch: &str) -> Vec<String> {
+    let ext = if os == "windows" { "zip" } else { "tar.zst" };
     let mut names = Vec::new();
 
     names.push(format!("spicetify-{version}-{os}-{arch}.{ext}"));
@@ -73,6 +75,74 @@ pub fn candidate_asset_names(version: &str) -> Vec<String> {
     names.push(format!("portable-spicetify-{version}-{short_arch}.{ext}"));
 
     names
+}
+
+fn preferred_arch(
+    os: &str,
+    process_arch: &'static str,
+    native_machine: Option<u16>,
+    spotify_machine: Option<u16>,
+) -> &'static str {
+    if os == "windows" && native_machine == Some(0xaa64) {
+        if spotify_machine == Some(0x8664) { "x86_64" } else { "aarch64" }
+    } else {
+        process_arch
+    }
+}
+
+#[must_use]
+pub fn platform_arch(_ctx: &crate::context::AppContext) -> &'static str {
+    #[cfg(windows)]
+    let native_machine = {
+        use windows::Win32::System::SystemInformation::IMAGE_FILE_MACHINE;
+        use windows::Win32::System::Threading::{GetCurrentProcess, IsWow64Process2};
+        let mut process = IMAGE_FILE_MACHINE::default();
+        let mut native = IMAGE_FILE_MACHINE::default();
+        // GetNativeSystemInfo reports the emulated architecture on Windows ARM64.
+        // SAFETY: the current-process pseudo-handle is valid and both outputs are writable.
+        #[allow(unsafe_code)]
+        match unsafe { IsWow64Process2(GetCurrentProcess(), &mut process, Some(&mut native)) } {
+            Ok(()) => Some(native.0),
+            Err(error) => {
+                tracing::warn!(%error, "could not detect native Windows architecture");
+                None
+            }
+        }
+    };
+    #[cfg(not(windows))]
+    let native_machine = None;
+    #[cfg(windows)]
+    let spotify_machine = if native_machine == Some(0xaa64) {
+        // Store's launch alias is not the PE file; its data directory holds the real binary.
+        [_ctx.spotify_exec.clone(), _ctx.spotify_data_dir.join("Spotify.exe")].iter().find_map(
+            |path| {
+                let mut file = std::fs::File::open(path).ok()?;
+                pe_machine(&mut file).ok()
+            },
+        )
+    } else {
+        None
+    };
+    #[cfg(not(windows))]
+    let spotify_machine = None;
+    preferred_arch(std::env::consts::OS, std::env::consts::ARCH, native_machine, spotify_machine)
+}
+
+#[cfg(any(windows, test))]
+fn pe_machine(reader: &mut (impl std::io::Read + std::io::Seek)) -> std::io::Result<u16> {
+    let mut dos = [0; 64];
+    reader.read_exact(&mut dos)?;
+    if &dos[..2] != b"MZ" {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "missing DOS header"));
+    }
+    let offset = u32::from_le_bytes(dos[60..64].try_into().expect("four-byte PE offset"));
+    let _ = reader.seek(std::io::SeekFrom::Start(u64::from(offset)))?;
+    let mut pe = [0; 6];
+    reader.read_exact(&mut pe)?;
+    if &pe[..4] != b"PE\0\0" {
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "missing PE header"));
+    }
+    Ok(u16::from_le_bytes([pe[4], pe[5]]))
 }
 
 #[must_use]
@@ -115,6 +185,52 @@ pub enum ChecksumError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn emulated_windows_selects_native_arm64_release_assets() {
+        let arch = preferred_arch("windows", "x86_64", Some(0xaa64), Some(0xaa64));
+        let names = candidate_asset_names_for("3.0.0-beta.20", "windows", arch);
+        assert_eq!(names[0], "spicetify-3.0.0-beta.20-windows-aarch64.zip");
+        assert!(!names.iter().any(|name| name.contains("x86_64") || name.contains("x64")));
+    }
+
+    #[test]
+    fn native_windows_and_other_platforms_keep_their_architecture() {
+        assert_eq!(preferred_arch("windows", "x86_64", Some(0x8664), Some(0x8664)), "x86_64");
+        assert_eq!(preferred_arch("windows", "aarch64", Some(0xaa64), Some(0xaa64)), "aarch64");
+        assert_eq!(preferred_arch("macos", "x86_64", None, None), "x86_64");
+        assert_eq!(preferred_arch("linux", "aarch64", None, None), "aarch64");
+    }
+
+    #[test]
+    fn arm64_windows_preserves_x64_spotify_and_defaults_to_native_before_install() {
+        for process_arch in ["x86_64", "aarch64"] {
+            assert_eq!(
+                preferred_arch("windows", process_arch, Some(0xaa64), Some(0x8664)),
+                "x86_64"
+            );
+            assert_eq!(
+                preferred_arch("windows", process_arch, Some(0xaa64), Some(0xaa64)),
+                "aarch64"
+            );
+            assert_eq!(preferred_arch("windows", process_arch, Some(0xaa64), None), "aarch64");
+        }
+    }
+
+    #[test]
+    fn spotify_architecture_comes_from_the_pe_header() {
+        for machine in [0xaa64u16, 0x8664] {
+            let mut bytes = vec![0; 134];
+            bytes[..2].copy_from_slice(b"MZ");
+            bytes[60..64].copy_from_slice(&128u32.to_le_bytes());
+            bytes[128..132].copy_from_slice(b"PE\0\0");
+            bytes[132..134].copy_from_slice(&machine.to_le_bytes());
+            assert_eq!(pe_machine(&mut std::io::Cursor::new(&bytes)).unwrap(), machine);
+            bytes[128] = 0;
+            assert!(pe_machine(&mut std::io::Cursor::new(&bytes)).is_err());
+        }
+        assert!(pe_machine(&mut std::io::Cursor::new(b"not an executable")).is_err());
+    }
 
     #[test]
     fn deserializes_the_real_release_list_shape() {

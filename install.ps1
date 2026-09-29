@@ -60,20 +60,47 @@ function Move-OldSpicetifyFolder {
   }
 }
 
+function Get-SpicetifyNativeMachine {
+  if (-not ('Spicetify.NativeArchitecture' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+namespace Spicetify {
+  public static class NativeArchitecture {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool IsWow64Process2(IntPtr process, out ushort processMachine, out ushort nativeMachine);
+  }
+}
+'@
+  }
+  [System.UInt16]$processMachine = 0
+  [System.UInt16]$nativeMachine = 0
+  if (-not [Spicetify.NativeArchitecture]::IsWow64Process2(
+      [System.Diagnostics.Process]::GetCurrentProcess().Handle,
+      [ref]$processMachine, [ref]$nativeMachine)) {
+    throw 'Cannot determine the native Windows architecture.'
+  }
+  $nativeMachine
+}
+
+function Get-SpicetifyArchitecture {
+  switch (Get-SpicetifyNativeMachine) {
+    0xAA64 { return 'aarch64' }
+    0x8664 { return 'x86_64' }
+    default { throw 'Spicetify v3 requires Windows x64 or ARM64.' }
+  }
+}
+
 function Get-Spicetify {
   [CmdletBinding()]
-  param ()
+  param (
+    [ValidateSet('', 'aarch64', 'x86_64')][string]$RequestedArchitecture = '',
+    [string]$RequestedVersion = ''
+  )
   begin {
     if ($v3) {
-      # v3 asset names come from the Rust CLI's own target triple, so that
-      # `spicetify self-update` resolves the same file this script installs.
-      # Only x86_64 is built today.
-      if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
-        Write-Warning -Message "v3 has no build for $env:PROCESSOR_ARCHITECTURE yet. Windows x86_64 is available."
-        Pause
-        exit
-      }
-      $architecture = 'x86_64'
+      $architecture = if ($RequestedArchitecture) { $RequestedArchitecture } else { Get-SpicetifyArchitecture }
     }
     elseif ($env:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
       $architecture = 'x64'
@@ -84,7 +111,10 @@ function Get-Spicetify {
     else {
       $architecture = 'x32'
     }
-    if ($v) {
+    if ($RequestedVersion) {
+      $targetVersion = $RequestedVersion
+    }
+    elseif ($v) {
       if ($v -match '^\d+\.\d+\.\d+') {
         $targetVersion = $v
       }
@@ -125,6 +155,13 @@ function Get-Spicetify {
       OutFile        = $archivePath
     }
     Invoke-WebRequest @Parameters
+    if ($v3) {
+      $checksum = (Invoke-RestMethod -Uri "$($Parameters.Uri).sha256").Trim().Split()[0]
+      if ($checksum -notmatch '^[0-9a-fA-F]{64}$' -or
+          (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash -ne $checksum) {
+        throw 'The downloaded Spicetify archive failed checksum verification.'
+      }
+    }
     Write-Success
   }
   end {
@@ -187,6 +224,56 @@ function Add-SpicetifyCompletion {
   }
 }
 
+function Expand-SpicetifyPackage {
+  param([string]$Archive, [string]$Destination)
+  foreach ($name in @('spicetify.exe', 'spicetify-daemon.exe')) {
+    Remove-Item -LiteralPath (Join-Path $Destination $name) -Force -ErrorAction SilentlyContinue
+  }
+  Expand-Archive -Path $Archive -DestinationPath $Destination -Force
+  foreach ($name in @('spicetify.exe', 'spicetify-daemon.exe')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $Destination $name) -PathType Leaf)) {
+      throw "The release archive is missing $name."
+    }
+  }
+}
+
+function Install-SpicetifyBinaries {
+  param([string]$Source, [string]$Destination)
+  $names = @('spicetify.exe', 'spicetify-daemon.exe')
+  $backup = Join-Path $Destination ".install-backup-$([guid]::NewGuid())"
+  $saved = @()
+  $installed = @()
+  New-Item -ItemType Directory -Path $backup -Force | Out-Null
+  try {
+    foreach ($name in $names) {
+      $target = Join-Path $Destination $name
+      if (Test-Path -LiteralPath $target) {
+        Move-Item -LiteralPath $target -Destination (Join-Path $backup $name)
+        $saved += $name
+      }
+      # Record the target before copying, so rollback also removes a partial copy.
+      $installed += $name
+      Copy-Item -LiteralPath (Join-Path $Source $name) -Destination $target
+    }
+  }
+  catch {
+    foreach ($name in $installed) {
+      Remove-Item -LiteralPath (Join-Path $Destination $name) -Force -ErrorAction SilentlyContinue
+    }
+    foreach ($name in $saved) {
+      Move-Item -LiteralPath (Join-Path $backup $name) -Destination (Join-Path $Destination $name) -Force
+    }
+    throw
+  }
+  finally {
+    # Preserve originals if any rollback operation could not restore them.
+    if (-not (Get-ChildItem -LiteralPath $backup -ErrorAction SilentlyContinue)) {
+      Remove-Item -LiteralPath $backup -Force -ErrorAction SilentlyContinue
+    }
+  }
+  Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 function Install-Spicetify {
   [CmdletBinding()]
   param ()
@@ -196,7 +283,57 @@ function Install-Spicetify {
   process {
     $archivePath = Get-Spicetify
     Write-Host -Object 'Extracting spicetify...' -NoNewline
-    Expand-Archive -Path $archivePath -DestinationPath $spicetifyFolderPath -Force
+    if ($v3) {
+      $staging = Join-Path ([System.IO.Path]::GetTempPath()) "spicetify-install-$([guid]::NewGuid())"
+      try {
+        Expand-SpicetifyPackage -Archive $archivePath -Destination $staging
+        if ((Get-SpicetifyArchitecture) -eq 'aarch64') {
+          # Let the staged CLI resolve configured, desktop, and Store Spotify paths.
+          $stagedCli = Join-Path $staging 'spicetify.exe'
+          $wanted = (& $stagedCli --print-install-architecture | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $wanted -notin @('aarch64', 'x86_64')) {
+            throw 'Cannot determine the Spicetify build required by Spotify.'
+          }
+          if ($wanted -eq 'x86_64') {
+            $versionOutput = (& $stagedCli --version | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0 -or $versionOutput -notmatch '^spicetify (\S+)$') {
+              throw 'Cannot determine the staged Spicetify version.'
+            }
+            $archivePath = Get-Spicetify -RequestedArchitecture $wanted -RequestedVersion $Matches[1]
+            Expand-SpicetifyPackage -Archive $archivePath -Destination $staging
+          }
+        }
+        $daemonPath = Join-Path $spicetifyFolderPath 'spicetify-daemon.exe'
+        # 32-bit PowerShell cannot read Get-Process.Path for a 64-bit daemon.
+        $running = @(Get-CimInstance Win32_Process -Filter "Name='spicetify-daemon.exe'" |
+          Where-Object { $_.ExecutablePath -eq $daemonPath } |
+          ForEach-Object { Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue })
+        if ($running.Count) {
+          $token = (Get-Content -LiteralPath (Join-Path $spicetifyFolderPath 'daemon-token') -Raw).Trim()
+          Invoke-RestMethod -Uri 'http://127.0.0.1:7967/shutdown' -Method Post -TimeoutSec 5 -Headers @{
+            'x-spicetify-token' = $token
+          } | Out-Null
+          $running | Wait-Process -Timeout 10
+        }
+        New-Item -ItemType Directory -Path $spicetifyFolderPath -Force | Out-Null
+        try {
+          Install-SpicetifyBinaries -Source $staging -Destination $spicetifyFolderPath
+        }
+        catch {
+          if ($running.Count) { Start-Process -FilePath $daemonPath }
+          throw
+        }
+        if ($running.Count) {
+          Start-Process -FilePath $daemonPath
+        }
+      }
+      finally {
+        Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
+      }
+    }
+    else {
+      Expand-Archive -Path $archivePath -DestinationPath $spicetifyFolderPath -Force
+    }
     Write-Success
     Add-SpicetifyToPath
   }
