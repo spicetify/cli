@@ -25,6 +25,8 @@ struct SpicetifyCli {
     #[arg(long, global = true)]
     offline_bnk_dir: Option<String>,
 
+    #[arg(long, hide = true)]
+    print_install_architecture: bool,
     #[command(subcommand)]
     command: Option<CliCommand>,
 }
@@ -249,6 +251,17 @@ fn main() {
 
 fn run() -> Result<()> {
     let cli = SpicetifyCli::parse();
+
+    if cli.print_install_architecture {
+        let ctx = spicetify::context::build_context(
+            cli.mirror,
+            cli.spotify_data_dir.as_deref(),
+            cli.spotify_exec.as_deref(),
+            cli.offline_bnk_dir.as_deref(),
+        )?;
+        println!("{}", spicetify::update::release::platform_arch(&ctx));
+        return Ok(());
+    }
 
     spicetify::update::startup_cleanup();
 

@@ -11,7 +11,10 @@ on:
       - "src/jsHelper/**"
       - "install.sh"
       - "install.ps1"
-      - "scripts/test-install-completions.*"
+      - "scripts/test-install-*.ps1"
+      - "scripts/test-install-completions.sh"
+      - "scripts/setup-windows-arm64.ps1"
+      - ".github/workflows/rust-release.yml"
       - "scripts/build-payload.mjs"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -26,7 +29,10 @@ on:
       - "src/jsHelper/**"
       - "install.sh"
       - "install.ps1"
-      - "scripts/test-install-completions.*"
+      - "scripts/test-install-*.ps1"
+      - "scripts/test-install-completions.sh"
+      - "scripts/setup-windows-arm64.ps1"
+      - ".github/workflows/rust-release.yml"
       - "scripts/build-payload.mjs"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -42,13 +48,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest, windows-11-arm]
     defaults:
       run:
         working-directory: rust
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Configure native Windows ARM64 toolchain
+        if: runner.os == 'Windows' && runner.arch == 'ARM64'
+        shell: pwsh
+        working-directory: .
+        run: ./scripts/setup-windows-arm64.ps1
 
       - name: Show toolchain
         run: rustup show active-toolchain
@@ -62,7 +74,13 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: .
         shell: pwsh
-        run: ./scripts/test-install-completions.ps1
+        run: |
+          ./scripts/test-install-completions.ps1
+          ./scripts/test-install-architecture.ps1
+          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File ./scripts/test-install-architecture.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$env:WINDIR\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File ./scripts/test-install-architecture.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Setup Node and pnpm
         uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4

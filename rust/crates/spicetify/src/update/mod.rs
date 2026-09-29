@@ -18,7 +18,7 @@ use crate::error::Result;
 // "already up to date". install.sh lists releases for the same reason.
 const GITHUB_API: &str = "https://api.github.com/repos/spicetify/cli/releases?per_page=30";
 
-pub async fn check_for_update() -> Result<Option<ReleaseInfo>> {
+pub async fn check_for_update(arch: &'static str) -> Result<Option<ReleaseInfo>> {
     let client = crate::http::github_client()?;
     let response = client
         .get(GITHUB_API)
@@ -30,7 +30,7 @@ pub async fn check_for_update() -> Result<Option<ReleaseInfo>> {
     let releases: Vec<ReleaseInfo> =
         response.json().await.context("failed to parse release JSON")?;
     let current = Version::parse(crate::VERSION).context("invalid current version")?;
-    Ok(newest_release(releases, &current))
+    Ok(newest_release(releases, &current, arch != std::env::consts::ARCH, arch))
 }
 
 /// The newest release by semver precedence when it is newer than `current`.
@@ -38,18 +38,29 @@ pub async fn check_for_update() -> Result<Option<ReleaseInfo>> {
 /// semver already ranks `3.0.0` above `3.0.0-beta.*`, so once a stable v3
 /// exists it wins naturally, and the v2 era's tags lose on major.
 /// Unparsable tags are skipped.
-fn newest_release(releases: Vec<ReleaseInfo>, current: &Version) -> Option<ReleaseInfo> {
+fn newest_release(
+    releases: Vec<ReleaseInfo>,
+    current: &Version,
+    migrate_arch: bool,
+    arch: &str,
+) -> Option<ReleaseInfo> {
     releases
         .into_iter()
         .filter_map(|release| Version::parse(&release.version()).ok().map(|v| (v, release)))
         .max_by(|(a, _), (b, _)| a.cmp(b))
-        .filter(|(version, _)| version > current)
+        .filter(|(version, release)| {
+            version > current
+                || (migrate_arch
+                    && version == current
+                    && release.find_platform_asset(arch).is_some())
+        })
         .map(|(_, release)| release)
 }
 
 #[derive(Debug)]
 pub struct StagedUpdate {
     pub version: String,
+    arch: &'static str,
     new_binary: PathBuf,
     daemon_binary: Option<PathBuf>,
     staging_dir: PathBuf,
@@ -57,10 +68,11 @@ pub struct StagedUpdate {
 
 pub async fn download_update(
     release: &ReleaseInfo,
+    arch: &'static str,
     on_progress: impl Fn(u64, u64) + Send + 'static,
 ) -> Result<StagedUpdate> {
-    let asset = release.find_platform_asset().ok_or_else(|| {
-        let names = release::candidate_asset_names(&release.version());
+    let asset = release.find_platform_asset(arch).ok_or_else(|| {
+        let names = release::candidate_asset_names(&release.version(), arch);
         anyhow::anyhow!("no release asset found for platform; tried: {}", names.join(", "))
     })?;
 
@@ -97,13 +109,18 @@ pub async fn download_update(
         if p.exists() { Some(p) } else { None }
     };
 
-    Ok(StagedUpdate { version, new_binary, daemon_binary, staging_dir })
+    Ok(StagedUpdate { version, arch, new_binary, daemon_binary, staging_dir })
 }
 
 pub fn install_update(staged: &StagedUpdate) -> Result<()> {
     let current_exe = std::env::current_exe()?;
     let install_dir = current_exe.parent().context("exe has no parent dir")?;
 
+    // Older x64 updaters stop the daemon before launching this migration.
+    let restart_daemon = staged.daemon_binary.is_some()
+        && (crate::daemon::is_daemon_running()
+            || (staged.arch != std::env::consts::ARCH
+                && crate::daemon::DaemonManager::create().is_installed()));
     if let Some(daemon) = &staged.daemon_binary {
         let daemon_path = install_dir.join(crate::daemon::daemon_binary_name());
         if daemon_path.exists() {
@@ -121,6 +138,9 @@ pub fn install_update(staged: &StagedUpdate) -> Result<()> {
     }
 
     replace_binary(&staged.new_binary, &current_exe).context("failed to replace main binary")?;
+    if restart_daemon {
+        crate::daemon::process::spawn().context("failed to restart updated daemon")?;
+    }
 
     if let Err(e) = std::fs::remove_dir_all(&staged.staging_dir) {
         tracing::warn!(error = %e, "failed to remove staging dir");
@@ -355,6 +375,31 @@ mod tests {
     }
 
     #[test]
+    fn emulated_cli_can_migrate_at_the_current_version() {
+        let current = Version::parse("3.0.0-beta.20").unwrap();
+        let mut published = release("v3.0.0-beta.20");
+        published.assets.push(release::ReleaseAsset {
+            name: release::candidate_asset_names(&published.version(), std::env::consts::ARCH)[0]
+                .clone(),
+            browser_download_url: "https://example.com/native.zip".into(),
+            size: 1,
+        });
+        assert!(
+            newest_release(vec![published.clone()], &current, true, std::env::consts::ARCH)
+                .is_some()
+        );
+        assert!(newest_release(vec![published], &current, false, std::env::consts::ARCH).is_none());
+        assert!(
+            newest_release(vec![release("v3.0.0-beta.20")], &current, true, std::env::consts::ARCH)
+                .is_none()
+        );
+        assert!(
+            newest_release(vec![release("v3.0.0-beta.19")], &current, true, std::env::consts::ARCH)
+                .is_none()
+        );
+    }
+
+    #[test]
     fn offers_the_newest_prerelease_over_a_stable_v2() {
         // The /releases/latest endpoint served v2.44.0 to v3 betas, which
         // made every self-update a no-op; the list-based picker must rank
@@ -363,6 +408,8 @@ mod tests {
         let picked = newest_release(
             vec![release("v3.0.0-beta.7"), release("v2.44.0"), release("v3.0.0-beta.6")],
             &current,
+            false,
+            std::env::consts::ARCH,
         )
         .expect("an update is offered");
         assert_eq!(picked.tag_name, "v3.0.0-beta.7");
@@ -372,16 +419,30 @@ mod tests {
     fn stays_put_when_nothing_newer_exists() {
         let current = Version::parse("3.0.0-beta.7").expect("current");
         assert!(
-            newest_release(vec![release("v3.0.0-beta.7"), release("v2.44.0")], &current).is_none()
+            newest_release(
+                vec![release("v3.0.0-beta.7"), release("v2.44.0")],
+                &current,
+                false,
+                std::env::consts::ARCH
+            )
+            .is_none()
         );
-        assert!(newest_release(vec![release("not-a-version")], &current).is_none());
+        assert!(
+            newest_release(vec![release("not-a-version")], &current, false, std::env::consts::ARCH)
+                .is_none()
+        );
     }
 
     #[test]
     fn a_stable_v3_wins_over_its_own_prereleases() {
         let current = Version::parse("3.0.0-beta.7").expect("current");
-        let picked = newest_release(vec![release("v3.0.0"), release("v3.0.0-beta.9")], &current)
-            .expect("stable outranks beta");
+        let picked = newest_release(
+            vec![release("v3.0.0"), release("v3.0.0-beta.9")],
+            &current,
+            false,
+            std::env::consts::ARCH,
+        )
+        .expect("stable outranks beta");
         assert_eq!(picked.tag_name, "v3.0.0");
     }
 }

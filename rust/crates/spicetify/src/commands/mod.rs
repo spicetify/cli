@@ -132,7 +132,7 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
             let _guard = guard::try_acquire(&ctx.config_root)?;
             crate::lifecycle::restart(ctx)
         }
-        Command::SelfUpdate => self_update::run(),
+        Command::SelfUpdate => self_update::run(ctx),
     }
 }
 
