@@ -185,6 +185,43 @@ export function splitRules(source: string): [string, string][] {
   return rules;
 }
 
+const GROUPING_AT_RULE = /^@(?:layer|media|supports|container|scope|document)\b/;
+
+/**
+ * Every style rule, including those nested in grouping at-rules such as
+ * `@layer encore { ... }`, where Spotify ships its Encore component styles.
+ * A statement at-rule (`@layer a, b;`) ends at its semicolon.
+ */
+export function allRules(source: string): [string, string][] {
+  const rules: [string, string][] = [];
+  for (const [prelude, body] of splitBlocks(source.replace(/\/\*[\s\S]*?\*\//g, ""))) {
+    if (GROUPING_AT_RULE.test(prelude)) rules.push(...allRules(body));
+    else if (!prelude.startsWith("@")) rules.push([prelude, body]);
+  }
+  return rules;
+}
+
+function splitBlocks(css: string): [string, string][] {
+  const blocks: [string, string][] = [];
+  let i = 0;
+  while (i < css.length) {
+    const start = css.indexOf("{", i);
+    if (start < 0) break;
+    const prelude = css.slice(i, start);
+    let depth = 1;
+    let j = start + 1;
+    while (j < css.length && depth) {
+      if (css[j] === "{") depth++;
+      else if (css[j] === "}") depth--;
+      j++;
+    }
+    const selector = prelude.slice(prelude.lastIndexOf(";") + 1).trim();
+    if (selector) blocks.push([selector, css.slice(start + 1, j - 1)]);
+    i = j;
+  }
+  return blocks;
+}
+
 function normalizeProps(body: string): Signature {
   const props: Signature = new Set();
   for (const m of body.matchAll(PROP_RE)) {
@@ -215,7 +252,7 @@ export function classSignatures(css: string): Signatures {
 
 export function inventoryClasses(css: string): Map<string, number> {
   const counts = new Map<string, number>();
-  for (const [selector] of splitRules(css)) {
+  for (const [selector] of allRules(css)) {
     for (const m of selector.matchAll(CLASS_RE)) counts.set(m[1], (counts.get(m[1]) ?? 0) + 1);
   }
   return new Map([...counts].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)));

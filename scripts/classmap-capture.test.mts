@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { describe, test } from "node:test";
 
 import {
+  allRules,
   classSignatures,
   confidenceLabel,
   flattenClassmap,
@@ -42,6 +43,20 @@ describe("rules and signatures", () => {
     const selectors = splitRules(css).map(([selector]) => selector);
     assert.ok(selectors.some((s) => s.includes("cLkUmr")));
     assert.ok(!selectors.some((s) => s.startsWith("@")));
+  });
+
+  test("finds rules nested in grouping at-rules, but not in keyframes", () => {
+    const layered =
+      "@layer encore;@layer encore{.e-1-button{color:red}@media (min-width:1px){.e-1-icon{margin:0}}}@keyframes spin{from{opacity:0}}.after{color:blue}";
+    assert.deepEqual(
+      allRules(layered).map(([selector]) => selector),
+      [".e-1-button", ".e-1-icon", ".after"],
+    );
+  });
+
+  test("verify finds a class that only appears inside @layer", () => {
+    const { rows } = verifyClassmap({ settings: { text_input: "e-10860-form-input" } }, "@layer encore{.e-10860-form-input{color:red}}", new Map());
+    assert.equal(rows[0].in_target_css, true);
   });
 
   test("signatures skip CSS variables", () => {
