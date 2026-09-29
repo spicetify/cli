@@ -20,7 +20,7 @@ The CLI css-map maps *current* hashed classes -> stable semantic names
 Examples
 --------
   python3 scripts/classmap_capture.py migrate \\
-    --base-classmap ../classmaps/1020040/classmap-190747c4b8f.json \\
+    --base-classmap ../classmaps/1020040/classmap.json \\
     --base-css-dir ../xpui-archive/1.2.40.599 \\
     --target-spa "/Applications/Spotify.app/Contents/Resources/Apps/xpui.spa" \\
     --css-map css-map.json \\
