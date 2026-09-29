@@ -309,7 +309,7 @@ func LoadClassmapForKey(classmapKey string) (Classmap, string, error) {
 }
 
 // CssMapOverlayFileName is the flat hash -> semantic overlay generated from a
-// classmap (scripts/classmap_capture.py flatten), stored next to it.
+// classmap (scripts/classmap-capture.ts flatten), stored next to it.
 const CssMapOverlayFileName = "css-map.json"
 
 // FindCssMapOverlayIn searches roots in order for classmaps/<key>/css-map.json.

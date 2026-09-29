@@ -16,10 +16,10 @@
  *
  * Usage
  * -----
- *   node scripts/classmap_cdp_verify.mjs --out-dir classmaps/1020092
- *   node scripts/classmap_cdp_verify.mjs --port 9222 --mode both --out-dir classmaps/1020092
- *   node scripts/classmap_cdp_verify.mjs --report <report.json> --classmap <classmap.json> --out <cdp-report.json>
- *   CLASSMAP_OUT_DIR=classmaps/1020092 node scripts/classmap_cdp_verify.mjs --navigate --min-hit-rate 0.3
+ *   node scripts/classmap-cdp-verify.mjs --out-dir classmaps/1020092
+ *   node scripts/classmap-cdp-verify.mjs --port 9222 --mode both --out-dir classmaps/1020092
+ *   node scripts/classmap-cdp-verify.mjs --report <report.json> --classmap <classmap.json> --out <cdp-report.json>
+ *   CLASSMAP_OUT_DIR=classmaps/1020092 node scripts/classmap-cdp-verify.mjs --navigate --min-hit-rate 0.3
  *
  * Paths
  * -----

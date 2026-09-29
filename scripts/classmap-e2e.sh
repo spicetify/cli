@@ -2,12 +2,13 @@
 # Full classmap pipeline: migrate → static verify → CDP e2e DOM verify.
 #
 # Usage:
-#   ./scripts/classmap_e2e.sh
-#   ./scripts/classmap_e2e.sh --skip-migrate --deep
-#   SPOTIFY_SPA=/path/to/xpui.spa ./scripts/classmap_e2e.sh
+#   ./scripts/classmap-e2e.sh
+#   ./scripts/classmap-e2e.sh --skip-migrate --deep
+#   SPOTIFY_SPA=/path/to/xpui.spa ./scripts/classmap-e2e.sh
 #
 # Env:
 #   SPOTIFY_SPA       Path to xpui.spa (default: macOS Spotify.app)
+#   SPOTIFY_VERSION   Exact Spotify version recorded in the static report
 #   BASE_CLASSMAP     Base classmap JSON (default: ../classmaps/1020040/...)
 #   BASE_CSS_DIR      Base CSS dir from xpui-archive
 #   OUT_DIR           Output dir (default: classmaps/1020092)
@@ -80,7 +81,7 @@ OUT_DIR="${OUT_DIR:-$ROOT/classmaps/1020092}"
 CSS_MAP="${CSS_MAP:-$ROOT/css-map.json}"
 CDP_PORT="${CDP_PORT:-9222}"
 SPICETIFY="${SPICETIFY:-$HOME/.spicetify/spicetify}"
-PYTHON="${PYTHON:-python3}"
+SPOTIFY_VERSION="${SPOTIFY_VERSION:-}"
 NODE="${NODE:-node}"
 
 CLASSMAP_OUT="$OUT_DIR/classmap.json"
@@ -188,45 +189,41 @@ ensure_cdp() {
       CFG_PATH="$cfg"
       CFG_BACKUP="$(mktemp -t spicetify-config-xpui)"
       cp "$cfg" "$CFG_BACKUP"
-      "$PYTHON" - "$cfg" "$CDP_PORT" <<'PY'
-import sys
-from pathlib import Path
+      "$NODE" - "$cfg" "$CDP_PORT" <<'JS'
+const fs = require("node:fs");
 
-cfg, port = Path(sys.argv[1]), sys.argv[2]
-debug_flag = f"--remote-debugging-port={port}"
+const [cfg, port] = process.argv.slice(2);
+const debugFlag = `--remote-debugging-port=${port}`;
 
-def merge(value: str) -> str:
-    # Preserve existing flags; only append the debug port. No
-    # --remote-allow-origins=*: the verifier connects without an Origin
-    # header, so a wildcard that exposes the logged-in client to any
-    # local web page is unnecessary.
-    parts = [p for p in value.split("|") if p.strip()]
-    if not any("remote-debugging-port" in p for p in parts):
-        parts.append(debug_flag)
-    return "|".join(parts)
+// Preserve existing flags; only append the debug port. No
+// --remote-allow-origins=*: the verifier connects without an Origin
+// header, so a wildcard that exposes the logged-in client to any
+// local web page is unnecessary.
+function merge(value) {
+  const parts = value.split("|").filter((p) => p.trim());
+  if (!parts.some((p) => p.includes("remote-debugging-port"))) parts.push(debugFlag);
+  return parts.join("|");
+}
 
-lines = []
-found = False
-for line in cfg.read_text().splitlines():
-    stripped = line.strip()
-    if stripped.startswith("spotify_launch_flags"):
-        _, _, value = stripped.partition("=")
-        lines.append(f"spotify_launch_flags   = {merge(value.strip())}")
-        found = True
-    else:
-        lines.append(line)
-if not found:
-    out = []
-    inserted = False
-    for line in lines:
-        out.append(line)
-        if line.strip() == "[Setting]" and not inserted:
-            out.append(f"spotify_launch_flags   = {debug_flag}")
-            inserted = True
-    lines = out if inserted else lines + [f"spotify_launch_flags   = {debug_flag}"]
-cfg.write_text("\n".join(lines) + "\n")
-print("updated", cfg)
-PY
+let found = false;
+let lines = fs.readFileSync(cfg, "utf8").split(/\r?\n/);
+if (lines.at(-1) === "") lines.pop();
+lines = lines.map((line) => {
+  const stripped = line.trim();
+  if (!stripped.startsWith("spotify_launch_flags")) return line;
+  found = true;
+  const value = stripped.slice(stripped.indexOf("=") + 1).trim();
+  return `spotify_launch_flags   = ${merge(stripped.includes("=") ? value : "")}`;
+});
+if (!found) {
+  const section = lines.findIndex((line) => line.trim() === "[Setting]");
+  const entry = `spotify_launch_flags   = ${debugFlag}`;
+  if (section >= 0) lines.splice(section + 1, 0, entry);
+  else lines.push(entry);
+}
+fs.writeFileSync(cfg, `${lines.join("\n")}\n`);
+console.log("updated", cfg);
+JS
     fi
   fi
 
@@ -254,7 +251,7 @@ if [[ "$SKIP_MIGRATE" -eq 0 ]]; then
     exit 1
   fi
   resolve_target_css_args 1
-  "$PYTHON" scripts/classmap_capture.py migrate \
+  "$NODE" scripts/classmap-capture.ts migrate \
     --base-classmap "$BASE_CLASSMAP" \
     --base-css-dir "$BASE_CSS_DIR" \
     "${TARGET_ARGS[@]}" \
@@ -270,13 +267,16 @@ fi
 if [[ "$SKIP_STATIC" -eq 0 ]]; then
   log "2/4 static verify"
   resolve_target_css_args 1 || resolve_target_css_args 0
-  "$PYTHON" scripts/classmap_capture.py verify \
+  VERSION_ARGS=()
+  [[ -n "$SPOTIFY_VERSION" ]] && VERSION_ARGS=(--target-version "$SPOTIFY_VERSION")
+  "$NODE" scripts/classmap-capture.ts verify \
     --classmap "$CLASSMAP_OUT" \
     --report "$REPORT_OUT" \
     --css-map "$CSS_MAP" \
     "${TARGET_ARGS[@]}" \
+    "${VERSION_ARGS[@]+${VERSION_ARGS[@]}}" \
     --out "$VERIFY_OUT"
-  "$PYTHON" scripts/classmap_capture.py devtools \
+  "$NODE" scripts/classmap-capture.ts devtools \
     --report "$REPORT_OUT" > "$OUT_DIR/devtools-snippet.js" || true
 else
   log "2/4 static verify skipped"
@@ -295,10 +295,9 @@ if [[ "$SKIP_CDP" -eq 0 ]]; then
   if [[ "$RESTART" -eq 1 ]]; then
     RESTART_FLAG=(--restart)
   fi
-  "$NODE" scripts/classmap_cdp_verify.mjs \
+  "$NODE" scripts/classmap-cdp-verify.mjs \
     --port "$CDP_PORT" \
     --mode both \
-    --report "$REPORT_OUT" \
     --classmap "$CLASSMAP_OUT" \
     --css-map "$CSS_MAP" \
     --out "$CDP_OUT" \
@@ -319,7 +318,7 @@ if [[ "$SKIP_FLATTEN" -eq 0 ]]; then
   done
   META_ARGS=()
   [[ -f "$OUT_DIR/META.json" ]] && META_ARGS=(--meta "$OUT_DIR/META.json")
-  "$PYTHON" scripts/classmap_capture.py flatten \
+  "$NODE" scripts/classmap-capture.ts flatten \
     --classmap "$CLASSMAP_OUT" \
     --base-classmap "$BASE_CLASSMAP" \
     --css-map "$CSS_MAP" \
