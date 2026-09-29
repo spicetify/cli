@@ -91,7 +91,9 @@ fn preferred_arch(
 }
 
 #[must_use]
-pub fn platform_arch(_ctx: &crate::context::AppContext) -> &'static str {
+pub fn platform_arch(ctx: &crate::context::AppContext) -> &'static str {
+    #[cfg(not(windows))]
+    let _ = ctx;
     #[cfg(windows)]
     let native_machine = {
         use windows::Win32::System::SystemInformation::IMAGE_FILE_MACHINE;
@@ -101,7 +103,9 @@ pub fn platform_arch(_ctx: &crate::context::AppContext) -> &'static str {
         // GetNativeSystemInfo reports the emulated architecture on Windows ARM64.
         // SAFETY: the current-process pseudo-handle is valid and both outputs are writable.
         #[allow(unsafe_code)]
-        match unsafe { IsWow64Process2(GetCurrentProcess(), &mut process, Some(&mut native)) } {
+        match unsafe {
+            IsWow64Process2(GetCurrentProcess(), &raw mut process, Some(&raw mut native))
+        } {
             Ok(()) => Some(native.0),
             Err(error) => {
                 tracing::warn!(%error, "could not detect native Windows architecture");
@@ -114,7 +118,7 @@ pub fn platform_arch(_ctx: &crate::context::AppContext) -> &'static str {
     #[cfg(windows)]
     let spotify_machine = if native_machine == Some(0xaa64) {
         // Store's launch alias is not the PE file; its data directory holds the real binary.
-        [_ctx.spotify_exec.clone(), _ctx.spotify_data_dir.join("Spotify.exe")].iter().find_map(
+        [ctx.spotify_exec.clone(), ctx.spotify_data_dir.join("Spotify.exe")].iter().find_map(
             |path| {
                 let mut file = std::fs::File::open(path).ok()?;
                 pe_machine(&mut file).ok()
