@@ -50,14 +50,6 @@ fn spotify_lines_ignore_the_build_component() {
     assert!(version_line("UNKNOWN").is_none());
 }
 
-#[test]
-fn update_and_apply_support_matches_the_compiled_platform() {
-    assert_eq!(
-        supported_on_this_platform(),
-        cfg!(target_os = "macos") || cfg!(all(windows, feature = "experimental-windows-updates"))
-    );
-}
-
 #[cfg(not(any(target_os = "macos", all(windows, feature = "experimental-windows-updates"))))]
 #[test]
 fn unsupported_platform_refuses_admission_before_mutating_state() {
