@@ -345,16 +345,22 @@ fn stage_refresh(
     };
     stage_module_version(ctx, id, target, entry)?;
     if let Some(old) = superseded {
-        match crate::module::vault::StoreIdentifier::parse(&format!("{id}@{old}")) {
-            Ok(old) => {
-                if let Err(e) = crate::module::delete(paths, &old) {
-                    tracing::warn!("could not collect superseded {old}: {e}");
-                }
-            }
-            Err(e) => tracing::warn!("cannot collect invalid superseded package {id}@{old}: {e}"),
-        }
+        collect_superseded(paths, id, old);
     }
     Ok(())
+}
+
+/// Deletes the store copy of `id@old`, warning rather than failing: the new
+/// version is already enabled, and a leftover copy only costs disk space.
+pub(super) fn collect_superseded(paths: &crate::module::ModulePaths, id: &str, old: &str) {
+    match crate::module::vault::StoreIdentifier::parse(&format!("{id}@{old}")) {
+        Ok(old) => {
+            if let Err(e) = crate::module::delete(paths, &old) {
+                tracing::warn!("could not collect superseded {old}: {e}");
+            }
+        }
+        Err(e) => tracing::warn!("cannot collect invalid superseded package {id}@{old}: {e}"),
+    }
 }
 
 /// The intent the local vault records for a module, if any refresh must honour
@@ -385,7 +391,11 @@ fn local_intent(module: &crate::module::vault::Module) -> Option<Skip> {
 /// directory name is the version. Anything else (a real directory, a link
 /// into a developer's build output, a dangling link) resolves elsewhere or
 /// not at all and yields `None`.
-fn store_managed_version(modules_root: &Path, store_root: &Path, id: &str) -> Option<String> {
+pub(super) fn store_managed_version(
+    modules_root: &Path,
+    store_root: &Path,
+    id: &str,
+) -> Option<String> {
     let resolved = std::fs::canonicalize(modules_root.join(id)).ok()?;
     let store = std::fs::canonicalize(store_root.join(id)).ok()?;
     if !resolved.starts_with(&store) {
@@ -449,9 +459,35 @@ pub(crate) fn registry_checksum(
     identifier: &str,
     version: &str,
 ) -> Option<String> {
-    let vault = cached_vault(config_root).ok()?;
-    let entry = vault.modules.get(identifier)?.v.get(version)?;
-    (!entry.checksum.is_empty()).then(|| entry.checksum.clone())
+    checksum_via_cache(
+        &vault_cache_path(config_root),
+        std::time::SystemTime::now(),
+        identifier,
+        version,
+        || fetch_vault_body(DEFAULT_VAULT),
+    )
+}
+
+/// Looks `identifier@version` up in the cached registry, and in a fresh copy
+/// when the cache doesn't list it: a version published since the cache was
+/// written is missing from it.
+fn checksum_via_cache(
+    path: &Path,
+    now: std::time::SystemTime,
+    identifier: &str,
+    version: &str,
+    fetch: impl Fn() -> Result<String>,
+) -> Option<String> {
+    let lookup = |vault: &Vault| {
+        let checksum = &vault.modules.get(identifier)?.v.get(version)?.checksum;
+        (!checksum.is_empty()).then(|| checksum.clone())
+    };
+    if let Some(checksum) =
+        vault_via_cache(path, VAULT_CACHE_TTL, now, &fetch).ok().as_ref().and_then(lookup)
+    {
+        return Some(checksum);
+    }
+    lookup(&vault_via_cache(path, std::time::Duration::ZERO, now, &fetch).ok()?)
 }
 
 pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
@@ -685,6 +721,42 @@ mod tests {
             .expect("corrupt cache refetches even while fresh");
         assert!(repaired.modules.contains_key("repaired"));
 
+        std::fs::remove_dir_all(&dir).expect("cleanup");
+    }
+
+    #[test]
+    fn a_checksum_lookup_refetches_when_the_cache_predates_the_version() {
+        use std::time::SystemTime;
+        let dir = std::env::temp_dir().join(format!("spicetify-checksum-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let path = dir.join("vault.json");
+        let body = |versions: &str| format!(r#"{{"modules":{{"stdlib":{{"v":{{{versions}}}}}}}}}"#);
+        let old = r#""1.0.0":{"checksum":"sha256:old"}"#;
+        let both = format!(r#"{old},"1.1.0":{{"checksum":"sha256:new"}}"#);
+        std::fs::write(&path, body(old)).expect("seed cache");
+        let now = SystemTime::now();
+        let lookup = |version: &str, fetch: &dyn Fn() -> Result<String>| {
+            checksum_via_cache(&path, now, "stdlib", version, fetch)
+        };
+
+        assert_eq!(
+            lookup("1.0.0", &|| panic!("a cached version must not fetch")).as_deref(),
+            Some("sha256:old")
+        );
+        assert_eq!(
+            lookup("1.1.0", &|| Ok(body(&both))).as_deref(),
+            Some("sha256:new"),
+            "a version newer than the cache is found in a fresh copy"
+        );
+        assert!(std::fs::read_to_string(&path).expect("cache").contains("sha256:new"));
+        assert_eq!(lookup("9.9.9", &|| Ok(body(&both))), None, "a version nobody published");
+        std::fs::write(&path, body(old)).expect("reseed cache");
+        assert_eq!(
+            lookup("1.1.0", &|| Err(anyhow::anyhow!("network down"))),
+            None,
+            "offline, a version the cache lacks stays unverified"
+        );
         std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 
