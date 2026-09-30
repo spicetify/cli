@@ -294,6 +294,25 @@ mod tests {
     }
 
     #[test]
+    fn automatic_updates_turn_off_and_on_through_the_protocol() -> Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-protocol-auto-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let ctx = AppContext::from_config(root.clone(), &crate::context::Config::default())?;
+        let config = || crate::context::Config::load(&ctx.config_file);
+
+        let reply = handle(&ctx, "spicetify:settings:disable-auto-update", ApplyMode::Daemon)?;
+        assert_eq!(reply, "spicetify:settings:1", "the Manager waits for this reply");
+        assert!(!config()?.auto_update);
+        let _ = handle(&ctx, "spicetify:settings:enable-auto-update", ApplyMode::Daemon)?;
+        assert!(config()?.auto_update);
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    #[test]
     fn protocol_refuses_encoded_path_ids_before_package_actions() -> Result<()> {
         let mut nonce = [0; 16];
         getrandom::fill(&mut nonce)?;
