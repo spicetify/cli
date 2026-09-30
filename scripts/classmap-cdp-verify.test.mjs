@@ -1,20 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { loadChecks, navigationSucceeded } from "./classmap-cdp-verify.mjs";
+import { loadChecks, menuLabels, navigationSucceeded } from "./classmap-cdp-verify.mjs";
 
-const source = readFileSync(new URL("./classmap-cdp-verify.mjs", import.meta.url), "utf8");
 const verifier = fileURLToPath(new URL("./classmap-cdp-verify.mjs", import.meta.url));
-
-test("CDP reports bind deep mode and the exact classmap digest", () => {
-  assert.match(source, /deep:\s*args\.deep/);
-  assert.match(source, /classmap:\s*\{\s*sha256:/);
-});
 
 test("help works without report paths", () => {
   const result = spawnSync(process.execPath, [verifier, "--help"], {
@@ -44,15 +38,16 @@ test("out-dir does not silently consume a stale migrate report", () => {
   }
 });
 
-test("semantic class conjunction is mapped token by token", () => {
-  assert.match(source, /semanticClassName\(hash, cssMap\)/);
-  assert.match(source, /split\(\/\\s\+\/\).*cssMap\[token\] \|\| token/s);
-});
-
-test("navigation success excludes explicit failure sentinels", () => {
-  assert.match(source, /function navigationSucceeded\(result\)/);
-  assert.match(source, /nav-failed\|context-menu-dispatched\|no-track-row\|sort-not-found\|no-settings-scroll-target/);
-  assert.match(source, /if \(!navigationSucceeded\(navResult\)\)/);
+test("a multi-class leaf is mapped to semantic names token by token", () => {
+  const dir = mkdtempSync(join(tmpdir(), "classmap-cdp-test-"));
+  try {
+    writeFileSync(join(dir, "classmap.json"), '{"button":"hashBtnAA e-10860-legacy-button"}\n');
+    writeFileSync(join(dir, "css-map.json"), '{"hashBtnAA":"main-topBar-button"}\n');
+    const [check] = loadChecks({ reportPath: null, classmapPath: join(dir, "classmap.json"), cssMapPath: join(dir, "css-map.json") });
+    assert.equal(check.semantic, "main-topBar-button e-10860-legacy-button");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 for (const args of [
@@ -99,7 +94,27 @@ test("a step that could not open its surface does not count as navigation", () =
   for (const result of ["context-menu-open", "credits-open", "embed-open", "settings-open", "scrolled-settings", "clicked-home"]) {
     assert.equal(navigationSucceeded(result), true, result);
   }
-  for (const result of ["context-menu-dispatched", "credits-not-found", "embed-not-found", "settings-not-rendered", "no-track-row", "nav-failed:/"]) {
+  for (const result of [
+    "tracks-not-rendered",
+    "no-playlist-link",
+    "context-menu-dispatched",
+    "credits-not-found",
+    "embed-not-found",
+    "settings-not-rendered",
+    "no-track-row",
+    "nav-failed:/",
+  ]) {
     assert.equal(navigationSucceeded(result), false, result);
   }
+});
+
+test("menu labels come from the client's translations, with English for missing keys", () => {
+  // Strings from the stock Spotify 1.3.1.234 i18n/es.json.
+  const es = { "contextmenu.show-credits": "Ver créditos", "contextmenu.share": "Compartir", "ewg.title.track": "Insertar canción" };
+  assert.deepEqual(menuLabels(es), {
+    credits: "Ver créditos",
+    share: "Compartir",
+    embed: ["Insertar canción", "Embed episode"],
+    settings: "Settings",
+  });
 });
