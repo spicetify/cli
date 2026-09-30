@@ -32,13 +32,13 @@ pub(crate) fn run(ctx: &crate::context::AppContext) -> Result<()> {
         fl!("self-update-downloading", version = release.version(), current = current_version)
     );
 
-    rt.block_on(async {
-        let staged = update::download_update(&release, arch, |downloaded, total| {
-            if total > 0 {
-                tracing::info!(downloaded, total, "downloading...");
-            }
-        })
-        .await?;
-        update::install_update(&staged)
-    })
+    let staged = rt.block_on(update::download_update(&release, arch, |downloaded, total| {
+        if total > 0 {
+            tracing::info!(downloaded, total, "downloading...");
+        }
+    }))?;
+    // Installation runs outside the runtime: stopping the daemon uses a
+    // blocking HTTP client, which panics inside an async context.
+    drop(rt);
+    update::install_update(&staged)
 }
