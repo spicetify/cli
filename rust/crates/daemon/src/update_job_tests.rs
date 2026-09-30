@@ -38,7 +38,8 @@ fn supervisor_with(job: PersistedUpdateJob, root: &Path) -> Supervisor {
     let ctx =
         AppContext::from_config(root.to_path_buf(), &Config::default()).expect("fixture context");
     let snapshot = Arc::new(RwLock::new(PublicJobStatus::Idle));
-    let mut supervisor = Supervisor::new(Arc::new(SharedContext::new(ctx)), snapshot);
+    let mut supervisor =
+        Supervisor::new(Arc::new(SharedContext::new(ctx)), snapshot, Arc::default());
     supervisor.job = Some(job);
     supervisor
 }
@@ -270,4 +271,51 @@ fn atomic_state_write_can_replace_an_existing_job() {
         })
     ));
     std::fs::remove_dir_all(root).expect("cleanup state fixture");
+}
+
+#[test]
+fn a_client_that_never_loads_fails_early_with_sign_in_guidance() {
+    let root = fixture_root("client-load");
+    let mut supervisor = supervisor_with(exposed_job(), &root);
+    let now = 10_000;
+    let timeout = CLIENT_LOAD_TIMEOUT.as_secs();
+
+    assert_eq!(supervisor.overdue(now).map(|(_, m)| m), None, "no relaunch recorded yet");
+
+    supervisor.relaunched_at = Some(now - timeout + 1);
+    assert_eq!(supervisor.overdue(now).map(|(_, m)| m), None, "still inside the load window");
+
+    supervisor.relaunched_at = Some(now - timeout);
+    assert!(matches!(
+        supervisor.overdue(now),
+        Some((FailureCode::ClientNotLoaded, message)) if message.contains("Sign in to Spotify")
+    ));
+
+    supervisor.client_seen.store(now - timeout + 5, Ordering::Relaxed);
+    assert_eq!(supervisor.overdue(now).map(|(_, m)| m), None, "the main window polled the job");
+
+    supervisor.client_seen.store(now - timeout - 5, Ordering::Relaxed);
+    assert!(
+        matches!(supervisor.overdue(now), Some((FailureCode::ClientNotLoaded, _))),
+        "a poll from before the relaunch came from the client that was replaced"
+    );
+}
+
+#[test]
+fn a_deadline_while_waiting_for_an_offer_mentions_the_login_screen() {
+    let root = fixture_root("offer-deadline");
+    let mut job = exposed_job();
+    if let PersistedUpdateJob::Exposed { expires_at, .. } = &mut job {
+        *expires_at = 500;
+    }
+    let supervisor = supervisor_with(job, &root);
+    supervisor.client_seen.store(400, Ordering::Relaxed);
+    assert!(matches!(
+        supervisor.overdue(500),
+        Some((FailureCode::UpdateUnavailable, message)) if message.contains("login screen")
+    ));
+    assert_eq!(supervisor.overdue(499).map(|(_, m)| m), None);
+
+    let supervisor = supervisor_with(safe_job(), &root);
+    assert!(matches!(supervisor.overdue(2), Some((FailureCode::RendererTimeout, STALLED))));
 }

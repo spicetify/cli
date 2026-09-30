@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, RwLock, mpsc};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -14,6 +15,11 @@ const INSTALL_TIMEOUT: Duration = Duration::from_mins(30);
 const SECURE_TIMEOUT: Duration = Duration::from_mins(2);
 const SECURE_RETRY_INTERVAL: Duration = Duration::from_secs(10);
 const TICK: Duration = Duration::from_secs(1);
+const CLIENT_LOAD_TIMEOUT: Duration = Duration::from_mins(3);
+const CLIENT_NOT_LOADED: &str = "Spotify restarted but never opened its main window, which is what happens when it shows its login screen. Sign in to Spotify, then choose Update & Apply again.";
+const STALLED: &str =
+    "Spotify's updater did not reach the next acknowledged phase before the deadline";
+const NO_OFFER: &str = "Spotify did not offer an update before the deadline. If Spotify is showing its login screen, sign in, then choose Update & Apply again.";
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", rename_all_fields = "camelCase")]
@@ -77,6 +83,7 @@ pub enum FailureCode {
     UnsupportedTarget,
     UpdateUnavailable,
     RendererTimeout,
+    ClientNotLoaded,
     SpotifyUpdateFailed,
     ApplyFailed,
     SecuringFailed,
@@ -184,6 +191,7 @@ enum JobCommand {
 pub struct UpdateJobHandle {
     tx: mpsc::Sender<JobCommand>,
     snapshot: Arc<RwLock<PublicJobStatus>>,
+    client_seen: Arc<AtomicU64>,
 }
 
 impl UpdateJobHandle {
@@ -201,6 +209,12 @@ impl UpdateJobHandle {
             .send(JobCommand::Event { event, reply: tx })
             .map_err(|_| "update supervisor stopped".to_string())?;
         rx.await.map_err(|_| "update supervisor stopped".to_string())?
+    }
+
+    /// Records that the client polled the job. Only the wrapper inside
+    /// Spotify's main window does, so it is proof that window loaded.
+    pub fn mark_client_seen(&self) {
+        self.client_seen.store(epoch_secs(), Ordering::Relaxed);
     }
 
     #[must_use]
@@ -224,10 +238,15 @@ impl UpdateJobHandle {
 pub fn spawn(shared: Arc<SharedContext>) -> UpdateJobHandle {
     let (tx, rx) = mpsc::channel();
     let snapshot = Arc::new(RwLock::new(PublicJobStatus::Idle));
-    let handle = UpdateJobHandle { tx, snapshot: Arc::clone(&snapshot) };
+    let client_seen = Arc::new(AtomicU64::new(0));
+    let handle = UpdateJobHandle {
+        tx,
+        snapshot: Arc::clone(&snapshot),
+        client_seen: Arc::clone(&client_seen),
+    };
     let _thread = std::thread::Builder::new()
         .name("spicetify-update-job".to_string())
-        .spawn(move || Supervisor::new(shared, snapshot).run(&rx))
+        .spawn(move || Supervisor::new(shared, snapshot, client_seen).run(&rx))
         .expect("update supervisor thread must start");
     handle
 }
@@ -239,12 +258,28 @@ struct Supervisor {
     snapshot: Arc<RwLock<PublicJobStatus>>,
     guard: Option<DisruptiveOperationGuard>,
     next_secure_retry: Option<Instant>,
+    client_seen: Arc<AtomicU64>,
+    /// When this supervisor last relaunched Spotify for its updater.
+    relaunched_at: Option<u64>,
 }
 
 impl Supervisor {
-    fn new(shared: Arc<SharedContext>, snapshot: Arc<RwLock<PublicJobStatus>>) -> Self {
+    fn new(
+        shared: Arc<SharedContext>,
+        snapshot: Arc<RwLock<PublicJobStatus>>,
+        client_seen: Arc<AtomicU64>,
+    ) -> Self {
         let path = shared.load().config_root.join(STATE_FILE);
-        Self { shared, path, job: None, snapshot, guard: None, next_secure_retry: None }
+        Self {
+            shared,
+            path,
+            job: None,
+            snapshot,
+            guard: None,
+            next_secure_retry: None,
+            client_seen,
+            relaunched_at: None,
+        }
     }
 
     fn run(mut self, rx: &mpsc::Receiver<JobCommand>) {
@@ -480,6 +515,9 @@ impl Supervisor {
             );
             return;
         }
+        // The client that polled before is gone; only the relaunched one counts.
+        self.client_seen.store(0, Ordering::Relaxed);
+        self.relaunched_at = Some(epoch_secs());
         if let Some(PersistedUpdateJob::Exposed { phase, expires_at, .. }) = self.job.as_mut() {
             *phase = ExposedPhase::WaitingForOffer;
             *expires_at = epoch_secs() + OFFER_TIMEOUT.as_secs();
@@ -771,27 +809,46 @@ impl Supervisor {
             }
             return;
         }
-        match self.job.as_ref() {
-            Some(PersistedUpdateJob::Exposed { phase: ExposedPhase::Securing, .. }) => {
-                self.retry_securing();
-                return;
-            }
-            Some(
-                PersistedUpdateJob::Safe { expires_at, .. }
-                | PersistedUpdateJob::Exposed { expires_at, .. },
-            ) if epoch_secs() >= *expires_at => {
-                let code = if matches!(self.job, Some(PersistedUpdateJob::Safe { .. })) {
-                    FailureCode::RendererTimeout
-                } else {
-                    FailureCode::UpdateUnavailable
-                };
-                self.secure_failure(code, "Spotify's updater did not reach the next acknowledged phase before the deadline");
-                return;
-            }
-            _ => {}
+        if matches!(
+            self.job,
+            Some(PersistedUpdateJob::Exposed { phase: ExposedPhase::Securing, .. })
+        ) {
+            self.retry_securing();
+            return;
+        }
+        if let Some((code, message)) = self.overdue(epoch_secs()) {
+            self.secure_failure(code, message);
+            return;
         }
         if self.is_waiting_for_replacement() {
             self.check_install_facts();
+        }
+    }
+
+    /// The failure an active job has run into by `now`, if any.
+    fn overdue(&self, now: u64) -> Option<(FailureCode, &'static str)> {
+        match self.job.as_ref()? {
+            PersistedUpdateJob::Exposed { phase: ExposedPhase::WaitingForOffer, .. }
+                if client_never_loaded(
+                    self.relaunched_at,
+                    self.client_seen.load(Ordering::Relaxed),
+                    now,
+                ) =>
+            {
+                Some((FailureCode::ClientNotLoaded, CLIENT_NOT_LOADED))
+            }
+            PersistedUpdateJob::Safe { expires_at, .. } if now >= *expires_at => {
+                Some((FailureCode::RendererTimeout, STALLED))
+            }
+            PersistedUpdateJob::Exposed {
+                phase: ExposedPhase::WaitingForOffer,
+                expires_at,
+                ..
+            } if now >= *expires_at => Some((FailureCode::UpdateUnavailable, NO_OFFER)),
+            PersistedUpdateJob::Exposed { expires_at, .. } if now >= *expires_at => {
+                Some((FailureCode::UpdateUnavailable, STALLED))
+            }
+            _ => None,
         }
     }
 
@@ -869,6 +926,15 @@ struct ManifestEvidence {
 struct AdmissionEvidence {
     installed: String,
     supported_ceiling: String,
+}
+
+/// Whether Spotify, relaunched at `relaunched_at`, has gone
+/// `CLIENT_LOAD_TIMEOUT` without its main window polling the job. A
+/// logged-out Spotify shows login.spa, where the wrapper never runs.
+fn client_never_loaded(relaunched_at: Option<u64>, client_seen: u64, now: u64) -> bool {
+    relaunched_at.is_some_and(|relaunched| {
+        client_seen < relaunched && now >= relaunched + CLIENT_LOAD_TIMEOUT.as_secs()
+    })
 }
 
 fn admission_evidence(ctx: &AppContext) -> anyhow::Result<AdmissionEvidence> {
