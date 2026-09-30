@@ -76,13 +76,18 @@ pub(crate) fn add_store(paths: &ModulePaths, id: &StoreIdentifier, store: Store)
     Ok(())
 }
 
+/// The bare lowercase hex of a `sha256:` prefixed or bare checksum, either case.
+pub(crate) fn normalize_checksum(checksum: &str) -> String {
+    // Lowercase before stripping: an upper-case prefix is the same claim,
+    // and stripping first would leave it in the compared value.
+    let checksum = checksum.trim().to_ascii_lowercase();
+    checksum.trim_start_matches("sha256:").to_string()
+}
+
 /// Compares a downloaded artifact against the checksum the vault recorded
 /// for it. `sha256:` prefixed or bare, either case.
 fn verify_checksum(expected: &str, bytes: &[u8]) -> Result<()> {
-    // Lowercase before stripping: an upper-case prefix is the same claim,
-    // and stripping first would leave it in the compared value.
-    let want = expected.trim().to_ascii_lowercase();
-    let want = want.trim_start_matches("sha256:");
+    let want = normalize_checksum(expected);
     let got = remote::digest(bytes);
     if want != got {
         anyhow::bail!(
