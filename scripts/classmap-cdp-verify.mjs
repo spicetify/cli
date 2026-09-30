@@ -322,7 +322,31 @@ class CdpSession {
 }
 
 /** Shared helpers injected into page for navigation recipes. */
+/**
+ * The menu labels the navigation steps click, in the client's language.
+ * `translations` is the client's own i18n/<lang>.json; missing keys fall back
+ * to English.
+ */
+export function menuLabels(translations = {}) {
+  const t = (key, english) => (typeof translations[key] === "string" && translations[key]) || english;
+  return {
+    credits: t("contextmenu.show-credits", "View credits"),
+    share: t("contextmenu.share", "Share"),
+    embed: [t("ewg.title.track", "Embed track"), t("ewg.title.episode", "Embed episode")],
+    settings: t("user.settings", "Settings"),
+  };
+}
+
 const NAV_HELPERS = `
+  const menuLabels = ${menuLabels.toString()};
+  const labels = async () => {
+    const lang = document.documentElement.lang || "en";
+    try {
+      const response = await fetch("/i18n/" + lang + ".json");
+      if (response.ok) return menuLabels(await response.json());
+    } catch {}
+    return menuLabels();
+  };
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
   const visible = (el) => {
     if (!el) return false;
@@ -379,8 +403,8 @@ const NAV_HELPERS = `
     return null;
   };
   const openMenu = () => $$('[role="menu"]').find(visible);
-  const menuItem = (pattern) =>
-    $$('[role="menu"] [role="menuitem"], [role="menu"] button, [role="menu"] a').find((el) => visible(el) && pattern.test((el.textContent || "").trim()));
+  const menuItem = (...texts) =>
+    $$('[role="menu"] [role="menuitem"], [role="menu"] button, [role="menu"] a').find((el) => visible(el) && texts.includes((el.textContent || "").trim()));
   const openDialogs = () => $$('dialog[open], [role="dialog"]').filter(visible);
   // Closes open dialogs and menus so the next step starts from the page itself.
   const closeOverlays = async () => {
@@ -485,13 +509,12 @@ const NAV_STEPS = [
     })()`,
   },
   {
-    // Menu labels are matched in English, the language the verifier expects the client to use.
     name: "track_credits",
     waitMs: 300,
     expr: `(async () => {
       ${NAV_HELPERS}
       if (!openMenu() && !(await openTrackMenu())) return "no-track-row";
-      const item = menuItem(/^View credits$/);
+      const item = menuItem((await labels()).credits);
       if (!click(item)) return "credits-not-found";
       return (await waitFor(() => openDialogs().length, 3000)) ? "credits-open" : "credits-not-found";
     })()`,
@@ -503,11 +526,12 @@ const NAV_STEPS = [
       ${NAV_HELPERS}
       await closeOverlays();
       if (!(await openTrackMenu())) return "no-track-row";
-      const share = menuItem(/^Share$/);
+      const text = await labels();
+      const share = menuItem(text.share);
       if (!share) return "embed-not-found";
       share.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
       click(share);
-      const embed = await waitFor(() => menuItem(/^Embed (track|song|episode)$/), 2000);
+      const embed = await waitFor(() => menuItem(...text.embed), 2000);
       if (!click(embed)) return "embed-not-found";
       return (await waitFor(() => openDialogs().length, 3000)) ? "embed-open" : "embed-not-found";
     })()`,
@@ -535,7 +559,8 @@ const NAV_STEPS = [
       // Settings opens from the account menu; a pushed history entry doesn't render it.
       const profile = findClickable([(e) => (e.getAttribute("data-testid") || "") === "user-widget-link"]);
       if (click(profile)) {
-        const item = await waitFor(() => menuItem(/^Settings$/), 2000);
+        const settingsLabel = (await labels()).settings;
+        const item = await waitFor(() => menuItem(settingsLabel), 2000);
         if (click(item)) {
           const rendered = await waitFor(() => $$("main input, main select").length > 5, 5000);
           return rendered ? "settings-open" : "settings-not-rendered";
