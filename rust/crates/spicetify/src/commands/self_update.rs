@@ -40,6 +40,12 @@ pub(crate) fn run(ctx: &crate::context::AppContext) -> Result<()> {
     // Installation runs outside the runtime: stopping the daemon uses a
     // blocking HTTP client, which panics inside an async context.
     drop(rt);
+    // Installing stops the daemon, so it waits out an apply or Spotify update
+    // rather than cutting one off; the lock is released when this exits.
+    let _guard = crate::commands::guard::acquire_with_timeout(
+        &ctx.config_root,
+        std::time::Duration::from_mins(30),
+    )?;
     update::install_update(&staged)
 }
 

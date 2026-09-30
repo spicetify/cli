@@ -125,8 +125,14 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
             }
         }
         Command::Protocol(uri) => protocol::run(ctx, uri),
-        Command::AutoUpdate(AutoUpdateAction::On) => self_update::set_auto(ctx, true),
-        Command::AutoUpdate(AutoUpdateAction::Off) => self_update::set_auto(ctx, false),
+        Command::AutoUpdate(AutoUpdateAction::On) => {
+            let _guard = guard::try_acquire(&ctx.config_root)?;
+            self_update::set_auto(ctx, true)
+        }
+        Command::AutoUpdate(AutoUpdateAction::Off) => {
+            let _guard = guard::try_acquire(&ctx.config_root)?;
+            self_update::set_auto(ctx, false)
+        }
         Command::AutoUpdate(AutoUpdateAction::Status) => {
             self_update::auto_status(ctx);
             Ok(())
