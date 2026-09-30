@@ -71,6 +71,10 @@ async fn check(ctx: &AppContext, update_job: &UpdateJobHandle, stamp: &Path) -> 
         tracing::debug!("Spicetify is up to date");
         return CHECK_INTERVAL;
     };
+    if release.find_platform_asset(arch).is_none() {
+        tracing::info!(version = %release.version(), arch, "the newest release has no build for this platform");
+        return CHECK_INTERVAL;
+    }
     tracing::info!(version = %release.version(), "installing a new Spicetify release");
     if let Err(e) = launch_self_update(&ctx.config_root) {
         tracing::warn!(error = %e, "could not start the automatic update");
@@ -101,14 +105,31 @@ fn record(stamp: &Path) {
     }
 }
 
-/// Starts `spicetify self-update` from this daemon's folder in its own
-/// process group, so it outlives the daemon it stops.
+/// Starts `spicetify self-update` from this daemon's folder so it outlives
+/// the daemon it restarts: in its own process group, and under systemd in
+/// its own transient unit, since stopping a unit kills its whole cgroup.
+/// The log keeps the last run only.
 fn launch_self_update(config_root: &Path) -> std::io::Result<()> {
     let exe = std::env::current_exe()?;
     let dir = exe.parent().ok_or_else(|| std::io::Error::other("daemon has no parent folder"))?;
     let cli = dir.join(spicetify::update::release::binary_name());
-    let log = std::fs::OpenOptions::new().create(true).append(true).open(config_root.join(LOG))?;
-    let mut command = std::process::Command::new(cli);
+    let log_path = config_root.join(LOG);
+    let log = std::fs::File::create(&log_path)?;
+    #[cfg(target_os = "linux")]
+    let mut command = if std::env::var_os("INVOCATION_ID").is_some() {
+        let mut command = std::process::Command::new("systemd-run");
+        let _ = command
+            .args(["--user", "--collect", "--quiet"])
+            .arg(format!("--property=StandardOutput=append:{}", log_path.display()))
+            .arg(format!("--property=StandardError=append:{}", log_path.display()))
+            .arg("--")
+            .arg(&cli);
+        command
+    } else {
+        std::process::Command::new(&cli)
+    };
+    #[cfg(not(target_os = "linux"))]
+    let mut command = std::process::Command::new(&cli);
     let _ = command
         .arg("self-update")
         .stdin(std::process::Stdio::null())
