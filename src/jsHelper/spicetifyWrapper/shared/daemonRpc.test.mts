@@ -77,11 +77,16 @@ describe("daemon rpc", () => {
   });
 
   it("reads the daemon's version and automatic-update setting", async () => {
-    globalThis.fetch = async () => new Response(JSON.stringify({ version: "3.0.0-beta.22", auto_update: false }), { status: 200 });
-    assert.deepEqual(await daemonInfo(), { version: "3.0.0-beta.22", autoUpdate: false });
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ version: "3.0.0-beta.23", auto_update: true, auto_update_active: false }), { status: 200 });
+    assert.deepEqual(await daemonInfo(), { version: "3.0.0-beta.23", autoUpdate: true, autoUpdateActive: false });
 
     globalThis.fetch = async () => new Response(JSON.stringify({ version: "3.0.0-beta.21" }), { status: 200 });
-    assert.deepEqual(await daemonInfo(), { version: "3.0.0-beta.21", autoUpdate: null }, "a daemon from before the setting");
+    assert.deepEqual(
+      await daemonInfo(),
+      { version: "3.0.0-beta.21", autoUpdate: null, autoUpdateActive: null },
+      "a daemon from before the setting",
+    );
 
     globalThis.fetch = async () => {
       throw new Error("offline");

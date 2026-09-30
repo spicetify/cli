@@ -20,6 +20,7 @@ pub async fn handler(State(state): State<Arc<DaemonState>>) -> impl IntoResponse
         spotify_detected: ctx.spotify_exec.is_file(),
         update_and_apply_supported: Some(crate::update_job::supported_on_this_platform()),
         auto_update: Some(ctx.auto_update),
+        auto_update_active: Some(crate::auto_update::active(&ctx)),
     };
 
     (StatusCode::OK, Json(info)).into_response()

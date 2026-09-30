@@ -32,8 +32,9 @@ export const updateAndApplySupported = async () => {
   }
 };
 
-// The daemon's version and whether it installs new releases on its own;
-// `autoUpdate` is null when the daemon is unreachable or predates the setting.
+// The daemon's version, its automatic-update setting, and whether that
+// setting takes effect (only an install in the official installer's folder
+// updates itself). A field is null when the daemon predates it.
 export const daemonInfo = async () => {
   try {
     const res = await fetch(HEALTH_URL);
@@ -42,6 +43,7 @@ export const daemonInfo = async () => {
     return {
       version: typeof info?.version === "string" ? info.version : null,
       autoUpdate: typeof info?.auto_update === "boolean" ? info.auto_update : null,
+      autoUpdateActive: typeof info?.auto_update_active === "boolean" ? info.auto_update_active : null,
     };
   } catch {
     return null;
