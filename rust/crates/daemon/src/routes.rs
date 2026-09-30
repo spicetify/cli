@@ -273,8 +273,12 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<DaemonState>) {
     while let Some(Ok(msg)) = socket.next().await {
         if let Message::Text(text) = msg {
             tracing::info!("{}", spicetify::fl!("rpc-received", msg = text.as_str()));
+            let settings = text.starts_with("spicetify:settings:");
             match dispatch_rpc(state.ctx.load_full(), text.to_string()).await {
                 Ok(res) if !res.is_empty() => {
+                    if settings {
+                        reload_config(&state);
+                    }
                     if let Err(e) = socket.send(Message::Text(res.into())).await {
                         tracing::warn!(error = %e, "failed to send ws message");
                     }
@@ -292,6 +296,18 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<DaemonState>) {
                 _ => {}
             }
         }
+    }
+}
+
+/// Reloads config.toml now rather than on the watcher's debounce, so a
+/// settings change is in effect by the time its caller hears back.
+fn reload_config(state: &DaemonState) {
+    let base = state.ctx.load_full();
+    match spicetify::context::Config::load(&base.config_file)
+        .and_then(|cfg| spicetify::context::AppContext::from_config(base.config_root.clone(), &cfg))
+    {
+        Ok(ctx) => state.ctx.store(ctx),
+        Err(e) => tracing::warn!(error = %e, "could not reload config.toml"),
     }
 }
 
