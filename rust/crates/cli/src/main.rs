@@ -170,7 +170,7 @@ enum CliPkgAction {
     Delete { id: String },
     #[command(about = "Enable a package")]
     Enable { id: String },
-    #[command(about = "Update installed modules")]
+    #[command(about = "Update installed modules to the registry's versions (run apply afterwards)")]
     Update {
         #[arg(help = "Module identifier to update (updates all if omitted)")]
         id: Option<String>,
