@@ -115,31 +115,65 @@ pub async fn download_update(
 pub fn install_update(staged: &StagedUpdate) -> Result<()> {
     let current_exe = std::env::current_exe()?;
     let install_dir = current_exe.parent().context("exe has no parent dir")?;
+    let daemon = staged.daemon_binary.as_ref().and_then(|staged| {
+        let path = install_dir.join(crate::daemon::daemon_binary_name());
+        path.exists().then_some((staged, path))
+    });
 
-    // Older x64 updaters stop the daemon before launching this migration.
-    let restart_daemon = staged.daemon_binary.is_some()
-        && (crate::daemon::is_daemon_running()
-            || (staged.arch != std::env::consts::ARCH
-                && crate::daemon::DaemonManager::create().is_installed()));
-    if let Some(daemon) = &staged.daemon_binary {
-        let daemon_path = install_dir.join(crate::daemon::daemon_binary_name());
-        if daemon_path.exists() {
-            crate::daemon::shutdown_daemon();
-            let deadline = std::time::Instant::now() + Duration::from_secs(5);
-            while crate::daemon::is_daemon_running() {
-                if std::time::Instant::now() > deadline {
-                    tracing::warn!("daemon did not shut down within 5s; replacing binary anyway");
-                    break;
-                }
-                std::thread::sleep(Duration::from_millis(50));
-            }
-            replace_binary(daemon, &daemon_path).context("failed to replace daemon binary")?;
+    // A supervisor restarts a stopped daemon at once, racing the replacement,
+    // and Unix lets a running binary be renamed away. So a supervised daemon
+    // keeps running while both binaries are replaced, then its supervisor
+    // restarts it onto the new one.
+    let supervised =
+        cfg!(unix) && daemon.is_some() && crate::daemon::DaemonManager::create().is_installed();
+    if supervised {
+        if let Some((staged_daemon, path)) = &daemon {
+            replace_binary(staged_daemon, path).context("failed to replace daemon binary")?;
         }
-    }
-
-    replace_binary(&staged.new_binary, &current_exe).context("failed to replace main binary")?;
-    if restart_daemon {
-        crate::daemon::process::spawn().context("failed to restart updated daemon")?;
+        replace_binary(&staged.new_binary, &current_exe)
+            .context("failed to replace main binary")?;
+        match crate::daemon::DaemonManager::create().restart_supervised() {
+            Ok(true) => tracing::info!("restarted the daemon onto the new version"),
+            Ok(false) => {
+                tracing::warn!("no supervisor restarted the daemon; run `spicetify daemon start`");
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "could not restart the daemon; run `spicetify daemon start`");
+            }
+        }
+    } else {
+        // Older x64 updaters stop the daemon before launching this migration.
+        let restart_daemon = staged.daemon_binary.is_some()
+            && (crate::daemon::is_daemon_running()
+                || (staged.arch != std::env::consts::ARCH
+                    && crate::daemon::DaemonManager::create().is_installed()));
+        let replaced = (|| -> Result<()> {
+            if let Some((staged_daemon, path)) = &daemon {
+                crate::daemon::shutdown_daemon();
+                let deadline = std::time::Instant::now() + Duration::from_secs(5);
+                while crate::daemon::is_daemon_running() {
+                    if std::time::Instant::now() > deadline {
+                        tracing::warn!(
+                            "daemon did not shut down within 5s; replacing binary anyway"
+                        );
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+                replace_binary(staged_daemon, path).context("failed to replace daemon binary")?;
+            }
+            replace_binary(&staged.new_binary, &current_exe)
+                .context("failed to replace main binary")
+        })();
+        // A failed replacement leaves the previous binaries in place, so the
+        // daemon this stopped still has something to restart onto.
+        if restart_daemon && let Err(e) = crate::daemon::process::spawn() {
+            if replaced.is_ok() {
+                return Err(anyhow::Error::new(e).context("failed to restart updated daemon"));
+            }
+            tracing::warn!(error = %e, "failed to restart the daemon after a failed update");
+        }
+        replaced?;
     }
 
     if let Err(e) = std::fs::remove_dir_all(&staged.staging_dir) {
@@ -155,6 +189,28 @@ pub fn install_update(staged: &StagedUpdate) -> Result<()> {
 
     tracing::info!(pid = child.id(), "spawned updated process, exiting");
     std::process::exit(0);
+}
+
+/// The folder the official installer puts the binaries in: `~/.spicetify`,
+/// or `%LOCALAPPDATA%\spicetify` on Windows.
+#[must_use]
+pub fn official_install_dir() -> Option<PathBuf> {
+    let dirs = directories::BaseDirs::new()?;
+    #[cfg(windows)]
+    let dir = dirs.data_local_dir().join("spicetify");
+    #[cfg(not(windows))]
+    let dir = dirs.home_dir().join(".spicetify");
+    Some(dir)
+}
+
+/// Whether the running binary lives in `dir`.
+#[must_use]
+pub fn is_official_install(dir: &Path) -> bool {
+    let exe_dir = std::env::current_exe()
+        .and_then(std::fs::canonicalize)
+        .ok()
+        .and_then(|exe| exe.parent().map(Path::to_path_buf));
+    exe_dir.is_some_and(|exe_dir| std::fs::canonicalize(dir).is_ok_and(|dir| dir == exe_dir))
 }
 
 pub fn startup_cleanup() {
@@ -366,6 +422,15 @@ async fn fetch_and_verify_checksum(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_folder_holding_this_binary_counts_as_the_install() {
+        let exe = std::env::current_exe().expect("test binary");
+        let dir = exe.parent().expect("parent");
+        assert!(is_official_install(dir));
+        assert!(!is_official_install(&std::env::temp_dir()));
+        assert!(!is_official_install(&dir.join("missing")), "a folder that doesn't exist");
+    }
 
     fn release(tag: &str) -> ReleaseInfo {
         ReleaseInfo {

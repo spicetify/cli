@@ -748,6 +748,7 @@ mod tests {
             spotify_exec: executable,
             offline_bnk_dir: root.clone(),
             block_spotify_updates: None,
+            auto_update: false,
         };
         // Wait until process-name lookup can see the simulated client.
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
@@ -923,6 +924,7 @@ mod tests {
             spotify_exec: root.join("Spotify"),
             offline_bnk_dir: root.clone(),
             block_spotify_updates: None,
+            auto_update: false,
         };
 
         prepare_client_bundle(&ctx, &xpui, ClientBundle::Direct).expect("direct bundle patches");
@@ -954,6 +956,7 @@ mod tests {
             spotify_exec: root.join("Spotify"),
             offline_bnk_dir: root.clone(),
             block_spotify_updates: None,
+            auto_update: false,
         };
         let bundle = detect_client_bundle(&xpui).expect("direct bundle detected");
         assert_eq!(bundle, ClientBundle::Direct);
@@ -996,6 +999,7 @@ mod tests {
             spotify_exec: root.join("spicetify-test-missing-spotify"),
             offline_bnk_dir: root.join("missing-offline-bnk"),
             block_spotify_updates: None,
+            auto_update: false,
         };
 
         let (tx, rx) = std::sync::mpsc::channel();

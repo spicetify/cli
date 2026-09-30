@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { acquireWindowControls, send, TOKEN_PROTOCOL_PREFIX, updateAndApplySupported } from "./daemonRpc.js";
+import { acquireWindowControls, daemonInfo, send, setAutoUpdate, TOKEN_PROTOCOL_PREFIX, updateAndApplySupported } from "./daemonRpc.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -74,6 +74,38 @@ describe("daemon rpc", () => {
       throw new Error("offline");
     };
     assert.equal(await updateAndApplySupported(), null);
+  });
+
+  it("reads the daemon's version and automatic-update setting", async () => {
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ version: "3.0.0-beta.23", auto_update: true, auto_update_active: false }), { status: 200 });
+    assert.deepEqual(await daemonInfo(), { version: "3.0.0-beta.23", autoUpdate: true, autoUpdateActive: false });
+
+    globalThis.fetch = async () => new Response(JSON.stringify({ version: "3.0.0-beta.21" }), { status: 200 });
+    assert.deepEqual(
+      await daemonInfo(),
+      { version: "3.0.0-beta.21", autoUpdate: null, autoUpdateActive: null },
+      "a daemon from before the setting",
+    );
+
+    globalThis.fetch = async () => {
+      throw new Error("offline");
+    };
+    assert.equal(await daemonInfo(), null);
+  });
+
+  it("waits for the daemon to record an automatic-update choice", async () => {
+    install();
+    const pending = setAutoUpdate(false);
+    const socket = FakeSocket.last!;
+    socket.onopen!();
+    assert.deepEqual(socket.sent, ["spicetify:settings:disable-auto-update"]);
+    let settled = false;
+    void pending.then(() => (settled = true));
+    await Promise.resolve();
+    assert.equal(settled, false, "the setting isn't saved until the daemon answers");
+    socket.onmessage!({ data: "spicetify:settings:1" });
+    assert.equal(await pending, "spicetify:settings:1");
   });
 
   it("holds native controls until release is acknowledged", async () => {

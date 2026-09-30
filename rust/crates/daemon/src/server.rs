@@ -67,6 +67,11 @@ fn start(ctx: AppContext) -> anyhow::Result<()> {
             Arc::clone(&apps_watcher_active),
             update_job,
         );
+        let _auto_update = crate::auto_update::spawn(
+            Arc::clone(&shared),
+            Arc::clone(&shutdown),
+            state.update_job.clone(),
+        );
         let cfg = watcher::spawn_config_watcher(
             Arc::clone(&shared),
             Arc::clone(&shutdown),

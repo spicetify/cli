@@ -4,7 +4,9 @@ use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::CompleteEnv;
 use i18n_embed_fl as _;
-use spicetify::commands::{Command, ConfigAction, DaemonAction, PkgAction, UpdatesAction};
+use spicetify::commands::{
+    AutoUpdateAction, Command, ConfigAction, DaemonAction, PkgAction, UpdatesAction,
+};
 use spicetify::{fl, logging};
 
 #[derive(Debug, Parser)]
@@ -73,6 +75,11 @@ enum CliCommand {
     Restart,
     #[command(about = "Update CLI/TUI to the latest version")]
     SelfUpdate,
+    #[command(name = "auto-update", about = "Control whether Spicetify updates itself")]
+    AutoUpdate {
+        #[command(subcommand)]
+        action: CliAutoUpdateAction,
+    },
     #[command(name = "spotify-updates", about = "Control Spotify's self-updater")]
     SpotifyUpdates {
         #[command(subcommand)]
@@ -133,6 +140,16 @@ enum CliUpdatesAction {
     #[command(about = "Allow Spotify to self-update")]
     Unblock,
     #[command(about = "Show whether updates are blocked")]
+    Status,
+}
+
+#[derive(Debug, Clone, Copy, Subcommand)]
+enum CliAutoUpdateAction {
+    #[command(about = "Let the daemon install new releases daily")]
+    On,
+    #[command(about = "Only update with `spicetify self-update`")]
+    Off,
+    #[command(about = "Show whether automatic updates are on")]
     Status,
 }
 
@@ -198,6 +215,11 @@ impl From<CliCommand> for Command {
             CliCommand::Support => Command::Support,
             CliCommand::Restart => Command::Restart,
             CliCommand::SelfUpdate => Command::SelfUpdate,
+            CliCommand::AutoUpdate { action } => Command::AutoUpdate(match action {
+                CliAutoUpdateAction::On => AutoUpdateAction::On,
+                CliAutoUpdateAction::Off => AutoUpdateAction::Off,
+                CliAutoUpdateAction::Status => AutoUpdateAction::Status,
+            }),
             CliCommand::SpotifyUpdates { action } => Command::SpotifyUpdates(match action {
                 CliUpdatesAction::Block => UpdatesAction::Block,
                 CliUpdatesAction::Unblock => UpdatesAction::Unblock,

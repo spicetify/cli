@@ -534,6 +534,7 @@ fn test_app() -> TuiApp {
         spotify_exec: std::path::PathBuf::new(),
         offline_bnk_dir: std::path::PathBuf::new(),
         block_spotify_updates: None,
+        auto_update: false,
     };
 
     TuiApp::new(ctx, tx, rx, frame_requester, draw_tx)

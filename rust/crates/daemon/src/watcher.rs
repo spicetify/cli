@@ -121,6 +121,7 @@ fn spawn_apps_watcher_at(
                     }
                 }
             },
+            SELF_EVENT_COOLDOWN,
             shutdown,
         )
         .await;
@@ -260,6 +261,7 @@ pub fn spawn_config_watcher(
                 }
                 std::future::ready(())
             },
+            Duration::ZERO,
             shutdown,
         )
         .await;
@@ -267,10 +269,14 @@ pub fn spawn_config_watcher(
     }))
 }
 
+/// Debounces watcher events into `on_trigger`. `self_event_cooldown` is how
+/// long events are ignored after a trigger, for a trigger that rewrites the
+/// files it watches; one that only reads them passes zero.
 async fn run_loop<P, A, Fut>(
     mut rx: mpsc::UnboundedReceiver<notify::Result<Event>>,
     should_trigger: P,
     mut on_trigger: A,
+    self_event_cooldown: Duration,
     shutdown: Arc<Notify>,
 ) where
     P: Fn(&Event) -> bool,
@@ -299,8 +305,10 @@ async fn run_loop<P, A, Fut>(
                 // The trigger rewrites the watched files; drain what queued
                 // up during it and ignore stragglers for a cooldown so the
                 // trigger cannot schedule itself again.
-                while rx.try_recv().is_ok() {}
-                ignore_until = Some(tokio::time::Instant::now() + SELF_EVENT_COOLDOWN);
+                if !self_event_cooldown.is_zero() {
+                    while rx.try_recv().is_ok() {}
+                    ignore_until = Some(tokio::time::Instant::now() + self_event_cooldown);
+                }
             }
             res = rx.recv() => {
                 if res.is_none() {
@@ -480,6 +488,7 @@ mod tests {
                     }
                 }
             },
+            SELF_EVENT_COOLDOWN,
             Arc::clone(&stop),
         ));
         tx.send(event()).expect("trigger");
@@ -543,6 +552,7 @@ mod tests {
                 let _ = self_tx.send(event());
                 std::future::ready(())
             },
+            SELF_EVENT_COOLDOWN,
             Arc::clone(&shutdown),
         ));
 
@@ -563,6 +573,41 @@ mod tests {
         handle.await.expect("loop exits cleanly");
     }
 
+    /// A trigger that only reads the watched file sees every edit, however
+    /// soon it follows the last reload.
+    #[tokio::test(start_paused = true)]
+    async fn a_read_only_trigger_sees_edits_right_after_a_reload() {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let shutdown = Arc::new(Notify::new());
+        let count = Arc::new(AtomicU32::new(0));
+
+        let c = Arc::clone(&count);
+        let handle = tokio::spawn(run_loop(
+            rx,
+            |_: &Event| true,
+            move || {
+                let _ = c.fetch_add(1, Ordering::SeqCst);
+                std::future::ready(())
+            },
+            Duration::ZERO,
+            Arc::clone(&shutdown),
+        ));
+
+        tx.send(event()).expect("loop is receiving");
+        tokio::time::sleep(DEBOUNCE * 2).await;
+        assert_eq!(count.load(Ordering::SeqCst), 1);
+        tx.send(event()).expect("loop is receiving");
+        tokio::time::sleep(DEBOUNCE * 2).await;
+        assert_eq!(
+            count.load(Ordering::SeqCst),
+            2,
+            "a second edit inside the old cooldown reloads"
+        );
+
+        shutdown.notify_waiters();
+        handle.await.expect("loop exits cleanly");
+    }
+
     /// Events inside the debounce window collapse into a single trigger.
     #[tokio::test(start_paused = true)]
     async fn burst_collapses_to_one_trigger() {
@@ -578,6 +623,7 @@ mod tests {
                 let _ = c.fetch_add(1, Ordering::SeqCst);
                 std::future::ready(())
             },
+            SELF_EVENT_COOLDOWN,
             Arc::clone(&shutdown),
         ));
 

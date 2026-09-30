@@ -11,6 +11,7 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
         spotify_exec: Some(ctx.spotify_exec.clone()),
         offline_bnk_dir: Some(ctx.offline_bnk_dir.clone()),
         block_spotify_updates: ctx.block_spotify_updates,
+        auto_update: ctx.auto_update,
     };
     cfg.save(&ctx.config_file)?;
 

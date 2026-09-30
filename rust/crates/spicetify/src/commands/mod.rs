@@ -36,6 +36,7 @@ pub enum Command {
     Protocol(String),
     SelfUpdate,
     SpotifyUpdates(UpdatesAction),
+    AutoUpdate(AutoUpdateAction),
     #[cfg(target_os = "linux")]
     Spotify(spotify::Action),
     Path,
@@ -47,6 +48,13 @@ pub enum Command {
 pub enum UpdatesAction {
     Block,
     Unblock,
+    Status,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum AutoUpdateAction {
+    On,
+    Off,
     Status,
 }
 
@@ -117,6 +125,18 @@ pub fn dispatch(cmd: &Command, ctx: &AppContext) -> Result<()> {
             }
         }
         Command::Protocol(uri) => protocol::run(ctx, uri),
+        Command::AutoUpdate(AutoUpdateAction::On) => {
+            let _guard = guard::try_acquire(&ctx.config_root)?;
+            self_update::set_auto(ctx, true)
+        }
+        Command::AutoUpdate(AutoUpdateAction::Off) => {
+            let _guard = guard::try_acquire(&ctx.config_root)?;
+            self_update::set_auto(ctx, false)
+        }
+        Command::AutoUpdate(AutoUpdateAction::Status) => {
+            self_update::auto_status(ctx);
+            Ok(())
+        }
         Command::SpotifyUpdates(UpdatesAction::Status) => updates::status(ctx),
         #[cfg(target_os = "linux")]
         Command::Spotify(action) => spotify::run(ctx, action),

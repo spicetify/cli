@@ -2,6 +2,7 @@
 
 use i18n_embed_fl as _;
 
+pub mod auto_update;
 pub mod error;
 pub mod health;
 #[cfg(target_os = "linux")]
