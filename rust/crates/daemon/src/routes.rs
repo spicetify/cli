@@ -191,6 +191,7 @@ async fn update_job_status(
     if !authorized(&state, &headers) {
         return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
     }
+    state.update_job.mark_client_seen();
     (StatusCode::OK, Json(state.update_job.status())).into_response()
 }
 
