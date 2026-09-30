@@ -92,6 +92,44 @@ mod linux_tests {
     }
 }
 
+/// The IDs of live processes named `name`, where the platform can list them.
+pub(crate) fn pids(name: &str) -> Option<Vec<u32>> {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        let output =
+            Command::new("pgrep").args(["-x", name]).stderr(Stdio::null()).output().ok()?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let pids = stdout.lines().filter_map(|pid| pid.trim().parse::<u32>().ok());
+        #[cfg(target_os = "linux")]
+        let pids = pids.filter(|pid| linux_process_alive(*pid));
+        Some(pids.collect())
+    }
+    #[cfg(windows)]
+    {
+        let _ = name;
+        None
+    }
+}
+
+/// Kills every process named `name` with a signal it cannot ignore.
+pub(crate) fn kill_image_hard(name: &str) {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        match Command::new("pkill")
+            .args(["-KILL", "-x", name])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+        {
+            Ok(s) if s.success() || s.code() == Some(1) => {}
+            Ok(s) => tracing::warn!(%name, %s, "pkill -KILL exited with non-zero status"),
+            Err(e) => tracing::warn!(%name, error = %e, "failed to run pkill -KILL"),
+        }
+    }
+    #[cfg(windows)]
+    kill_image(name);
+}
+
 pub(crate) fn kill_image(name: &str) {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
