@@ -174,7 +174,9 @@ fn install_dir() -> Result<PathBuf> {
 fn replace_binary(new: &Path, target: &Path) -> Result<()> {
     let backup = target.with_extension("old");
 
-    if let Err(e) = std::fs::remove_file(&backup) {
+    if let Err(e) = std::fs::remove_file(&backup)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
         tracing::warn!(error = %e, "failed to remove old backup");
     }
 
