@@ -1966,9 +1966,9 @@ declare namespace Spicetify {
 		 * Set default app title. This has no effect if the player is running.
 		 * Will override any previous forced title.
 		 * @param title Title to set
-		 * @return Promise that resolves to a function to cancel forced title. This doesn't reset the title.
+		 * @return Promise that resolves to a subscription. Call `cancel()` on it to stop forcing the title. This doesn't reset the title.
 		 */
-		function set(title: string): Promise<{ clear: () => void }>;
+		function set(title: string): Promise<{ cancel: () => void }>;
 		/**
 		 * Reset app title to default
 		 */
