@@ -42,3 +42,33 @@ pub(crate) fn run(ctx: &crate::context::AppContext) -> Result<()> {
     drop(rt);
     update::install_update(&staged)
 }
+
+/// Turns the daemon's automatic updates on or off in config.toml.
+pub(crate) fn set_auto(ctx: &crate::context::AppContext, on: bool) -> Result<()> {
+    let mut cfg = crate::context::Config::load(&ctx.config_file)?;
+    cfg.auto_update = on;
+    cfg.save(&ctx.config_file)?;
+    tracing::info!(
+        "automatic updates {}",
+        if on { "on: the daemon installs new releases daily" } else { "off" }
+    );
+    auto_status(&crate::context::AppContext { auto_update: on, ..ctx.clone() });
+    Ok(())
+}
+
+pub(crate) fn auto_status(ctx: &crate::context::AppContext) {
+    if !ctx.auto_update {
+        tracing::info!("automatic updates are off; run `spicetify auto-update on` to turn them on");
+        return;
+    }
+    match update::official_install_dir() {
+        Some(dir) if update::is_official_install(&dir) => {
+            tracing::info!("automatic updates are on");
+        }
+        Some(dir) => tracing::info!(
+            "automatic updates are on, but only an install in {} updates itself",
+            dir.display()
+        ),
+        None => tracing::info!("automatic updates are on"),
+    }
+}

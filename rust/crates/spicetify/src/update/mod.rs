@@ -157,6 +157,28 @@ pub fn install_update(staged: &StagedUpdate) -> Result<()> {
     std::process::exit(0);
 }
 
+/// The folder the official installer puts the binaries in: `~/.spicetify`,
+/// or `%LOCALAPPDATA%\spicetify` on Windows.
+#[must_use]
+pub fn official_install_dir() -> Option<PathBuf> {
+    let dirs = directories::BaseDirs::new()?;
+    #[cfg(windows)]
+    let dir = dirs.data_local_dir().join("spicetify");
+    #[cfg(not(windows))]
+    let dir = dirs.home_dir().join(".spicetify");
+    Some(dir)
+}
+
+/// Whether the running binary lives in `dir`.
+#[must_use]
+pub fn is_official_install(dir: &Path) -> bool {
+    let exe_dir = std::env::current_exe()
+        .and_then(std::fs::canonicalize)
+        .ok()
+        .and_then(|exe| exe.parent().map(Path::to_path_buf));
+    exe_dir.is_some_and(|exe_dir| std::fs::canonicalize(dir).is_ok_and(|dir| dir == exe_dir))
+}
+
 pub fn startup_cleanup() {
     let Ok(install_dir) = install_dir() else { return };
 
@@ -366,6 +388,15 @@ async fn fetch_and_verify_checksum(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_folder_holding_this_binary_counts_as_the_install() {
+        let exe = std::env::current_exe().expect("test binary");
+        let dir = exe.parent().expect("parent");
+        assert!(is_official_install(dir));
+        assert!(!is_official_install(&std::env::temp_dir()));
+        assert!(!is_official_install(&dir.join("missing")), "a folder that doesn't exist");
+    }
 
     fn release(tag: &str) -> ReleaseInfo {
         ReleaseInfo {
