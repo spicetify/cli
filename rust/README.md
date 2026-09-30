@@ -66,8 +66,8 @@ or change system packages.
 
 Installation requires a verified classmap for the exact Spotify version line.
 Spicetify patches the candidate before switching its configuration and the
-Spotify desktop launcher to it, then restarts Spotify and the daemon. A failed
-activation restores the previous configuration and launcher. Previous client
+Spotify desktop and terminal launchers to it, then restarts Spotify. A failed
+activation restores the previous configuration and launchers. Previous client
 files remain available; the candidate also retains `config-before.toml` and
 `desktop-before.desktop` when those files existed.
 
@@ -75,19 +75,28 @@ Client files live under `$XDG_DATA_HOME/spicetify/spotify/versions`, normally
 `~/.local/share/spicetify/spotify/versions`. Verified downloads are cached under
 `$XDG_CACHE_HOME/spicetify/spotify`. These commands neither replace `/usr/bin/spotify`
 nor manage installations owned by apt, pacman, Snap, or Flatpak. The desktop
-launcher and Spicetify configuration select the managed client.
+launcher and Spicetify configuration select the managed client. A symlink at
+`~/.local/bin/spotify` selects the same executable from a terminal. Keep
+`~/.local/bin` before system directories in `PATH`; the installer warns when
+another executable takes precedence. Existing regular files at that path are
+preserved, and installation stops with instructions to move them aside.
 
 Stable is the default channel. Use `spotify install --channel testing` to opt
 into Spotify's testing feed, or `spotify update --channel testing` to switch
-an existing managed install. Subsequent updates retain that channel. Downgrades
+an existing managed install. Subsequent updates and reinstalls retain that channel. Downgrades
 are refused, including when switching back to an older stable release.
 An explicit `spotify install` prepares a fresh patched copy even when the
 package version is unchanged, so it can restore Spicetify after `spicetify restore`.
 
 Package updates run only when requested. This does not prove that Spotify's
 native self-updater is blocked. `spotify status` reports native block detection
-separately; an unrecognized endpoint remains **unknown**. The daemon's in-client
-**Update & Apply** transaction still uses Spotify's native updater.
+separately; an unrecognized endpoint remains **unknown**.
+
+Manager offers **Update Spotify & Apply** for managed installations. It checks
+the selected Linux package feed rather than the global Spotify availability
+feed. The daemon runs the same installer and keeps progress through renderer
+restarts. A second request joins the running job. If the daemon itself stops,
+the next start reports the interruption and offers the reinstall command.
 
 ## Restart the daemon after local changes
 

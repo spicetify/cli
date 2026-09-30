@@ -108,11 +108,80 @@ pub fn build(state: Arc<DaemonState>) -> Router {
         .route("/shutdown", post(shutdown_handler))
         .route("/jobs/update-and-apply", get(update_job_status).post(update_job_admit))
         .route("/jobs/update-and-apply/event", post(update_job_event))
+        .route("/spotify", get(managed_spotify_status))
+        .route("/spotify/check", post(managed_spotify_check))
+        .route("/spotify/update", post(managed_spotify_update))
         .route("/proxy", get(proxy::status))
         .route("/proxy/", get(proxy::status))
         .route("/proxy/{*url}", any(proxy::handler))
         .layer(cors_layer())
         .with_state(state)
+}
+
+async fn managed_spotify_status(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    if !authorized(&state, &headers) {
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+    }
+    #[cfg(target_os = "linux")]
+    return match tokio::task::spawn_blocking(move || state.managed_spotify.snapshot()).await {
+        Ok(Ok(snapshot)) => Json(snapshot).into_response(),
+        Ok(Err(error)) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("cannot read managed Spotify status: {error:#}"),
+        )
+            .into_response(),
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()).into_response(),
+    };
+    #[cfg(not(target_os = "linux"))]
+    Json(serde_json::json!({"installation":{"kind":"external"},"job":{"kind":"idle"}}))
+        .into_response()
+}
+
+async fn managed_spotify_check(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    if !authorized(&state, &headers) {
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+    }
+    #[cfg(target_os = "linux")]
+    return match tokio::task::spawn_blocking(move || {
+        let ctx = state.ctx.load_full();
+        let _guard = spicetify::commands::guard::try_acquire(&ctx.config_root)?;
+        spicetify::commands::spotify::check_update(&ctx)
+    })
+    .await
+    {
+        Ok(Ok(available)) => Json(available).into_response(),
+        Ok(Err(error)) => {
+            (StatusCode::CONFLICT, format!("cannot check Spotify packages: {error:#}"))
+                .into_response()
+        }
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()).into_response(),
+    };
+    #[cfg(not(target_os = "linux"))]
+    (StatusCode::NOT_IMPLEMENTED, "managed Spotify packages require Linux").into_response()
+}
+
+async fn managed_spotify_update(
+    State(state): State<Arc<DaemonState>>,
+    headers: HeaderMap,
+) -> axum::response::Response {
+    if !authorized(&state, &headers) {
+        return (StatusCode::FORBIDDEN, "invalid daemon token").into_response();
+    }
+    #[cfg(target_os = "linux")]
+    return match tokio::task::spawn_blocking(move || state.managed_spotify.admit()).await {
+        Ok(Ok(admission)) => (StatusCode::ACCEPTED, Json(admission)).into_response(),
+        Ok(Err(error)) => (StatusCode::CONFLICT, format!("cannot start Spotify update: {error:#}"))
+            .into_response(),
+        Err(error) => (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()).into_response(),
+    };
+    #[cfg(not(target_os = "linux"))]
+    (StatusCode::NOT_IMPLEMENTED, "managed Spotify packages require Linux").into_response()
 }
 
 async fn update_job_status(
@@ -203,8 +272,7 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<DaemonState>) {
     while let Some(Ok(msg)) = socket.next().await {
         if let Message::Text(text) = msg {
             tracing::info!("{}", spicetify::fl!("rpc-received", msg = text.as_str()));
-            let ctx = state.ctx.load();
-            match protocol::handle(&ctx, &text) {
+            match dispatch_rpc(state.ctx.load_full(), text.to_string()).await {
                 Ok(res) if !res.is_empty() => {
                     if let Err(e) = socket.send(Message::Text(res.into())).await {
                         tracing::warn!(error = %e, "failed to send ws message");
@@ -226,6 +294,16 @@ async fn handle_ws(mut socket: WebSocket, state: Arc<DaemonState>) {
     }
 }
 
+async fn dispatch_rpc(
+    ctx: Arc<spicetify::context::AppContext>,
+    text: String,
+) -> anyhow::Result<String> {
+    tokio::task::spawn_blocking(move || {
+        protocol::handle(&ctx, &text, spicetify::commands::apply::ApplyMode::Daemon)
+    })
+    .await?
+}
+
 // A cross-origin POST is sent even when the browser refuses to let the page
 // read the reply, so without a token any page the user visits could stop the
 // daemon and silently disable auto re-apply.
@@ -237,6 +315,11 @@ async fn shutdown_handler(
         tracing::warn!("shutdown request rejected: missing or invalid daemon token");
         return (StatusCode::FORBIDDEN, "invalid daemon token".to_string()).into_response();
     }
+    #[cfg(target_os = "linux")]
+    if state.managed_spotify.running() {
+        return (StatusCode::CONFLICT, "a managed Spotify update is in progress".to_string())
+            .into_response();
+    }
     tracing::info!("{}", spicetify::fl!("shutdown-requested"));
     state.shutdown.notify_waiters();
     (StatusCode::ACCEPTED, spicetify::fl!("daemon-stopping-resp")).into_response()
@@ -245,6 +328,51 @@ async fn shutdown_handler(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn apply_rpc_does_not_block_the_server_while_waiting_for_the_apply_lock()
+    -> anyhow::Result<()> {
+        use spicetify::context::{AppContext, Config};
+        use std::fs::OpenOptions;
+
+        let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("spicetify-rpc-{}-{nonce}", std::process::id()));
+        // Foreign apply artifacts make the command fail before it can touch Spotify.
+        std::fs::create_dir_all(root.join("Apps/xpui"))?;
+        let ctx = Arc::new(AppContext::from_config(
+            root.clone(),
+            &Config {
+                spotify_exec: Some(root.join("Spotify")),
+                spotify_data_dir: Some(root.clone()),
+                offline_bnk_dir: Some(root.clone()),
+                ..Config::default()
+            },
+        )?);
+        let lock = OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .write(true)
+            .open(root.join("spicetify-apply.lock"))?;
+        lock.lock()?;
+        let (release, held) = std::sync::mpsc::channel();
+        // A bounded external release keeps a regression from hanging the test runtime.
+        let holder = std::thread::spawn(move || {
+            let _ = held.recv_timeout(Duration::from_secs(5));
+            drop(lock);
+        });
+        let rpc = tokio::spawn(dispatch_rpc(ctx, "spicetify:0:apply".to_string()));
+        let started = std::time::Instant::now();
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let responsive = started.elapsed() < Duration::from_secs(2) && !rpc.is_finished();
+        let _ = release.send(());
+        let result = rpc.await?;
+        holder.join().expect("lock holder exits");
+        std::fs::remove_dir_all(root)?;
+        assert!(result.is_err(), "fixture must refuse a foreign apply");
+        assert!(responsive, "the server must keep polling while Apply waits on disk");
+        Ok(())
+    }
 
     fn headers(protocols: &str) -> HeaderMap {
         let mut h = HeaderMap::new();

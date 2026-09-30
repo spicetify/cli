@@ -1,4 +1,5 @@
 import { fnStr } from "../shared/string.js";
+import { createGraphQLDefinitions } from "./graphql-definitions.js";
 import { createReactComponents } from "./react-components.js";
 import { findReactQuery } from "./react-query.js";
 
@@ -31,6 +32,7 @@ export function createSpicetifyBindings({
     },
     GraphQL: {
       ...Spicetify.GraphQL,
+      Definitions: globalThis.__SPICETIFY_CLIENT_BUNDLE_MODE__ ? createGraphQLDefinitions(() => require.m) : Spicetify.GraphQL.Definitions,
       get Request() {
         return Spicetify.Platform?.GraphQLLoader || Spicetify.GraphQL.Handler?.(Spicetify.GraphQL.Context);
       },

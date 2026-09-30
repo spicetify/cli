@@ -372,6 +372,7 @@ mod tests {
                         Err(e) => unreachable!("fixture accept failed: {e}"),
                     }
                 };
+                stream.set_nonblocking(false).expect("blocking fixture stream");
                 stream.set_read_timeout(Some(Duration::from_secs(5))).expect("read timeout");
                 let mut request = Vec::new();
                 while !request.ends_with(b"\r\n\r\n") {

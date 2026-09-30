@@ -3,6 +3,16 @@ use std::process::{Command, Stdio};
 use crate::context::AppContext;
 use crate::error::Result;
 
+#[cfg(windows)]
+pub(crate) fn background_command(program: impl AsRef<std::ffi::OsStr>) -> Command {
+    use std::os::windows::process::CommandExt;
+    use windows::Win32::System::Threading::CREATE_NO_WINDOW;
+
+    let mut command = Command::new(program);
+    let _ = command.creation_flags(CREATE_NO_WINDOW.0);
+    command
+}
+
 pub(crate) fn process_running(name: &str) -> bool {
     #[cfg(target_os = "linux")]
     {
@@ -26,7 +36,7 @@ pub(crate) fn process_running(name: &str) -> bool {
     }
     #[cfg(windows)]
     {
-        Command::new("tasklist")
+        background_command("tasklist")
             .args(["/FI", &format!("ImageName eq {name}"), "/NH"])
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
@@ -44,15 +54,29 @@ pub(crate) fn process_running(name: &str) -> bool {
 #[cfg(target_os = "linux")]
 fn linux_process_alive(pid: u32) -> bool {
     // pgrep includes unreaped children. They cannot exit again or serve a client.
-    std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| {
+    let alive = std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|stat| {
         stat.rsplit_once(')')
             .and_then(|(_, rest)| rest.split_whitespace().next())
             .is_some_and(|state| state != "Z" && state != "X")
-    })
+    });
+    alive
+        && std::fs::read(format!("/proc/{pid}/cmdline")).is_ok_and(|args| !is_version_probe(&args))
+}
+
+#[cfg(target_os = "linux")]
+fn is_version_probe(args: &[u8]) -> bool {
+    args.split(|byte| *byte == 0).skip(1).any(|arg| arg == b"--version")
 }
 
 #[cfg(all(test, target_os = "linux"))]
 mod linux_tests {
+    #[test]
+    fn version_probes_do_not_count_as_a_running_client() {
+        assert!(super::is_version_probe(b"/opt/spotify/spotify\0--version\0"));
+        assert!(!super::is_version_probe(b"/opt/spotify/spotify\0--remote-debugging-port=9229\0"));
+        assert!(!super::is_version_probe(b"/opt/spotify/spotify\0spotify:track:version\0"));
+    }
+
     #[test]
     fn an_unreaped_child_is_not_a_running_client() {
         let mut child = std::process::Command::new("sleep").arg("30").spawn().unwrap();
@@ -87,7 +111,7 @@ pub(crate) fn kill_image(name: &str) {
     }
     #[cfg(windows)]
     {
-        match Command::new("taskkill")
+        match background_command("taskkill")
             .args(["/F", "/IM", name])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -163,7 +187,7 @@ fn spawn_windows(ctx: &AppContext) -> Result<()> {
         let ps_cmd =
             format!("& \"{}\" --app-directory=\"{}\"", appx_exe.display(), dest_apps.display());
 
-        let child = Command::new("powershell.exe")
+        let child = background_command("powershell.exe")
             .args(["-NoProfile", "-NonInteractive", "-Command", &ps_cmd])
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -243,6 +267,22 @@ pub fn force_kill_spotify(ctx: &AppContext) {
 
     tracing::info!("force-killing Spotify processes");
     kill_image(image);
+}
+
+#[cfg(all(test, windows))]
+mod windows_tests {
+    #[test]
+    fn background_helpers_have_no_console_and_preserve_output_and_status() {
+        let output = super::background_command("powershell.exe")
+            .args([
+                "-NoProfile", "-NonInteractive", "-Command",
+                r#"Add-Type 'using System; using System.Runtime.InteropServices; public class ConsoleProbe { [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow(); }'; [ConsoleProbe]::GetConsoleWindow().ToInt64(); exit 7"#,
+            ])
+            .output()
+            .expect("run background console probe");
+        assert_eq!(output.status.code(), Some(7), "child exit status is preserved: {output:?}");
+        assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "0", "no console is allocated");
+    }
 }
 
 #[cfg(all(test, target_os = "macos"))]

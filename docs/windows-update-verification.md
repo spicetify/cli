@@ -76,6 +76,11 @@ These files are local diagnostic artifacts, not release fixtures.
 
 ## Remaining verification
 
+The later [daemon Apply verification](daemon-apply-verification.md) diagnoses
+and fixes a separate self-shutdown path seen during an ordinary in-client
+Apply. Its authenticated RPC run passed, but it does not replace the missing
+first-boot visual check below.
+
 Repeat an actual version update with reliable first-boot observation and
 without a diagnostic restart. Check loaded modules through the normal UI before
 calling the job's user outcome complete. Microsoft Store installations, Linux,

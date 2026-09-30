@@ -38,6 +38,10 @@ jobs:
             target: x86_64-pc-windows-msvc
             asset_os: windows
             asset_arch: x86_64
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            asset_os: windows
+            asset_arch: aarch64
     steps:
       # A dispatch-supplied tag reaches checkout's ref, so it is constrained to
       # the shape this workflow publishes before anything acts on it.
@@ -56,6 +60,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag || github.ref }}
+
+      - name: Configure native Windows ARM64 toolchain
+        if: runner.os == 'Windows' && runner.arch == 'ARM64'
+        shell: pwsh
+        working-directory: .
+        run: ./scripts/setup-windows-arm64.ps1
 
       - name: Setup Node and pnpm
         uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4

@@ -48,5 +48,5 @@ flate2 = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 junction = { workspace = true }
-windows = { workspace = true }
+windows = { workspace = true, features = ["Win32_System_SystemInformation"] }
 windows-registry = { workspace = true }

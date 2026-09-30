@@ -26,6 +26,8 @@ pub struct DaemonState {
     pub apps_watcher_active: Arc<AtomicBool>,
     pub config_watcher_active: Arc<AtomicBool>,
     pub update_job: update_job::UpdateJobHandle,
+    #[cfg(target_os = "linux")]
+    pub managed_spotify: crate::managed_spotify::Handle,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -40,10 +42,7 @@ pub fn run() -> anyhow::Result<()> {
 fn start(ctx: AppContext) -> anyhow::Result<()> {
     let _lock = acquire_instance_lock(&ctx.config_root)?;
 
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .max_blocking_threads(1)
-        .build()?;
+    let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build()?;
     runtime.block_on(async move {
         let shared = Arc::new(SharedContext::new(ctx));
         let shutdown = Arc::new(tokio::sync::Notify::new());
@@ -51,6 +50,8 @@ fn start(ctx: AppContext) -> anyhow::Result<()> {
         let config_watcher_active = Arc::new(AtomicBool::new(false));
         let update_job = update_job::spawn(Arc::clone(&shared));
         let state = Arc::new(DaemonState {
+            #[cfg(target_os = "linux")]
+            managed_spotify: crate::managed_spotify::Handle::new(Arc::clone(&shared))?,
             ctx: Arc::clone(&shared),
             client: spicetify::http::proxy_client()?,
             shutdown: Arc::clone(&shutdown),

@@ -129,10 +129,22 @@ fn install_protocol_handler() -> crate::error::Result<PathBuf> {
         tracing::debug!(error = %e, "could not remove the temporary applescript");
     }
 
-    declare_url_scheme(&bundle.join("Contents").join("Info.plist"))?;
+    finalize_protocol_bundle(&bundle)?;
     run(LSREGISTER, &["-f".as_ref(), bundle.as_os_str()])?;
 
     Ok(bundle)
+}
+
+fn finalize_protocol_bundle(bundle: &Path) -> crate::error::Result<()> {
+    declare_url_scheme(&bundle.join("Contents").join("Info.plist"))?;
+    run(
+        "/usr/bin/codesign",
+        &["--force".as_ref(), "--sign".as_ref(), "-".as_ref(), bundle.as_os_str()],
+    )?;
+    run(
+        "/usr/bin/codesign",
+        &["--verify".as_ref(), "--deep".as_ref(), "--strict".as_ref(), bundle.as_os_str()],
+    )
 }
 
 /// `quoted form of` is `AppleScript`'s shell escaping, so a hostile URI cannot
@@ -183,6 +195,46 @@ fn run(program: &str, args: &[&std::ffi::OsStr]) -> crate::error::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn protocol_bundle_signature_covers_the_final_url_metadata() -> crate::error::Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root = std::env::temp_dir().join(format!("spicetify-protocol-{}", hex::encode(nonce)));
+        std::fs::create_dir(&root)?;
+        let result = (|| {
+            let source = root.join("handler.applescript");
+            let bundle = root.join("Spicetify.app");
+            std::fs::write(
+                &source,
+                applescript(Path::new("/usr/bin/true"), &root.join("protocol.log")),
+            )?;
+            run("/usr/bin/osacompile", &["-o".as_ref(), bundle.as_os_str(), source.as_os_str()])?;
+            finalize_protocol_bundle(&bundle)?;
+            let metadata = std::process::Command::new("/usr/bin/plutil")
+                .args(["-convert", "json", "-o", "-"])
+                .arg(bundle.join("Contents/Info.plist"))
+                .output()?;
+            assert!(metadata.status.success());
+            let plist: serde_json::Value = serde_json::from_slice(&metadata.stdout)?;
+            assert_eq!(
+                plist.get("CFBundleIdentifier").and_then(serde_json::Value::as_str),
+                Some(BUNDLE_ID)
+            );
+            assert_eq!(
+                plist
+                    .pointer("/CFBundleURLTypes/0/CFBundleURLSchemes/0")
+                    .and_then(serde_json::Value::as_str),
+                Some("spicetify")
+            );
+            run(
+                "/usr/bin/codesign",
+                &["--verify".as_ref(), "--deep".as_ref(), "--strict".as_ref(), bundle.as_os_str()],
+            )
+        })();
+        std::fs::remove_dir_all(&root)?;
+        result
+    }
 
     #[test]
     fn resolve_bundle_prefers_an_existing_candidate() {

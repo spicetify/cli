@@ -16,16 +16,19 @@
  *
  * Usage
  * -----
- *   node scripts/classmap_cdp_verify.mjs --out-dir classmaps/1020092
- *   node scripts/classmap_cdp_verify.mjs --port 9222 --mode both --out-dir classmaps/1020092
- *   node scripts/classmap_cdp_verify.mjs --report <report.json> --classmap <classmap.json> --out <cdp-report.json>
- *   CLASSMAP_OUT_DIR=classmaps/1020092 node scripts/classmap_cdp_verify.mjs --navigate --min-hit-rate 0.3
+ *   node scripts/classmap-cdp-verify.mjs --out-dir classmaps/1020092
+ *   node scripts/classmap-cdp-verify.mjs --port 9222 --mode both --out-dir classmaps/1020092
+ *   node scripts/classmap-cdp-verify.mjs --report <report.json> --classmap <classmap.json> --out <cdp-report.json>
+ *   CLASSMAP_OUT_DIR=classmaps/1020092 node scripts/classmap-cdp-verify.mjs --navigate --min-hit-rate 0.3
  *
  * Paths
  * -----
  *   --classmap/--out may be given explicitly, or derived from --out-dir /
  *   CLASSMAP_OUT_DIR. --report is optional; when omitted, every classmap leaf
  *   is probed directly.
+ *   --overlay applies a key's css-map.json on top of --css-map, as apply does,
+ *   so semantic probes use the names the published key gives its classes.
+ *   The report records the digest of both maps.
  *
  * Exit codes
  * ----------
@@ -53,6 +56,7 @@ function parseArgs(argv) {
     report: null,
     classmap: null,
     cssMap: path.join(CLI_ROOT, "css-map.json"),
+    overlay: null,
     out: null,
     navigate: false,
     deep: false,
@@ -85,6 +89,9 @@ function parseArgs(argv) {
         break;
       case "--css-map":
         args.cssMap = path.resolve(take());
+        break;
+      case "--overlay":
+        args.overlay = path.resolve(take());
         break;
       case "--out":
         args.out = path.resolve(take());
@@ -201,8 +208,15 @@ function pickXpuiTarget(targets) {
   return pages.find((t) => (t.url || "").includes("xpui.app.spotify.com")) || pages.find((t) => (t.url || "").includes("index.html")) || pages[0];
 }
 
-function loadChecks({ reportPath, classmapPath, cssMapPath }) {
-  const cssMap = fs.existsSync(cssMapPath) ? JSON.parse(fs.readFileSync(cssMapPath, "utf8")) : {};
+/** The CLI css-map with a key's overlay applied on top, as `apply` merges them. */
+export function effectiveCssMap(cssMapPath, overlayPath) {
+  const base = fs.existsSync(cssMapPath) ? JSON.parse(fs.readFileSync(cssMapPath, "utf8")) : {};
+  const overlay = overlayPath ? JSON.parse(fs.readFileSync(overlayPath, "utf8")) : {};
+  return { ...base, ...overlay };
+}
+
+export function loadChecks({ reportPath, classmapPath, cssMapPath, overlayPath = null }) {
+  const cssMap = effectiveCssMap(cssMapPath, overlayPath);
 
   /** @type {{path:string, hash:string, semantic:string|null, confidence:string}[]} */
   let checks = [];
@@ -308,7 +322,31 @@ class CdpSession {
 }
 
 /** Shared helpers injected into page for navigation recipes. */
+/**
+ * The menu labels the navigation steps click, in the client's language.
+ * `translations` is the client's own i18n/<lang>.json; missing keys fall back
+ * to English.
+ */
+export function menuLabels(translations = {}) {
+  const t = (key, english) => (typeof translations[key] === "string" && translations[key]) || english;
+  return {
+    credits: t("contextmenu.show-credits", "View credits"),
+    share: t("contextmenu.share", "Share"),
+    embed: [t("ewg.title.track", "Embed track"), t("ewg.title.episode", "Embed episode")],
+    settings: t("user.settings", "Settings"),
+  };
+}
+
 const NAV_HELPERS = `
+  const menuLabels = ${menuLabels.toString()};
+  const labels = async () => {
+    const lang = document.documentElement.lang || "en";
+    try {
+      const response = await fetch("/i18n/" + lang + ".json");
+      if (response.ok) return menuLabels(await response.json());
+    } catch {}
+    return menuLabels();
+  };
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
   const visible = (el) => {
     if (!el) return false;
@@ -321,7 +359,8 @@ const NAV_HELPERS = `
     if (!el) return false;
     el.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, cancelable: true, view: window }));
     el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: window }));
-    el.click();
+    if (typeof el.click === "function") el.click();
+    else el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
     el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, view: window }));
     return true;
   };
@@ -353,6 +392,42 @@ const NAV_HELPERS = `
     } catch {
       return "nav-failed:" + pathname;
     }
+  };
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const waitFor = async (probe, ms = 3000) => {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      const value = probe();
+      if (value) return value;
+      await wait(100);
+    }
+    return null;
+  };
+  const openMenu = () => $$('[role="menu"]').find(visible);
+  const menuItem = (...texts) =>
+    $$('[role="menu"] [role="menuitem"], [role="menu"] button, [role="menu"] a').find((el) => visible(el) && texts.includes((el.textContent || "").trim()));
+  const openDialogs = () => $$('dialog[open], [role="dialog"]').filter(visible);
+  // Closes open dialogs and menus so the next step starts from the page itself.
+  const closeOverlays = async () => {
+    for (const dialog of openDialogs()) {
+      const close = [...dialog.querySelectorAll("button[aria-label]")].find((b) => /^close$/i.test(b.getAttribute("aria-label")));
+      if (close) click(close);
+      else dialog.close?.();
+    }
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+    await waitFor(() => !openDialogs().length && !openMenu(), 5000);
+  };
+  // Opens the context menu of the first visible track row.
+  const openTrackMenu = async () => {
+    // Track rows first: the Your Library sidebar also uses role="row".
+    const row = ['main [data-testid="tracklist-row"]', '[data-testid="tracklist-row"]', 'main [data-testid="internal-tracklist-row"]']
+      .map((selector) => $$(selector).find(visible))
+      .find(Boolean);
+    if (!row) return null;
+    const rect = row.getBoundingClientRect();
+    const opts = { bubbles: true, cancelable: true, view: window, clientX: rect.left + Math.min(40, rect.width / 2), clientY: rect.top + rect.height / 2, button: 2, buttons: 2 };
+    row.dispatchEvent(new MouseEvent("contextmenu", opts));
+    return waitFor(openMenu, 8000);
   };
 `;
 
@@ -408,55 +483,67 @@ const NAV_STEPS = [
   },
   {
     name: "playlist",
-    waitMs: 1800,
-    expr: `(() => {
+    waitMs: 300,
+    expr: `(async () => {
       ${NAV_HELPERS}
-      // Prefer an in-library playlist / liked songs / card link
-      const el = findClickable([
-        (e) => (e.getAttribute("href") || "").includes("/playlist/"),
-        (e) => (e.getAttribute("href") || "").includes("/collection/tracks"),
-        (e) => /liked songs|playlist/i.test(textOf(e)) && (e.getAttribute("href") || "").startsWith("/"),
-        (e) => (e.getAttribute("data-testid") || "").includes("playlist") || (e.getAttribute("data-testid") || "") === "internal-tracklist-row",
-      ]);
-      if (click(el)) return "clicked-playlist-or-liked:" + (el.getAttribute("href") || el.getAttribute("data-testid") || el.tagName);
-      // Fallback: open a well-known public playlist route (Today's Top Hits-ish may 404; use search results cards)
-      const card = $$('[data-testid="card-click-handler"], [data-testid="top-result-card"], a[href*="playlist"], a[href*="album"]').find(visible);
-      if (click(card)) return "clicked-card:" + (card.getAttribute("href") || card.getAttribute("data-testid"));
-      return navigateSpa("/collection/tracks");
+      // Only real links: a filter chip such as "Playlists" matches a looser test and navigates nowhere.
+      const links = () => $$("a[href]").filter((a) => visible(a) && /^\\/(playlist|album)\\/|^\\/collection\\/tracks/.test(a.getAttribute("href")));
+      if (!links().length) {
+        click(findClickable([(e) => e.getAttribute("data-testid") === "home-button"]));
+        await waitFor(() => links().length, 15000);
+      }
+      const tracksRendered = () => waitFor(() => $$('main [data-testid="tracklist-row"]').some(visible), 45000);
+      for (const link of links().slice(0, 2)) {
+        const target = link.getAttribute("href");
+        click(link);
+        if (await tracksRendered()) return "clicked-playlist-or-liked:" + target;
+      }
+      return links().length ? "tracks-not-rendered" : "no-playlist-link";
     })()`,
   },
   {
     name: "context_menu",
-    waitMs: 900,
-    expr: `(() => {
+    waitMs: 300,
+    expr: `(async () => {
       ${NAV_HELPERS}
-      // Right-click a track row / more button to open context menu
-      const row =
-        $$('[data-testid="tracklist-row"], [data-testid="internal-tracklist-row"], [role="row"]').find(visible) ||
-        $$('div[aria-selected], [data-testid*="track"]').find(visible);
-      if (row) {
-        const rect = row.getBoundingClientRect();
-        const x = rect.left + Math.min(40, rect.width / 2);
-        const y = rect.top + rect.height / 2;
-        const opts = { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y, button: 2, buttons: 2 };
-        row.dispatchEvent(new MouseEvent("contextmenu", opts));
-        // also try the "more" button in the row
-        const more = row.querySelector('button[aria-label*="More" i], button[data-testid="more-button"]');
-        if (more) click(more);
-        const menu = $$('[data-testid="context-menu"], [role="menu"], #context-menu, .main-contextMenu-menu').find(visible);
-        return menu ? "context-menu-open" : "context-menu-dispatched";
-      }
-      // Fallback: more button anywhere in main view
-      const more = findClickable([(e) => /more options|more/i.test(textOf(e)) && e.tagName === "BUTTON"]);
-      if (click(more)) return "clicked-more";
-      return "no-track-row";
+      if (await openTrackMenu()) return "context-menu-open";
+      return $$('[data-testid="tracklist-row"], [role="row"]').find(visible) ? "context-menu-dispatched" : "no-track-row";
+    })()`,
+  },
+  {
+    name: "track_credits",
+    waitMs: 300,
+    expr: `(async () => {
+      ${NAV_HELPERS}
+      if (!openMenu() && !(await openTrackMenu())) return "no-track-row";
+      const item = menuItem((await labels()).credits);
+      if (!click(item)) return "credits-not-found";
+      return (await waitFor(() => openDialogs().length, 10000)) ? "credits-open" : "credits-not-found";
+    })()`,
+  },
+  {
+    name: "embed",
+    waitMs: 300,
+    expr: `(async () => {
+      ${NAV_HELPERS}
+      await closeOverlays();
+      if (!(await openTrackMenu())) return "no-track-row";
+      const text = await labels();
+      const share = menuItem(text.share);
+      if (!share) return "embed-not-found";
+      share.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      click(share);
+      const embed = await waitFor(() => menuItem(...text.embed), 8000);
+      if (!click(embed)) return "embed-not-found";
+      return (await waitFor(() => openDialogs().length, 10000)) ? "embed-open" : "embed-not-found";
     })()`,
   },
   {
     name: "sort_or_filter",
     waitMs: 800,
-    expr: `(() => {
+    expr: `(async () => {
       ${NAV_HELPERS}
+      await closeOverlays();
       const el = findClickable([
         (e) => /sort|filter|custom order|recently|title|artist/i.test(textOf(e)),
         (e) => (e.getAttribute("data-testid") || "").includes("sort"),
@@ -467,43 +554,50 @@ const NAV_STEPS = [
   },
   {
     name: "settings",
-    waitMs: 1500,
-    expr: `(() => {
+    waitMs: 300,
+    expr: `(async () => {
       ${NAV_HELPERS}
-      // Profile chip → Settings
-      const profile = findClickable([
-        (e) => (e.getAttribute("data-testid") || "") === "user-widget-link",
-        (e) => /profile|account menu/i.test(textOf(e)),
-      ]);
-      if (profile) click(profile);
-      const pref = findClickable([
-        (e) => (e.getAttribute("href") || "").includes("/preferences"),
-        (e) => /settings|preferences/i.test(textOf(e)),
-      ]);
-      if (click(pref)) return "clicked-settings";
+      await closeOverlays();
+      // Settings opens from the account menu; a pushed history entry doesn't render it.
+      const profile = findClickable([(e) => (e.getAttribute("data-testid") || "") === "user-widget-link"]);
+      if (click(profile)) {
+        const settingsLabel = (await labels()).settings;
+        const item = await waitFor(() => menuItem(settingsLabel), 8000);
+        if (click(item)) {
+          const rendered = await waitFor(() => $$("main input, main select").length > 5, 20000);
+          return rendered ? "settings-open" : "settings-not-rendered";
+        }
+      }
       return navigateSpa("/preferences");
     })()`,
   },
   {
     name: "settings_scroll",
-    waitMs: 600,
-    expr: `(() => {
+    waitMs: 300,
+    expr: `(async () => {
       ${NAV_HELPERS}
-      // Scroll settings main to mount more sections
-      const main = document.querySelector('main, [data-testid="preferences-page"], [class*="settings"]') || document.scrollingElement;
-      if (main) {
-        main.scrollTop = main.scrollHeight / 2;
-        window.scrollTo(0, document.body.scrollHeight / 2);
-        return "scrolled-settings";
+      // Scroll the whole settings page so lazily mounted sections render.
+      const inputs = $$("main input, main select");
+      let scroller = inputs[0];
+      while (scroller && !(scroller.scrollHeight > scroller.clientHeight + 50 && /auto|scroll/.test(getComputedStyle(scroller).overflowY))) {
+        scroller = scroller.parentElement;
       }
-      return "no-settings-scroll-target";
+      if (!scroller) return "no-settings-scroll-target";
+      for (let y = 0; y <= scroller.scrollHeight; y += 500) {
+        scroller.scrollTop = y;
+        await wait(120);
+      }
+      return "scrolled-settings";
     })()`,
   },
 ];
 
-function navigationSucceeded(result) {
+export function navigationSucceeded(result) {
   return (
-    typeof result === "string" && !/^(?:nav-failed|context-menu-dispatched|no-track-row|sort-not-found|no-settings-scroll-target)(?::|$)/.test(result)
+    typeof result === "string" &&
+    !/^(?:nav-failed|context-menu-dispatched|no-track-row|sort-not-found|no-settings-scroll-target|credits-not-found|embed-not-found|settings-not-rendered|tracks-not-rendered|no-playlist-link)(?::|$)/.test(
+      result,
+    )
   );
 }
 
@@ -634,6 +728,7 @@ async function main() {
     reportPath: args.report,
     classmapPath: args.classmap,
     cssMapPath: args.cssMap,
+    overlayPath: args.overlay,
   });
   console.log(`Loaded ${checks.length} classmap paths`);
 
@@ -655,6 +750,12 @@ async function main() {
     return result;
   };
 
+  // A slow client (an emulated VM) can take a minute to render its shell after the page loads.
+  const ready = await session.evaluate(`(async () => {
+    ${NAV_HELPERS}
+    return Boolean(await waitFor(() => $$("button").length > 50 && document.querySelector('[data-testid="home-button"], [data-testid="global-nav-bar"], nav'), ${args.timeoutMs}));
+  })()`);
+  if (!ready) console.warn(`  app shell not rendered within ${args.timeoutMs}ms; probing anyway`);
   await runProbe("initial");
 
   if (args.navigate) {
@@ -689,6 +790,10 @@ async function main() {
     cdp: { host: args.host, port: args.port, page: page.url, browser: version },
     classmap: {
       sha256: crypto.createHash("sha256").update(fs.readFileSync(args.classmap)).digest("hex"),
+    },
+    cssMap: {
+      sha256: fs.existsSync(args.cssMap) ? crypto.createHash("sha256").update(fs.readFileSync(args.cssMap)).digest("hex") : null,
+      overlaySha256: args.overlay ? crypto.createHash("sha256").update(fs.readFileSync(args.overlay)).digest("hex") : null,
     },
     mode: args.mode,
     minHitRate: args.minHitRate,
@@ -730,7 +835,9 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error(err.message || err);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error(err.message || err);
+    process.exit(1);
+  });
+}
