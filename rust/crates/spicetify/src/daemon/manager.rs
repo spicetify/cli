@@ -89,6 +89,25 @@ impl DaemonManager {
         }
     }
 
+    /// Restarts the daemon through its supervisor, which then runs whatever
+    /// binary is on disk. False when no supervisor would restart it on its own
+    /// (Windows' Run key, or no service installed), so the caller has to.
+    pub fn restart_supervised(self) -> Result<bool, DaemonManagerError> {
+        match self {
+            #[cfg(target_os = "macos")]
+            Self::Macos if MacosDaemonManager::is_installed() => {
+                MacosDaemonManager::restart()?;
+                Ok(true)
+            }
+            #[cfg(target_os = "linux")]
+            Self::Linux if LinuxDaemonManager::is_installed() => {
+                run_systemctl(&["--user", "restart", "spicetify-daemon"])?;
+                Ok(true)
+            }
+            _ => Ok(false),
+        }
+    }
+
     pub fn is_installed(self) -> bool {
         match self {
             #[cfg(windows)]
@@ -292,6 +311,13 @@ impl MacosDaemonManager {
 
     fn is_installed() -> bool {
         home_dir().is_ok_and(|home| launch_agent_path(&home).exists())
+    }
+
+    fn restart() -> Result<(), DaemonManagerError> {
+        use std::os::unix::fs::MetadataExt;
+        let uid = std::fs::metadata(home_dir()?)?.uid();
+        let target = format!("gui/{uid}/{LAUNCH_AGENT_LABEL}");
+        run_launchctl(&["kickstart", "-k", &target], None).map(|_| ())
     }
 }
 
