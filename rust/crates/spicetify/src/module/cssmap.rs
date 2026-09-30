@@ -50,15 +50,14 @@ impl CssMap {
         let mut map: BTreeMap<String, String> = serde_json::from_str(&raw).ok()?;
         tracing::info!("using css map {source} ({} entries)", map.len());
 
-        if let Some(overlay) = find_overlay(config_root, classmap_key)
+        let overlay_key = super::stage::resolve_classmap_key(config_root, classmap_key)
+            .map_or_else(|| classmap_key.to_owned(), |(key, _)| key);
+        if let Some(overlay) = find_overlay(config_root, &overlay_key)
             .and_then(|p| std::fs::read_to_string(p).ok())
             .and_then(|raw| serde_json::from_str::<BTreeMap<String, String>>(&raw).ok())
             && !overlay.is_empty()
         {
-            tracing::info!(
-                "applied css-map overlay for {classmap_key} ({} entries)",
-                overlay.len()
-            );
+            tracing::info!("applied css-map overlay for {overlay_key} ({} entries)", overlay.len());
             map.extend(overlay);
         }
 
@@ -263,6 +262,54 @@ mod tests {
         let m = map_with(&[("n8Bz0c0v17whD3KfMdOk", "main-actionButtons")]);
         let src = ".someOtherHashedName{}";
         assert_eq!(m.apply_css(src), src);
+    }
+
+    #[test]
+    fn fallback_classmap_keeps_its_css_overlay_for_client_and_modules() {
+        let root = std::env::temp_dir().join(format!(
+            "spicetify-fallback-css-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock")
+                .as_nanos()
+        ));
+        let fallback = root.join("classmaps/1030000");
+        std::fs::create_dir_all(&fallback).expect("fallback directory");
+        std::fs::write(root.join("css-map.json"), "{}").expect("base css map");
+        std::fs::write(fallback.join("classmap.json"), "{}").expect("classmap");
+        std::fs::write(
+            fallback.join("css-map.json"),
+            r#"{"nqqkID2Vj36sqqr4GPmw":"main-globalNav-historyButtonsWrapper","fmmygDM45MTS7I35OyLh":"main-contextMenu-menuItemButton"}"#,
+        )
+        .expect("fallback overlay");
+
+        let map = CssMap::load(&root, "1030001").expect("css map");
+        let client = root.join("xpui");
+        let modules = client.join("modules/manager");
+        std::fs::create_dir_all(&modules).expect("staged modules");
+        std::fs::write(
+            client.join("xpui-modules.js"),
+            r#"const classes={nav:"nqqkID2Vj36sqqr4GPmw",menu:"fmmygDM45MTS7I35OyLh"};"#,
+        )
+        .expect("client bundle");
+        std::fs::write(
+            client.join("xpui-snapshot.css"),
+            ".nqqkID2Vj36sqqr4GPmw{display:flex}.fmmygDM45MTS7I35OyLh:hover{color:red}",
+        )
+        .expect("client css");
+        std::fs::write(modules.join("index.js"), r#"const cls="fmmygDM45MTS7I35OyLh";"#)
+            .expect("staged module");
+
+        let touched = apply_to_tree(&map, &client).expect("rewrite tree");
+        let css = std::fs::read_to_string(client.join("xpui-snapshot.css")).expect("read css");
+        let module = std::fs::read_to_string(modules.join("index.js")).expect("read module");
+        std::fs::remove_dir_all(root).expect("cleanup");
+
+        assert_eq!(touched, 3, "a fallback must rewrite the client JS, CSS, and staged modules");
+        assert!(css.contains(".main-globalNav-historyButtonsWrapper{display:flex}"));
+        assert!(css.contains(".main-contextMenu-menuItemButton:hover"));
+        assert!(module.contains("main-contextMenu-menuItemButton"));
     }
 
     #[test]
