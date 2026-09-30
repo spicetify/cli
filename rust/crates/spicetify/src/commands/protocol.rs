@@ -55,6 +55,8 @@ enum ProtocolAction {
     Apply,
     BlockUpdates,
     UnblockUpdates,
+    EnableAutoUpdate,
+    DisableAutoUpdate,
 }
 
 impl ProtocolAction {
@@ -72,6 +74,8 @@ impl ProtocolAction {
             "apply" => Self::Apply,
             "block-updates" => Self::BlockUpdates,
             "unblock-updates" => Self::UnblockUpdates,
+            "enable-auto-update" => Self::EnableAutoUpdate,
+            "disable-auto-update" => Self::DisableAutoUpdate,
             _ => return None,
         })
     }
@@ -94,58 +98,7 @@ fn perform(
 
     match action {
         ProtocolAction::Add | ProtocolAction::FastInstall | ProtocolAction::FastEnable => {
-            let id = require_id(&query)?;
-            let artifacts = get_all_params(&query, "artifacts");
-            // The checksum comes from the registry, never from the caller.
-            // Anything that can reach this handler (page JS through
-            // Spicetify.Daemon, a spicetify:// link) could otherwise supply
-            // the hash of its own bytes and have them verified against
-            // themselves, which is no verification at all.
-            let checksum = crate::commands::pkg::registry_checksum(
-                &ctx.config_root,
-                id.module_identifier(),
-                id.version(),
-            )
-            .unwrap_or_default();
-            if checksum.is_empty() {
-                // For an ordinary module this degrades to an unverified
-                // install with a warning. The system modules are refused
-                // outright: replacing the store unverified is an uninstall
-                // with extra steps, and the in-client stdlib update path
-                // promises that disk staging is registry-verified. An
-                // unreachable registry looks identical to an absent entry
-                // here, and refusing is the right answer for both.
-                if super::pkg::SYSTEM_MODULES.iter().any(|name| id.is_within_module(name)) {
-                    return Err(anyhow::anyhow!(fl!(
-                        "protocol-error",
-                        err = format!(
-                            "{} can only be installed from a registry-verified artifact",
-                            id.module_identifier()
-                        )
-                    )));
-                }
-                tracing::warn!(
-                    "{id}: not in the registry, so there is no checksum to verify these bytes against"
-                );
-            }
-            let previous = super::pkg::store_managed_version(
-                &paths.modules_root,
-                &paths.store_root,
-                id.module_identifier(),
-            );
-            module::add_store(&paths, &id, Store { installed: false, artifacts, checksum })?;
-            if matches!(action, ProtocolAction::Add) {
-                return Ok(());
-            }
-            module::install(&paths, &id)?;
-            if matches!(action, ProtocolAction::FastInstall) {
-                return Ok(());
-            }
-            module::enable(&paths, &id)?;
-            if let Some(old) = previous.filter(|old| old != id.version()) {
-                super::pkg::collect_superseded(&paths, id.module_identifier(), &old);
-            }
-            Ok(())
+            add_from_registry(ctx, &paths, &query, action)
         }
         ProtocolAction::Install => {
             let id = require_id(&query)?;
@@ -200,7 +153,71 @@ fn perform(
             let _guard = super::guard::try_acquire(&ctx.config_root)?;
             set_updates_blocked(ctx, false)
         }
+        ProtocolAction::EnableAutoUpdate => super::self_update::set_auto(ctx, true),
+        ProtocolAction::DisableAutoUpdate => super::self_update::set_auto(ctx, false),
     }
+}
+
+/// `add`, `fast-install` and `fast-enable`: record a store version, then
+/// install it, then enable it, stopping after the step the action names.
+fn add_from_registry(
+    ctx: &AppContext,
+    paths: &ModulePaths,
+    query: &[(Cow<'_, str>, Cow<'_, str>)],
+    action: ProtocolAction,
+) -> Result<()> {
+    let id = require_id(query)?;
+    let artifacts = get_all_params(query, "artifacts");
+    // The checksum comes from the registry, never from the caller.
+    // Anything that can reach this handler (page JS through
+    // Spicetify.Daemon, a spicetify:// link) could otherwise supply
+    // the hash of its own bytes and have them verified against
+    // themselves, which is no verification at all.
+    let checksum = crate::commands::pkg::registry_checksum(
+        &ctx.config_root,
+        id.module_identifier(),
+        id.version(),
+    )
+    .unwrap_or_default();
+    if checksum.is_empty() {
+        // For an ordinary module this degrades to an unverified
+        // install with a warning. The system modules are refused
+        // outright: replacing the store unverified is an uninstall
+        // with extra steps, and the in-client stdlib update path
+        // promises that disk staging is registry-verified. An
+        // unreachable registry looks identical to an absent entry
+        // here, and refusing is the right answer for both.
+        if super::pkg::SYSTEM_MODULES.iter().any(|name| id.is_within_module(name)) {
+            return Err(anyhow::anyhow!(fl!(
+                "protocol-error",
+                err = format!(
+                    "{} can only be installed from a registry-verified artifact",
+                    id.module_identifier()
+                )
+            )));
+        }
+        tracing::warn!(
+            "{id}: not in the registry, so there is no checksum to verify these bytes against"
+        );
+    }
+    let previous = super::pkg::store_managed_version(
+        &paths.modules_root,
+        &paths.store_root,
+        id.module_identifier(),
+    );
+    module::add_store(paths, &id, Store { installed: false, artifacts, checksum })?;
+    if matches!(action, ProtocolAction::Add) {
+        return Ok(());
+    }
+    module::install(paths, &id)?;
+    if matches!(action, ProtocolAction::FastInstall) {
+        return Ok(());
+    }
+    module::enable(paths, &id)?;
+    if let Some(old) = previous.filter(|old| old != id.version()) {
+        super::pkg::collect_superseded(paths, id.module_identifier(), &old);
+    }
+    Ok(())
 }
 
 /// Changing the update policy patches Spotify's binary, which means stopping
