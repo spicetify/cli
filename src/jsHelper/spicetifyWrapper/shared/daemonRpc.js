@@ -32,6 +32,25 @@ export const updateAndApplySupported = async () => {
   }
 };
 
+// The daemon's version and whether it installs new releases on its own;
+// `autoUpdate` is null when the daemon is unreachable or predates the setting.
+export const daemonInfo = async () => {
+  try {
+    const res = await fetch(HEALTH_URL);
+    if (!res.ok) return null;
+    const info = await res.json();
+    return {
+      version: typeof info?.version === "string" ? info.version : null,
+      autoUpdate: typeof info?.auto_update === "boolean" ? info.auto_update : null,
+    };
+  } catch {
+    return null;
+  }
+};
+
+// Resolves once config.toml records the choice.
+export const setAutoUpdate = (on) => send(`spicetify:settings:${on ? "enable" : "disable"}-auto-update`);
+
 // The open socket owns the Windows hit-test filter. Release is acknowledged
 // only after the daemon removes it, so a new owner can safely acquire it.
 export const acquireWindowControls = (onDisconnect, { timeoutMs = TIMEOUT_MS } = {}) =>
