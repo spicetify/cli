@@ -193,49 +193,87 @@ pub(crate) fn ensure_system_modules(ctx: &AppContext) {
     };
     let intent = crate::module::vault::load(&paths.vault_path).unwrap_or_default();
     for id in SYSTEM_MODULES {
-        if intent.modules.get(*id).is_some_and(local_intent_blocks) {
-            continue;
-        }
-        let present = paths.modules_root.join(id).exists();
-        let installed = store_managed_version(&paths.modules_root, &paths.store_root, id);
-        let Some(module) = vault.modules.get(*id) else {
-            tracing::warn!("system module {id} is not in the registry");
-            continue;
-        };
-        let target = match resolve_version(module) {
-            Ok(version) => version,
-            Err(e) => {
-                tracing::warn!("cannot resolve system module {id}: {e}");
-                continue;
+        match plan_refresh(&paths, &intent, &vault, id, true) {
+            Ok(Refresh::Stage { target, superseded }) => {
+                if let Err(e) =
+                    stage_refresh(ctx, &paths, id, &target, superseded.as_deref(), &vault)
+                {
+                    tracing::warn!("could not stage system module {id}@{target}: {e}");
+                }
             }
-        };
-        if !should_stage(present, installed.as_deref(), &target, !module.enabled.is_empty()) {
-            continue;
-        }
-        let Some(entry) = module.v.get(&target) else {
-            tracing::warn!("system module {id}@{target} is not in the registry");
-            continue;
-        };
-        if let Err(e) = seed_system_module(ctx, id, &target, entry) {
-            tracing::warn!("could not stage system module {id}@{target}: {e}");
-            continue;
-        }
-        // The version this refresh just superseded would otherwise sit in
-        // the store tree forever, a megabyte per release.
-        if let Some(old) = installed.filter(|old| old != &target) {
-            let superseded =
-                match crate::module::vault::StoreIdentifier::parse(&format!("{id}@{old}")) {
-                    Ok(id) => id,
-                    Err(e) => {
-                        tracing::warn!("cannot collect invalid superseded package {id}@{old}: {e}");
-                        continue;
-                    }
-                };
-            if let Err(e) = crate::module::delete(&paths, &superseded) {
-                tracing::warn!("could not collect superseded {superseded}: {e}");
-            }
+            Ok(Refresh::Skip(_)) => {}
+            Err(e) => tracing::warn!("cannot refresh system module {id}: {e}"),
         }
     }
+}
+
+/// What a registry refresh does with one module.
+#[derive(Debug, PartialEq, Eq)]
+enum Refresh {
+    /// Install `target`, then collect the store copy of `superseded`.
+    Stage { target: String, superseded: Option<String> },
+    /// Leave the module as it is, for the reason given.
+    Skip(&'static str),
+}
+
+/// Decides one module's refresh against the registry. Deliberate user intent
+/// recorded in the local vault wins over freshness, and only store-managed
+/// installs are ever replaced: a developer's real directory or a link into
+/// their own build output is never judged against the registry. An absent
+/// module is staged only when `seed_absent` asks for it.
+fn plan_refresh(
+    paths: &crate::module::ModulePaths,
+    intent: &crate::module::vault::Vault,
+    vault: &Vault,
+    id: &str,
+    seed_absent: bool,
+) -> Result<Refresh> {
+    if intent.modules.get(id).is_some_and(local_intent_blocks) {
+        return Ok(Refresh::Skip("disabled or pinned to an older version"));
+    }
+    let present = paths.modules_root.join(id).exists();
+    if !present && !seed_absent {
+        anyhow::bail!("{id} is not installed");
+    }
+    let installed = store_managed_version(&paths.modules_root, &paths.store_root, id);
+    if present && installed.is_none() {
+        return Ok(Refresh::Skip("not managed by the store"));
+    }
+    let Some(module) = vault.modules.get(id) else {
+        anyhow::bail!("{id} is not in the registry");
+    };
+    let target = resolve_version(module)?;
+    if !should_stage(present, installed.as_deref(), &target, !module.enabled.is_empty()) {
+        return Ok(Refresh::Skip("already current"));
+    }
+    Ok(Refresh::Stage { superseded: installed.filter(|old| old != &target), target })
+}
+
+/// Installs and enables `id@target`, then collects the superseded store copy,
+/// which would otherwise sit in the store tree forever, a megabyte per release.
+fn stage_refresh(
+    ctx: &AppContext,
+    paths: &crate::module::ModulePaths,
+    id: &str,
+    target: &str,
+    superseded: Option<&str>,
+    vault: &Vault,
+) -> Result<()> {
+    let Some(entry) = vault.modules.get(id).and_then(|module| module.v.get(target)) else {
+        anyhow::bail!("{id}@{target} is not in the registry");
+    };
+    stage_module_version(ctx, id, target, entry)?;
+    if let Some(old) = superseded {
+        match crate::module::vault::StoreIdentifier::parse(&format!("{id}@{old}")) {
+            Ok(old) => {
+                if let Err(e) = crate::module::delete(paths, &old) {
+                    tracing::warn!("could not collect superseded {old}: {e}");
+                }
+            }
+            Err(e) => tracing::warn!("cannot collect invalid superseded package {id}@{old}: {e}"),
+        }
+    }
+    Ok(())
 }
 
 /// Whether the local vault records intent this refresh must not override:
@@ -289,7 +327,7 @@ fn should_stage(present: bool, installed: Option<&str>, target: &str, target_pin
     }
 }
 
-fn seed_system_module(
+fn stage_module_version(
     ctx: &AppContext,
     id: &str,
     version: &str,
@@ -306,7 +344,7 @@ fn seed_system_module(
         entry.checksum.clone(),
     )?;
     crate::module::enable_module(&ctx.config_root, &tag)?;
-    tracing::info!("staged system module {tag}");
+    tracing::info!("staged {tag}");
     Ok(())
 }
 
@@ -356,98 +394,56 @@ pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
     )
 }
 
+/// `pkg update [id]`: refreshes one installed module, or every store-managed
+/// one, to the registry's version, with the same rules the system-module
+/// refresh follows. Fails when any module could not be updated.
 pub(crate) fn update(ctx: &AppContext, target_id: Option<&str>) -> Result<()> {
     let vault = cached_vault(&ctx.config_root)?;
     let paths = crate::module::ModulePaths::from_config_root(&ctx.config_root);
-    let installed_mods = installed(&ctx.config_root);
-
-    if installed_mods.is_empty() {
-        tracing::info!("no modules installed");
+    let intent = crate::module::vault::load(&paths.vault_path).unwrap_or_default();
+    let ids: Vec<String> = match target_id {
+        Some(id) => vec![id.to_string()],
+        None => installed(&ctx.config_root).into_iter().map(|(id, _)| id).collect(),
+    };
+    let failures = update_modules(&paths, &intent, &vault, &ids, |id, target, superseded| {
+        stage_refresh(ctx, &paths, id, target, superseded, &vault)
+    });
+    if failures.is_empty() {
         return Ok(());
     }
-
-    if let Some(target) = target_id {
-        let Some((_, current_version)) = installed_mods.iter().find(|(id, _)| id == target) else {
-            anyhow::bail!("module '{target}' is not installed");
-        };
-
-        let Some(module) = vault.modules.get(target) else {
-            anyhow::bail!("module '{target}' is not in the vault");
-        };
-
-        let target_version = resolve_version(module)?;
-        if !should_stage(true, Some(current_version), &target_version, !module.enabled.is_empty()) {
-            tracing::info!("{target} is already up to date ({current_version})");
-            return Ok(());
-        }
-
-        let Some(entry) = module.v.get(&target_version) else {
-            anyhow::bail!("{target}@{target_version} is not in the vault");
-        };
-
-        update_single_module(ctx, &paths, target, current_version, &target_version, entry)?;
-    } else {
-        let mut updated_count = 0;
-        for (id, current_version) in &installed_mods {
-            let Some(module) = vault.modules.get(id) else {
-                continue;
-            };
-
-            let Ok(target_version) = resolve_version(module) else {
-                continue;
-            };
-
-            if should_stage(true, Some(current_version), &target_version, !module.enabled.is_empty())
-                && let Some(entry) = module.v.get(&target_version)
-            {
-                tracing::info!("updating {id}: {current_version} -> {target_version}");
-                if let Err(e) = update_single_module(ctx, &paths, id, current_version, &target_version, entry) {
-                    tracing::warn!("failed to update {id}: {e}");
-                } else {
-                    updated_count += 1;
-                }
-            }
-        }
-
-        if updated_count == 0 {
-            tracing::info!("all modules are up to date");
-        } else {
-            tracing::info!("successfully updated {updated_count} module(s)");
-        }
-    }
-
-    Ok(())
+    anyhow::bail!("could not update {}", failures.join("; "))
 }
 
-fn update_single_module(
-    ctx: &AppContext,
+/// Plans and stages each module, logging what happened, and returns one
+/// message per module that failed.
+fn update_modules(
     paths: &crate::module::ModulePaths,
-    id: &str,
-    old_version: &str,
-    new_version: &str,
-    entry: &VaultVersion,
-) -> Result<()> {
-    if entry.artifacts.is_empty() {
-        anyhow::bail!("{id}@{new_version} has no artifacts");
+    intent: &crate::module::vault::Vault,
+    vault: &Vault,
+    ids: &[String],
+    mut stage: impl FnMut(&str, &str, Option<&str>) -> Result<()>,
+) -> Vec<String> {
+    let mut failures = Vec::new();
+    let mut updated = 0usize;
+    for id in ids {
+        match plan_refresh(paths, intent, vault, id, false) {
+            Ok(Refresh::Stage { target, superseded }) => {
+                match stage(id, &target, superseded.as_deref()) {
+                    Ok(()) => {
+                        updated += 1;
+                        tracing::info!("updated {id} to {target}");
+                    }
+                    Err(e) => failures.push(format!("{id}@{target}: {e}")),
+                }
+            }
+            Ok(Refresh::Skip(reason)) => tracing::info!("{id}: {reason}"),
+            Err(e) => failures.push(format!("{id}: {e}")),
+        }
     }
-
-    let tag = format!("{id}@{new_version}");
-    crate::module::install_from_vault(
-        &ctx.config_root,
-        &tag,
-        entry.artifacts.clone(),
-        entry.checksum.clone(),
-    )?;
-    crate::module::enable_module(&ctx.config_root, &tag)?;
-    tracing::info!("updated {id} to {new_version}");
-
-    if old_version != new_version
-        && let Ok(superseded) = crate::module::vault::StoreIdentifier::parse(&format!("{id}@{old_version}"))
-    {
-        let _ = crate::module::delete(paths, &superseded);
+    if failures.is_empty() {
+        tracing::info!("updated {updated} module(s)");
     }
-
-    Ok(())
+    failures
 }
 
 #[cfg(test)]
@@ -578,6 +574,88 @@ mod tests {
         }
     }
 
+    /// A config root with a store-managed `lyrics@1.0.0`, a disabled
+    /// store-managed `off@1.0.0` and a developer's real `dev` directory.
+    fn update_fixture(
+        name: &str,
+    ) -> (std::path::PathBuf, crate::module::ModulePaths, crate::module::vault::Vault, Vault) {
+        let root =
+            std::env::temp_dir().join(format!("spicetify-update-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let paths = crate::module::ModulePaths::from_config_root(&root);
+        for id in ["lyrics", "off"] {
+            std::fs::create_dir_all(paths.store_root.join(id).join("1.0.0")).expect("store copy");
+            std::fs::create_dir_all(&paths.modules_root).expect("modules root");
+            crate::util::link::create_dir_link(
+                &paths.store_root.join(id).join("1.0.0"),
+                &paths.modules_root.join(id),
+            )
+            .expect("store link");
+        }
+        std::fs::create_dir_all(paths.modules_root.join("dev")).expect("developer build");
+        let mut local = crate::module::vault::Vault::default();
+        assert!(
+            local.modules.insert("off".to_string(), intent(None, &[("1.0.0", true)])).is_none()
+        );
+        let entry = || VaultVersion {
+            artifacts: vec!["https://example.invalid/m.zip".to_string()],
+            checksum: String::new(),
+        };
+        let module = |versions: &[&str]| VaultModule {
+            enabled: String::new(),
+            v: versions.iter().map(|v| ((*v).to_string(), entry())).collect(),
+        };
+        let vault = Vault {
+            modules: BTreeMap::from([
+                ("lyrics".to_string(), module(&["1.0.0", "1.1.0"])),
+                ("off".to_string(), module(&["1.1.0"])),
+                ("dev".to_string(), module(&["2.0.0"])),
+            ]),
+        };
+        (root, paths, local, vault)
+    }
+
+    #[test]
+    fn update_plans_only_store_managed_modules_the_user_left_alone() {
+        let (root, paths, intent, vault) = update_fixture("plan");
+        assert_eq!(
+            plan_refresh(&paths, &intent, &vault, "lyrics", false).expect("plan"),
+            Refresh::Stage { target: "1.1.0".to_string(), superseded: Some("1.0.0".to_string()) }
+        );
+        assert_eq!(
+            plan_refresh(&paths, &intent, &vault, "dev", false).expect("plan"),
+            Refresh::Skip("not managed by the store"),
+            "a developer's build is never replaced"
+        );
+        assert_eq!(
+            plan_refresh(&paths, &intent, &vault, "off", false).expect("plan"),
+            Refresh::Skip("disabled or pinned to an older version"),
+            "a disabled module stays off"
+        );
+        let error =
+            plan_refresh(&paths, &intent, &vault, "ghost", false).expect_err("not installed");
+        assert!(error.to_string().contains("ghost is not installed"), "{error}");
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn update_stages_what_it_plans_and_reports_every_failure() {
+        let (root, paths, intent, vault) = update_fixture("report");
+        let ids: Vec<String> =
+            ["dev", "ghost", "lyrics", "off"].iter().map(|id| (*id).to_string()).collect();
+        let mut staged = Vec::new();
+        let failures = update_modules(&paths, &intent, &vault, &ids, |id, target, superseded| {
+            staged.push(format!("{id}@{target} replacing {superseded:?}"));
+            anyhow::bail!("download failed")
+        });
+        assert_eq!(staged, ["lyrics@1.1.0 replacing Some(\"1.0.0\")"]);
+        assert_eq!(failures, ["ghost: ghost is not installed", "lyrics@1.1.0: download failed"]);
+
+        let failures = update_modules(&paths, &intent, &vault, &ids[2..3], |_, _, _| Ok(()));
+        assert!(failures.is_empty(), "{failures:?}");
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
     #[test]
     fn honours_disable_and_hand_pins_but_not_deletion() {
         assert!(
@@ -626,7 +704,7 @@ mod tests {
             let module = vault.modules.get(*id).expect("registry carries every system module");
             let version = resolve_version(module).expect("resolvable");
             let entry = module.v.get(&version).expect("resolved version has an entry");
-            let result = seed_system_module(&ctx, id, &version, entry);
+            let result = stage_module_version(&ctx, id, &version, entry);
             assert!(result.is_ok(), "seed {id}: {:?}", result.err());
         }
 
