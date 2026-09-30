@@ -128,6 +128,11 @@ fn perform(
                     "{id}: not in the registry, so there is no checksum to verify these bytes against"
                 );
             }
+            let previous = super::pkg::store_managed_version(
+                &paths.modules_root,
+                &paths.store_root,
+                id.module_identifier(),
+            );
             module::add_store(&paths, &id, Store { installed: false, artifacts, checksum })?;
             if matches!(action, ProtocolAction::Add) {
                 return Ok(());
@@ -137,6 +142,9 @@ fn perform(
                 return Ok(());
             }
             module::enable(&paths, &id)?;
+            if let Some(old) = previous.filter(|old| old != id.version()) {
+                super::pkg::collect_superseded(&paths, id.module_identifier(), &old);
+            }
             Ok(())
         }
         ProtocolAction::Install => {
@@ -296,6 +304,67 @@ mod tests {
                 assert!(!root.join("modules").exists(), "validation must precede vault mutation");
             }
         }
+        std::fs::remove_dir_all(&root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn fast_enable_moves_stdlib_and_collects_the_copy_it_replaced() -> Result<()> {
+        let mut nonce = [0; 16];
+        getrandom::fill(&mut nonce)?;
+        let root =
+            std::env::temp_dir().join(format!("spicetify-protocol-swap-{}", hex::encode(nonce)));
+        std::fs::create_dir_all(root.join("cache"))?;
+        std::fs::write(
+            root.join("cache/vault.json"),
+            r#"{"modules":{"stdlib":{"v":{"1.1.0":{"checksum":"sha256:registry"}}}}}"#,
+        )?;
+        let build = root.join("build");
+        std::fs::create_dir(&build)?;
+        std::fs::write(build.join("metadata.json"), r#"{"version":"1.1.0"}"#)?;
+        let ctx = AppContext::from_config(root.clone(), &crate::context::Config::default())?;
+        let paths = ModulePaths::from_config_root(&root);
+        let stage = |version: &str| -> Result<()> {
+            let mut uri = Url::parse("spicetify:stdlib:fast-enable")?;
+            let _ = uri
+                .query_pairs_mut()
+                .append_pair("id", &format!("stdlib@{version}"))
+                .append_pair("artifacts", &build.to_string_lossy());
+            let _ = handle(&ctx, uri.as_str(), ApplyMode::Daemon)?;
+            Ok(())
+        };
+        std::fs::create_dir_all(paths.store_root.join("stdlib/1.0.0"))?;
+        std::fs::create_dir_all(&paths.modules_root)?;
+        crate::util::link::create_dir_link(
+            &paths.store_root.join("stdlib/1.0.0"),
+            &paths.modules_root.join("stdlib"),
+        )?;
+        let mut vault = module::vault::Vault::default();
+        let _ = vault.modules.insert(
+            "stdlib".to_string(),
+            module::vault::Module {
+                enabled: Some("1.0.0".to_string()),
+                versions: std::collections::BTreeMap::from([(
+                    "1.0.0".to_string(),
+                    Store { installed: true, artifacts: Vec::new(), checksum: String::new() },
+                )]),
+            },
+        );
+        module::vault::save(&paths.vault_path, &vault)?;
+
+        stage("1.1.0")?;
+        assert!(paths.modules_root.join("stdlib/metadata.json").is_file(), "1.1.0 is linked");
+        assert!(!paths.store_root.join("stdlib/1.0.0").exists(), "the replaced copy is collected");
+        let saved = module::vault::load(&paths.vault_path)?;
+        let stdlib = saved.modules.get("stdlib").expect("stdlib intent");
+        assert_eq!(stdlib.enabled.as_deref(), Some("1.1.0"));
+        assert_eq!(
+            stdlib.versions.get("1.1.0").map(|s| s.checksum.as_str()),
+            Some("sha256:registry")
+        );
+
+        stage("1.1.0")?;
+        assert!(paths.modules_root.join("stdlib/metadata.json").is_file(), "restaging keeps it");
         std::fs::remove_dir_all(&root)?;
         Ok(())
     }

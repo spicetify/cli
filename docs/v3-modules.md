@@ -17,7 +17,7 @@ or a `pkg` artifact, with a `metadata.json`:
   "description": "What it does",
   "entries": { "js": "index.js", "css": "index.css" },
   "hasMixins": false,
-  "dependencies": { "stdlib": "^0.2.0" }
+  "dependencies": { "stdlib": "^1.13.0" }
 }
 ```
 
