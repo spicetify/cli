@@ -359,7 +359,8 @@ const NAV_HELPERS = `
     if (!el) return false;
     el.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, cancelable: true, view: window }));
     el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: window }));
-    el.click();
+    if (typeof el.click === "function") el.click();
+    else el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
     el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, view: window }));
     return true;
   };
@@ -414,7 +415,7 @@ const NAV_HELPERS = `
       else dialog.close?.();
     }
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
-    await waitFor(() => !openDialogs().length && !openMenu(), 1500);
+    await waitFor(() => !openDialogs().length && !openMenu(), 5000);
   };
   // Opens the context menu of the first visible track row.
   const openTrackMenu = async () => {
@@ -426,7 +427,7 @@ const NAV_HELPERS = `
     const rect = row.getBoundingClientRect();
     const opts = { bubbles: true, cancelable: true, view: window, clientX: rect.left + Math.min(40, rect.width / 2), clientY: rect.top + rect.height / 2, button: 2, buttons: 2 };
     row.dispatchEvent(new MouseEvent("contextmenu", opts));
-    return waitFor(openMenu, 2000);
+    return waitFor(openMenu, 8000);
   };
 `;
 
@@ -482,21 +483,22 @@ const NAV_STEPS = [
   },
   {
     name: "playlist",
-    waitMs: 1800,
-    expr: `(() => {
+    waitMs: 300,
+    expr: `(async () => {
       ${NAV_HELPERS}
-      // Prefer an in-library playlist / liked songs / card link
-      const el = findClickable([
-        (e) => (e.getAttribute("href") || "").includes("/playlist/"),
-        (e) => (e.getAttribute("href") || "").includes("/collection/tracks"),
-        (e) => /liked songs|playlist/i.test(textOf(e)) && (e.getAttribute("href") || "").startsWith("/"),
-        (e) => (e.getAttribute("data-testid") || "").includes("playlist") || (e.getAttribute("data-testid") || "") === "internal-tracklist-row",
-      ]);
-      if (click(el)) return "clicked-playlist-or-liked:" + (el.getAttribute("href") || el.getAttribute("data-testid") || el.tagName);
-      // Fallback: open a well-known public playlist route (Today's Top Hits-ish may 404; use search results cards)
-      const card = $$('[data-testid="card-click-handler"], [data-testid="top-result-card"], a[href*="playlist"], a[href*="album"]').find(visible);
-      if (click(card)) return "clicked-card:" + (card.getAttribute("href") || card.getAttribute("data-testid"));
-      return navigateSpa("/collection/tracks");
+      // Only real links: a filter chip such as "Playlists" matches a looser test and navigates nowhere.
+      const links = () => $$("a[href]").filter((a) => visible(a) && /^\\/(playlist|album)\\/|^\\/collection\\/tracks/.test(a.getAttribute("href")));
+      if (!links().length) {
+        click(findClickable([(e) => e.getAttribute("data-testid") === "home-button"]));
+        await waitFor(() => links().length, 15000);
+      }
+      const tracksRendered = () => waitFor(() => $$('main [data-testid="tracklist-row"]').some(visible), 45000);
+      for (const link of links().slice(0, 2)) {
+        const target = link.getAttribute("href");
+        click(link);
+        if (await tracksRendered()) return "clicked-playlist-or-liked:" + target;
+      }
+      return links().length ? "tracks-not-rendered" : "no-playlist-link";
     })()`,
   },
   {
@@ -516,7 +518,7 @@ const NAV_STEPS = [
       if (!openMenu() && !(await openTrackMenu())) return "no-track-row";
       const item = menuItem((await labels()).credits);
       if (!click(item)) return "credits-not-found";
-      return (await waitFor(() => openDialogs().length, 3000)) ? "credits-open" : "credits-not-found";
+      return (await waitFor(() => openDialogs().length, 10000)) ? "credits-open" : "credits-not-found";
     })()`,
   },
   {
@@ -531,9 +533,9 @@ const NAV_STEPS = [
       if (!share) return "embed-not-found";
       share.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
       click(share);
-      const embed = await waitFor(() => menuItem(...text.embed), 2000);
+      const embed = await waitFor(() => menuItem(...text.embed), 8000);
       if (!click(embed)) return "embed-not-found";
-      return (await waitFor(() => openDialogs().length, 3000)) ? "embed-open" : "embed-not-found";
+      return (await waitFor(() => openDialogs().length, 10000)) ? "embed-open" : "embed-not-found";
     })()`,
   },
   {
@@ -560,9 +562,9 @@ const NAV_STEPS = [
       const profile = findClickable([(e) => (e.getAttribute("data-testid") || "") === "user-widget-link"]);
       if (click(profile)) {
         const settingsLabel = (await labels()).settings;
-        const item = await waitFor(() => menuItem(settingsLabel), 2000);
+        const item = await waitFor(() => menuItem(settingsLabel), 8000);
         if (click(item)) {
-          const rendered = await waitFor(() => $$("main input, main select").length > 5, 5000);
+          const rendered = await waitFor(() => $$("main input, main select").length > 5, 20000);
           return rendered ? "settings-open" : "settings-not-rendered";
         }
       }
@@ -593,7 +595,7 @@ const NAV_STEPS = [
 export function navigationSucceeded(result) {
   return (
     typeof result === "string" &&
-    !/^(?:nav-failed|context-menu-dispatched|no-track-row|sort-not-found|no-settings-scroll-target|credits-not-found|embed-not-found|settings-not-rendered)(?::|$)/.test(
+    !/^(?:nav-failed|context-menu-dispatched|no-track-row|sort-not-found|no-settings-scroll-target|credits-not-found|embed-not-found|settings-not-rendered|tracks-not-rendered|no-playlist-link)(?::|$)/.test(
       result,
     )
   );
@@ -748,6 +750,12 @@ async function main() {
     return result;
   };
 
+  // A slow client (an emulated VM) can take a minute to render its shell after the page loads.
+  const ready = await session.evaluate(`(async () => {
+    ${NAV_HELPERS}
+    return Boolean(await waitFor(() => $$("button").length > 50 && document.querySelector('[data-testid="home-button"], [data-testid="global-nav-bar"], nav'), ${args.timeoutMs}));
+  })()`);
+  if (!ready) console.warn(`  app shell not rendered within ${args.timeoutMs}ms; probing anyway`);
   await runProbe("initial");
 
   if (args.navigate) {
