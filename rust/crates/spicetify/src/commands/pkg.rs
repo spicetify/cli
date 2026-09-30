@@ -470,7 +470,7 @@ pub(crate) fn registry_checksum(
 
 /// Looks `identifier@version` up in the cached registry, and in a fresh copy
 /// when the cache doesn't list it: a version published since the cache was
-/// written is missing from it.
+/// written is missing from it. Fetches at most once.
 fn checksum_via_cache(
     path: &Path,
     now: std::time::SystemTime,
@@ -482,12 +482,20 @@ fn checksum_via_cache(
         let checksum = &vault.modules.get(identifier)?.v.get(version)?.checksum;
         (!checksum.is_empty()).then(|| checksum.clone())
     };
+    let fetched = std::cell::Cell::new(false);
+    let fetch = || {
+        fetched.set(true);
+        fetch()
+    };
     if let Some(checksum) =
-        vault_via_cache(path, VAULT_CACHE_TTL, now, &fetch).ok().as_ref().and_then(lookup)
+        vault_via_cache(path, VAULT_CACHE_TTL, now, fetch).ok().as_ref().and_then(lookup)
     {
         return Some(checksum);
     }
-    lookup(&vault_via_cache(path, std::time::Duration::ZERO, now, &fetch).ok()?)
+    if fetched.get() {
+        return None;
+    }
+    lookup(&vault_via_cache(path, std::time::Duration::ZERO, now, fetch).ok()?)
 }
 
 pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
@@ -750,7 +758,16 @@ mod tests {
             "a version newer than the cache is found in a fresh copy"
         );
         assert!(std::fs::read_to_string(&path).expect("cache").contains("sha256:new"));
-        assert_eq!(lookup("9.9.9", &|| Ok(body(&both))), None, "a version nobody published");
+        let fetches = std::cell::Cell::new(0);
+        let counting = || {
+            fetches.set(fetches.get() + 1);
+            Ok(body(&both))
+        };
+        assert_eq!(lookup("9.9.9", &counting), None, "a version nobody published");
+        assert_eq!(fetches.get(), 1, "a fresh cache that lacks it fetches once");
+        let stale = now + std::time::Duration::from_secs(600);
+        assert_eq!(checksum_via_cache(&path, stale, "stdlib", "9.9.9", counting), None);
+        assert_eq!(fetches.get(), 2, "a stale cache is refetched once, not twice");
         std::fs::write(&path, body(old)).expect("reseed cache");
         assert_eq!(
             lookup("1.1.0", &|| Err(anyhow::anyhow!("network down"))),
