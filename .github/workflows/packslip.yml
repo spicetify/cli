@@ -1,0 +1,57 @@
+name: Packslip
+
+# A signed manifest of a release's archives (https://packslip.dev): installers
+# such as mise verify it against this repository, then pick and check the
+# archive for their platform. Rust Release calls this once every archive is
+# uploaded; dispatch it by hand to sign a release that predates it.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to sign"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to sign (must already be published)"
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  packslip:
+    name: packslip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate the tag
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if ! printf '%s' "$TAG" | grep -Eq '^v3[0-9A-Za-z.+-]*$'; then
+            echo "refusing tag '$TAG': expected v3 followed by version characters" >&2
+            exit 1
+          fi
+
+      # The manifest records the source commit, which is the tag's, not the
+      # commit a manual dispatch runs from.
+      - name: Resolve the tag's commit
+        id: tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: echo "sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the signed packslip
+        uses: jdx/packslip@87479dfc6443253dff69601cace5fc6ea07e6df5 # v1.4.0
+        with:
+          tag: ${{ inputs.tag }}
+          commit: ${{ steps.tag.outputs.sha }}
+          download: spicetify-*.tar.zst spicetify-*.zip
+          bin: spicetify spicetify-daemon
