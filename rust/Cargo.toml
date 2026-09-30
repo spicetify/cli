@@ -8,7 +8,7 @@ edition = "2024"
 rust-version = "1.95"
 repository = "https://github.com/spicetify/cli"
 homepage = "https://spicetify.app"
-authors = ["veryboringhwl"]
+authors = ["afonsojramos", "veryboringhwl"]
 license = "MIT"
 publish = false
 
