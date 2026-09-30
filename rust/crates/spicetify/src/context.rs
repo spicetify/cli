@@ -33,6 +33,11 @@ pub struct Config {
     /// re-asserts it. Absent means "never asked", which is left alone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub block_spotify_updates: Option<bool>,
+
+    /// Whether the daemon installs new Spicetify releases on its own. On by
+    /// default; only an install in the official installer's folder updates.
+    #[serde(default = "enabled")]
+    pub auto_update: bool,
 }
 
 const fn enabled() -> bool {
@@ -48,6 +53,7 @@ impl Default for Config {
             spotify_exec: None,
             offline_bnk_dir: None,
             block_spotify_updates: None,
+            auto_update: enabled(),
         }
     }
 }
@@ -112,6 +118,8 @@ pub struct AppContext {
     pub offline_bnk_dir: PathBuf,
     /// The persisted update policy; see `Config::block_spotify_updates`.
     pub block_spotify_updates: Option<bool>,
+    /// See `Config::auto_update`.
+    pub auto_update: bool,
 }
 
 impl AppContext {
@@ -150,6 +158,7 @@ impl AppContext {
             spotify_exec: exec_path,
             offline_bnk_dir,
             block_spotify_updates: cfg.block_spotify_updates,
+            auto_update: cfg.auto_update,
         })
     }
 
