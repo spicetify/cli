@@ -15,7 +15,7 @@ const INSTALL_TIMEOUT: Duration = Duration::from_mins(30);
 const SECURE_TIMEOUT: Duration = Duration::from_mins(2);
 const SECURE_RETRY_INTERVAL: Duration = Duration::from_secs(10);
 const TICK: Duration = Duration::from_secs(1);
-const CLIENT_LOAD_TIMEOUT: Duration = Duration::from_secs(90);
+const CLIENT_LOAD_TIMEOUT: Duration = Duration::from_mins(3);
 const CLIENT_NOT_LOADED: &str = "Spotify restarted but never opened its main window, which is what happens when it shows its login screen. Sign in to Spotify, then choose Update & Apply again.";
 const STALLED: &str =
     "Spotify's updater did not reach the next acknowledged phase before the deadline";
@@ -515,6 +515,8 @@ impl Supervisor {
             );
             return;
         }
+        // The client that polled before is gone; only the relaunched one counts.
+        self.client_seen.store(0, Ordering::Relaxed);
         self.relaunched_at = Some(epoch_secs());
         if let Some(PersistedUpdateJob::Exposed { phase, expires_at, .. }) = self.job.as_mut() {
             *phase = ExposedPhase::WaitingForOffer;
