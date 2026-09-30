@@ -168,3 +168,9 @@ jobs:
           files: |
             ${{ env.ASSET }}
             ${{ env.ASSET }}.sha256
+
+  packslip:
+    needs: release
+    uses: ./.github/workflows/packslip.yml
+    with:
+      tag: ${{ inputs.tag || github.ref_name }}
