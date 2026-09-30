@@ -312,18 +312,22 @@ fn plan_refresh(
 /// Whether the installed `version` came from bytes other than the registry's,
 /// which a bulk update must not overwrite. Registry and store installs record
 /// the registry's checksum; an install from an explicit URL records none. A
-/// version the registry no longer lists, or lists without a checksum, is not
-/// evidence of either.
+/// version the registry lists without a checksum is not evidence of either,
+/// and one it doesn't list is judged by whether a checksum was recorded.
 fn from_explicit_artifact(
     local: Option<&crate::module::vault::Module>,
     module: &VaultModule,
     version: &str,
 ) -> bool {
     let Some(store) = local.and_then(|local| local.versions.get(version)) else { return false };
-    module
-        .v
-        .get(version)
-        .is_some_and(|entry| !entry.checksum.is_empty() && entry.checksum != store.checksum)
+    match module.v.get(version) {
+        Some(entry) => {
+            !entry.checksum.is_empty()
+                && crate::module::normalize_checksum(&entry.checksum)
+                    != crate::module::normalize_checksum(&store.checksum)
+        }
+        None => store.checksum.is_empty(),
+    }
 }
 
 /// Installs and enables `id@target`, then collects the superseded store copy,
@@ -718,7 +722,17 @@ mod tests {
             std::env::temp_dir().join(format!("spicetify-update-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         let paths = crate::module::ModulePaths::from_config_root(&root);
-        for id in ["lyrics", "off", "orphan", "url", "pinned", "yanked", "mirror"] {
+        for id in [
+            "lyrics",
+            "off",
+            "orphan",
+            "url",
+            "pinned",
+            "yanked",
+            "mirror",
+            "fork",
+            "unchecksummed",
+        ] {
             std::fs::create_dir_all(paths.store_root.join(id).join("1.0.0")).expect("store copy");
             std::fs::create_dir_all(&paths.modules_root).expect("modules root");
             crate::util::link::create_dir_link(
@@ -739,9 +753,16 @@ mod tests {
         assert!(local.modules.insert("url".to_string(), url).is_none());
         let mut mirror = intent(Some("1.0.0"), &[("1.0.0", true)]);
         let store = mirror.versions.get_mut("1.0.0").expect("version");
-        store.checksum = "sha256:mirror".to_string();
+        store.checksum = "MIRROR".to_string();
         store.artifacts = vec!["https://mirror.invalid/m.zip".to_string()];
         assert!(local.modules.insert("mirror".to_string(), mirror).is_none());
+        for (id, checksum) in
+            [("yanked", "sha256:gone"), ("fork", ""), ("unchecksummed", "sha256:old")]
+        {
+            let mut module = intent(Some("1.0.0"), &[("1.0.0", true)]);
+            module.versions.get_mut("1.0.0").expect("version").checksum = checksum.to_string();
+            assert!(local.modules.insert(id.to_string(), module).is_none());
+        }
         let pinned = intent(Some("1.0.0"), &[("1.0.0", true), ("1.1.0", true)]);
         assert!(local.modules.insert("pinned".to_string(), pinned).is_none());
         let entry = || VaultVersion {
@@ -788,6 +809,9 @@ mod tests {
         };
         assert!(vault.modules.insert("mirror".to_string(), mirror).is_none());
         assert!(vault.modules.insert("yanked".to_string(), module(&["1.1.0"])).is_none());
+        assert!(vault.modules.insert("fork".to_string(), module(&["1.1.0"])).is_none());
+        let unchecksummed = module(&["1.0.0", "1.1.0"]);
+        assert!(vault.modules.insert("unchecksummed".to_string(), unchecksummed).is_none());
         (root, paths, local, vault)
     }
 
@@ -815,12 +839,22 @@ mod tests {
         assert_eq!(
             plan("mirror", UpdateAll).expect("plan"),
             stage("1.1.0", Some("1.0.0")),
-            "a registry install whose recorded artifacts differ from the registry's list still updates"
+            "a registry install with other artifacts and checksum spelling updates"
         );
         assert_eq!(
             plan("yanked", UpdateAll).expect("plan"),
             stage("1.1.0", Some("1.0.0")),
-            "a version the registry no longer lists is moved off, not mistaken for an explicit install"
+            "a registry install the registry no longer lists updates"
+        );
+        assert_eq!(
+            plan("fork", UpdateAll).expect("plan"),
+            Refresh::Skip(Skip::ExplicitArtifact),
+            "a URL install of a version the registry doesn't list stays"
+        );
+        assert_eq!(
+            plan("unchecksummed", UpdateAll).expect("plan"),
+            stage("1.1.0", Some("1.0.0")),
+            "a registry entry without a checksum is no evidence of an explicit install"
         );
 
         assert_eq!(
