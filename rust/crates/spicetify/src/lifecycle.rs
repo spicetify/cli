@@ -39,11 +39,21 @@ fn stop_image(image: &str, graceful: Duration, forced: Duration) {
         return;
     }
     tracing::warn!("Spotify did not exit within {}s; killing it", graceful.as_secs());
+    let targets = crate::process::pids(image);
     crate::process::kill_image_hard(image);
     if wait_until(image, false, forced) {
         return;
     }
-    let survivors = crate::process::pids(image).unwrap_or_default();
+    let Some(targets) = targets else {
+        tracing::warn!("Spotify is still running after being killed");
+        return;
+    };
+    // Only processes that were killed: one started meanwhile is a real client.
+    let survivors: Vec<u32> = crate::process::pids(image)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|pid| targets.contains(pid))
+        .collect();
     tracing::warn!(
         "Spotify process(es) {survivors:?} would not exit even when killed; starting a new one past them"
     );
@@ -68,7 +78,9 @@ fn running(image: &str) -> bool {
     let Some(pids) = crate::process::pids(image) else {
         return crate::process::process_running(image);
     };
-    let stuck = STUCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    let mut stuck = STUCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    // A set-aside process that has since exited frees its PID for a real client.
+    stuck.retain(|pid| pids.contains(pid));
     pids.iter().any(|pid| !stuck.contains(pid))
 }
 
@@ -132,11 +144,13 @@ mod tests {
     fn a_stop_kills_a_client_that_ignores_sigterm() {
         let name = format!("stbn{}", std::process::id() % 100_000);
         let (dir, mut child) = stubborn(&name);
+        let own = crate::process::pids(&name).expect("pgrep lists processes");
         crate::process::kill_image(&name);
         stop_image(&name, Duration::from_millis(500), Duration::from_secs(5));
         assert!(!running(&name), "SIGKILL follows an ignored SIGTERM");
         let _ = child.wait();
-        assert!(STUCK.lock().expect("stuck").is_empty(), "nothing was set aside");
+        let stuck = STUCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert!(stuck.iter().all(|pid| !own.contains(pid)), "nothing of ours was set aside");
         std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 
@@ -146,9 +160,12 @@ mod tests {
         let (dir, mut child) = stubborn(&name);
         let pids = crate::process::pids(&name).expect("pgrep lists processes");
         assert!(running(&name));
-        STUCK.lock().expect("stuck").extend(&pids);
+        STUCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner).extend(&pids);
         assert!(!running(&name), "a start launches past a process that would not die");
-        STUCK.lock().expect("stuck").retain(|pid| !pids.contains(pid));
+        STUCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .retain(|pid| !pids.contains(pid));
         child.kill().expect("kill");
         let _ = child.wait();
         std::fs::remove_dir_all(&dir).expect("cleanup");
