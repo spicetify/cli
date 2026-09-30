@@ -24,8 +24,8 @@
  * Examples
  * --------
  *   node scripts/classmap-capture.ts migrate \
- *     --base-classmap ../classmaps/1020040/classmap.json \
- *     --base-css-dir ../xpui-archive/1.2.40.599 \
+ *     --base-classmap ../classmaps/1030001/classmap.json \
+ *     --base-spa /path/to/1.3.1/xpui.spa \
  *     --target-spa "/Applications/Spotify.app/Contents/Resources/Apps/xpui.spa" \
  *     --css-map css-map.json \
  *     --out classmaps/1020092/classmap.json \
