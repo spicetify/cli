@@ -103,6 +103,10 @@ fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
         refresh_classmap(ctx, &version.to_string(), no_cache)?;
     }
 
+    // Creating an existing Apps directory does not prove it is writable.
+    // Prepare the actual staging directory before stopping a working client.
+    let tmp = prepare_staging_dir(&dest_apps)?;
+
     if activate {
         crate::lifecycle::stop(ctx)?;
     }
@@ -113,25 +117,10 @@ fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
             .map_err(fs_err("restoring xpui.spa from the backup at", &spa))?;
     }
 
-    // Names the path on failure: a bare "Permission denied" here means the
-    // resolved Spotify directory is not writable (often a system-wide install,
-    // or a bundle detection that missed the real location), and the errno
-    // alone does not say which directory to look at.
-    std::fs::create_dir_all(&dest_apps).map_err(|e| {
-        anyhow::anyhow!(
-            "cannot prepare {}: {e}. If Spotify is installed elsewhere, set spotify_data_dir in config.toml",
-            dest_apps.display()
-        )
-    })?;
     tracing::info!(
         "{}",
         fl!("extracting-spa", src = spa.to_string_lossy(), dest = dest_xpui.to_string_lossy())
     );
-
-    let tmp = dest_apps.join("xpui.tmp");
-    if tmp.exists() {
-        cleanup_tmp(&tmp);
-    }
 
     if let Err(e) = extract_into(&spa, &tmp) {
         cleanup_tmp(&tmp);
@@ -332,6 +321,33 @@ fn cleanup_tmp(tmp: &Path) {
     if let Err(e) = std::fs::remove_dir_all(tmp) {
         tracing::warn!(error = %e, path = %tmp.display(), "failed to clean up temp dir");
     }
+}
+
+fn prepare_staging_dir(apps: &Path) -> Result<PathBuf> {
+    let tmp = apps.join("xpui.tmp");
+    let prepare = || -> std::io::Result<()> {
+        std::fs::create_dir_all(apps)?;
+        if let Err(error) = std::fs::remove_dir_all(&tmp)
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
+            return Err(error);
+        }
+        std::fs::create_dir(&tmp)
+    };
+    prepare().map_err(|error| {
+        let guidance = "If Spotify is installed elsewhere, set spotify_data_dir in config.toml.";
+        #[cfg(target_os = "linux")]
+        let guidance = if matches!(
+            error.kind(),
+            std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::ReadOnlyFilesystem
+        ) {
+            "Run 'spicetify spotify install' as your normal user to install and patch a user-owned Spotify copy. This requires a verified classmap for that Spotify version. Do not run Spicetify with sudo."
+        } else {
+            guidance
+        };
+        anyhow::anyhow!("cannot prepare {}: {error}. {guidance}", tmp.display())
+    })?;
+    Ok(tmp)
 }
 
 fn extract_into(spa: &Path, dest: &Path) -> Result<()> {
@@ -698,6 +714,72 @@ fn patch_index_html(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn unwritable_installation_does_not_stop_spotify_or_change_its_archive() {
+        use std::io::Write;
+        use std::os::unix::fs::PermissionsExt;
+
+        let root = std::env::temp_dir()
+            .join(format!("spicetify-apply-permissions-{}", std::process::id()));
+        let apps = root.join("Spotify/Apps");
+        std::fs::create_dir_all(&apps).expect("temporary Spotify installation");
+        let spa = apps.join("xpui.spa");
+        let mut archive = zip::ZipWriter::new(std::fs::File::create(&spa).expect("stock archive"));
+        archive
+            .start_file("index.html", zip::write::SimpleFileOptions::default())
+            .expect("stock index entry");
+        archive.write_all(b"<html></html>").expect("stock index contents");
+        drop(archive.finish().expect("finish stock archive"));
+        let original = std::fs::read(&spa).expect("original archive bytes");
+        let executable = root.join(format!("spa{}", std::process::id()));
+        let _ = std::fs::copy("/bin/sleep", &executable).expect("isolated client executable");
+        let mut client = std::process::Command::new(&executable)
+            .arg("60")
+            .spawn()
+            .expect("start simulated client");
+        let ctx = AppContext {
+            config_file: root.join("config/config.toml"),
+            config_root: root.join("config"),
+            mirror: false,
+            daemon: false,
+            spotify_data_dir: root.join("Spotify"),
+            spotify_exec: executable,
+            offline_bnk_dir: root.clone(),
+            block_spotify_updates: None,
+        };
+        // Wait until process-name lookup can see the simulated client.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while !crate::lifecycle::is_running(&ctx) && std::time::Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        let client_visible = crate::lifecycle::is_running(&ctx);
+        std::fs::set_permissions(&apps, std::fs::Permissions::from_mode(0o555))
+            .expect("protect Spotify Apps");
+
+        let result = if client_visible {
+            run_inner(&ctx, ApplyMode::Cli { no_cache: false }, true)
+        } else {
+            Err(anyhow::anyhow!("simulated client did not become visible"))
+        };
+        let client_status = client.try_wait().expect("client process state");
+        let archive_after = std::fs::read(&spa).expect("archive after failed Apply");
+        let backup_exists = apps.join("xpui.spa.backup").exists();
+        std::fs::set_permissions(&apps, std::fs::Permissions::from_mode(0o755))
+            .expect("restore fixture permissions");
+        let _ = client.kill();
+        let _ = client.wait().expect("reap simulated client");
+        std::fs::remove_dir_all(root).expect("remove permission fixture");
+
+        assert!(client_visible, "process lookup must observe the simulated client before Apply");
+        assert!(client_status.is_none(), "client exited: {client_status:?}; Apply: {result:?}");
+        assert_eq!(archive_after, original);
+        assert!(!backup_exists);
+        let error = result.expect_err("read-only Apps must refuse Apply").to_string();
+        assert!(error.contains("xpui.tmp"), "error must name the unwritable path: {error}");
+        assert!(error.contains("spicetify spotify install"), "missing recovery: {error}");
+    }
 
     const STOCK: &str = r#"<!doctype html><html><head><title>Spotify</title></head><body><div class="body-drag-top"></div><script defer="defer" src="/xpui-snapshot.js"></script></body></html>"#;
     const STOCK_DIRECT: &str = r#"<!doctype html><html><head><title>Spotify</title></head><body><div class="body-drag-top"></div><script defer="defer" src="/xpui.js"></script></body></html>"#;
