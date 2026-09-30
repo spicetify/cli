@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { loadChecks } from "./classmap-cdp-verify.mjs";
+import { loadChecks, navigationSucceeded } from "./classmap-cdp-verify.mjs";
 
 const source = readFileSync(new URL("./classmap-cdp-verify.mjs", import.meta.url), "utf8");
 const verifier = fileURLToPath(new URL("./classmap-cdp-verify.mjs", import.meta.url));
@@ -92,5 +92,14 @@ test("an overlay renames classes on top of the CLI css-map", () => {
     );
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a step that could not open its surface does not count as navigation", () => {
+  for (const result of ["context-menu-open", "credits-open", "embed-open", "settings-open", "scrolled-settings", "clicked-home"]) {
+    assert.equal(navigationSucceeded(result), true, result);
+  }
+  for (const result of ["context-menu-dispatched", "credits-not-found", "embed-not-found", "settings-not-rendered", "no-track-row", "nav-failed:/"]) {
+    assert.equal(navigationSucceeded(result), false, result);
   }
 });

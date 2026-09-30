@@ -368,6 +368,42 @@ const NAV_HELPERS = `
       return "nav-failed:" + pathname;
     }
   };
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const waitFor = async (probe, ms = 3000) => {
+    const deadline = Date.now() + ms;
+    while (Date.now() < deadline) {
+      const value = probe();
+      if (value) return value;
+      await wait(100);
+    }
+    return null;
+  };
+  const openMenu = () => $$('[role="menu"]').find(visible);
+  const menuItem = (pattern) =>
+    $$('[role="menu"] [role="menuitem"], [role="menu"] button, [role="menu"] a').find((el) => visible(el) && pattern.test((el.textContent || "").trim()));
+  const openDialogs = () => $$('dialog[open], [role="dialog"]').filter(visible);
+  // Closes open dialogs and menus so the next step starts from the page itself.
+  const closeOverlays = async () => {
+    for (const dialog of openDialogs()) {
+      const close = [...dialog.querySelectorAll("button[aria-label]")].find((b) => /^close$/i.test(b.getAttribute("aria-label")));
+      if (close) click(close);
+      else dialog.close?.();
+    }
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+    await waitFor(() => !openDialogs().length && !openMenu(), 1500);
+  };
+  // Opens the context menu of the first visible track row.
+  const openTrackMenu = async () => {
+    // Track rows first: the Your Library sidebar also uses role="row".
+    const row = ['main [data-testid="tracklist-row"]', '[data-testid="tracklist-row"]', 'main [data-testid="internal-tracklist-row"]']
+      .map((selector) => $$(selector).find(visible))
+      .find(Boolean);
+    if (!row) return null;
+    const rect = row.getBoundingClientRect();
+    const opts = { bubbles: true, cancelable: true, view: window, clientX: rect.left + Math.min(40, rect.width / 2), clientY: rect.top + rect.height / 2, button: 2, buttons: 2 };
+    row.dispatchEvent(new MouseEvent("contextmenu", opts));
+    return waitFor(openMenu, 2000);
+  };
 `;
 
 const NAV_STEPS = [
@@ -441,36 +477,47 @@ const NAV_STEPS = [
   },
   {
     name: "context_menu",
-    waitMs: 900,
-    expr: `(() => {
+    waitMs: 300,
+    expr: `(async () => {
       ${NAV_HELPERS}
-      // Right-click a track row / more button to open context menu
-      const row =
-        $$('[data-testid="tracklist-row"], [data-testid="internal-tracklist-row"], [role="row"]').find(visible) ||
-        $$('div[aria-selected], [data-testid*="track"]').find(visible);
-      if (row) {
-        const rect = row.getBoundingClientRect();
-        const x = rect.left + Math.min(40, rect.width / 2);
-        const y = rect.top + rect.height / 2;
-        const opts = { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y, button: 2, buttons: 2 };
-        row.dispatchEvent(new MouseEvent("contextmenu", opts));
-        // also try the "more" button in the row
-        const more = row.querySelector('button[aria-label*="More" i], button[data-testid="more-button"]');
-        if (more) click(more);
-        const menu = $$('[data-testid="context-menu"], [role="menu"], #context-menu, .main-contextMenu-menu').find(visible);
-        return menu ? "context-menu-open" : "context-menu-dispatched";
-      }
-      // Fallback: more button anywhere in main view
-      const more = findClickable([(e) => /more options|more/i.test(textOf(e)) && e.tagName === "BUTTON"]);
-      if (click(more)) return "clicked-more";
-      return "no-track-row";
+      if (await openTrackMenu()) return "context-menu-open";
+      return $$('[data-testid="tracklist-row"], [role="row"]').find(visible) ? "context-menu-dispatched" : "no-track-row";
+    })()`,
+  },
+  {
+    // Menu labels are matched in English, the language the verifier expects the client to use.
+    name: "track_credits",
+    waitMs: 300,
+    expr: `(async () => {
+      ${NAV_HELPERS}
+      if (!openMenu() && !(await openTrackMenu())) return "no-track-row";
+      const item = menuItem(/^View credits$/);
+      if (!click(item)) return "credits-not-found";
+      return (await waitFor(() => openDialogs().length, 3000)) ? "credits-open" : "credits-not-found";
+    })()`,
+  },
+  {
+    name: "embed",
+    waitMs: 300,
+    expr: `(async () => {
+      ${NAV_HELPERS}
+      await closeOverlays();
+      if (!(await openTrackMenu())) return "no-track-row";
+      const share = menuItem(/^Share$/);
+      if (!share) return "embed-not-found";
+      share.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+      click(share);
+      const embed = await waitFor(() => menuItem(/^Embed (track|song|episode)$/), 2000);
+      if (!click(embed)) return "embed-not-found";
+      return (await waitFor(() => openDialogs().length, 3000)) ? "embed-open" : "embed-not-found";
     })()`,
   },
   {
     name: "sort_or_filter",
     waitMs: 800,
-    expr: `(() => {
+    expr: `(async () => {
       ${NAV_HELPERS}
+      await closeOverlays();
       const el = findClickable([
         (e) => /sort|filter|custom order|recently|title|artist/i.test(textOf(e)),
         (e) => (e.getAttribute("data-testid") || "").includes("sort"),
@@ -481,43 +528,49 @@ const NAV_STEPS = [
   },
   {
     name: "settings",
-    waitMs: 1500,
-    expr: `(() => {
+    waitMs: 300,
+    expr: `(async () => {
       ${NAV_HELPERS}
-      // Profile chip → Settings
-      const profile = findClickable([
-        (e) => (e.getAttribute("data-testid") || "") === "user-widget-link",
-        (e) => /profile|account menu/i.test(textOf(e)),
-      ]);
-      if (profile) click(profile);
-      const pref = findClickable([
-        (e) => (e.getAttribute("href") || "").includes("/preferences"),
-        (e) => /settings|preferences/i.test(textOf(e)),
-      ]);
-      if (click(pref)) return "clicked-settings";
+      await closeOverlays();
+      // Settings opens from the account menu; a pushed history entry doesn't render it.
+      const profile = findClickable([(e) => (e.getAttribute("data-testid") || "") === "user-widget-link"]);
+      if (click(profile)) {
+        const item = await waitFor(() => menuItem(/^Settings$/), 2000);
+        if (click(item)) {
+          const rendered = await waitFor(() => $$("main input, main select").length > 5, 5000);
+          return rendered ? "settings-open" : "settings-not-rendered";
+        }
+      }
       return navigateSpa("/preferences");
     })()`,
   },
   {
     name: "settings_scroll",
-    waitMs: 600,
-    expr: `(() => {
+    waitMs: 300,
+    expr: `(async () => {
       ${NAV_HELPERS}
-      // Scroll settings main to mount more sections
-      const main = document.querySelector('main, [data-testid="preferences-page"], [class*="settings"]') || document.scrollingElement;
-      if (main) {
-        main.scrollTop = main.scrollHeight / 2;
-        window.scrollTo(0, document.body.scrollHeight / 2);
-        return "scrolled-settings";
+      // Scroll the whole settings page so lazily mounted sections render.
+      const inputs = $$("main input, main select");
+      let scroller = inputs[0];
+      while (scroller && !(scroller.scrollHeight > scroller.clientHeight + 50 && /auto|scroll/.test(getComputedStyle(scroller).overflowY))) {
+        scroller = scroller.parentElement;
       }
-      return "no-settings-scroll-target";
+      if (!scroller) return "no-settings-scroll-target";
+      for (let y = 0; y <= scroller.scrollHeight; y += 500) {
+        scroller.scrollTop = y;
+        await wait(120);
+      }
+      return "scrolled-settings";
     })()`,
   },
 ];
 
-function navigationSucceeded(result) {
+export function navigationSucceeded(result) {
   return (
-    typeof result === "string" && !/^(?:nav-failed|context-menu-dispatched|no-track-row|sort-not-found|no-settings-scroll-target)(?::|$)/.test(result)
+    typeof result === "string" &&
+    !/^(?:nav-failed|context-menu-dispatched|no-track-row|sort-not-found|no-settings-scroll-target|credits-not-found|embed-not-found|settings-not-rendered)(?::|$)/.test(
+      result,
+    )
   );
 }
 
