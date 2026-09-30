@@ -147,6 +147,23 @@ deliberate act rather than a source the CLI consults on its own:
 spicetify pkg install my-module https://example.com/my-module@1.0.0.zip
 ```
 
+### Updating installed modules
+
+`spicetify pkg update` moves every installed module to the version the
+registry currently serves, and `spicetify pkg update <id>` does the same for
+one module. It fetches the registry fresh and changes only modules the store
+manages. Run `spicetify apply` afterwards; Spotify loads the new versions
+then. A bulk update leaves these modules as they are and says why:
+
+- A module you disabled, or pinned by enabling an older version while a newer
+  one is installed. Naming the module overrides a pin, but not a disable.
+- A developer's own directory or linked build.
+- A module the registry doesn't carry, or a version installed from an
+  explicit artifact.
+
+The command fails when any module could not be updated, or when you name a
+module it has to leave alone, so a script notices.
+
 `localStorage["spicetify:defaultVaultUrl"]` repoints the store at another
 vault. That is a development lever for previewing a catalog before submitting
 it, not a distribution channel: it replaces the registry rather than adding

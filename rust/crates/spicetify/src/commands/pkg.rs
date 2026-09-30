@@ -191,64 +191,191 @@ pub(crate) fn ensure_system_modules(ctx: &AppContext) {
             return;
         }
     };
-    let intent = crate::module::vault::load(&paths.vault_path).unwrap_or_default();
+    let intent = crate::module::vault::load(&paths.vault_path).unwrap_or_else(|e| {
+        tracing::warn!(
+            "cannot read {}: {e}; refreshing without local intent",
+            paths.vault_path.display()
+        );
+        crate::module::vault::Vault::default()
+    });
     for id in SYSTEM_MODULES {
-        if intent.modules.get(*id).is_some_and(local_intent_blocks) {
-            continue;
-        }
-        let present = paths.modules_root.join(id).exists();
-        let installed = store_managed_version(&paths.modules_root, &paths.store_root, id);
-        let Some(module) = vault.modules.get(*id) else {
-            tracing::warn!("system module {id} is not in the registry");
-            continue;
-        };
-        let target = match resolve_version(module) {
-            Ok(version) => version,
-            Err(e) => {
-                tracing::warn!("cannot resolve system module {id}: {e}");
-                continue;
+        match plan_refresh(&paths, &intent, &vault, id, RefreshPolicy::Recover) {
+            Ok(Refresh::Stage { target, superseded }) => {
+                if let Err(e) =
+                    stage_refresh(ctx, &paths, id, &target, superseded.as_deref(), &vault)
+                {
+                    tracing::warn!("could not stage system module {id}@{target}: {e}");
+                }
             }
-        };
-        if !should_stage(present, installed.as_deref(), &target, !module.enabled.is_empty()) {
-            continue;
-        }
-        let Some(entry) = module.v.get(&target) else {
-            tracing::warn!("system module {id}@{target} is not in the registry");
-            continue;
-        };
-        if let Err(e) = seed_system_module(ctx, id, &target, entry) {
-            tracing::warn!("could not stage system module {id}@{target}: {e}");
-            continue;
-        }
-        // The version this refresh just superseded would otherwise sit in
-        // the store tree forever, a megabyte per release.
-        if let Some(old) = installed.filter(|old| old != &target) {
-            let superseded =
-                match crate::module::vault::StoreIdentifier::parse(&format!("{id}@{old}")) {
-                    Ok(id) => id,
-                    Err(e) => {
-                        tracing::warn!("cannot collect invalid superseded package {id}@{old}: {e}");
-                        continue;
-                    }
-                };
-            if let Err(e) = crate::module::delete(&paths, &superseded) {
-                tracing::warn!("could not collect superseded {superseded}: {e}");
-            }
+            Ok(Refresh::Skip(_)) => {}
+            Err(e) => tracing::warn!("cannot refresh system module {id}: {e}"),
         }
     }
 }
 
-/// Whether the local vault records intent this refresh must not override:
-/// disabled while still installed, or pinned to an enabled version below one
-/// that is still installed (the only way a downgrade comes about by hand).
-/// A deleted module has no installed versions left and is fair game.
-fn local_intent_blocks(module: &crate::module::vault::Module) -> bool {
+/// Which caller a refresh serves; each treats missing modules, local intent and
+/// registry gaps its own way.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RefreshPolicy {
+    /// `apply`: seed absent system modules and never override local intent.
+    Recover,
+    /// `pkg update`: every installed module, skipping anything it can't judge.
+    UpdateAll,
+    /// `pkg update <id>`: the user named this module, so an inferred pin gives way.
+    UpdateNamed,
+}
+
+/// Why a refresh leaves a module as it is.
+#[derive(Debug, PartialEq, Eq)]
+enum Skip {
+    /// Installed but not enabled.
+    Disabled,
+    /// Enabled at an older version while a newer one is installed.
+    HandPinned { enabled: String },
+    /// A developer's real directory or a link outside the store tree.
+    NotStoreManaged,
+    /// The registry doesn't carry this module.
+    NotInRegistry,
+    /// The installed version came from an explicit artifact, not the registry.
+    ExplicitArtifact,
+    /// Already at the registry's version.
+    Current,
+}
+
+impl std::fmt::Display for Skip {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Disabled => f.write_str("disabled"),
+            Self::HandPinned { enabled } => write!(f, "pinned to {enabled}"),
+            Self::NotStoreManaged => f.write_str("not managed by the store"),
+            Self::NotInRegistry => f.write_str("not in the registry"),
+            Self::ExplicitArtifact => f.write_str("installed from an explicit artifact"),
+            Self::Current => f.write_str("already up to date"),
+        }
+    }
+}
+
+/// What a registry refresh does with one module.
+#[derive(Debug, PartialEq, Eq)]
+enum Refresh {
+    /// Install `target`, then collect the store copy of `superseded`.
+    Stage { target: String, superseded: Option<String> },
+    /// Leave the module as it is.
+    Skip(Skip),
+}
+
+/// Decides one module's refresh against the registry. Only store-managed
+/// installs are ever replaced: a developer's real directory or a link into
+/// their own build output is never judged against the registry.
+fn plan_refresh(
+    paths: &crate::module::ModulePaths,
+    intent: &crate::module::vault::Vault,
+    vault: &Vault,
+    id: &str,
+    policy: RefreshPolicy,
+) -> Result<Refresh> {
+    let local = intent.modules.get(id);
+    let present = paths.modules_root.join(id).exists();
+    match local.and_then(local_intent) {
+        Some(Skip::Disabled) => return Ok(Refresh::Skip(Skip::Disabled)),
+        Some(pinned @ Skip::HandPinned { .. }) if policy != RefreshPolicy::UpdateNamed => {
+            return Ok(Refresh::Skip(pinned));
+        }
+        _ => {}
+    }
+    if !present && policy != RefreshPolicy::Recover {
+        anyhow::bail!("{id} is not installed");
+    }
+    let installed = store_managed_version(&paths.modules_root, &paths.store_root, id);
+    if present && installed.is_none() {
+        return Ok(Refresh::Skip(Skip::NotStoreManaged));
+    }
+    let Some(module) = vault.modules.get(id) else {
+        if policy == RefreshPolicy::UpdateAll {
+            return Ok(Refresh::Skip(Skip::NotInRegistry));
+        }
+        anyhow::bail!("{id} is not in the registry");
+    };
+    if policy == RefreshPolicy::UpdateAll
+        && let Some(version) = installed.as_deref()
+        && from_explicit_artifact(local, module, version)
+    {
+        return Ok(Refresh::Skip(Skip::ExplicitArtifact));
+    }
+    let target = resolve_version(module)?;
+    if !should_stage(present, installed.as_deref(), &target, !module.enabled.is_empty()) {
+        return Ok(Refresh::Skip(Skip::Current));
+    }
+    Ok(Refresh::Stage { superseded: installed.filter(|old| old != &target), target })
+}
+
+/// Whether the installed `version` came from bytes other than the registry's,
+/// which a bulk update must not overwrite. Registry and store installs record
+/// the registry's checksum; an install from an explicit URL records none. A
+/// version the registry lists without a checksum is not evidence of either,
+/// and one it doesn't list is judged by whether a checksum was recorded.
+fn from_explicit_artifact(
+    local: Option<&crate::module::vault::Module>,
+    module: &VaultModule,
+    version: &str,
+) -> bool {
+    let Some(store) = local.and_then(|local| local.versions.get(version)) else { return false };
+    match module.v.get(version) {
+        Some(entry) => {
+            !entry.checksum.is_empty()
+                && crate::module::normalize_checksum(&entry.checksum)
+                    != crate::module::normalize_checksum(&store.checksum)
+        }
+        None => store.checksum.is_empty(),
+    }
+}
+
+/// Installs and enables `id@target`, then collects the superseded store copy,
+/// which would otherwise sit in the store tree forever, a megabyte per release.
+fn stage_refresh(
+    ctx: &AppContext,
+    paths: &crate::module::ModulePaths,
+    id: &str,
+    target: &str,
+    superseded: Option<&str>,
+    vault: &Vault,
+) -> Result<()> {
+    let Some(entry) = vault.modules.get(id).and_then(|module| module.v.get(target)) else {
+        anyhow::bail!("{id}@{target} is not in the registry");
+    };
+    stage_module_version(ctx, id, target, entry)?;
+    if let Some(old) = superseded {
+        match crate::module::vault::StoreIdentifier::parse(&format!("{id}@{old}")) {
+            Ok(old) => {
+                if let Err(e) = crate::module::delete(paths, &old) {
+                    tracing::warn!("could not collect superseded {old}: {e}");
+                }
+            }
+            Err(e) => tracing::warn!("cannot collect invalid superseded package {id}@{old}: {e}"),
+        }
+    }
+    Ok(())
+}
+
+/// The intent the local vault records for a module, if any refresh must honour
+/// it: disabled while still installed, or enabled at a version below one that
+/// is still installed (the only way a downgrade comes about by hand). Versions
+/// a refresh already collected are no longer installed and don't count, so a
+/// registry rollback doesn't leave a module looking pinned. A deleted module
+/// has no installed versions left and is fair game.
+fn local_intent(module: &crate::module::vault::Module) -> Option<Skip> {
     let has_installed = module.versions.values().any(|store| store.installed);
     match &module.enabled {
-        None => has_installed,
+        None => has_installed.then_some(Skip::Disabled),
         Some(pin) => {
-            let Ok(pin) = semver::Version::parse(pin) else { return false };
-            module.versions.keys().filter_map(|v| semver::Version::parse(v).ok()).any(|v| v > pin)
+            let parsed = semver::Version::parse(pin).ok()?;
+            module
+                .versions
+                .iter()
+                .filter(|(_, store)| store.installed)
+                .filter_map(|(v, _)| semver::Version::parse(v).ok())
+                .any(|v| v > parsed)
+                .then(|| Skip::HandPinned { enabled: pin.clone() })
         }
     }
 }
@@ -289,7 +416,7 @@ fn should_stage(present: bool, installed: Option<&str>, target: &str, target_pin
     }
 }
 
-fn seed_system_module(
+fn stage_module_version(
     ctx: &AppContext,
     id: &str,
     version: &str,
@@ -306,7 +433,7 @@ fn seed_system_module(
         entry.checksum.clone(),
     )?;
     crate::module::enable_module(&ctx.config_root, &tag)?;
-    tracing::info!("staged system module {tag}");
+    tracing::info!("staged {tag}");
     Ok(())
 }
 
@@ -354,6 +481,108 @@ pub(crate) fn install(ctx: &AppContext, identifier: &str) -> Result<()> {
         entry.artifacts.clone(),
         entry.checksum.clone(),
     )
+}
+
+/// `pkg update [id]`: refreshes one installed module, or every store-managed
+/// one, to the registry's current version. The registry is fetched fresh,
+/// falling back to the cache only when offline. Fails when any module could
+/// not be updated, or when a named module was left as it is for a reason the
+/// user has to act on.
+pub(crate) fn update(ctx: &AppContext, target_id: Option<&str>) -> Result<()> {
+    if let Some(id) = target_id
+        && let Some((name, _)) = id.split_once('@')
+    {
+        anyhow::bail!(
+            "pkg update takes a module id; to switch {name} to a specific version, run `spicetify pkg enable {id}`"
+        );
+    }
+    let paths = crate::module::ModulePaths::from_config_root(&ctx.config_root);
+    let intent = crate::module::vault::load(&paths.vault_path)
+        .map_err(|e| anyhow::anyhow!("cannot read {}: {e}", paths.vault_path.display()))?;
+    let (ids, policy) = match target_id {
+        Some(id) => (vec![id.to_string()], RefreshPolicy::UpdateNamed),
+        None => (
+            installed(&ctx.config_root).into_iter().map(|(id, _)| id).collect(),
+            RefreshPolicy::UpdateAll,
+        ),
+    };
+    if ids.is_empty() {
+        tracing::info!("no modules installed");
+        return Ok(());
+    }
+    let vault = vault_via_cache(
+        &vault_cache_path(&ctx.config_root),
+        std::time::Duration::ZERO,
+        std::time::SystemTime::now(),
+        || fetch_vault_body(DEFAULT_VAULT),
+    )?;
+    let report = update_modules(&paths, &intent, &vault, &ids, policy, |id, target, superseded| {
+        stage_refresh(ctx, &paths, id, target, superseded, &vault)
+    });
+    if report.updated > 0 {
+        tracing::info!(
+            "updated {} module(s); run `spicetify apply` to load them in Spotify",
+            report.updated
+        );
+    } else if report.failures.is_empty() {
+        tracing::info!("all modules are up to date");
+    }
+    if report.failures.is_empty() {
+        return Ok(());
+    }
+    anyhow::bail!("could not update {}", report.failures.join("; "))
+}
+
+/// The outcome of an update run.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct UpdateReport {
+    updated: usize,
+    failures: Vec<String>,
+}
+
+/// Plans and stages each module, logging what happened. A named module left
+/// as it is for a reason the user has to act on counts as a failure.
+fn update_modules(
+    paths: &crate::module::ModulePaths,
+    intent: &crate::module::vault::Vault,
+    vault: &Vault,
+    ids: &[String],
+    policy: RefreshPolicy,
+    mut stage: impl FnMut(&str, &str, Option<&str>) -> Result<()>,
+) -> UpdateReport {
+    let mut report = UpdateReport::default();
+    for id in ids {
+        match plan_refresh(paths, intent, vault, id, policy) {
+            Ok(Refresh::Stage { target, superseded }) => {
+                match stage(id, &target, superseded.as_deref()) {
+                    Ok(()) => {
+                        report.updated += 1;
+                        if let Some(old) = &superseded {
+                            tracing::info!("updated {id}: {old} -> {target}");
+                        } else {
+                            tracing::info!("updated {id} to {target}");
+                        }
+                    }
+                    Err(e) => report.failures.push(format!("{id}@{target}: {e}")),
+                }
+            }
+            Ok(Refresh::Skip(Skip::Current)) => tracing::info!("{id}: {}", Skip::Current),
+            Ok(Refresh::Skip(Skip::Disabled)) if policy == RefreshPolicy::UpdateNamed => {
+                report.failures.push(format!(
+                    "{id}: disabled; run `spicetify pkg enable {id}@<version>` to turn it back on"
+                ));
+            }
+            Ok(Refresh::Skip(Skip::NotStoreManaged)) if policy == RefreshPolicy::UpdateNamed => {
+                report.failures.push(format!(
+                    "{id}: {}, so it is never replaced from the registry",
+                    Skip::NotStoreManaged
+                ));
+            }
+            Ok(Refresh::Skip(reason)) => tracing::info!("{id}: {reason}, left as is"),
+            Err(e) => report.failures.push(format!("{id}: {e}")),
+        }
+    }
+    report
 }
 
 #[cfg(test)]
@@ -484,23 +713,254 @@ mod tests {
         }
     }
 
+    /// A config root with a store-managed `lyrics@1.0.0`, a disabled
+    /// store-managed `off@1.0.0` and a developer's real `dev` directory.
+    fn update_fixture(
+        name: &str,
+    ) -> (std::path::PathBuf, crate::module::ModulePaths, crate::module::vault::Vault, Vault) {
+        let root =
+            std::env::temp_dir().join(format!("spicetify-update-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let paths = crate::module::ModulePaths::from_config_root(&root);
+        for id in [
+            "lyrics",
+            "off",
+            "orphan",
+            "url",
+            "pinned",
+            "yanked",
+            "mirror",
+            "fork",
+            "unchecksummed",
+        ] {
+            std::fs::create_dir_all(paths.store_root.join(id).join("1.0.0")).expect("store copy");
+            std::fs::create_dir_all(&paths.modules_root).expect("modules root");
+            crate::util::link::create_dir_link(
+                &paths.store_root.join(id).join("1.0.0"),
+                &paths.modules_root.join(id),
+            )
+            .expect("store link");
+        }
+        std::fs::create_dir_all(paths.modules_root.join("dev")).expect("developer build");
+        let mut local = crate::module::vault::Vault::default();
+        assert!(
+            local.modules.insert("off".to_string(), intent(None, &[("1.0.0", true)])).is_none()
+        );
+        let mut url = intent(Some("1.0.0"), &[("1.0.0", true)]);
+        url.versions.get_mut("1.0.0").expect("version").checksum = String::new();
+        url.versions.get_mut("1.0.0").expect("version").artifacts =
+            vec!["https://example.invalid/fork.zip".to_string()];
+        assert!(local.modules.insert("url".to_string(), url).is_none());
+        let mut mirror = intent(Some("1.0.0"), &[("1.0.0", true)]);
+        let store = mirror.versions.get_mut("1.0.0").expect("version");
+        store.checksum = "MIRROR".to_string();
+        store.artifacts = vec!["https://mirror.invalid/m.zip".to_string()];
+        assert!(local.modules.insert("mirror".to_string(), mirror).is_none());
+        for (id, checksum) in
+            [("yanked", "sha256:gone"), ("fork", ""), ("unchecksummed", "sha256:old")]
+        {
+            let mut module = intent(Some("1.0.0"), &[("1.0.0", true)]);
+            module.versions.get_mut("1.0.0").expect("version").checksum = checksum.to_string();
+            assert!(local.modules.insert(id.to_string(), module).is_none());
+        }
+        let pinned = intent(Some("1.0.0"), &[("1.0.0", true), ("1.1.0", true)]);
+        assert!(local.modules.insert("pinned".to_string(), pinned).is_none());
+        let entry = || VaultVersion {
+            artifacts: vec!["https://example.invalid/m.zip".to_string()],
+            checksum: String::new(),
+        };
+        let module = |versions: &[&str]| VaultModule {
+            enabled: String::new(),
+            v: versions.iter().map(|v| ((*v).to_string(), entry())).collect(),
+        };
+        let vault = Vault {
+            modules: BTreeMap::from([
+                ("lyrics".to_string(), module(&["1.0.0", "1.1.0"])),
+                ("off".to_string(), module(&["1.1.0"])),
+                ("dev".to_string(), module(&["2.0.0"])),
+                ("url".to_string(), module(&["1.0.0", "1.1.0"])),
+                ("absent".to_string(), module(&["1.0.0"])),
+                ("pinned".to_string(), module(&["1.0.0", "1.1.0", "1.2.0"])),
+            ]),
+        };
+        let mut vault = vault;
+        let checksummed = |checksum: &str| VaultVersion {
+            artifacts: vec![
+                "https://example.invalid/m.zip".to_string(),
+                "https://mirror.invalid/m.zip".to_string(),
+            ],
+            checksum: checksum.to_string(),
+        };
+        assert!(
+            vault
+                .modules
+                .get_mut("url")
+                .expect("url")
+                .v
+                .insert("1.0.0".to_string(), checksummed("sha256:registry"))
+                .is_some()
+        );
+        let mirror = VaultModule {
+            enabled: String::new(),
+            v: BTreeMap::from([
+                ("1.0.0".to_string(), checksummed("sha256:mirror")),
+                ("1.1.0".to_string(), checksummed("sha256:next")),
+            ]),
+        };
+        assert!(vault.modules.insert("mirror".to_string(), mirror).is_none());
+        assert!(vault.modules.insert("yanked".to_string(), module(&["1.1.0"])).is_none());
+        assert!(vault.modules.insert("fork".to_string(), module(&["1.1.0"])).is_none());
+        let unchecksummed = module(&["1.0.0", "1.1.0"]);
+        assert!(vault.modules.insert("unchecksummed".to_string(), unchecksummed).is_none());
+        (root, paths, local, vault)
+    }
+
+    #[test]
+    fn each_refresh_policy_judges_modules_its_own_way() {
+        let (root, paths, intent, vault) = update_fixture("plan");
+        let plan = |id: &str, policy| plan_refresh(&paths, &intent, &vault, id, policy);
+        let stage = |target: &str, superseded: Option<&str>| Refresh::Stage {
+            target: target.to_string(),
+            superseded: superseded.map(str::to_string),
+        };
+        use RefreshPolicy::{Recover, UpdateAll, UpdateNamed};
+
+        assert_eq!(plan("lyrics", UpdateAll).expect("plan"), stage("1.1.0", Some("1.0.0")));
+        assert_eq!(plan("dev", UpdateAll).expect("plan"), Refresh::Skip(Skip::NotStoreManaged));
+        assert_eq!(plan("off", UpdateNamed).expect("plan"), Refresh::Skip(Skip::Disabled));
+
+        assert_eq!(plan("orphan", UpdateAll).expect("plan"), Refresh::Skip(Skip::NotInRegistry));
+        let error =
+            plan("orphan", UpdateNamed).expect_err("named module missing from the registry");
+        assert!(error.to_string().contains("orphan is not in the registry"), "{error}");
+
+        assert_eq!(plan("url", UpdateAll).expect("plan"), Refresh::Skip(Skip::ExplicitArtifact));
+        assert_eq!(plan("url", UpdateNamed).expect("plan"), stage("1.1.0", Some("1.0.0")));
+        assert_eq!(
+            plan("mirror", UpdateAll).expect("plan"),
+            stage("1.1.0", Some("1.0.0")),
+            "a registry install with other artifacts and checksum spelling updates"
+        );
+        assert_eq!(
+            plan("yanked", UpdateAll).expect("plan"),
+            stage("1.1.0", Some("1.0.0")),
+            "a registry install the registry no longer lists updates"
+        );
+        assert_eq!(
+            plan("fork", UpdateAll).expect("plan"),
+            Refresh::Skip(Skip::ExplicitArtifact),
+            "a URL install of a version the registry doesn't list stays"
+        );
+        assert_eq!(
+            plan("unchecksummed", UpdateAll).expect("plan"),
+            stage("1.1.0", Some("1.0.0")),
+            "a registry entry without a checksum is no evidence of an explicit install"
+        );
+
+        assert_eq!(
+            plan("pinned", UpdateAll).expect("plan"),
+            Refresh::Skip(Skip::HandPinned { enabled: "1.0.0".to_string() })
+        );
+        assert_eq!(
+            plan("pinned", UpdateNamed).expect("plan"),
+            stage("1.2.0", Some("1.0.0")),
+            "naming the module overrides an inferred pin"
+        );
+        assert_eq!(
+            plan("pinned", Recover).expect("plan"),
+            Refresh::Skip(Skip::HandPinned { enabled: "1.0.0".to_string() })
+        );
+
+        assert_eq!(
+            plan("absent", Recover).expect("plan"),
+            stage("1.0.0", None),
+            "apply seeds absent modules"
+        );
+        let error = plan("absent", UpdateNamed).expect_err("not installed");
+        assert!(error.to_string().contains("absent is not installed"), "{error}");
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn a_bulk_update_skips_what_it_cannot_judge_and_reports_real_failures() {
+        let (root, paths, intent, vault) = update_fixture("bulk");
+        let ids: Vec<String> = ["dev", "lyrics", "orphan", "pinned", "url"]
+            .iter()
+            .map(|id| (*id).to_string())
+            .collect();
+        let mut staged = Vec::new();
+        let report = update_modules(
+            &paths,
+            &intent,
+            &vault,
+            &ids,
+            RefreshPolicy::UpdateAll,
+            |id, target, superseded| {
+                staged.push(format!("{id}@{target} replacing {superseded:?}"));
+                anyhow::bail!("download failed")
+            },
+        );
+        assert_eq!(staged, ["lyrics@1.1.0 replacing Some(\"1.0.0\")"]);
+        assert_eq!(
+            report,
+            UpdateReport {
+                updated: 0,
+                failures: vec!["lyrics@1.1.0: download failed".to_string()]
+            }
+        );
+
+        let report =
+            update_modules(&paths, &intent, &vault, &ids, RefreshPolicy::UpdateAll, |_, _, _| {
+                Ok(())
+            });
+        assert_eq!(report, UpdateReport { updated: 1, failures: Vec::new() });
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
+    #[test]
+    fn a_named_update_fails_when_the_user_has_to_act() {
+        let (root, paths, intent, vault) = update_fixture("named");
+        let named = |id: &str| {
+            update_modules(
+                &paths,
+                &intent,
+                &vault,
+                &[id.to_string()],
+                RefreshPolicy::UpdateNamed,
+                |_, _, _| Ok(()),
+            )
+        };
+        assert!(named("off").failures[0].contains("run `spicetify pkg enable off@<version>`"));
+        assert!(named("dev").failures[0].contains("never replaced from the registry"));
+        assert!(named("ghost").failures[0].contains("ghost is not installed"));
+        assert_eq!(named("pinned"), UpdateReport { updated: 1, failures: Vec::new() });
+        std::fs::remove_dir_all(&root).expect("cleanup");
+    }
+
     #[test]
     fn honours_disable_and_hand_pins_but_not_deletion() {
         assert!(
-            local_intent_blocks(&intent(None, &[("1.10.0", true)])),
+            local_intent(&intent(None, &[("1.10.0", true)])) == Some(Skip::Disabled),
             "disabled while installed stays off"
         );
         assert!(
-            !local_intent_blocks(&intent(None, &[("1.10.0", false)])),
+            local_intent(&intent(None, &[("1.10.0", false)])).is_none(),
             "a deleted module is recovery, not intent"
         );
         assert!(
-            local_intent_blocks(&intent(Some("1.7.0"), &[("1.7.0", true), ("1.10.0", true)])),
+            matches!(
+                local_intent(&intent(Some("1.7.0"), &[("1.7.0", true), ("1.10.0", true)])),
+                Some(Skip::HandPinned { .. })
+            ),
             "an enabled version below an installed newer one is a hand pin"
         );
         assert!(
-            !local_intent_blocks(&intent(Some("1.10.0"), &[("1.10.0", true)])),
+            local_intent(&intent(Some("1.10.0"), &[("1.10.0", true)])).is_none(),
             "enabled at the newest installed version is the normal state"
+        );
+        assert!(
+            local_intent(&intent(Some("1.0.0"), &[("1.0.0", true), ("1.1.0", false)])).is_none(),
+            "a version a registry rollback already collected is not a hand pin"
         );
     }
 
@@ -532,7 +992,7 @@ mod tests {
             let module = vault.modules.get(*id).expect("registry carries every system module");
             let version = resolve_version(module).expect("resolvable");
             let entry = module.v.get(&version).expect("resolved version has an entry");
-            let result = seed_system_module(&ctx, id, &version, entry);
+            let result = stage_module_version(&ctx, id, &version, entry);
             assert!(result.is_ok(), "seed {id}: {:?}", result.err());
         }
 
