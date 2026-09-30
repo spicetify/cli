@@ -9,9 +9,10 @@
 # Env:
 #   SPOTIFY_SPA       Path to xpui.spa (default: macOS Spotify.app)
 #   SPOTIFY_VERSION   Exact Spotify version recorded in the static report
-#   BASE_CLASSMAP     Base classmap JSON (default: ../classmaps/1020040/...)
-#   BASE_CSS_DIR      Base CSS dir from xpui-archive
-#   OUT_DIR           Output dir (default: classmaps/1020092)
+#   BASE_CLASSMAP     Base classmap JSON (default: the newest key in ../classmaps)
+#   BASE_SPA          Stock xpui.spa of the base build (or BASE_CSS_DIR); required to migrate
+#   BASE_CSS_DIR      Directory of the base build's stock CSS
+#   OUT_DIR           Output dir (default: $TMPDIR/spicetify-classmap-e2e)
 #   CDP_PORT          Remote debugging port (default: 9222)
 #   MIN_HIT_RATE      CDP pass threshold (default: 0.25)
 #   SPICETIFY         Spicetify binary (default: ~/.spicetify/spicetify)
@@ -75,9 +76,11 @@ STOCK_SPA_CANDIDATES=(
   "/Applications/Spotify.app/Contents/Resources/Apps/xpui.spa"
   "/Applications/Spotify.app/Contents/Resources/Apps/xpui.spa.bak"
 )
-BASE_CLASSMAP="${BASE_CLASSMAP:-$ROOT/../classmaps/1020040/classmap.json}"
-BASE_CSS_DIR="${BASE_CSS_DIR:-$ROOT/../xpui-archive/1.2.40.599}"
-OUT_DIR="${OUT_DIR:-$ROOT/classmaps/1020092}"
+NEWEST_KEY="$(ls -d "$ROOT"/../classmaps/[0-9][0-9][0-9][0-9][0-9][0-9][0-9] 2>/dev/null | sort | tail -1)"
+BASE_CLASSMAP="${BASE_CLASSMAP:-$NEWEST_KEY/classmap.json}"
+BASE_SPA="${BASE_SPA:-}"
+BASE_CSS_DIR="${BASE_CSS_DIR:-}"
+OUT_DIR="${OUT_DIR:-${TMPDIR:-/tmp}/spicetify-classmap-e2e}"
 CSS_MAP="${CSS_MAP:-$ROOT/css-map.json}"
 CDP_PORT="${CDP_PORT:-9222}"
 SPICETIFY="${SPICETIFY:-$HOME/.spicetify/spicetify}"
@@ -246,14 +249,18 @@ if [[ "$SKIP_MIGRATE" -eq 0 ]]; then
     echo "Missing base classmap: $BASE_CLASSMAP" >&2
     exit 1
   fi
-  if [[ ! -d "$BASE_CSS_DIR" ]]; then
-    echo "Missing base CSS dir: $BASE_CSS_DIR" >&2
+  if [[ -n "$BASE_SPA" && -f "$BASE_SPA" ]]; then
+    BASE_ARGS=(--base-spa "$BASE_SPA")
+  elif [[ -n "$BASE_CSS_DIR" && -d "$BASE_CSS_DIR" ]]; then
+    BASE_ARGS=(--base-css-dir "$BASE_CSS_DIR")
+  else
+    echo "Set BASE_SPA to the stock xpui.spa of the base build, or BASE_CSS_DIR to its CSS" >&2
     exit 1
   fi
   resolve_target_css_args 1
   "$NODE" scripts/classmap-capture.ts migrate \
     --base-classmap "$BASE_CLASSMAP" \
-    --base-css-dir "$BASE_CSS_DIR" \
+    "${BASE_ARGS[@]}" \
     "${TARGET_ARGS[@]}" \
     --css-map "$CSS_MAP" \
     --out "$CLASSMAP_OUT" \
