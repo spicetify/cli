@@ -78,4 +78,7 @@ pub struct HealthInfo {
     pub spotify_detected: bool,
     #[serde(default)]
     pub update_and_apply_supported: Option<bool>,
+    /// Whether this daemon installs new releases on its own.
+    #[serde(default)]
+    pub auto_update: Option<bool>,
 }
