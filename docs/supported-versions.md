@@ -157,6 +157,26 @@ terminal use the same installer.
 Spotify update can replace the installed protection, so `apply` reasserts a
 remembered block.
 
+## Platform contract
+
+The client wrapper reads fields from Spotify's runtime, such as
+`Spicetify.Platform` services, `PlatformData` and the React modules it
+captures. A classmap only covers CSS classes, so a Spotify release can remove
+one of these fields while its classmap still verifies.
+[`scripts/platform-contract.json`](../scripts/platform-contract.json) lists
+each field with the wrapper line that reads it. Run the check against an
+applied client started with a remote debugging port:
+
+```sh
+node scripts/platform-contract.ts --port 9222 --out platform-contract.json
+```
+
+It only reads properties. It exits with status 2 when a required field is
+missing or has another type, and warns about optional fields. The last step of
+`scripts/classmap-e2e.sh` runs it on the same port as the classmap CDP check;
+pass `--skip-contract` for a stock client. When the wrapper starts or stops
+reading a Spotify field, update the list in the same change.
+
 ## Developer overrides
 
 Use these environment variables only for local verification:
