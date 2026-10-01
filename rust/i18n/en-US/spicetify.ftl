@@ -1,5 +1,7 @@
 already-applied = Spicetify appears to be already applied!
-foreign-apply = This client was patched by another tool (no xpui.spa and no xpui.spa.backup found). Restore it with the tool that applied it, then re-run apply.
+foreign-apply = This client was patched by another tool, most likely Spicetify v2 (no xpui.spa and no xpui.spa.backup found), and no v2 backup was found to undo it. Reinstall Spotify, then run spicetify apply again.
+v2-restoring = Spotify was patched by Spicetify v2; restoring it from v2's backup at { $path }
+v2-backup-mismatch = Spotify was patched by Spicetify v2, but v2's backup at { $path } is of Spotify { $backup }, not the installed { $installed }. Reinstall Spotify, then run spicetify apply again.
 already-stock = Spotify is already in stock state!
 app-developer-enabled = Enabled chromium devtools!
 app-developer-not-found = Could not find marker in offline.bnk. Try logging in and out of the app

@@ -81,13 +81,16 @@ fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
     //   xpui.spa present           -> stock; fresh apply
     //   xpui.spa.backup present    -> ours; re-apply from that backup
     //   neither, but xpui/ present -> patched by another tool, which consumed
-    //                                 the archive entirely. Patching over it
-    //                                 would corrupt the client, so refuse and
-    //                                 name the real cause instead of claiming
-    //                                 it is already applied.
-    if !spa.exists() && !ctx.mirror && !backup.exists() && dest_xpui.exists() {
-        return Err(anyhow::anyhow!(fl!("foreign-apply")));
-    }
+    //                                 the archive entirely, in practice
+    //                                 Spicetify v2. Patching over it would
+    //                                 corrupt the client, so it is restored
+    //                                 from v2's backup first, or refused with
+    //                                 the reason when that is not possible.
+    let v2_backup = if !spa.exists() && !ctx.mirror && !backup.exists() && dest_xpui.exists() {
+        Some(super::restore::v2_backup_for(ctx)?)
+    } else {
+        None
+    };
 
     // Refuse before anything destructive: the first steps stop the client
     // and rename xpui.spa, so a client this CLI cannot patch must be turned
@@ -109,6 +112,9 @@ fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
 
     if activate {
         crate::lifecycle::stop(ctx)?;
+    }
+    if let Some(v2_backup) = &v2_backup {
+        super::restore::restore_v2(ctx, v2_backup)?;
     }
 
     if !spa.exists() && !ctx.mirror && backup.exists() {

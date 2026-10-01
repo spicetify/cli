@@ -17,7 +17,12 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
             && ctx.dest_apps_path().join("xpui").is_dir()
             && !ctx.spotify_apps_path().join("xpui.spa").is_file()
         {
-            return Err(anyhow::anyhow!(fl!("foreign-apply")));
+            let backup = v2_backup_for(ctx)?;
+            stop_for_restore(ctx)?;
+            restore_v2(ctx, &backup)?;
+            crate::lifecycle::start(ctx)?;
+            tracing::info!("{}", fl!("restored-stock"));
+            return Ok(());
         }
         return Err(anyhow::anyhow!(fl!("already-stock")));
     }
@@ -63,6 +68,32 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
 
     tracing::info!("{}", fl!("restored-stock"));
     Ok(())
+}
+
+/// The v2 backup that can make a client Spicetify v2 patched stock again.
+/// Fails, naming v2 and what to do, when there is none or it is of another
+/// Spotify version. Touches nothing.
+pub(crate) fn v2_backup_for(ctx: &AppContext) -> Result<crate::legacy::V2Backup> {
+    use crate::legacy::{V2Plan, find_backup, plan};
+    let installed = crate::hooks::version_detect::detect_spotify_version(ctx).ok();
+    match plan(find_backup(), installed.as_ref()) {
+        V2Plan::Restore(backup) => Ok(backup),
+        V2Plan::NoBackup => Err(anyhow::anyhow!(fl!("foreign-apply"))),
+        V2Plan::VersionMismatch { backup, backup_version, installed } => Err(anyhow::anyhow!(fl!(
+            "v2-backup-mismatch",
+            path = backup.to_string_lossy(),
+            backup = backup_version,
+            installed = installed
+        ))),
+    }
+}
+
+/// Restores Spotify from Spicetify v2's `backup`. Spotify must be stopped.
+pub(crate) fn restore_v2(ctx: &AppContext, backup: &crate::legacy::V2Backup) -> Result<()> {
+    tracing::info!("{}", fl!("v2-restoring", path = backup.dir.to_string_lossy()));
+    crate::legacy::restore_files(&ctx.spotify_apps_path(), backup).map_err(|e| {
+        anyhow::anyhow!("could not restore Spotify from {}: {e}", backup.dir.display())
+    })
 }
 
 // Mirror mode never renames the original `.spa`, so it leaves no backup to key

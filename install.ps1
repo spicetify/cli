@@ -274,6 +274,31 @@ function Install-SpicetifyBinaries {
   Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+# v2's archive unpacked these beside spicetify.exe, and this folder is also
+# v3's config root, where v2's css-map.json would shadow v3's own map. Themes,
+# Extensions and CustomApps stay: v2 read user content from them too, and v3
+# never does. jsHelper goes last because it marks the folder as v2's.
+function Remove-SpicetifyV2Leftovers {
+  param([string]$Folder)
+  if (-not (Test-Path -LiteralPath (Join-Path $Folder 'jsHelper') -PathType Container)) {
+    return
+  }
+  $names = @('css-map.json', 'globals.d.ts', 'jsHelper')
+  foreach ($name in $names) {
+    $path = Join-Path $Folder $name
+    if (Test-Path -LiteralPath $path) {
+      Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
+    }
+  }
+  $left = @($names | Where-Object { Test-Path -LiteralPath (Join-Path $Folder $_) })
+  if ($left.Count) {
+    Write-Host -Object "Could not remove Spicetify v2's $($left -join ', ') from $Folder" -ForegroundColor 'Yellow'
+  }
+  else {
+    Write-Host -Object "Removed the files Spicetify v2 left in $Folder"
+  }
+}
+
 function Install-Spicetify {
   [CmdletBinding()]
   param ()
@@ -326,6 +351,7 @@ function Install-Spicetify {
         if ($running.Count) {
           Start-Process -FilePath $daemonPath
         }
+        Remove-SpicetifyV2Leftovers -Folder $spicetifyFolderPath
       }
       finally {
         Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
@@ -408,7 +434,7 @@ if ($v3) {
     Write-Host -Object 'in the sidebar.'
   }
   else {
-    Write-Host -Object "Install finished, but 'spicetify apply' did not complete. Fix the reported cause, then run: spicetify apply" -ForegroundColor 'Yellow'
+    Write-Host -Object "Spicetify is installed, but 'spicetify apply' failed, so Spotify is not running v3. Fix the reported cause, then run: spicetify apply" -ForegroundColor 'Red'
     Write-Host -Object "If it cannot find Spotify, 'spicetify config' shows the paths it resolved."
   }
   return

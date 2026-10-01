@@ -270,11 +270,12 @@ if [ "$channel" = "v3" ]; then
     if "$exe" apply; then
         log "Done. Return to Spotify and click Module Store in the top bar."
     else
-        log "Install finished, but 'spicetify apply' did not complete. Fix the reported cause, then run: spicetify apply"
+        log "Spicetify is installed, but 'spicetify apply' failed, so Spotify is not running v3. Fix the reported cause, then run: spicetify apply"
         log "If it cannot find Spotify, 'spicetify config' shows the paths it resolved."
         if [ "$target" = "linux-x86_64" ]; then
             log "For a system-owned Spotify installation, run 'spicetify spotify install' as your normal user. It installs and patches a user-owned copy when a verified classmap is available."
         fi
+        exit 1
     fi
     exit 0
 fi
