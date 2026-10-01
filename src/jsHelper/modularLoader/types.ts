@@ -88,6 +88,8 @@ export interface Effects {
 	// turned back on. Only disable()/enable() write here: internal unloads
 	// (theme switching, dependency cascades) persist nothing.
 	disabledPref?: { get(): string[]; add(identifier: string): void; remove(identifier: string): void };
+	// Starts downloading a module entry ahead of runLoads without evaluating it.
+	prefetch?(path: string, kind: "js" | "css"): void;
 	log(level: "info" | "error", ...args: unknown[]): void;
 }
 

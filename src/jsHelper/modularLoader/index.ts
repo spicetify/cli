@@ -71,9 +71,28 @@ async function cssFromSource(text: string): Promise<CSSStyleSheet | string> {
 	return text;
 }
 
+const prefetchedCss = new Map<string, Promise<string>>();
+
+function prefetch(path: string, kind: "js" | "css"): void {
+	if (kind === "js") {
+		const link = document.createElement("link");
+		link.rel = "modulepreload";
+		link.href = path;
+		document.head.appendChild(link);
+		return;
+	}
+	if (prefetchedCss.has(path)) return;
+	const text = fetch(path).then((res) => res.text());
+	// A failed prefetch is retried by loadCss, so it must not surface here.
+	text.catch(() => {});
+	prefetchedCss.set(path, text);
+}
+
 async function loadCss(path: string): Promise<CSSStyleSheet | string> {
-	const res = await fetch(path);
-	return cssFromSource(await res.text());
+	const prefetched = prefetchedCss.get(path);
+	prefetchedCss.delete(path);
+	const text = (await prefetched?.catch(() => undefined)) ?? (await (await fetch(path)).text());
+	return cssFromSource(text);
 }
 
 // parseColorSchemes parses classic spicetify color.ini into named
@@ -486,6 +505,7 @@ async function boot(): Promise<BootReport | null> {
 		importSource,
 		loadCss,
 		cssFromSource,
+		prefetch,
 		adoptCss,
 		applyScheme,
 		activeThemePref: {
@@ -506,6 +526,7 @@ async function boot(): Promise<BootReport | null> {
 	// the 2024 mixin machinery created it. Define it empty so references are
 	// inert instead of fatal.
 	(globalThis as never as Record<string, unknown>).CHUNKS ??= {};
+	registry.prefetchLoads(report);
 	await registry.runMixins(report);
 	await bootClient(transforms);
 

@@ -278,6 +278,23 @@ export class Registry {
 		return { order, bootTheme };
 	}
 
+	// prefetchLoads starts fetching the entries runLoads will import or adopt,
+	// without evaluating anything, so they download while the client boots.
+	// Local installs are already in memory, and mixin modules were imported
+	// by runMixins.
+	prefetchLoads(report: BootReport): void {
+		if (!this.effects.prefetch) return;
+		const disabled = this.disabledSet();
+		const { order, bootTheme } = this.bootLoadOrder(report, disabled);
+		for (const id of order) {
+			const m = this.modules.get(id)!;
+			if (report.failed[id] || this.localFiles.has(id)) continue;
+			if (this.isTheme(id) && id !== bootTheme) continue;
+			if (m.entries.js && !m.hasMixins) this.effects.prefetch(entryUrl(id, m.entries.js), "js");
+			if (m.entries.css) this.effects.prefetch(entryUrl(id, m.entries.css), "css");
+		}
+	}
+
 	// runLoads executes preload/css/load for all eligible modules, after the
 	// client is up. Call runMixins first during early boot.
 	async runLoads(report: BootReport): Promise<void> {
