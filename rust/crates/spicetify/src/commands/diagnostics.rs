@@ -3,11 +3,21 @@
 use crate::context::AppContext;
 use crate::error::Result;
 
-/// Whether the client currently carries an apply, inferred from the same
-/// artifacts apply/restore move around.
-fn applied(ctx: &AppContext) -> bool {
-    ctx.dest_apps_path().join("xpui").is_dir()
-        && !ctx.spotify_apps_path().join("xpui.spa").is_file()
+/// Who patched the client, inferred from the same artifacts apply and
+/// restore move around: v3 keeps `xpui.spa.backup`; v2 (or another tool)
+/// leaves an extracted `xpui/` with no archive at all.
+fn applied(ctx: &AppContext) -> &'static str {
+    let apps = ctx.spotify_apps_path();
+    if ctx.mirror {
+        return if ctx.config_root.join("apps").is_dir() { "v3 (mirror)" } else { "no" };
+    }
+    if apps.join("xpui.spa.backup").is_file() {
+        "v3"
+    } else if apps.join("xpui").is_dir() && !apps.join("xpui.spa").is_file() {
+        "Spicetify v2 or another tool"
+    } else {
+        "no"
+    }
 }
 
 #[allow(clippy::unnecessary_wraps)]
@@ -41,6 +51,20 @@ pub(crate) fn support(ctx: &AppContext) -> Result<()> {
     tracing::info!("spotify: {version}");
     tracing::info!("classmap key: {classmap}");
     tracing::info!("applied: {}", applied(ctx));
+    if let Some(backup) = crate::legacy::find_backup() {
+        tracing::info!(
+            "v2 backup: {} (Spotify {})",
+            backup.dir.display(),
+            backup.spotify_version.as_deref().unwrap_or("unknown")
+        );
+    } else {
+        tracing::info!("v2 backup: none");
+    }
+    tracing::info!(
+        "v2 files in config root: {}",
+        if crate::legacy::has_v2_archive(&ctx.config_root) { "yes" } else { "no" }
+    );
+    tracing::info!("css map: {}", crate::module::cssmap::source(&ctx.config_root));
     tracing::info!("staged modules: {staged}");
     tracing::info!("updates blocked: {blocked}");
     tracing::info!("config root: {}", ctx.config_root.display());
