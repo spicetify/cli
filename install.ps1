@@ -275,20 +275,28 @@ function Install-SpicetifyBinaries {
 }
 
 # v2's archive unpacked these beside spicetify.exe, and this folder is also
-# v3's config root, where v2's css-map.json would shadow v3's own map. The
-# user's v2 themes and extensions live in %APPDATA%\spicetify and stay.
+# v3's config root, where v2's css-map.json would shadow v3's own map. Themes,
+# Extensions and CustomApps stay: v2 read user content from them too, and v3
+# never does. jsHelper goes last because it marks the folder as v2's.
 function Remove-SpicetifyV2Leftovers {
   param([string]$Folder)
   if (-not (Test-Path -LiteralPath (Join-Path $Folder 'jsHelper') -PathType Container)) {
     return
   }
-  foreach ($name in @('jsHelper', 'Extensions', 'Themes', 'CustomApps', 'css-map.json', 'globals.d.ts')) {
+  $names = @('css-map.json', 'globals.d.ts', 'jsHelper')
+  foreach ($name in $names) {
     $path = Join-Path $Folder $name
     if (Test-Path -LiteralPath $path) {
       Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
     }
   }
-  Write-Host -Object "Removed the files Spicetify v2 left in $Folder"
+  $left = @($names | Where-Object { Test-Path -LiteralPath (Join-Path $Folder $_) })
+  if ($left.Count) {
+    Write-Host -Object "Could not remove Spicetify v2's $($left -join ', ') from $Folder" -ForegroundColor 'Yellow'
+  }
+  else {
+    Write-Host -Object "Removed the files Spicetify v2 left in $Folder"
+  }
 }
 
 function Install-Spicetify {
