@@ -978,6 +978,16 @@ declare namespace Spicetify {
 	 * so new extension should use this library instead.
 	 */
 	function Mousetrap(element?: any): void;
+	namespace Mousetrap {
+		type Action = "keypress" | "keydown" | "keyup";
+		function bind(keys: string | string[], callback: (event: KeyboardEvent, combo: string) => any, action?: Action): any;
+		function unbind(keys: string | string[], action?: Action): any;
+		/**
+		 * Fire the callbacks bound to `keys`. Returns the Mousetrap instance.
+		 */
+		function trigger(keys?: string, action?: Action): any;
+		function reset(): any;
+	}
 
 	/**
 	 * Contains vast array of internal APIs.
@@ -1005,6 +1015,21 @@ declare namespace Spicetify {
 	 * @param msTimeout Time in milliseconds to display the bubble. Defaults to Spotify's value.
 	 */
 	function showNotification(message: React.ReactNode, isError?: boolean, msTimeout?: number): void;
+	/**
+	 * Spotify's notistack snackbar instance. Members are `undefined` until the client mounts its snackbar provider.
+	 * @see https://github.com/iamhosseindhv/notistack
+	 */
+	const Snackbar: {
+		enqueueSnackbar?: (
+			message: React.ReactNode,
+			options?: { variant?: "default" | "error" | "success" | "warning" | "info"; autoHideDuration?: number; [option: string]: any }
+		) => any;
+		closeSnackbar?: (key?: string | number) => void;
+		enqueueCustomSnackbar?: any;
+		enqueueImageSnackbar?: any;
+		SnackbarProvider?: any;
+		useSnackbar?: any;
+	};
 	/**
 	 * Set of APIs method to parse and validate URIs.
 	 */
@@ -2193,6 +2218,7 @@ declare namespace Spicetify {
 		const color_scheme: string;
 		const extensions: string[];
 		const custom_apps: string[];
+		const check_spicetify_update: boolean;
 	}
 
 	/**
@@ -2573,9 +2599,10 @@ declare namespace Spicetify {
 		 * Format number into compact locale string
 		 *
 		 * @param number Number to format
+		 * @param options Options to use
 		 * @return Localized string
 		 */
-		function formatNumberCompact(number: number): string;
+		function formatNumberCompact(number: number, options?: Intl.NumberFormatOptions): string;
 		/**
 		 * Get localized string
 		 *
