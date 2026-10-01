@@ -77,7 +77,7 @@ export interface Effects {
 	importSource(content: string): Promise<JsIndex>;
 	loadCss(path: string): Promise<unknown>;
 	cssFromSource(content: string): Promise<unknown>;
-	adoptCss(sheet: unknown): DisposeFn;
+	adoptCss(sheet: unknown, options?: { theme?: boolean }): DisposeFn;
 	createTransformer(): TransformerShim;
 	applyScheme?(identifier: string, source?: string): Promise<DisposeFn | null>;
 	// Persisted "last theme the user enabled": boot prefers it over manifest

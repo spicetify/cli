@@ -295,16 +295,25 @@ async function applyScheme(identifier: string, source?: string): Promise<(() => 
 	};
 }
 
-function adoptCss(sheet: unknown): () => void {
+const themeSheets = new Set<CSSStyleSheet>();
+
+// Theme sheets stay after every other module sheet, so a theme overrides
+// extension styles at equal specificity whatever order modules load in.
+export function adoptCss(sheet: unknown, options: { theme?: boolean } = {}): () => void {
 	if (sheet instanceof CSSStyleSheet) {
-		document.adoptedStyleSheets.push(sheet);
+		const sheets = document.adoptedStyleSheets;
+		const at = options.theme ? -1 : sheets.findIndex((s) => themeSheets.has(s));
+		if (options.theme) themeSheets.add(sheet);
+		document.adoptedStyleSheets = at < 0 ? [...sheets, sheet] : [...sheets.slice(0, at), sheet, ...sheets.slice(at)];
 		return () => {
+			themeSheets.delete(sheet);
 			document.adoptedStyleSheets = document.adoptedStyleSheets.filter((s) => s !== sheet);
 		};
 	}
 	const el = document.createElement("style");
 	el.textContent = String(sheet);
-	document.head.appendChild(el);
+	if (options.theme) el.dataset.spicetifyTheme = "";
+	document.head.insertBefore(el, options.theme ? null : document.head.querySelector("style[data-spicetify-theme]"));
 	return () => el.remove();
 }
 

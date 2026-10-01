@@ -334,7 +334,7 @@ export class Registry {
 
 				if (m.entries.css) {
 					const sheet = await this.cssSheetOf(m);
-					state.disposers.push(this.effects.adoptCss(sheet));
+					state.disposers.push(this.effects.adoptCss(sheet, { theme: this.isTheme(id) }));
 					if (this.effects.applyScheme) {
 						const schemeDisposer = await this.effects.applyScheme(
 							m.identifier,
@@ -438,7 +438,7 @@ export class Registry {
 			if (preloaded) state.disposers.push(preloaded);
 			if (m.entries.css) {
 				const sheet = await this.cssSheetOf(m);
-				state.disposers.push(this.effects.adoptCss(sheet));
+				state.disposers.push(this.effects.adoptCss(sheet, { theme: this.isTheme(identifier) }));
 				if (this.effects.applyScheme) {
 					const schemeDisposer = await this.effects.applyScheme(
 						identifier,
