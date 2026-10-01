@@ -81,12 +81,20 @@ fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
     //   xpui.spa present           -> stock; fresh apply
     //   xpui.spa.backup present    -> ours; re-apply from that backup
     //   neither, but xpui/ present -> patched by another tool, which consumed
-    //                                 the archive entirely. Patching over it
-    //                                 would corrupt the client, so refuse and
-    //                                 name the real cause instead of claiming
-    //                                 it is already applied.
+    //                                 the archive entirely, in practice
+    //                                 Spicetify v2. Patching over it would
+    //                                 corrupt the client, so it is restored
+    //                                 from v2's backup first, or refused with
+    //                                 the reason when that is not possible.
     if !spa.exists() && !ctx.mirror && !backup.exists() && dest_xpui.exists() {
-        return Err(anyhow::anyhow!(fl!("foreign-apply")));
+        super::restore::undo_v2_apply(ctx, || {
+            if activate { crate::lifecycle::stop(ctx) } else { Ok(()) }
+        })?;
+        // The client is stock and runnable again; a later check that fails
+        // must not leave the user without Spotify.
+        if activate {
+            crate::lifecycle::start(ctx)?;
+        }
     }
 
     // Refuse before anything destructive: the first steps stop the client

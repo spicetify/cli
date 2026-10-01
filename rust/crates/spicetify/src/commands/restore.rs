@@ -17,7 +17,10 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
             && ctx.dest_apps_path().join("xpui").is_dir()
             && !ctx.spotify_apps_path().join("xpui.spa").is_file()
         {
-            return Err(anyhow::anyhow!(fl!("foreign-apply")));
+            undo_v2_apply(ctx, || stop_for_restore(ctx))?;
+            crate::lifecycle::start(ctx)?;
+            tracing::info!("{}", fl!("restored-stock"));
+            return Ok(());
         }
         return Err(anyhow::anyhow!(fl!("already-stock")));
     }
@@ -63,6 +66,30 @@ pub(crate) fn run(ctx: &AppContext) -> Result<()> {
 
     tracing::info!("{}", fl!("restored-stock"));
     Ok(())
+}
+
+/// Makes a client Spicetify v2 patched stock again from v2's backup, calling
+/// `stop` only once the restore is going ahead. Fails, naming v2 and what to
+/// do, when there is no backup or it is of another Spotify version.
+pub(crate) fn undo_v2_apply(ctx: &AppContext, stop: impl FnOnce() -> Result<()>) -> Result<()> {
+    use crate::legacy::{V2Plan, find_backup, plan, restore_files};
+    let installed = crate::hooks::version_detect::detect_spotify_version(ctx).ok();
+    match plan(find_backup(), installed.as_ref()) {
+        V2Plan::NoBackup => Err(anyhow::anyhow!(fl!("foreign-apply"))),
+        V2Plan::VersionMismatch { backup, backup_version, installed } => Err(anyhow::anyhow!(fl!(
+            "v2-backup-mismatch",
+            path = backup.to_string_lossy(),
+            backup = backup_version,
+            installed = installed
+        ))),
+        V2Plan::Restore(backup) => {
+            tracing::info!("{}", fl!("v2-restoring", path = backup.dir.to_string_lossy()));
+            stop()?;
+            restore_files(&ctx.spotify_apps_path(), &backup).map_err(|e| {
+                anyhow::anyhow!("could not restore Spotify from {}: {e}", backup.dir.display())
+            })
+        }
+    }
 }
 
 // Mirror mode never renames the original `.spa`, so it leaves no backup to key
