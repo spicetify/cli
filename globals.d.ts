@@ -2661,4 +2661,387 @@ declare namespace Spicetify {
 		 */
 		function toLocaleUpperCase(text: string): string;
 	}
+
+	/**
+	 * One-shot lifecycle events of the Spicetify wrapper
+	 */
+	namespace Events {
+		interface Event {
+			/**
+			 * Call `callback` when the event fires. If it has already fired, `callback` runs immediately.
+			 */
+			on(callback: () => void): void;
+		}
+		/**
+		 * Fires once Spotify's webpack modules have loaded, before Spicetify exposes them.
+		 */
+		const platformLoaded: Event;
+		/**
+		 * Fires once Spicetify has exposed the webpack-extracted APIs (`React`, `ReactComponent`, `URI`, `Locale`, ...).
+		 */
+		const webpackLoaded: Event;
+	}
+
+	/**
+	 * The modular loader's runtime API.
+	 *
+	 * Only exists after the loader has booted: it is set once every staged module has run its `load`, and never set when the
+	 * apply staged no modules.
+	 */
+	namespace Modules {
+		type Kind = "extension" | "theme" | "snippet" | "app" | "lib";
+		interface Metadata {
+			name: string;
+			/**
+			 * What the module is. Exactly one theme may be loaded at a time.
+			 */
+			kind?: Kind;
+			/**
+			 * Classification used before `kind`, still staged by older CLIs.
+			 */
+			tags?: string[];
+			version: string;
+			authors: string[];
+			description: string;
+			/**
+			 * Entry files, relative to the module's folder.
+			 */
+			entries: { js?: string; css?: string };
+			hasMixins: boolean;
+			/**
+			 * Module identifier to semver range.
+			 */
+			dependencies: Record<string, string>;
+			/**
+			 * Older versions this module still satisfies dependency ranges for.
+			 */
+			compat?: string[];
+		}
+		interface ManifestModule extends Metadata {
+			identifier: string;
+		}
+		/**
+		 * The manifest written by `spicetify apply`, with local installs merged in.
+		 */
+		interface Manifest {
+			spotifyVersion: string;
+			classmapKey: string;
+			cliVersion?: string;
+			updatesBlocked?: boolean;
+			managedSpotify?: "stable" | "testing";
+			classmapSpotify?: string;
+			classmapVerified?: boolean;
+			supportedSpotify?: string;
+			classmapFallback?: boolean;
+			classmap?: Record<string, unknown>;
+			modules: ManifestModule[];
+		}
+		interface BootReport {
+			/**
+			 * Identifiers loaded this session, in load order.
+			 */
+			loaded: string[];
+			/**
+			 * Identifier to the reason it failed to load.
+			 */
+			failed: Record<string, string>;
+		}
+		interface ModuleState {
+			identifier: string;
+			version: string;
+			loaded: boolean;
+			mixedIn: boolean;
+			/**
+			 * Whether the module runs from a local (localStorage) install.
+			 */
+			local: boolean;
+			/**
+			 * Reason the module failed to load, if it did.
+			 */
+			failed?: string;
+		}
+		/**
+		 * A module installed into localStorage by `installLocal`.
+		 */
+		interface LocalRecord {
+			metadata: ManifestModule;
+			sidecar: { installed_version: string; classmap_base: string; allow_stale: boolean };
+			/**
+			 * File path within the module to its content, remapped against the bundled classmap.
+			 */
+			files: Record<string, string>;
+			installedAt: number;
+			/**
+			 * Classmap key the files were remapped against. Absent on records from older loaders.
+			 */
+			remapKey?: string;
+		}
+		/**
+		 * The loader's registry of known modules. Only its read-only members are declared here.
+		 */
+		interface Registry {
+			get(identifier: string): ManifestModule | undefined;
+			isLoaded(identifier: string): boolean;
+			/**
+			 * Whether the user disabled the module. A disabled module is skipped at boot.
+			 */
+			isDisabled(identifier: string): boolean;
+			hasLocal(identifier: string): boolean;
+			list(report?: BootReport): ModuleState[];
+		}
+
+		const report: BootReport;
+		const manifest: Manifest;
+		const registry: Registry;
+		/**
+		 * URL a staged module file is served from.
+		 * @return `/modules/<identifier>/<entry>`
+		 */
+		function entryUrl(identifier: string, entry: string): string;
+		/**
+		 * State of every known module.
+		 */
+		function list(): ModuleState[];
+		/**
+		 * Color schemes of a loaded theme module, from its `color.ini` sections.
+		 * @return `null` if the module has no applied scheme
+		 */
+		function schemes(identifier: string): { active: string; names: string[] } | null;
+		/**
+		 * Switch a theme module's color scheme live and remember the choice.
+		 * @return `false` if the module has no applied scheme or no scheme with that name
+		 */
+		function setScheme(identifier: string, name: string): boolean;
+		/**
+		 * Load a module and clear the user's persisted disable once it loads. Its dependencies must be installed at matching
+		 * versions and not disabled; they are not loaded for it. Loading a theme unloads the other theme.
+		 * @return `false` if the module is already loaded, or could not load; the reason for the latter is in `report.failed`
+		 */
+		function enable(identifier: string): Promise<boolean>;
+		/**
+		 * Unload a module and its loaded dependents, and persist the disable so later boots skip it.
+		 * @return `false` if the module was not loaded
+		 */
+		function disable(identifier: string): Promise<boolean>;
+		/**
+		 * Unload a module and its loaded dependents for this session only.
+		 * @return `false` if the module was not loaded
+		 */
+		function unload(identifier: string): Promise<boolean>;
+		/**
+		 * Unload, then load a module again.
+		 * @return The result of loading it, as for `enable`
+		 */
+		function reload(identifier: string): Promise<boolean>;
+		/**
+		 * Install a module into localStorage, remapped against the bundled classmap, and load it unless the user disabled it.
+		 * @throws If the manifest has no bundled classmap
+		 * @return `{ requiresRestart: true }` when a multi-file module is already loaded and the new files take over on the
+		 * next boot, `{ disabled: true }` when the module stays disabled, otherwise the result of loading it.
+		 */
+		function installLocal(
+			identifier: string,
+			record: { metadata: ManifestModule; files: Record<string, string>; sidecar: object }
+		): Promise<boolean | { requiresRestart: true } | { disabled: true }>;
+		/**
+		 * Remove a module installed with `installLocal`. If a staged copy exists, it is restored and loaded again if the
+		 * local copy was loaded.
+		 * @throws If the removal is refused
+		 * @return `{ revertedTo }` with the staged version that remains installed, `{ requiresRestart: true }` when the running
+		 * code only goes away on the next boot, or `undefined` when the module is gone or there was nothing to remove.
+		 */
+		function removeLocal(identifier: string): Promise<{ revertedTo: string } | { requiresRestart: true } | undefined>;
+		/**
+		 * Every module record installed into localStorage.
+		 */
+		function listLocal(): LocalRecord[];
+	}
+
+	/**
+	 * Calls into the local Spicetify daemon (`127.0.0.1:7967`).
+	 *
+	 * All members are always present. Except for `available`, `daemonInfo` and `updateAndApplySupported`, they need the
+	 * token a v3 `spicetify apply` injects into the client and reject without it. They reject when the daemon is not running.
+	 */
+	namespace Daemon {
+		type UpdateJobFailureCode =
+			| "unsupported-platform"
+			| "unsupported-target"
+			| "update-unavailable"
+			| "renderer-timeout"
+			| "client-not-loaded"
+			| "spotify-update-failed"
+			| "apply-failed"
+			| "securing-failed";
+		/**
+		 * State of the daemon's Update & Apply job.
+		 */
+		type UpdateJobStatus =
+			| { kind: "idle" }
+			| { kind: "accepted"; jobId: string; fromVersion: string }
+			| { kind: "waiting-for-update"; jobId: string; fromVersion: string }
+			| { kind: "downloading"; jobId: string; targetVersion: string }
+			| { kind: "installing-spotify"; jobId: string; targetVersion: string }
+			| { kind: "applying-spicetify"; jobId: string; targetVersion: string }
+			| { kind: "securing"; jobId: string; targetVersion: string | null; message: string | null; manualRecovery: boolean }
+			| { kind: "complete"; jobId: string; fromVersion: string; toVersion: string }
+			| { kind: "failed-safe"; jobId: string; code: UpdateJobFailureCode; message: string };
+		/**
+		 * Answer to starting a daemon job. `joined` means a job was already running and `jobId` is that job.
+		 */
+		type JobAdmission = { jobId: string; disposition: "accepted" | "joined" };
+		type ManagedSpotifyStatus = {
+			installation:
+				| { kind: "external" }
+				| { kind: "unavailable"; message: string }
+				| { kind: "managed"; version: string; channel: "stable" | "testing"; nativeBlocked: boolean | null };
+			job:
+				| { kind: "idle" }
+				| { kind: "running"; jobId: string; phase: "checking" | "downloading" | "preparing" | "activating" }
+				| { kind: "complete"; jobId: string }
+				| { kind: "failed"; jobId: string; message: string };
+		};
+		type ManagedSpotifyUpdate =
+			| { kind: "current"; version: string }
+			| { kind: "ready"; version: string }
+			| { kind: "unavailable"; version: string; message: string };
+
+		/**
+		 * Whether the daemon answers its health check.
+		 */
+		function available(): Promise<boolean>;
+		/**
+		 * Send a `spicetify:` command URI over the daemon's RPC socket.
+		 * @param options.expectReply Defaults to `true`. With `false`, resolves `null` as soon as the command is sent, for
+		 * commands that restart the client before they can answer.
+		 * @param options.timeoutMs Defaults to 15000
+		 * @return The daemon's reply text
+		 */
+		function send(uri: string, options?: { expectReply?: boolean; timeoutMs?: number }): Promise<string | null>;
+		/**
+		 * Run `spicetify apply`. This restarts the client, so the promise resolves once the daemon has the command.
+		 */
+		function apply(): Promise<null>;
+		/**
+		 * Block Spotify's own updates. This restarts the client, so the promise resolves once the daemon has the command.
+		 */
+		function blockUpdates(): Promise<null>;
+		/**
+		 * Unblock Spotify's own updates. This restarts the client, so the promise resolves once the daemon has the command.
+		 */
+		function unblockUpdates(): Promise<null>;
+		/**
+		 * The daemon's version and automatic-update setting. A field is `null` when the daemon predates it.
+		 * @return `null` if the daemon is not reachable
+		 */
+		function daemonInfo(): Promise<{
+			version: string | null;
+			/**
+			 * The automatic-update setting.
+			 */
+			autoUpdate: boolean | null;
+			/**
+			 * Whether the setting takes effect: only an install in the official installer's folder updates itself.
+			 */
+			autoUpdateActive: boolean | null;
+		} | null>;
+		/**
+		 * Turn the daemon's automatic updates on or off. Resolves once `config.toml` records the choice.
+		 */
+		function setAutoUpdate(on: boolean): Promise<string>;
+		/**
+		 * Uninstall a module the CLI staged on disk, then run `spicetify apply`, which restarts the client.
+		 */
+		function uninstallStaged(identifier: string, version: string): Promise<null>;
+		/**
+		 * Take ownership of the native window controls hit-test filter for as long as the socket stays open.
+		 * Needs a daemon that supports it; the filter only exists on Windows.
+		 * @param onDisconnect Called if the connection drops after it was acquired
+		 * @param options.timeoutMs Defaults to 15000
+		 * @return Resolves once the daemon is ready. `release()` resolves after the daemon removes the filter.
+		 */
+		function acquireWindowControls(
+			onDisconnect: (error: Error) => void,
+			options?: { timeoutMs?: number }
+		): Promise<{ release(): Promise<void> }>;
+		/**
+		 * Whether one-step Update & Apply can run: the daemon supports it on this platform (macOS) and Spotify's updater API
+		 * is present in this client.
+		 * @return `null` if the daemon is not reachable or predates the check
+		 */
+		function updateAndApplySupported(): Promise<boolean | null>;
+		/**
+		 * Update Spotify through its own updater, then re-apply Spicetify.
+		 * @throws If Spotify's updater API is missing, or the daemon refuses the job
+		 */
+		const updateAndApply: {
+			(): Promise<JobAdmission>;
+			/**
+			 * Follow the job's status, polled every second. `listener` is called immediately with the last known status.
+			 * @return Function to stop listening
+			 */
+			observe(listener: (status: UpdateJobStatus) => void): () => void;
+		};
+		/**
+		 * Spotify installs the CLI manages itself. Only implemented on Linux; elsewhere `check` and `update` reject and
+		 * `status` reports an external installation.
+		 */
+		namespace managedSpotify {
+			/**
+			 * @return `null` if the daemon predates managed installs
+			 */
+			function status(): Promise<ManagedSpotifyStatus | null>;
+			/**
+			 * Check the managed install's channel for a newer Spotify package.
+			 */
+			function check(): Promise<ManagedSpotifyUpdate>;
+			/**
+			 * Start updating the managed Spotify install. Follow progress with `status()`.
+			 */
+			function update(): Promise<JobAdmission>;
+		}
+	}
+
+	/**
+	 * Proxy for requests the client cannot make directly because of CORS.
+	 *
+	 * By default requests go through the local daemon and fall back to the hosted proxy when the daemon does not answer. A
+	 * custom template replaces both.
+	 */
+	namespace CORSProxy {
+		type Configuration = {
+			mode: "automatic" | "custom";
+			/**
+			 * The custom template, or `null` in automatic mode.
+			 */
+			template: string | null;
+			/**
+			 * Templates tried in order in automatic mode.
+			 */
+			automaticTemplates: string[];
+		};
+		/**
+		 * URL of `target` through the first proxy template.
+		 */
+		function url(target: string): string;
+		/**
+		 * Fetch `target` through the proxy. A template is only skipped when its request fails without a response; an HTTP
+		 * error response is returned as is.
+		 */
+		function fetch(target: string, options?: RequestInit): Promise<Response>;
+		/**
+		 * Templates in the order they are tried. Each contains `{url}`, replaced by the target URL.
+		 */
+		function templates(): string[];
+		function configuration(): Configuration;
+		/**
+		 * Switch to automatic mode, or to a custom template that is saved to localStorage.
+		 * @throws {TypeError} If a custom template is not a valid absolute http(s) URL template containing `{url}`
+		 */
+		function configure(options: { mode: "automatic" } | { mode: "custom"; template: string }): Configuration;
+		/**
+		 * Whether `template` is a string containing `{url}` that forms an http(s) URL.
+		 */
+		function isValidTemplate(template: unknown): boolean;
+	}
 }
