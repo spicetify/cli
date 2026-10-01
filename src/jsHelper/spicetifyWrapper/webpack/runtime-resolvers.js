@@ -148,7 +148,7 @@ export function exposeRuntimeResolvers({ cache, chunks, modules, functionModules
     }
 
     Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration } = {}) => {
-      isError = variant === "error";
+      const isError = variant === "error";
       Spicetify.showNotification(message, isError, autoHideDuration);
     };
   })();
