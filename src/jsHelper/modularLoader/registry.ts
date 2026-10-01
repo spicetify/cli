@@ -267,9 +267,11 @@ export class Registry {
 					? preferred
 					: themes[themes.length - 1];
 		const first = new Set<string>();
+		const visiting = new Set<string>();
 		const pull = (id: string) => {
 			const m = this.modules.get(id);
-			if (!m || first.has(id)) return;
+			if (!m || first.has(id) || visiting.has(id)) return;
+			visiting.add(id);
 			for (const dep of Object.keys(m.dependencies)) pull(dep);
 			first.add(id);
 		};
