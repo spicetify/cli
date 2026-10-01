@@ -762,66 +762,219 @@ declare namespace Spicetify {
 		function set(key: string, value: string): void;
 	}
 	/**
+	 * React-based menu items injected into Spotify's own menus.
+	 * `Spicetify.ContextMenu` and `Spicetify.Menu` are built on these classes.
+	 */
+	namespace ContextMenuV2 {
+		/**
+		 * Value Spicetify provides around each Spotify menu while it renders.
+		 * Outside a menu the fields are absent.
+		 */
+		type Context = {
+			/**
+			 * Props Spotify passed to the menu. They carry the target's `uri`/`uris`, `uid`/`uids` and `contextUri`, or the
+			 * `item`/`reference`/`context` objects those are read from.
+			 */
+			props?: any;
+			/**
+			 * What opened the menu, e.g. `"right-click"` or `"click"`.
+			 */
+			trigger?: string;
+			/**
+			 * Element the menu was opened from.
+			 */
+			target?: HTMLElement;
+		};
+		/**
+		 * Decides whether an item is added to the menu being rendered. Called with the fields of `Context`.
+		 */
+		type ShouldAddCallback = (props: any, trigger?: string, target?: HTMLElement) => boolean;
+		/**
+		 * Entries of a sub menu.
+		 * The sub menu renders them with `Array.prototype.filter`, while `addItem` and `removeItem` call `Set.prototype.add` and
+		 * `Set.prototype.delete`, so only an array renders and only a Set can be changed after construction.
+		 */
+		type SubMenuItems = Array<Item | ItemSubMenu> | Set<Item | ItemSubMenu>;
+
+		/**
+		 * React context Spicetify provides around Spotify's menus. Created by Spotify's patched menu code, or once the webpack
+		 * modules load, whichever comes first.
+		 */
+		let _context: React.Context<Context | null> | undefined;
+
+		/**
+		 * Extract `[uris, uids, contextUri]` from Spotify menu props.
+		 * @return `undefined` if the props carry no URI.
+		 */
+		function parseProps(props: any): [uris: string[], uids: string[] | undefined, contextUri: string | undefined] | undefined;
+		/**
+		 * Add a React element to every Spotify menu for which `shouldAdd` returns true.
+		 */
+		function registerItem(item: React.ReactElement, shouldAdd?: ShouldAddCallback): void;
+		/**
+		 * Remove an element added with `registerItem`.
+		 */
+		function unregisterItem(item: React.ReactElement): void;
+		/**
+		 * Elements Spicetify injects into the menu being rendered. Called from Spotify's patched menu code.
+		 */
+		function renderItems(): React.ReactElement[];
+
+		/**
+		 * A single menu item. Changing a property re-renders the item if it is on screen.
+		 */
+		class Item {
+			constructor(options: {
+				children: React.ReactNode;
+				/**
+				 * @default false
+				 */
+				disabled?: boolean;
+				leadingIcon?: Icon | string;
+				trailingIcon?: Icon | string;
+				divider?: "before" | "after" | "both";
+				onClick: (context: Context, self: Item, event: React.MouseEvent<HTMLButtonElement>) => void;
+				/**
+				 * @default () => true
+				 */
+				shouldAdd?: ShouldAddCallback;
+			});
+			/**
+			 * Read when `register` is called, so changing it afterwards has no effect until the item is registered again.
+			 */
+			shouldAdd: ShouldAddCallback;
+			children: React.ReactNode;
+			disabled: boolean;
+			/**
+			 * Name of an `SVGIcons` entry, or raw SVG markup.
+			 */
+			leadingIcon: Icon | string | undefined;
+			/**
+			 * Name of an `SVGIcons` entry, or raw SVG markup.
+			 */
+			trailingIcon: Icon | string | undefined;
+			divider: "before" | "after" | "both" | undefined;
+			/**
+			 * Start adding the item to menus.
+			 */
+			register(): void;
+			/**
+			 * Stop adding the item to menus.
+			 */
+			deregister(): void;
+		}
+
+		/**
+		 * A menu item that opens a nested menu.
+		 */
+		class ItemSubMenu {
+			/**
+			 * Elements for the entries of `items` whose `shouldAdd` returns true. Sets each nested `ItemSubMenu`'s `depth` to
+			 * `parentDepth + 1`.
+			 */
+			static itemsToComponents(
+				items: Array<Item | ItemSubMenu>,
+				props: any,
+				trigger?: string,
+				target?: HTMLElement,
+				parentDepth?: number
+			): React.ReactElement[];
+			constructor(options: {
+				text: React.ReactNode;
+				/**
+				 * @default false
+				 */
+				disabled?: boolean;
+				leadingIcon?: Icon | string;
+				divider?: "before" | "after" | "both";
+				items: SubMenuItems;
+				/**
+				 * @default 1
+				 */
+				depth?: number;
+				/**
+				 * @default () => true
+				 */
+				shouldAdd?: ShouldAddCallback;
+			});
+			/**
+			 * Read when `register` is called, so changing it afterwards has no effect until the sub menu is registered again.
+			 */
+			shouldAdd: ShouldAddCallback;
+			text: React.ReactNode;
+			disabled: boolean;
+			/**
+			 * Name of an `SVGIcons` entry, or raw SVG markup.
+			 */
+			leadingIcon: Icon | string | undefined;
+			divider: "before" | "after" | "both" | undefined;
+			/**
+			 * Nesting level, used by Spotify to place the nested menu.
+			 */
+			depth: number;
+			/**
+			 * Add an entry. Requires `items` to have been a Set.
+			 */
+			addItem(item: Item | ItemSubMenu): void;
+			/**
+			 * Remove an entry. Requires `items` to have been a Set.
+			 */
+			removeItem(item: Item | ItemSubMenu): void;
+			/**
+			 * Start adding the sub menu to menus.
+			 */
+			register(): void;
+			/**
+			 * Stop adding the sub menu to menus.
+			 */
+			deregister(): void;
+		}
+	}
+
+	/**
 	 * To create and prepend custom menu item in profile menu.
 	 */
 	namespace Menu {
 		/**
 		 * Create a single toggle.
 		 */
-		class Item {
-			constructor(name: string, isEnabled: boolean, onClick: (self: Item) => void, icon?: Icon | string);
-			name: string;
+		class Item extends ContextMenuV2.Item {
+			/**
+			 * @param children Item label
+			 * @param isEnabled Whether the item shows a tick
+			 * @param onClick Called with the item when it is clicked
+			 * @param leadingIcon Name of an `SVGIcons` entry, or raw SVG markup
+			 */
+			constructor(children: React.ReactNode, isEnabled: boolean, onClick: (self: Item) => void, leadingIcon?: Icon | string);
+			/**
+			 * Visually, item has a tick next to it if its state is enabled. Setting it sets `trailingIcon`.
+			 */
 			isEnabled: boolean;
 			/**
-			 * Change item name
-			 */
-			setName(name: string): void;
-			/**
-			 * Change item enabled state.
-			 * Visually, item would has a tick next to it if its state is enabled.
+			 * Change item enabled state. Same as setting `isEnabled`.
 			 */
 			setState(isEnabled: boolean): void;
-			/**
-			 * Change icon
-			 */
-			setIcon(icon: Icon | string): void;
-			/**
-			 * Item is only available in Profile menu when method "register" is called.
-			 */
-			register(): void;
-			/**
-			 * Stop item to be prepended into Profile menu.
-			 */
-			deregister(): void;
 		}
 
 		/**
 		 * Create a sub menu to contain Item toggles.
-		 * `Item`s in `subItems` array shouldn't be registered.
+		 * `Item`s in `items` shouldn't be registered.
 		 */
-		class SubMenu {
-			constructor(name: string, subItems: Item[]);
+		class SubMenu extends ContextMenuV2.ItemSubMenu {
+			/**
+			 * @param name Sub menu label
+			 * @param items Entries of the sub menu, see `ContextMenuV2.SubMenuItems`
+			 * @param icon Name of an `SVGIcons` entry, or raw SVG markup
+			 */
+			constructor(name: string, items: ContextMenuV2.SubMenuItems, icon?: Icon | string);
+			/**
+			 * Sub menu label. Alias of `text`.
+			 */
 			name: string;
 			/**
-			 * Change SubMenu name
+			 * Name of an `SVGIcons` entry, or raw SVG markup. Alias of `leadingIcon`.
 			 */
-			setName(name: string): void;
-			/**
-			 * Add an item to sub items list
-			 */
-			addItem(item: Item): void;
-			/**
-			 * Remove an item from sub items list
-			 */
-			removeItem(item: Item): void;
-			/**
-			 * SubMenu is only available in Profile menu when method "register" is called.
-			 */
-			register(): void;
-			/**
-			 * Stop SubMenu to be prepended into Profile menu.
-			 */
-			deregister(): void;
+			icon: Icon | string | undefined;
 		}
 	}
 
@@ -1287,55 +1440,64 @@ declare namespace Spicetify {
 		type ShouldAddCallback = (uris: string[], uids?: string[], contextUri?: string) => boolean;
 
 		// Single context menu item
-		class Item {
+		class Item extends ContextMenuV2.Item {
 			/**
 			 * List of valid icons to use.
 			 */
 			static readonly iconList: Icon[];
-			constructor(name: string, onClick: OnClickCallback, shouldAdd?: ShouldAddCallback, icon?: Icon, disabled?: boolean);
+			/**
+			 * @param name Item label
+			 * @param onClick Called with the target's URIs when the item is clicked
+			 * @param shouldAdd Decides from the target's URIs whether the item is added. Defaults to always.
+			 * @param icon Leading icon: name of an `SVGIcons` entry, or raw SVG markup
+			 * @param trailingIcon Trailing icon: name of an `SVGIcons` entry, or raw SVG markup
+			 * @param disabled Defaults to `false`
+			 */
+			constructor(
+				name: string,
+				onClick: OnClickCallback,
+				shouldAdd?: ShouldAddCallback,
+				icon?: Icon | string,
+				trailingIcon?: Icon | string,
+				disabled?: boolean
+			);
+			/**
+			 * Item label. Alias of `children`.
+			 */
 			name: string;
-			icon: Icon | string;
-			disabled: boolean;
 			/**
-			 * A function returning boolean determines whether item should be prepended.
+			 * Name of an `SVGIcons` entry, or raw SVG markup. Alias of `leadingIcon`.
 			 */
-			shouldAdd: ShouldAddCallback;
-			/**
-			 * A function to call when item is clicked
-			 */
-			onClick: OnClickCallback;
-			/**
-			 * Item is only available in Context Menu when method "register" is called.
-			 */
-			register: () => void;
-			/**
-			 * Stop Item to be prepended into Context Menu.
-			 */
-			deregister: () => void;
+			icon: Icon | string | undefined;
 		}
 
 		/**
 		 * Create a sub menu to contain `Item`s.
-		 * `Item`s in `subItems` array shouldn't be registered.
+		 * `Item`s in `items` shouldn't be registered.
 		 */
-		class SubMenu {
-			constructor(name: string, subItems: Iterable<Item>, shouldAdd?: ShouldAddCallback, disabled?: boolean);
+		class SubMenu extends ContextMenuV2.ItemSubMenu {
+			/**
+			 * List of valid icons to use.
+			 */
+			static readonly iconList: Icon[];
+			/**
+			 * @param name Sub menu label
+			 * @param items Entries of the sub menu, see `ContextMenuV2.SubMenuItems`
+			 * @param shouldAdd Decides from the target's URIs whether the sub menu is added. Defaults to always.
+			 * @param disabled Defaults to `false`
+			 * @param icon Leading icon: name of an `SVGIcons` entry, or raw SVG markup
+			 */
+			constructor(
+				name: string,
+				items: ContextMenuV2.SubMenuItems,
+				shouldAdd?: ShouldAddCallback,
+				disabled?: boolean,
+				icon?: Icon | string
+			);
+			/**
+			 * Sub menu label. Alias of `text`.
+			 */
 			name: string;
-			disabled: boolean;
-			/**
-			 * A function returning boolean determines whether item should be prepended.
-			 */
-			shouldAdd: ShouldAddCallback;
-			addItem: (item: Item) => void;
-			removeItem: (item: Item) => void;
-			/**
-			 * SubMenu is only available in Context Menu when method "register" is called.
-			 */
-			register: () => void;
-			/**
-			 * Stop SubMenu to be prepended into Context Menu.
-			 */
-			deregister: () => void;
 		}
 	}
 
