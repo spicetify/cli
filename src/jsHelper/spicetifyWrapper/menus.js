@@ -136,7 +136,8 @@ Spicetify.ContextMenuV2 = (() => {
       this._disabled = disabled;
       this._leadingIcon = leadingIcon;
       this._divider = divider;
-      this._items = items;
+      // Callers pass an array or a Set; rendering filters and maps it.
+      this._items = Array.from(items ?? []);
       this._depth = depth;
       this._element = Spicetify.ReactJSX.jsx(() => {
         const [_text, setText] = Spicetify.React.useState(this._text);
@@ -223,12 +224,14 @@ Spicetify.ContextMenuV2 = (() => {
       return this._depth;
     }
 
+    // A new array each time, so React sees the change and re-renders.
     addItem(item) {
-      this._items.add(item);
+      if (this._items.includes(item)) return;
+      this._items = [...this._items, item];
       this._setItems?.(this._items);
     }
     removeItem(item) {
-      this._items.delete(item);
+      this._items = this._items.filter((existing) => existing !== item);
       this._setItems?.(this._items);
     }
 

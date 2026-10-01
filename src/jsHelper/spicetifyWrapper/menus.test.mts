@@ -119,3 +119,39 @@ describe("context menu capture readiness", () => {
     tree.unmount();
   });
 });
+
+describe("submenus", () => {
+  function submenuApi() {
+    const spicetify = loadMenus();
+    spicetify.React = React;
+    spicetify.ReactJSX = { jsx: (component: unknown) => component };
+    return spicetify.ContextMenuV2;
+  }
+  const child = (name: string) => ({ _element: name, shouldAdd: () => true });
+
+  it("renders items passed as a Set or an array", () => {
+    const api = submenuApi();
+    for (const items of [new Set([child("a"), child("b")]), [child("a"), child("b")]]) {
+      const menu = new api.ItemSubMenu({ text: "More", items });
+      assert.deepEqual([...api.ItemSubMenu.itemsToComponents(menu._items)], ["a", "b"]);
+    }
+  });
+
+  it("hands React a new list when items are added or removed", () => {
+    const api = submenuApi();
+    const first = child("a");
+    const menu = new api.ItemSubMenu({ text: "More", items: new Set([first]) });
+    const updates: unknown[][] = [];
+    menu._setItems = (items: unknown[]) => updates.push(items);
+
+    const second = child("b");
+    menu.addItem(second);
+    menu.addItem(second);
+    menu.removeItem(first);
+
+    assert.equal(updates.length, 2, "adding an item twice changes nothing");
+    assert.notEqual(updates[0], updates[1], "each change is a new array");
+    assert.deepEqual([...api.ItemSubMenu.itemsToComponents(updates[0])], ["a", "b"]);
+    assert.deepEqual([...api.ItemSubMenu.itemsToComponents(updates[1])], ["b"]);
+  });
+});
