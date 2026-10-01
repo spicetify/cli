@@ -580,6 +580,7 @@ declare namespace Spicetify {
 	/**
 	 * Fetch interesting colors from URI.
 	 * @param uri Any type of URI that has artwork (playlist, track, album, artist, show, ...)
+	 * @return The color presets, or `null` when Spotify returns none for the URI.
 	 */
 	function colorExtractor(uri: string): Promise<{
 		DARK_VIBRANT: string;
@@ -588,7 +589,7 @@ declare namespace Spicetify {
 		PROMINENT: string;
 		VIBRANT: string;
 		VIBRANT_NON_ALARMING: string;
-	}>;
+	} | null>;
 	/**
 	 * @deprecated
 	 */
