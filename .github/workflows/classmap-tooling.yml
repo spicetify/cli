@@ -8,6 +8,7 @@ on:
       - "*/main/*/**"
     paths:
       - "scripts/classmap-*"
+      - "scripts/platform-contract*"
       - "css-map.json"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -19,6 +20,7 @@ on:
       - "*/main/*/**"
     paths:
       - "scripts/classmap-*"
+      - "scripts/platform-contract*"
       - "css-map.json"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -42,10 +44,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        run: pnpm exec oxlint scripts/classmap-capture.ts scripts/classmap-capture.test.mts scripts/classmap-cdp-verify.mjs scripts/classmap-cdp-verify.test.mjs
+        run: pnpm exec oxlint scripts/classmap-capture.ts scripts/classmap-capture.test.mts scripts/classmap-cdp-verify.mjs scripts/classmap-cdp-verify.test.mjs scripts/platform-contract.ts scripts/platform-contract.test.mts
 
       - name: Check formatting
-        run: pnpm exec oxfmt --check scripts/classmap-capture.ts scripts/classmap-capture.test.mts scripts/classmap-cdp-verify.mjs scripts/classmap-cdp-verify.test.mjs
+        run: pnpm exec oxfmt --check scripts/classmap-capture.ts scripts/classmap-capture.test.mts scripts/classmap-cdp-verify.mjs scripts/classmap-cdp-verify.test.mjs scripts/platform-contract.ts scripts/platform-contract.test.mts scripts/platform-contract.json
 
       - name: Test
-        run: node --test "scripts/classmap-*.test.mts" "scripts/classmap-*.test.mjs"
+        run: node --test "scripts/classmap-*.test.mts" "scripts/classmap-*.test.mjs" scripts/platform-contract.test.mts
