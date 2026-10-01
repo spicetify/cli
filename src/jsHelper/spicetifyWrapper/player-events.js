@@ -63,7 +63,8 @@ import { waitFor } from "./shared/async.js";
     if (typeof isGlobalNavbar !== "undefined" && isGlobalNavbar === "control") {
       await CosmosAsync.post("sp://messages/v1/container/control", {
         type: "update_titlebar",
-        height: Spicetify.Platform.PlatformData.os_name === "osx" ? "42" : "40",
+        // Clients without PlatformData.os_name report the OS as operatingSystem.
+        height: Spicetify.Platform.operatingSystem === "macOS" || Spicetify.Platform.PlatformData?.os_name === "osx" ? "42" : "40",
       });
     }
   })();
