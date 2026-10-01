@@ -17,6 +17,8 @@ on:
       - ".github/workflows/rust-release.yml"
       - "scripts/build-payload.mjs"
       - "package.json"
+      - "globals.d.ts"
+      - "tsconfig.wrapper.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/rust.yml"
   push:
@@ -35,6 +37,8 @@ on:
       - ".github/workflows/rust-release.yml"
       - "scripts/build-payload.mjs"
       - "package.json"
+      - "globals.d.ts"
+      - "tsconfig.wrapper.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/rust.yml"
 
@@ -101,6 +105,11 @@ jobs:
       - name: Test client payload
         working-directory: .
         run: node --test "src/jsHelper/**/*.test.mts"
+
+      - name: Type-check wrapper against globals.d.ts
+        if: runner.os == 'Linux'
+        working-directory: .
+        run: pnpm typecheck
 
       - name: Build
         run: cargo build --workspace --locked
