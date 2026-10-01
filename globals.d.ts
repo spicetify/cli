@@ -2182,7 +2182,10 @@ declare namespace Spicetify {
 	const SVGIcons: Record<Icon, string>;
 
 	/**
-	 * A filtered copy of user's `config-xpui` file.
+	 * A filtered copy of user's `config-xpui` file, set by Spicetify v2.
+	 *
+	 * @deprecated Spicetify v3 does not set `Config`; it is `undefined`. Read the CLI version from
+	 * `Spicetify.Modules.manifest.cliVersion` and installed modules from `Spicetify.Modules.list()`.
 	 */
 	namespace Config {
 		const version: string;
