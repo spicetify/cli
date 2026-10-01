@@ -402,7 +402,7 @@ async function waitForClient(timeoutMs: number): Promise<boolean> {
 	// Base gate: the main view is mounted and the Platform API is up.
 	while (Date.now() < deadline) {
 		if (document.querySelector("main") && spice()?.Platform) break;
-		await new Promise((r) => setTimeout(r, 200));
+		await new Promise((r) => setTimeout(r, 25));
 	}
 	if (!(document.querySelector("main") && spice()?.Platform)) return false;
 	// Platform lands before the webpack-extracted surface (URI, Mousetrap,
