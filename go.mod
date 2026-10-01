@@ -1,13 +1,13 @@
 module github.com/spicetify/cli
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/go-ini/ini v1.67.0
 	github.com/mattn/go-colorable v0.1.15
 	github.com/pterm/pterm v0.12.82
 	golang.org/x/net v0.58.0
-	golang.org/x/sys v0.47.0
+	golang.org/x/sys v0.48.0
 )
 
 require (
