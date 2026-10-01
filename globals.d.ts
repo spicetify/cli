@@ -2031,14 +2031,36 @@ declare namespace Spicetify {
 	 * Add button in top bar next to navigation buttons
 	 */
 	namespace Topbar {
+		/**
+		 * The button is added as soon as it is created. There is no way to remove it other than removing `element`.
+		 */
 		class Button {
+			/**
+			 * @param label Tooltip and `aria-label`
+			 * @param icon Name of an `SVGIcons` entry, or raw SVG markup
+			 * @param onClick Called with the button when it is clicked
+			 * @param disabled Defaults to `false`
+			 * @param isRight Add the button to the right-side action buttons instead of next to the navigation buttons. Defaults to `false`.
+			 */
 			constructor(label: string, icon: Icon | string, onClick: (self: Button) => void, disabled?: boolean, isRight?: boolean);
 			label: string;
+			/**
+			 * Set with an `SVGIcons` name or SVG markup; reads back the SVG markup rendered into `button`.
+			 */
 			icon: string;
 			onClick: (self: Button) => void;
 			disabled: boolean;
-			isRight: boolean;
-			element: HTMLButtonElement;
+			/**
+			 * Wrapper element added to the top bar, containing `button`.
+			 */
+			element: HTMLDivElement;
+			/**
+			 * The button itself.
+			 */
+			button: HTMLButtonElement;
+			/**
+			 * Tooltip instance, or `undefined` if `Spicetify.Tippy` was not available when the button was created.
+			 */
 			tippy: any;
 		}
 	}
@@ -2065,6 +2087,10 @@ declare namespace Spicetify {
 			disabled: boolean;
 			active: boolean;
 			element: HTMLButtonElement;
+			/**
+			 * Element inside `element` that holds the icon markup.
+			 */
+			iconElement: HTMLSpanElement;
 			tippy: any;
 			register: () => void;
 			deregister: () => void;
