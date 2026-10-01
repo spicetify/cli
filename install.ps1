@@ -76,8 +76,9 @@ namespace Spicetify {
   }
   [System.UInt16]$processMachine = 0
   [System.UInt16]$nativeMachine = 0
+  # -1 is the current-process pseudo-handle: always valid, never closed.
   if (-not [Spicetify.NativeArchitecture]::IsWow64Process2(
-      [System.Diagnostics.Process]::GetCurrentProcess().Handle,
+      [IntPtr]::new(-1),
       [ref]$processMachine, [ref]$nativeMachine)) {
     throw 'Cannot determine the native Windows architecture.'
   }
