@@ -21,28 +21,34 @@ const updateAndApplySupported = async () => {
   return updateApiSupported(Spicetify.Platform);
 };
 
-Object.assign(Spicetify.CORSProxy, {
-  url: proxiedURL,
-  fetch: proxiedFetch,
-  templates,
-  configuration,
-  configure,
-  isValidTemplate,
-});
-Object.assign(Spicetify.Daemon, {
-  acquireWindowControls,
-  available,
-  send,
-  apply,
-  blockUpdates,
-  unblockUpdates,
-  daemonInfo,
-  setAutoUpdate,
-  uninstallStaged,
-  updateAndApplySupported,
-  updateAndApply,
-  managedSpotify,
-});
+Object.assign(
+  Spicetify.CORSProxy,
+  /** @satisfies {typeof Spicetify.CORSProxy} */ ({
+    url: proxiedURL,
+    fetch: proxiedFetch,
+    templates,
+    configuration,
+    configure,
+    isValidTemplate,
+  }),
+);
+Object.assign(
+  Spicetify.Daemon,
+  /** @satisfies {typeof Spicetify.Daemon} */ ({
+    acquireWindowControls,
+    available,
+    send,
+    apply,
+    blockUpdates,
+    unblockUpdates,
+    daemonInfo,
+    setAutoUpdate,
+    uninstallStaged,
+    updateAndApplySupported,
+    updateAndApply,
+    managedSpotify,
+  }),
+);
 
 installUpdateJobBridge(() => Spicetify.Platform);
 
@@ -111,7 +117,7 @@ function applyScrollingFix() {
     return style.overflow === "auto" || style.overflow === "scroll" || style.overflowY === "auto" || style.overflowY === "scroll";
   });
 
-  for (const el of scrollableElements) {
+  for (const el of /** @type {HTMLElement[]} */ (scrollableElements)) {
     el.style.willChange = "transform";
     el.style.transform = "translate3d(0, 0, 0)";
     el.setAttribute("data-scroll-optimized", "true");
@@ -174,6 +180,7 @@ void (async function addProxyCosmos() {
       const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
       if (version[1] >= 2 && version[2] < 31) return internalFetch;
 
+      /** @this {any} */
       return async function (url, body) {
         const urlObj = new URL(url);
 

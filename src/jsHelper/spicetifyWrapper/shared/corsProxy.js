@@ -12,6 +12,7 @@ export const applyTemplate = (template, target) => template.replace("{url}", tar
 // A template that cannot produce a URL would fail every proxied request, so a
 // typo degrades to the normal chain instead of taking the client's fetches
 // down with it.
+/** @returns {template is string} */
 export const isValidTemplate = (template) => {
   if (typeof template !== "string" || !template.includes("{url}")) return false;
   try {
@@ -23,6 +24,7 @@ export const isValidTemplate = (template) => {
 };
 
 export const getOverride = () => {
+  /** @type {string | null} */
   let stored = null;
   try {
     stored = window.localStorage.getItem(OVERRIDE_KEY) || null;
@@ -35,6 +37,7 @@ export const getOverride = () => {
   return null;
 };
 
+/** @returns {Spicetify.CORSProxy.Configuration} */
 export const configuration = () => {
   const template = getOverride();
   return {
@@ -44,6 +47,7 @@ export const configuration = () => {
   };
 };
 
+/** @param {{ mode?: string; template?: string }} [options] */
 export const configure = ({ mode, template } = {}) => {
   if (mode === "automatic") {
     window.localStorage.removeItem(OVERRIDE_KEY);

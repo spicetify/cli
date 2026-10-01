@@ -9,6 +9,13 @@ Spicetify.Topbar = (() => {
   const rightButtonsStash = new Set();
 
   class Button {
+    /**
+     * @param {string} label
+     * @param {string} icon
+     * @param {(self: Button) => void} onClick
+     * @param {boolean} [disabled]
+     * @param {boolean} [isRight]
+     */
     constructor(label, icon, onClick, disabled = false, isRight = false) {
       this.element = document.createElement("div");
       this.button = document.createElement("button");

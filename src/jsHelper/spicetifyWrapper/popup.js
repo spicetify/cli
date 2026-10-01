@@ -20,14 +20,15 @@ class _HTMLGenericModal extends HTMLElement {
 	</div>
 </div>`;
 
-    this.querySelector("button").onclick = this.hide.bind(this);
-    const main = this.querySelector("main");
+    // The markup assigned above contains every element queried below.
+    /** @type {HTMLButtonElement} */ (this.querySelector("button")).onclick = this.hide.bind(this);
+    const main = /** @type {HTMLElement} */ (this.querySelector("main"));
 
     const hidePopup = this.hide.bind(this);
 
     // Listen for click events on Overlay
-    this.querySelector(".GenericModal__overlay").addEventListener("click", (event) => {
-      if (!this.querySelector(".GenericModal").contains(event.target)) hidePopup();
+    /** @type {HTMLElement} */ (this.querySelector(".GenericModal__overlay")).addEventListener("click", (event) => {
+      if (!(/** @type {HTMLElement} */ (this.querySelector(".GenericModal")).contains(/** @type {Node} */ (event.target)))) hidePopup();
     });
 
     if (Spicetify.React.isValidElement(content)) {

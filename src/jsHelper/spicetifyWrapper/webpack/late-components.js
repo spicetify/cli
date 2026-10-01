@@ -29,16 +29,15 @@ export function waitForLateComponents({ require, refreshNavLinks }) {
       );
     }
 
-    if (!Spicetify.ReactComponent.Slider)
-      Spicetify.ReactComponent.Slider = wrapProvider(newFunctionModules.find((m) => fnStr(m).includes("progressBarRef")));
+    const reactComponent = /** @type {Writable<typeof Spicetify.ReactComponent>} */ (Spicetify.ReactComponent);
+    if (!Spicetify.ReactComponent.Slider) reactComponent.Slider = wrapProvider(newFunctionModules.find((m) => fnStr(m).includes("progressBarRef")));
     if (!Spicetify.ReactComponent.Toggle)
-      Spicetify.ReactComponent.Toggle = newFunctionModules.find((m) => fnStr(m).includes("onSelected") && fnStr(m).includes('type:"checkbox"'));
-    if (!Spicetify.ReactComponent.Dropdown)
-      Spicetify.ReactComponent.Dropdown = findDropdownComponent({ modules: newModules, chunks: newChunks, require });
+      reactComponent.Toggle = newFunctionModules.find((m) => fnStr(m).includes("onSelected") && fnStr(m).includes('type:"checkbox"'));
+    if (!Spicetify.ReactComponent.Dropdown) reactComponent.Dropdown = findDropdownComponent({ modules: newModules, chunks: newChunks, require });
     if (!Spicetify.ReactComponent.Toggle) {
       const toggleChunk = newChunks.find(([, value]) => fnStr(value).includes("onSelected") && fnStr(value).includes('type:"checkbox"'));
       if (toggleChunk) {
-        Spicetify.ReactComponent.Toggle = Object.values(require(toggleChunk[0]))[0].render;
+        reactComponent.Toggle = Object.values(require(toggleChunk[0]))[0].render;
       }
     }
 

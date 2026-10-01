@@ -6,30 +6,32 @@ import { waitFor } from "./shared/async.js";
     return;
   }
 
+  /** @type {{ cache: Spicetify.PlayerState | null; current: Spicetify.PlayerState | null }} */
   const playerState = {
     cache: null,
     current: null,
   };
+  const player = /** @type {Writable<typeof Spicetify.Player>} */ (Spicetify.Player);
 
   const interval = setInterval(() => {
     if (!Spicetify.Player.origin._state?.item) return;
-    Spicetify.Player.data = Spicetify.Player.origin._state;
+    player.data = Spicetify.Player.origin._state;
     playerState.cache = Spicetify.Player.data;
     clearInterval(interval);
   }, 10);
 
   Spicetify.Player.origin._events.addListener("update", ({ data: playerEventData }) => {
     playerState.current = playerEventData.item ? playerEventData : null;
-    Spicetify.Player.data = playerState.current;
+    player.data = playerState.current;
 
     if (playerState.cache?.item?.uri !== playerState.current?.item?.uri) {
-      const event = new Event("songchange");
+      const event = /** @type {Event & { data?: unknown }} */ (new Event("songchange"));
       event.data = Spicetify.Player.data;
       Spicetify.Player.dispatchEvent(event);
     }
 
     if (playerState.cache?.isPaused !== playerState.current?.isPaused) {
-      const event = new Event("onplaypause");
+      const event = /** @type {Event & { data?: unknown }} */ (new Event("onplaypause"));
       event.data = Spicetify.Player.data;
       Spicetify.Player.dispatchEvent(event);
     }
@@ -71,7 +73,7 @@ import { waitFor } from "./shared/async.js";
 
   setInterval(() => {
     if (playerState.cache?.isPaused === false) {
-      const event = new Event("onprogress");
+      const event = /** @type {Event & { data?: unknown }} */ (new Event("onprogress"));
       event.data = Spicetify.Player.getProgress();
       Spicetify.Player.dispatchEvent(event);
     }
