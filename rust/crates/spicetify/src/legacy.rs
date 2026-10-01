@@ -140,6 +140,7 @@ fn env_dir(name: &str) -> Option<PathBuf> {
     std::env::var_os(name).filter(|value| !value.is_empty()).map(PathBuf::from)
 }
 
+#[cfg(not(windows))]
 fn home() -> Option<PathBuf> {
     directories::BaseDirs::new().map(|dirs| dirs.home_dir().to_path_buf())
 }
