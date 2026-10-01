@@ -166,9 +166,11 @@ pub(crate) fn list(ctx: &AppContext) -> Result<()> {
 /// and recovery surface. They are independently useful management surfaces.
 pub(super) const SYSTEM_MODULES: &[&str] = &["stdlib", "store", "manager"];
 
-/// Installs any absent system module and refreshes any outdated store-managed
-/// one from the registry, so every `apply` leaves a client that can manage
-/// itself over a current disk baseline. The baseline is what actually runs
+/// Enables Splash on a fresh install, installs any absent system module, and
+/// refreshes any outdated store-managed one from the registry, so every
+/// `apply` leaves a client that can manage itself over a current disk baseline.
+/// Pending first-install defaults retry until enabled or explicitly cancelled.
+/// The baseline is what actually runs
 /// after a Spotify update: the new build changes the classmap key, which
 /// shadows every localStorage record until the store re-remaps them, and the
 /// window in between is served entirely from these copies.
@@ -180,9 +182,9 @@ pub(super) const SYSTEM_MODULES: &[&str] = &["stdlib", "store", "manager"];
 /// against the registry. Deliberate user intent recorded in the local vault
 /// wins over freshness: a module disabled while still installed stays off,
 /// and a hand-pin (an enabled version below one still installed) stays
-/// pinned; a `pkg delete`, which clears the installed flags, still re-seeds,
+/// pinned; a `pkg delete` of a system module clears the installed flags and re-seeds,
 /// because a client without its management surfaces cannot recover itself.
-pub(crate) fn ensure_system_modules(ctx: &AppContext) {
+pub(crate) fn ensure_default_modules(ctx: &AppContext) {
     let paths = crate::module::ModulePaths::from_config_root(&ctx.config_root);
     let vault = match cached_vault(&ctx.config_root) {
         Ok(vault) => vault,
@@ -191,24 +193,46 @@ pub(crate) fn ensure_system_modules(ctx: &AppContext) {
             return;
         }
     };
-    let intent = crate::module::vault::load(&paths.vault_path).unwrap_or_else(|e| {
+    let intent = crate::module::vault::load(&paths.vault_path);
+    let new_install = intent.as_ref().is_ok_and(|vault| vault.modules.is_empty())
+        && installed(&ctx.config_root).is_empty();
+    let mut intent = intent.unwrap_or_else(|e| {
         tracing::warn!(
             "cannot read {}: {e}; refreshing without local intent",
             paths.vault_path.display()
         );
         crate::module::vault::Vault::default()
     });
-    for id in SYSTEM_MODULES {
-        match plan_refresh(&paths, &intent, &vault, id, RefreshPolicy::Recover) {
+    if new_install {
+        let _ = intent.pending_defaults.insert("spicetify-splash".to_string());
+        if let Err(e) = crate::module::vault::save(&paths.vault_path, &intent) {
+            tracing::warn!("cannot save initial module selection: {e}");
+            return;
+        }
+    }
+    let pending_intent = crate::module::vault::Vault::default();
+    for id in
+        SYSTEM_MODULES.iter().copied().chain(intent.pending_defaults.iter().map(String::as_str))
+    {
+        let local = if intent.pending_defaults.contains(id) { &pending_intent } else { &intent };
+        match plan_refresh(&paths, local, &vault, id, RefreshPolicy::Recover) {
             Ok(Refresh::Stage { target, superseded }) => {
                 if let Err(e) =
                     stage_refresh(ctx, &paths, id, &target, superseded.as_deref(), &vault)
                 {
-                    tracing::warn!("could not stage system module {id}@{target}: {e}");
+                    tracing::warn!("could not stage default module {id}@{target}: {e}");
                 }
             }
-            Ok(Refresh::Skip(_)) => {}
-            Err(e) => tracing::warn!("cannot refresh system module {id}: {e}"),
+            Ok(Refresh::Skip(_)) => {
+                if intent.pending_defaults.contains(id)
+                    && let Err(e) = crate::module::vault::mutate(&paths.vault_path, |vault| {
+                        vault.pending_defaults.remove(id)
+                    })
+                {
+                    tracing::warn!("cannot clear initial module selection for {id}: {e}");
+                }
+            }
+            Err(e) => tracing::warn!("cannot refresh default module {id}: {e}"),
         }
     }
 }
@@ -1062,6 +1086,143 @@ mod tests {
     #[test]
     fn rejects_an_empty_vault_entry() {
         assert!(resolve_version(&module("", &[])).is_err());
+    }
+
+    fn defaults_fixture(name: &str) -> (std::path::PathBuf, AppContext) {
+        let root =
+            std::env::temp_dir().join(format!("spicetify-defaults-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let mut modules = serde_json::Map::new();
+        for id in ["stdlib", "store", "manager", "spicetify-splash"] {
+            let artifact = root.join("artifacts").join(id);
+            std::fs::create_dir_all(&artifact).expect("artifact directory");
+            std::fs::write(
+                artifact.join("metadata.json"),
+                serde_json::json!({ "name": id, "version": "1.0.0" }).to_string(),
+            )
+            .expect("artifact metadata");
+            drop(modules.insert(
+                id.to_string(),
+                serde_json::json!({ "v": { "1.0.0": { "artifacts": [artifact] } } }),
+            ));
+        }
+        let cache = vault_cache_path(&root);
+        std::fs::create_dir_all(cache.parent().expect("cache parent")).expect("cache directory");
+        std::fs::write(cache, serde_json::json!({ "modules": modules }).to_string())
+            .expect("cached registry");
+        let ctx = AppContext::from_config(root.clone(), &crate::context::Config::default())
+            .expect("context");
+        (root, ctx)
+    }
+
+    #[test]
+    fn fresh_installs_enable_splash_and_keep_disable_and_delete_choices() {
+        for initialized in [false, true] {
+            let (root, ctx) = defaults_fixture(if initialized { "initialized" } else { "fresh" });
+            let paths = crate::module::ModulePaths::from_config_root(&root);
+            if initialized {
+                crate::module::initialize(&paths).expect("initialize");
+            }
+            ensure_default_modules(&ctx);
+            let splash = paths.modules_root.join("spicetify-splash");
+            assert!(splash.join("metadata.json").is_file(), "Splash is installed and enabled");
+            let local = crate::module::vault::load(&paths.vault_path).expect("local vault");
+            assert_eq!(
+                local.modules.get("spicetify-splash").expect("Splash record").enabled.as_deref(),
+                Some("1.0.0")
+            );
+            assert!(local.pending_defaults.is_empty(), "successful setup clears pending defaults");
+
+            let disabled = crate::module::parse_enable_id("spicetify-splash@").expect("disable id");
+            crate::module::enable(&paths, &disabled).expect("disable Splash");
+            ensure_default_modules(&ctx);
+            assert!(!splash.exists(), "Apply keeps Splash disabled");
+            let local = crate::module::vault::load(&paths.vault_path).expect("local vault");
+            assert!(
+                local.modules.get("spicetify-splash").expect("Splash record").enabled.is_none()
+            );
+
+            crate::module::enable_module(&root, "spicetify-splash@1.0.0").expect("enable Splash");
+            assert!(splash.exists(), "Splash can be enabled again");
+            crate::module::delete_module(&root, "spicetify-splash@1.0.0").expect("delete Splash");
+            ensure_default_modules(&ctx);
+            assert!(!splash.exists(), "Apply keeps Splash removed");
+            std::fs::remove_dir_all(root).expect("cleanup");
+        }
+    }
+
+    #[test]
+    fn existing_installs_do_not_gain_splash() {
+        for managed in [false, true] {
+            let (root, ctx) = defaults_fixture(if managed { "managed" } else { "developer" });
+            let paths = crate::module::ModulePaths::from_config_root(&root);
+            if managed {
+                install(&ctx, "stdlib").expect("install an existing module");
+                crate::module::enable_module(&root, "stdlib@1.0.0").expect("enable stdlib");
+            } else {
+                let existing = paths.modules_root.join("local-module");
+                std::fs::create_dir_all(&existing).expect("local module directory");
+                std::fs::write(
+                    existing.join("metadata.json"),
+                    r#"{"name":"Local module","version":"1.0.0"}"#,
+                )
+                .expect("local module metadata");
+            }
+            ensure_default_modules(&ctx);
+            assert!(paths.modules_root.join("manager").exists(), "management still bootstraps");
+            assert!(!paths.modules_root.join("spicetify-splash").exists());
+            std::fs::remove_dir_all(root).expect("cleanup");
+        }
+    }
+
+    #[test]
+    fn failed_initial_download_retries_unless_the_user_opts_out() {
+        for action in ["retry", "disable", "delete"] {
+            let (root, ctx) = defaults_fixture(action);
+            let paths = crate::module::ModulePaths::from_config_root(&root);
+            let cache = vault_cache_path(&root);
+            let available = std::fs::read_to_string(&cache).expect("registry fixture");
+            let mut unavailable: serde_json::Value =
+                serde_json::from_str(&available).expect("registry JSON");
+            *unavailable
+                .pointer_mut("/modules/spicetify-splash/v/1.0.0/artifacts")
+                .expect("Splash artifacts") =
+                serde_json::json!(["http://127.0.0.1:0/unavailable.zip"]);
+            std::fs::write(&cache, unavailable.to_string()).expect("unavailable artifact");
+            ensure_default_modules(&ctx);
+            assert!(paths.modules_root.join("manager").exists(), "core setup succeeded");
+            assert!(!paths.modules_root.join("spicetify-splash").exists());
+            let local = crate::module::vault::load(&paths.vault_path).expect("local vault");
+            assert!(local.pending_defaults.contains("spicetify-splash"));
+            assert!(
+                !local
+                    .modules
+                    .get("spicetify-splash")
+                    .expect("failed download record")
+                    .versions
+                    .get("1.0.0")
+                    .expect("failed version")
+                    .installed
+            );
+            match action {
+                "disable" => {
+                    let id =
+                        crate::module::parse_enable_id("spicetify-splash@").expect("disable id");
+                    crate::module::enable(&paths, &id).expect("cancel default installation");
+                }
+                "delete" => {
+                    crate::module::delete_module(&root, "spicetify-splash@1.0.0")
+                        .expect("remove pending default");
+                }
+                _ => {}
+            }
+            std::fs::write(cache, available).expect("restored artifact");
+            ensure_default_modules(&ctx);
+            assert_eq!(paths.modules_root.join("spicetify-splash").exists(), action == "retry");
+            let local = crate::module::vault::load(&paths.vault_path).expect("local vault");
+            assert!(local.pending_defaults.is_empty());
+            std::fs::remove_dir_all(root).expect("cleanup");
+        }
     }
 
     // Network-gated smoke test for the real seeding path: fetch the registry,

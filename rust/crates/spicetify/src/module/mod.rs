@@ -171,12 +171,16 @@ pub(crate) fn install(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
 
 pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let mut v = vault::load(&paths.vault_path)?;
+    let cancelled_default = v.pending_defaults.remove(id.module_identifier());
     let enabled = {
         let module = v.get_module_mut(id.module_identifier());
         if !id.version().is_empty() && !module.versions.contains_key(id.version()) {
             return Err(anyhow::anyhow!(fl!("missing-store", id = id.to_string())));
         }
         if module.enabled.as_deref() == Some(id.version()) {
+            if cancelled_default {
+                vault::save(&paths.vault_path, &v)?;
+            }
             return Ok(());
         }
         module.enabled = (!id.version().is_empty()).then(|| id.version().to_string());
@@ -206,6 +210,7 @@ pub(crate) fn enable(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
 pub(crate) fn delete(paths: &ModulePaths, id: &StoreIdentifier) -> Result<()> {
     let dest = id.store_path(&paths.store_root)?;
     vault::mutate(&paths.vault_path, |v| {
+        let _ = v.pending_defaults.remove(id.module_identifier());
         let module = v.get_module_mut(id.module_identifier());
         if module.enabled.as_deref() == Some(id.version()) {
             module.enabled = None;

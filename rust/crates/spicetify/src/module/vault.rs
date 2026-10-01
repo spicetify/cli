@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use regex::Regex;
@@ -121,6 +121,8 @@ pub(crate) struct Module {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct Vault {
     pub(crate) modules: BTreeMap<String, Module>,
+    #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    pub(crate) pending_defaults: BTreeSet<String>,
 }
 
 impl Vault {
