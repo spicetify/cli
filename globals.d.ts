@@ -1249,7 +1249,7 @@ declare namespace Spicetify {
 		 * @param id The id of the artist.
 		 * @return The collection artist URI.
 		 */
-		static collectionAlbumURI(username: string, id: string): URI;
+		static collectionArtistURI(username: string, id: string): URI;
 
 		/**
 		 * Creates a new 'concert' type URI.
