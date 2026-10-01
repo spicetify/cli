@@ -1,6 +1,6 @@
 import { fnStr } from "../shared/string.js";
 import { findCards } from "./cards.js";
-import { findDropdownComponent, wrapProvider } from "./component-resolvers.js";
+import { findDropdownComponent, findMenuItem, findSubMenuItem, wrapProvider } from "./component-resolvers.js";
 import { findMenuOverrides, findMenus } from "./menus.js";
 
 function findNavigationComponent({ require, exportedMemoFRefs }) {
@@ -36,8 +36,8 @@ export function createReactComponents({
     ...Spicetify.ReactComponent,
     TextComponent: modules.find((m) => m?.h1 && m?.render),
     Menu: functionModules.find((m) => fnStr(m).includes("getInitialFocusElement") && fnStr(m).includes("children")),
-    MenuItem: functionModules.find((m) => fnStr(m).includes("handleMouseEnter") && fnStr(m).includes("onClick")),
-    MenuSubMenuItem: functionModules.find((f) => fnStr(f).includes("subMenuIcon")),
+    MenuItem: findMenuItem({ functionModules }),
+    MenuSubMenuItem: findSubMenuItem({ functionModules, chunks, require }),
     Slider: wrapProvider(functionModules.find((m) => fnStr(m).includes("progressBarRef"))),
     RemoteConfigProvider: functionModules.find((m) => fnStr(m).includes("resolveSuspense") && fnStr(m).includes("configuration")),
     RightClickMenu: functionModules.find(

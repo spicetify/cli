@@ -57,6 +57,25 @@ export function findDropdownComponent({ modules, chunks, require }) {
   );
 }
 
+// From 1.3.3 the menu item and submenu item are exports that only switch
+// between the v2 and legacy rows; the legacy row is no longer exported.
+export function findMenuItem({ functionModules }) {
+  return (
+    functionModules.find((f) => /forceV2LeadingIcon:\s*\w+\.forceV2LeadingIcon/.test(fnStr(f))) ??
+    functionModules.find((f) => fnStr(f).includes("handleMouseEnter") && fnStr(f).includes("onClick"))
+  );
+}
+
+export function findSubMenuItem({ functionModules, chunks, require }) {
+  const legacy = functionModules.find((f) => fnStr(f).includes("subMenuIcon"));
+  if (legacy) return legacy;
+
+  const chunk = chunks.find(([, value]) => fnStr(value).includes("data-context-menu-submenu-header"));
+  if (!chunk) return undefined;
+  const exports = getObjectValues(require(chunk[0])).filter((m) => typeof m === "function");
+  return exports.length === 1 ? exports[0] : undefined;
+}
+
 export function wrapProvider(component) {
   if (!component) return null;
   return (props) =>
