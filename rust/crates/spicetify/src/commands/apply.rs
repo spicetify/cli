@@ -86,16 +86,11 @@ fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
     //                                 corrupt the client, so it is restored
     //                                 from v2's backup first, or refused with
     //                                 the reason when that is not possible.
-    if !spa.exists() && !ctx.mirror && !backup.exists() && dest_xpui.exists() {
-        super::restore::undo_v2_apply(ctx, || {
-            if activate { crate::lifecycle::stop(ctx) } else { Ok(()) }
-        })?;
-        // The client is stock and runnable again; a later check that fails
-        // must not leave the user without Spotify.
-        if activate {
-            crate::lifecycle::start(ctx)?;
-        }
-    }
+    let v2_backup = if !spa.exists() && !ctx.mirror && !backup.exists() && dest_xpui.exists() {
+        Some(super::restore::v2_backup_for(ctx)?)
+    } else {
+        None
+    };
 
     // Refuse before anything destructive: the first steps stop the client
     // and rename xpui.spa, so a client this CLI cannot patch must be turned
@@ -117,6 +112,9 @@ fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
 
     if activate {
         crate::lifecycle::stop(ctx)?;
+    }
+    if let Some(v2_backup) = &v2_backup {
+        super::restore::restore_v2(ctx, v2_backup)?;
     }
 
     if !spa.exists() && !ctx.mirror && backup.exists() {
