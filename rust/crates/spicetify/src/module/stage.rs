@@ -287,7 +287,8 @@ fn remap_source(
 
 // module_scripts lists a staged module's JavaScript files other than its
 // entry, sorted, when it has a JS entry and more than one script. Tests,
-// specs, tool configs and hidden directories are left out.
+// specs and tool configs are left out; hidden directories are kept because
+// pnpm installs dependencies under node_modules/.pnpm.
 fn module_scripts(dir: &Path, entry: Option<&str>) -> Vec<String> {
     fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) {
         let Ok(entries) = std::fs::read_dir(dir) else { return };
@@ -295,7 +296,7 @@ fn module_scripts(dir: &Path, entry: Option<&str>) -> Vec<String> {
             let path = entry.path();
             let Some(name) = path.file_name().and_then(|n| n.to_str()) else { continue };
             if path.is_dir() {
-                if !name.starts_with('.') && name != "__tests__" {
+                if name != "__tests__" {
                     walk(root, &path, out);
                 }
                 continue;
@@ -570,7 +571,7 @@ mod tests {
     fn lists_the_other_scripts_of_a_multi_file_module() {
         let root = scratch("module-scripts");
         let tree = root.join("tree");
-        for dir in ["src/webpack", ".cache", "__tests__"] {
+        for dir in ["src/webpack", "node_modules/.pnpm/dep", "__tests__"] {
             std::fs::create_dir_all(tree.join(dir)).expect("tree dirs");
         }
         for file in [
@@ -580,7 +581,7 @@ mod tests {
             "src/util.test.mjs",
             "src/util.spec.js",
             "vite.config.js",
-            ".cache/chunk.js",
+            "node_modules/.pnpm/dep/index.js",
             "__tests__/a.js",
             "index.css",
             "index.js.map",
@@ -589,7 +590,7 @@ mod tests {
         }
         assert_eq!(
             module_scripts(&tree, Some("./index.js")),
-            vec!["load.js", "src/webpack/index.js"]
+            vec!["load.js", "node_modules/.pnpm/dep/index.js", "src/webpack/index.js"]
         );
         assert!(
             module_scripts(&tree, None).is_empty(),
