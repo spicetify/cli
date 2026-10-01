@@ -349,7 +349,7 @@ export class Registry {
 				if (m.entries.css) {
 					const sheet = await this.cssSheetOf(m);
 					state.disposers.push(this.effects.adoptCss(sheet, { theme: this.isTheme(id) }));
-					if (this.effects.applyScheme) {
+					if (this.effects.applyScheme && this.isTheme(id)) {
 						const schemeDisposer = await this.effects.applyScheme(
 							m.identifier,
 							this.getLocalFile(m.identifier, "color.ini"),
@@ -453,7 +453,7 @@ export class Registry {
 			if (m.entries.css) {
 				const sheet = await this.cssSheetOf(m);
 				state.disposers.push(this.effects.adoptCss(sheet, { theme: this.isTheme(identifier) }));
-				if (this.effects.applyScheme) {
+				if (this.effects.applyScheme && this.isTheme(identifier)) {
 					const schemeDisposer = await this.effects.applyScheme(
 						identifier,
 						this.getLocalFile(identifier, "color.ini"),

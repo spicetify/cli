@@ -788,4 +788,25 @@ describe("boot load order and prefetch", () => {
 			"css:/modules/mixer/index.css",
 		]);
 	});
+
+	it("looks up a color scheme only for themes", async () => {
+		const schemes: string[] = [];
+		const effects = {
+			...trackingEffects([]),
+			applyScheme: async (id: string) => {
+				schemes.push(id);
+				return null;
+			},
+		};
+		const r = new Registry(
+			manifest([mod("styled", "1.0.0", { entries: { js: "index.js", css: "index.css" } }), theme("theme-a")]),
+			effects,
+		);
+		const report = await r.boot();
+		assert.deepEqual(report.failed, {});
+		assert.deepEqual(schemes, ["theme-a"]);
+		await r.unload("styled");
+		await r.enable("styled", report);
+		assert.deepEqual(schemes, ["theme-a"]);
+	});
 });
