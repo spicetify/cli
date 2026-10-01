@@ -1,7 +1,9 @@
 import { waitFor } from "./shared/async.js";
 
 Spicetify.getAudioData = async (uri) => {
-  const providedURI = uri || Spicetify.Player.data.item.uri;
+  const providedURI = uri || Spicetify.Player.data?.item?.uri;
+  if (!providedURI) throw "URI is invalid.";
+  /** @type {(Spicetify.URI & { Type?: string; getBase62Id?: () => string }) | null} */
   const uriObj = Spicetify.URI.from?.(providedURI) ?? Spicetify.URI.fromString?.(providedURI);
   if (!uriObj || (uriObj.Type || uriObj.type) !== Spicetify.URI.Type.TRACK) {
     throw "URI is invalid.";
@@ -16,7 +18,7 @@ Spicetify.colorExtractor = async (uri) => {
   const body = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/colorextractor/v1/extract-presets?uri=${uri}&format=json`);
 
   if (body.entries?.length) {
-    const list = {};
+    const list = /** @type {NonNullable<Awaited<ReturnType<typeof Spicetify.colorExtractor>>>} */ ({});
     for (const color of body.entries[0].color_swatches) {
       list[color.preset] = `#${color.color?.toString(16).padStart(6, "0")}`;
     }
@@ -237,7 +239,8 @@ void (async function waitMouseTrap() {
     return keystroke;
   }
 
-  Spicetify.Keyboard = {
+  // The aliases are assigned just below.
+  Spicetify.Keyboard = /** @type {typeof Spicetify.Keyboard} */ ({
     KEYS,
     registerShortcut: (keys, callback) => {
       Spicetify.Mousetrap.bind(formatKeys(keys), callback);
@@ -254,7 +257,7 @@ void (async function waitMouseTrap() {
       Spicetify.Keyboard.registerShortcut(newKeys, Spicetify.Mousetrap.trigger()._directMap[callback]);
       Spicetify.Keyboard._deregisterShortcut(keys);
     },
-  };
+  });
   Spicetify.Keyboard.registerIsolatedShortcut = Spicetify.Keyboard.registerShortcut;
   Spicetify.Keyboard.registerImportantShortcut = Spicetify.Keyboard.registerShortcut;
   Spicetify.Keyboard.deregisterImportantShortcut = Spicetify.Keyboard._deregisterShortcut;

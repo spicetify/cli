@@ -1,6 +1,8 @@
 import { createIconComponent } from "./icons.js";
 
+/** @type {any} */
 let navLinkFactoryCtx = null;
+/** @type {(() => void) | null} */
 export let refreshNavLinks = null;
 
 const manifestCache = new Map();

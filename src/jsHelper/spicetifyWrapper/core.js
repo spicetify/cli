@@ -1,4 +1,5 @@
-window.Spicetify = {
+/** @satisfies {Bootstrap<typeof Spicetify>} */
+const bootstrap = {
   Player: {
     addEventListener: (type, callback) => {
       if (!(type in Spicetify.Player.eventListeners)) {
@@ -73,7 +74,7 @@ window.Spicetify = {
     },
     setMute: (b) => {
       if (b !== Spicetify.Player.getMute()) {
-        document.querySelector(".volume-bar__icon-button")?.click();
+        /** @type {HTMLElement | null} */ (document.querySelector(".volume-bar__icon-button"))?.click();
       }
     },
     formatTime: (ms) => {
@@ -314,3 +315,5 @@ window.Spicetify = {
   CORSProxy: {},
   Daemon: {},
 };
+// The rest of the wrapper fills in the members missing here as the client loads.
+window.Spicetify = /** @type {any} */ (bootstrap);

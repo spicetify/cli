@@ -27,7 +27,7 @@ export function exposeRuntimeResolvers({ cache, chunks, modules, functionModules
     }
     // Snackbar notifications
     // https://github.com/iamhosseindhv/notistack
-    Spicetify.Snackbar = {
+    /** @type {Writable<typeof Spicetify>} */ (Spicetify).Snackbar = {
       ...Spicetify.Snackbar,
       SnackbarProvider: functionModules.find((m) => fnStr(m).includes("enqueueSnackbar called with invalid argument")),
       useSnackbar: functionModules.find((m) => fnStr(m).match(/^function\(\)\{return\(0,[\w$]+\.useContext\)\([\w$]+\)\}$/)),
@@ -37,7 +37,8 @@ export function exposeRuntimeResolvers({ cache, chunks, modules, functionModules
   const localeModule = findLocaleTranslator({ cache, modules });
   if (localeModule) {
     const createUrlLocale = functionModules.find((m) => fnStr(m).includes("has") && fnStr(m).includes("baseName") && fnStr(m).includes("language"));
-    Spicetify.Locale = {
+    // _supportedLocales is assigned right after.
+    Spicetify.Locale = /** @type {typeof Spicetify.Locale} */ ({
       get _relativeTimeFormat() {
         return localeModule._relativeTimeFormat;
       },
@@ -84,10 +85,11 @@ export function exposeRuntimeResolvers({ cache, chunks, modules, functionModules
       },
       toLocaleLowerCase: (text) => localeModule.toLocaleLowerCase(text),
       toLocaleUpperCase: (text) => localeModule.toLocaleUpperCase(text),
-    };
+    });
   }
 
-  if (Spicetify.Locale) Spicetify.Locale._supportedLocales = cache.find((m) => typeof m?.ja === "string");
+  if (Spicetify.Locale)
+    /** @type {Writable<typeof Spicetify.Locale>} */ (Spicetify.Locale)._supportedLocales = cache.find((m) => typeof m?.ja === "string");
 
   Object.defineProperty(Spicetify, "Queue", {
     get() {
@@ -100,26 +102,25 @@ export function exposeRuntimeResolvers({ cache, chunks, modules, functionModules
       fnStr(value).includes("main-confirmDialog-container") ||
       (fnStr(value).includes("confirmDialog") && fnStr(value).includes("shouldCloseOnEsc") && fnStr(value).includes("isOpen")),
   );
+  const reactComponent = /** @type {Writable<typeof Spicetify.ReactComponent>} */ (Spicetify.ReactComponent);
   if (!Spicetify.ReactComponent?.ConfirmDialog && confirmDialogChunk) {
-    Spicetify.ReactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find((m) => typeof m === "object");
+    reactComponent.ConfirmDialog = Object.values(require(confirmDialogChunk[0])).find((m) => typeof m === "object");
   } else {
-    Spicetify.ReactComponent.ConfirmDialog = functionModules.find(
+    reactComponent.ConfirmDialog = functionModules.find(
       (m) => fnStr(m).includes("isOpen") && fnStr(m).includes("shouldCloseOnEsc") && fnStr(m).includes("onClose"),
     );
   }
 
   const contextMenuChunk = chunks.find(([, value]) => fnStr(value).includes("handleContextMenu"));
   if (contextMenuChunk) {
-    Spicetify.ReactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find((m) => typeof m === "function");
+    reactComponent.ContextMenu = Object.values(require(contextMenuChunk[0])).find((m) => typeof m === "function");
   }
 
   const playlistMenuChunk = chunks.find(
     ([, value]) => fnStr(value).includes('value:"playlist"') && fnStr(value).includes("canView") && fnStr(value).includes("permissions"),
   );
   if (playlistMenuChunk && !Spicetify.ReactComponent?.PlaylistMenu) {
-    Spicetify.ReactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find(
-      (m) => typeof m === "function" || typeof m === "object",
-    );
+    reactComponent.PlaylistMenu = Object.values(require(playlistMenuChunk[0])).find((m) => typeof m === "function" || typeof m === "object");
   }
 
   const infiniteQueryChunk = chunks.find(([_, value]) => fnStr(value).includes("fetchPreviousPage") && fnStr(value).includes("getOptimisticResult"));
@@ -138,6 +139,7 @@ export function exposeRuntimeResolvers({ cache, chunks, modules, functionModules
 
     if (Spicetify.Snackbar?.enqueueSnackbar) {
       Spicetify.showNotification = (message, isError, msTimeout) => {
+        // @ts-expect-error enqueueSnackbar was checked just before this closure was created
         Spicetify.Snackbar.enqueueSnackbar(message, {
           variant: isError ? "error" : "default",
           autoHideDuration: msTimeout,
@@ -148,7 +150,7 @@ export function exposeRuntimeResolvers({ cache, chunks, modules, functionModules
     }
 
     Spicetify.Snackbar.enqueueSnackbar = (message, { variant = "default", autoHideDuration } = {}) => {
-      isError = variant === "error";
+      const isError = variant === "error";
       Spicetify.showNotification(message, isError, autoHideDuration);
     };
   })();

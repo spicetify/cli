@@ -8,16 +8,20 @@
     "fmt": "oxfmt scripts src/jsHelper/spicetifyWrapper package.json .oxfmtrc.json .oxlintrc.json",
     "fmt:check": "oxfmt --check scripts src/jsHelper/spicetifyWrapper package.json .oxfmtrc.json .oxlintrc.json",
     "lint": "oxlint .",
+    "typecheck": "tsc -p tsconfig.wrapper.json",
     "build:modular-loader": "node scripts/build-modular-loader.mjs",
     "build:payload": "node scripts/build-payload.mjs"
   },
   "devDependencies": {
+    "@types/react": "18.3.31",
     "esbuild": "0.25.11",
+    "happy-dom": "20.14.5",
     "oxfmt": "0.56.0",
     "oxlint": "1.71.0",
     "oxlint-tsgolint": "0.23.0",
     "react": "18.3.1",
-    "react-test-renderer": "18.3.1"
+    "react-test-renderer": "18.3.1",
+    "typescript": "7.0.2"
   },
   "engines": {
     "node": ">=18",

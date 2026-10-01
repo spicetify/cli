@@ -3,6 +3,7 @@ const EVENT_URL = `${JOB_URL}/event`;
 const POLL_MS = 1000;
 
 const listeners = new Set();
+/** @type {ReturnType<typeof setInterval> | null} */
 let pollTimer = null;
 let lastStatus = { kind: "idle" };
 
@@ -100,6 +101,7 @@ updateAndApply.observe = (listener) => {
 };
 
 const workByTarget = new Map();
+/** @type {{ cancel?: () => void } | null} */
 let subscription = null;
 let subscribedJob = null;
 
@@ -185,6 +187,7 @@ const attachUpdater = (api, status) => {
   });
 };
 
+/** @type {number | null} */
 let bridgeTimer = null;
 
 export const installUpdateJobBridge = (platform) => {
@@ -208,7 +211,7 @@ export const installUpdateJobBridge = (platform) => {
   void sync();
   bridgeTimer = setInterval(sync, POLL_MS);
   return () => {
-    clearInterval(bridgeTimer);
+    clearInterval(/** @type {number} */ (bridgeTimer));
     bridgeTimer = null;
     cancelSubscription();
   };

@@ -9,12 +9,18 @@ Spicetify.Topbar = (() => {
   const rightButtonsStash = new Set();
 
   class Button {
+    /**
+     * @param {string} label
+     * @param {string} icon
+     * @param {(self: Button) => void} onClick
+     * @param {boolean} [disabled]
+     * @param {boolean} [isRight]
+     */
     constructor(label, icon, onClick, disabled = false, isRight = false) {
       this.element = document.createElement("div");
       this.button = document.createElement("button");
       this.icon = icon;
       this.onClick = onClick;
-      this.disabled = disabled;
       this.tippy = Spicetify.Tippy?.(this.element, {
         content: label,
         ...Spicetify.TippyProps,
@@ -31,6 +37,7 @@ Spicetify.Topbar = (() => {
         leftButtonsStash.add(this.element);
         leftContainer?.append(this.element);
       }
+      this.disabled = disabled;
     }
     get label() {
       return this._label;
@@ -97,6 +104,7 @@ Spicetify.Topbar = (() => {
 
       const buttonElement = button.querySelector("button");
       buttonElement.className = leftGeneratedClassName;
+      buttonElement.classList.toggle("disabled", buttonElement.disabled);
     }
     leftContainer.append(...leftButtonsStash);
     for (const button of rightButtonsStash) {
@@ -104,6 +112,7 @@ Spicetify.Topbar = (() => {
 
       const buttonElement = button.querySelector("button");
       buttonElement.className = rightGeneratedClassName;
+      buttonElement.classList.toggle("disabled", buttonElement.disabled);
     }
     rightContainer.prepend(...rightButtonsStash);
   }

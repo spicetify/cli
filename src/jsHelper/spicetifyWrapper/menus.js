@@ -3,6 +3,7 @@ import { createIconComponent } from "./icons.js";
 Spicetify.ContextMenuV2 = (() => {
   const registeredItems = new Map();
 
+  /** @returns {[uris: string[], uids: string[] | undefined, contextUri: string | undefined] | undefined} */
   function parseProps(props) {
     if (!props) return;
 
@@ -245,6 +246,7 @@ Spicetify.ContextMenuV2 = (() => {
 
   let registeredItemsVersion = 0;
 
+  /** @param {Spicetify.ContextMenuV2.ShouldAddCallback} [shouldAdd] */
   function registerItem(item, shouldAdd = () => true) {
     registeredItems.set(item, shouldAdd);
     registeredItemsVersion++;
@@ -278,7 +280,7 @@ Spicetify.ContextMenuV2 = (() => {
     return [react.createElement(RegisteredMenuItems, { key: "spicetify-context-menu-items", react, context })];
   };
 
-  return { parseProps, Item, ItemSubMenu, registerItem, unregisterItem, renderItems };
+  return { _context: undefined, parseProps, Item, ItemSubMenu, registerItem, unregisterItem, renderItems };
 })();
 
 Spicetify.Menu = (() => {
@@ -314,7 +316,7 @@ Spicetify.Menu = (() => {
       this.text = text;
     }
     get name() {
-      return this.text;
+      return /** @type {string} */ (this.text);
     }
 
     set icon(icon) {
@@ -329,7 +331,7 @@ Spicetify.Menu = (() => {
 })();
 
 Spicetify.ContextMenu = (() => {
-  const iconList = Object.keys(Spicetify.SVGIcons);
+  const iconList = /** @type {Spicetify.Icon[]} */ (Object.keys(Spicetify.SVGIcons));
 
   class Item extends Spicetify.ContextMenuV2.Item {
     static iconList = iconList;
@@ -343,7 +345,10 @@ Spicetify.ContextMenu = (() => {
         leadingIcon: icon,
         trailingIcon,
         onClick: (context) => {
-          const [uris, uids, contextUri] = Spicetify.ContextMenuV2.parseProps(context.props);
+          // shouldAdd only lets the item render when parseProps returns a value
+          const [uris, uids, contextUri] = /** @type {NonNullable<ReturnType<typeof Spicetify.ContextMenuV2.parseProps>>} */ (
+            Spicetify.ContextMenuV2.parseProps(context.props)
+          );
           onClick(uris, uids, contextUri);
         },
         shouldAdd: (props) => {
@@ -357,7 +362,7 @@ Spicetify.ContextMenu = (() => {
       this.children = name;
     }
     get name() {
-      return this.children;
+      return /** @type {string} */ (this.children);
     }
 
     set icon(name) {
@@ -390,7 +395,7 @@ Spicetify.ContextMenu = (() => {
       this.text = name;
     }
     get name() {
-      return this.text;
+      return /** @type {string} */ (this.text);
     }
   }
 

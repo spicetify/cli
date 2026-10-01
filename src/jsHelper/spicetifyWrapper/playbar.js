@@ -5,6 +5,14 @@ Spicetify.Playbar = (() => {
   const buttonsStash = new Set();
 
   class Button {
+    /**
+     * @param {string} label
+     * @param {string} icon
+     * @param {(self: Button) => void} [onClick]
+     * @param {boolean} [disabled]
+     * @param {boolean} [active]
+     * @param {boolean} [registerOnCreate]
+     */
     constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
       this.element = document.createElement("button");
       this.element.classList.add("main-genericButton-button");
@@ -110,6 +118,14 @@ Spicetify.Playbar = (() => {
   let nowPlayingWidget;
 
   class Widget {
+    /**
+     * @param {string} label
+     * @param {string} icon
+     * @param {(self: Widget) => void} [onClick]
+     * @param {boolean} [disabled]
+     * @param {boolean} [active]
+     * @param {boolean} [registerOnCreate]
+     */
     constructor(label, icon, onClick = () => {}, disabled = false, active = false, registerOnCreate = true) {
       this.element = document.createElement("button");
       this.element.className = "main-addButton-button control-button control-button-heart";

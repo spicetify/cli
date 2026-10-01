@@ -32,7 +32,7 @@ void (async function hotloadWebpackModules() {
   let cache = inventory.cache;
 
   // For _renderNavLinks to work
-  Spicetify.React = cache.find((m) => m?.useMemo);
+  /** @type {Writable<typeof Spicetify>} */ (Spicetify).React = cache.find((m) => m?.useMemo);
 
   await waitFor(() => webpackDidCallback, 100);
   console.log("[spicetifyWrapper] All required webpack modules loaded");

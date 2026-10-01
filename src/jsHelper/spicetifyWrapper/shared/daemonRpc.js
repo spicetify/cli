@@ -133,7 +133,7 @@ export const send = (uri, { expectReply = true, timeoutMs = TIMEOUT_MS } = {}) =
     try {
       socket = new WebSocket(RPC_URL, [`${TOKEN_PROTOCOL_PREFIX}${token}`]);
     } catch (e) {
-      reject(new Error(`cannot reach the daemon: ${e.message}`));
+      reject(new Error(`cannot reach the daemon: ${/** @type {Error} */ (e).message}`));
       return;
     }
 

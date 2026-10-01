@@ -203,7 +203,9 @@ export function waitForURI(cache) {
       return;
     }
 
-    if (Spicetify.URI.Type && Spicetify.URI.from && Spicetify.URI.fromString && Spicetify.URI.idToHex && Spicetify.URI.hexToId) return;
+    // The client's own URI class can lack the helpers this fills in.
+    const uri = /** @type {Partial<typeof Spicetify.URI>} */ (Spicetify.URI);
+    if (uri.Type && uri.from && uri.fromString && uri.idToHex && uri.hexToId) return;
 
     const URIExports = getURIExports(inventory.cache);
     if (!URIExports) {

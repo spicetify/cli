@@ -75,7 +75,9 @@ export function createModuleInventoryScanner() {
 }
 
 export function groupBy(values, keyFinder) {
-  if (typeof Object.groupBy === "function") return Object.groupBy(values, keyFinder);
+  // Object.groupBy is newer than the es2022 lib the wrapper is checked against.
+  const object = /** @type {{ groupBy?: (values: any[], keyFinder: any) => Record<PropertyKey, any[]> }} */ (Object);
+  if (typeof object.groupBy === "function") return object.groupBy(values, keyFinder);
   return values.reduce((a, b) => {
     const key = typeof keyFinder === "function" ? keyFinder(b) : b[keyFinder];
     a[key] = a[key] ? [...a[key], b] : [b];

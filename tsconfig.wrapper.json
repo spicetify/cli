@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["react"],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false
+  },
+  "include": ["globals.d.ts", "src/jsHelper/spicetifyWrapper/internal.d.ts", "src/jsHelper/spicetifyWrapper/**/*.js"]
+}
