@@ -28,18 +28,22 @@ pub(crate) enum V2Plan {
     VersionMismatch { backup: PathBuf, backup_version: String, installed: String },
 }
 
-/// The v2 backup on this machine, if it still holds `xpui.spa`.
+/// The v2 backup on this machine, if it still holds `xpui.spa`: in v2's state
+/// folder, or in its config folder where v2 kept it before it had one.
 pub(crate) fn find_backup() -> Option<V2Backup> {
-    let dir = state_dir()?.join("Backup");
-    if !dir.join("xpui.spa").is_file() {
-        return None;
-    }
-    let spotify_version = config_dir().and_then(|dir| backup_version(&dir.join("config-xpui.ini")));
+    let config = config_dir();
+    let dir = [state_dir(), config.clone()]
+        .into_iter()
+        .flatten()
+        .map(|dir| dir.join("Backup"))
+        .find(|dir| dir.join("xpui.spa").is_file())?;
+    let spotify_version = config.and_then(|dir| backup_version(&dir.join("config-xpui.ini")));
     Some(V2Backup { dir, spotify_version })
 }
 
 /// Decides whether `backup` can undo the v2 apply: not when it was recorded
-/// for another Spotify version line than `installed`.
+/// for another Spotify version line than `installed`. When either version is
+/// unknown the check is skipped, and the log says so.
 pub(crate) fn plan(backup: Option<V2Backup>, installed: Option<&semver::Version>) -> V2Plan {
     let Some(backup) = backup else { return V2Plan::NoBackup };
     if let (Some(recorded), Some(installed)) = (backup.spotify_version.as_deref(), installed) {
@@ -51,26 +55,51 @@ pub(crate) fn plan(backup: Option<V2Backup>, installed: Option<&semver::Version>
                 installed,
             };
         }
+    } else {
+        tracing::warn!(
+            "cannot compare Spicetify v2's backup at {} with the installed Spotify version; restoring it anyway",
+            backup.dir.display()
+        );
     }
     V2Plan::Restore(backup)
 }
 
-/// Undoes a v2 apply in `apps` as v2's `restore` does: removes the extracted
-/// `xpui/` and `login/` folders and copies the backed-up `.spa` files back.
-/// The backup itself is left as it is.
+/// Undoes a v2 apply in `apps` as v2's `restore` does, leaving the backup as
+/// it is. The backed-up `.spa` files are copied in under temporary names and
+/// renamed into place before v2's extracted `xpui/` and `login/` folders are
+/// removed, so a failure leaves either v2's client or a stock archive behind,
+/// never neither.
 pub(crate) fn restore_files(apps: &Path, backup: &V2Backup) -> std::io::Result<()> {
-    for folder in ["xpui", "login"] {
-        match std::fs::remove_dir_all(apps.join(folder)) {
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e),
-            _ => {}
-        }
-    }
+    let mut archives = Vec::new();
     for entry in std::fs::read_dir(&backup.dir)? {
         let path = entry?.path();
         if path.extension().is_some_and(|ext| ext == "spa")
             && let Some(name) = path.file_name()
         {
-            let _ = std::fs::copy(&path, apps.join(name))?;
+            archives.push((path.clone(), apps.join(name)));
+        }
+    }
+    let staged: Vec<(PathBuf, PathBuf)> = archives
+        .iter()
+        .map(|(_, target)| (target.with_extension("spa.restoring"), target.clone()))
+        .collect();
+    let copied = archives
+        .iter()
+        .zip(&staged)
+        .try_for_each(|((source, _), (temp, _))| std::fs::copy(source, temp).map(|_| ()));
+    if let Err(e) = copied {
+        for (temp, _) in &staged {
+            let _ = std::fs::remove_file(temp);
+        }
+        return Err(e);
+    }
+    for (temp, target) in &staged {
+        std::fs::rename(temp, target)?;
+    }
+    for folder in ["xpui", "login"] {
+        match std::fs::remove_dir_all(apps.join(folder)) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e),
+            _ => {}
         }
     }
     Ok(())
@@ -188,36 +217,49 @@ mod tests {
         std::fs::remove_dir_all(&root).expect("cleanup");
     }
 
+    fn backup(version: Option<&str>) -> V2Backup {
+        V2Backup { dir: PathBuf::from("v2/Backup"), spotify_version: version.map(str::to_string) }
+    }
+
     #[test]
     fn refuses_a_backup_of_another_spotify_version() {
-        let root = temp("mismatch");
-        let (apps, backup) = v2_patched(&root);
-        let installed = semver::Version::new(1, 3, 1);
-
         assert_eq!(
-            plan(Some(backup.clone()), Some(&installed)),
+            plan(Some(backup(Some("1.3.0.277.g5441bb3e"))), Some(&semver::Version::new(1, 3, 1))),
             V2Plan::VersionMismatch {
-                backup: backup.dir.clone(),
+                backup: PathBuf::from("v2/Backup"),
                 backup_version: "1.3.0.277.g5441bb3e".to_string(),
                 installed: "1.3.1".to_string(),
             }
         );
-        std::fs::remove_dir_all(&root).expect("cleanup");
     }
 
     #[test]
     fn plans_a_restore_when_either_version_is_unknown_and_reports_a_missing_backup() {
-        let root = temp("unknown");
-        let (apps, mut backup) = v2_patched(&root);
-        backup.spotify_version = None;
+        let installed = semver::Version::new(1, 3, 0);
+        assert_eq!(plan(Some(backup(None)), Some(&installed)), V2Plan::Restore(backup(None)));
+        let recorded = backup(Some("1.3.0.277"));
         assert_eq!(
-            plan(Some(backup.clone()), Some(&semver::Version::new(1, 3, 0))),
-            V2Plan::Restore(backup.clone())
+            plan(Some(recorded.clone()), None),
+            V2Plan::Restore(recorded),
+            "installed unknown"
         );
-        backup.spotify_version = Some("1.3.0.277".to_string());
-        assert_eq!(plan(Some(backup.clone()), None), V2Plan::Restore(backup), "installed unknown");
         assert_eq!(plan(None, None), V2Plan::NoBackup);
-        let _ = apps;
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_failed_copy_leaves_v2s_client_in_place() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = temp("failed-copy");
+        let (apps, backup) = v2_patched(&root);
+        std::fs::set_permissions(&apps, std::fs::Permissions::from_mode(0o555)).expect("read-only");
+
+        let result = restore_files(&apps, &backup);
+        std::fs::set_permissions(&apps, std::fs::Permissions::from_mode(0o755)).expect("writable");
+        assert!(result.is_err(), "nothing can be written into a read-only Apps folder");
+        assert!(apps.join("xpui/extensions/marketplace.js").is_file(), "v2's client still runs");
+        assert!(apps.join("login").is_dir());
+        assert!(!apps.join("xpui.spa").exists());
         std::fs::remove_dir_all(&root).expect("cleanup");
     }
 
