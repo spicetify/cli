@@ -358,37 +358,20 @@ declare namespace Spicetify {
 		 *  - `songchange` type when player changes track.
 		 *  - `onplaypause` type when player plays or pauses.
 		 *  - `onprogress` type when track progress changes.
-		 *  - `appchange` type when user changes page.
 		 */
 		function addEventListener(type: string, callback: (event?: Event) => void): void;
-		function addEventListener(type: "songchange", callback: (event?: Event & { data: PlayerState }) => void): void;
-		function addEventListener(type: "onplaypause", callback: (event?: Event & { data: PlayerState }) => void): void;
+		function addEventListener(type: "songchange", callback: (event?: Event & { data: PlayerState | null }) => void): void;
+		function addEventListener(type: "onplaypause", callback: (event?: Event & { data: PlayerState | null }) => void): void;
 		function addEventListener(type: "onprogress", callback: (event?: Event & { data: number }) => void): void;
-		function addEventListener(
-			type: "appchange",
-			callback: (
-				event?: Event & {
-					data: {
-						/**
-						 * App href path
-						 */
-						path: string;
-						/**
-						 * App container
-						 */
-						container: HTMLElement;
-					};
-				}
-			) => void
-		): void;
 		/**
 		 * Skip to previous track.
 		 */
 		function back(): void;
 		/**
 		 * An object contains all information about current track and player.
+		 * `null` while the player has no current item, and unset until the player first reports a track.
 		 */
-		const data: PlayerState;
+		const data: PlayerState | null;
 		/**
 		 * Decrease a small amount of volume.
 		 */
@@ -400,9 +383,10 @@ declare namespace Spicetify {
 		 *  - `songchange` type when player changes track.
 		 *  - `onplaypause` type when player plays or pauses.
 		 *  - `onprogress` type when track progress changes.
-		 *  - `appchange` type when user changes page.
+		 *
+		 * @return `false` if a listener called `preventDefault()` on the event, `true` otherwise.
 		 */
-		function dispatchEvent(event: Event): void;
+		function dispatchEvent(event: Event): boolean;
 		const eventListeners: {
 			[key: string]: Array<(event?: Event) => void>;
 		};
@@ -481,6 +465,11 @@ declare namespace Spicetify {
 		 * @param position can be in percentage (0 to 1) or in milisecond.
 		 */
 		function seek(position: number): void;
+		/**
+		 * Add the current track to, or remove it from, the user's Liked Songs.
+		 * @param state
+		 */
+		function setHeart(state: boolean): void;
 		/**
 		 * Turn mute on/off
 		 * @param state
