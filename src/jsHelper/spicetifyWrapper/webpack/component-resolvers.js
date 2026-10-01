@@ -59,10 +59,15 @@ export function findDropdownComponent({ modules, chunks, require }) {
 
 // From 1.3.3 the menu item and submenu item are exports that only switch
 // between the v2 and legacy rows; the legacy row is no longer exported.
+// Earlier builds export the legacy row, matched by its own props so that
+// other components with mouse handlers (the waveform scrubber) are skipped.
 export function findMenuItem({ functionModules }) {
   return (
     functionModules.find((f) => /forceV2LeadingIcon:\s*\w+\.forceV2LeadingIcon/.test(fnStr(f))) ??
-    functionModules.find((f) => fnStr(f).includes("handleMouseEnter") && fnStr(f).includes("onClick"))
+    functionModules.find((f) => {
+      const source = fnStr(f);
+      return source.includes("leadingIcon") && source.includes("onClick") && (source.includes("handleMouseEnter") || source.includes("autoClose"));
+    })
   );
 }
 
