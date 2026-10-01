@@ -16,17 +16,26 @@ const menuItemDispatcher = (e: Props) => ({
 const menuRowV2 = function ({ forceV2LeadingIcon: a, showFullTextOnHover: b }: Props) {
   return [a, b];
 };
-const legacyMenuItem = ({ onClick }: Props) => {
+// The row 1.3.0 exports, which takes its mouse handlers from a hook.
+const exportedMenuRow = ({ onClick, leadingIcon, autoClose = true, forceV2LeadingIcon }: Props) => [
+  onClick,
+  leadingIcon,
+  autoClose,
+  forceV2LeadingIcon,
+];
+const handlerMenuRow = ({ onClick, leadingIcon }: Props) => {
   const handleMouseEnter = () => undefined;
-  return { handleMouseEnter, onClick };
+  return { handleMouseEnter, onClick, leadingIcon };
 };
 
 test("MenuItem resolves to the dispatcher ahead of other handleMouseEnter components", () => {
   assert.equal(findMenuItem({ functionModules: [waveform, menuRowV2, menuItemDispatcher] }), menuItemDispatcher);
 });
 
-test("MenuItem falls back to the exported legacy row on builds without the dispatcher", () => {
-  assert.equal(findMenuItem({ functionModules: [legacyMenuItem] }), legacyMenuItem);
+test("MenuItem falls back to the exported row, not the waveform scrubber, on builds without the dispatcher", () => {
+  assert.equal(findMenuItem({ functionModules: [waveform, exportedMenuRow] }), exportedMenuRow);
+  assert.equal(findMenuItem({ functionModules: [waveform, handlerMenuRow] }), handlerMenuRow);
+  assert.equal(findMenuItem({ functionModules: [waveform] }), undefined);
 });
 
 test("MenuSubMenuItem resolves through the module that renders the submenu header", () => {
