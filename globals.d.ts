@@ -2147,16 +2147,27 @@ declare namespace Spicetify {
 	const TippyProps: any;
 
 	/**
-	 * Interface for interacting with Spotify client's app title
+	 * Interface for interacting with Spotify client's app title.
+	 * Available once `Spicetify.Platform.UserAPI` has loaded.
 	 */
 	namespace AppTitle {
+		/**
+		 * Subscription returned by Spotify's product state service.
+		 */
+		type Subscription = {
+			/**
+			 * Stop the subscription.
+			 */
+			cancel: () => void;
+		};
 		/**
 		 * Set default app title. This has no effect if the player is running.
 		 * Will override any previous forced title.
 		 * @param title Title to set
-		 * @return Promise that resolves to a function to cancel forced title. This doesn't reset the title.
+		 * @return Promise that resolves to the subscription that keeps re-applying the title.
+		 * Cancelling it stops forcing the title; it doesn't reset the title.
 		 */
-		function set(title: string): Promise<{ clear: () => void }>;
+		function set(title: string): Promise<Subscription>;
 		/**
 		 * Reset app title to default
 		 */
@@ -2170,9 +2181,9 @@ declare namespace Spicetify {
 		 * Subscribe to title changes.
 		 * This event is not fired when the player changes app title.
 		 * @param callback Callback to call when title changes
-		 * @return Object with method to unsubscribe
+		 * @return Subscription to cancel to unsubscribe
 		 */
-		function sub(callback: (title: string) => void): { clear: () => void };
+		function sub(callback: (title: string) => void): Subscription;
 	}
 
 	/**
