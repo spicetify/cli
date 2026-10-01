@@ -540,7 +540,7 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
     // its library, store, or manager surfaces and the user has no way in.
     // Runs before staging so anything seeded is staged in this same apply; a
     // no-op once they exist.
-    super::pkg::ensure_system_modules(ctx);
+    super::pkg::ensure_default_modules(ctx);
     // A Spotify update wipes the binary patch that blocks its updater, and
     // apply is what runs right after one; restore the user's stated policy
     // here rather than leaving them silently unprotected.
