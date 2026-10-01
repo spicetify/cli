@@ -358,37 +358,20 @@ declare namespace Spicetify {
 		 *  - `songchange` type when player changes track.
 		 *  - `onplaypause` type when player plays or pauses.
 		 *  - `onprogress` type when track progress changes.
-		 *  - `appchange` type when user changes page.
 		 */
 		function addEventListener(type: string, callback: (event?: Event) => void): void;
-		function addEventListener(type: "songchange", callback: (event?: Event & { data: PlayerState }) => void): void;
-		function addEventListener(type: "onplaypause", callback: (event?: Event & { data: PlayerState }) => void): void;
+		function addEventListener(type: "songchange", callback: (event?: Event & { data: PlayerState | null }) => void): void;
+		function addEventListener(type: "onplaypause", callback: (event?: Event & { data: PlayerState | null }) => void): void;
 		function addEventListener(type: "onprogress", callback: (event?: Event & { data: number }) => void): void;
-		function addEventListener(
-			type: "appchange",
-			callback: (
-				event?: Event & {
-					data: {
-						/**
-						 * App href path
-						 */
-						path: string;
-						/**
-						 * App container
-						 */
-						container: HTMLElement;
-					};
-				}
-			) => void
-		): void;
 		/**
 		 * Skip to previous track.
 		 */
 		function back(): void;
 		/**
 		 * An object contains all information about current track and player.
+		 * `null` while the player has no current item, and unset until the player first reports a track.
 		 */
-		const data: PlayerState;
+		const data: PlayerState | null;
 		/**
 		 * Decrease a small amount of volume.
 		 */
@@ -400,9 +383,10 @@ declare namespace Spicetify {
 		 *  - `songchange` type when player changes track.
 		 *  - `onplaypause` type when player plays or pauses.
 		 *  - `onprogress` type when track progress changes.
-		 *  - `appchange` type when user changes page.
+		 *
+		 * @return `false` if a listener called `preventDefault()` on the event, `true` otherwise.
 		 */
-		function dispatchEvent(event: Event): void;
+		function dispatchEvent(event: Event): boolean;
 		const eventListeners: {
 			[key: string]: Array<(event?: Event) => void>;
 		};
@@ -481,6 +465,11 @@ declare namespace Spicetify {
 		 * @param position can be in percentage (0 to 1) or in milisecond.
 		 */
 		function seek(position: number): void;
+		/**
+		 * Add the current track to, or remove it from, the user's Liked Songs.
+		 * @param state
+		 */
+		function setHeart(state: boolean): void;
 		/**
 		 * Turn mute on/off
 		 * @param state
@@ -591,6 +580,7 @@ declare namespace Spicetify {
 	/**
 	 * Fetch interesting colors from URI.
 	 * @param uri Any type of URI that has artwork (playlist, track, album, artist, show, ...)
+	 * @return The color presets, or `null` when Spotify returns none for the URI.
 	 */
 	function colorExtractor(uri: string): Promise<{
 		DARK_VIBRANT: string;
@@ -599,7 +589,7 @@ declare namespace Spicetify {
 		PROMINENT: string;
 		VIBRANT: string;
 		VIBRANT_NON_ALARMING: string;
-	}>;
+	} | null>;
 	/**
 	 * @deprecated
 	 */
@@ -693,7 +683,7 @@ declare namespace Spicetify {
 			| "F12"
 			| ";"
 			| "="
-			| " | "
+			| ","
 			| "-"
 			| "."
 			| "/"
@@ -716,6 +706,7 @@ declare namespace Spicetify {
 			| "_"
 			| "+"
 			| ":"
+			| "'"
 			| "<"
 			| ">"
 			| "?"
@@ -762,66 +753,219 @@ declare namespace Spicetify {
 		function set(key: string, value: string): void;
 	}
 	/**
+	 * React-based menu items injected into Spotify's own menus.
+	 * `Spicetify.ContextMenu` and `Spicetify.Menu` are built on these classes.
+	 */
+	namespace ContextMenuV2 {
+		/**
+		 * Value Spicetify provides around each Spotify menu while it renders.
+		 * Outside a menu the fields are absent.
+		 */
+		type Context = {
+			/**
+			 * Props Spotify passed to the menu. They carry the target's `uri`/`uris`, `uid`/`uids` and `contextUri`, or the
+			 * `item`/`reference`/`context` objects those are read from.
+			 */
+			props?: any;
+			/**
+			 * What opened the menu, e.g. `"right-click"` or `"click"`.
+			 */
+			trigger?: string;
+			/**
+			 * Element the menu was opened from.
+			 */
+			target?: HTMLElement;
+		};
+		/**
+		 * Decides whether an item is added to the menu being rendered. Called with the fields of `Context`.
+		 */
+		type ShouldAddCallback = (props: any, trigger?: string, target?: HTMLElement) => boolean;
+		/**
+		 * Entries of a sub menu.
+		 * The sub menu renders them with `Array.prototype.filter`, while `addItem` and `removeItem` call `Set.prototype.add` and
+		 * `Set.prototype.delete`, so only an array renders and only a Set can be changed after construction.
+		 */
+		type SubMenuItems = Array<Item | ItemSubMenu> | Set<Item | ItemSubMenu>;
+
+		/**
+		 * React context Spicetify provides around Spotify's menus. Created by Spotify's patched menu code, or once the webpack
+		 * modules load, whichever comes first.
+		 */
+		let _context: React.Context<Context | null> | undefined;
+
+		/**
+		 * Extract `[uris, uids, contextUri]` from Spotify menu props.
+		 * @return `undefined` if the props carry no URI.
+		 */
+		function parseProps(props: any): [uris: string[], uids: string[] | undefined, contextUri: string | undefined] | undefined;
+		/**
+		 * Add a React element to every Spotify menu for which `shouldAdd` returns true.
+		 */
+		function registerItem(item: React.ReactElement, shouldAdd?: ShouldAddCallback): void;
+		/**
+		 * Remove an element added with `registerItem`.
+		 */
+		function unregisterItem(item: React.ReactElement): void;
+		/**
+		 * Elements Spicetify injects into the menu being rendered. Called from Spotify's patched menu code.
+		 */
+		function renderItems(): React.ReactElement[];
+
+		/**
+		 * A single menu item. Changing a property re-renders the item if it is on screen.
+		 */
+		class Item {
+			constructor(options: {
+				children: React.ReactNode;
+				/**
+				 * @default false
+				 */
+				disabled?: boolean;
+				leadingIcon?: Icon | string;
+				trailingIcon?: Icon | string;
+				divider?: "before" | "after" | "both";
+				onClick: (context: Context, self: Item, event: React.MouseEvent<HTMLButtonElement>) => void;
+				/**
+				 * @default () => true
+				 */
+				shouldAdd?: ShouldAddCallback;
+			});
+			/**
+			 * Read when `register` is called, so changing it afterwards has no effect until the item is registered again.
+			 */
+			shouldAdd: ShouldAddCallback;
+			children: React.ReactNode;
+			disabled: boolean;
+			/**
+			 * Name of an `SVGIcons` entry, or raw SVG markup.
+			 */
+			leadingIcon: Icon | string | undefined;
+			/**
+			 * Name of an `SVGIcons` entry, or raw SVG markup.
+			 */
+			trailingIcon: Icon | string | undefined;
+			divider: "before" | "after" | "both" | undefined;
+			/**
+			 * Start adding the item to menus.
+			 */
+			register(): void;
+			/**
+			 * Stop adding the item to menus.
+			 */
+			deregister(): void;
+		}
+
+		/**
+		 * A menu item that opens a nested menu.
+		 */
+		class ItemSubMenu {
+			/**
+			 * Elements for the entries of `items` whose `shouldAdd` returns true. Sets each nested `ItemSubMenu`'s `depth` to
+			 * `parentDepth + 1`.
+			 */
+			static itemsToComponents(
+				items: Array<Item | ItemSubMenu>,
+				props: any,
+				trigger?: string,
+				target?: HTMLElement,
+				parentDepth?: number
+			): React.ReactElement[];
+			constructor(options: {
+				text: React.ReactNode;
+				/**
+				 * @default false
+				 */
+				disabled?: boolean;
+				leadingIcon?: Icon | string;
+				divider?: "before" | "after" | "both";
+				items: SubMenuItems;
+				/**
+				 * @default 1
+				 */
+				depth?: number;
+				/**
+				 * @default () => true
+				 */
+				shouldAdd?: ShouldAddCallback;
+			});
+			/**
+			 * Read when `register` is called, so changing it afterwards has no effect until the sub menu is registered again.
+			 */
+			shouldAdd: ShouldAddCallback;
+			text: React.ReactNode;
+			disabled: boolean;
+			/**
+			 * Name of an `SVGIcons` entry, or raw SVG markup.
+			 */
+			leadingIcon: Icon | string | undefined;
+			divider: "before" | "after" | "both" | undefined;
+			/**
+			 * Nesting level, used by Spotify to place the nested menu.
+			 */
+			depth: number;
+			/**
+			 * Add an entry. Requires `items` to have been a Set.
+			 */
+			addItem(item: Item | ItemSubMenu): void;
+			/**
+			 * Remove an entry. Requires `items` to have been a Set.
+			 */
+			removeItem(item: Item | ItemSubMenu): void;
+			/**
+			 * Start adding the sub menu to menus.
+			 */
+			register(): void;
+			/**
+			 * Stop adding the sub menu to menus.
+			 */
+			deregister(): void;
+		}
+	}
+
+	/**
 	 * To create and prepend custom menu item in profile menu.
 	 */
 	namespace Menu {
 		/**
 		 * Create a single toggle.
 		 */
-		class Item {
-			constructor(name: string, isEnabled: boolean, onClick: (self: Item) => void, icon?: Icon | string);
-			name: string;
+		class Item extends ContextMenuV2.Item {
+			/**
+			 * @param children Item label
+			 * @param isEnabled Whether the item shows a tick
+			 * @param onClick Called with the item when it is clicked
+			 * @param leadingIcon Name of an `SVGIcons` entry, or raw SVG markup
+			 */
+			constructor(children: React.ReactNode, isEnabled: boolean, onClick: (self: Item) => void, leadingIcon?: Icon | string);
+			/**
+			 * Visually, item has a tick next to it if its state is enabled. Setting it sets `trailingIcon`.
+			 */
 			isEnabled: boolean;
 			/**
-			 * Change item name
-			 */
-			setName(name: string): void;
-			/**
-			 * Change item enabled state.
-			 * Visually, item would has a tick next to it if its state is enabled.
+			 * Change item enabled state. Same as setting `isEnabled`.
 			 */
 			setState(isEnabled: boolean): void;
-			/**
-			 * Change icon
-			 */
-			setIcon(icon: Icon | string): void;
-			/**
-			 * Item is only available in Profile menu when method "register" is called.
-			 */
-			register(): void;
-			/**
-			 * Stop item to be prepended into Profile menu.
-			 */
-			deregister(): void;
 		}
 
 		/**
 		 * Create a sub menu to contain Item toggles.
-		 * `Item`s in `subItems` array shouldn't be registered.
+		 * `Item`s in `items` shouldn't be registered.
 		 */
-		class SubMenu {
-			constructor(name: string, subItems: Item[]);
+		class SubMenu extends ContextMenuV2.ItemSubMenu {
+			/**
+			 * @param name Sub menu label
+			 * @param items Entries of the sub menu, see `ContextMenuV2.SubMenuItems`
+			 * @param icon Name of an `SVGIcons` entry, or raw SVG markup
+			 */
+			constructor(name: string, items: ContextMenuV2.SubMenuItems, icon?: Icon | string);
+			/**
+			 * Sub menu label. Alias of `text`.
+			 */
 			name: string;
 			/**
-			 * Change SubMenu name
+			 * Name of an `SVGIcons` entry, or raw SVG markup. Alias of `leadingIcon`.
 			 */
-			setName(name: string): void;
-			/**
-			 * Add an item to sub items list
-			 */
-			addItem(item: Item): void;
-			/**
-			 * Remove an item from sub items list
-			 */
-			removeItem(item: Item): void;
-			/**
-			 * SubMenu is only available in Profile menu when method "register" is called.
-			 */
-			register(): void;
-			/**
-			 * Stop SubMenu to be prepended into Profile menu.
-			 */
-			deregister(): void;
+			icon: Icon | string | undefined;
 		}
 	}
 
@@ -1105,7 +1249,7 @@ declare namespace Spicetify {
 		 * @param id The id of the artist.
 		 * @return The collection artist URI.
 		 */
-		static collectionAlbumURI(username: string, id: string): URI;
+		static collectionArtistURI(username: string, id: string): URI;
 
 		/**
 		 * Creates a new 'concert' type URI.
@@ -1287,55 +1431,64 @@ declare namespace Spicetify {
 		type ShouldAddCallback = (uris: string[], uids?: string[], contextUri?: string) => boolean;
 
 		// Single context menu item
-		class Item {
+		class Item extends ContextMenuV2.Item {
 			/**
 			 * List of valid icons to use.
 			 */
 			static readonly iconList: Icon[];
-			constructor(name: string, onClick: OnClickCallback, shouldAdd?: ShouldAddCallback, icon?: Icon, disabled?: boolean);
+			/**
+			 * @param name Item label
+			 * @param onClick Called with the target's URIs when the item is clicked
+			 * @param shouldAdd Decides from the target's URIs whether the item is added. Defaults to always.
+			 * @param icon Leading icon: name of an `SVGIcons` entry, or raw SVG markup
+			 * @param trailingIcon Trailing icon: name of an `SVGIcons` entry, or raw SVG markup
+			 * @param disabled Defaults to `false`
+			 */
+			constructor(
+				name: string,
+				onClick: OnClickCallback,
+				shouldAdd?: ShouldAddCallback,
+				icon?: Icon | string,
+				trailingIcon?: Icon | string,
+				disabled?: boolean
+			);
+			/**
+			 * Item label. Alias of `children`.
+			 */
 			name: string;
-			icon: Icon | string;
-			disabled: boolean;
 			/**
-			 * A function returning boolean determines whether item should be prepended.
+			 * Name of an `SVGIcons` entry, or raw SVG markup. Alias of `leadingIcon`.
 			 */
-			shouldAdd: ShouldAddCallback;
-			/**
-			 * A function to call when item is clicked
-			 */
-			onClick: OnClickCallback;
-			/**
-			 * Item is only available in Context Menu when method "register" is called.
-			 */
-			register: () => void;
-			/**
-			 * Stop Item to be prepended into Context Menu.
-			 */
-			deregister: () => void;
+			icon: Icon | string | undefined;
 		}
 
 		/**
 		 * Create a sub menu to contain `Item`s.
-		 * `Item`s in `subItems` array shouldn't be registered.
+		 * `Item`s in `items` shouldn't be registered.
 		 */
-		class SubMenu {
-			constructor(name: string, subItems: Iterable<Item>, shouldAdd?: ShouldAddCallback, disabled?: boolean);
+		class SubMenu extends ContextMenuV2.ItemSubMenu {
+			/**
+			 * List of valid icons to use.
+			 */
+			static readonly iconList: Icon[];
+			/**
+			 * @param name Sub menu label
+			 * @param items Entries of the sub menu, see `ContextMenuV2.SubMenuItems`
+			 * @param shouldAdd Decides from the target's URIs whether the sub menu is added. Defaults to always.
+			 * @param disabled Defaults to `false`
+			 * @param icon Leading icon: name of an `SVGIcons` entry, or raw SVG markup
+			 */
+			constructor(
+				name: string,
+				items: ContextMenuV2.SubMenuItems,
+				shouldAdd?: ShouldAddCallback,
+				disabled?: boolean,
+				icon?: Icon | string
+			);
+			/**
+			 * Sub menu label. Alias of `text`.
+			 */
 			name: string;
-			disabled: boolean;
-			/**
-			 * A function returning boolean determines whether item should be prepended.
-			 */
-			shouldAdd: ShouldAddCallback;
-			addItem: (item: Item) => void;
-			removeItem: (item: Item) => void;
-			/**
-			 * SubMenu is only available in Context Menu when method "register" is called.
-			 */
-			register: () => void;
-			/**
-			 * Stop SubMenu to be prepended into Context Menu.
-			 */
-			deregister: () => void;
 		}
 	}
 
@@ -1863,20 +2016,107 @@ declare namespace Spicetify {
 		 * @see Spicetify.ReactComponent.ButtonProps
 		 */
 		const ButtonTertiary: any;
+		/**
+		 * Component Spotify uses for a menu item that opens a nested menu.
+		 * Used by `Spicetify.ContextMenuV2.ItemSubMenu`.
+		 */
+		const MenuSubMenuItem: any;
+		/**
+		 * Provider of Spotify's remote configuration
+		 */
+		const RemoteConfigProvider: any;
+		/**
+		 * Spotify snackbar building blocks
+		 */
+		const Snackbar: {
+			wrapper: any;
+			simpleLayout: any;
+			ctaText: any;
+			styledImage: any;
+		};
+		/**
+		 * Component to render Spotify chip
+		 */
+		const Chip: any;
+		/**
+		 * Component to render Spotify dropdown
+		 */
+		const Dropdown: any;
+		/**
+		 * Component to render Spotify toggle switch
+		 */
+		const Toggle: any;
+		/**
+		 * Card components from Spotify library. A key is `undefined` when its component was not found in this Spotify version.
+		 */
+		const Cards: {
+			Default: any;
+			FeatureCard: any;
+			Hero: any;
+			CardImage: any;
+			Album: any;
+			Artist: any;
+			Audiobook: any;
+			Episode: any;
+			Playlist: any;
+			Profile: any;
+			Show: any;
+			Track: any;
+		};
+		/**
+		 * React Router components used by Spotify
+		 */
+		const Router: any;
+		const Routes: any;
+		const Route: any;
+		/**
+		 * Redux store provider used by Spotify
+		 */
+		const StoreProvider: any;
+		/**
+		 * Horizontally scrolling container with chevron buttons, implemented by Spicetify
+		 */
+		const ScrollableContainer: any;
+		/**
+		 * Spotify's in-app navigation link component, taking the route in `to`
+		 */
+		const Navigation: any;
 	}
 
 	/**
 	 * Add button in top bar next to navigation buttons
 	 */
 	namespace Topbar {
+		/**
+		 * The button is added as soon as it is created. There is no way to remove it other than removing `element`.
+		 */
 		class Button {
+			/**
+			 * @param label Tooltip and `aria-label`
+			 * @param icon Name of an `SVGIcons` entry, or raw SVG markup
+			 * @param onClick Called with the button when it is clicked
+			 * @param disabled Defaults to `false`
+			 * @param isRight Add the button to the right-side action buttons instead of next to the navigation buttons. Defaults to `false`.
+			 */
 			constructor(label: string, icon: Icon | string, onClick: (self: Button) => void, disabled?: boolean, isRight?: boolean);
 			label: string;
+			/**
+			 * Set with an `SVGIcons` name or SVG markup; reads back the SVG markup rendered into `button`.
+			 */
 			icon: string;
 			onClick: (self: Button) => void;
 			disabled: boolean;
-			isRight: boolean;
-			element: HTMLButtonElement;
+			/**
+			 * Wrapper element added to the top bar, containing `button`.
+			 */
+			element: HTMLDivElement;
+			/**
+			 * The button itself.
+			 */
+			button: HTMLButtonElement;
+			/**
+			 * Tooltip instance, or `undefined` if `Spicetify.Tippy` was not available when the button was created.
+			 */
 			tippy: any;
 		}
 	}
@@ -1903,6 +2143,10 @@ declare namespace Spicetify {
 			disabled: boolean;
 			active: boolean;
 			element: HTMLButtonElement;
+			/**
+			 * Element inside `element` that holds the icon markup.
+			 */
+			iconElement: HTMLSpanElement;
 			tippy: any;
 			register: () => void;
 			deregister: () => void;
@@ -1959,16 +2203,27 @@ declare namespace Spicetify {
 	const TippyProps: any;
 
 	/**
-	 * Interface for interacting with Spotify client's app title
+	 * Interface for interacting with Spotify client's app title.
+	 * Available once `Spicetify.Platform.UserAPI` has loaded.
 	 */
 	namespace AppTitle {
+		/**
+		 * Subscription returned by Spotify's product state service.
+		 */
+		type Subscription = {
+			/**
+			 * Stop the subscription.
+			 */
+			cancel: () => void;
+		};
 		/**
 		 * Set default app title. This has no effect if the player is running.
 		 * Will override any previous forced title.
 		 * @param title Title to set
-		 * @return Promise that resolves to a function to cancel forced title. This doesn't reset the title.
+		 * @return Promise that resolves to the subscription that keeps re-applying the title.
+		 * Cancelling it stops forcing the title; it doesn't reset the title.
 		 */
-		function set(title: string): Promise<{ clear: () => void }>;
+		function set(title: string): Promise<Subscription>;
 		/**
 		 * Reset app title to default
 		 */
@@ -1982,9 +2237,9 @@ declare namespace Spicetify {
 		 * Subscribe to title changes.
 		 * This event is not fired when the player changes app title.
 		 * @param callback Callback to call when title changes
-		 * @return Object with method to unsubscribe
+		 * @return Subscription to cancel to unsubscribe
 		 */
-		function sub(callback: (title: string) => void): { clear: () => void };
+		function sub(callback: (title: string) => void): Subscription;
 	}
 
 	/**
@@ -2405,5 +2660,388 @@ declare namespace Spicetify {
 		 * @return Locale uppercase text
 		 */
 		function toLocaleUpperCase(text: string): string;
+	}
+
+	/**
+	 * One-shot lifecycle events of the Spicetify wrapper
+	 */
+	namespace Events {
+		interface Event {
+			/**
+			 * Call `callback` when the event fires. If it has already fired, `callback` runs immediately.
+			 */
+			on(callback: () => void): void;
+		}
+		/**
+		 * Fires once Spotify's webpack modules have loaded, before Spicetify exposes them.
+		 */
+		const platformLoaded: Event;
+		/**
+		 * Fires once Spicetify has exposed the webpack-extracted APIs (`React`, `ReactComponent`, `URI`, `Locale`, ...).
+		 */
+		const webpackLoaded: Event;
+	}
+
+	/**
+	 * The modular loader's runtime API.
+	 *
+	 * Only exists after the loader has booted: it is set once every staged module has run its `load`, and never set when the
+	 * apply staged no modules.
+	 */
+	namespace Modules {
+		type Kind = "extension" | "theme" | "snippet" | "app" | "lib";
+		interface Metadata {
+			name: string;
+			/**
+			 * What the module is. Exactly one theme may be loaded at a time.
+			 */
+			kind?: Kind;
+			/**
+			 * Classification used before `kind`, still staged by older CLIs.
+			 */
+			tags?: string[];
+			version: string;
+			authors: string[];
+			description: string;
+			/**
+			 * Entry files, relative to the module's folder.
+			 */
+			entries: { js?: string; css?: string };
+			hasMixins: boolean;
+			/**
+			 * Module identifier to semver range.
+			 */
+			dependencies: Record<string, string>;
+			/**
+			 * Older versions this module still satisfies dependency ranges for.
+			 */
+			compat?: string[];
+		}
+		interface ManifestModule extends Metadata {
+			identifier: string;
+		}
+		/**
+		 * The manifest written by `spicetify apply`, with local installs merged in.
+		 */
+		interface Manifest {
+			spotifyVersion: string;
+			classmapKey: string;
+			cliVersion?: string;
+			updatesBlocked?: boolean;
+			managedSpotify?: "stable" | "testing";
+			classmapSpotify?: string;
+			classmapVerified?: boolean;
+			supportedSpotify?: string;
+			classmapFallback?: boolean;
+			classmap?: Record<string, unknown>;
+			modules: ManifestModule[];
+		}
+		interface BootReport {
+			/**
+			 * Identifiers loaded this session, in load order.
+			 */
+			loaded: string[];
+			/**
+			 * Identifier to the reason it failed to load.
+			 */
+			failed: Record<string, string>;
+		}
+		interface ModuleState {
+			identifier: string;
+			version: string;
+			loaded: boolean;
+			mixedIn: boolean;
+			/**
+			 * Whether the module runs from a local (localStorage) install.
+			 */
+			local: boolean;
+			/**
+			 * Reason the module failed to load, if it did.
+			 */
+			failed?: string;
+		}
+		/**
+		 * A module installed into localStorage by `installLocal`.
+		 */
+		interface LocalRecord {
+			metadata: ManifestModule;
+			sidecar: { installed_version: string; classmap_base: string; allow_stale: boolean };
+			/**
+			 * File path within the module to its content, remapped against the bundled classmap.
+			 */
+			files: Record<string, string>;
+			installedAt: number;
+			/**
+			 * Classmap key the files were remapped against. Absent on records from older loaders.
+			 */
+			remapKey?: string;
+		}
+		/**
+		 * The loader's registry of known modules. Only its read-only members are declared here.
+		 */
+		interface Registry {
+			get(identifier: string): ManifestModule | undefined;
+			isLoaded(identifier: string): boolean;
+			/**
+			 * Whether the user disabled the module. A disabled module is skipped at boot.
+			 */
+			isDisabled(identifier: string): boolean;
+			hasLocal(identifier: string): boolean;
+			list(report?: BootReport): ModuleState[];
+		}
+
+		const report: BootReport;
+		const manifest: Manifest;
+		const registry: Registry;
+		/**
+		 * URL a staged module file is served from.
+		 * @return `/modules/<identifier>/<entry>`
+		 */
+		function entryUrl(identifier: string, entry: string): string;
+		/**
+		 * State of every known module.
+		 */
+		function list(): ModuleState[];
+		/**
+		 * Color schemes of a loaded theme module, from its `color.ini` sections.
+		 * @return `null` if the module has no applied scheme
+		 */
+		function schemes(identifier: string): { active: string; names: string[] } | null;
+		/**
+		 * Switch a theme module's color scheme live and remember the choice.
+		 * @return `false` if the module has no applied scheme or no scheme with that name
+		 */
+		function setScheme(identifier: string, name: string): boolean;
+		/**
+		 * Load a module and clear the user's persisted disable once it loads. Its dependencies must be installed at matching
+		 * versions and not disabled; they are not loaded for it. Loading a theme unloads the other theme.
+		 * @return `false` if the module is already loaded, or could not load; the reason for the latter is in `report.failed`
+		 */
+		function enable(identifier: string): Promise<boolean>;
+		/**
+		 * Unload a module and its loaded dependents, and persist the disable so later boots skip it.
+		 * @return `false` if the module was not loaded
+		 */
+		function disable(identifier: string): Promise<boolean>;
+		/**
+		 * Unload a module and its loaded dependents for this session only.
+		 * @return `false` if the module was not loaded
+		 */
+		function unload(identifier: string): Promise<boolean>;
+		/**
+		 * Unload, then load a module again.
+		 * @return The result of loading it, as for `enable`
+		 */
+		function reload(identifier: string): Promise<boolean>;
+		/**
+		 * Install a module into localStorage, remapped against the bundled classmap, and load it unless the user disabled it.
+		 * @throws If the manifest has no bundled classmap
+		 * @return `{ requiresRestart: true }` when a multi-file module is already loaded and the new files take over on the
+		 * next boot, `{ disabled: true }` when the module stays disabled, otherwise the result of loading it.
+		 */
+		function installLocal(
+			identifier: string,
+			record: { metadata: ManifestModule; files: Record<string, string>; sidecar: object }
+		): Promise<boolean | { requiresRestart: true } | { disabled: true }>;
+		/**
+		 * Remove a module installed with `installLocal`. If a staged copy exists, it is restored and loaded again if the
+		 * local copy was loaded.
+		 * @throws If the removal is refused
+		 * @return `{ revertedTo }` with the staged version that remains installed, `{ requiresRestart: true }` when the running
+		 * code only goes away on the next boot, or `undefined` when the module is gone or there was nothing to remove.
+		 */
+		function removeLocal(identifier: string): Promise<{ revertedTo: string } | { requiresRestart: true } | undefined>;
+		/**
+		 * Every module record installed into localStorage.
+		 */
+		function listLocal(): LocalRecord[];
+	}
+
+	/**
+	 * Calls into the local Spicetify daemon (`127.0.0.1:7967`).
+	 *
+	 * All members are always present. Except for `available`, `daemonInfo` and `updateAndApplySupported`, they need the
+	 * token a v3 `spicetify apply` injects into the client and reject without it. They reject when the daemon is not running.
+	 */
+	namespace Daemon {
+		type UpdateJobFailureCode =
+			| "unsupported-platform"
+			| "unsupported-target"
+			| "update-unavailable"
+			| "renderer-timeout"
+			| "client-not-loaded"
+			| "spotify-update-failed"
+			| "apply-failed"
+			| "securing-failed";
+		/**
+		 * State of the daemon's Update & Apply job.
+		 */
+		type UpdateJobStatus =
+			| { kind: "idle" }
+			| { kind: "accepted"; jobId: string; fromVersion: string }
+			| { kind: "waiting-for-update"; jobId: string; fromVersion: string }
+			| { kind: "downloading"; jobId: string; targetVersion: string }
+			| { kind: "installing-spotify"; jobId: string; targetVersion: string }
+			| { kind: "applying-spicetify"; jobId: string; targetVersion: string }
+			| { kind: "securing"; jobId: string; targetVersion: string | null; message: string | null; manualRecovery: boolean }
+			| { kind: "complete"; jobId: string; fromVersion: string; toVersion: string }
+			| { kind: "failed-safe"; jobId: string; code: UpdateJobFailureCode; message: string };
+		/**
+		 * Answer to starting a daemon job. `joined` means a job was already running and `jobId` is that job.
+		 */
+		type JobAdmission = { jobId: string; disposition: "accepted" | "joined" };
+		type ManagedSpotifyStatus = {
+			installation:
+				| { kind: "external" }
+				| { kind: "unavailable"; message: string }
+				| { kind: "managed"; version: string; channel: "stable" | "testing"; nativeBlocked: boolean | null };
+			job:
+				| { kind: "idle" }
+				| { kind: "running"; jobId: string; phase: "checking" | "downloading" | "preparing" | "activating" }
+				| { kind: "complete"; jobId: string }
+				| { kind: "failed"; jobId: string; message: string };
+		};
+		type ManagedSpotifyUpdate =
+			| { kind: "current"; version: string }
+			| { kind: "ready"; version: string }
+			| { kind: "unavailable"; version: string; message: string };
+
+		/**
+		 * Whether the daemon answers its health check.
+		 */
+		function available(): Promise<boolean>;
+		/**
+		 * Send a `spicetify:` command URI over the daemon's RPC socket.
+		 * @param options.expectReply Defaults to `true`. With `false`, resolves `null` as soon as the command is sent, for
+		 * commands that restart the client before they can answer.
+		 * @param options.timeoutMs Defaults to 15000
+		 * @return The daemon's reply text
+		 */
+		function send(uri: string, options?: { expectReply?: boolean; timeoutMs?: number }): Promise<string | null>;
+		/**
+		 * Run `spicetify apply`. This restarts the client, so the promise resolves once the daemon has the command.
+		 */
+		function apply(): Promise<null>;
+		/**
+		 * Block Spotify's own updates. This restarts the client, so the promise resolves once the daemon has the command.
+		 */
+		function blockUpdates(): Promise<null>;
+		/**
+		 * Unblock Spotify's own updates. This restarts the client, so the promise resolves once the daemon has the command.
+		 */
+		function unblockUpdates(): Promise<null>;
+		/**
+		 * The daemon's version and automatic-update setting. A field is `null` when the daemon predates it.
+		 * @return `null` if the daemon is not reachable
+		 */
+		function daemonInfo(): Promise<{
+			version: string | null;
+			/**
+			 * The automatic-update setting.
+			 */
+			autoUpdate: boolean | null;
+			/**
+			 * Whether the setting takes effect: only an install in the official installer's folder updates itself.
+			 */
+			autoUpdateActive: boolean | null;
+		} | null>;
+		/**
+		 * Turn the daemon's automatic updates on or off. Resolves once `config.toml` records the choice.
+		 */
+		function setAutoUpdate(on: boolean): Promise<string>;
+		/**
+		 * Uninstall a module the CLI staged on disk, then run `spicetify apply`, which restarts the client.
+		 */
+		function uninstallStaged(identifier: string, version: string): Promise<null>;
+		/**
+		 * Take ownership of the native window controls hit-test filter for as long as the socket stays open.
+		 * Needs a daemon that supports it; the filter only exists on Windows.
+		 * @param onDisconnect Called if the connection drops after it was acquired
+		 * @param options.timeoutMs Defaults to 15000
+		 * @return Resolves once the daemon is ready. `release()` resolves after the daemon removes the filter.
+		 */
+		function acquireWindowControls(
+			onDisconnect: (error: Error) => void,
+			options?: { timeoutMs?: number }
+		): Promise<{ release(): Promise<void> }>;
+		/**
+		 * Whether one-step Update & Apply can run: the daemon supports it on this platform (macOS) and Spotify's updater API
+		 * is present in this client.
+		 * @return `null` if the daemon is not reachable or predates the check
+		 */
+		function updateAndApplySupported(): Promise<boolean | null>;
+		/**
+		 * Update Spotify through its own updater, then re-apply Spicetify.
+		 * @throws If Spotify's updater API is missing, or the daemon refuses the job
+		 */
+		const updateAndApply: {
+			(): Promise<JobAdmission>;
+			/**
+			 * Follow the job's status, polled every second. `listener` is called immediately with the last known status.
+			 * @return Function to stop listening
+			 */
+			observe(listener: (status: UpdateJobStatus) => void): () => void;
+		};
+		/**
+		 * Spotify installs the CLI manages itself. Only implemented on Linux; elsewhere `check` and `update` reject and
+		 * `status` reports an external installation.
+		 */
+		namespace managedSpotify {
+			/**
+			 * @return `null` if the daemon predates managed installs
+			 */
+			function status(): Promise<ManagedSpotifyStatus | null>;
+			/**
+			 * Check the managed install's channel for a newer Spotify package.
+			 */
+			function check(): Promise<ManagedSpotifyUpdate>;
+			/**
+			 * Start updating the managed Spotify install. Follow progress with `status()`.
+			 */
+			function update(): Promise<JobAdmission>;
+		}
+	}
+
+	/**
+	 * Proxy for requests the client cannot make directly because of CORS.
+	 *
+	 * By default requests go through the local daemon and fall back to the hosted proxy when the daemon does not answer. A
+	 * custom template replaces both.
+	 */
+	namespace CORSProxy {
+		type Configuration = {
+			mode: "automatic" | "custom";
+			/**
+			 * The custom template, or `null` in automatic mode.
+			 */
+			template: string | null;
+			/**
+			 * Templates tried in order in automatic mode.
+			 */
+			automaticTemplates: string[];
+		};
+		/**
+		 * URL of `target` through the first proxy template.
+		 */
+		function url(target: string): string;
+		/**
+		 * Fetch `target` through the proxy. A template is only skipped when its request fails without a response; an HTTP
+		 * error response is returned as is.
+		 */
+		function fetch(target: string, options?: RequestInit): Promise<Response>;
+		/**
+		 * Templates in the order they are tried. Each contains `{url}`, replaced by the target URL.
+		 */
+		function templates(): string[];
+		function configuration(): Configuration;
+		/**
+		 * Switch to automatic mode, or to a custom template that is saved to localStorage.
+		 * @throws {TypeError} If a custom template is not a valid absolute http(s) URL template containing `{url}`
+		 */
+		function configure(options: { mode: "automatic" } | { mode: "custom"; template: string }): Configuration;
+		/**
+		 * Whether `template` is a string containing `{url}` that forms an http(s) URL.
+		 */
+		function isValidTemplate(template: unknown): boolean;
 	}
 }
