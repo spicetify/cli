@@ -1,7 +1,8 @@
 import { waitFor } from "./shared/async.js";
 
 Spicetify.getAudioData = async (uri) => {
-  const providedURI = uri || Spicetify.Player.data.item.uri;
+  const providedURI = uri || Spicetify.Player.data?.item?.uri;
+  if (!providedURI) throw "URI is invalid.";
   const uriObj = Spicetify.URI.from?.(providedURI) ?? Spicetify.URI.fromString?.(providedURI);
   if (!uriObj || (uriObj.Type || uriObj.type) !== Spicetify.URI.Type.TRACK) {
     throw "URI is invalid.";
