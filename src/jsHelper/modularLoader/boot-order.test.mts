@@ -42,6 +42,25 @@ describe("modular loader boot order", () => {
     assert.equal(typeof captured, "function");
   });
 
+  it("returns without waiting when push runs the runtime callback synchronously", async () => {
+    let waits = 0;
+    let captured: unknown;
+    const ok = await captureModule!.captureWebpackRequire({
+      maxWaitMs: 30000,
+      now: Date.now,
+      wait: async () => {
+        waits++;
+      },
+      getQueue: () => ({
+        push: (chunk: unknown[]) => (chunk[2] as (require: unknown) => unknown)(() => "webpack"),
+      }),
+      getCaptured: () => captured,
+      setCaptured: (require) => (captured = require),
+    });
+    assert.equal(ok, true);
+    assert.equal(waits, 0);
+  });
+
   it("times out when queue push never invokes the runtime callback", async () => {
     let now = 0;
     const ok = await captureModule!.captureWebpackRequire({

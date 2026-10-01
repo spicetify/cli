@@ -14,6 +14,7 @@ import {
 } from "./shared/daemonRpc.js";
 import { managedSpotify } from "./shared/managedSpotify.js";
 import { installUpdateJobBridge, updateAndApply, updateApiSupported } from "./shared/updateAndApply.js";
+import { isVersionBefore } from "./shared/version.js";
 
 const updateAndApplySupported = async () => {
   const daemonSupported = await daemonUpdateAndApplySupported();
@@ -100,8 +101,7 @@ function applyScrollingFix() {
   }
 
   // Run only for 1.2.56 and lower
-  const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
-  if (version[1] >= 2 && version[2] >= 57) return;
+  if (!isVersionBefore(Spicetify.Platform.version, [1, 2, 57])) return;
 
   const scrollableElements = Array.from(document.querySelectorAll("*:not([data-scroll-optimized])")).filter((el) => {
     if (

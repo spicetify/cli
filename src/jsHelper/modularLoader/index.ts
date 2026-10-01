@@ -71,9 +71,31 @@ async function cssFromSource(text: string): Promise<CSSStyleSheet | string> {
 	return text;
 }
 
+const prefetchedCss = new Map<string, Promise<string>>();
+
+function prefetch(path: string, kind: "js" | "css"): void {
+	if (kind === "js") {
+		const link = document.createElement("link");
+		link.rel = "modulepreload";
+		link.href = path;
+		document.head.appendChild(link);
+		return;
+	}
+	if (prefetchedCss.has(path)) return;
+	const text = fetch(path).then((res) => res.text());
+	// loadCss reports a failed prefetch when it falls back to its own fetch.
+	text.catch(() => {});
+	prefetchedCss.set(path, text);
+}
+
 async function loadCss(path: string): Promise<CSSStyleSheet | string> {
-	const res = await fetch(path);
-	return cssFromSource(await res.text());
+	const prefetched = prefetchedCss.get(path);
+	prefetchedCss.delete(path);
+	const text = await prefetched?.catch((e: unknown) => {
+		log("error")(`prefetch of ${path} failed; fetching again`, e);
+		return undefined;
+	});
+	return cssFromSource(text ?? (await (await fetch(path)).text()));
 }
 
 // parseColorSchemes parses classic spicetify color.ini into named
@@ -276,16 +298,25 @@ async function applyScheme(identifier: string, source?: string): Promise<(() => 
 	};
 }
 
-function adoptCss(sheet: unknown): () => void {
+const themeSheets = new Set<CSSStyleSheet>();
+
+// Theme sheets stay after every other module sheet, so a theme overrides
+// extension styles at equal specificity whatever order modules load in.
+export function adoptCss(sheet: unknown, options: { theme?: boolean } = {}): () => void {
 	if (sheet instanceof CSSStyleSheet) {
-		document.adoptedStyleSheets.push(sheet);
+		const sheets = document.adoptedStyleSheets;
+		const at = options.theme ? -1 : sheets.findIndex((s) => themeSheets.has(s));
+		if (options.theme) themeSheets.add(sheet);
+		document.adoptedStyleSheets = at < 0 ? [...sheets, sheet] : [...sheets.slice(0, at), sheet, ...sheets.slice(at)];
 		return () => {
+			themeSheets.delete(sheet);
 			document.adoptedStyleSheets = document.adoptedStyleSheets.filter((s) => s !== sheet);
 		};
 	}
 	const el = document.createElement("style");
 	el.textContent = String(sheet);
-	document.head.appendChild(el);
+	if (options.theme) el.dataset.spicetifyTheme = "";
+	document.head.insertBefore(el, options.theme ? null : document.head.querySelector("style[data-spicetify-theme]"));
 	return () => el.remove();
 }
 
@@ -383,7 +414,7 @@ async function waitForClient(timeoutMs: number): Promise<boolean> {
 	// Base gate: the main view is mounted and the Platform API is up.
 	while (Date.now() < deadline) {
 		if (document.querySelector("main") && spice()?.Platform) break;
-		await new Promise((r) => setTimeout(r, 200));
+		await new Promise((r) => setTimeout(r, 25));
 	}
 	if (!(document.querySelector("main") && spice()?.Platform)) return false;
 	// Platform lands before the webpack-extracted surface (URI, Mousetrap,
@@ -486,6 +517,7 @@ async function boot(): Promise<BootReport | null> {
 		importSource,
 		loadCss,
 		cssFromSource,
+		prefetch,
 		adoptCss,
 		applyScheme,
 		activeThemePref: {
@@ -508,12 +540,14 @@ async function boot(): Promise<BootReport | null> {
 	(globalThis as never as Record<string, unknown>).CHUNKS ??= {};
 	await registry.runMixins(report);
 	await bootClient(transforms);
+	registry.prefetchLoads(report);
 
 	if (!(await waitForClient(15000))) {
 		log("error")("client did not come up in time; running module loads anyway");
 	}
 	await captureWebpackRequire();
 	await registry.runLoads(report);
+	prefetchedCss.clear();
 
 	globalThis.Spicetify = globalThis.Spicetify ?? {};
 	const modules = (globalThis.Spicetify as Record<string, unknown>).Modules = {

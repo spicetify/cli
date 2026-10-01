@@ -23,6 +23,8 @@ export async function captureWebpackRequire(options: WebpackCaptureOptions): Pro
 					return require;
 				},
 			]);
+			// The runtime usually runs the chunk callback inside push.
+			if (typeof options.getCaptured() === "function") return true;
 		}
 		// Capture is an ordered poll: each wait must observe whether the runtime
 		// callback fired before another attempt or the deadline check.

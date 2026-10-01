@@ -68,6 +68,11 @@ pub(crate) struct StagedModule {
     pub identifier: String,
     #[serde(flatten)]
     pub metadata: ModuleMetadata,
+    /// Every other script of a multi-file module, relative to its directory,
+    /// so the loader can fetch the whole tree while the client boots instead
+    /// of one import level at a time.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub preload: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -280,6 +285,49 @@ fn remap_source(
     Err(anyhow::anyhow!("classmap references failed ({})", parts.join("; ")))
 }
 
+// module_scripts lists a staged module's JavaScript files other than its
+// entry, sorted, when it has a JS entry and more than one script. Tests,
+// specs and tool configs are left out; hidden directories are kept because
+// pnpm installs dependencies under node_modules/.pnpm.
+fn module_scripts(dir: &Path, entry: Option<&str>) -> Vec<String> {
+    fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) {
+        let Ok(entries) = std::fs::read_dir(dir) else { return };
+        for entry in entries.filter_map(std::result::Result::ok) {
+            let path = entry.path();
+            let Some(name) = path.file_name().and_then(|n| n.to_str()) else { continue };
+            if path.is_dir() {
+                if name != "__tests__" {
+                    walk(root, &path, out);
+                }
+                continue;
+            }
+            let script = path
+                .extension()
+                .and_then(|e| e.to_str())
+                .is_some_and(|e| e.eq_ignore_ascii_case("js") || e.eq_ignore_ascii_case("mjs"));
+            if !script || [".test.", ".spec.", ".config."].iter().any(|part| name.contains(part)) {
+                continue;
+            }
+            if let Ok(relative) = path.strip_prefix(root) {
+                let parts: Vec<_> =
+                    relative.components().map(|c| c.as_os_str().to_string_lossy()).collect();
+                out.push(parts.join("/"));
+            }
+        }
+    }
+    let Some(entry) = entry.map(|e| e.trim_start_matches("./")) else {
+        return Vec::new();
+    };
+    let mut scripts = Vec::new();
+    walk(dir, dir, &mut scripts);
+    if scripts.len() < 2 {
+        return Vec::new();
+    }
+    scripts.retain(|script| script != entry);
+    scripts.sort();
+    scripts
+}
+
 fn stage_tree(
     src_root: &Path,
     out_dir: &Path,
@@ -407,7 +455,8 @@ pub(crate) fn stage_modules(
             tracing::warn!("skipping module {identifier}: {e}");
             continue;
         }
-        staged.push(StagedModule { identifier, metadata });
+        let preload = module_scripts(&out_dir, metadata.entries.get("js").and_then(|v| v.as_str()));
+        staged.push(StagedModule { identifier, metadata, preload });
     }
 
     if staged.is_empty() {
@@ -515,6 +564,43 @@ mod tests {
         .expect("index");
 
         assert_eq!(find_classmap_file(&root, "1020097"), None);
+        std::fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn lists_the_other_scripts_of_a_multi_file_module() {
+        let root = scratch("module-scripts");
+        let tree = root.join("tree");
+        for dir in ["src/webpack", "node_modules/.pnpm/dep", "__tests__"] {
+            std::fs::create_dir_all(tree.join(dir)).expect("tree dirs");
+        }
+        for file in [
+            "index.js",
+            "load.js",
+            "src/webpack/index.js",
+            "src/util.test.mjs",
+            "src/util.spec.js",
+            "vite.config.js",
+            "node_modules/.pnpm/dep/index.js",
+            "__tests__/a.js",
+            "index.css",
+            "index.js.map",
+        ] {
+            std::fs::write(tree.join(file), "").expect("tree file");
+        }
+        assert_eq!(
+            module_scripts(&tree, Some("./index.js")),
+            vec!["load.js", "node_modules/.pnpm/dep/index.js", "src/webpack/index.js"]
+        );
+        assert!(
+            module_scripts(&tree, None).is_empty(),
+            "without a JS entry nothing imports the scripts"
+        );
+
+        let single = root.join("single");
+        std::fs::create_dir_all(&single).expect("single dir");
+        std::fs::write(single.join("index.js"), "").expect("single entry");
+        assert!(module_scripts(&single, Some("index.js")).is_empty());
         std::fs::remove_dir_all(root).expect("cleanup");
     }
 

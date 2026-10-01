@@ -739,3 +739,80 @@ describe("persisted disable", () => {
 		assert.equal(await r.disable("ext"), true, "disable still unloads without persistence");
 	});
 });
+
+describe("boot load order and prefetch", () => {
+	const theme = (id: string, deps: Record<string, string> = {}) =>
+		mod(id, "1.0.0", { kind: "theme", entries: { js: "index.js", css: "index.css" }, dependencies: deps });
+
+	it("loads the boot theme and its dependencies before other extensions", async () => {
+		const calls: string[] = [];
+		const r = new Registry(
+			manifest([
+				mod("stdlib", "1.0.0"),
+				mod("alpha", "1.0.0", { dependencies: { stdlib: "^1.0.0" } }),
+				mod("chrome", "1.0.0"),
+				theme("zeta", { chrome: "^1.0.0", stdlib: "^1.0.0" }),
+			]),
+			trackingEffects(calls),
+		);
+		const report = await r.boot();
+		assert.deepEqual(report.failed, {});
+		const imports = calls.filter((c) => c.startsWith("import:")).map((c) => c.split("/")[2]);
+		assert.deepEqual(imports, ["stdlib", "chrome", "zeta", "alpha"]);
+	});
+
+	it("prefetches only the staged entries boot will import or adopt", async () => {
+		const prefetched: string[] = [];
+		const effects = { ...trackingEffects([]), prefetch: (path: string, kind: string) => prefetched.push(`${kind}:${path}`) };
+		const r = new Registry(
+			manifest([
+				mod("stdlib", "1.0.0"),
+				mod("mixer", "1.0.0", {
+					hasMixins: true,
+					entries: { js: "index.js", css: "index.css" },
+					preload: ["load.js", "src/util.js"],
+				}),
+				mod("off", "1.0.0"),
+				mod("needs-off", "1.0.0", { dependencies: { off: "^1.0.0" } }),
+				mod("after-needs-off", "1.0.0", { dependencies: { "needs-off": "^1.0.0" } }),
+				mod("local", "1.0.0"),
+				theme("theme-a"),
+				theme("theme-b"),
+			]),
+			{ ...effects, disabledPref: { get: () => ["off"], add: () => {}, remove: () => {} } },
+		);
+		r.registerLocal({ metadata: mod("local", "1.0.0"), files: { "index.js": "" } });
+		const report = { loaded: [], failed: {} };
+		await r.runMixins(report);
+		r.prefetchLoads(report);
+		assert.deepEqual(prefetched, [
+			"js:/modules/theme-b/index.js",
+			"css:/modules/theme-b/index.css",
+			"js:/modules/stdlib/index.js",
+			"js:/modules/mixer/load.js",
+			"js:/modules/mixer/src/util.js",
+			"css:/modules/mixer/index.css",
+		]);
+	});
+
+	it("looks up a color scheme only for themes", async () => {
+		const schemes: string[] = [];
+		const effects = {
+			...trackingEffects([]),
+			applyScheme: async (id: string) => {
+				schemes.push(id);
+				return null;
+			},
+		};
+		const r = new Registry(
+			manifest([mod("styled", "1.0.0", { entries: { js: "index.js", css: "index.css" } }), theme("theme-a")]),
+			effects,
+		);
+		const report = await r.boot();
+		assert.deepEqual(report.failed, {});
+		assert.deepEqual(schemes, ["theme-a"]);
+		await r.unload("styled");
+		await r.enable("styled", report);
+		assert.deepEqual(schemes, ["theme-a"]);
+	});
+});

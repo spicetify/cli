@@ -29,6 +29,9 @@ export interface ModuleMetadata {
 
 export interface ManifestModule extends ModuleMetadata {
 	identifier: string;
+	// Every other script of a staged multi-file module, relative to its
+	// directory (absent in manifests from older CLIs).
+	preload?: string[];
 }
 
 export type Classmap = Record<string, unknown>;
@@ -77,7 +80,7 @@ export interface Effects {
 	importSource(content: string): Promise<JsIndex>;
 	loadCss(path: string): Promise<unknown>;
 	cssFromSource(content: string): Promise<unknown>;
-	adoptCss(sheet: unknown): DisposeFn;
+	adoptCss(sheet: unknown, options?: { theme?: boolean }): DisposeFn;
 	createTransformer(): TransformerShim;
 	applyScheme?(identifier: string, source?: string): Promise<DisposeFn | null>;
 	// Persisted "last theme the user enabled": boot prefers it over manifest
@@ -88,6 +91,8 @@ export interface Effects {
 	// turned back on. Only disable()/enable() write here: internal unloads
 	// (theme switching, dependency cascades) persist nothing.
 	disabledPref?: { get(): string[]; add(identifier: string): void; remove(identifier: string): void };
+	// Starts downloading a module entry ahead of runLoads without evaluating it.
+	prefetch?(path: string, kind: "js" | "css"): void;
 	log(level: "info" | "error", ...args: unknown[]): void;
 }
 
