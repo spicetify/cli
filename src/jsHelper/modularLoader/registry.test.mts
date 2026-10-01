@@ -739,3 +739,26 @@ describe("persisted disable", () => {
 		assert.equal(await r.disable("ext"), true, "disable still unloads without persistence");
 	});
 });
+
+describe("boot load order and prefetch", () => {
+	const theme = (id: string, deps: Record<string, string> = {}) =>
+		mod(id, "1.0.0", { kind: "theme", entries: { js: "index.js", css: "index.css" }, dependencies: deps });
+
+	it("loads the boot theme and its dependencies before other extensions", async () => {
+		const calls: string[] = [];
+		const r = new Registry(
+			manifest([
+				mod("stdlib", "1.0.0"),
+				mod("alpha", "1.0.0", { dependencies: { stdlib: "^1.0.0" } }),
+				mod("chrome", "1.0.0"),
+				theme("zeta", { chrome: "^1.0.0", stdlib: "^1.0.0" }),
+			]),
+			trackingEffects(calls),
+		);
+		const report = await r.boot();
+		assert.deepEqual(report.failed, {});
+		const imports = calls.filter((c) => c.startsWith("import:")).map((c) => c.split("/")[2]);
+		assert.deepEqual(imports, ["stdlib", "chrome", "zeta", "alpha"]);
+	});
+
+});

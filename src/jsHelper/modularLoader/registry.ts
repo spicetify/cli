@@ -245,10 +245,10 @@ export class Registry {
 		}
 	}
 
-	// runLoads executes preload/css/load for all eligible modules, after the
-	// client is up. Call runMixins first during early boot.
-	async runLoads(report: BootReport): Promise<void> {
-		const disabled = this.disabledSet();
+	// bootLoadOrder is the order runLoads walks: the boot theme and everything
+	// it depends on first, so the client is themed before extensions mount,
+	// then every other eligible module in dependency order.
+	private bootLoadOrder(report: BootReport, disabled: Set<string>): { order: string[]; bootTheme?: string } {
 		const eligible = this.eligibleOrder(report, disabled);
 		// Two installed themes would otherwise both load at boot. The persisted
 		// preference (last theme the user enabled) wins; without one, the last
@@ -266,7 +266,24 @@ export class Registry {
 				: preferred && themes.includes(preferred)
 					? preferred
 					: themes[themes.length - 1];
-		for (const id of eligible) {
+		const first = new Set<string>();
+		const pull = (id: string) => {
+			const m = this.modules.get(id);
+			if (!m || first.has(id)) return;
+			for (const dep of Object.keys(m.dependencies)) pull(dep);
+			first.add(id);
+		};
+		if (bootTheme) pull(bootTheme);
+		const order = [...eligible.filter((id) => first.has(id)), ...eligible.filter((id) => !first.has(id))];
+		return { order, bootTheme };
+	}
+
+	// runLoads executes preload/css/load for all eligible modules, after the
+	// client is up. Call runMixins first during early boot.
+	async runLoads(report: BootReport): Promise<void> {
+		const disabled = this.disabledSet();
+		const { order, bootTheme } = this.bootLoadOrder(report, disabled);
+		for (const id of order) {
 			if (report.failed[id]) continue;
 			if (this.isTheme(id) && id !== bootTheme) {
 				this.effects.log("info", `skipping theme ${id}: ${bootTheme} is active (one theme at a time)`);
