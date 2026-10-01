@@ -120,8 +120,25 @@ fn search_dirs(config_root: &Path, explicit: Option<PathBuf>) -> Vec<PathBuf> {
     }
     // v2 archives installed css-map.json beside the executable. Searching
     // there would let that legacy file silently shadow v3's embedded map.
-    dirs.push(config_root.to_path_buf());
+    // On Windows the config root is that same folder, so a map left beside
+    // v2's jsHelper/ is skipped too.
+    if crate::legacy::has_v2_archive(config_root) {
+        if config_root.join("css-map.json").is_file() {
+            tracing::warn!(
+                "ignoring {}: it was left by Spicetify v2",
+                config_root.join("css-map.json").display()
+            );
+        }
+    } else {
+        dirs.push(config_root.to_path_buf());
+    }
     dirs
+}
+
+/// The css map `apply` uses: a file path, or `embedded`.
+pub(crate) fn source(config_root: &Path) -> String {
+    find_css_map(config_root)
+        .map_or_else(|| "embedded".to_string(), |path| path.display().to_string())
 }
 
 fn find_css_map(config_root: &Path) -> Option<PathBuf> {
@@ -317,6 +334,22 @@ mod tests {
         let config_root = PathBuf::from("configured-css-map-root");
 
         assert_eq!(search_dirs(&config_root, None), vec![config_root]);
+    }
+
+    #[test]
+    fn skips_a_map_left_by_v2s_release_archive() {
+        let root = std::env::temp_dir().join(format!("spicetify-cssmap-v2-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("jsHelper")).expect("v2 archive layout");
+        std::fs::write(root.join("css-map.json"), "{}").expect("v2 map");
+        assert!(search_dirs(&root, None).is_empty(), "the embedded map is used instead");
+        let explicit = root.join("css-map.json");
+        assert_eq!(
+            search_dirs(&root, Some(explicit.clone())),
+            vec![explicit],
+            "an override still wins"
+        );
+        std::fs::remove_dir_all(&root).expect("cleanup");
     }
 
     #[test]
