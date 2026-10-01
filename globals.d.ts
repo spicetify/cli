@@ -2016,6 +2016,71 @@ declare namespace Spicetify {
 		 * @see Spicetify.ReactComponent.ButtonProps
 		 */
 		const ButtonTertiary: any;
+		/**
+		 * Component Spotify uses for a menu item that opens a nested menu.
+		 * Used by `Spicetify.ContextMenuV2.ItemSubMenu`.
+		 */
+		const MenuSubMenuItem: any;
+		/**
+		 * Provider of Spotify's remote configuration
+		 */
+		const RemoteConfigProvider: any;
+		/**
+		 * Spotify snackbar building blocks
+		 */
+		const Snackbar: {
+			wrapper: any;
+			simpleLayout: any;
+			ctaText: any;
+			styledImage: any;
+		};
+		/**
+		 * Component to render Spotify chip
+		 */
+		const Chip: any;
+		/**
+		 * Component to render Spotify dropdown
+		 */
+		const Dropdown: any;
+		/**
+		 * Component to render Spotify toggle switch
+		 */
+		const Toggle: any;
+		/**
+		 * Card components from Spotify library. A key is `undefined` when its component was not found in this Spotify version.
+		 */
+		const Cards: {
+			Default: any;
+			FeatureCard: any;
+			Hero: any;
+			CardImage: any;
+			Album: any;
+			Artist: any;
+			Audiobook: any;
+			Episode: any;
+			Playlist: any;
+			Profile: any;
+			Show: any;
+			Track: any;
+		};
+		/**
+		 * React Router components used by Spotify
+		 */
+		const Router: any;
+		const Routes: any;
+		const Route: any;
+		/**
+		 * Redux store provider used by Spotify
+		 */
+		const StoreProvider: any;
+		/**
+		 * Horizontally scrolling container with chevron buttons, implemented by Spicetify
+		 */
+		const ScrollableContainer: any;
+		/**
+		 * Spotify's in-app navigation link component, taking the route in `to`
+		 */
+		const Navigation: any;
 	}
 
 	/**
