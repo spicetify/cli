@@ -73,8 +73,12 @@ async function cssFromSource(text: string): Promise<CSSStyleSheet | string> {
 
 const prefetchedCss = new Map<string, Promise<string>>();
 
+const prefetchedJs = new Set<string>();
+
 function prefetch(path: string, kind: "js" | "css"): void {
 	if (kind === "js") {
+		if (prefetchedJs.has(path)) return;
+		prefetchedJs.add(path);
 		const link = document.createElement("link");
 		link.rel = "modulepreload";
 		link.href = path;

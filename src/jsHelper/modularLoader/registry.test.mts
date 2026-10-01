@@ -767,7 +767,11 @@ describe("boot load order and prefetch", () => {
 		const r = new Registry(
 			manifest([
 				mod("stdlib", "1.0.0"),
-				mod("mixer", "1.0.0", { hasMixins: true, entries: { js: "index.js", css: "index.css" } }),
+				mod("mixer", "1.0.0", {
+					hasMixins: true,
+					entries: { js: "index.js", css: "index.css" },
+					preload: ["load.js", "src/util.js"],
+				}),
 				mod("off", "1.0.0"),
 				mod("needs-off", "1.0.0", { dependencies: { off: "^1.0.0" } }),
 				mod("after-needs-off", "1.0.0", { dependencies: { "needs-off": "^1.0.0" } }),
@@ -785,6 +789,8 @@ describe("boot load order and prefetch", () => {
 			"js:/modules/theme-b/index.js",
 			"css:/modules/theme-b/index.css",
 			"js:/modules/stdlib/index.js",
+			"js:/modules/mixer/load.js",
+			"js:/modules/mixer/src/util.js",
 			"css:/modules/mixer/index.css",
 		]);
 	});

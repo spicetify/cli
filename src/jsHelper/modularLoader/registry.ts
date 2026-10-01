@@ -319,6 +319,7 @@ export class Registry {
 			}
 			if (this.localFiles.has(id)) continue;
 			if (m.entries.js && !m.hasMixins) this.effects.prefetch(entryUrl(id, m.entries.js), "js");
+			for (const script of m.preload ?? []) this.effects.prefetch(entryUrl(id, script), "js");
 			if (m.entries.css) this.effects.prefetch(entryUrl(id, m.entries.css), "css");
 		}
 	}

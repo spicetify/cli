@@ -29,6 +29,9 @@ export interface ModuleMetadata {
 
 export interface ManifestModule extends ModuleMetadata {
 	identifier: string;
+	// Every other script of a staged multi-file module, relative to its
+	// directory (absent in manifests from older CLIs).
+	preload?: string[];
 }
 
 export type Classmap = Record<string, unknown>;
