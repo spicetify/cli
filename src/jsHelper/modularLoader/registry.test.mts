@@ -761,7 +761,7 @@ describe("boot load order and prefetch", () => {
 		assert.deepEqual(imports, ["stdlib", "chrome", "zeta", "alpha"]);
 	});
 
-	it("prefetches only the staged entries boot will import or adopt", () => {
+	it("prefetches only the staged entries boot will import or adopt", async () => {
 		const prefetched: string[] = [];
 		const effects = { ...trackingEffects([]), prefetch: (path: string, kind: string) => prefetched.push(`${kind}:${path}`) };
 		const r = new Registry(
@@ -769,6 +769,8 @@ describe("boot load order and prefetch", () => {
 				mod("stdlib", "1.0.0"),
 				mod("mixer", "1.0.0", { hasMixins: true, entries: { js: "index.js", css: "index.css" } }),
 				mod("off", "1.0.0"),
+				mod("needs-off", "1.0.0", { dependencies: { off: "^1.0.0" } }),
+				mod("after-needs-off", "1.0.0", { dependencies: { "needs-off": "^1.0.0" } }),
 				mod("local", "1.0.0"),
 				theme("theme-a"),
 				theme("theme-b"),
@@ -776,7 +778,9 @@ describe("boot load order and prefetch", () => {
 			{ ...effects, disabledPref: { get: () => ["off"], add: () => {}, remove: () => {} } },
 		);
 		r.registerLocal({ metadata: mod("local", "1.0.0"), files: { "index.js": "" } });
-		r.prefetchLoads({ loaded: [], failed: {} });
+		const report = { loaded: [], failed: {} };
+		await r.runMixins(report);
+		r.prefetchLoads(report);
 		assert.deepEqual(prefetched, [
 			"js:/modules/theme-b/index.js",
 			"css:/modules/theme-b/index.css",

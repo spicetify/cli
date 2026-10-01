@@ -278,18 +278,44 @@ export class Registry {
 		return { order, bootTheme };
 	}
 
+	// skipReason is why runLoads would not load a module at boot, if it would not.
+	private skipReason(id: string, report: BootReport, disabled: Set<string>, bootTheme?: string) {
+		if (report.failed[id]) return { failed: false, reason: report.failed[id] };
+		if (this.isTheme(id) && id !== bootTheme) {
+			return { failed: false, reason: `skipping theme ${id}: ${bootTheme} is active (one theme at a time)` };
+		}
+		const m = this.modules.get(id)!;
+		// A disabled dependency is not a failure of its own, but a dependent
+		// that loads against it half-works silently (stdlib's registers
+		// never mount, and nothing says why).
+		const blockedBy = Object.keys(m.dependencies).find((dep) => report.failed[dep] || disabled.has(dep));
+		if (blockedBy) {
+			return {
+				failed: true,
+				reason: disabled.has(blockedBy) ? `dependency ${blockedBy} is disabled` : `dependency ${blockedBy} failed`,
+			};
+		}
+		if (m.hasMixins && !this.state(id).mixedIn) return { failed: true, reason: "mixins not loaded" };
+		return undefined;
+	}
+
 	// prefetchLoads starts fetching the entries runLoads will import or adopt,
 	// without evaluating anything, so they download while the client boots.
-	// Local installs are already in memory, and mixin modules were imported
-	// by runMixins.
+	// Call it after runMixins. Local installs are already in memory, and
+	// mixin modules were imported by runMixins.
 	prefetchLoads(report: BootReport): void {
 		if (!this.effects.prefetch) return;
 		const disabled = this.disabledSet();
 		const { order, bootTheme } = this.bootLoadOrder(report, disabled);
+		const blocked = new Set<string>();
 		for (const id of order) {
 			const m = this.modules.get(id)!;
-			if (report.failed[id] || this.localFiles.has(id)) continue;
-			if (this.isTheme(id) && id !== bootTheme) continue;
+			const blockedDep = Object.keys(m.dependencies).some((dep) => blocked.has(dep));
+			if (blockedDep || this.skipReason(id, report, disabled, bootTheme)) {
+				blocked.add(id);
+				continue;
+			}
+			if (this.localFiles.has(id)) continue;
 			if (m.entries.js && !m.hasMixins) this.effects.prefetch(entryUrl(id, m.entries.js), "js");
 			if (m.entries.css) this.effects.prefetch(entryUrl(id, m.entries.css), "css");
 		}
@@ -302,25 +328,11 @@ export class Registry {
 		const { order, bootTheme } = this.bootLoadOrder(report, disabled);
 		for (const id of order) {
 			if (report.failed[id]) continue;
-			if (this.isTheme(id) && id !== bootTheme) {
-				this.effects.log("info", `skipping theme ${id}: ${bootTheme} is active (one theme at a time)`);
-				continue;
-			}
+			const skip = this.skipReason(id, report, disabled, bootTheme);
+			if (skip?.failed) report.failed[id] = skip.reason;
+			else if (skip) this.effects.log("info", skip.reason);
+			if (skip) continue;
 			const m = this.modules.get(id)!;
-			// A disabled dependency is not a failure of its own, but a dependent
-			// that loads against it half-works silently (stdlib's registers
-			// never mount, and nothing says why).
-			const blockedBy = Object.keys(m.dependencies).find((dep) => report.failed[dep] || disabled.has(dep));
-			if (blockedBy) {
-				report.failed[id] = disabled.has(blockedBy)
-					? `dependency ${blockedBy} is disabled`
-					: `dependency ${blockedBy} failed`;
-				continue;
-			}
-			if (m.hasMixins && !this.state(id).mixedIn) {
-				report.failed[id] = "mixins not loaded";
-				continue;
-			}
 			const loadOnce = async () => {
 				const index = await this.jsIndexOf(m);
 				const state = this.state(id);

@@ -83,7 +83,7 @@ function prefetch(path: string, kind: "js" | "css"): void {
 	}
 	if (prefetchedCss.has(path)) return;
 	const text = fetch(path).then((res) => res.text());
-	// A failed prefetch is retried by loadCss, so it must not surface here.
+	// loadCss reports a failed prefetch when it falls back to its own fetch.
 	text.catch(() => {});
 	prefetchedCss.set(path, text);
 }
@@ -91,8 +91,11 @@ function prefetch(path: string, kind: "js" | "css"): void {
 async function loadCss(path: string): Promise<CSSStyleSheet | string> {
 	const prefetched = prefetchedCss.get(path);
 	prefetchedCss.delete(path);
-	const text = (await prefetched?.catch(() => undefined)) ?? (await (await fetch(path)).text());
-	return cssFromSource(text);
+	const text = await prefetched?.catch((e: unknown) => {
+		log("error")(`prefetch of ${path} failed; fetching again`, e);
+		return undefined;
+	});
+	return cssFromSource(text ?? (await (await fetch(path)).text()));
 }
 
 // parseColorSchemes parses classic spicetify color.ini into named
@@ -535,15 +538,16 @@ async function boot(): Promise<BootReport | null> {
 	// the 2024 mixin machinery created it. Define it empty so references are
 	// inert instead of fatal.
 	(globalThis as never as Record<string, unknown>).CHUNKS ??= {};
-	registry.prefetchLoads(report);
 	await registry.runMixins(report);
 	await bootClient(transforms);
+	registry.prefetchLoads(report);
 
 	if (!(await waitForClient(15000))) {
 		log("error")("client did not come up in time; running module loads anyway");
 	}
 	await captureWebpackRequire();
 	await registry.runLoads(report);
+	prefetchedCss.clear();
 
 	globalThis.Spicetify = globalThis.Spicetify ?? {};
 	const modules = (globalThis.Spicetify as Record<string, unknown>).Modules = {
