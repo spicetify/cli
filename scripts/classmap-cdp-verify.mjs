@@ -175,7 +175,7 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function waitForCdp(host, port, timeoutMs) {
+export async function waitForCdp(host, port, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   let lastErr;
   while (Date.now() < deadline) {
@@ -203,7 +203,7 @@ async function waitForCdp(host, port, timeoutMs) {
   );
 }
 
-function pickXpuiTarget(targets) {
+export function pickXpuiTarget(targets) {
   const pages = targets.filter((t) => t.type === "page");
   return pages.find((t) => (t.url || "").includes("xpui.app.spotify.com")) || pages.find((t) => (t.url || "").includes("index.html")) || pages[0];
 }
@@ -264,7 +264,7 @@ function semanticClassName(className, cssMap) {
     .join(" ");
 }
 
-class CdpSession {
+export class CdpSession {
   constructor(wsUrl) {
     this.wsUrl = wsUrl;
     this.ws = null;

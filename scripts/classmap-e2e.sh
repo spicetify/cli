@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Full classmap pipeline: migrate → static verify → overlay → CDP e2e DOM verify.
+# Full classmap pipeline: migrate → static verify → overlay → CDP e2e DOM verify →
+# platform contract (the Spotify runtime paths the wrapper reads).
 #
 # Usage:
 #   ./scripts/classmap-e2e.sh
 #   ./scripts/classmap-e2e.sh --skip-migrate --deep
+#   ./scripts/classmap-e2e.sh --skip-migrate --skip-static --skip-flatten --skip-cdp   # contract only
 #   SPOTIFY_SPA=/path/to/xpui.spa ./scripts/classmap-e2e.sh
 #
 # Env:
@@ -21,6 +23,9 @@
 #   - When CDP is not reachable, the script temporarily appends
 #     --remote-debugging-port=$CDP_PORT to spotify_launch_flags and restores
 #     the original config-xpui.ini on exit.
+#   - The platform contract needs an applied client. The run fails when a
+#     required path in scripts/platform-contract.json is missing; use
+#     --skip-contract for a stock client.
 #   - Applied xpui.spa files (spicetify hooks detected) are never used as a
 #     migrate target; only stock spa copies are.
 
@@ -33,6 +38,7 @@ SKIP_MIGRATE=0
 SKIP_STATIC=0
 SKIP_CDP=0
 SKIP_FLATTEN=0
+SKIP_CONTRACT=0
 DEEP=0
 RESTART=0
 ENSURE_CDP=1
@@ -44,6 +50,7 @@ while [[ $# -gt 0 ]]; do
     --skip-static) SKIP_STATIC=1 ;;
     --skip-cdp) SKIP_CDP=1 ;;
     --skip-flatten) SKIP_FLATTEN=1 ;;
+    --skip-contract) SKIP_CONTRACT=1 ;;
     --deep) DEEP=1 ;;
     --restart) RESTART=1 ;;
     --no-ensure-cdp) ENSURE_CDP=0 ;;
@@ -56,7 +63,7 @@ while [[ $# -gt 0 ]]; do
       fi
       ;;
     -h|--help)
-      sed -n '2,25p' "$0"
+      sed -n '2,30p' "$0"
       exit 0
       ;;
     *)
@@ -91,6 +98,7 @@ CLASSMAP_OUT="$OUT_DIR/classmap.json"
 REPORT_OUT="$OUT_DIR/report.json"
 VERIFY_OUT="$OUT_DIR/verify.json"
 CDP_OUT="$OUT_DIR/cdp-e2e-report.json"
+CONTRACT_OUT="$OUT_DIR/platform-contract.json"
 OVERLAY_OUT="$OUT_DIR/css-map.json"
 
 mkdir -p "$OUT_DIR"
@@ -244,7 +252,7 @@ JS
 }
 
 if [[ "$SKIP_MIGRATE" -eq 0 ]]; then
-  log "1/4 migrate classmap"
+  log "1/5 migrate classmap"
   if [[ ! -f "$BASE_CLASSMAP" ]]; then
     echo "Missing base classmap: $BASE_CLASSMAP" >&2
     exit 1
@@ -268,11 +276,11 @@ if [[ "$SKIP_MIGRATE" -eq 0 ]]; then
     --threshold 0.55 \
     --allow-partial
 else
-  log "1/4 migrate skipped"
+  log "1/5 migrate skipped"
 fi
 
 if [[ "$SKIP_STATIC" -eq 0 ]]; then
-  log "2/4 static verify"
+  log "2/5 static verify"
   resolve_target_css_args 1 || resolve_target_css_args 0
   VERSION_ARGS=()
   [[ -n "$SPOTIFY_VERSION" ]] && VERSION_ARGS=(--target-version "$SPOTIFY_VERSION")
@@ -286,11 +294,11 @@ if [[ "$SKIP_STATIC" -eq 0 ]]; then
   "$NODE" scripts/classmap-capture.ts devtools \
     --report "$REPORT_OUT" > "$OUT_DIR/devtools-snippet.js" || true
 else
-  log "2/4 static verify skipped"
+  log "2/5 static verify skipped"
 fi
 
 if [[ "$SKIP_FLATTEN" -eq 0 ]]; then
-  log "3/4 flatten css-map overlay"
+  log "3/5 flatten css-map overlay"
   for f in "$CLASSMAP_OUT" "$REPORT_OUT"; do
     if [[ ! -f "$f" ]]; then
       echo "Missing $f (run migrate first, or point OUT_DIR at existing artifacts)" >&2
@@ -308,11 +316,11 @@ if [[ "$SKIP_FLATTEN" -eq 0 ]]; then
     --out "$OVERLAY_OUT" \
     --allow-partial
 else
-  log "3/4 flatten skipped"
+  log "3/5 flatten skipped"
 fi
 
 if [[ "$SKIP_CDP" -eq 0 ]]; then
-  log "4/4 CDP e2e verify"
+  log "4/5 CDP e2e verify"
   if [[ "$ENSURE_CDP" -eq 1 ]]; then
     ensure_cdp
   fi
@@ -337,7 +345,19 @@ if [[ "$SKIP_CDP" -eq 0 ]]; then
     "${NAV_FLAGS[@]}" \
     "${RESTART_FLAG[@]}"
 else
-  log "4/4 CDP e2e skipped"
+  log "4/5 CDP e2e skipped"
+fi
+
+if [[ "$SKIP_CONTRACT" -eq 0 ]]; then
+  log "5/5 platform contract"
+  if [[ "$ENSURE_CDP" -eq 1 ]]; then
+    ensure_cdp
+  fi
+  "$NODE" scripts/platform-contract.ts \
+    --port "$CDP_PORT" \
+    --out "$CONTRACT_OUT"
+else
+  log "5/5 platform contract skipped"
 fi
 
 log "Done"

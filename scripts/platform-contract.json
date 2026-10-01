@@ -1,0 +1,435 @@
+{
+  "$comment": "Spotify runtime paths the client wrapper (src/jsHelper/spicetifyWrapper) reads. Checked against a live client by scripts/platform-contract.ts. An entry has `path`, or `anyOf` when the wrapper accepts any one of several paths. `type` is a typeof result, \"map\" for a Map, or a list of allowed types. A required entry that is missing or has another type fails the check; an optional one only warns.",
+  "entries": [
+    {
+      "path": "Spicetify._platform",
+      "type": "object",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/platform.js:50"],
+      "feature": "Source object copied into Spicetify.Platform"
+    },
+    {
+      "path": "Spicetify.Platform.version",
+      "type": "string",
+      "required": true,
+      "usedBy": [
+        "src/jsHelper/spicetifyWrapper/platform.js:70",
+        "src/jsHelper/spicetifyWrapper/platform.js:174",
+        "src/jsHelper/spicetifyWrapper/platform.js:213"
+      ],
+      "feature": "Version gates for Registry API resolution and the CosmosAsync proxy; Spotify-App-Version header"
+    },
+    {
+      "path": "Spicetify.Platform.operatingSystem",
+      "type": "string",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/platform.js:69", "src/jsHelper/spicetifyWrapper/player-events.js:67"],
+      "feature": "Skips ExclusiveModeAPI resolution on Linux; titlebar height with the global nav bar"
+    },
+    {
+      "path": "Spicetify.Platform.Registry._map",
+      "type": "map",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/platform.js:73"],
+      "feature": "Enumerates the *API services the wrapper adds to Spicetify.Platform"
+    },
+    {
+      "path": "Spicetify.Platform.Registry.resolve",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/platform.js:79", "src/jsHelper/spicetifyWrapper/platform.js:157"],
+      "feature": "Resolves *API services and the Cosmos fallback"
+    },
+    {
+      "path": "Spicetify.Platform.PlatformData.app_platform",
+      "type": "string",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/platform.js:214"],
+      "feature": "App-Platform header on spclient requests made through CosmosAsync"
+    },
+    {
+      "path": "Spicetify.Platform.PlatformData.os_name",
+      "type": "string",
+      "required": false,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/player-events.js:67"],
+      "feature": "Titlebar height (42 on macOS, 40 elsewhere) with the global nav bar",
+      "note": "Legacy: absent since Spotify 1.3.0; the wrapper checks Platform.operatingSystem first"
+    },
+    {
+      "path": "Spicetify.Platform.AuthorizationAPI.getState",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/platform.js:207"],
+      "feature": "Bearer token for Web API and spclient requests made through CosmosAsync"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI",
+      "type": "object",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/spicetify-bindings.js:30"],
+      "feature": "Spicetify.Player.origin"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI._state",
+      "type": "object",
+      "required": true,
+      "usedBy": [
+        "src/jsHelper/spicetifyWrapper/core.js:27",
+        "src/jsHelper/spicetifyWrapper/core.js:55",
+        "src/jsHelper/spicetifyWrapper/player-events.js:4"
+      ],
+      "feature": "Player progress, play state, shuffle, repeat, heart and Spicetify.Player.data"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI._events.addListener",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/player-events.js:21"],
+      "feature": "songchange and onplaypause events"
+    },
+    {
+      "anyOf": ["Spicetify.Platform.PlayerAPI._queue._state", "Spicetify.Platform.PlayerAPI._queue._queue"],
+      "type": "object",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/runtime-resolvers.js:94"],
+      "feature": "Spicetify.Queue"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI._queue.addToQueue",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/player-events.js:80"],
+      "feature": "Spicetify.addToQueue"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI._queue.removeFromQueue",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/player-events.js:83"],
+      "feature": "Spicetify.removeFromQueue"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI._cosmos",
+      "type": "object",
+      "required": false,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/platform.js:152", "src/jsHelper/spicetifyWrapper/platform.js:242"],
+      "feature": "CosmosAsync",
+      "note": "The wrapper falls back to Registry.resolve(Symbol.for(\"Cosmos\")) and then writes _cosmos itself"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.seekTo",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:24"],
+      "feature": "Spicetify.Player.seek"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.seekForward",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:109"],
+      "feature": "Spicetify.Player.skipForward"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.seekBackward",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:106"],
+      "feature": "Spicetify.Player.skipBack"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.skipToNext",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:46"],
+      "feature": "Spicetify.Player.next"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.skipToPrevious",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:49"],
+      "feature": "Spicetify.Player.back"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.pause",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:87"],
+      "feature": "Spicetify.Player.pause"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.resume",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:90"],
+      "feature": "Spicetify.Player.play"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.play",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:93"],
+      "feature": "Spicetify.Player.playUri"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.setShuffle",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:57", "src/jsHelper/spicetifyWrapper/core.js:61"],
+      "feature": "Spicetify.Player shuffle controls"
+    },
+    {
+      "path": "Spicetify.Platform.PlayerAPI.setRepeat",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:64", "src/jsHelper/spicetifyWrapper/core.js:68"],
+      "feature": "Spicetify.Player repeat controls"
+    },
+    {
+      "path": "Spicetify.Platform.PlaybackAPI.setVolume",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:36"],
+      "feature": "Spicetify.Player.setVolume"
+    },
+    {
+      "path": "Spicetify.Platform.PlaybackAPI.raiseVolume",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:39"],
+      "feature": "Spicetify.Player.increaseVolume"
+    },
+    {
+      "path": "Spicetify.Platform.PlaybackAPI.lowerVolume",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:42"],
+      "feature": "Spicetify.Player.decreaseVolume"
+    },
+    {
+      "path": "Spicetify.Platform.PlaybackAPI._volume",
+      "type": "number",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:44"],
+      "feature": "Spicetify.Player.getVolume and mute state"
+    },
+    {
+      "path": "Spicetify.Platform.LibraryAPI.add",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:114"],
+      "feature": "Spicetify.Player.setHeart(true)"
+    },
+    {
+      "path": "Spicetify.Platform.LibraryAPI.remove",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/core.js:116"],
+      "feature": "Spicetify.Player.setHeart(false)"
+    },
+    {
+      "path": "Spicetify.Platform.UserAPI",
+      "type": "object",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/icons.js:180", "src/jsHelper/spicetifyWrapper/player-events.js:41"],
+      "feature": "Spicetify.AppTitle waits for it"
+    },
+    {
+      "anyOf": [
+        "Spicetify.Platform.UserAPI._product_state",
+        "Spicetify.Platform.UserAPI._product_state_service",
+        "Spicetify.Platform.ProductStateAPI.productStateApi"
+      ],
+      "type": "object",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/icons.js:186", "src/jsHelper/spicetifyWrapper/player-events.js:46"],
+      "feature": "Spicetify.AppTitle"
+    },
+    {
+      "path": "Spicetify.Platform.History.push",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/custom-apps.js:164"],
+      "feature": "Custom app nav links"
+    },
+    {
+      "path": "Spicetify.Platform.History.location",
+      "type": "object",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/custom-apps.js:119"],
+      "feature": "Active state of custom app nav links"
+    },
+    {
+      "path": "Spicetify.Platform.LocalStorageAPI.getItem",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/custom-apps.js:128"],
+      "feature": "Custom app nav links in a collapsed sidebar"
+    },
+    {
+      "path": "Spicetify.Platform.ClipboardAPI.copy",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/update.js:123"],
+      "feature": "Click to copy in the update notice"
+    },
+    {
+      "path": "Spicetify.Platform.RemoteConfiguration",
+      "type": "object",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/component-resolvers.js:65"],
+      "feature": "RemoteConfigProvider wrapping of exposed React components"
+    },
+    {
+      "anyOf": ["Spicetify.Platform.GraphQLLoader", "Spicetify.GraphQL.Handler"],
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/spicetify-bindings.js:37"],
+      "feature": "Spicetify.GraphQL.Request and extractColorPreset"
+    },
+    {
+      "path": "Spicetify.Platform.UpdateAPI.subscribe",
+      "type": "function",
+      "required": false,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/shared/updateAndApply.js:70", "src/jsHelper/spicetifyWrapper/shared/updateAndApply.js:164"],
+      "feature": "One-step Update & Apply",
+      "note": "Update & Apply fails closed without it; native updater APIs are platform dependent"
+    },
+    {
+      "path": "Spicetify.Platform.UpdateAPI.prepareUpdate",
+      "type": "function",
+      "required": false,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/shared/updateAndApply.js:71", "src/jsHelper/spicetifyWrapper/shared/updateAndApply.js:127"],
+      "feature": "One-step Update & Apply",
+      "note": "Update & Apply fails closed without it; native updater APIs are platform dependent"
+    },
+    {
+      "path": "Spicetify.Platform.UpdateAPI.applyUpdate",
+      "type": "function",
+      "required": false,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/shared/updateAndApply.js:72", "src/jsHelper/spicetifyWrapper/shared/updateAndApply.js:143"],
+      "feature": "One-step Update & Apply",
+      "note": "Update & Apply fails closed without it; native updater APIs are platform dependent"
+    },
+    {
+      "path": "Spicetify.React.createElement",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack.js:35", "src/jsHelper/spicetifyWrapper/custom-apps.js:33"],
+      "feature": "Webpack capture of React; every wrapper component"
+    },
+    {
+      "path": "Spicetify.ReactJSX.jsx",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/spicetify-bindings.js:19", "src/jsHelper/spicetifyWrapper/menus.js:33"],
+      "feature": "Webpack capture of react/jsx-runtime; ContextMenuV2 items"
+    },
+    {
+      "path": "Spicetify.ReactDOM.render",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/spicetify-bindings.js:20", "src/jsHelper/spicetifyWrapper/popup.js:34"],
+      "feature": "Webpack capture of ReactDOM; PopupModal content"
+    },
+    {
+      "path": "Spicetify.ReactDOM.unmountComponentAtNode",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/popup.js:3"],
+      "feature": "PopupModal.hide"
+    },
+    {
+      "path": "Spicetify.Mousetrap.bind",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/spicetify-bindings.js:65", "src/jsHelper/spicetifyWrapper/helpers.js:243"],
+      "feature": "Webpack capture of Mousetrap; Spicetify.Keyboard"
+    },
+    {
+      "path": "Spicetify.classnames",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/spicetify-bindings.js:22", "src/jsHelper/spicetifyWrapper/custom-apps.js:141"],
+      "feature": "Webpack capture of classnames; custom app nav links"
+    },
+    {
+      "path": "Spicetify.Locale.getLocale",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/runtime-resolvers.js:63", "src/jsHelper/spicetifyWrapper/custom-apps.js:60"],
+      "feature": "Webpack capture of the locale translator; localized custom app names"
+    },
+    {
+      "path": "Spicetify.Tippy",
+      "type": "function",
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/update.js:113"],
+      "feature": "Tooltips in the update notice"
+    },
+    {
+      "path": "Spicetify.ReactComponent.MenuItem",
+      "type": ["function", "object"],
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/menus.js:59"],
+      "feature": "ContextMenuV2.Item and Spicetify.Menu items"
+    },
+    {
+      "path": "Spicetify.ReactComponent.MenuSubMenuItem",
+      "type": ["function", "object"],
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/menus.js:171"],
+      "feature": "ContextMenuV2.ItemSubMenu and Spicetify.Menu submenus"
+    },
+    {
+      "path": "Spicetify.ReactComponent.IconComponent",
+      "type": ["function", "object"],
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/icons.js:225"],
+      "feature": "Menu and nav link icons"
+    },
+    {
+      "path": "Spicetify.ReactComponent.TextComponent",
+      "type": ["function", "object"],
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/custom-apps.js:148"],
+      "feature": "Custom app nav link labels"
+    },
+    {
+      "path": "Spicetify.ReactComponent.ButtonTertiary",
+      "type": ["function", "object"],
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/custom-apps.js:41"],
+      "feature": "Custom app nav links render only when present"
+    },
+    {
+      "path": "Spicetify.ReactComponent.Navigation",
+      "type": ["function", "object"],
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/custom-apps.js:42"],
+      "feature": "Custom app nav links render only when present"
+    },
+    {
+      "path": "Spicetify.ReactComponent.TooltipWrapper",
+      "type": ["function", "object"],
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/custom-apps.js:43"],
+      "feature": "Custom app nav links render only when present"
+    },
+    {
+      "path": "Spicetify.ReactComponent.ScrollableContainer",
+      "type": ["function", "object"],
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/custom-apps.js:44"],
+      "feature": "Custom app nav links render only when present"
+    },
+    {
+      "path": "Spicetify.ReactComponent.RemoteConfigProvider",
+      "type": ["function", "object"],
+      "required": true,
+      "usedBy": ["src/jsHelper/spicetifyWrapper/webpack/component-resolvers.js:64"],
+      "feature": "RemoteConfigProvider wrapping of exposed React components"
+    }
+  ]
+}
