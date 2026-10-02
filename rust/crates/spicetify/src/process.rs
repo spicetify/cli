@@ -13,22 +13,44 @@ pub(crate) fn background_command(program: impl AsRef<std::ffi::OsStr>) -> Comman
     command
 }
 
+/// The current user's ID from `id -u`, read once; `None` when it cannot be read.
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn current_uid() -> Option<&'static str> {
+    static UID: std::sync::LazyLock<Option<String>> = std::sync::LazyLock::new(|| {
+        let output = Command::new("id").arg("-u").stderr(Stdio::null()).output().ok()?;
+        let uid = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        (output.status.success() && uid.parse::<u32>().is_ok()).then_some(uid)
+    });
+    UID.as_deref()
+}
+
+/// `program` (`pgrep` or `pkill`) matching the exact process name `name`
+/// among the current user's processes, or every user's when the ID is unknown,
+/// with `extra` arguments before the name.
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+pub(crate) fn own_process_command(program: &str, extra: &[&str], name: &str) -> Command {
+    let mut command = Command::new(program);
+    let _ = command.args(extra);
+    if let Some(uid) = current_uid() {
+        let _ = command.args(["-U", uid]);
+    }
+    let _ = command.args(["-x", name]);
+    command
+}
+
 pub(crate) fn process_running(name: &str) -> bool {
     #[cfg(target_os = "linux")]
     {
-        Command::new("pgrep").args(["-x", name]).stderr(Stdio::null()).output().is_ok_and(
-            |output| {
-                String::from_utf8_lossy(&output.stdout)
-                    .lines()
-                    .filter_map(|pid| pid.parse::<u32>().ok())
-                    .any(linux_process_alive)
-            },
-        )
+        own_process_command("pgrep", &[], name).stderr(Stdio::null()).output().is_ok_and(|output| {
+            String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .filter_map(|pid| pid.parse::<u32>().ok())
+                .any(linux_process_alive)
+        })
     }
     #[cfg(target_os = "macos")]
     {
-        Command::new("pgrep")
-            .args(["-x", name])
+        own_process_command("pgrep", &[], name)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
@@ -96,8 +118,7 @@ mod linux_tests {
 pub(crate) fn pids(name: &str) -> Option<Vec<u32>> {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
-        let output =
-            Command::new("pgrep").args(["-x", name]).stderr(Stdio::null()).output().ok()?;
+        let output = own_process_command("pgrep", &[], name).stderr(Stdio::null()).output().ok()?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         let pids = stdout.lines().filter_map(|pid| pid.trim().parse::<u32>().ok());
         #[cfg(target_os = "linux")]
@@ -115,8 +136,7 @@ pub(crate) fn pids(name: &str) -> Option<Vec<u32>> {
 pub(crate) fn kill_image_hard(name: &str) {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
-        match Command::new("pkill")
-            .args(["-KILL", "-x", name])
+        match own_process_command("pkill", &["-KILL"], name)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
@@ -133,8 +153,7 @@ pub(crate) fn kill_image_hard(name: &str) {
 pub(crate) fn kill_image(name: &str) {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
-        match Command::new("pkill")
-            .args(["-x", name])
+        match own_process_command("pkill", &[], name)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()

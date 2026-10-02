@@ -454,8 +454,7 @@ fn stop_unmanaged_daemon_and_wait() -> Result<(), DaemonManagerError> {
 
 #[cfg(target_os = "macos")]
 fn daemon_process_running() -> Result<bool, DaemonManagerError> {
-    let status = std::process::Command::new("pgrep")
-        .args(["-x", super::daemon_binary_name()])
+    let status = crate::process::own_process_command("pgrep", &[], super::daemon_binary_name())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()?;
