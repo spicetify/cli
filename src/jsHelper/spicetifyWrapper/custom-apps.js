@@ -1,4 +1,6 @@
 import { createIconComponent } from "./icons.js";
+import { getChunkQueue } from "./shared/chunk-queue.js";
+import { fnStr } from "./shared/string.js";
 
 let navLinkFactoryCtx = null;
 export let refreshNavLinks = null;
@@ -22,7 +24,18 @@ function getManifest(app) {
   return {};
 }
 
+// The sidebar can render before hotloadWebpackModules sets Spicetify.React, e.g. after a reload
+function findReact() {
+  const require = getChunkQueue()?.push([[Symbol()], {}, (re) => re]);
+  const id = Object.keys(require?.m ?? {}).find((id) => {
+    const source = fnStr(require.m[id]);
+    return source.includes(".useReducer=") && source.includes(".useMemo=");
+  });
+  return id && require(id);
+}
+
 Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
+  Spicetify.React ??= findReact();
   const [, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
   refreshNavLinks = refresh;
 
