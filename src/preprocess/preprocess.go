@@ -1021,7 +1021,7 @@ func exposeAPIs_main(input string) string {
 		},
 		{
 			Name:  "Context Menu V2",
-			Regex: `("Menu".+?children:)([\w$][\w$\d]*)`,
+			Regex: `("Menu".+?children:|withDefaultClassNames:[^,]+,\.\.\.[\w$]+,children:)([\w$][\w$\d]*)`,
 			Replacement: func(submatches ...string) string {
 				return fmt.Sprintf("%s[Spicetify.ContextMenuV2.renderItems(),%s].flat()", submatches[1], submatches[2])
 			},

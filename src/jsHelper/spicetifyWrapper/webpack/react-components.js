@@ -37,6 +37,7 @@ export function createReactComponents({
     TextComponent: modules.find((m) => m?.h1 && m?.render),
     Menu: functionModules.find((m) => fnStr(m).includes("getInitialFocusElement") && fnStr(m).includes("children")),
     MenuItem:
+      functionModules.find((m) => fnStr(m).includes("forceV2LeadingIcon") && fnStr(m).includes("aria-describedby")) ??
       functionModules.find((m) => fnStr(m).includes("handleMouseEnter") && fnStr(m).includes("onClick") && fnStr(m).includes("menuItemButton")) ??
       functionModules.find((m) => fnStr(m).includes("handleMouseEnter") && fnStr(m).includes("onClick")),
     MenuSubMenuItem: functionModules.find((f) => fnStr(f).includes("subMenuIcon")),
