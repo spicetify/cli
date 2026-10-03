@@ -916,7 +916,7 @@ func additionalPatches(input string) string {
 
 const contextMenuLegacyRegex = `("Menu".+?children:)([\w$][\w$\d]*)`
 
-var contextMenuComponentPattern = regexp.MustCompile(`(?s)function\(\{(.*?)\},[\w$]+\)\{`)
+var contextMenuComponentPattern = regexp.MustCompile(`function\(\{((?:[^{}]|\{[^{}]*\})*)\},[\w$]+\)\{`)
 var contextMenuChildrenPattern = regexp.MustCompile(`(?:^|,)\s*children\s*:\s*([\w$]+)`)
 
 func patchContextMenuV2(input string) string {
