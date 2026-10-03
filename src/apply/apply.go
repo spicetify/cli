@@ -408,7 +408,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 			fmt.Fprintf(
 				&appReactMap,
-				`,spicetifyApp%d=%s.lazy((()=>%s.%s("%s").then(%s.bind(%s,"%s"))))`,
+				`,spicetifyApp%d=%s.lazy((()=>Promise.race([new Promise(r=>Spicetify.Events.webpackLoaded.on(r)),new Promise(r=>setTimeout(r,1e4))]).then(()=>%s.%s("%s")).then(%s.bind(%s,"%s"))))`,
 				index, reactSymbs[0], reactSymbs[1], reactSymbs[2],
 				appName, reactSymbs[1], reactSymbs[1], appName)
 
