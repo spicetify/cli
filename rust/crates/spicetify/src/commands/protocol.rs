@@ -220,11 +220,9 @@ fn add_from_registry(
     Ok(())
 }
 
-/// Changing the update policy patches Spotify's binary, which means stopping
-/// the client; `set_blocked` leaves it stopped because a terminal caller
-/// relaunches it themselves. A caller inside the client cannot, so bring it
-/// back rather than having the user's Spotify vanish on a button press. A
-/// no-op change never stops it, so only relaunch what was actually running.
+/// Physical policy changes stop the client while binaries or staging
+/// directories are changed. Protocol callers need it relaunched here; terminal
+/// callers own that step themselves. No-op changes leave the client running.
 fn set_updates_blocked(ctx: &AppContext, block: bool) -> Result<()> {
     let was_running = crate::lifecycle::is_running(ctx);
     super::updates::set_blocked(ctx, block)?;

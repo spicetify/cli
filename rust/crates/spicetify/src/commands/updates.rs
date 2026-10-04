@@ -1,12 +1,13 @@
 // Spotify update handling.
 //
-// On macOS and Linux the self-updater fetches from a "desktop-update/v2/update" endpoint
-// baked into the binary, so overwriting it with an equal-length dead string
-// makes the updater unreachable regardless of how the payload is fetched.
-// The patch is length-preserving, reversible and idempotent.
-//
-// Windows protects the updater's staging directory instead: patching the signed
-// Spotify.dll invalidates its signature and the CEF launcher refuses to load it.
+// macOS protects the current and legacy updater staging directories with uchg.
+// Previously patched update endpoints are restored after directory protection.
+// Linux reversibly overwrites the binary's update endpoint with a dead string.
+// Windows protects its staging directory to preserve the signed Spotify.dll.
+
+#[cfg(target_os = "macos")]
+#[path = "updates_macos.rs"]
+mod macos;
 
 #[cfg(windows)]
 #[path = "updates_windows.rs"]
@@ -116,23 +117,33 @@ fn macos_spotify_binary_path(data_dir: &Path) -> Option<PathBuf> {
     Some(data_dir.parent()?.join("MacOS").join("Spotify"))
 }
 
-/// A missing endpoint is unknown, not evidence that a block was applied.
+/// Inspects physical update protection, including legacy endpoint patches.
+/// A missing endpoint is unknown on platforms that require an endpoint patch.
 pub fn is_blocked(ctx: &AppContext) -> Result<bool> {
-    #[cfg(windows)]
+    #[cfg(target_os = "macos")]
     {
-        let protection = windows::protection(ctx)?;
-        if windows::uses_staging(ctx) || protection != windows::Protection::None {
-            return Ok(protection == windows::Protection::Blocked);
-        }
+        macos::is_blocked(ctx)
     }
-    binary_is_blocked(ctx)
+    #[cfg(not(target_os = "macos"))]
+    {
+        #[cfg(windows)]
+        {
+            let protection = windows::protection(ctx)?;
+            if windows::uses_staging(ctx) || protection != windows::Protection::None {
+                return Ok(protection == windows::Protection::Blocked);
+            }
+        }
+        binary_is_blocked(ctx)
+    }
 }
 
+#[cfg(not(target_os = "macos"))]
 fn binary_is_blocked(ctx: &AppContext) -> Result<bool> {
     let raw = std::fs::read(spotify_binary(ctx))?;
     update_block_state(&raw)
 }
 
+#[cfg(not(target_os = "macos"))]
 fn update_block_state(raw: &[u8]) -> Result<bool> {
     if contains(raw, ENDPOINT_LIVE.as_bytes()) {
         return Ok(false);
@@ -148,12 +159,8 @@ fn contains(haystack: &[u8], needle: &[u8]) -> bool {
     haystack.windows(needle.len()).any(|w| w == needle)
 }
 
-/// Applies or reverses the update block. On macOS the bundle is ad-hoc
-/// re-signed afterwards, because Apple Silicon refuses to launch an altered
-/// executable; if signing fails the original bytes are restored rather than
-/// leaving an unlaunchable client.
-/// Records the requested policy in config.toml so it survives the update
-/// that erases the patch it is written into, then applies it.
+/// Records the requested policy in config.toml before applying it so an
+/// update that replaces the protected installation does not erase intent.
 pub(crate) fn set_blocked_and_remember(ctx: &AppContext, block: bool) -> Result<()> {
     if ctx.block_spotify_updates != Some(block) {
         remember(ctx, block);
@@ -209,6 +216,9 @@ pub fn preflight_mutation(ctx: &AppContext) -> Result<()> {
         let _ = windows::protection(ctx)?;
     }
 
+    #[cfg(target_os = "macos")]
+    macos::preflight_mutation(ctx)?;
+
     let apps = ctx.spotify_apps_path();
     std::fs::create_dir_all(&apps)?;
     let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
@@ -224,10 +234,38 @@ pub fn preflight_mutation(ctx: &AppContext) -> Result<()> {
     Ok(())
 }
 
-/// Re-applies a remembered block. A Spotify update replaces the binary the
-/// block is patched into, so without this the user silently loses the
-/// protection they asked for on the first update that gets through.
+/// Reasserts remembered protection after an update can replace its binary or
+/// staging directories. Unrecorded legacy protection is adopted as durable intent.
 pub(crate) fn reassert_block(ctx: &AppContext) {
+    #[cfg(target_os = "macos")]
+    {
+        let requested = match ctx.block_spotify_updates {
+            Some(requested) => requested,
+            None => match macos::has_existing_block(ctx) {
+                Ok(true) => {
+                    tracing::info!(
+                        "recording the existing Spotify update block so it survives an update"
+                    );
+                    remember(ctx, true);
+                    true
+                }
+                Ok(false) => false,
+                Err(error) => {
+                    tracing::warn!(%error, "cannot determine Spotify update protection");
+                    false
+                }
+            },
+        };
+        if requested && let Err(error) = set_blocked(ctx, true) {
+            tracing::warn!(%error, "could not re-block Spotify updates");
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    reassert_binary_or_windows_block(ctx);
+}
+
+#[cfg(not(target_os = "macos"))]
+fn reassert_binary_or_windows_block(ctx: &AppContext) {
     // Installs blocked before the policy was recorded anywhere carry their
     // intent only in the patched binary, which the next update erases. Adopt
     // it the first time we see it, so those users are protected too rather
@@ -260,63 +298,41 @@ pub(crate) fn reassert_block(ctx: &AppContext) {
 }
 
 pub(crate) fn set_blocked(ctx: &AppContext, block: bool) -> Result<()> {
-    #[cfg(windows)]
-    if windows::uses_staging(ctx) || windows::protection(ctx)? != windows::Protection::None {
-        return windows::set_blocked(ctx, block);
+    #[cfg(target_os = "macos")]
+    {
+        macos::set_blocked(ctx, block)
     }
-    set_binary_blocked(ctx, block)
+    #[cfg(not(target_os = "macos"))]
+    {
+        #[cfg(windows)]
+        if windows::uses_staging(ctx) || windows::protection(ctx)? != windows::Protection::None {
+            return windows::set_blocked(ctx, block);
+        }
+        set_binary_blocked(ctx, block)
+    }
 }
 
+#[cfg(not(target_os = "macos"))]
 fn set_binary_blocked(ctx: &AppContext, block: bool) -> Result<()> {
     let path = spotify_binary(ctx);
     let mut raw = std::fs::read(&path)?;
     let _ = update_block_state(&raw)?;
-    #[cfg(target_os = "macos")]
-    let original = raw.clone();
 
     if !patch_update_endpoint(&mut raw, block) {
         tracing::info!("Spotify updates already {}", if block { "blocked" } else { "allowed" });
-        #[cfg(target_os = "macos")]
-        set_cache_lock(block);
         return Ok(());
     }
 
     crate::lifecycle::stop(ctx)?;
     std::fs::write(&path, &raw)?;
-
-    #[cfg(target_os = "macos")]
-    {
-        if let Err(e) = codesign_bundle(&path) {
-            std::fs::write(&path, &original)?;
-            return Err(anyhow::anyhow!(
-                "ad-hoc re-sign failed, restored the original binary: {e}"
-            ));
-        }
-        set_cache_lock(block);
-    }
     tracing::info!("{} Spotify updates", if block { "Disabled" } else { "Enabled" });
     Ok(())
 }
 
-/// Changes only the installed binary. The durable intent is deliberately not
-/// touched: update jobs briefly open this aperture while keeping the user's
-/// requested block true in config.
+/// Changes physical protection without changing durable intent. Update jobs
+/// briefly open this aperture while keeping the requested block in config.
 pub fn set_blocked_temporarily(ctx: &AppContext, block: bool) -> Result<()> {
     set_blocked(ctx, block)
-}
-
-/// Toggles the immutable flag on Spotify's update cache directory. Current
-/// clients stage updates through a downloader that ignores this directory, so
-/// it is belt-and-braces on top of the endpoint patch, never sufficient alone.
-#[cfg(target_os = "macos")]
-fn set_cache_lock(block: bool) {
-    let Some(base) = directories::BaseDirs::new() else { return };
-    let dir = base.data_dir().join("Spotify").join("PersistentCache").join("Update");
-    if block {
-        let _ = std::fs::create_dir_all(&dir);
-    }
-    let flag = if block { "uchg" } else { "nouchg" };
-    let _ = std::process::Command::new("chflags").arg(flag).arg(&dir).status();
 }
 
 #[cfg(target_os = "macos")]
@@ -400,10 +416,8 @@ fn verify_gatekeeper_policy(bundle: &Path) -> Result<()> {
     )
 }
 
-/// `apply` modifies sealed resources after the endpoint patch was signed.
-/// Re-seal the finished bundle and verify it before launch; otherwise a newly
-/// downloaded app is rejected as damaged even though the executable patch
-/// itself was signed successfully.
+/// Re-seal the resources modified by Apply and verify the finished bundle
+/// before launch. This signing step is independent of update protection.
 #[cfg(target_os = "macos")]
 pub fn finalize_app_signature(ctx: &AppContext) -> Result<()> {
     let binary = spotify_binary(ctx);
@@ -434,10 +448,6 @@ pub(crate) fn status(ctx: &AppContext) -> Result<()> {
     Ok(())
 }
 
-#[cfg(all(test, target_os = "macos"))]
-#[path = "updates_macos_tests.rs"]
-mod macos_tests;
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -446,6 +456,7 @@ mod tests {
         format!("....https://x/{endpoint}?q=1....").into_bytes()
     }
 
+    #[cfg(not(target_os = "macos"))]
     fn fixture(name: &str) -> AppContext {
         let root =
             std::env::temp_dir().join(format!("spicetify-updates-{name}-{}", std::process::id()));
@@ -457,6 +468,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_os = "macos"))]
     fn missing_endpoints_are_unknown_not_blocked_or_already_allowed() {
         let ctx = fixture("unknown");
         std::fs::write(&ctx.spotify_exec, b"launcher without an updater").expect("launcher");
@@ -473,6 +485,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_os = "macos"))]
     fn status_requires_a_blocked_marker_and_no_live_endpoints() {
         let ctx = fixture("status");
         std::fs::write(&ctx.spotify_exec, image(ENDPOINT_BLOCKED)).expect("blocked binary");
