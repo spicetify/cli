@@ -152,6 +152,7 @@ Spicetify.Playbar = (() => {
       return this._active;
     }
     register() {
+      addWidgetClassname(this.element);
       widgetStash.add(this.element);
       nowPlayingWidget?.append(this.element);
     }
@@ -161,8 +162,18 @@ Spicetify.Playbar = (() => {
     }
   }
 
+  function addWidgetClassname(element) {
+    const sibling = nowPlayingWidget?.querySelector("[data-encore-id='buttonTertiary']");
+    if (!sibling) return;
+
+    for (const className of Array.from(sibling.classList)) {
+      if (!className.startsWith("main-addButton") && !className.startsWith("encore-internal-color-")) element.classList.add(className);
+    }
+  }
+
   async function waitForWidgetMounted() {
     nowPlayingWidget = await waitFor(() => document.querySelector(".main-nowPlayingWidget-nowPlaying"), 300);
+    for (const widget of widgetStash) addWidgetClassname(widget);
     nowPlayingWidget.append(...widgetStash);
   }
 
