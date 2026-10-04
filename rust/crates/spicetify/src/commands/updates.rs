@@ -327,7 +327,13 @@ fn codesign_bundle(binary: &Path) -> Result<()> {
     // ticket behind, which Gatekeeper reports as altered software.
     remove_stale_stapled_ticket(&bundle)?;
     let out = std::process::Command::new("codesign")
-        .args(["--force", "--deep", "--sign", "-"])
+        .args([
+            "--force",
+            "--deep",
+            "--sign",
+            "-",
+            "--preserve-metadata=entitlements,flags,runtime",
+        ])
         .arg(&bundle)
         .output()?;
     if !out.status.success() {
@@ -427,6 +433,10 @@ pub(crate) fn status(ctx: &AppContext) -> Result<()> {
     tracing::info!("Spotify updates are currently {}", if blocked { "blocked" } else { "allowed" });
     Ok(())
 }
+
+#[cfg(all(test, target_os = "macos"))]
+#[path = "updates_macos_tests.rs"]
+mod macos_tests;
 
 #[cfg(test)]
 mod tests {
