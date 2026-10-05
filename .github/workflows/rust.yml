@@ -81,16 +81,22 @@ jobs:
         run: |
           ./scripts/test-install-completions.ps1
           ./scripts/test-install-architecture.ps1
-          & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File ./scripts/test-install-architecture.ps1
+          $systemPowerShell = Join-Path $env:WINDIR `
+            'System32\WindowsPowerShell\v1.0\powershell.exe'
+          & $systemPowerShell -NoProfile -ExecutionPolicy Bypass `
+            -File ./scripts/test-install-architecture.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & "$env:WINDIR\SysWOW64\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File ./scripts/test-install-architecture.ps1
+          $wowPowerShell = Join-Path $env:WINDIR `
+            'SysWOW64\WindowsPowerShell\v1.0\powershell.exe'
+          & $wowPowerShell -NoProfile -ExecutionPolicy Bypass `
+            -File ./scripts/test-install-architecture.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Setup Node and pnpm
         uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
           workspaces: rust -> target
 
@@ -115,11 +121,15 @@ jobs:
         run: cargo build --workspace --locked
 
       - name: Test
-        run: cargo test --workspace --locked --features daemon/native-window-controls-tests
+        run: >-
+          cargo test --workspace --locked
+          --features daemon/native-window-controls-tests
 
       - name: Test experimental Windows updates
         if: runner.os == 'Windows'
-        run: cargo test -p daemon --locked --features experimental-windows-updates update_job
+        run: >-
+          cargo test -p daemon --locked
+          --features experimental-windows-updates update_job
 
       - name: Clippy
         run: cargo clippy --workspace --locked -- -D warnings

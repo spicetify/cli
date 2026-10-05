@@ -28,9 +28,9 @@ pub struct Config {
     pub offline_bnk_dir: Option<PathBuf>,
 
     /// Whether the user asked for Spotify's self-updater to stay disabled.
-    /// The block itself is a patch of Spotify's binary, so a successful
-    /// update erases it; this remembers the intent across that, and apply
-    /// re-asserts it. Absent means "never asked", which is left alone.
+    /// An update can replace the protected executable or staging location.
+    /// This remembers intent across that, and apply re-asserts protection.
+    /// Absent means "never asked", which is left alone.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub block_spotify_updates: Option<bool>,
 
@@ -244,8 +244,8 @@ mod tests {
 
     #[test]
     fn the_update_policy_round_trips_and_stays_absent_until_asked() {
-        // The block is a patch of Spotify's binary, so a successful update
-        // erases it; config is the only place the intent can survive. An
+        // Physical protection can be lost during an update; config retains
+        // the requested policy so Apply can restore that protection. An
         // untouched config must stay silent rather than claiming a policy
         // the user never set.
         let quiet = toml::to_string_pretty(&Config::default()).expect("serializes");

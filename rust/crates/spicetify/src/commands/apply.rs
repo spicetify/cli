@@ -194,9 +194,8 @@ fn run_inner(ctx: &AppContext, mode: ApplyMode, activate: bool) -> Result<()> {
     std::fs::rename(&tmp, &dest_xpui)
         .map_err(fs_err("installing the patched client to", &dest_xpui))?;
 
-    // The update block's endpoint patch is signed while modules are staged,
-    // before xpui.tmp replaces the served tree. Seal and verify the final
-    // bundle, not that intermediate resource set.
+    // The served resources and any legacy endpoint migration must be sealed
+    // together after the staged tree replaces the previous resources.
     super::updates::finalize_app_signature(ctx)?;
 
     if activate {
@@ -541,9 +540,8 @@ fn stage_modules(ctx: &AppContext, dest: &Path) -> Result<()> {
     // Runs before staging so anything seeded is staged in this same apply; a
     // no-op once they exist.
     super::pkg::ensure_default_modules(ctx);
-    // A Spotify update wipes the binary patch that blocks its updater, and
-    // apply is what runs right after one; restore the user's stated policy
-    // here rather than leaving them silently unprotected.
+    // Updates can replace protected binaries or staging directories. The
+    // manifest records the physical protection after reasserting durable intent.
     super::updates::reassert_block(ctx);
 
     let updates_blocked = super::updates::is_blocked(ctx).ok();

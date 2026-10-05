@@ -1,0 +1,98 @@
+name: Intel macOS test package
+
+on:
+  pull_request:
+    branches: [main, v3-beta]
+    paths:
+      - "rust/**"
+      - "src/jsHelper/**"
+      - "scripts/build-payload.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "mise.toml"
+      - ".github/workflows/rust-test-package.yml"
+
+jobs:
+  package:
+    runs-on: macos-15-intel
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: jdx/mise-action@7e36c90d9ab29c415a2384db3006f3ec8a8cc654 # v4.2.4
+        with:
+          install_args: node
+
+      - name: Install portable pnpm
+        run: |
+          version="$(node -p \
+            'require("./package.json").packageManager.replace(/^pnpm@/, "")')"
+          prefix="$RUNNER_TEMP/pnpm"
+          npm install --global --prefix "$prefix" "pnpm@$version"
+          test "$("$prefix/bin/pnpm" --version)" = "$version"
+          echo "$prefix/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+        with:
+          workspaces: rust -> target
+
+      - name: Install Node dependencies and build client payload
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build:payload
+
+      - name: Test on Intel macOS
+        working-directory: rust
+        run: >-
+          cargo test --workspace --all-targets --locked
+          --features daemon/native-window-controls-tests -- --test-threads=4
+
+      - name: Build CLI and matching daemon
+        working-directory: rust
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "15.0"
+        run: cargo build --release -p cli -p daemon --locked
+
+      - name: Package and verify binaries
+        run: |
+          mkdir -p staged package
+          cp rust/target/release/spicetify staged/
+          cp rust/target/release/spicetify-daemon staged/
+          chmod +x staged/spicetify staged/spicetify-daemon
+          for binary in staged/spicetify staged/spicetify-daemon; do
+            test "$(lipo -archs "$binary")" = x86_64
+          done
+          source_sha="$(git rev-parse HEAD)"
+          version="$(./staged/spicetify --version)"
+          jq -n --arg sourceCommit "$source_sha" --arg version "$version" \
+            --arg target x86_64-apple-darwin --arg minimumMacOS 15.0 \
+            '{experimental: true, sourceCommit: $sourceCommit,
+              version: $version, target: $target,
+              minimumMacOS: $minimumMacOS}' > staged/build-info.json
+          (cd staged && shasum -a 256 spicetify spicetify-daemon > SHA256SUMS)
+          archive="spicetify-pr-macos-x86_64-${source_sha:0:12}.tar.gz"
+          tar -czf "package/$archive" -C staged \
+            spicetify spicetify-daemon build-info.json SHA256SUMS
+          (cd package && shasum -a 256 "$archive" > "$archive.sha256")
+          mkdir verified
+          tar -xzf "package/$archive" -C verified
+          (cd verified && shasum -a 256 -c SHA256SUMS && ./spicetify --version)
+
+      - name: Upload test package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: >-
+            spicetify-pr-macos-x86_64-${{ github.event.pull_request.head.sha }}
+          path: package/*
+          if-no-files-found: error
+          retention-days: 30
