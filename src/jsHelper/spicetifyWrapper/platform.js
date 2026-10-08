@@ -177,8 +177,7 @@ void (async function addProxyCosmos() {
       const internalFetch = Reflect.get(target, prop, receiver);
 
       if (typeof internalFetch !== "function" || !allowedMethodsSet.has(prop)) return internalFetch;
-      const version = Spicetify.Platform.version.split(".").map((i) => Number.parseInt(i, 10));
-      if (version[1] >= 2 && version[2] < 31) return internalFetch;
+      if (isVersionBefore(Spicetify.Platform.version, [1, 2, 31])) return internalFetch;
 
       /** @this {any} */
       return async function (url, body) {
