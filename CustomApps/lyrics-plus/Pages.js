@@ -245,8 +245,8 @@ const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara,
 		}
 
 		return {
-			activeLines: lyricWithEmptyLines.slice(startIndex, endIndex + 1),
-			activeElementIndex: activeLineIndex - startIndex,
+			activeLines: lyricWithEmptyLines,
+			activeElementIndex: activeLineIndex,
 		};
 	}, [activeLineIndex, lyricWithEmptyLines, CONFIG.visual["lines-before"], CONFIG.visual["lines-after"]]);
 
@@ -562,7 +562,7 @@ function isInViewport(element) {
 	);
 }
 
-const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKara, romanization }) => {
+const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKara, romanization, trackUri }) => {
 	const [position, setPosition] = useState(() => Spicetify.Player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay);
 	const activeLineRef = useRef(null);
 	const pageRef = useRef(null);
@@ -588,10 +588,18 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 
 	const initialScroll = useRef(true);
 
-	// Reset scroll state when lyrics change
-	useEffect(() => {
-		initialScroll.current = true;
-	}, [lyrics]);
+    // Reset scroll state and jump to top immediately before paint when track / lyrics change
+    react.useLayoutEffect(() => {
+        initialScroll.current = true;
+        if (pageRef.current) {
+            const scrollContainer = pageRef.current.closest('.os-viewport, .main-view-container__scroll-node, [data-overlayscrollbars-viewport]') || pageRef.current.parentElement;
+            if (scrollContainer) {
+                scrollContainer.scrollTop = 0;
+            } else {
+                pageRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+            }
+        }
+    }, [lyrics, trackUri]);
 
 	const lyricsId = lyrics[0].text;
 
@@ -610,25 +618,38 @@ const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKa
 	}
 
 	useEffect(() => {
-		if (activeLineRef.current && (initialScroll.current || isInViewport(activeLineRef.current))) {
-			// Ignore focus on the first "empty" idling indicator if it's during initial load
-			if (initialScroll.current && activeLineIndex === 0) {
-				const nextStart = findNextLineStartTime(padded, 0);
-				// If the intro is very short (e.g. less than 300ms), don't focus it
-				if (nextStart && nextStart - position < 300) {
-					initialScroll.current = false;
-					return;
-				}
-			}
+        // Keep container at the top during intro
+        if (activeLineIndex === 0) {
+            if (pageRef.current) {
+                const scrollContainer = pageRef.current.closest('.os-viewport, .main-view-container__scroll-node, [data-overlayscrollbars-viewport]') || pageRef.current.parentElement;
+                if (scrollContainer) {
+                    scrollContainer.scrollTop = 0;
+                } else {
+                    pageRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+                }
+            }
+            return;
+        }
 
-			activeLineRef.current.scrollIntoView({
-				behavior: initialScroll.current ? "auto" : "smooth",
-				block: "center",
-				inline: "nearest",
-			});
-			initialScroll.current = false;
-		}
-	}, [activeLineIndex, lyricsId]);
+        if (activeLineRef.current && (initialScroll.current || isInViewport(activeLineRef.current))) {
+            // Ignore focus on the first "empty" idling indicator if it's during initial load
+            if (initialScroll.current && activeLineIndex === 0) {
+                const nextStart = findNextLineStartTime(padded, 0);
+                // If the intro is very short (e.g. less than 300ms), don't focus it
+                if (nextStart && nextStart - position < 300) {
+                    initialScroll.current = false;
+                    return;
+                }
+            }
+
+            activeLineRef.current.scrollIntoView({
+                behavior: initialScroll.current ? "auto" : "smooth",
+                block: "center",
+                inline: "nearest",
+            });
+            initialScroll.current = false;
+        }
+    }, [activeLineIndex, lyricsId, lyrics]);
 
 	return react.createElement(
 		"div",
