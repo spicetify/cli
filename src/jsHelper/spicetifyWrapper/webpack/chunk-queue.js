@@ -1,3 +1,4 @@
+/** The global chunk queue of Spotify's bundle, whichever bundler name the client was built with. */
 export function getChunkQueue() {
   return window?.rspackChunk || window?.rspackChunkclient_web || window?.webpackChunkclient_web;
 }

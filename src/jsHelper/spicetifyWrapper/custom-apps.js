@@ -4,6 +4,7 @@ import { captureReactEarly } from "./webpack/chunk-queue.js";
 let navLinkFactoryCtx = null;
 export let refreshNavLinks = null;
 
+/** Whether the components and platform APIs the nav links render with have been resolved yet. */
 function hasNavLinkDependencies() {
   return !!(
     Spicetify.ReactComponent?.ButtonTertiary &&
@@ -34,16 +35,18 @@ function getManifest(app) {
   return {};
 }
 
-Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
-  // Spotify 1.3.x renders the global nav before hotloadWebpackModules has captured React.
-  if (!Spicetify.React?.useReducer && !captureReactEarly()) return;
-
+/**
+ * Renders the custom-app nav links once the components they need exist.
+ *
+ * This owns the hooks: it is mounted as a child of Spotify's nav component, so React becoming
+ * available between renders of that host never changes the host's own hook order.
+ */
+const NavLinksRoot = ({ list, isTouchScreenUi }) => {
   const [, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
   refreshNavLinks = refresh;
 
   // The components below can still be missing on the first render. `refreshNavLinks` is only fired
-  // once from webpack.js and is missed when the nav mounted before it, so poll from the render that
-  // mounted. Hooks have to run unconditionally to keep the host component's hook order stable.
+  // once from webpack.js and is missed when this mounted before it, so poll for them from here.
   Spicetify.React.useEffect(() => {
     if (hasNavLinkDependencies()) return undefined;
 
@@ -57,7 +60,7 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
     return () => clearInterval(timer);
   }, []);
 
-  if (!hasNavLinkDependencies()) return;
+  if (!hasNavLinkDependencies()) return null;
 
   const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : NavLinkSidebar;
 
@@ -125,6 +128,17 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
     );
 
   return isTouchScreenUi ? wrapScrollableContainer(NavLinks()) : NavLinks();
+};
+
+/**
+ * Called from inside the render of Spotify's nav component (patched in by the CLI), so it must not
+ * call hooks itself: it only resolves React and hands off to `NavLinksRoot`.
+ */
+Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
+  // Spotify 1.3.x renders the global nav before hotloadWebpackModules has captured React.
+  if (!Spicetify.React?.useReducer && !captureReactEarly()) return null;
+
+  return Spicetify.React.createElement(NavLinksRoot, { list, isTouchScreenUi });
 };
 
 const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
