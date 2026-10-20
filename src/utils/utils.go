@@ -11,11 +11,35 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-ini/ini"
 )
+
+var regexpCache sync.Map
+
+func getRegexp(pattern string) *regexp.Regexp {
+	if cached, ok := regexpCache.Load(pattern); ok {
+		return cached.(*regexp.Regexp)
+	}
+	re := regexp.MustCompile(pattern)
+	actual, _ := regexpCache.LoadOrStore(pattern, re)
+	return actual.(*regexp.Regexp)
+}
+
+func extractSubmatches(input string, loc []int) []string {
+	submatches := make([]string, len(loc)/2)
+	for i := 0; i < len(loc); i += 2 {
+		if loc[i] >= 0 && loc[i+1] >= 0 {
+			submatches[i/2] = input[loc[i]:loc[i+1]]
+		}
+	}
+	return submatches
+}
 
 // CheckExistAndCreate checks folder existence
 // and makes that folder, recursively, if it does not exist
@@ -44,13 +68,10 @@ func Unzip(src, dest string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		rc, err := f.Open()
-		if err != nil {
-			return err
-		}
-		defer rc.Close()
-
 		fpath := filepath.Join(dest, f.Name)
+		if rel, err := filepath.Rel(dest, fpath); err != nil || !filepath.IsLocal(rel) {
+			return fmt.Errorf("illegal file path in zip: %s", f.Name)
+		}
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(fpath, 0700)
 		} else {
@@ -64,14 +85,22 @@ func Unzip(src, dest string) error {
 				log.Fatal(err)
 				return err
 			}
-			f, err := os.OpenFile(
-				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+
+			rc, err := f.Open()
 			if err != nil {
 				return err
 			}
-			defer f.Close()
 
-			_, err = io.Copy(f, rc)
+			outFile, err := os.OpenFile(
+				fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
+			if err != nil {
+				rc.Close()
+				return err
+			}
+
+			_, err = io.Copy(outFile, rc)
+			outFile.Close()
+			rc.Close()
 			if err != nil {
 				return err
 			}
@@ -115,21 +144,7 @@ func Copy(src, dest string, recursive bool, filters []string) error {
 				}
 			}
 
-			fSrc, err := os.Open(fSrcPath)
-			if err != nil {
-				return err
-			}
-			defer fSrc.Close()
-
-			fDest, err := os.OpenFile(
-				fDestPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0700)
-			if err != nil {
-				return err
-			}
-			defer fDest.Close()
-
-			_, err = io.Copy(fDest, fSrc)
-			if err != nil {
+			if err := CopyFile(fSrcPath, dest); err != nil {
 				return err
 			}
 		}
@@ -165,66 +180,65 @@ func CopyFile(srcPath, dest string) error {
 // Replace uses Regexp to find any matched from `input` with `regexpTerm`
 // and replaces them with `replaceTerm` then returns new string.
 func Replace(str *string, pattern string, repl func(submatches ...string) string) {
-	re := regexp.MustCompile(pattern)
-	*str = re.ReplaceAllStringFunc(*str, func(match string) string {
-		submatches := re.FindStringSubmatch(match)
-		return repl(submatches...)
-	})
+	re := getRegexp(pattern)
+	input := *str
+	matches := re.FindAllStringSubmatchIndex(input, -1)
+	if len(matches) == 0 {
+		return
+	}
+
+	var b strings.Builder
+	b.Grow(len(input))
+	lastIndex := 0
+
+	for _, loc := range matches {
+		b.WriteString(input[lastIndex:loc[0]])
+		b.WriteString(repl(extractSubmatches(input, loc)...))
+		lastIndex = loc[1]
+	}
+	b.WriteString(input[lastIndex:])
+	*str = b.String()
 }
 
 func ReplaceOnce(str *string, pattern string, repl func(submatches ...string) string) {
-	re := regexp.MustCompile(pattern)
-	firstMatch := true
-	*str = re.ReplaceAllStringFunc(*str, func(match string) string {
-		if firstMatch {
-			firstMatch = false
-			submatches := re.FindStringSubmatch(match)
-			if submatches != nil {
-				return repl(submatches...)
-			}
-		}
-		return match
-	})
+	re := getRegexp(pattern)
+	input := *str
+	loc := re.FindStringSubmatchIndex(input)
+	if loc == nil {
+		return
+	}
+
+	*str = input[:loc[0]] + repl(extractSubmatches(input, loc)...) + input[loc[1]:]
 }
 
 func ReplaceOnceWithPriority(str *string, patterns []string, repl func(index int, submatches ...string) string) {
+	input := *str
 	for i, pattern := range patterns {
-		re := regexp.MustCompile(pattern)
-		firstMatch := true
-		*str = re.ReplaceAllStringFunc(*str, func(match string) string {
-			if firstMatch {
-				firstMatch = false
-				submatches := re.FindStringSubmatch(match)
-				if submatches != nil {
-					return repl(i, submatches...)
-				}
-			}
-			return match
-		})
-		if !firstMatch {
+		re := getRegexp(pattern)
+		loc := re.FindStringSubmatchIndex(input)
+		if loc != nil {
+			*str = input[:loc[0]] + repl(i, extractSubmatches(input, loc)...) + input[loc[1]:]
 			break
 		}
 	}
 }
 
 func FindMatch(input string, regexpTerm string) [][]string {
-	re := regexp.MustCompile(regexpTerm)
+	re := getRegexp(regexpTerm)
 	matches := re.FindAllStringSubmatch(input, -1)
 	return matches
 }
 
 func FindFirstMatch(input string, regexpTerm string) []string {
-	matches := FindMatch(input, regexpTerm)
-	if len(matches) > 0 {
-		return matches[0]
-	}
-	return nil
+	re := getRegexp(regexpTerm)
+	return re.FindStringSubmatch(input)
 }
 
 func FindLastMatch(input string, regexpTerm string) []string {
-	matches := FindMatch(input, regexpTerm)
+	re := getRegexp(regexpTerm)
+	matches := re.FindAllStringSubmatchIndex(input, -1)
 	if len(matches) > 0 {
-		return matches[len(matches)-1]
+		return extractSubmatches(input, matches[len(matches)-1])
 	}
 	return nil
 }
@@ -234,14 +248,18 @@ func FindLastMatch(input string, regexpTerm string) []string {
 func ModifyFile(path string, repl func(string) string) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		log.Print(err)
+		PrintError(err.Error())
 		return
 	}
 
-	content := repl(string(raw))
+	original := string(raw)
+	content := repl(original)
+	if content == original {
+		return
+	}
 
 	if err := os.WriteFile(path, []byte(content), 0700); err != nil {
-		log.Print(err)
+		PrintError(err.Error())
 	}
 }
 
@@ -268,6 +286,21 @@ func GetSpotifyVersion(prefsPath string) string {
 
 	version := rootSection.Key("app.last-launched-version")
 	return version.MustString("")
+}
+
+type SpotifyVersion [3]int
+
+func ParseSpotifyVersion(version string) SpotifyVersion {
+	var v SpotifyVersion
+	parts := strings.Split(version, ".")
+	for i := range min(len(parts), len(v)) {
+		v[i], _ = strconv.Atoi(parts[i])
+	}
+	return v
+}
+
+func (v SpotifyVersion) AtLeast(major, minor, patch int) bool {
+	return slices.Compare(v[:], []int{major, minor, patch}) >= 0
 }
 
 // GetExecutableDir returns directory of current process
@@ -301,7 +334,7 @@ func PrependTime(text string) string {
 // function symbol in obfuscated code.
 func FindSymbol(debugInfo, content string, clues []string) []string {
 	for _, v := range clues {
-		re := regexp.MustCompile(v)
+		re := getRegexp(v)
 		found := re.FindStringSubmatch(content)
 		if found != nil {
 			return found[1:]
@@ -319,7 +352,7 @@ func FindSymbol(debugInfo, content string, clues []string) []string {
 // function symbol in obfuscated code. Returns the matched symbols and the pattern that matched.
 func FindSymbolWithPattern(debugInfo, content string, clues []string) ([]string, string) {
 	for _, v := range clues {
-		re := regexp.MustCompile(v)
+		re := getRegexp(v)
 		found := re.FindStringSubmatch(content)
 		if found != nil {
 			return found[1:], v
@@ -348,14 +381,14 @@ func CreateJunction(location, destination string) error {
 }
 
 func SeekToCloseParen(content string, regexpTerm string, leftChar, rightChar byte) string {
-	loc := regexp.MustCompile(regexpTerm).FindStringIndex(content)
+	loc := getRegexp(regexpTerm).FindStringIndex(content)
 	if len(loc) > 0 {
 		start := loc[0]
 		end := start
 		count := 0
 		init := false
 
-		for {
+		for end < len(content) {
 			switch content[end] {
 			case leftChar:
 				count += 1
@@ -365,10 +398,9 @@ func SeekToCloseParen(content string, regexpTerm string, leftChar, rightChar byt
 			}
 			end += 1
 			if count == 0 && init {
-				break
+				return content[start:end]
 			}
 		}
-		return content[start:end]
 	}
 	return ""
 }
