@@ -68,10 +68,10 @@ func Unzip(src, dest string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		if !filepath.IsLocal(f.Name) {
+		fpath := filepath.Join(dest, f.Name)
+		if rel, err := filepath.Rel(dest, fpath); err != nil || !filepath.IsLocal(rel) {
 			return fmt.Errorf("illegal file path in zip: %s", f.Name)
 		}
-		fpath := filepath.Join(dest, f.Name)
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(fpath, 0700)
 		} else {
