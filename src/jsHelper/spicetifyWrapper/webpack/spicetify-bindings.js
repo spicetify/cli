@@ -2,6 +2,10 @@ import { fnStr } from "../shared/string.js";
 import { createReactComponents } from "./react-components.js";
 import { findReactQuery } from "./react-query.js";
 
+export function findReact(cache) {
+  return cache.find((module) => module?.createElement && module?.useLayoutEffect && module?.useMemo && module?.useReducer);
+}
+
 export function createSpicetifyBindings({
   cache,
   chunks,
@@ -14,7 +18,7 @@ export function createSpicetifyBindings({
   scrollableContainer,
 }) {
   return {
-    React: cache.find((m) => m?.useMemo),
+    React: findReact(cache),
     ReactJSX: cache.find((m) => m?.jsx),
     ReactDOM: cache.find((m) => m?.createPortal),
     ReactDOMServer: cache.find((m) => m?.renderToString),

@@ -5,16 +5,17 @@ import { waitForLateComponents } from "./webpack/late-components.js";
 import { getModuleInventory, groupBy } from "./webpack/module-inventory.js";
 import { exposeRuntimeResolvers } from "./webpack/runtime-resolvers.js";
 import { createScrollableContainer } from "./webpack/scrollable-container.js";
-import { createSpicetifyBindings } from "./webpack/spicetify-bindings.js";
+import { createSpicetifyBindings, findReact } from "./webpack/spicetify-bindings.js";
 import { waitForURI } from "./webpack/uri.js";
 
 void (async function hotloadWebpackModules() {
   const getChunkQueue = () => window?.rspackChunk || window?.rspackChunkclient_web || window?.webpackChunkclient_web;
-  const chunkQueue = await waitFor(getChunkQueue, 50);
+  let chunkQueue = getChunkQueue();
+  if (!chunkQueue) chunkQueue = await waitFor(getChunkQueue, 50);
 
   // Force all webpack modules to load
   const require = chunkQueue.push([[Symbol()], {}, (re) => re]);
-  await waitFor(() => require.m, 50);
+  if (!require.m) await waitFor(() => require.m, 50);
   console.log("[spicetifyWrapper] Waiting for required webpack modules to load");
   let webpackDidCallback = false;
   // https://github.com/webpack/webpack/blob/main/lib/runtime/OnChunksLoadedRuntimeModule.js
@@ -32,7 +33,7 @@ void (async function hotloadWebpackModules() {
   let cache = inventory.cache;
 
   // For _renderNavLinks to work
-  Spicetify.React = cache.find((m) => m?.useMemo);
+  Spicetify.React = findReact(cache);
 
   await waitFor(() => webpackDidCallback, 100);
   console.log("[spicetifyWrapper] All required webpack modules loaded");

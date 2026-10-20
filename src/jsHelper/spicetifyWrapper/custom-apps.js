@@ -1,7 +1,11 @@
 import { createIconComponent } from "./icons.js";
 
 let navLinkFactoryCtx = null;
-export let refreshNavLinks = null;
+const navLinkRefreshers = new Set();
+
+export function refreshNavLinks() {
+  for (const refresh of navLinkRefreshers) refresh();
+}
 
 const manifestCache = new Map();
 
@@ -13,7 +17,7 @@ function getManifest(app) {
     .then((res) => res.json())
     .then((manifest) => {
       manifestCache.set(app, manifest);
-      refreshNavLinks?.();
+      refreshNavLinks();
     })
     .catch(() => {
       // Keep the {} placeholder already cached
@@ -23,8 +27,17 @@ function getManifest(app) {
 }
 
 Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
-  const [, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
-  refreshNavLinks = refresh;
+  if (!Spicetify.React?.createElement) return null;
+  return Spicetify.React.createElement(NavLinksRenderer, { list, isTouchScreenUi });
+};
+
+function NavLinksRenderer({ list, isTouchScreenUi }) {
+  const react = Spicetify.React;
+  const [, refresh] = react.useReducer((x) => x + 1, 0);
+  react.useLayoutEffect(() => {
+    navLinkRefreshers.add(refresh);
+    return () => navLinkRefreshers.delete(refresh);
+  }, [refresh]);
 
   if (
     !Spicetify.ReactComponent.ButtonTertiary ||
@@ -34,11 +47,11 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
     !Spicetify.Platform.History ||
     !Spicetify.Platform.LocalStorageAPI
   )
-    return;
+    return null;
 
   const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : NavLinkSidebar;
 
-  if (!navLinkFactoryCtx) navLinkFactoryCtx = Spicetify.React.createContext(null);
+  if (!navLinkFactoryCtx) navLinkFactoryCtx = react.createContext(null);
   const registered = [];
 
   for (const app of list) {
@@ -87,22 +100,19 @@ Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
     document.head.appendChild(style);
   })();
 
-  const wrapScrollableContainer = (element) =>
-    Spicetify.React.createElement(
-      "div",
-      { className: "custom-navlinks-scrollable_container" },
-      Spicetify.React.createElement(Spicetify.ReactComponent.ScrollableContainer, null, element),
-    );
+  const navLinks = react.createElement(
+    navLinkFactoryCtx.Provider,
+    { value: navLinkFactory },
+    registered.map((NavLinkElement) => react.createElement(NavLink, NavLinkElement, null)),
+  );
 
-  const NavLinks = () =>
-    Spicetify.React.createElement(
-      navLinkFactoryCtx.Provider,
-      { value: navLinkFactory },
-      registered.map((NavLinkElement) => Spicetify.React.createElement(NavLink, NavLinkElement, null)),
-    );
-
-  return isTouchScreenUi ? wrapScrollableContainer(NavLinks()) : NavLinks();
-};
+  if (!isTouchScreenUi) return navLinks;
+  return react.createElement(
+    "div",
+    { className: "custom-navlinks-scrollable_container" },
+    react.createElement(Spicetify.ReactComponent.ScrollableContainer, null, navLinks),
+  );
+}
 
 const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
   const isActive = Spicetify.Platform.History.location.pathname?.startsWith(appRoutePath);
