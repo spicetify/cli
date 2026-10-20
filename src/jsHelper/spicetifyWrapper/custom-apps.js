@@ -1,7 +1,19 @@
 import { createIconComponent } from "./icons.js";
+import { captureReactEarly } from "./webpack/chunk-queue.js";
 
 let navLinkFactoryCtx = null;
 export let refreshNavLinks = null;
+
+function hasNavLinkDependencies() {
+  return !!(
+    Spicetify.ReactComponent?.ButtonTertiary &&
+    Spicetify.ReactComponent?.Navigation &&
+    Spicetify.ReactComponent?.TooltipWrapper &&
+    Spicetify.ReactComponent?.ScrollableContainer &&
+    Spicetify.Platform?.History &&
+    Spicetify.Platform?.LocalStorageAPI
+  );
+}
 
 const manifestCache = new Map();
 
@@ -23,18 +35,29 @@ function getManifest(app) {
 }
 
 Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
+  // Spotify 1.3.x renders the global nav before hotloadWebpackModules has captured React.
+  if (!Spicetify.React?.useReducer && !captureReactEarly()) return;
+
   const [, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
   refreshNavLinks = refresh;
 
-  if (
-    !Spicetify.ReactComponent.ButtonTertiary ||
-    !Spicetify.ReactComponent.Navigation ||
-    !Spicetify.ReactComponent.TooltipWrapper ||
-    !Spicetify.ReactComponent.ScrollableContainer ||
-    !Spicetify.Platform.History ||
-    !Spicetify.Platform.LocalStorageAPI
-  )
-    return;
+  // The components below can still be missing on the first render. `refreshNavLinks` is only fired
+  // once from webpack.js and is missed when the nav mounted before it, so poll from the render that
+  // mounted. Hooks have to run unconditionally to keep the host component's hook order stable.
+  Spicetify.React.useEffect(() => {
+    if (hasNavLinkDependencies()) return undefined;
+
+    let attempts = 0;
+    const timer = setInterval(() => {
+      if (!hasNavLinkDependencies() && ++attempts < 600) return;
+      clearInterval(timer);
+      if (hasNavLinkDependencies()) refresh();
+    }, 100);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!hasNavLinkDependencies()) return;
 
   const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : NavLinkSidebar;
 

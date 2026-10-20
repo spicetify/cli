@@ -1,5 +1,6 @@
 import { refreshNavLinks } from "./custom-apps.js";
 import { waitFor } from "./shared/async.js";
+import { getChunkQueue } from "./webpack/chunk-queue.js";
 import { exposeReactComponentsUI } from "./webpack/component-resolvers.js";
 import { waitForLateComponents } from "./webpack/late-components.js";
 import { getModuleInventory, groupBy } from "./webpack/module-inventory.js";
@@ -9,7 +10,6 @@ import { createSpicetifyBindings } from "./webpack/spicetify-bindings.js";
 import { waitForURI } from "./webpack/uri.js";
 
 void (async function hotloadWebpackModules() {
-  const getChunkQueue = () => window?.rspackChunk || window?.rspackChunkclient_web || window?.webpackChunkclient_web;
   const chunkQueue = await waitFor(getChunkQueue, 50);
 
   // Force all webpack modules to load
@@ -34,7 +34,20 @@ void (async function hotloadWebpackModules() {
   // For _renderNavLinks to work
   Spicetify.React = cache.find((m) => m?.useMemo);
 
-  await waitFor(() => webpackDidCallback, 100);
+  // webpack only runs deferred `O` callbacks on the next chunk load. On Spotify 1.3.x every chunk can
+  // already be loaded by the time ours is registered, so it would never fire and nothing past this
+  // point (Player, Queue, CosmosAsync, most ReactComponents) would resolve. Once the client has
+  // rendered, flush the queue ourselves: `require.O()` without arguments is webpack's own flush call.
+  await waitFor(() => {
+    if (!webpackDidCallback && document.readyState === "complete" && document.querySelector(".main-view-container")) {
+      try {
+        require.O();
+      } catch {
+        // The runtime did not expose a flushable queue; keep waiting for the regular callback.
+      }
+    }
+    return webpackDidCallback;
+  }, 100);
   console.log("[spicetifyWrapper] All required webpack modules loaded");
   inventory = getModuleInventory(require);
   chunks = inventory.chunks;
