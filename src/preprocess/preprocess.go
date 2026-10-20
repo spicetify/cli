@@ -118,17 +118,7 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 	cssMapJSReplacer := strings.NewReplacer(cssMapPairs...)
 	cssMapCSSReplacer := strings.NewReplacer(cssMapCSSPairs...)
 
-	verParts := strings.Split(flags.SpotifyVer, ".")
-	spotifyMajor, spotifyMinor, spotifyPatch := 0, 0, 0
-	if len(verParts) > 0 {
-		spotifyMajor, _ = strconv.Atoi(verParts[0])
-	}
-	if len(verParts) > 1 {
-		spotifyMinor, _ = strconv.Atoi(verParts[1])
-	}
-	if len(verParts) > 2 {
-		spotifyPatch, _ = strconv.Atoi(verParts[2])
-	}
+	spotifyVersion := utils.ParseSpotifyVersion(flags.SpotifyVer)
 
 	var spotifyBinaryPath string
 	switch runtime.GOOS {
@@ -219,93 +209,82 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 		WithShowCount(true).
 		Start()
 
-	var wg sync.WaitGroup
-	var barMu sync.Mutex
-	sem := make(chan struct{}, runtime.NumCPU())
+	patchFile := func(path string) {
+		fileName := filepath.Base(path)
+		extension := filepath.Ext(fileName)
 
-	for _, path := range filesToPatch {
-		wg.Add(1)
-		sem <- struct{}{}
+		switch extension {
+		case ".js":
+			utils.ModifyFile(path, func(content string) string {
+				if flags.DisableSentry && (fileName == "xpui.js" || fileName == "xpui-snapshot.js") {
+					content = disableSentry(content)
+				}
 
-		go func(path string) {
-			defer wg.Done()
-			defer func() { <-sem }()
+				if flags.DisableLogging {
+					content = disableLogging(content)
+				}
 
-			fileName := filepath.Base(path)
-			extension := filepath.Ext(fileName)
-
-			switch extension {
-			case ".js":
-				utils.ModifyFile(path, func(content string) string {
-					if flags.DisableSentry && (fileName == "xpui.js" || fileName == "xpui-snapshot.js") {
-						content = disableSentry(content)
-					}
-
-					if flags.DisableLogging {
-						content = disableLogging(content)
-					}
-
-					if flags.ExposeAPIs {
-						switch fileName {
-						case "xpui-modules.js", "xpui-snapshot.js":
-							content = exposeAPIs_main(content)
-							content = exposeAPIs_vendor(content)
-						case "xpui.js":
-							content = exposeAPIs_main(content)
-							if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
-								content = exposeAPIs_vendor(content)
-							}
-						case "vendor~xpui.js":
+				if flags.ExposeAPIs {
+					switch fileName {
+					case "xpui-modules.js", "xpui-snapshot.js":
+						content = exposeAPIs_main(content)
+						content = exposeAPIs_vendor(content)
+					case "xpui.js":
+						content = exposeAPIs_main(content)
+						if spotifyVersion.AtLeast(1, 2, 57) {
 							content = exposeAPIs_vendor(content)
 						}
-
-						if spotifyMajor >= 1 && spotifyMinor >= 2 && (spotifyPatch >= 28 && spotifyPatch <= 57) {
-							utils.ReplaceOnce(&content, `(typeName\])`, func(submatches ...string) string {
-								return fmt.Sprintf(`%s || []`, submatches[1])
-							})
-						}
-
-						// to avoid syntaxerror on Spotify 1.2.78 and above
-						if spotifyMajor == 1 && spotifyMinor == 2 && spotifyPatch < 78 {
-							utils.ReplaceOnce(&content, `\(\({[^}]*,\s*imageSrc`, func(submatches ...string) string {
-								return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
-							})
-						}
-
-						content = additionalPatches(content)
+					case "vendor~xpui.js":
+						content = exposeAPIs_vendor(content)
 					}
 
-					if fileName == "dwp-top-bar.js" || fileName == "dwp-now-playing-bar.js" || fileName == "dwp-home-chips-row.js" {
-						utils.ReplaceOnce(&content, `e\.state\.cinemaState`, func(submatches ...string) string {
-							return "e.state?.cinemaState"
+					if spotifyVersion.AtLeast(1, 2, 28) && !spotifyVersion.AtLeast(1, 2, 58) {
+						utils.ReplaceOnce(&content, `(typeName\])`, func(submatches ...string) string {
+							return fmt.Sprintf(`%s || []`, submatches[1])
 						})
 					}
 
-					// Bare keys with whitespace before the colon
-					// the replacer's k+":" entry can't match these, so handle them first
-					content = cssMapBareKeySpaceRe.ReplaceAllStringFunc(content, func(match string) string {
-						colonIdx := strings.LastIndex(match, ":")
-						key := strings.TrimRight(match[:colonIdx], " \t")
-						if v, ok := cssTranslationMap[key]; ok {
-							return `"` + v + `":`
-						}
-						return match
-					})
-					// Single pass: k+":" → "v": for bare keys,
-					// k -> v for all other occurrences
-					content = cssMapJSReplacer.Replace(content)
-					content = colorVariableReplaceForJS(content)
-
-					return content
-				})
-			case ".css":
-				utils.ModifyFile(path, func(content string) string {
-					content = cssMapCSSReplacer.Replace(content)
-					if flags.RemoveRTL {
-						content = removeRTL(content)
+					// to avoid syntaxerror on Spotify 1.2.78 and above
+					if spotifyVersion.AtLeast(1, 2, 0) && !spotifyVersion.AtLeast(1, 2, 78) {
+						utils.ReplaceOnce(&content, `\(\({[^}]*,\s*imageSrc`, func(submatches ...string) string {
+							return fmt.Sprintf("Spicetify.Snackbar.enqueueImageSnackbar=%s", submatches[0])
+						})
 					}
-					if fileName == "xpui.css" || fileName == "xpui-snapshot.css" {
-						content = content + `
+
+					content = additionalPatches(content)
+				}
+
+				if fileName == "dwp-top-bar.js" || fileName == "dwp-now-playing-bar.js" || fileName == "dwp-home-chips-row.js" {
+					utils.ReplaceOnce(&content, `e\.state\.cinemaState`, func(submatches ...string) string {
+						return "e.state?.cinemaState"
+					})
+				}
+
+				// Bare keys with whitespace before the colon
+				// the replacer's k+":" entry can't match these, so handle them first
+				content = cssMapBareKeySpaceRe.ReplaceAllStringFunc(content, func(match string) string {
+					colonIdx := strings.LastIndex(match, ":")
+					key := strings.TrimRight(match[:colonIdx], " \t")
+					if v, ok := cssTranslationMap[key]; ok {
+						return `"` + v + `":`
+					}
+					return match
+				})
+				// Single pass: k+":" → "v": for bare keys,
+				// k -> v for all other occurrences
+				content = cssMapJSReplacer.Replace(content)
+				content = colorVariableReplaceForJS(content)
+
+				return content
+			})
+		case ".css":
+			utils.ModifyFile(path, func(content string) string {
+				content = cssMapCSSReplacer.Replace(content)
+				if flags.RemoveRTL {
+					content = removeRTL(content)
+				}
+				if fileName == "xpui.css" || fileName == "xpui-snapshot.css" {
+					content = content + `
 						:where(.spicetify-topbar-button){align-items:center;display:flex}
 						.spicetify-topbar-button>button{align-items:center;display:flex;height:32px;justify-content:center;padding:0;width:32px}
 						:where(.main-addButton-button){align-items:center;background:transparent;border:0;color:rgba(var(--spice-rgb-text),.7);display:flex;height:32px;justify-content:center;padding:0;width:32px}
@@ -316,29 +295,43 @@ func Start(version string, spotifyBasePath string, extractedAppsPath string, fla
 						:where(.main-gridContainer-gridContainer){display:grid;grid-gap:var(--grid-gap);grid-auto-rows:min-content;grid-template-columns:repeat(auto-fill,minmax(var(--min-column-width),1fr))}
 						.main-gridContainer-fixedWidth{grid-template-columns:repeat(auto-fill,var(--column-width));width:calc((var(--column-count) - 1) * var(--grid-gap) + var(--column-count) * var(--column-width))}.main-cardImage-imageWrapper{background-color:var(--card-color,#333);border-radius:var(--card-image-radius,6px);box-shadow:0 8px 24px rgba(0,0,0,.5);padding-bottom:100%;position:relative;width:100%}.main-cardImage-circular{--card-image-radius:50%}.main-card-imagePlaceholder,.main-cardImage-image{height:100%;left:0;position:absolute;top:0;width:100%}.main-card-card{border-radius:8px;-webkit-box-flex:1;background:var(--spice-player);-ms-flex:1;flex:1;isolation:isolate;padding:16px;position:relative;-webkit-transition:background-color .3s;transition:background-color .3s;width:100%}.main-card-card:hover,.main-card-card[data-context-menu-open=true]{background:var(--spice-card)}.main-card-card:focus-within{background:var(--spice-card)}.main-card-card .main-card-cardLink{position:absolute;z-index:0}.RjYPjR7FsVf42b3a5Efm:before,.Z78JmW4GUvvxLXSFjb7R:not(:last-child):after{content:"\2022";margin:0 4px}.main-card-card a,.main-card-card button{position:relative;z-index:1}.main-card-cardLink{bottom:0;content:"";cursor:pointer;left:0;overflow:hidden;right:0;text-indent:100%;top:0;white-space:nowrap;z-index:0}.main-card-cardTitle{z-index:1}.main-card-cardTitleLink:focus,.main-card-cardTitleLink:hover{text-decoration:none}.Wmr5qZ5jui6X37XCrChA{opacity:0}.main-card-newEpisodeIndicator{margin-top:3px}.main-card-imageContainer{pointer-events:none;position:relative}.main-card-imageContainerOld,.main-card-imageContainerSkeleton{margin-bottom:16px}.main-card-cardMetadata{min-height:62px;line-clamp:2;-webkit-line-clamp:2;overflow:hidden;text-overflow:ellipsis}.main-card-DownloadStatusIndicator{bottom:12px;inset-inline-end:12px;position:absolute}.main-card-PlayButtonContainer{border-radius:500px;bottom:8px;-webkit-box-shadow:0 8px 8px rgba(var(--spice-rgb-shadow),.3);box-shadow:0 8px 8px rgba(var(--spice-rgb-shadow),.3);inset-inline-end:8px;opacity:0;pointer-events:none;position:absolute;-webkit-transform:translateY(8px);transform:translateY(8px);z-index:2}@media(pointer:coarse){.main-card-PlayButtonContainer{display:none}}@media(prefers-reduced-motion:no-preference){.main-card-PlayButtonContainer{-webkit-transition:opacity .2s ease-out,-webkit-transform .2s ease-out;transition:transform .2s ease-out,opacity .2s ease-out,-webkit-transform .2s ease-out}}.main-card-PlayButtonContainerVisible{opacity:1;pointer-events:auto;position:absolute;-webkit-transform:translateY(0);transform:translateY(0)}.main-card-cardContainer{--animation-speed:0.2s!important;white-space:normal}.main-card-card:hover .main-card-PlayButtonContainer,.main-card-cardContainer:hover .main-card-PlayButtonContainer{opacity:1;-webkit-transform:translateY(0);transform:translateY(0)}.main-card-card:focus-within .main-card-PlayButtonContainer,.main-card-cardContainer:focus-within{opacity:1;-webkit-transform:translateY(0);transform:translateY(0)}@media(pointer:fine){.main-card-card .main-card-cardLink:hover{cursor:pointer}.main-card-card:hover .main-card-PlayButtonContainer,.main-card-cardContainer:hover .main-card-PlayButtonContainer{opacity:1;pointer-events:auto;position:absolute}.main-card-card:focus-within .main-card-PlayButtonContainer,.main-card-cardContainer:focus-within .main-card-PlayButtonContainer{opacity:1;pointer-events:auto;position:absolute}}.main-card-cardMetadata,.v3isO2phyJAoZRkmme0G{display:-webkit-box;-webkit-box-orient:vertical}
 					`
-						content += legacyFixedWidthGridCSS
-					}
-					return content
+					content += legacyFixedWidthGridCSS
+				}
+				return content
+			})
+
+		case ".html":
+			utils.ModifyFile(path, func(content string) string {
+				var tags string
+				tags += "<link rel='stylesheet' class='userCSS' href='colors.css'>\n"
+				tags += "<link rel='stylesheet' class='userCSS' href='user.css'>\n"
+
+				if flags.ExposeAPIs {
+					tags += "<script src='helper/spicetifyWrapper.js'></script>\n"
+					tags += "<!-- spicetify helpers -->\n"
+				}
+
+				utils.Replace(&content, `<body(\sclass="[^"]*")?>`, func(submatches ...string) string {
+					return fmt.Sprintf("%s\n%s", submatches[0], tags)
 				})
 
-			case ".html":
-				utils.ModifyFile(path, func(content string) string {
-					var tags string
-					tags += "<link rel='stylesheet' class='userCSS' href='colors.css'>\n"
-					tags += "<link rel='stylesheet' class='userCSS' href='user.css'>\n"
+				return content
+			})
+		}
+	}
 
-					if flags.ExposeAPIs {
-						tags += "<script src='helper/spicetifyWrapper.js'></script>\n"
-						tags += "<!-- spicetify helpers -->\n"
-					}
+	var wg sync.WaitGroup
+	var barMu sync.Mutex
+	sem := make(chan struct{}, patchWorkers())
 
-					utils.Replace(&content, `<body(\sclass="[^"]*")?>`, func(submatches ...string) string {
-						return fmt.Sprintf("%s\n%s", submatches[0], tags)
-					})
+	for _, path := range filesToPatch {
+		wg.Add(1)
+		sem <- struct{}{}
 
-					return content
-				})
-			}
+		go func(path string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			patchFile(path)
 
 			barMu.Lock()
 			bar.Increment()
@@ -371,7 +364,7 @@ func StartCSS(extractedAppsPath string) {
 	})
 
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, runtime.NumCPU())
+	sem := make(chan struct{}, patchWorkers())
 
 	for _, path := range cssFiles {
 		wg.Add(1)
@@ -384,6 +377,12 @@ func StartCSS(extractedAppsPath string) {
 		}(path)
 	}
 	wg.Wait()
+}
+
+const maxPatchWorkers = 8
+
+func patchWorkers() int {
+	return min(runtime.NumCPU(), maxPatchWorkers)
 }
 
 func hexAlphaReplacement(maxValue float64) func(submatches ...string) string {
@@ -1037,6 +1036,8 @@ func exposeAPIs_main(input string) string {
 			utils.Replace(&input, `\(0,([\w_$]+)\.jsx\)\((?:[\w_$]+\.[\w_$]+,\{value:"contextmenu"[^}]+\}\)\}\)|"[\w-]+",\{[^}]+:"context-menu"[^}]+\}\))`, func(submatches ...string) string {
 				return fmt.Sprintf("(0,%s.jsx)((Spicetify.ContextMenuV2._context||(Spicetify.ContextMenuV2._context=%s.createContext(null))).Provider,{value:{props:%s?.props,trigger:%s,target:%s},children:%s})", submatches[1], react, menu, trigger, target, submatches[0])
 			})
+		} else {
+			utils.PrintWarning("Could not find React reference near context menu; Spicetify.ContextMenuV2 provider will not be injected")
 		}
 	}
 
@@ -1107,6 +1108,8 @@ func exposeAPIs_vendor(input string) string {
 					URI,
 					fmt.Sprintf("%s;Spicetify.URI=%s;", URI, URIObj[1]),
 					1)
+			} else {
+				utils.PrintWarning("Could not find end of URI class; Spicetify.URI will not be exposed")
 			}
 		}
 	}

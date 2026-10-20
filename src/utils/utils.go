@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -66,6 +68,9 @@ func Unzip(src, dest string) error {
 	defer r.Close()
 
 	for _, f := range r.File {
+		if !filepath.IsLocal(f.Name) {
+			return fmt.Errorf("illegal file path in zip: %s", f.Name)
+		}
 		fpath := filepath.Join(dest, f.Name)
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(fpath, 0700)
@@ -253,7 +258,7 @@ func ModifyFile(path string, repl func(string) string) {
 		return
 	}
 
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0700); err != nil {
 		PrintError(err.Error())
 	}
 }
@@ -281,6 +286,21 @@ func GetSpotifyVersion(prefsPath string) string {
 
 	version := rootSection.Key("app.last-launched-version")
 	return version.MustString("")
+}
+
+type SpotifyVersion [3]int
+
+func ParseSpotifyVersion(version string) SpotifyVersion {
+	var v SpotifyVersion
+	parts := strings.Split(version, ".")
+	for i := range min(len(parts), len(v)) {
+		v[i], _ = strconv.Atoi(parts[i])
+	}
+	return v
+}
+
+func (v SpotifyVersion) AtLeast(major, minor, patch int) bool {
+	return slices.Compare(v[:], []int{major, minor, patch}) >= 0
 }
 
 // GetExecutableDir returns directory of current process
