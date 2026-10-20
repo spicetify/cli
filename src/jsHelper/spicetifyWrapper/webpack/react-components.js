@@ -1,5 +1,5 @@
 import { fnStr } from "../shared/string.js";
-import { findCards } from "./cards.js";
+import { findBaseCards, findCards } from "./cards.js";
 import { findDropdownComponent, wrapProvider } from "./component-resolvers.js";
 import { findMenuOverrides, findMenus } from "./menus.js";
 import { getObjectValues } from "./module-inventory.js";
@@ -33,6 +33,25 @@ function findModernMenuSubMenuItem({ chunks, require }) {
   return functionExports.length === 1 ? functionExports[0] : undefined;
 }
 
+export function findMenuItem(functionModules) {
+  function findByMarkers(markers) {
+    return functionModules.find((component) => {
+      const source = fnStr(component);
+      return markers.every((marker) => source.includes(marker));
+    });
+  }
+
+  const modernMarkers = ["forceV2LeadingIcon", "showFullTextOnHover", "menuAction"];
+  const hybridMarkers = [...modernMarkers, ".showFullTextOnHover", ".menuAction", ".children"];
+
+  return (
+    findByMarkers(hybridMarkers) ??
+    findByMarkers(modernMarkers) ??
+    findByMarkers(["handleMouseEnter", "onClick", "menuItemButton"]) ??
+    findByMarkers(["handleMouseEnter", "onClick"])
+  );
+}
+
 export function createReactComponents({
   modules,
   functionModules,
@@ -47,10 +66,7 @@ export function createReactComponents({
     ...Spicetify.ReactComponent,
     TextComponent: modules.find((m) => m?.h1 && m?.render),
     Menu: functionModules.find((m) => ["getInitialFocusElement", "children"].every((marker) => fnStr(m).includes(marker))),
-    MenuItem:
-      functionModules.find((m) => ["forceV2LeadingIcon", "showFullTextOnHover", "menuAction"].every((marker) => fnStr(m).includes(marker))) ??
-      functionModules.find((m) => ["handleMouseEnter", "onClick", "menuItemButton"].every((marker) => fnStr(m).includes(marker))) ??
-      functionModules.find((m) => ["handleMouseEnter", "onClick"].every((marker) => fnStr(m).includes(marker))),
+    MenuItem: findMenuItem(functionModules),
     MenuSubMenuItem: findModernMenuSubMenuItem({ chunks, require }) ?? functionModules.find((f) => fnStr(f).includes("subMenuIcon")),
     Slider: wrapProvider(functionModules.find((m) => fnStr(m).includes("progressBarRef"))),
     RemoteConfigProvider: functionModules.find((m) => ["resolveSuspense", "configuration"].every((marker) => fnStr(m).includes(marker))),
@@ -70,13 +86,7 @@ export function createReactComponents({
     Toggle: functionModules.find((m) => ["onSelected", 'type:"checkbox"'].every((marker) => fnStr(m).includes(marker))),
     Cards: {
       Default: reactComponentsUI.Card,
-      FeatureCard: functionModules.find((m) => ["?highlight", "headerText", "imageContainer"].every((marker) => fnStr(m).includes(marker))),
-      Hero: functionModules.find((m) => fnStr(m).includes('"herocard-click-handler"')),
-      CardImage: functionModules.find(
-        (m) =>
-          ["isHero", "imageWrapper"].every((marker) => fnStr(m).includes(marker)) &&
-          (fnStr(m).includes("withWaves") || fnStr(m).includes("isCircular")),
-      ),
+      ...findBaseCards({ modules, functionModules }),
       ...Object.fromEntries(findCards({ modules, functionModules })),
     },
     Router: functionModules.find((m) => ["navigationType", "static"].every((marker) => fnStr(m).includes(marker))),

@@ -1,9 +1,10 @@
 import { fnStr } from "../shared/string.js";
-import { cardName, findCards, lazyCardTypes } from "./cards.js";
+import { cardName, cardTypes, findBaseCards, findCards } from "./cards.js";
 import { findDropdownComponent, wrapProvider } from "./component-resolvers.js";
 import { createModuleInventoryScanner } from "./module-inventory.js";
 
-const LATE_COMPONENTS = ["Slider", "Dropdown", "Toggle", "Cards.Artist", "Cards.Audiobook", "Cards.Profile", "Cards.Show", "Cards.Track"];
+const cardComponentNames = ["FeatureCard", "Hero", "CardImage", ...cardTypes.map(cardName)];
+const LATE_COMPONENTS = ["Slider", "Dropdown", "Toggle", ...cardComponentNames.map((name) => `Cards.${name}`)];
 
 function hasComponent(component) {
   return component.split(".").reduce((owner, key) => owner?.[key], Spicetify.ReactComponent) !== undefined;
@@ -21,13 +22,14 @@ export function waitForLateComponents({ require, refreshNavLinks }) {
 
     const { chunks: newChunks, modules: newModules, functionModules: newFunctionModules } = inventory.scan(require);
 
-    const remainingCardTypes = lazyCardTypes.filter((type) => Spicetify.ReactComponent.Cards[cardName(type)] === undefined);
-    if (remainingCardTypes.length) {
-      Object.assign(
-        Spicetify.ReactComponent.Cards,
-        Object.fromEntries(findCards({ modules: newModules, functionModules: newFunctionModules }, remainingCardTypes)),
-      );
-    }
+    const cardInventory = { modules: newModules, functionModules: newFunctionModules };
+    const remainingCardTypes = cardTypes.filter((type) => Spicetify.ReactComponent.Cards[cardName(type)] === undefined);
+    const discoveredCards = {
+      ...findBaseCards(cardInventory),
+      ...Object.fromEntries(findCards(cardInventory, remainingCardTypes)),
+    };
+    for (const [name, component] of Object.entries(discoveredCards))
+      if (Spicetify.ReactComponent.Cards[name] === undefined) Spicetify.ReactComponent.Cards[name] = component;
 
     if (!Spicetify.ReactComponent.Slider)
       Spicetify.ReactComponent.Slider = wrapProvider(newFunctionModules.find((m) => fnStr(m).includes("progressBarRef")));
