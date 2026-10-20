@@ -7,18 +7,19 @@
 /// <reference path="../globals.d.ts" />
 
 (function LoopyLoop() {
-	const playbackBar = document.querySelector(".playback-bar");
-	const progressContainer = playbackBar?.querySelector(".playback-progressbar-container");
-	const rangeInput = progressContainer?.querySelector('input[type="range"]');
-	const bar = rangeInput?.closest("label")?.nextElementSibling;
+	function getProgressContainer() {
+		return document.querySelector('[data-testid="playback-progressbar"]') ?? document.querySelector(".playback-progressbar-container");
+	}
+
+	function getBar(progressContainer = getProgressContainer()) {
+		const rangeInput = progressContainer?.querySelector('input[type="range"]');
+		return progressContainer?.querySelector('[data-testid="progress-bar"]') ?? rangeInput?.closest("label")?.nextElementSibling ?? null;
+	}
+
+	const bar = getBar();
 	if (!(bar && Spicetify.Player)) {
 		setTimeout(LoopyLoop, 100);
 		return;
-	}
-
-	function getBar() {
-		const pc = document.querySelector(".playback-progressbar-container");
-		return pc?.querySelector('input[type="range"]')?.closest("label")?.nextElementSibling ?? null;
 	}
 
 	const style = document.createElement("style");
@@ -42,9 +43,71 @@
     z-index: 20;
     padding: 2px 6px;
 }
-#loopy-context-menu, #loopy-move-submenu {
+.loopy-menu {
     position: fixed;
     z-index: 2147483647;
+}
+.loopy-menu > ul {
+    box-sizing: border-box;
+    width: max-content;
+    min-width: 196px;
+    max-width: calc(100vw - 8px);
+    margin: 0;
+    padding: 4px;
+    border-radius: 4px;
+    background: var(--spice-main-elevated, var(--background-elevated-base, #282828));
+    box-shadow: 0 16px 24px rgba(0, 0, 0, 0.3), 0 6px 8px rgba(0, 0, 0, 0.2);
+    color: var(--spice-text, var(--text-base, #fff));
+    font-family: var(--encore-body-font-stack, "Helvetica Neue", helvetica, arial, sans-serif);
+    list-style: none;
+}
+.loopy-menu li {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.loopy-menu button {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 2px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+    text-align: start;
+    white-space: nowrap;
+}
+.loopy-menu button:hover {
+    background: var(--background-tinted-base, rgba(255, 255, 255, 0.1));
+}
+.loopy-menu button:active {
+    background: var(--background-tinted-press, rgba(255, 255, 255, 0.2));
+}
+.loopy-menu button:focus-visible {
+    outline: 2px solid var(--spice-text, var(--text-base, #fff));
+    outline-offset: -2px;
+}
+.loopy-menu .loopy-menu-divider {
+    height: 1px;
+    margin: 4px;
+    background: rgba(255, 255, 255, 0.1);
+}
+.loopy-menu-item--submenu::after {
+    width: 6px;
+    height: 6px;
+    margin-inline-start: auto;
+    border-block-start: 1.5px solid currentColor;
+    border-inline-end: 1.5px solid currentColor;
+    content: "";
+    transform: rotate(45deg);
 }
 `;
 
@@ -158,6 +221,16 @@
 		openMenu(contextMenu, x, y);
 	}
 
+	function createMenu(id) {
+		const menu = document.createElement("div");
+		menu.id = id;
+		menu.className = "loopy-menu";
+		menu.innerHTML = `<ul tabindex="0" role="menu" class="main-contextMenu-menu"></ul>`;
+		menu.hidden = true;
+		document.body.append(menu);
+		return menu;
+	}
+
 	// Configure the conditional bottom section of the context menu
 	function setupActiveMarker(type, zoneIdx) {
 		activeMarkerType = type;
@@ -206,11 +279,7 @@
 	}
 
 	// Move submenu
-	const moveSubmenu = document.createElement("div");
-	moveSubmenu.id = "loopy-move-submenu";
-	moveSubmenu.innerHTML = `<ul tabindex="0" class="main-contextMenu-menu"></ul>`;
-	moveSubmenu.hidden = true;
-	document.body.append(moveSubmenu);
+	const moveSubmenu = createMenu("loopy-move-submenu");
 
 	function applyMoveAdjustment(deltaSeconds) {
 		const durationMs = Spicetify.Player.getDuration();
@@ -236,10 +305,12 @@
 
 	[-0.5, -0.1, -0.01, 0.01, 0.1, 0.5].forEach((delta) => {
 		const li = document.createElement("li");
-		li.setAttribute("role", "menuitem");
+		li.setAttribute("role", "presentation");
 		const btn = document.createElement("button");
+		btn.type = "button";
+		btn.setAttribute("role", "menuitem");
 		btn.classList.add("main-contextMenu-menuItemButton");
-		btn.textContent = (delta > 0 ? "+" : "") + delta + "s";
+		btn.textContent = `${delta > 0 ? "+" : ""}${delta}s`;
 		btn.onclick = (e) => {
 			e.stopPropagation();
 			applyMoveAdjustment(delta);
@@ -353,8 +424,10 @@
 	// Context menu
 	function createMenuItem(title, callback) {
 		const item = document.createElement("li");
-		item.setAttribute("role", "menuitem");
+		item.setAttribute("role", "presentation");
 		const button = document.createElement("button");
+		button.type = "button";
+		button.setAttribute("role", "menuitem");
 		button.classList.add("main-contextMenu-menuItemButton");
 		button.textContent = title;
 		button.onclick = (e) => {
@@ -387,7 +460,8 @@
 	});
 
 	const divider1 = document.createElement("li");
-	divider1.style.cssText = "border-top:1px solid rgba(255,255,255,0.2);margin:4px 0;list-style:none;";
+	divider1.className = "loopy-menu-divider";
+	divider1.setAttribute("role", "separator");
 
 	const skipStartBtn = createMenuItem("Set section skip start", () => {
 		if (pendingSkipStart !== null) {
@@ -430,31 +504,34 @@
 	});
 
 	const divider2 = document.createElement("li");
-	divider2.style.cssText = "border-top:1px solid rgba(255,255,255,0.2);margin:4px 0;list-style:none;";
+	divider2.className = "loopy-menu-divider";
+	divider2.setAttribute("role", "separator");
 	divider2.hidden = true;
 	let activeZoneIndex = -1;
 
-	// Move ▶ button — wired up in Task 2 after moveSubmenu is created
 	const moveBtnItem = document.createElement("li");
-	moveBtnItem.setAttribute("role", "menuitem");
+	moveBtnItem.setAttribute("role", "presentation");
 	const moveBtnEl = document.createElement("button");
-	moveBtnEl.classList.add("main-contextMenu-menuItemButton");
-	moveBtnEl.textContent = "Move \u25B6";
+	moveBtnEl.type = "button";
+	moveBtnEl.setAttribute("role", "menuitem");
+	moveBtnEl.setAttribute("aria-haspopup", "menu");
+	moveBtnEl.classList.add("main-contextMenu-menuItemButton", "loopy-menu-item--submenu");
+	moveBtnEl.textContent = "Move";
 	moveBtnItem.append(moveBtnEl);
 	moveBtnItem.hidden = true;
 
 	// Dynamic remove button — label/callback set by setupActiveMarker
 	const removeActiveBtn = document.createElement("li");
-	removeActiveBtn.setAttribute("role", "menuitem");
+	removeActiveBtn.setAttribute("role", "presentation");
 	const removeActiveBtnEl = document.createElement("button");
+	removeActiveBtnEl.type = "button";
+	removeActiveBtnEl.setAttribute("role", "menuitem");
 	removeActiveBtnEl.classList.add("main-contextMenu-menuItemButton");
 	removeActiveBtnEl.textContent = "Remove section";
 	removeActiveBtn.append(removeActiveBtnEl);
 	removeActiveBtn.hidden = true;
 
-	const contextMenu = document.createElement("div");
-	contextMenu.id = "loopy-context-menu";
-	contextMenu.innerHTML = `<ul tabindex="0" class="main-contextMenu-menu"></ul>`;
+	const contextMenu = createMenu("loopy-context-menu");
 	contextMenu.firstElementChild.append(
 		startBtn,
 		endBtn,
@@ -467,8 +544,6 @@
 		moveBtnItem,
 		removeActiveBtn
 	);
-	document.body.append(contextMenu);
-	contextMenu.hidden = true;
 
 	function showMoveSubmenu() {
 		const rect = moveBtnEl.getBoundingClientRect();
@@ -558,12 +633,12 @@
 			}
 
 			// Progress bar area
-			const currentProgressContainer = document.querySelector(".playback-progressbar-container");
+			const currentProgressContainer = getProgressContainer();
 			if (!currentProgressContainer?.contains(target)) return;
 			event.preventDefault();
 			event.stopPropagation();
 
-			const currentBar = currentProgressContainer.querySelector('input[type="range"]')?.closest("label")?.nextElementSibling;
+			const currentBar = getBar(currentProgressContainer);
 			if (!currentBar) return;
 
 			const { x, width } = currentBar.getBoundingClientRect();

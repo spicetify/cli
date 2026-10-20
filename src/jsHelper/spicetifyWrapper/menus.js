@@ -14,7 +14,7 @@ Spicetify.ContextMenuV2 = (() => {
     return {
       leadingIcon,
       v2LeadingIcon: leadingIcon,
-      menuAction: "import",
+      menuAction: "add-to-library",
       forceV2LeadingIcon: true,
     };
   }
@@ -66,6 +66,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set children(children) {
+      if (this._children === children) return;
       this._children = children;
       notifyItemsChanged();
     }

@@ -6,6 +6,7 @@
 
 (function TrashBin() {
 	const skipBackBtn =
+		document.querySelector('[data-testid="control-button-skip-back"]') ??
 		document.querySelector(".main-skipBackButton-button") ??
 		document.querySelector(".player-controls__left > button[data-encore-id='buttonTertiary']");
 	if (!Spicetify.Player.data || !Spicetify.LocalStorage || !skipBackBtn) {
