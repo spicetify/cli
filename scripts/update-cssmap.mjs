@@ -53,14 +53,21 @@ function getLatestPreviousHashBySemantic(cssMap, previousRuntimeClasses) {
 
 function getCssModuleObjects(jsSources, cssClasses) {
   const objects = new Map();
-  const objectPattern = /\{((?:(?:[A-Za-z_$][A-Za-z0-9_$]*|"[A-Za-z_$][A-Za-z0-9_$]*")\s*:\s*"[^"{}]*"\s*,?){2,})\}/g;
-  const pairPattern = /(?:^|,)\s*"?([A-Za-z_$][A-Za-z0-9_$]*)"?\s*:\s*"([^"{}]*)"/g;
+  const objectPattern = /[A-Za-z_$][A-Za-z0-9_$]*\.d\([^,]+,\{\},\{(?:"[^"]+"|[A-Za-z_$][A-Za-z0-9_$]*):\{([^{}]*)\}\}\)/g;
+  const pairPattern = /(?:^|,)\s*(?:"([^"]+)"|'([^']+)'|([A-Za-z_$][A-Za-z0-9_$]*))\s*:\s*(?:"([^"]*)"|'([^']*)')/g;
 
   for (const { file, source } of jsSources) {
     for (const objectMatch of source.matchAll(objectPattern)) {
       const pairs = new Map();
+      const matches = [...objectMatch[1].matchAll(pairPattern)];
+      const remainder = objectMatch[1].replace(pairPattern, "").replaceAll(",", "").trim();
+      if (remainder) continue;
 
-      for (const pairMatch of objectMatch[1].matchAll(pairPattern)) if (cssClasses.has(pairMatch[2])) pairs.set(pairMatch[1], pairMatch[2]);
+      for (const match of matches) {
+        const key = match[1] ?? match[2] ?? match[3];
+        const className = match[4] ?? match[5];
+        if (cssClasses.has(className)) pairs.set(key, className);
+      }
 
       if (pairs.size === 0) continue;
 
@@ -74,6 +81,36 @@ function getCssModuleObjects(jsSources, cssClasses) {
   }
 
   return [...objects.values()];
+}
+
+function getExportData(objects) {
+  const classes = new Set();
+  const keysByClass = new Map();
+
+  for (const object of objects) {
+    for (const [key, className] of object.pairs) {
+      classes.add(className);
+      const keys = keysByClass.get(className) ?? new Set();
+      keys.add(key);
+      keysByClass.set(className, keys);
+    }
+  }
+
+  return { classes, keysByClass };
+}
+
+function getHashesBySemantic(cssMap, cssClasses) {
+  const hashesBySemantic = new Map();
+
+  for (const className of cssClasses) {
+    const semantic = cssMap[className];
+    if (semantic === undefined) continue;
+    const hashes = hashesBySemantic.get(semantic) ?? [];
+    hashes.push(className);
+    hashesBySemantic.set(semantic, hashes);
+  }
+
+  return hashesBySemantic;
 }
 
 function addCandidate(candidates, conflicts, hash, semantic, evidence) {
@@ -102,6 +139,31 @@ function proposeCandidate(state, hash, semantic, evidence) {
   if (!state.currentRuntimeClasses.has(hash)) {
     state.rejected.push({ hash, semantic, evidence, reason: "missing-runtime-reference" });
     return;
+  }
+
+  const exportKeys = state.currentExportKeys.get(hash);
+  if (!exportKeys) {
+    state.rejected.push({ hash, semantic, evidence, reason: "missing-css-module-export" });
+    return;
+  }
+
+  if (evidence.key && !exportKeys.has(evidence.key)) {
+    state.rejected.push({ hash, semantic, evidence, reason: "css-module-export-key-mismatch" });
+    return;
+  }
+
+  const existingHashes = state.currentHashesBySemantic.get(semantic) ?? [];
+  if (existingHashes.some((existingHash) => existingHash !== hash)) {
+    state.rejected.push({ hash, semantic, evidence, existingHashes, reason: "duplicate-semantic-in-current-version" });
+    return;
+  }
+
+  if (state.previousCssClasses.has(hash)) {
+    const previousSemantic = state.cssMap[hash];
+    if (previousSemantic !== semantic || !state.previousExportedClasses.has(hash)) {
+      state.rejected.push({ hash, semantic, evidence, previousSemantic, reason: "previous-version-export-conflict" });
+      return;
+    }
   }
 
   addCandidate(state.candidates, state.conflicts, hash, semantic, evidence);
@@ -323,7 +385,20 @@ export function deriveCssMap({ previousRoot, currentRoot, cssMap }) {
   const latestPreviousHashes = getLatestPreviousHashBySemantic(cssMap, previousRuntimeClasses);
   const previousObjects = getCssModuleObjects(previousJsSources, previousCssClasses);
   const currentObjects = getCssModuleObjects(currentJsSources, currentCssClasses);
-  const state = { candidates: new Map(), conflicts: [], rejected: [], currentRuntimeClasses };
+  const previousExports = getExportData(previousObjects);
+  const currentExports = getExportData(currentObjects);
+  const currentHashesBySemantic = getHashesBySemantic(cssMap, currentCssClasses);
+  const state = {
+    candidates: new Map(),
+    conflicts: [],
+    rejected: [],
+    cssMap,
+    currentExportKeys: currentExports.keysByClass,
+    currentHashesBySemantic,
+    currentRuntimeClasses,
+    previousCssClasses,
+    previousExportedClasses: previousExports.classes,
+  };
   const objectStats = deriveFromObjects(previousObjects, currentObjects, latestPreviousHashes, cssMap, state);
   const ruleStats = deriveFromRules(
     previousCssSources,
@@ -347,6 +422,9 @@ export function deriveCssMap({ previousRoot, currentRoot, cssMap }) {
       currentRuntimeClasses: currentRuntimeClasses.size,
       previousObjects: previousObjects.length,
       currentObjects: currentObjects.length,
+      previousExportedClasses: previousExports.classes.size,
+      currentExportedClasses: currentExports.classes.size,
+      existingDuplicateSemantics: [...currentHashesBySemantic.values()].filter((hashes) => hashes.length > 1).length,
       latestPreviousHashes: latestPreviousHashes.size,
       ...objectStats,
       ...ruleStats,
