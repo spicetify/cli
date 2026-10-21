@@ -43,10 +43,15 @@ export function collectRuntimeClasses(jsSources, cssClasses) {
   return classes;
 }
 
-function getLatestPreviousHashBySemantic(cssMap, previousRuntimeClasses) {
+function getLatestPreviousHashBySemantic(cssMap, previousRuntimeClasses, previousExportedClasses) {
   const hashes = new Map();
 
-  for (const [hash, semantic] of Object.entries(cssMap)) if (previousRuntimeClasses.has(hash)) hashes.set(semantic, hash);
+  for (const [hash, semantic] of Object.entries(cssMap)) {
+    if (!previousRuntimeClasses.has(hash)) continue;
+    const existingHash = hashes.get(semantic);
+    if (existingHash && previousExportedClasses.has(existingHash) && !previousExportedClasses.has(hash)) continue;
+    hashes.set(semantic, hash);
+  }
 
   return hashes;
 }
@@ -116,12 +121,14 @@ function getHashesBySemantic(cssMap, cssClasses) {
 function addCandidate(candidates, conflicts, hash, semantic, evidence) {
   const existingHash = candidates.get(hash);
   if (existingHash && existingHash.semantic !== semantic) {
+    if (evidence.type === "rule" && existingHash.evidence.some(({ type }) => type === "object")) return;
     conflicts.push({ hash, first: existingHash, second: { semantic, evidence }, type: "hash" });
     return;
   }
 
   const existingSemantic = [...candidates].find(([, candidate]) => candidate.semantic === semantic);
   if (existingSemantic && existingSemantic[0] !== hash) {
+    if (evidence.type === "rule" && existingSemantic[1].evidence.some(({ type }) => type === "object")) return;
     conflicts.push({
       semantic,
       first: { hash: existingSemantic[0], ...existingSemantic[1] },
@@ -382,11 +389,11 @@ export function deriveCssMap({ previousRoot, currentRoot, cssMap }) {
   const currentCssClasses = collectCssClasses(currentCssSources);
   const previousRuntimeClasses = collectRuntimeClasses(previousJsSources, previousCssClasses);
   const currentRuntimeClasses = collectRuntimeClasses(currentJsSources, currentCssClasses);
-  const latestPreviousHashes = getLatestPreviousHashBySemantic(cssMap, previousRuntimeClasses);
   const previousObjects = getCssModuleObjects(previousJsSources, previousCssClasses);
   const currentObjects = getCssModuleObjects(currentJsSources, currentCssClasses);
   const previousExports = getExportData(previousObjects);
   const currentExports = getExportData(currentObjects);
+  const latestPreviousHashes = getLatestPreviousHashBySemantic(cssMap, previousRuntimeClasses, previousExports.classes);
   const currentHashesBySemantic = getHashesBySemantic(cssMap, currentCssClasses);
   const state = {
     candidates: new Map(),
