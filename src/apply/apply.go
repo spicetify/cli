@@ -129,13 +129,6 @@ func UserAsset(appsFolderPath, themeFolder string) {
 }
 
 func htmlMod(htmlPath string, flags Flag) {
-	if len(flags.Extension) == 0 &&
-		!flags.HomeConfig &&
-		!flags.SidebarConfig &&
-		!flags.ExpFeatures {
-		return
-	}
-
 	var extensionsHTML strings.Builder
 	var helperHTML strings.Builder
 	extensionsHTML.WriteByte('\n')
