@@ -82,7 +82,8 @@ func Patch() {
 			continue
 		}
 
-		utils.ModifyFile(assetPath, func(content string) string {
+		var patched []string
+		err := utils.ModifyFile(assetPath, func(content string) string {
 			for _, p := range patchesByFile[name] {
 				if p.replaceAll {
 					matches := p.regexp.FindAllStringIndex(content, -1)
@@ -91,7 +92,7 @@ func Patch() {
 						continue
 					}
 					content = p.regexp.ReplaceAllString(content, p.replStr)
-					utils.PrintSuccess(fmt.Sprintf("\"%s\" is patched (%d matched)", p.keyName, len(matches)))
+					patched = append(patched, fmt.Sprintf("\"%s\" is patched (%d matched)", p.keyName, len(matches)))
 				} else {
 					loc := p.regexp.FindStringSubmatchIndex(content)
 					if loc == nil {
@@ -104,11 +105,18 @@ func Patch() {
 					}
 					repl := p.regexp.ExpandString(nil, p.replStr, content, loc)
 					content = content[:loc[0]] + string(repl) + content[loc[1]:]
-					utils.PrintSuccess("\"" + p.keyName + "\" is patched")
+					patched = append(patched, "\""+p.keyName+"\" is patched")
 				}
 			}
 			return content
 		})
+		if err != nil {
+			continue
+		}
+
+		for _, msg := range patched {
+			utils.PrintSuccess(msg)
+		}
 	}
 
 	utils.PrintSuccess("Applied custom patches")
