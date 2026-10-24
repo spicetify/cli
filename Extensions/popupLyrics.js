@@ -36,6 +36,16 @@ function PopupLyrics() {
 		return;
 	}
 
+	const musixmatchHeaders = {
+		Host: "apic-appmobile.musixmatch.com",
+		authority: "apic-appmobile.musixmatch.com",
+		"X-Cookie": "x-mxm-token-guid=",
+		"x-mxm-app-version": "10.1.1",
+		"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
+		Connection: "keep-alive",
+		Accept: "application/json",
+	};
+
 	const worker = new Worker("./extensions/popupLyrics.js");
 	worker.onmessage = (event) => {
 		if (event.data === "popup-lyric-update-ui") {
@@ -140,16 +150,7 @@ function PopupLyrics() {
 					.join("&");
 
 			try {
-				let body = await CosmosAsync.get(finalURL, null, {
-					Host: "apic-appmobile.musixmatch.com",
-					authority: "apic-appmobile.musixmatch.com",
-					"X-Cookie": "x-mxm-token-guid=",
-					"x-mxm-app-version": "10.1.1",
-					"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
-					"Accept-Language": "en-US,en;q=0.9",
-					Connection: "keep-alive",
-					Accept: "application/json",
-				});
+				let body = await CosmosAsync.get(finalURL, null, musixmatchHeaders);
 
 				body = body.message.body.macro_calls;
 
@@ -1233,16 +1234,7 @@ button.btn:disabled {
 			button.innerHTML = "Refreshing token...";
 			button.disabled = true;
 
-			Spicetify.CosmosAsync.get("https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0", null, {
-				Host: "apic-appmobile.musixmatch.com",
-				authority: "apic-appmobile.musixmatch.com",
-				"X-Cookie": "x-mxm-token-guid=",
-				"x-mxm-app-version": "10.1.1",
-				"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
-				"Accept-Language": "en-US,en;q=0.9",
-				Connection: "keep-alive",
-				Accept: "application/json",
-			})
+			Spicetify.CosmosAsync.get("https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0", null, musixmatchHeaders)
 				.then(({ message: response }) => {
 					if (response.header.status_code === 200 && response.body.user_token) {
 						button.innerHTML = "Token refreshed";
