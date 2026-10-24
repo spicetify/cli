@@ -245,22 +245,24 @@ func FindLastMatch(input string, regexpTerm string) []string {
 
 // ModifyFile opens file, changes file content by executing
 // `repl` callback function and writes new content.
-func ModifyFile(path string, repl func(string) string) {
+func ModifyFile(path string, repl func(string) string) error {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		PrintError(err.Error())
-		return
+		return err
 	}
 
 	original := string(raw)
 	content := repl(original)
 	if content == original {
-		return
+		return nil
 	}
 
 	if err := os.WriteFile(path, []byte(content), 0700); err != nil {
 		PrintError(err.Error())
+		return err
 	}
+	return nil
 }
 
 // CreateFile creates a file with given path and content.
