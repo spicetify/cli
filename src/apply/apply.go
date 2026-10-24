@@ -550,8 +550,8 @@ func patchHomeConfig(content string) string {
 				return submatches[0]
 			}
 			return fmt.Sprintf(
-				"%s%s(%s=SpicetifyHomeConfig.arrange(%s),%s?%s.slice(0,%s):%s)",
-				prefix, assignment, sections, sections, limit, sections, limit, sections,
+				"%s%s(%s?SpicetifyHomeConfig.arrange(%s).slice(0,%s):SpicetifyHomeConfig.arrange(%s))",
+				prefix, assignment, limit, sections, limit, sections,
 			)
 		},
 	)

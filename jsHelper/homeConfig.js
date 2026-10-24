@@ -20,7 +20,6 @@ SpicetifyHomeConfig = {};
   }
 
   SpicetifyHomeConfig.arrange = (sections) => {
-    mounted = true;
     if (sections === sourceSections) return list;
     sourceSections = sections;
 
