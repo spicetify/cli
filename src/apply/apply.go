@@ -61,6 +61,14 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		}
 	}
 
+	if flags.HomeConfig {
+		if homeConfigTarget := findHomeConfigTarget(appsFolderPath); homeConfigTarget != "" {
+			if _, exists := filesToModified[homeConfigTarget]; !exists {
+				filesToModified[homeConfigTarget] = []func(string, Flag){insertHomeConfig}
+			}
+		}
+	}
+
 	if spotifyVersion.AtLeast(1, 2, 57) {
 		filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")], insertExpFeatures)
 	} else {
@@ -309,6 +317,35 @@ func findCustomAppTarget(appsFolderPath string) string {
 	return ""
 }
 
+func findHomeConfigTarget(appsFolderPath string) string {
+	xpuiPath := filepath.Join(appsFolderPath, "xpui")
+	entries, err := os.ReadDir(xpuiPath)
+	if err != nil {
+		return ""
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".js" {
+			continue
+		}
+
+		candidate := filepath.Join(xpuiPath, entry.Name())
+		raw, err := os.ReadFile(candidate)
+		if err != nil {
+			continue
+		}
+
+		content := string(raw)
+		if strings.Contains(content, "HomeFeedBaselineUnifiedShelf") &&
+			strings.Contains(content, "HomeShortsSectionData") &&
+			strings.Contains(content, `"data-testid":"home-page"`) {
+			return candidate
+		}
+	}
+
+	return ""
+}
+
 func getCustomAppChunkMaps(flags Flag) (string, string) {
 	var appMap strings.Builder
 	var cssEnableMap strings.Builder
@@ -491,24 +528,35 @@ func insertHomeConfig(jsPath string, flags Flag) {
 		return
 	}
 
-	utils.ModifyFile(jsPath, func(content string) string {
-		utils.ReplaceOnce(
-			&content,
+	utils.ModifyFile(jsPath, patchHomeConfig)
+}
+
+func patchHomeConfig(content string) string {
+	utils.ReplaceOnceWithPriority(
+		&content,
+		[]string{
 			`(createDesktopHomeFeatureActivationShelfEventFactory.*?)([\w\.]+)(\.map)`,
-			func(submatches ...string) string {
-				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
-			})
-
-		// >= 1.2.40
-		utils.ReplaceOnce(
-			&content,
+			// >= 1.2.40
 			`(&&"HomeShortsSectionData".*?[\],}])([a-zA-Z])(\}\)?\()`,
-			func(submatches ...string) string {
+			`(?s)(HomeFeedBaselineUnifiedShelf.*?HomeShortsSectionData.*?)(,[$\w]+=)([$\w]+)\?([$\w]+)\.slice\(0,([$\w]+)\):([$\w]+)`,
+		},
+		func(index int, submatches ...string) string {
+			if index < 2 {
 				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
-			})
+			}
 
-		return content
-	})
+			prefix, assignment, limit, sections := submatches[1], submatches[2], submatches[3], submatches[4]
+			if submatches[5] != limit || submatches[6] != sections {
+				return submatches[0]
+			}
+			return fmt.Sprintf(
+				"%s%s(%s=SpicetifyHomeConfig.arrange(%s),%s?%s.slice(0,%s):%s)",
+				prefix, assignment, sections, sections, limit, sections, limit, sections,
+			)
+		},
+	)
+
+	return content
 }
 
 func getAssetsPath(themeFolder string) string {
