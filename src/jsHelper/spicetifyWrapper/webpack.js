@@ -5,7 +5,7 @@ import { waitForLateComponents } from "./webpack/late-components.js";
 import { getModuleInventory, groupBy } from "./webpack/module-inventory.js";
 import { exposeRuntimeResolvers } from "./webpack/runtime-resolvers.js";
 import { createScrollableContainer } from "./webpack/scrollable-container.js";
-import { createSpicetifyBindings, findReact } from "./webpack/spicetify-bindings.js";
+import { createSpicetifyBindings, findReact, findReactFromWebpack } from "./webpack/spicetify-bindings.js";
 import { waitForURI } from "./webpack/uri.js";
 
 void (async function hotloadWebpackModules() {
@@ -28,18 +28,14 @@ void (async function hotloadWebpackModules() {
     1,
   );
 
-  let inventory = getModuleInventory(require);
-  let chunks = inventory.chunks;
-  let cache = inventory.cache;
-
-  // For _renderNavLinks to work
-  Spicetify.React = findReact(cache);
+  Spicetify.React = findReactFromWebpack(require);
 
   await waitFor(() => webpackDidCallback, 100);
   console.log("[spicetifyWrapper] All required webpack modules loaded");
-  inventory = getModuleInventory(require);
-  chunks = inventory.chunks;
-  cache = inventory.cache;
+  const inventory = getModuleInventory(require);
+  const chunks = inventory.chunks;
+  const cache = inventory.cache;
+  Spicetify.React = findReact(cache);
   Spicetify.Events.platformLoaded.fire();
 
   const { modules, functionModules } = inventory;
