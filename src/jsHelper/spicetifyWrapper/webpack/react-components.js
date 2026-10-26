@@ -52,6 +52,25 @@ export function findMenuItem(functionModules) {
   );
 }
 
+export function findMenu({ modules, functionModules, react }) {
+  const compatibilityMarkers = ["useLegacyLayout", "onFocusVerticalItem", "disableV2LeadingSlot"];
+  const compatibilityMenu = modules.find(
+    (component) => typeof component?.render === "function" && compatibilityMarkers.every((marker) => fnStr(component.render).includes(marker)),
+  );
+
+  if (compatibilityMenu) {
+    return react.forwardRef(function SpicetifyMenu(props, ref) {
+      return react.createElement(compatibilityMenu, {
+        ...props,
+        useLegacyLayout: props.useLegacyLayout ?? true,
+        ref,
+      });
+    });
+  }
+
+  return functionModules.find((component) => ["getInitialFocusElement", "children"].every((marker) => fnStr(component).includes(marker)));
+}
+
 export function createReactComponents({
   modules,
   functionModules,
@@ -65,7 +84,7 @@ export function createReactComponents({
   return {
     ...Spicetify.ReactComponent,
     TextComponent: modules.find((m) => m?.h1 && m?.render),
-    Menu: functionModules.find((m) => ["getInitialFocusElement", "children"].every((marker) => fnStr(m).includes(marker))),
+    Menu: findMenu({ modules, functionModules, react: Spicetify.React }),
     MenuItem: findMenuItem(functionModules),
     MenuSubMenuItem: findModernMenuSubMenuItem({ chunks, require }) ?? functionModules.find((f) => fnStr(f).includes("subMenuIcon")),
     Slider: wrapProvider(functionModules.find((m) => fnStr(m).includes("progressBarRef"))),
