@@ -867,7 +867,16 @@ var graphQLPatches = []Patch{
 	},
 }
 
+const nowPlayingContextMenuRegex = `\(0,([\w$]+)\.jsx\)\([\w$]+\.[\w$]+,\{([^{}]*\bcanToggleCanvas:[^{}]*)\}\)`
+
 func additionalPatches(input string) string {
+	utils.Replace(&input, nowPlayingContextMenuRegex, func(submatches ...string) string {
+		properties := "," + submatches[2]
+		if !strings.Contains(properties, ",context:") || !strings.Contains(properties, ",item:") {
+			return submatches[0]
+		}
+		return fmt.Sprintf("(0,%s.jsx)(Spicetify.ContextMenuV2._Provider,{children:%s})", submatches[1], submatches[0])
+	})
 	return applyPatches(input, graphQLPatches)
 }
 

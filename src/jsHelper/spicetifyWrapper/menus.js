@@ -38,6 +38,12 @@ Spicetify.ContextMenuV2 = (() => {
     return [uris, uids, contextUri];
   }
 
+  function ContextProvider({ children }) {
+    const { React, ContextMenuV2 } = Spicetify;
+    const context = React.useContext(ContextMenuV2._context);
+    return React.createElement(ContextMenuV2._context.Provider, { value: { ...context, props: children.props } }, children);
+  }
+
   class Item {
     constructor({ children, disabled = false, leadingIcon, trailingIcon, divider, onClick, shouldAdd = () => true }) {
       this.shouldAdd = shouldAdd;
@@ -235,7 +241,7 @@ Spicetify.ContextMenuV2 = (() => {
       .filter(Boolean);
   };
 
-  return { parseProps, Item, ItemSubMenu, registerItem, unregisterItem, renderItems };
+  return { parseProps, Item, ItemSubMenu, registerItem, unregisterItem, renderItems, _Provider: ContextProvider };
 })();
 
 Spicetify.Menu = (() => {
