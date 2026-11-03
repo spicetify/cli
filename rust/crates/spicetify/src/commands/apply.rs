@@ -738,11 +738,16 @@ mod tests {
         drop(archive.finish().expect("finish stock archive"));
         let original = std::fs::read(&spa).expect("original archive bytes");
         let executable = root.join(format!("spa{}", std::process::id()));
-        let _ = std::fs::copy("/bin/sleep", &executable).expect("isolated client executable");
-        let mut client = std::process::Command::new(&executable)
-            .arg("60")
-            .spawn()
-            .expect("start simulated client");
+        // A script rather than a renamed copy of /bin/sleep: where sleep is a
+        // multicall binary (uutils coreutils on Ubuntu 26.04), the copy refuses
+        // to run under another name. Linux names a script's process after the
+        // script, which is what the process lookup matches.
+        std::fs::write(&executable, "#!/bin/sh\nwhile :; do sleep 1; done\n")
+            .expect("isolated client executable");
+        std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o755))
+            .expect("make the client executable");
+        let mut client =
+            std::process::Command::new(&executable).spawn().expect("start simulated client");
         let ctx = AppContext {
             config_file: root.join("config/config.toml"),
             config_root: root.join("config"),
