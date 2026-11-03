@@ -741,9 +741,14 @@ mod tests {
         // A script rather than a renamed copy of /bin/sleep: where sleep is a
         // multicall binary (uutils coreutils on Ubuntu 26.04), the copy refuses
         // to run under another name. Linux names a script's process after the
-        // script, which is what the process lookup matches.
-        std::fs::write(&executable, "#!/bin/sh\nwhile :; do sleep 1; done\n")
-            .expect("isolated client executable");
+        // script, which is what the process lookup matches. Apply probes the
+        // client with --version first; answering it with nothing keeps the
+        // version unknown, as the copied sleep's version line did.
+        std::fs::write(
+            &executable,
+            "#!/bin/sh\n[ \"$1\" = --version ] && exit 0\nwhile :; do sleep 1; done\n",
+        )
+        .expect("isolated client executable");
         std::fs::set_permissions(&executable, std::fs::Permissions::from_mode(0o755))
             .expect("make the client executable");
         let mut client =
