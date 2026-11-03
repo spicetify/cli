@@ -638,7 +638,12 @@ async function boot(): Promise<BootReport | null> {
 			wasLoaded,
 		});
 		if (activation === "disabled") return { disabled: true };
-		if (activation === "inactive") return { inactive: true };
+		if (activation === "inactive") {
+			// The new files have not been tried, so a load failure recorded for
+			// the version they replace no longer describes this module.
+			delete report.failed[id];
+			return { inactive: true };
+		}
 		return registry.enable(id, report);
 	};
 	(modules as Record<string, unknown>).removeLocal = async (id: string) => {
