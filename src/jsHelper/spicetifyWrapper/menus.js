@@ -19,6 +19,8 @@ Spicetify.ContextMenuV2 = (() => {
     };
   }
 
+  // Setters skip unchanged values: shouldAdd callbacks run while the menu renders, and a notification there
+  // re-renders the menu, so assigning the same label from shouldAdd would loop.
   function notifyItemsChanged() {
     for (const listener of registeredItemsListeners) listener();
   }
@@ -84,6 +86,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set disabled(bool) {
+      if (this._disabled === bool) return;
       this._disabled = bool;
       notifyItemsChanged();
     }
@@ -92,6 +95,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set leadingIcon(name) {
+      if (this._leadingIcon === name) return;
       this._leadingIcon = name;
       notifyItemsChanged();
     }
@@ -100,6 +104,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set trailingIcon(name) {
+      if (this._trailingIcon === name) return;
       this._trailingIcon = name;
       notifyItemsChanged();
     }
@@ -108,6 +113,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set divider(divider) {
+      if (this._divider === divider) return;
       this._divider = divider;
       notifyItemsChanged();
     }
@@ -161,6 +167,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set text(text) {
+      if (this._text === text) return;
       this._text = text;
       notifyItemsChanged();
     }
@@ -169,6 +176,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set disabled(bool) {
+      if (this._disabled === bool) return;
       this._disabled = bool;
       notifyItemsChanged();
     }
@@ -177,6 +185,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set leadingIcon(name) {
+      if (this._leadingIcon === name) return;
       this._leadingIcon = name;
       notifyItemsChanged();
     }
@@ -185,6 +194,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set divider(divider) {
+      if (this._divider === divider) return;
       this._divider = divider;
       notifyItemsChanged();
     }
@@ -193,6 +203,7 @@ Spicetify.ContextMenuV2 = (() => {
     }
 
     set depth(value) {
+      if (this._depth === value) return;
       this._depth = value;
       notifyItemsChanged();
     }

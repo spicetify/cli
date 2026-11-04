@@ -168,4 +168,29 @@ describe("submenus", () => {
     assert.deepEqual(labels(), ["b"]);
     tree.unmount();
   });
+
+  it("lets shouldAdd relabel a submenu while an open menu re-renders", () => {
+    const api = submenuApi();
+    const menu = new api.ItemSubMenu({
+      text: "More",
+      items: [new api.Item({ children: "a", onClick: () => undefined })],
+      shouldAdd: (props: { label: string }) => {
+        menu.text = props.label;
+        return true;
+      },
+    });
+    menu.register();
+
+    function Menu() {
+      return React.createElement("div", null, ...api.renderItems());
+    }
+    const render = (label: string) => React.createElement(api._context.Provider, { value: { props: { label } } }, React.createElement(Menu));
+    let tree!: ReturnType<typeof create>;
+    act(() => {
+      tree = create(render("More"));
+    });
+    act(() => tree.update(render("Less")));
+    assert.equal(menu.text, "Less");
+    tree.unmount();
+  });
 });
