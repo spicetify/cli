@@ -141,6 +141,22 @@ fn successful(command: &mut Command) -> Output {
     output
 }
 
+// Which signature a file carries: its code directory hash and signing
+// authority. Unchanged means the file was not re-signed.
+fn signature_identity(path: &Path) -> (String, Option<String>) {
+    let display =
+        successful(Command::new("/usr/bin/codesign").args(["--display", "--verbose=4"]).arg(path));
+    let display = String::from_utf8(display.stderr).expect("signature display");
+    let cdhash = display
+        .lines()
+        .find_map(|line| line.strip_prefix("CDHash="))
+        .expect("code directory hash")
+        .to_string();
+    let authority =
+        display.lines().find_map(|line| line.strip_prefix("Authority=")).map(str::to_string);
+    (cdhash, authority)
+}
+
 #[derive(Debug, PartialEq, Eq)]
 struct SigningMetadata {
     flags: u32,
@@ -176,6 +192,12 @@ fn resigning_preserves_each_executables_runtime_metadata_and_jit_after_repeated_
     let helper = bundle.join("Contents/Frameworks/Fixture Helper.app");
     let main_before = signing_metadata(&bundle);
     let helper_before = signing_metadata(&helper);
+    let helper_signature = signature_identity(&helper);
+    let helper_binary = helper
+        .join("Contents/MacOS")
+        .join(fixture.ctx.spotify_exec.file_name().expect("fixture executable"));
+    let helper_written =
+        std::fs::metadata(&helper_binary).and_then(|m| m.modified()).expect("helper mtime");
     assert!(main_before.flags & 0x0001_0000 != 0, "fixture has Hardened Runtime");
     assert!(main_before.runtime.is_some(), "fixture has runtime metadata");
     assert_ne!(main_before.entitlements, helper_before.entitlements);
@@ -190,6 +212,12 @@ fn resigning_preserves_each_executables_runtime_metadata_and_jit_after_repeated_
         );
         assert_eq!(signing_metadata(&bundle), main_before, "main executable metadata");
         assert_eq!(signing_metadata(&helper), helper_before, "nested executable metadata");
+        assert_eq!(signature_identity(&helper), helper_signature, "nested code is not re-signed");
+        assert_eq!(
+            std::fs::metadata(&helper_binary).and_then(|m| m.modified()).expect("helper mtime"),
+            helper_written,
+            "nested code is not rewritten"
+        );
         for app in [&bundle, &helper] {
             let executable = fixture.ctx.spotify_exec.file_name().expect("fixture executable");
             let output = successful(&mut Command::new(app.join("Contents/MacOS").join(executable)));
@@ -670,6 +698,15 @@ fn finalizes_a_private_copy_of_a_real_spotify_bundle_without_losing_runtime_meta
     assert!(files.len() > 1, "include nested code, not just the main executable");
     let before: Vec<_> = files.iter().map(|file| signing_metadata(file)).collect();
     assert!(before.iter().any(|metadata| metadata.flags & 0x0001_0000 != 0));
+    let main = bundle.join("Contents/MacOS/Spotify");
+    let nested: Vec<_> = files.iter().filter(|file| **file != main).cloned().collect();
+    let nested_before: Vec<_> = nested.iter().map(|file| signature_identity(file)).collect();
+    assert!(
+        nested_before.iter().all(|(_, authority)| authority
+            .as_deref()
+            .is_some_and(|a| a.starts_with("Developer ID"))),
+        "the source bundle is Spotify's own signed release"
+    );
     let mut ctx = fixture.ctx.clone();
     ctx.spotify_exec = bundle.join("Contents/MacOS/Spotify");
     ctx.spotify_data_dir = bundle.join("Contents/Resources");
@@ -685,6 +722,14 @@ fn finalizes_a_private_copy_of_a_real_spotify_bundle_without_losing_runtime_meta
         assert_eq!(macho_files(&bundle), files, "same nested code tree");
         for (file, metadata) in files.iter().zip(&before) {
             assert_eq!(&signing_metadata(file), metadata, "metadata of {}", file.display());
+        }
+        for (file, identity) in nested.iter().zip(&nested_before) {
+            assert_eq!(
+                &signature_identity(file),
+                identity,
+                "{} keeps Spotify's signature",
+                file.display()
+            );
         }
     }
     let _ = successful(

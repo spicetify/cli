@@ -342,14 +342,12 @@ fn codesign_bundle(binary: &Path) -> Result<()> {
     // `codesign --force` replaces that signature but leaves the now-mismatched
     // ticket behind, which Gatekeeper reports as altered software.
     remove_stale_stapled_ticket(&bundle)?;
+    // Only the outer bundle. Apply changes resources, and the legacy endpoint
+    // migration the main executable; neither touches nested code. `--deep`
+    // would re-sign every helper and framework ad hoc and replace Spotify's
+    // Developer ID signatures on code that never changed.
     let out = std::process::Command::new("codesign")
-        .args([
-            "--force",
-            "--deep",
-            "--sign",
-            "-",
-            "--preserve-metadata=entitlements,flags,runtime",
-        ])
+        .args(["--force", "--sign", "-", "--preserve-metadata=entitlements,flags,runtime"])
         .arg(&bundle)
         .output()?;
     if !out.status.success() {
