@@ -139,6 +139,22 @@ export function removalPlan(state: { running: boolean; record: boolean; mapped: 
 	return "unload-and-revert";
 }
 
+// Whether installLocal loads a module once its new files are registered. A
+// persisted disable always wins. keepInactive is the store updating a theme
+// that is installed but not the active one: loading it would unload the
+// active theme, so a copy that was not running stays that way.
+export type InstallActivation = "disabled" | "inactive" | "enable";
+
+export function installActivation(state: {
+	disabled: boolean;
+	keepInactive: boolean;
+	wasLoaded: boolean;
+}): InstallActivation {
+	if (state.disabled) return "disabled";
+	if (state.keepInactive && !state.wasLoaded) return "inactive";
+	return "enable";
+}
+
 // The store is the client's recovery surface: with it gone there is no way
 // to reinstall anything from inside the client, so a removal that would
 // take down the running store with nothing staged behind it is refused.

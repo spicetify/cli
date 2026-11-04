@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	absolutizeLoaderUrls,
+	installActivation,
 	isTreeRecord,
 	localWins,
 	remapSource,
@@ -29,6 +30,25 @@ describe("removalPlan", () => {
 
 	it("does nothing when the id has no local anything", () => {
 		assert.equal(removalPlan({ running: false, record: false, mapped: false }), "nothing");
+	});
+});
+
+describe("installActivation", () => {
+	it("keeps a theme the store updates while another is active from loading", () => {
+		assert.equal(installActivation({ disabled: false, keepInactive: true, wasLoaded: false }), "inactive");
+	});
+
+	it("reloads a running module even when asked to keep inactive ones off", () => {
+		assert.equal(installActivation({ disabled: false, keepInactive: true, wasLoaded: true }), "enable");
+	});
+
+	it("loads as before when the caller does not ask", () => {
+		assert.equal(installActivation({ disabled: false, keepInactive: false, wasLoaded: false }), "enable");
+	});
+
+	it("leaves a module the user disabled off", () => {
+		assert.equal(installActivation({ disabled: true, keepInactive: false, wasLoaded: true }), "disabled");
+		assert.equal(installActivation({ disabled: true, keepInactive: true, wasLoaded: false }), "disabled");
 	});
 });
 

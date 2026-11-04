@@ -2865,14 +2865,18 @@ declare namespace Spicetify {
 		function reload(identifier: string): Promise<boolean>;
 		/**
 		 * Install a module into localStorage, remapped against the bundled classmap, and load it unless the user disabled it.
+		 * With `keepInactive`, a module that was not loaded before the install stays unloaded; the store passes it when
+		 * updating a theme that is not the active one, which loading would replace.
 		 * @throws If the manifest has no bundled classmap
 		 * @return `{ requiresRestart: true }` when a multi-file module is already loaded and the new files take over on the
-		 * next boot, `{ disabled: true }` when the module stays disabled, otherwise the result of loading it.
+		 * next boot, `{ disabled: true }` when the module stays disabled, `{ inactive: true }` when `keepInactive` kept it
+		 * unloaded, otherwise the result of loading it.
 		 */
 		function installLocal(
 			identifier: string,
-			record: { metadata: ManifestModule; files: Record<string, string>; sidecar: object }
-		): Promise<boolean | { requiresRestart: true } | { disabled: true }>;
+			record: { metadata: ManifestModule; files: Record<string, string>; sidecar: object },
+			options?: { keepInactive?: boolean }
+		): Promise<boolean | { requiresRestart: true } | { disabled: true } | { inactive: true }>;
 		/**
 		 * Remove a module installed with `installLocal`. If a staged copy exists, it is restored and loaded again if the
 		 * local copy was loaded.

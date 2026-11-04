@@ -4,6 +4,7 @@ import {
 	buildImportMapEntries,
 	deleteLocalModule,
 	hasLocalRecord,
+	installActivation,
 	isTreeRecord,
 	loadLocalModules,
 	localWins,
@@ -596,6 +597,7 @@ async function boot(): Promise<BootReport | null> {
 	(modules as Record<string, unknown>).installLocal = async (
 		id: string,
 		record: { metadata: ModulesManifest["modules"][number]; files: Record<string, string>; sidecar: object },
+		options: { keepInactive?: boolean } = {},
 	) => {
 		if (!manifest.classmap) throw new Error("no bundled classmap in manifest");
 		const files: Record<string, string> = {};
@@ -616,6 +618,7 @@ async function boot(): Promise<BootReport | null> {
 		if (tree) {
 			injectImportMap(buildImportMapEntries({ ...record, files }, location.origin));
 		}
+		const wasLoaded = registry.isLoaded(id);
 		// Clear any live instance of a prior version transiently — a persisted
 		// disable here would outlive the reinstall. registerLocal then swaps in
 		// the new files.
@@ -628,7 +631,19 @@ async function boot(): Promise<BootReport | null> {
 		}
 		// Updating a module the user disabled installs the new files but must
 		// not turn it back on: it stays off this session and every boot after.
-		if (registry.isDisabled(id)) return { disabled: true };
+		// keepInactive leaves a module that was not running unloaded too.
+		const activation = installActivation({
+			disabled: registry.isDisabled(id),
+			keepInactive: options.keepInactive === true,
+			wasLoaded,
+		});
+		if (activation === "disabled") return { disabled: true };
+		if (activation === "inactive") {
+			// The new files have not been tried, so a load failure recorded for
+			// the version they replace no longer describes this module.
+			delete report.failed[id];
+			return { inactive: true };
+		}
 		return registry.enable(id, report);
 	};
 	(modules as Record<string, unknown>).removeLocal = async (id: string) => {
