@@ -420,8 +420,14 @@ if (-not (Test-Path -LiteralPath $installedSpicetify -PathType Leaf)) {
   }
 }
 
-# v3 has no `update` command, and a v2 update would skip the v3 install.
-if ($installedSpicetify -and -not $v3) {
+# Only a v2 CLI has the `update` command that repairs it. A v3 install, the v3
+# channel or a requested version goes through the full install instead.
+$installedVersion = ''
+if ($installedSpicetify -and -not $v3 -and -not $v) {
+  $installedVersion = try { "$(& $installedSpicetify --version 2>$null)" } catch { '' }
+}
+
+if ($installedVersion -like '2.*') {
   $Host.UI.RawUI.Flushinputbuffer()
   $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
     (New-Object System.Management.Automation.Host.ChoiceDescription '&Yes', 'Run spicetify update.'),

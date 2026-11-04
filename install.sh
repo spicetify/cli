@@ -42,15 +42,22 @@ elif command -v spicetify >/dev/null 2>&1; then
     installed_exe=$(command -v spicetify)
 fi
 
-# v3 has no `update` command, and a v2 update would skip the v3 install.
-if [ -n "$installed_exe" ] && [ "$channel" != "v3" ]; then
-    echo "Spicetify is already installed. Do you want to fix your installation? (Y/n)"
-    read -r choice < /dev/tty
-    if [ "$choice" != "N" ] && [ "$choice" != "n" ]; then
-        "$installed_exe" update
-        exit 0
-    fi
+# Only a v2 CLI has the `update` command that repairs it. A v3 install, the v3
+# channel or a requested version goes through the full install instead.
+installed_version=
+if [ -n "$installed_exe" ] && [ "$channel" = "v2" ] && [ -z "$tag" ]; then
+    installed_version=$("$installed_exe" --version 2>/dev/null || true)
 fi
+case "$installed_version" in
+    2.*)
+        echo "Spicetify is already installed. Do you want to fix your installation? (Y/n)"
+        read -r choice < /dev/tty
+        if [ "$choice" != "N" ] && [ "$choice" != "n" ]; then
+            "$installed_exe" update
+            exit 0
+        fi
+        ;;
+esac
 
 # wipe existing log
 > install.log :
