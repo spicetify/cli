@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 #region Variables
@@ -408,6 +409,34 @@ else {
 #endregion Checks
 
 #region Spicetify
+$installedSpicetify = Join-Path -Path $spicetifyFolderPath -ChildPath 'spicetify.exe'
+if (-not (Test-Path -LiteralPath $installedSpicetify -PathType Leaf)) {
+  $installedCommand = Get-Command -Name 'spicetify' -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($installedCommand) {
+    $installedSpicetify = $installedCommand.Source
+  }
+  else {
+    $installedSpicetify = $null
+  }
+}
+
+# v3 has no `update` command, and a v2 update would skip the v3 install.
+if ($installedSpicetify -and -not $v3) {
+  $Host.UI.RawUI.Flushinputbuffer()
+  $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
+    (New-Object System.Management.Automation.Host.ChoiceDescription '&Yes', 'Run spicetify update.'),
+    (New-Object System.Management.Automation.Host.ChoiceDescription '&No', 'Continue with installation.')
+  )
+  $choice = $Host.UI.PromptForChoice('', 'Spicetify is already installed. Do you want to fix your installation?', $choices, 0)
+  if ($choice -eq 0) {
+    & $installedSpicetify update
+    if ($LASTEXITCODE -ne 0) {
+      throw "Spicetify update failed with exit code $LASTEXITCODE."
+    }
+    return
+  }
+}
+
 Move-OldSpicetifyFolder
 Install-Spicetify
 if ($v3) {

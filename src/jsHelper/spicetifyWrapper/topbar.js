@@ -18,6 +18,7 @@ Spicetify.Topbar = (() => {
      */
     constructor(label, icon, onClick, disabled = false, isRight = false) {
       this.element = document.createElement("div");
+      this.element.classList.add("spicetify-topbar-button");
       this.button = document.createElement("button");
       this.icon = icon;
       this.onClick = onClick;
@@ -77,15 +78,18 @@ Spicetify.Topbar = (() => {
   }
 
   function queryTopbarMounts() {
-    const globalHistoryButtons = document.querySelector(".main-globalNav-historyButtons");
+    const globalHistoryButtonsWrapper = document.querySelector(".main-globalNav-historyButtonsWrapper");
+    const globalHistoryButtons =
+      document.querySelector(".main-globalNav-historyButtons") ??
+      Array.from(globalHistoryButtonsWrapper?.children ?? []).find((element) => element.querySelector("[data-encore-id='buttonTertiary']"));
     const leftGenClassName = document.querySelector(
-      ".main-topBar-historyButtons .main-topBar-button, .main-globalNav-historyButtons .main-globalNav-icon, .main-globalNav-historyButtons [data-encore-id='buttonTertiary']",
+      ".main-topBar-historyButtons .main-topBar-button, .main-globalNav-historyButtons .main-globalNav-icon, .main-globalNav-historyButtons [data-encore-id='buttonTertiary'], .main-globalNav-historyButtonsWrapper [data-encore-id='buttonTertiary']",
     )?.className;
     const rightGenClassName = document.querySelector(
-      ".main-topBar-container .main-topBar-buddyFeed, .main-actionButtons .main-topBar-buddyFeed, .main-actionButtons .main-globalNav-buddyFeed",
+      ".main-topBar-container .main-topBar-buddyFeed, .main-actionButtons .main-topBar-buddyFeed, .main-actionButtons .main-globalNav-buddyFeed, .main-actionButtons .main-actionButtons-button",
     )?.className;
     const left = document.querySelector(".main-topBar-historyButtons") ?? globalHistoryButtons;
-    const right = document.querySelector(".main-actionButtons");
+    const right = document.querySelector(".main-globalNav-contentRight > .main-actionButtons, .main-actionButtons");
     if (!left || !right || !leftGenClassName || !rightGenClassName) return null;
 
     return { globalHistoryButtons, leftGenClassName, rightGenClassName, left, right };

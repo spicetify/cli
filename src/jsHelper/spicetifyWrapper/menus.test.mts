@@ -31,7 +31,7 @@ describe("context menu capture readiness", () => {
     assert.equal(spicetify.ContextMenuV2.renderItems().length, 0);
   });
 
-  for (const missing of ["createElement", "useContext", "useMemo"]) {
+  for (const missing of ["createElement", "useContext", "useState", "useEffect"]) {
     it(`waits for ${missing} on a partially captured React export`, () => {
       const spicetify = loadMenus();
       spicetify.React = { ...React, [missing]: undefined };
@@ -124,34 +124,48 @@ describe("submenus", () => {
   function submenuApi() {
     const spicetify = loadMenus();
     spicetify.React = React;
-    spicetify.ReactJSX = { jsx: (component: unknown) => component };
+    spicetify.ReactComponent = {
+      MenuItem: ({ children }: { children: React.ReactNode }) => React.createElement("button", null, children),
+      MenuSubMenuItem: ({ children }: { children: React.ReactNode }) => React.createElement("menu", null, children),
+    };
+    spicetify.ContextMenuV2._context = React.createContext({});
     return spicetify.ContextMenuV2;
   }
-  const child = (name: string) => ({ _element: name, shouldAdd: () => true });
+  const child = (name: string) => ({ _render: () => name, shouldAdd: () => true });
 
   it("renders items passed as a Set or an array", () => {
     const api = submenuApi();
     for (const items of [new Set([child("a"), child("b")]), [child("a"), child("b")]]) {
       const menu = new api.ItemSubMenu({ text: "More", items });
-      assert.deepEqual([...api.ItemSubMenu.itemsToComponents(menu._items)], ["a", "b"]);
+      assert.deepEqual([...api.ItemSubMenu.itemsToComponents(menu._items, {})], ["a", "b"]);
     }
   });
 
-  it("hands React a new list when items are added or removed", () => {
+  it("re-renders an open menu when items are added or removed", () => {
     const api = submenuApi();
-    const first = child("a");
-    const menu = new api.ItemSubMenu({ text: "More", items: new Set([first]) });
-    const updates: unknown[][] = [];
-    menu._setItems = (items: unknown[]) => updates.push(items);
+    const item = (name: string) => new api.Item({ children: name, onClick: () => undefined });
+    const first = item("a");
+    const menu = new api.ItemSubMenu({ text: "More", items: [first] });
+    api.registerItem(menu);
 
-    const second = child("b");
-    menu.addItem(second);
-    menu.addItem(second);
-    menu.removeItem(first);
+    function Menu() {
+      return React.createElement("div", null, ...api.renderItems());
+    }
+    // act runs the effect that subscribes the open menu to item changes.
+    let tree!: ReturnType<typeof create>;
+    act(() => {
+      tree = create(React.createElement(api._context.Provider, { value: {} }, React.createElement(Menu)));
+    });
+    const labels = () => tree.root.findAllByType("button").map((button) => button.children.join(""));
+    assert.deepEqual(labels(), ["a"]);
 
-    assert.equal(updates.length, 2, "adding an item twice changes nothing");
-    assert.notEqual(updates[0], updates[1], "each change is a new array");
-    assert.deepEqual([...api.ItemSubMenu.itemsToComponents(updates[0])], ["a", "b"]);
-    assert.deepEqual([...api.ItemSubMenu.itemsToComponents(updates[1])], ["b"]);
+    const second = item("b");
+    act(() => menu.addItem(second));
+    act(() => menu.addItem(second));
+    assert.deepEqual(labels(), ["a", "b"], "adding an item twice adds it once");
+
+    act(() => menu.removeItem(first));
+    assert.deepEqual(labels(), ["b"]);
+    tree.unmount();
   });
 });

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/spicetify/cli/src/utils"
@@ -46,17 +45,7 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		},
 	}
 
-	verParts := strings.Split(flags.SpotifyVer, ".")
-	spotifyMajor, spotifyMinor, spotifyPatch := 0, 0, 0
-	if len(verParts) > 0 {
-		spotifyMajor, _ = strconv.Atoi(verParts[0])
-	}
-	if len(verParts) > 1 {
-		spotifyMinor, _ = strconv.Atoi(verParts[1])
-	}
-	if len(verParts) > 2 {
-		spotifyPatch, _ = strconv.Atoi(verParts[2])
-	}
+	spotifyVersion, _ := utils.ParseSpotifyVersion(flags.SpotifyVer)
 
 	if len(flags.CustomApp) > 0 {
 		if customAppTarget := findCustomAppTarget(appsFolderPath); customAppTarget != "" {
@@ -72,7 +61,15 @@ func AdditionalOptions(appsFolderPath string, flags Flag) {
 		}
 	}
 
-	if spotifyMajor >= 1 && spotifyMinor >= 2 && spotifyPatch >= 57 {
+	if flags.HomeConfig {
+		if homeConfigTarget := findHomeConfigTarget(appsFolderPath); homeConfigTarget != "" {
+			if _, exists := filesToModified[homeConfigTarget]; !exists {
+				filesToModified[homeConfigTarget] = []func(string, Flag){insertHomeConfig}
+			}
+		}
+	}
+
+	if spotifyVersion.AtLeast(1, 2, 57) {
 		filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")] = append(filesToModified[filepath.Join(appsFolderPath, "xpui", "xpui.js")], insertExpFeatures)
 	} else {
 		filesToModified[filepath.Join(appsFolderPath, "xpui", "vendor~xpui.js")] = []func(string, Flag){insertExpFeatures}
@@ -140,13 +137,6 @@ func UserAsset(appsFolderPath, themeFolder string) {
 }
 
 func htmlMod(htmlPath string, flags Flag) {
-	if len(flags.Extension) == 0 &&
-		!flags.HomeConfig &&
-		!flags.SidebarConfig &&
-		!flags.ExpFeatures {
-		return
-	}
-
 	var extensionsHTML strings.Builder
 	var helperHTML strings.Builder
 	extensionsHTML.WriteByte('\n')
@@ -327,6 +317,35 @@ func findCustomAppTarget(appsFolderPath string) string {
 	return ""
 }
 
+func findHomeConfigTarget(appsFolderPath string) string {
+	xpuiPath := filepath.Join(appsFolderPath, "xpui")
+	entries, err := os.ReadDir(xpuiPath)
+	if err != nil {
+		return ""
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".js" {
+			continue
+		}
+
+		candidate := filepath.Join(xpuiPath, entry.Name())
+		raw, err := os.ReadFile(candidate)
+		if err != nil {
+			continue
+		}
+
+		content := string(raw)
+		if strings.Contains(content, "HomeFeedBaselineUnifiedShelf") &&
+			strings.Contains(content, "HomeShortsSectionData") &&
+			strings.Contains(content, `"data-testid":"home-page"`) {
+			return candidate
+		}
+	}
+
+	return ""
+}
+
 func getCustomAppChunkMaps(flags Flag) (string, string) {
 	var appMap strings.Builder
 	var cssEnableMap strings.Builder
@@ -360,7 +379,7 @@ func insertCustomAppChunkMap(jsPath string, flags Flag) {
 
 		utils.ReplaceOnce(
 			&content,
-			`(\.f\.miniCss=function\(\w+,\w+\).*?\(\{)([0-9:,]+)(\}\)\[\w+\])`,
+			`(\.f\.miniCss=function\(\w+,\w+(?:,\w+)?\).*?\(\{)([0-9:,]+)(\}\)\[\w+\])`,
 			func(submatches ...string) string {
 				return fmt.Sprintf("%s%s%s%s", submatches[1], submatches[2], cssEnableMap, submatches[3])
 			})
@@ -408,7 +427,7 @@ func insertCustomApp(jsPath string, flags Flag) {
 
 			fmt.Fprintf(
 				&appReactMap,
-				`,spicetifyApp%d=%s.lazy((()=>%s.%s("%s").then(%s.bind(%s,"%s"))))`,
+				`,spicetifyApp%d=%s.lazy((()=>new Promise(r=>Spicetify.Events.webpackLoaded.on(r)).then(()=>%s.%s("%s")).then(%s.bind(%s,"%s"))))`,
 				index, reactSymbs[0], reactSymbs[1], reactSymbs[2],
 				appName, reactSymbs[1], reactSymbs[1], appName)
 
@@ -509,24 +528,35 @@ func insertHomeConfig(jsPath string, flags Flag) {
 		return
 	}
 
-	utils.ModifyFile(jsPath, func(content string) string {
-		utils.ReplaceOnce(
-			&content,
+	utils.ModifyFile(jsPath, patchHomeConfig)
+}
+
+func patchHomeConfig(content string) string {
+	utils.ReplaceOnceWithPriority(
+		&content,
+		[]string{
 			`(createDesktopHomeFeatureActivationShelfEventFactory.*?)([\w\.]+)(\.map)`,
-			func(submatches ...string) string {
-				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
-			})
-
-		// >= 1.2.40
-		utils.ReplaceOnce(
-			&content,
+			// >= 1.2.40
 			`(&&"HomeShortsSectionData".*?[\],}])([a-zA-Z])(\}\)?\()`,
-			func(submatches ...string) string {
+			`(?s)(HomeFeedBaselineUnifiedShelf.*?HomeShortsSectionData.*?)(,[$\w]+=)([$\w]+)\?([$\w]+)\.slice\(0,([$\w]+)\):([$\w]+)`,
+		},
+		func(index int, submatches ...string) string {
+			if index < 2 {
 				return fmt.Sprintf("%sSpicetifyHomeConfig.arrange(%s)%s", submatches[1], submatches[2], submatches[3])
-			})
+			}
 
-		return content
-	})
+			prefix, assignment, limit, sections := submatches[1], submatches[2], submatches[3], submatches[4]
+			if submatches[5] != limit || submatches[6] != sections {
+				return submatches[0]
+			}
+			return fmt.Sprintf(
+				"%s%s(%s?SpicetifyHomeConfig.arrange(%s).slice(0,%s):SpicetifyHomeConfig.arrange(%s))",
+				prefix, assignment, limit, sections, limit, sections,
+			)
+		},
+	)
+
+	return content
 }
 
 func getAssetsPath(themeFolder string) string {

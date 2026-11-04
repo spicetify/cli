@@ -105,6 +105,11 @@ func (v SpotifyVersion) Compare(other SpotifyVersion) int {
 	return 0
 }
 
+// AtLeast reports whether v is major.minor.patch or newer.
+func (v SpotifyVersion) AtLeast(major, minor, patch int) bool {
+	return v.Compare(SpotifyVersion{Major: major, Minor: minor, Patch: patch}) >= 0
+}
+
 // SpotifyVersionToClassmapKey converts a normalized or full version string
 // into a classmap folder key.
 func SpotifyVersionToClassmapKey(raw string) (string, error) {

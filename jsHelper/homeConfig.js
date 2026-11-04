@@ -1,64 +1,66 @@
 SpicetifyHomeConfig = {};
 
 (async () => {
-	// Status enum
-	const NORMAL = 0;
-	const STICKY = 1;
-	const LOWERED = 2;
-	// List of sections' metadata
-	let list;
-	// Store sections' statuses
-	const statusDic = {};
-	let mounted = false;
+  // Status enum
+  const NORMAL = 0;
+  const STICKY = 1;
+  const LOWERED = 2;
+  let sourceSections;
+  // List of sections' metadata
+  let list;
+  // Store sections' statuses
+  const statusDic = new Map();
 
-	SpicetifyHomeConfig.arrange = (sections) => {
-		mounted = true;
-		if (list) {
-			return list;
-		}
-		const stickList = (localStorage.getItem("spicetify-home-config:stick") || "").split(",");
-		const lowList = (localStorage.getItem("spicetify-home-config:low") || "").split(",");
-		const stickSections = [];
-		const lowSections = [];
-		for (const uri of stickList) {
-			const index = sections.findIndex((a) => a?.uri === uri || a?.item?.uri === uri);
-			if (index !== -1) {
-				const item = sections[index];
-				const uri = item.item.uri || item.uri;
-				statusDic[uri] = STICKY;
-				stickSections.push(item);
-				sections[index] = undefined;
-			}
-		}
-		for (const uri of lowList) {
-			const index = sections.findIndex((a) => a?.uri === uri || a?.item?.uri === uri);
-			if (index !== -1) {
-				const item = sections[index];
-				const uri = item.item.uri || item.uri;
-				statusDic[uri] = LOWERED;
-				lowSections.push(item);
-				sections[index] = undefined;
-			}
-		}
+  function getSectionUri(section) {
+    return section?.uri ?? section?.item?.uri ?? section?.localItem?.uri;
+  }
 
-		list = [...stickSections, ...sections.filter(Boolean), ...lowSections];
-		return list;
-	};
+  function getStoredUris(key) {
+    return (localStorage.getItem(key) || "").split(",").filter(Boolean);
+  }
 
-	const up = document.createElement("button");
-	up.innerText = "Up";
-	const down = document.createElement("button");
-	down.innerText = "Down";
-	const lower = document.createElement("button");
-	const stick = document.createElement("button");
-	const sectionStyle = document.createElement("style");
-	sectionStyle.innerHTML = `
-.main-home-content section {
+  SpicetifyHomeConfig.arrange = (sections) => {
+    if (sections === sourceSections) return list;
+    sourceSections = sections;
+
+    const sectionsByUri = new Map();
+    for (const section of sections) {
+      const uri = getSectionUri(section);
+      if (uri) sectionsByUri.set(uri, section);
+    }
+
+    function claimSections(uris, status) {
+      const claimed = [];
+      for (const uri of uris) {
+        if (!sectionsByUri.has(uri) || statusDic.has(uri)) continue;
+        statusDic.set(uri, status);
+        claimed.push(sectionsByUri.get(uri));
+      }
+      return claimed;
+    }
+
+    statusDic.clear();
+    const stickSections = claimSections(getStoredUris("spicetify-home-config:stick"), STICKY);
+    const lowSections = claimSections(getStoredUris("spicetify-home-config:low"), LOWERED);
+    const normalSections = sections.filter((section) => !statusDic.has(getSectionUri(section)));
+    list = [...stickSections, ...normalSections, ...lowSections];
+    return list;
+  };
+
+  const up = document.createElement("button");
+  up.innerText = "Up";
+  const down = document.createElement("button");
+  down.innerText = "Down";
+  const lower = document.createElement("button");
+  const stick = document.createElement("button");
+  const sectionStyle = document.createElement("style");
+  sectionStyle.innerHTML = `
+:is(.main-gridContainer-homepageContent, .main-home-content) section {
 	order: 0 !important;
 }
 `;
-	const containerStyle = document.createElement("style");
-	containerStyle.innerHTML = `
+  const containerStyle = document.createElement("style");
+  containerStyle.innerHTML = `
 #spicetify-home-config {
     position: relative;
     width: 100%;
@@ -82,131 +84,143 @@ SpicetifyHomeConfig = {};
 }
 `;
 
-	const container = document.createElement("div");
-	container.id = "spicetify-home-config";
-	container.append(containerStyle, up, down, lower, stick);
-	document.head.append(sectionStyle);
-	let elem = [];
+  const container = document.createElement("div");
+  container.id = "spicetify-home-config";
+  container.append(containerStyle, up, down, lower, stick);
+  document.head.append(sectionStyle);
+  let interactionController;
 
-	function injectInteraction() {
-		const main = document.querySelector(".main-home-content");
-		elem = [...main.querySelectorAll("section")];
-		for (const [index, item] of elem.entries()) {
-			item.dataset.uri = list[index]?.uri ?? list[index].item?.uri;
-		}
+  function injectInteraction() {
+    const main = document.querySelector(".main-gridContainer-homepageContent, .main-home-content");
+    if (!main || !list) return;
+    removeInteraction();
+    interactionController = new AbortController();
+    let elem = [];
 
-		function appendItems() {
-			const stick = [];
-			const low = [];
-			const normal = [];
-			for (const el of elem) {
-				if (statusDic[el.dataset.uri] === STICKY) stick.push(el);
-				else if (statusDic[el.dataset.uri] === LOWERED) low.push(el);
-				else normal.push(el);
-			}
+    function syncElements() {
+      elem = [...main.querySelectorAll(":scope > section")].slice(0, list.length);
+      for (const [index, item] of elem.entries()) {
+        const uri = getSectionUri(list[index]);
+        if (uri) item.dataset.uri = uri;
+      }
+    }
 
-			localStorage.setItem(
-				"spicetify-home-config:stick",
-				stick.map((a) => a.dataset.uri)
-			);
-			localStorage.setItem(
-				"spicetify-home-config:low",
-				low.map((a) => a.dataset.uri)
-			);
+    function indexOfUri(uri) {
+      return list.findIndex((section) => getSectionUri(section) === uri);
+    }
 
-			elem = [...stick, ...normal, ...low];
-			main.append(...elem);
-		}
+    function persistOrder() {
+      const uris = list.map(getSectionUri);
+      localStorage.setItem(
+        "spicetify-home-config:stick",
+        uris.filter((uri) => statusDic.get(uri) === STICKY),
+      );
+      localStorage.setItem(
+        "spicetify-home-config:low",
+        uris.filter((uri) => statusDic.get(uri) === LOWERED),
+      );
+    }
 
-		function onSwap(item, dir) {
-			container.remove();
-			const curPos = elem.findIndex((e) => e === item);
-			const newPos = curPos + dir;
-			if (newPos < 0 || newPos > elem.length - 1) return;
+    function reorderElements() {
+      const domIndex = new Map(elem.map((element, index) => [element, index]));
+      const listIndex = new Map(list.map((section, index) => [getSectionUri(section), index]));
+      const rank = (element) => listIndex.get(element.dataset.uri) ?? domIndex.get(element);
+      elem.sort((a, b) => rank(a) - rank(b));
+      main.append(...elem);
+    }
 
-			[elem[curPos], elem[newPos]] = [elem[newPos], elem[curPos]];
-			[list[curPos], list[newPos]] = [list[newPos], list[curPos]];
-			appendItems();
-		}
+    function reorderSections() {
+      const statusOf = (section) => statusDic.get(getSectionUri(section));
+      const sticky = list.filter((section) => statusOf(section) === STICKY);
+      const lowered = list.filter((section) => statusOf(section) === LOWERED);
+      const normal = sourceSections.filter((section) => !statusOf(section));
+      list = [...sticky, ...normal, ...lowered];
+      persistOrder();
+      reorderElements();
+    }
 
-		function onChangeStatus(item, status) {
-			container.remove();
-			const isToggle = statusDic[item.dataset.uri] === status;
-			statusDic[item.dataset.uri] = isToggle ? NORMAL : status;
-			appendItems();
-		}
+    function onSwap(item, dir) {
+      container.remove();
+      const curPos = indexOfUri(item.dataset.uri);
+      const newPos = curPos + dir;
+      if (newPos < 0 || newPos > list.length - 1) return;
 
-		for (const el of elem) {
-			el.onmouseover = () => {
-				const status = statusDic[el.dataset.uri];
-				const index = elem.findIndex((a) => a === el);
+      [list[curPos], list[newPos]] = [list[newPos], list[curPos]];
+      persistOrder();
+      reorderElements();
+    }
 
-				if (!status || index === 0 || status !== statusDic[elem[index - 1]?.dataset.uri]) {
-					up.disabled = true;
-				} else {
-					up.disabled = false;
-					up.onclick = () => onSwap(el, -1);
-				}
+    function onChangeStatus(item, status) {
+      container.remove();
+      const isToggle = statusDic.get(item.dataset.uri) === status;
+      statusDic.set(item.dataset.uri, isToggle ? NORMAL : status);
+      reorderSections();
+    }
 
-				if (!status || index === elem.length - 1 || status !== statusDic[elem[index + 1]?.dataset.uri]) {
-					down.disabled = true;
-				} else {
-					down.disabled = false;
-					down.onclick = () => onSwap(el, 1);
-				}
+    function handleMouseOver(event) {
+      if (!(event.target instanceof Element)) return;
+      const el = event.target.closest("section");
+      if (!el || el.parentElement !== main || container.parentElement === el) return;
+      syncElements();
+      const { uri } = el.dataset;
+      if (!uri) return;
 
-				stick.innerText = status === STICKY ? "Unstick" : "Stick";
-				lower.innerText = status === LOWERED ? "Unlower" : "Lower";
-				lower.onclick = () => onChangeStatus(el, LOWERED);
-				stick.onclick = () => onChangeStatus(el, STICKY);
+      const status = statusDic.get(uri);
+      const index = indexOfUri(uri);
+      const neighborStatus = (dir) => statusDic.get(getSectionUri(list[index + dir]));
 
-				el.prepend(container);
-			};
-		}
-	}
+      up.disabled = !status || neighborStatus(-1) !== status;
+      down.disabled = !status || neighborStatus(1) !== status;
+      up.onclick = () => onSwap(el, -1);
+      down.onclick = () => onSwap(el, 1);
+      stick.innerText = status === STICKY ? "Unstick" : "Stick";
+      lower.innerText = status === LOWERED ? "Unlower" : "Lower";
+      lower.onclick = () => onChangeStatus(el, LOWERED);
+      stick.onclick = () => onChangeStatus(el, STICKY);
+      el.prepend(container);
+    }
 
-	function removeInteraction() {
-		container.remove();
-		for (const a of elem) {
-			a.onmouseover = undefined;
-		}
-	}
+    syncElements();
+    main.addEventListener("mouseover", handleMouseOver, { signal: interactionController.signal });
+  }
 
-	await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
+  function removeInteraction() {
+    container.remove();
+    interactionController?.abort();
+  }
 
-	SpicetifyHomeConfig.menu = new Spicetify.Menu.Item(
-		"Home config",
-		false,
-		(self) => {
-			self.setState(!self.isEnabled);
-			if (self.isEnabled) {
-				injectInteraction();
-			} else {
-				removeInteraction();
-			}
-		},
-		Spicetify.SVGIcons["grid-view"]
-	);
+  await new Promise((res) => Spicetify.Events.webpackLoaded.on(res));
 
-	SpicetifyHomeConfig.addToMenu = () => {
-		SpicetifyHomeConfig.menu.register();
-	};
-	SpicetifyHomeConfig.removeMenu = () => {
-		SpicetifyHomeConfig.menu.setState(false);
-		SpicetifyHomeConfig.menu.deregister();
-	};
+  SpicetifyHomeConfig.menu = new Spicetify.Menu.Item(
+    "Home config",
+    false,
+    (self) => {
+      self.setState(!self.isEnabled);
+      if (self.isEnabled) {
+        injectInteraction();
+      } else {
+        removeInteraction();
+      }
+    },
+    Spicetify.SVGIcons["grid-view"],
+  );
 
-	await new Promise((res) => Spicetify.Events.platformLoaded.on(res));
-	// Init
-	if (Spicetify.Platform.History.location.pathname === "/") {
-		SpicetifyHomeConfig.addToMenu();
-	}
+  SpicetifyHomeConfig.addToMenu = () => {
+    SpicetifyHomeConfig.menu.register();
+  };
+  SpicetifyHomeConfig.removeMenu = () => {
+    SpicetifyHomeConfig.menu.setState(false);
+    SpicetifyHomeConfig.menu.deregister();
+  };
 
-	Spicetify.Platform.History.listen(({ pathname }) => {
-		if (pathname === "/") {
-			SpicetifyHomeConfig.addToMenu();
-		} else {
-			SpicetifyHomeConfig.removeMenu();
-		}
-	});
+  await new Promise((res) => Spicetify.Events.platformLoaded.on(res));
+  if (Spicetify.Platform.History.location.pathname === "/") SpicetifyHomeConfig.addToMenu();
+
+  Spicetify.Platform.History.listen(({ pathname }) => {
+    if (pathname === "/") {
+      SpicetifyHomeConfig.addToMenu();
+    } else {
+      SpicetifyHomeConfig.removeMenu();
+    }
+  });
 })();

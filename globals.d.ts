@@ -22,6 +22,7 @@ declare namespace Spicetify {
 		| "copy"
 		| "create"
 		| "credits"
+		| "dj"
 		| "download"
 		| "downloaded"
 		| "edit"
@@ -799,17 +800,21 @@ declare namespace Spicetify {
 		 */
 		function parseProps(props: any): [uris: string[], uids: string[] | undefined, contextUri: string | undefined] | undefined;
 		/**
-		 * Add a React element to every Spotify menu for which `shouldAdd` returns true.
+		 * Add an item, or a React element, to every Spotify menu for which `shouldAdd` returns true.
 		 */
-		function registerItem(item: React.ReactElement, shouldAdd?: ShouldAddCallback): void;
+		function registerItem(item: Item | ItemSubMenu | React.ReactElement, shouldAdd?: ShouldAddCallback): void;
 		/**
-		 * Remove an element added with `registerItem`.
+		 * Remove an item or element added with `registerItem`.
 		 */
-		function unregisterItem(item: React.ReactElement): void;
+		function unregisterItem(item: Item | ItemSubMenu | React.ReactElement): void;
 		/**
 		 * Elements Spicetify injects into the menu being rendered. Called from Spotify's patched menu code.
 		 */
 		function renderItems(): React.ReactElement[];
+		/**
+		 * Gives a menu's items the props of the element it wraps. Rendered by Spotify's patched now-playing menu code.
+		 */
+		function _Provider(props: { children: React.ReactElement }): React.ReactElement;
 
 		/**
 		 * A single menu item. Changing a property re-renders the item if it is on screen.
@@ -860,16 +865,10 @@ declare namespace Spicetify {
 		 */
 		class ItemSubMenu {
 			/**
-			 * Elements for the entries of `items` whose `shouldAdd` returns true. Sets each nested `ItemSubMenu`'s `depth` to
+			 * Elements for the entries of `items` whose `shouldAdd` returns true. Nested `ItemSubMenu`s render at depth
 			 * `parentDepth + 1`.
 			 */
-			static itemsToComponents(
-				items: Array<Item | ItemSubMenu>,
-				props: any,
-				trigger?: string,
-				target?: HTMLElement,
-				parentDepth?: number
-			): React.ReactElement[];
+			static itemsToComponents(items: Array<Item | ItemSubMenu>, context: Context, parentDepth?: number): React.ReactElement[];
 			constructor(options: {
 				text: React.ReactNode;
 				/**

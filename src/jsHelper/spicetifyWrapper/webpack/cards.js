@@ -1,42 +1,64 @@
 import { fnStr } from "../shared/string.js";
 
-const defaultCardTypes = ["album", "artist", "audiobook", "episode", "playlist", "profile", "show", "track"];
-export const lazyCardTypes = ["audiobook", "profile", "show"];
+export const cardTypes = ["album", "artist", "audiobook", "episode", "playlist", "profile", "show", "track"];
+const wrappedComponentTypes = new Set([Symbol.for("react.memo"), Symbol.for("react.forward_ref")]);
 
 export function cardName(type) {
   return type[0].toUpperCase() + type.slice(1);
 }
 
-function findCardEntriesInSource(source, component, remainingTypes) {
-  const entries = [];
+function getComponentSource(component) {
+  try {
+    const visited = new Set();
+    let current = component;
 
-  for (let i = 0; i < remainingTypes.length; i += 1) {
-    const type = remainingTypes[i];
-    if (!source.includes(`featureIdentifier:"${type}"`)) continue;
-    remainingTypes.splice(remainingTypes.indexOf(type), 1);
-    i -= 1;
-    entries.push([cardName(type), component]);
+    while (current && !visited.has(current)) {
+      visited.add(current);
+      if (typeof current === "function") return fnStr(current);
+      current = current.type ?? current.render;
+    }
+
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+function getComponents({ modules, functionModules }) {
+  const wrappedComponents = modules.filter((component) => wrappedComponentTypes.has(component?.$$typeof));
+  return [...new Set([...functionModules, ...wrappedComponents])];
+}
+
+function getComponentCandidates(inventory) {
+  return getComponents(inventory).map((component) => ({
+    component,
+    source: getComponentSource(component),
+  }));
+}
+
+function getBaseCardName(source) {
+  if (["?highlight", "headerText", "imageContainer"].every((marker) => source.includes(marker))) return "FeatureCard";
+  if (source.includes('"herocard-click-handler"')) return "Hero";
+  if (["isHero", "imageWrapper"].every((marker) => source.includes(marker)) && ["withWaves", "isCircular"].some((marker) => source.includes(marker)))
+    return "CardImage";
+}
+
+export function findBaseCards(inventory) {
+  const cards = {};
+
+  for (const { component, source } of getComponentCandidates(inventory)) {
+    const name = getBaseCardName(source);
+    if (name && cards[name] === undefined) cards[name] = component;
   }
 
-  return entries;
+  return cards;
 }
 
-function findFunctionCardEntries(functionModules, remainingTypes) {
-  return functionModules.flatMap((module) => findCardEntriesInSource(fnStr(module), module, remainingTypes));
-}
+export function findCards(inventory, requestedTypes = cardTypes) {
+  const candidates = getComponentCandidates(inventory);
 
-function findComponentCardEntries(modules, remainingTypes) {
-  return modules.flatMap((module) => {
-    try {
-      const source = module?.type ? fnStr(module.type) : "";
-      return findCardEntriesInSource(source, module, remainingTypes);
-    } catch {
-      return [];
-    }
+  return requestedTypes.flatMap((type) => {
+    const match = candidates.find(({ source }) => source.includes(`featureIdentifier:"${type}"`));
+    return match ? [[cardName(type), match.component]] : [];
   });
-}
-
-export function findCards({ modules, functionModules }, cardTypes = defaultCardTypes) {
-  const remainingTypes = [...cardTypes];
-  return [...findFunctionCardEntries(functionModules, remainingTypes), ...findComponentCardEntries(modules, remainingTypes)];
 }

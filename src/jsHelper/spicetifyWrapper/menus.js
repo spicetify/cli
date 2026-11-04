@@ -2,6 +2,26 @@ import { createIconComponent } from "./icons.js";
 
 Spicetify.ContextMenuV2 = (() => {
   const registeredItems = new Map();
+  const registeredItemsListeners = new Set();
+  let nextItemId = 0;
+
+  function createLeadingIconProps(icon) {
+    if (!icon) return {};
+
+    const leadingIcon = createIconComponent(icon);
+
+    // V2 renders leading icons only for allowlisted menu actions
+    return {
+      leadingIcon,
+      v2LeadingIcon: leadingIcon,
+      menuAction: "add-to-library",
+      forceV2LeadingIcon: true,
+    };
+  }
+
+  function notifyItemsChanged() {
+    for (const listener of registeredItemsListeners) listener();
+  }
 
   /** @returns {[uris: string[], uids: string[] | undefined, contextUri: string | undefined] | undefined} */
   function parseProps(props) {
@@ -19,62 +39,45 @@ Spicetify.ContextMenuV2 = (() => {
     return [uris, uids, contextUri];
   }
 
-  // these classes bridge the gap between react and js, insuring reactivity
+  function ContextProvider({ children }) {
+    const { React, ContextMenuV2 } = Spicetify;
+    // The patched menu code that renders this provider creates the context first.
+    const menuContext = /** @type {NonNullable<typeof ContextMenuV2._context>} */ (ContextMenuV2._context);
+    const context = React.useContext(menuContext);
+    return React.createElement(menuContext.Provider, { value: { ...context, props: children.props } }, children);
+  }
+
   class Item {
     constructor({ children, disabled = false, leadingIcon, trailingIcon, divider, onClick, shouldAdd = () => true }) {
-      // maybe use a props object and a setProps
       this.shouldAdd = shouldAdd;
-
+      this._key = `spicetify-context-menu-item-${nextItemId++}`;
       this._children = children;
       this._disabled = disabled;
       this._leadingIcon = leadingIcon;
       this._trailingIcon = trailingIcon;
       this._divider = divider;
+      this._onClick = onClick;
+    }
 
-      this._element = Spicetify.ReactJSX.jsx(() => {
-        const [_children, setChildren] = Spicetify.React.useState(this._children);
-        const [_disabled, setDisabled] = Spicetify.React.useState(this._disabled);
-        const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(this._leadingIcon);
-        const [_trailingIcon, setTrailingIcon] = Spicetify.React.useState(this._trailingIcon);
-        const [_divider, setDivider] = Spicetify.React.useState(this._divider);
-
-        Spicetify.React.useEffect(() => {
-          this._setChildren = setChildren;
-          this._setDisabled = setDisabled;
-          this._setIcon = setLeadingIcon;
-          this._setTrailingIcon = setTrailingIcon;
-          this._setDivider = setDivider;
-
-          return () => {
-            this._setChildren = undefined;
-            this._setDisabled = undefined;
-            this._setIcon = undefined;
-            this._setTrailingIcon = undefined;
-            this._setDivider = undefined;
-          };
-        });
-
-        const context = Spicetify.React.useContext(Spicetify.ContextMenuV2._context) ?? {};
-
-        return Spicetify.React.createElement(
-          Spicetify.ReactComponent.MenuItem,
-          {
-            disabled: _disabled,
-            divider: _divider,
-            onClick: (e) => {
-              onClick(context, this, e);
-            },
-            leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
-            trailingIcon: _trailingIcon && createIconComponent(_trailingIcon),
-          },
-          _children,
-        );
-      }, {});
+    _render(context) {
+      return Spicetify.React.createElement(
+        Spicetify.ReactComponent.MenuItem,
+        {
+          key: this._key,
+          disabled: this._disabled,
+          divider: this._divider,
+          onClick: (event) => this._onClick(context, this, event),
+          ...createLeadingIconProps(this._leadingIcon),
+          trailingIcon: this._trailingIcon && createIconComponent(this._trailingIcon),
+        },
+        this._children,
+      );
     }
 
     set children(children) {
+      if (this._children === children) return;
       this._children = children;
-      this._setChildren?.(this._children);
+      notifyItemsChanged();
     }
     get children() {
       return this._children;
@@ -82,7 +85,7 @@ Spicetify.ContextMenuV2 = (() => {
 
     set disabled(bool) {
       this._disabled = bool;
-      this._setDisabled?.(this._disabled);
+      notifyItemsChanged();
     }
     get disabled() {
       return this._disabled;
@@ -90,7 +93,7 @@ Spicetify.ContextMenuV2 = (() => {
 
     set leadingIcon(name) {
       this._leadingIcon = name;
-      this._setIcon?.(this._leadingIcon);
+      notifyItemsChanged();
     }
     get leadingIcon() {
       return this._leadingIcon;
@@ -98,7 +101,7 @@ Spicetify.ContextMenuV2 = (() => {
 
     set trailingIcon(name) {
       this._trailingIcon = name;
-      this._setTrailingIcon?.(this._trailingIcon);
+      notifyItemsChanged();
     }
     get trailingIcon() {
       return this._trailingIcon;
@@ -106,33 +109,30 @@ Spicetify.ContextMenuV2 = (() => {
 
     set divider(divider) {
       this._divider = divider;
-      this._setDivider?.(this._divider);
+      notifyItemsChanged();
     }
     get divider() {
       return this._divider;
     }
 
     register() {
-      Spicetify.ContextMenuV2.registerItem(this._element, this.shouldAdd);
+      Spicetify.ContextMenuV2.registerItem(this, this.shouldAdd);
     }
     deregister() {
-      Spicetify.ContextMenuV2.unregisterItem(this._element);
+      Spicetify.ContextMenuV2.unregisterItem(this);
     }
   }
 
   class ItemSubMenu {
-    static itemsToComponents(items, props, trigger, target, parentDepth = 1) {
+    static itemsToComponents(items, context, parentDepth = 1) {
       return items
-        .filter((item) => (item.shouldAdd || (() => true))?.(props, trigger, target))
-        .map((item) => {
-          if (item instanceof ItemSubMenu) item.depth = parentDepth + 1;
-          return item._element;
-        });
+        .filter((item) => (item.shouldAdd || (() => true))?.(context.props, context.trigger, context.target))
+        .map((item) => (item instanceof ItemSubMenu ? item._render(context, parentDepth + 1) : item._render(context)));
     }
 
     constructor({ text, disabled = false, leadingIcon, divider, items, depth = 1, shouldAdd = () => true }) {
       this.shouldAdd = shouldAdd;
-
+      this._key = `spicetify-context-submenu-${nextItemId++}`;
       this._text = text;
       this._disabled = disabled;
       this._leadingIcon = leadingIcon;
@@ -140,54 +140,29 @@ Spicetify.ContextMenuV2 = (() => {
       // Callers pass an array or a Set; rendering filters and maps it.
       this._items = Array.from(items ?? []);
       this._depth = depth;
-      this._element = Spicetify.ReactJSX.jsx(() => {
-        const [_text, setText] = Spicetify.React.useState(this._text);
-        const [_disabled, setDisabled] = Spicetify.React.useState(this._disabled);
-        const [_leadingIcon, setLeadingIcon] = Spicetify.React.useState(this._leadingIcon);
-        const [_divider, setDivider] = Spicetify.React.useState(this._divider);
-        const [_items, setItems] = Spicetify.React.useState(this._items);
-        const [_depth, setDepth] = Spicetify.React.useState(this._depth);
+    }
 
-        Spicetify.React.useEffect(() => {
-          this._setText = setText;
-          this._setDisabled = setDisabled;
-          this._setLeadingIcon = setLeadingIcon;
-          this._setDivider = setDivider;
-          this._setItems = setItems;
-          this._setDepth = setDepth;
-          return () => {
-            this._setText = undefined;
-            this._setDisabled = undefined;
-            this._setLeadingIcon = undefined;
-            this._setDivider = undefined;
-            this._setItems = undefined;
-            this._setDepth = undefined;
-          };
-        });
-
-        const context = Spicetify.React.useContext(Spicetify.ContextMenuV2._context) ?? {};
-        const { props, trigger, target } = context;
-
-        return Spicetify.React.createElement(
-          Spicetify.ReactComponent.MenuSubMenuItem,
-          {
-            displayText: _text,
-            divider: _divider,
-            depth: _depth,
-            placement: "right-start",
-            onOpenChange: () => undefined,
-            onClick: () => undefined,
-            disabled: _disabled,
-            leadingIcon: _leadingIcon && createIconComponent(_leadingIcon),
-          },
-          ItemSubMenu.itemsToComponents(_items, props, trigger, target, _depth),
-        );
-      }, {});
+    _render(context, depth = this._depth) {
+      return Spicetify.React.createElement(
+        Spicetify.ReactComponent.MenuSubMenuItem,
+        {
+          key: this._key,
+          displayText: this._text,
+          divider: this._divider,
+          depth,
+          placement: "right-start",
+          onOpenChange: () => undefined,
+          onClick: () => undefined,
+          disabled: this._disabled,
+          ...createLeadingIconProps(this._leadingIcon),
+        },
+        ItemSubMenu.itemsToComponents(this._items, context, depth),
+      );
     }
 
     set text(text) {
       this._text = text;
-      this._setText?.(this._text);
+      notifyItemsChanged();
     }
     get text() {
       return this._text;
@@ -195,7 +170,7 @@ Spicetify.ContextMenuV2 = (() => {
 
     set disabled(bool) {
       this._disabled = bool;
-      this._setDisabled?.(this._disabled);
+      notifyItemsChanged();
     }
     get disabled() {
       return this._disabled;
@@ -203,7 +178,7 @@ Spicetify.ContextMenuV2 = (() => {
 
     set leadingIcon(name) {
       this._leadingIcon = name;
-      this._setLeadingIcon?.(this._leadingIcon);
+      notifyItemsChanged();
     }
     get leadingIcon() {
       return this._leadingIcon;
@@ -211,7 +186,7 @@ Spicetify.ContextMenuV2 = (() => {
 
     set divider(divider) {
       this._divider = divider;
-      this._setDivider?.(this._divider);
+      notifyItemsChanged();
     }
     get divider() {
       return this._divider;
@@ -219,60 +194,68 @@ Spicetify.ContextMenuV2 = (() => {
 
     set depth(value) {
       this._depth = value;
-      this._setDepth?.(this._depth);
+      notifyItemsChanged();
     }
     get depth() {
       return this._depth;
     }
 
-    // A new array each time, so React sees the change and re-renders.
     addItem(item) {
       if (this._items.includes(item)) return;
-      this._items = [...this._items, item];
-      this._setItems?.(this._items);
+      this._items.push(item);
+      notifyItemsChanged();
     }
     removeItem(item) {
-      this._items = this._items.filter((existing) => existing !== item);
-      this._setItems?.(this._items);
+      const index = this._items.indexOf(item);
+      if (index === -1) return;
+      this._items.splice(index, 1);
+      notifyItemsChanged();
     }
 
     register() {
-      registerItem(this._element, this.shouldAdd);
+      registerItem(this, this.shouldAdd);
     }
     deregister() {
-      unregisterItem(this._element);
+      unregisterItem(this);
     }
   }
-
-  let registeredItemsVersion = 0;
 
   /** @param {Spicetify.ContextMenuV2.ShouldAddCallback} [shouldAdd] */
   function registerItem(item, shouldAdd = () => true) {
     registeredItems.set(item, shouldAdd);
-    registeredItemsVersion++;
+    notifyItemsChanged();
   }
 
   function unregisterItem(item) {
     registeredItems.delete(item);
-    registeredItemsVersion++;
+    notifyItemsChanged();
   }
 
   function RegisteredMenuItems({ react, context }) {
     const { props, trigger, target } = react.useContext(context) ?? {};
+    const [, setItemsVersion] = react.useState(0);
 
-    return react.useMemo(
-      () =>
-        Array.from(registeredItems.entries())
-          .map(([item, shouldAdd]) => shouldAdd?.(props, trigger, target) && item)
-          .filter(Boolean),
-      [props, trigger, target, registeredItemsVersion],
-    );
+    react.useEffect(() => {
+      const updateItems = () => setItemsVersion((version) => version + 1);
+      registeredItemsListeners.add(updateItems);
+      return () => registeredItemsListeners.delete(updateItems);
+    }, []);
+
+    return Array.from(registeredItems.entries())
+      .map(([item, shouldAdd]) => shouldAdd?.(props, trigger, target) && (item._render?.({ props, trigger, target }) ?? item))
+      .filter(Boolean);
   }
 
   const renderItems = () => {
     const react = Spicetify.React;
     const context = Spicetify.ContextMenuV2._context;
-    if (!context || typeof react?.createElement !== "function" || typeof react.useContext !== "function" || typeof react.useMemo !== "function") {
+    if (
+      !context ||
+      typeof react?.createElement !== "function" ||
+      typeof react.useContext !== "function" ||
+      typeof react.useState !== "function" ||
+      typeof react.useEffect !== "function"
+    ) {
       return [];
     }
 
@@ -280,12 +263,15 @@ Spicetify.ContextMenuV2 = (() => {
     return [react.createElement(RegisteredMenuItems, { key: "spicetify-context-menu-items", react, context })];
   };
 
-  return { _context: undefined, parseProps, Item, ItemSubMenu, registerItem, unregisterItem, renderItems };
+  return { _context: undefined, parseProps, Item, ItemSubMenu, registerItem, unregisterItem, renderItems, _Provider: ContextProvider };
 })();
 
 Spicetify.Menu = (() => {
   const shouldAdd = (_, trigger, target) =>
-    trigger === "click" && (target.classList.contains("main-userWidget-boxCondensed") || target.classList.contains("main-userWidget-box"));
+    trigger === "click" &&
+    (target?.getAttribute("data-testid") === "user-widget-link" ||
+      target?.classList.contains("main-userWidget-boxCondensed") ||
+      target?.classList.contains("main-userWidget-box"));
 
   class Item extends Spicetify.ContextMenuV2.Item {
     constructor(children, isEnabled, onClick, leadingIcon) {

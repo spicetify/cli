@@ -2,8 +2,12 @@ import { createIconComponent } from "./icons.js";
 
 /** @type {any} */
 let navLinkFactoryCtx = null;
-/** @type {(() => void) | null} */
-export let refreshNavLinks = null;
+/** @type {Set<() => void>} */
+const navLinkRefreshers = new Set();
+
+export function refreshNavLinks() {
+  for (const refresh of navLinkRefreshers) refresh();
+}
 
 const manifestCache = new Map();
 
@@ -15,7 +19,7 @@ function getManifest(app) {
     .then((res) => res.json())
     .then((manifest) => {
       manifestCache.set(app, manifest);
-      refreshNavLinks?.();
+      refreshNavLinks();
     })
     .catch(() => {
       // Keep the {} placeholder already cached
@@ -29,15 +33,19 @@ function getManifest(app) {
 // assigns Spicetify.React, and a conditional hook here either crashes the
 // client outright (reading useReducer off undefined) or corrupts the parent
 // component's hook order later. The parent stays hook-free forever; all
-// hooks live in NavLinksBody, which mounts fresh once React is available.
+// hooks live in NavLinksRenderer, which mounts fresh once React is available.
 Spicetify._renderNavLinks = (list, isTouchScreenUi) => {
   if (!Spicetify.React?.useReducer || !Spicetify.ReactComponent) return null;
-  return Spicetify.React.createElement(NavLinksBody, { list, isTouchScreenUi });
+  return Spicetify.React.createElement(NavLinksRenderer, { list, isTouchScreenUi });
 };
 
-const NavLinksBody = ({ list, isTouchScreenUi }) => {
-  const [, refresh] = Spicetify.React.useReducer((x) => x + 1, 0);
-  refreshNavLinks = refresh;
+function NavLinksRenderer({ list, isTouchScreenUi }) {
+  const react = Spicetify.React;
+  const [, refresh] = react.useReducer((x) => x + 1, 0);
+  react.useLayoutEffect(() => {
+    navLinkRefreshers.add(refresh);
+    return () => navLinkRefreshers.delete(refresh);
+  }, [refresh]);
 
   if (
     !Spicetify.ReactComponent.ButtonTertiary ||
@@ -47,11 +55,11 @@ const NavLinksBody = ({ list, isTouchScreenUi }) => {
     !Spicetify.Platform.History ||
     !Spicetify.Platform.LocalStorageAPI
   )
-    return;
+    return null;
 
   const navLinkFactory = isTouchScreenUi ? NavLinkGlobal : NavLinkSidebar;
 
-  if (!navLinkFactoryCtx) navLinkFactoryCtx = Spicetify.React.createContext(null);
+  if (!navLinkFactoryCtx) navLinkFactoryCtx = react.createContext(null);
   const registered = [];
 
   for (const app of list) {
@@ -100,22 +108,19 @@ const NavLinksBody = ({ list, isTouchScreenUi }) => {
     document.head.appendChild(style);
   })();
 
-  const wrapScrollableContainer = (element) =>
-    Spicetify.React.createElement(
-      "div",
-      { className: "custom-navlinks-scrollable_container" },
-      Spicetify.React.createElement(Spicetify.ReactComponent.ScrollableContainer, null, element),
-    );
+  const navLinks = react.createElement(
+    navLinkFactoryCtx.Provider,
+    { value: navLinkFactory },
+    registered.map((NavLinkElement) => react.createElement(NavLink, NavLinkElement, null)),
+  );
 
-  const NavLinks = () =>
-    Spicetify.React.createElement(
-      navLinkFactoryCtx.Provider,
-      { value: navLinkFactory },
-      registered.map((NavLinkElement) => Spicetify.React.createElement(NavLink, NavLinkElement, null)),
-    );
-
-  return isTouchScreenUi ? wrapScrollableContainer(NavLinks()) : NavLinks();
-};
+  if (!isTouchScreenUi) return navLinks;
+  return react.createElement(
+    "div",
+    { className: "custom-navlinks-scrollable_container" },
+    react.createElement(Spicetify.ReactComponent.ScrollableContainer, null, navLinks),
+  );
+}
 
 const NavLink = ({ appProper, appRoutePath, icon, activeIcon }) => {
   const isActive = Spicetify.Platform.History.location.pathname?.startsWith(appRoutePath);

@@ -1,12 +1,13 @@
 import { fnStr } from "../shared/string.js";
-import { findCards } from "./cards.js";
+import { findBaseCards, findCards } from "./cards.js";
 import { findDropdownComponent, findMenuItem, findSubMenuItem, wrapProvider } from "./component-resolvers.js";
 import { findMenuOverrides, findMenus } from "./menus.js";
+import { getObjectValues } from "./module-inventory.js";
 
 function findNavigationComponent({ require, exportedMemoFRefs }) {
   try {
-    const navModuleEntry = Object.entries(require.m).find(
-      ([, value]) => fnStr(value).includes("navigationalRoot") && fnStr(value).includes("noLink"),
+    const navModuleEntry = Object.entries(require.m).find(([, value]) =>
+      ["navigationalRoot", "noLink"].every((marker) => fnStr(value).includes(marker)),
     );
     if (navModuleEntry) {
       const Logo = require(navModuleEntry[0])?.A;
@@ -22,6 +23,35 @@ function findNavigationComponent({ require, exportedMemoFRefs }) {
   }
 }
 
+function findModernMenuSubMenuItem({ chunks, require }) {
+  const matchingChunks = chunks.filter(([, value]) =>
+    ["subMenuIcon", "focusTransferKey", "disableV2LeadingSlot"].every((marker) => fnStr(value).includes(marker)),
+  );
+  if (matchingChunks.length !== 1) return undefined;
+
+  const functionExports = getObjectValues(require(matchingChunks[0][0])).filter((value) => typeof value === "function");
+  return functionExports.length === 1 ? functionExports[0] : undefined;
+}
+
+export function findMenu({ modules, functionModules, react }) {
+  const compatibilityMarkers = ["useLegacyLayout", "onFocusVerticalItem", "disableV2LeadingSlot"];
+  const compatibilityMenu = modules.find(
+    (component) => typeof component?.render === "function" && compatibilityMarkers.every((marker) => fnStr(component.render).includes(marker)),
+  );
+
+  if (compatibilityMenu) {
+    return react.forwardRef(function SpicetifyMenu(props, ref) {
+      return react.createElement(compatibilityMenu, {
+        ...props,
+        useLegacyLayout: props.useLegacyLayout ?? true,
+        ref,
+      });
+    });
+  }
+
+  return functionModules.find((component) => ["getInitialFocusElement", "children"].every((marker) => fnStr(component).includes(marker)));
+}
+
 export function createReactComponents({
   modules,
   functionModules,
@@ -35,43 +65,34 @@ export function createReactComponents({
   return {
     ...Spicetify.ReactComponent,
     TextComponent: modules.find((m) => m?.h1 && m?.render),
-    Menu: functionModules.find((m) => fnStr(m).includes("getInitialFocusElement") && fnStr(m).includes("children")),
+    Menu: findMenu({ modules, functionModules, react: Spicetify.React }),
     MenuItem: findMenuItem({ functionModules }),
-    MenuSubMenuItem: findSubMenuItem({ functionModules, chunks, require }),
+    MenuSubMenuItem: findModernMenuSubMenuItem({ chunks, require }) ?? findSubMenuItem({ functionModules, chunks, require }),
     Slider: wrapProvider(functionModules.find((m) => fnStr(m).includes("progressBarRef"))),
-    RemoteConfigProvider: functionModules.find((m) => fnStr(m).includes("resolveSuspense") && fnStr(m).includes("configuration")),
-    RightClickMenu: functionModules.find(
-      (m) => fnStr(m).includes("action") && fnStr(m).includes("open") && fnStr(m).includes("trigger") && fnStr(m).includes("right-click"),
-    ),
-    TooltipWrapper: functionModules.find((m) => fnStr(m).includes("renderInline") && fnStr(m).includes("showDelay")),
+    RemoteConfigProvider: functionModules.find((m) => ["resolveSuspense", "configuration"].every((marker) => fnStr(m).includes(marker))),
+    RightClickMenu: functionModules.find((m) => ["action", "open", "trigger", "right-click"].every((marker) => fnStr(m).includes(marker))),
+    TooltipWrapper: functionModules.find((m) => ["renderInline", "showDelay"].every((marker) => fnStr(m).includes(marker))),
     ButtonPrimary: reactComponentsUI.ButtonPrimary,
     ButtonSecondary: reactComponentsUI.ButtonSecondary,
     ButtonTertiary: reactComponentsUI.ButtonTertiary,
     Snackbar: {
-      wrapper: functionModules.find((m) => fnStr(m).includes("encore-light-theme") && fnStr(m).includes("elevated")),
+      wrapper: functionModules.find((m) => ["encore-light-theme", "elevated"].every((marker) => fnStr(m).includes(marker))),
       simpleLayout: functionModules.find((m) => ["leading", "center", "trailing"].every((keyword) => fnStr(m).includes(keyword))),
       ctaText: functionModules.find((m) => fnStr(m).includes("ctaText")),
       styledImage: functionModules.find((m) => fnStr(m).includes("placeholderSrc")),
     },
     Chip: reactComponentsUI.Chip,
     Dropdown: reactComponentsUI.Dropdown ?? findDropdownComponent({ modules, chunks, require }),
-    Toggle: functionModules.find((m) => fnStr(m).includes("onSelected") && fnStr(m).includes('type:"checkbox"')),
+    Toggle: functionModules.find((m) => ["onSelected", 'type:"checkbox"'].every((marker) => fnStr(m).includes(marker))),
     Cards: {
       Default: reactComponentsUI.Card,
-      FeatureCard: functionModules.find(
-        (m) => fnStr(m).includes("?highlight") && fnStr(m).includes("headerText") && fnStr(m).includes("imageContainer"),
-      ),
-      Hero: functionModules.find((m) => fnStr(m).includes('"herocard-click-handler"')),
-      CardImage: functionModules.find(
-        (m) =>
-          fnStr(m).includes("isHero") && (fnStr(m).includes("withWaves") || fnStr(m).includes("isCircular")) && fnStr(m).includes("imageWrapper"),
-      ),
+      ...findBaseCards({ modules, functionModules }),
       ...Object.fromEntries(findCards({ modules, functionModules })),
     },
-    Router: functionModules.find((m) => fnStr(m).includes("navigationType") && fnStr(m).includes("static")),
+    Router: functionModules.find((m) => ["navigationType", "static"].every((marker) => fnStr(m).includes(marker))),
     Routes: functionModules.find((m) => fnStr(m).match(/\([\w$]+\)\{let\{children:[\w$]+,location:[\w$]+\}=[\w$]+/)),
     Route: functionModules.find((m) => fnStr(m).match(/^function [\w$]+\([\w$]+\)\{\(0,[\w$]+\.[\w$]+\)\(!1\)\}$/)),
-    StoreProvider: functionModules.find((m) => fnStr(m).includes("notifyNestedSubs") && fnStr(m).includes("serverState")),
+    StoreProvider: functionModules.find((m) => ["notifyNestedSubs", "serverState"].every((marker) => fnStr(m).includes(marker))),
     ScrollableContainer: scrollableContainer,
     IconComponent: reactComponentsUI.Icon,
     Navigation: findNavigationComponent({ require, exportedMemoFRefs }),

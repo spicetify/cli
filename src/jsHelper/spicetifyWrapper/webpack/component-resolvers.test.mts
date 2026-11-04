@@ -32,6 +32,16 @@ test("MenuItem resolves to the dispatcher ahead of other handleMouseEnter compon
   assert.equal(findMenuItem({ functionModules: [waveform, menuRowV2, menuItemDispatcher] }), menuItemDispatcher);
 });
 
+test("MenuItem prefers the hybrid row that reads its props directly", () => {
+  const hybridRow = (e: Props) => ({
+    forceV2LeadingIcon: e.forceV2LeadingIcon,
+    showFullTextOnHover: e.showFullTextOnHover,
+    menuAction: e.menuAction,
+    children: e.children,
+  });
+  assert.equal(findMenuItem({ functionModules: [waveform, menuItemDispatcher, hybridRow] }), hybridRow);
+});
+
 test("MenuItem falls back to the exported row, not the waveform scrubber, on builds without the dispatcher", () => {
   assert.equal(findMenuItem({ functionModules: [waveform, exportedMenuRow] }), exportedMenuRow);
   assert.equal(findMenuItem({ functionModules: [waveform, handlerMenuRow] }), handlerMenuRow);

@@ -59,10 +59,14 @@ export function findDropdownComponent({ modules, chunks, require }) {
 
 // From 1.3.3 the menu item and submenu item are exports that only switch
 // between the v2 and legacy rows; the legacy row is no longer exported.
+// 1.3.5 adds a hybrid row that reads its props directly, matched first.
 // Earlier builds export the legacy row, matched by its own props so that
 // other components with mouse handlers (the waveform scrubber) are skipped.
+const hybridMenuItemMarkers = ["forceV2LeadingIcon", "showFullTextOnHover", "menuAction", ".showFullTextOnHover", ".menuAction", ".children"];
+
 export function findMenuItem({ functionModules }) {
   return (
+    functionModules.find((f) => hybridMenuItemMarkers.every((marker) => fnStr(f).includes(marker))) ??
     functionModules.find((f) => /forceV2LeadingIcon:\s*\w+\.forceV2LeadingIcon/.test(fnStr(f))) ??
     functionModules.find((f) => {
       const source = fnStr(f);

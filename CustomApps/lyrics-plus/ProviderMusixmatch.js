@@ -55,6 +55,8 @@ const ProviderMusixmatch = (() => {
 			q_duration: durr,
 			f_subtitle_length: Math.floor(durr),
 			usertoken: CONFIG.providers.musixmatch.token,
+			optional_calls: "track.richsync",
+			richsync_compact_type: "words",
 			part: "track_lyrics_translation_status,track_structure,track_performer_tagging",
 		};
 
@@ -231,28 +233,12 @@ const ProviderMusixmatch = (() => {
 			return null;
 		}
 
-		const baseURL = "https://apic-appmobile.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=mac-ios-v2.0&";
-
-		const params = {
-			f_subtitle_length: meta.track.track_length,
-			q_duration: meta.track.track_length,
-			commontrack_id: meta.track.commontrack_id,
-			usertoken: CONFIG.providers.musixmatch.token,
-		};
-
-		const finalURL =
-			baseURL +
-			Object.keys(params)
-				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
-				.join("&");
-
-		let result = await Spicetify.CosmosAsync.get(finalURL, null, headers);
-
-		if (result.message.header.status_code !== 200) {
+		const richsyncCall = body?.["track.richsync.get"];
+		if (!richsyncCall || richsyncCall.message.header.status_code !== 200 || !richsyncCall.message.body.richsync) {
 			return null;
 		}
 
-		result = result.message.body;
+		const result = richsyncCall.message.body;
 
 		const snippetQueue = parsePerformerData(meta);
 

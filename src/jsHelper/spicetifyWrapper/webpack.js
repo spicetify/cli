@@ -6,15 +6,16 @@ import { waitForLateComponents } from "./webpack/late-components.js";
 import { getModuleInventory, groupBy } from "./webpack/module-inventory.js";
 import { exposeRuntimeResolvers } from "./webpack/runtime-resolvers.js";
 import { createScrollableContainer } from "./webpack/scrollable-container.js";
-import { createSpicetifyBindings } from "./webpack/spicetify-bindings.js";
+import { createSpicetifyBindings, findReact, findReactFromWebpack } from "./webpack/spicetify-bindings.js";
 import { waitForURI } from "./webpack/uri.js";
 
 void (async function hotloadWebpackModules() {
-  const chunkQueue = await waitFor(() => getWebpackChunkQueue(window), 50);
+  // Skip the await when the queue is ready, so the require hook installs synchronously.
+  const chunkQueue = getWebpackChunkQueue(window) ?? (await waitFor(() => getWebpackChunkQueue(window), 50));
 
   // Force all webpack modules to load
   const require = chunkQueue.push([[Symbol()], {}, (re) => re]);
-  await waitFor(() => require.m, 50);
+  if (!require.m) await waitFor(() => require.m, 50);
   console.log("[spicetifyWrapper] Waiting for required webpack modules to load");
   let webpackDidCallback = false;
   // https://github.com/webpack/webpack/blob/main/lib/runtime/OnChunksLoadedRuntimeModule.js
@@ -27,18 +28,15 @@ void (async function hotloadWebpackModules() {
     1,
   );
 
-  let inventory = getModuleInventory(require);
-  let chunks = inventory.chunks;
-  let cache = inventory.cache;
-
   // For _renderNavLinks to work
-  /** @type {Writable<typeof Spicetify>} */ (Spicetify).React = cache.find((m) => m?.useMemo);
+  /** @type {Writable<typeof Spicetify>} */ (Spicetify).React = findReactFromWebpack(require);
 
   await waitFor(() => webpackDidCallback, 100);
   console.log("[spicetifyWrapper] All required webpack modules loaded");
-  inventory = getModuleInventory(require);
-  chunks = inventory.chunks;
-  cache = inventory.cache;
+  const inventory = getModuleInventory(require);
+  const chunks = inventory.chunks;
+  const cache = inventory.cache;
+  /** @type {Writable<typeof Spicetify>} */ (Spicetify).React = findReact(cache);
   Spicetify.Events.platformLoaded.fire();
 
   const { modules, functionModules } = inventory;
