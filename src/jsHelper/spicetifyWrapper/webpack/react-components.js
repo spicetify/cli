@@ -83,7 +83,7 @@ export function createReactComponents({
 }) {
   return {
     ...Spicetify.ReactComponent,
-    TextComponent: modules.find((m) => m?.h1 && m?.render),
+    TextComponent: modules.find((m) => typeof m?.$$typeof === "symbol" && m.h1 && m.render),
     Menu: findMenu({ modules, functionModules, react: Spicetify.React }),
     MenuItem: findMenuItem(functionModules),
     MenuSubMenuItem: findModernMenuSubMenuItem({ chunks, require }) ?? functionModules.find((f) => fnStr(f).includes("subMenuIcon")),
