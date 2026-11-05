@@ -67,11 +67,7 @@ export const sendUpdateEvent = (event) => request(EVENT_URL, { method: "POST", b
 
 export const updateApiSupported = (platform) => {
   const api = platform?.UpdateAPI;
-  return (
-    typeof api?.subscribe === "function" &&
-    typeof api.prepareUpdate === "function" &&
-    typeof api.applyUpdate === "function"
-  );
+  return typeof api?.subscribe === "function" && typeof api.prepareUpdate === "function" && typeof api.applyUpdate === "function";
 };
 
 export const updateAndApply = async () => {

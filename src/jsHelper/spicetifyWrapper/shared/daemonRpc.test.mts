@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { acquireWindowControls, daemonInfo, send, setAutoUpdate, TOKEN_PROTOCOL_PREFIX, updateAndApplySupported } from "./daemonRpc.js";
+import { TOKEN_PROTOCOL_PREFIX, acquireWindowControls, daemonInfo, send, setAutoUpdate, updateAndApplySupported } from "./daemonRpc.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -61,6 +61,8 @@ describe("daemon rpc", () => {
   it("does not mistake an old, invalid, or unreachable daemon for an unsupported platform", async () => {
     for (const body of [{}, { update_and_apply_supported: "true" }, { update_and_apply_supported: 1 }]) {
       globalThis.fetch = async () => new Response(JSON.stringify(body), { status: 200 });
+      // Each case replaces the global fetch, so the cases cannot overlap.
+      // eslint-disable-next-line no-await-in-loop
       assert.equal(await updateAndApplySupported(), null);
     }
 
@@ -82,11 +84,7 @@ describe("daemon rpc", () => {
     assert.deepEqual(await daemonInfo(), { version: "3.0.0-beta.23", autoUpdate: true, autoUpdateActive: false });
 
     globalThis.fetch = async () => new Response(JSON.stringify({ version: "3.0.0-beta.21" }), { status: 200 });
-    assert.deepEqual(
-      await daemonInfo(),
-      { version: "3.0.0-beta.21", autoUpdate: null, autoUpdateActive: null },
-      "a daemon from before the setting",
-    );
+    assert.deepEqual(await daemonInfo(), { version: "3.0.0-beta.21", autoUpdate: null, autoUpdateActive: null }, "a daemon from before the setting");
 
     globalThis.fetch = async () => {
       throw new Error("offline");

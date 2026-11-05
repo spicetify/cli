@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { pushDiagnostic, type DiagnosticsEntry } from "./diagnostics.ts";
+import { type DiagnosticsEntry, pushDiagnostic } from "./diagnostics.ts";
 
 const buffer = () => (globalThis as never as { __SPICETIFY_DIAGNOSTICS__?: DiagnosticsEntry[] }).__SPICETIFY_DIAGNOSTICS__;
 

@@ -4,10 +4,12 @@ on:
   pull_request:
     branches:
       - "main"
+      - "v3-beta"
       - "*/main/*/**"
   push:
     branches:
       - "main"
+      - "v3-beta"
       - "*/main/*/**"
 
 jobs:
