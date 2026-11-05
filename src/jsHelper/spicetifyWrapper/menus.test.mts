@@ -243,3 +243,68 @@ describe("now-playing menus", () => {
     tree.unmount();
   });
 });
+
+describe("now-playing menu provider readiness", () => {
+  const native = () => React.createElement("button", null, "Native");
+  const labels = (tree: ReturnType<typeof create>) => tree.root.findAllByType("button").map((button) => button.children.join(""));
+
+  it("renders the native menu before React is captured", () => {
+    const api = loadMenus().ContextMenuV2;
+    api._context = React.createContext(null);
+    const tree = create(React.createElement(api._Provider, null, native()));
+    assert.deepEqual(labels(tree), ["Native"]);
+    tree.unmount();
+  });
+
+  it("renders the native menu before the menu context exists", () => {
+    const spicetify = loadMenus();
+    spicetify.React = React;
+    const tree = create(React.createElement(spicetify.ContextMenuV2._Provider, null, native()));
+    assert.deepEqual(labels(tree), ["Native"]);
+    tree.unmount();
+  });
+
+  it("renders the native menu on a React export without useContext", () => {
+    const spicetify = loadMenus();
+    spicetify.React = { ...React, useContext: undefined };
+    spicetify.ContextMenuV2._context = React.createContext(null);
+    const tree = create(React.createElement(spicetify.ContextMenuV2._Provider, null, native()));
+    assert.deepEqual(labels(tree), ["Native"]);
+    tree.unmount();
+  });
+
+  it("starts providing the track when capture becomes ready in an open menu", () => {
+    const spicetify = loadMenus();
+    spicetify.ReactComponent = {
+      MenuItem: ({ children }: { children: React.ReactNode }) => React.createElement("button", null, children),
+    };
+    const api = spicetify.ContextMenuV2;
+    const context = React.createContext<unknown>(null);
+    new api.Item({ children: "Copy", onClick: () => undefined, shouldAdd: (props: unknown) => !!api.parseProps(props) }).register();
+
+    function NowPlayingMenu(_: { context: { uri: string }; item: { uri: string } }) {
+      return React.createElement("div", null, ...api.renderItems(), native());
+    }
+    const render = () =>
+      React.createElement(
+        context.Provider,
+        { value: { props: { canToggleCanvas: true } } },
+        React.createElement(
+          api._Provider,
+          null,
+          React.createElement(NowPlayingMenu, { context: { uri: "spotify:playlist:p" }, item: { uri: "spotify:track:t" } }),
+        ),
+      );
+    let tree!: ReturnType<typeof create>;
+    act(() => {
+      tree = create(render());
+    });
+    assert.deepEqual(labels(tree), ["Native"]);
+
+    spicetify.React = React;
+    api._context = context;
+    act(() => tree.update(render()));
+    assert.deepEqual(labels(tree), ["Copy", "Native"]);
+    tree.unmount();
+  });
+});
