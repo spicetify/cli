@@ -194,3 +194,52 @@ describe("submenus", () => {
     tree.unmount();
   });
 });
+
+describe("now-playing menus", () => {
+  it("gives items the track a now-playing menu was opened on", () => {
+    const spicetify = loadMenus();
+    spicetify.React = React;
+    spicetify.ReactComponent = {
+      MenuItem: ({ children }: { children: React.ReactNode }) => React.createElement("button", null, children),
+    };
+    const api = spicetify.ContextMenuV2;
+    api._context = React.createContext(null);
+    const seen: unknown[] = [];
+    new api.Item({
+      children: "Copy",
+      onClick: () => undefined,
+      shouldAdd: (props: unknown) => {
+        seen.push(api.parseProps(props));
+        return true;
+      },
+    }).register();
+
+    function NowPlayingMenu(_: { context: { uri: string }; item: { uri: string; uid: string }; canToggleCanvas: boolean }) {
+      return React.createElement("div", null, ...api.renderItems());
+    }
+    const menu = React.createElement(NowPlayingMenu, {
+      context: { uri: "spotify:playlist:p" },
+      item: { uri: "spotify:track:t", uid: "u" },
+      canToggleCanvas: true,
+    });
+    // The trigger's provider only knows the canvas toggle, as in Spotify's now-playing menus.
+    let tree!: ReturnType<typeof create>;
+    act(() => {
+      tree = create(
+        React.createElement(
+          api._context.Provider,
+          { value: { props: { canToggleCanvas: true }, trigger: "right-click" } },
+          React.createElement(api._Provider, null, menu),
+        ),
+      );
+    });
+
+    assert.deepEqual(
+      tree.root.findAllByType("button").map((button) => button.children.join("")),
+      ["Copy"],
+    );
+    const [uris, uids, contextUri] = seen.at(-1) as [string[], string[], string];
+    assert.deepEqual([[...uris], [...uids], contextUri], [["spotify:track:t"], ["u"], "spotify:playlist:p"]);
+    tree.unmount();
+  });
+});
