@@ -138,6 +138,13 @@ describe("submenus", () => {
     for (const items of [new Set([child("a"), child("b")]), [child("a"), child("b")]]) {
       const menu = new api.ItemSubMenu({ text: "More", items });
       assert.deepEqual([...api.ItemSubMenu.itemsToComponents(menu._items, {})], ["a", "b"]);
+      if (items instanceof Set) items.add(child("c"));
+      else items.push(child("c"));
+      assert.deepEqual(
+        [...api.ItemSubMenu.itemsToComponents(menu._items, {})],
+        ["a", "b"],
+        "changing the passed collection does not change the sub menu",
+      );
     }
   });
 

@@ -783,8 +783,8 @@ declare namespace Spicetify {
 		type ShouldAddCallback = (props: any, trigger?: string, target?: HTMLElement) => boolean;
 		/**
 		 * Entries of a sub menu.
-		 * The sub menu renders them with `Array.prototype.filter`, while `addItem` and `removeItem` call `Set.prototype.add` and
-		 * `Set.prototype.delete`, so only an array renders and only a Set can be changed after construction.
+		 * The sub menu copies them when it is constructed, so later changes to the array or Set passed in do not reach it. Use
+		 * `addItem` and `removeItem` to change the entries afterwards.
 		 */
 		type SubMenuItems = Array<Item | ItemSubMenu> | Set<Item | ItemSubMenu>;
 
@@ -903,11 +903,11 @@ declare namespace Spicetify {
 			 */
 			depth: number;
 			/**
-			 * Add an entry. Requires `items` to have been a Set.
+			 * Add an entry at the end. Does nothing if the entry is already present.
 			 */
 			addItem(item: Item | ItemSubMenu): void;
 			/**
-			 * Remove an entry. Requires `items` to have been a Set.
+			 * Remove an entry. Does nothing if the entry is not present.
 			 */
 			removeItem(item: Item | ItemSubMenu): void;
 			/**
