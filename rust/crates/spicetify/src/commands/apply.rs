@@ -414,6 +414,9 @@ fn prepare_client_bundle(ctx: &AppContext, dest: &Path, client_bundle: ClientBun
     let patched = crate::module::expose::expose_apis(js, &patches);
     std::fs::write(&output, patched)
         .map_err(fs_err("writing the patched client bundle at", &output))?;
+    let chunks = crate::module::expose::expose_chunks(dest, &output)
+        .map_err(fs_err("patching the client chunks in", dest))?;
+    tracing::info!("patched now-playing menus in {chunks} chunk(s)");
     Ok(())
 }
 
@@ -915,7 +918,7 @@ mod tests {
     }
 
     #[test]
-    fn prepares_a_direct_bundle_with_exposure_patches() {
+    fn prepares_a_direct_bundle_and_its_chunks_with_exposure_patches() {
         let root =
             std::env::temp_dir().join(format!("spicetify-direct-bundle-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
@@ -924,6 +927,8 @@ mod tests {
         std::fs::create_dir_all(&xpui).expect("temporary xpui directory");
         std::fs::create_dir_all(&classmaps).expect("temporary classmap directory");
         std::fs::write(xpui.join("xpui.js"), "stockClient();").expect("direct client bundle");
+        let menu = "(0,r.jsx)(l.W,{context:t.context,item:t.item,canToggleCanvas:e})";
+        std::fs::write(xpui.join("4276.js"), menu).expect("lazy chunk");
         std::fs::write(
             classmaps.join("expose.json"),
             r#"{"patches":[{"name":"test direct bundle","pattern":"stockClient","replace":"Spicetify.testClient","once":true,"onMiss":"warn"}]}"#,
@@ -945,6 +950,10 @@ mod tests {
         assert_eq!(
             std::fs::read_to_string(xpui.join("xpui.js")).expect("patched direct bundle"),
             "Spicetify.testClient();"
+        );
+        assert_eq!(
+            std::fs::read_to_string(xpui.join("4276.js")).expect("patched chunk"),
+            format!("(0,r.jsx)(Spicetify.ContextMenuV2._Provider,{{children:{menu}}})")
         );
         std::fs::remove_dir_all(root).expect("cleanup direct bundle test");
     }

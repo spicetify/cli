@@ -13,7 +13,8 @@
 // older clients, or the xpui.js shipped directly in Spotify 1.3 and newer.
 // Two rewrites stay in Rust because they read identifiers out of the
 // surrounding code rather than matching a fixed shape: the context-menu
-// provider and the URI class scan.
+// provider and the URI class scan. A third, the now-playing menu provider,
+// runs over the lazy chunks beside the bundle, which the patch set never sees.
 //
 // The `expose_hits_on_real_bundles` test below measures a patch set against
 // real extracted bundles; run it whenever a Spotify update lands before
@@ -336,6 +337,59 @@ fn patch_uri_fallback(input: String) -> (String, bool) {
     (input.replacen(body, &replacement, 1), true)
 }
 
+/// Wraps Spotify's now-playing menus in the wrapper's context provider, so
+/// `Spicetify.ContextMenuV2` items receive the track they were opened on. The
+/// menu trigger around these menus only carries `{canToggleCanvas}`, so the
+/// provider value from `patch_context_menu` has no URI and items never show.
+/// Returns `None` when nothing matched.
+///
+/// Measured on 1.3.3, 1.3.4, 1.3.6 and 1.3.7: four call sites, all in lazy
+/// chunks (one in a numbered chunk, three in `dwp-panel-section.js`), none in
+/// the client bundle.
+fn patch_now_playing_menu(input: &str) -> Option<String> {
+    static NOW_PLAYING_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"\(0,([\w$]+)\.jsx\)\([\w$]+\.[\w$]+,\{([^{}]*\bcanToggleCanvas:[^{}]*)\}\)")
+            .expect("valid now-playing menu pattern")
+    });
+    let mut hit = false;
+    let out = NOW_PLAYING_RE.replace_all(input, |caps: &Captures<'_>| {
+        let properties = format!(",{}", group(caps, 2));
+        if !properties.contains(",context:") || !properties.contains(",item:") {
+            return group(caps, 0);
+        }
+        hit = true;
+        format!(
+            "(0,{}.jsx)(Spicetify.ContextMenuV2._Provider,{{children:{}}})",
+            group(caps, 1),
+            group(caps, 0)
+        )
+    });
+    hit.then(|| out.into_owned())
+}
+
+/// Applies the chunk rewrites to every script beside the client bundle in
+/// `root`, and returns how many chunks changed. Spotify ships its lazy chunks
+/// flat in the archive root.
+pub(crate) fn expose_chunks(root: &Path, bundle: &Path) -> std::io::Result<usize> {
+    let mut touched = 0;
+    for entry in std::fs::read_dir(root)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path == bundle
+            || !entry.file_type()?.is_file()
+            || path.extension().is_none_or(|ext| ext != "js")
+        {
+            continue;
+        }
+        let Ok(content) = std::fs::read_to_string(&path) else { continue };
+        if let Some(patched) = patch_now_playing_menu(&content) {
+            std::fs::write(&path, patched)?;
+            touched += 1;
+        }
+    }
+    Ok(touched)
+}
+
 /// Applies every exposure patch to the extracted client bundle, logging any
 /// that stopped matching (the usual symptom of a Spotify update moving code).
 /// A miss is only reported when it is actionable: quiet patches never warn.
@@ -410,6 +464,51 @@ mod tests {
     fn exposes_tippy_defaults() {
         let out = expose_apis("q.setDefaultProps=function(){}".to_string(), &embedded());
         assert!(out.contains("Spicetify.Tippy=q;"), "{out}");
+    }
+
+    #[test]
+    fn wraps_now_playing_menus_in_the_context_provider() {
+        let src = "a=(0,r.jsx)(l.W,{context:t.context,item:t.item,canToggleCanvas:e}),b=(0,p.jsx)(s6.W,{context:N,item:T,canToggleCanvas:!0})";
+        assert_eq!(
+            patch_now_playing_menu(src).as_deref(),
+            Some(
+                "a=(0,r.jsx)(Spicetify.ContextMenuV2._Provider,{children:(0,r.jsx)(l.W,{context:t.context,item:t.item,canToggleCanvas:e})}),b=(0,p.jsx)(Spicetify.ContextMenuV2._Provider,{children:(0,p.jsx)(s6.W,{context:N,item:T,canToggleCanvas:!0})})"
+            )
+        );
+    }
+
+    #[test]
+    fn leaves_canvas_toggles_without_a_track_alone() {
+        // The menu trigger passes only the toggle: no item to provide.
+        assert_eq!(
+            patch_now_playing_menu("(0,r.jsx)(u,{canToggleCanvas:e.canToggleCanvas??!1})"),
+            None
+        );
+        assert_eq!(patch_now_playing_menu("(0,r.jsx)(l.W,{item:t,canToggleCanvas:e})"), None);
+    }
+
+    #[test]
+    fn rewrites_chunks_but_not_the_bundle_or_other_files() {
+        let root =
+            std::env::temp_dir().join(format!("spicetify-expose-chunks-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("nested")).expect("temporary xpui directory");
+        let call = "(0,r.jsx)(l.W,{context:t.context,item:t.item,canToggleCanvas:e})";
+        for name in ["xpui.js", "4276.js", "styles.css", "nested/1.js", "plain.js"] {
+            let body = if name == "plain.js" { "stockChunk();" } else { call };
+            std::fs::write(root.join(name), body).expect("write fixture");
+        }
+
+        let touched = expose_chunks(&root, &root.join("xpui.js")).expect("chunks patch");
+        assert_eq!(touched, 1);
+        let read = |name: &str| std::fs::read_to_string(root.join(name)).expect("read fixture");
+        assert!(read("4276.js").starts_with("(0,r.jsx)(Spicetify.ContextMenuV2._Provider,"));
+        for name in ["xpui.js", "styles.css", "nested/1.js"] {
+            assert_eq!(read(name), call, "{name} is left alone");
+        }
+        assert_eq!(read("plain.js"), "stockChunk();");
+
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]
@@ -577,6 +676,9 @@ mod tests {
     ///
     ///   SPICETIFY_EXPOSE_BUNDLES=a.js:b.js cargo test -p spicetify expose_hits_on_real_bundles -- --ignored --nocapture
     ///
+    /// `SPICETIFY_EXPOSE_CHUNKS=dir[:dir]` adds the now-playing menu count for
+    /// each directory of extracted chunks (an unzipped `xpui.spa`).
+    ///
     /// Honours SPICETIFY_EXPOSE_PATCHES, so a candidate patch set can be
     /// measured before it is published. Counts every match even for `once`
     /// patches: those depend on their anchor being unique, and a count above
@@ -603,6 +705,26 @@ mod tests {
             }
             let (_, uri) = patch_uri_fallback(src);
             eprintln!("   {:>3}  URI fallback (patch_uri_fallback)", if uri { "hit" } else { "0" });
+        }
+        let chunk_dirs = std::env::var("SPICETIFY_EXPOSE_CHUNKS").unwrap_or_default();
+        for dir in chunk_dirs.split(':').filter(|d| !d.is_empty()) {
+            let mut files = Vec::new();
+            for entry in std::fs::read_dir(dir).expect("chunk directory readable") {
+                let path = entry.expect("chunk entry").path();
+                if path.extension().is_some_and(|ext| ext == "js") {
+                    let src = std::fs::read_to_string(&path).expect("chunk readable");
+                    let n = patch_now_playing_menu(&src)
+                        .map_or(0, |out| out.matches("Spicetify.ContextMenuV2._Provider").count());
+                    if n > 0 {
+                        files.push(format!(
+                            "{} x{n}",
+                            path.file_name().unwrap_or_default().to_string_lossy()
+                        ));
+                    }
+                }
+            }
+            files.sort();
+            eprintln!("== {dir}: now-playing menu provider in {}", files.join(", "));
         }
     }
 }

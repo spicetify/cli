@@ -41,12 +41,27 @@ Spicetify.ContextMenuV2 = (() => {
     return [uris, uids, contextUri];
   }
 
+  /**
+   * @param {{
+   *   react: typeof Spicetify.React,
+   *   context: NonNullable<typeof Spicetify.ContextMenuV2._context>,
+   *   children: React.ReactElement,
+   * }} props
+   */
+  function ChildPropsProvider({ react, context, children }) {
+    const value = react.useContext(context);
+    return react.createElement(context.Provider, { value: { ...value, props: children.props } }, children);
+  }
+
+  // Spotify's now-playing menus render inside this, so it hands their element through untouched until React and the
+  // menu context are captured. The hook lives in ChildPropsProvider: capture becoming ready mounts that component
+  // instead of changing this one's hook order.
+  /** @param {{ children: React.ReactElement }} props */
   function ContextProvider({ children }) {
-    const { React, ContextMenuV2 } = Spicetify;
-    // The patched menu code that renders this provider creates the context first.
-    const menuContext = /** @type {NonNullable<typeof ContextMenuV2._context>} */ (ContextMenuV2._context);
-    const context = React.useContext(menuContext);
-    return React.createElement(menuContext.Provider, { value: { ...context, props: children.props } }, children);
+    const react = Spicetify.React;
+    const context = Spicetify.ContextMenuV2._context;
+    if (!context || typeof react?.createElement !== "function" || typeof react.useContext !== "function") return children;
+    return react.createElement(ChildPropsProvider, { react, context }, children);
   }
 
   class Item {
