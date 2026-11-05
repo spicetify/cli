@@ -6,11 +6,11 @@ import {
   available,
   blockUpdates,
   daemonInfo,
+  updateAndApplySupported as daemonUpdateAndApplySupported,
   send,
   setAutoUpdate,
   unblockUpdates,
   uninstallStaged,
-  updateAndApplySupported as daemonUpdateAndApplySupported,
 } from "./shared/daemonRpc.js";
 import { managedSpotify } from "./shared/managedSpotify.js";
 import { installUpdateJobBridge, updateAndApply, updateApiSupported } from "./shared/updateAndApply.js";

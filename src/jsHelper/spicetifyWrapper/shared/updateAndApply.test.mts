@@ -61,14 +61,11 @@ describe("acknowledged Spotify update job", () => {
       return response({ jobId: "unexpected" }, 202);
     };
 
-    const partialApis = [
-      undefined,
-      { subscribe() {} },
-      { subscribe() {}, async prepareUpdate() {} },
-      { subscribe() {}, async applyUpdate() {} },
-    ];
+    const partialApis = [undefined, { subscribe() {} }, { subscribe() {}, async prepareUpdate() {} }, { subscribe() {}, async applyUpdate() {} }];
     for (const UpdateAPI of partialApis) {
       (globalThis as { Spicetify?: unknown }).Spicetify = { Platform: { UpdateAPI } };
+      // Each case replaces the global Spicetify, so the cases cannot overlap.
+      // eslint-disable-next-line no-await-in-loop
       await assert.rejects(updateAndApply(), /complete updater API is unavailable/);
     }
 

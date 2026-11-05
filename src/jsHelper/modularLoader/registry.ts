@@ -215,7 +215,10 @@ export class Registry {
 			const m = this.modules.get(id)!;
 			if (!m.hasMixins) continue;
 			try {
+				// Mixins run one module at a time, in dependency order.
+				// eslint-disable-next-line no-await-in-loop
 				const index = await this.jsIndexOf(m);
+				// eslint-disable-next-line no-await-in-loop
 				await index?.mixin?.(this.effects.createTransformer(), {
 					spotifyVersion: this.manifest.spotifyVersion,
 				});
@@ -240,6 +243,7 @@ export class Registry {
 		for (const id of this.modules.keys()) {
 			if (id !== identifier && this.isTheme(id) && this.isLoaded(id)) {
 				this.effects.log("info", `unloading theme ${id}: one theme at a time`);
+				// eslint-disable-next-line no-await-in-loop
 				await this.unload(id);
 			}
 		}
@@ -374,6 +378,8 @@ export class Registry {
 			};
 			try {
 				try {
+					// Modules load one at a time, in dependency order.
+					// eslint-disable-next-line no-await-in-loop
 					await loadOnce();
 				} catch (e) {
 					// Module-script fetches can fail transiently during boot;
@@ -382,9 +388,11 @@ export class Registry {
 					this.effects.log("error", `retrying ${id} after fetch failure`, e);
 					for (const dispose of this.state(id).disposers.splice(0).reverse()) {
 						try {
+							// eslint-disable-next-line no-await-in-loop
 							await dispose();
 						} catch {}
 					}
+					// eslint-disable-next-line no-await-in-loop
 					await loadOnce();
 				}
 			} catch (e) {
@@ -524,12 +532,15 @@ export class Registry {
 
 		for (const [id, m] of this.modules) {
 			if (id !== identifier && this.isLoaded(id) && identifier in m.dependencies) {
+				// eslint-disable-next-line no-await-in-loop
 				await this.unload(id);
 			}
 		}
 
+		// Disposers run one at a time, in reverse registration order.
 		for (const dispose of state.disposers.splice(0).reverse()) {
 			try {
+				// eslint-disable-next-line no-await-in-loop
 				await dispose();
 			} catch (e) {
 				this.effects.log("error", `error unloading ${identifier}`, e);
