@@ -25,25 +25,32 @@ func Update(currentVersion string) bool {
 	}
 
 	utils.PrintInfo("Latest release: " + tagName)
-	var assetURL string = "https://github.com/spicetify/cli/releases/download/v" + tagName + "/spicetify-" + tagName + "-" + runtime.GOOS + "-"
+	var assetName string = "spicetify-" + tagName + "-" + runtime.GOOS + "-"
 	var location string = os.TempDir() + "/spicetify-" + tagName
 
 	if runtime.GOARCH == "386" && runtime.GOOS == "windows" {
-		assetURL += "x32"
+		assetName += "x32"
 	} else if runtime.GOARCH == "arm64" {
-		assetURL += "arm64"
+		assetName += "arm64"
 	} else if runtime.GOOS == "windows" {
-		assetURL += "x64"
+		assetName += "x64"
 	} else {
-		assetURL += "amd64"
+		assetName += "amd64"
 	}
 
 	if runtime.GOOS == "windows" {
-		assetURL += ".zip"
+		assetName += ".zip"
 		location += ".zip"
 	} else {
-		assetURL += ".tar.gz"
+		assetName += ".tar.gz"
 		location += ".tar.gz"
+	}
+
+	assetURL, err := utils.FetchReleaseAssetURL(tagName, assetName)
+	if err != nil {
+		utils.PrintError("Cannot fetch release asset info")
+		utils.PrintError(err.Error())
+		return false
 	}
 
 	spinner, _ := utils.Spinner.Start("Downloading Spicetify")
@@ -55,7 +62,15 @@ func Update(currentVersion string) bool {
 	}
 	defer out.Close()
 
-	resp2, err := http.Get(assetURL)
+	req, err := http.NewRequest(http.MethodGet, assetURL, nil)
+	if err != nil {
+		out.Close()
+		spinner.Fail("Failed to download Spicetify")
+		utils.Fatal(err)
+	}
+
+	req.Header.Set("Accept", "application/octet-stream")
+	resp2, err := http.DefaultClient.Do(req)
 	if err != nil {
 		out.Close()
 		spinner.Fail("Failed to download Spicetify")

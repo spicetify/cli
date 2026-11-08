@@ -56,6 +56,36 @@ log() {
     echo "[$(date +'%H:%M:%S %Y-%m-%d')]" "$1" >> install.log
 }
 
+# print the body of the github api response for url $1.
+# on a network error or a non-200 status, log the status and github's message, then fail.
+gh_api() {
+    response=$(curl -sSL -w '\n%{http_code}' "$1") || { log "Cannot reach $1" >&2; return 1; }
+    status=$(printf '%s\n' "$response" | tail -n 1)
+    response=$(printf '%s\n' "$response" | sed '$d')
+    if [ "$status" != 200 ]; then
+        message=$(printf '%s' "$response" | grep -o '"message": *"[^"]*"' | head -n 1)
+        message=${message%\"}
+        message=${message##*\"}
+        log "GitHub API request failed: HTTP $status${message:+: $message} ($1)" >&2
+        return 1
+    fi
+    printf '%s\n' "$response"
+}
+
+tag_name() {
+    tag_field=$(grep -o '"tag_name": *"[^"]*"' | head -n 1)
+    tag_field=${tag_field%\"}
+    printf '%s\n' "${tag_field##*\"}"
+}
+
+asset_url() {
+    tr -d '\n\r' \
+        | awk '{ gsub(/"[[:space:]]*:[[:space:]]*/, "\":"); gsub(/}[[:space:]]*,[[:space:]]*{/, "}\n{"); print }' \
+        | grep -F "\"name\":\"$1\"" \
+        | grep -o 'https://api\.github\.com/repos/[^"]*/releases/assets/[0-9]*' \
+        | head -n 1
+}
+
 case $(uname -sm) in
     "Darwin x86_64") target="darwin-amd64" ;;
     "Darwin arm64") target="darwin-arm64" ;;
@@ -70,19 +100,20 @@ command -v tar >/dev/null || { log "tar isn't installed!" >&2; exit 1; }
 command -v grep >/dev/null || { log "grep isn't installed!" >&2; exit 1; }
 
 # download uri
-releases_uri=https://github.com/spicetify/cli/releases
 if [ -z "$tag" ]; then
-    tag=$(curl -LsH 'Accept: application/json' $releases_uri/latest)
-    tag=${tag%\,\"update_url*}
-    tag=${tag##*tag_name\":\"}
-    tag=${tag%\"}
+    release=$(gh_api https://api.github.com/repos/spicetify/cli/releases/latest) || exit 1
+else
+    release=$(gh_api "https://api.github.com/repos/spicetify/cli/releases/tags/v${tag#v}") || exit 1
 fi
 
+tag=$(printf '%s' "$release" | tag_name)
 tag=${tag#v}
 
 log "FETCHING Version $tag"
 
-download_uri=$releases_uri/download/v$tag/spicetify-$tag-$target.tar.gz
+asset_name="spicetify-$tag-$target.tar.gz"
+download_uri=$(printf '%s' "$release" | asset_url "$asset_name")
+[ -z "$download_uri" ] && { log "No asset $asset_name in release v$tag" >&2; exit 1; }
 
 # locations
 tar="$spicetify_install/spicetify.tar.gz"
@@ -91,7 +122,7 @@ tar="$spicetify_install/spicetify.tar.gz"
 [ ! -d "$spicetify_install" ] && log "CREATING $spicetify_install" && mkdir -p "$spicetify_install"
 
 log "DOWNLOADING $download_uri"
-curl --fail --location --progress-bar --output "$tar" "$download_uri"
+curl --fail --location --header 'Accept: application/octet-stream' --progress-bar --output "$tar" "$download_uri"
 
 log "EXTRACTING $tar"
 tar xzf "$tar" -C "$spicetify_install"
@@ -177,4 +208,22 @@ if [ "$choice" = "N" ] || [ "$choice" = "n" ]; then
     exit 0
 fi
 echo "Starting the spicetify Marketplace installation script.."
-curl -fsSL "https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.sh" | sh
+
+marketplace_release=$(gh_api https://api.github.com/repos/spicetify/marketplace/releases/latest) || exit 1
+marketplace_tag=$(printf '%s' "$marketplace_release" | tag_name)
+marketplace_uri=$(printf '%s' "$marketplace_release" | asset_url marketplace.zip)
+[ -z "$marketplace_uri" ] && { log "No asset marketplace.zip in Marketplace release $marketplace_tag" >&2; exit 1; }
+marketplace_script_uri="https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.sh"
+marketplace_script=$(curl -fsSL "$marketplace_script_uri") \
+    || { log "Cannot download the Marketplace installer from $marketplace_script_uri" >&2; exit 1; }
+
+patched_script=$(printf '%s\n' "$marketplace_script" \
+    | sed -e "s|^\([[:space:]]*\)download_uri=.*|\1download_uri=$marketplace_uri|" \
+          -e 's|^\([[:space:]]*curl \)\(.*"\$download_uri"\)|\1--header "Accept: application/octet-stream" \2|')
+if printf '%s' "$patched_script" | grep -qF "download_uri=$marketplace_uri" \
+    && printf '%s' "$patched_script" | grep -qF -- '--header "Accept: application/octet-stream"'; then
+    marketplace_script=$patched_script
+else
+    log "WARNING: the Marketplace installer changed its download code, so it runs unmodified and downloads marketplace.zip itself (this may fail with 504)"
+fi
+printf '%s\n' "$marketplace_script" | sh -s -- "$marketplace_tag"

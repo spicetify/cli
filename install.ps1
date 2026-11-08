@@ -94,10 +94,14 @@ function Get-Spicetify {
   }
   process {
     Write-Host -Object "Downloading spicetify v$targetVersion..." -NoNewline
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/spicetify/cli/releases/tags/v$targetVersion"
+    $asset = $release.assets | Where-Object -Property name -EQ "spicetify-$targetVersion-windows-$architecture.zip"
+    if (-not $asset) { throw "No asset spicetify-$targetVersion-windows-$architecture.zip in release v$targetVersion" }
     $Parameters = @{
-      Uri            = "https://github.com/spicetify/cli/releases/download/v$targetVersion/spicetify-$targetVersion-windows-$architecture.zip"
-      UseBasicParsin = $true
-      OutFile        = $archivePath
+      Uri             = $asset.url
+      Headers         = @{ Accept = 'application/octet-stream' }
+      UseBasicParsing = $true
+      OutFile         = $archivePath
     }
     Invoke-WebRequest @Parameters
     Write-Success
@@ -224,8 +228,8 @@ Write-Host -Object 'to get started'
 #region Marketplace
 $Host.UI.RawUI.Flushinputbuffer()
 $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
-    (New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Install Spicetify Marketplace."),
-    (New-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not install Spicetify Marketplace.")
+  (New-Object System.Management.Automation.Host.ChoiceDescription "&Yes", "Install Spicetify Marketplace."),
+  (New-Object System.Management.Automation.Host.ChoiceDescription "&No", "Do not install Spicetify Marketplace.")
 )
 $choice = $Host.UI.PromptForChoice('', "`nDo you also want to install Spicetify Marketplace? It will become available within the Spotify client, where you can easily install themes and extensions.", $choices, 0)
 if ($choice -eq 1) {
@@ -237,7 +241,17 @@ else {
     Uri             = 'https://raw.githubusercontent.com/spicetify/spicetify-marketplace/main/resources/install.ps1'
     UseBasicParsing = $true
   }
-  Invoke-WebRequest @Parameters | Invoke-Expression
+
+  $marketplaceScript = (Invoke-WebRequest @Parameters).Content
+  $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/spicetify/marketplace/releases/latest'
+  $asset = $release.assets | Where-Object -Property name -EQ 'marketplace.zip'
+
+  if (-not $asset) { throw "No asset marketplace.zip in Marketplace release $($release.tag_name)" }
+  $pattern = '([''"])https://github\.com/spicetify/marketplace/releases/latest/download/marketplace\.zip\1'
+  if ($marketplaceScript -notmatch $pattern) {
+    Write-Warning -Message 'The Marketplace installer changed its download URL, so it will download marketplace.zip itself (this may fail with 504).'
+  }
+  $marketplaceScript -replace $pattern, "'$($asset.url)'; Headers = @{ Accept = 'application/octet-stream' }" | Invoke-Expression
 }
 #endregion Marketplace
 #endregion Main
