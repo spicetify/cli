@@ -2,14 +2,19 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
+
+	"github.com/spicetify/cli/src/utils"
 )
 
-func SpotifyKill() {
+func SpotifyKill() error {
 	switch runtime.GOOS {
 	case "windows":
 		isRunning := exec.Command("tasklist", "/FI", "ImageName eq spotify.exe")
@@ -24,11 +29,35 @@ func SpotifyKill() {
 			exec.Command("pkill", "-x", "spotify").Run()
 		}
 	case "darwin":
-		isRunning := exec.Command("sh", "-c", "ps aux | grep 'Spotify' | grep -v grep")
-		_, err := isRunning.CombinedOutput()
-		if err == nil {
-			exec.Command("pkill", "-x", "Spotify").Run()
+		return killSpotifyDarwin(func(name string, args ...string) error {
+			return exec.Command(name, args...).Run()
+		})
+	}
+	return nil
+}
+
+func killSpotifyDarwin(run func(string, ...string) error) error {
+	if err := run("pkill", "-x", "Spotify"); err != nil {
+		var exitError *exec.ExitError
+		if !errors.As(err, &exitError) || exitError.ExitCode() != 1 {
+			return fmt.Errorf("could not stop Spotify: %w", err)
 		}
+	}
+
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		err := run("pgrep", "-x", "Spotify")
+		if err != nil {
+			var exitError *exec.ExitError
+			if errors.As(err, &exitError) && exitError.ExitCode() == 1 {
+				return nil
+			}
+			return fmt.Errorf("could not check whether Spotify exited: %w", err)
+		}
+		if !time.Now().Before(deadline) {
+			return fmt.Errorf("timed out waiting for Spotify to exit after 5 seconds")
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -65,6 +94,9 @@ func SpotifyStart(flags ...string) {
 }
 
 func SpotifyRestart(flags ...string) {
-	SpotifyKill()
+	if err := SpotifyKill(); err != nil {
+		utils.PrintError("Could not restart Spotify: " + err.Error())
+		return
+	}
 	SpotifyStart(flags...)
 }
