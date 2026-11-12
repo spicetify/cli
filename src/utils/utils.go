@@ -128,25 +128,17 @@ func Copy(src, dest string, recursive bool, filters []string) error {
 			if err = Copy(fSrcPath, fDestPath, true, filters); err != nil {
 				return err
 			}
-		} else {
-			if len(filters) > 0 {
-				isMatch := false
+			continue
+		}
 
-				for _, filter := range filters {
-					if strings.Contains(fileName, filter) {
-						isMatch = true
-						break
-					}
-				}
+		if len(filters) > 0 && !slices.ContainsFunc(filters, func(filter string) bool {
+			return strings.Contains(fileName, filter)
+		}) {
+			continue
+		}
 
-				if !isMatch {
-					continue
-				}
-			}
-
-			if err := CopyFile(fSrcPath, dest); err != nil {
-				return err
-			}
+		if err := CopyFile(fSrcPath, dest); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -170,11 +162,7 @@ func CopyFile(srcPath, dest string) error {
 	defer fDest.Close()
 
 	_, err = io.Copy(fDest, fSrc)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // Replace uses Regexp to find any matched from `input` with `regexpTerm`
