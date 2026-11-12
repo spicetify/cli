@@ -24,5 +24,5 @@
   "options": {
     "typeAware": true
   },
-  "ignorePatterns": ["global.d.ts", "globals.d.ts", "jsHelper/**", "**/dist/**", "**/dist-ssr/**"]
+  "ignorePatterns": ["CustomApps/**", "Extensions/**", "global.d.ts", "globals.d.ts", "jsHelper/**", "**/dist/**", "**/dist-ssr/**"]
 }
