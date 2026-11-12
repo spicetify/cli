@@ -1,5 +1,6 @@
 const CreditFooter = react.memo(({ provider, copyright }) => {
-	if (provider === "local") return null;
+	const hasLrcRed = provider === "lrc.red" || copyright?.includes("lrc.red");
+	if (provider === "local" && !hasLrcRed) return null;
 	const credit = [Spicetify.Locale.get("web-player.lyrics.providedBy", provider)];
 	if (copyright) {
 		credit.push(...copyright.split("\n"));
@@ -13,7 +14,9 @@ const CreditFooter = react.memo(({ provider, copyright }) => {
 				className: "lyrics-lyricsContainer-Provider main-type-mesto",
 				dir: "auto",
 			},
-			credit.join(" • ")
+			hasLrcRed
+				? react.createElement("a", { href: "https://lrc.red", target: "_blank", rel: "noopener noreferrer" }, credit.join(" • "))
+				: credit.join(" • ")
 		)
 	);
 });
@@ -144,15 +147,16 @@ const useTrackPosition = (callback) => {
 };
 
 const KaraokeLine = ({ text, isActive, position, startTime, endTime }) => {
-	if ((endTime != null && position > endTime) || (!isActive && position > startTime)) {
+	if ((endTime !== undefined && endTime !== null && position > endTime) || (!isActive && position > startTime))
 		return text.map(({ word }, i) => (typeof word === "string" ? word : react.cloneElement(word, { key: i })));
-	}
 
 	let accumulatedTime = startTime;
-	return text.map(({ word, time }, i) => {
+	return text.map(({ word, time, startTime: wordStartTime, endTime: wordEndTime }, i) => {
 		const isRTL = isRTLText(typeof word === "string" ? word : "");
-		const isWordActive = position >= accumulatedTime;
-		accumulatedTime += time;
+		const wordStart = wordStartTime ?? accumulatedTime;
+		const wordEnd = wordEndTime ?? wordStart + time;
+		const isWordActive = position >= wordStart;
+		accumulatedTime = wordEnd;
 		const isWordComplete = isWordActive && position >= accumulatedTime;
 		return react.createElement(
 			"span",
@@ -160,7 +164,7 @@ const KaraokeLine = ({ text, isActive, position, startTime, endTime }) => {
 				key: i,
 				className: `lyrics-lyricsContainer-Karaoke-Word${isWordActive ? " lyrics-lyricsContainer-Karaoke-WordActive" : ""}${isRTL ? " lyrics-lyricsContainer-Karaoke-WordRTL" : ""}`,
 				style: {
-					"--word-duration": `${time}ms`,
+					"--word-duration": `${wordEnd - wordStart}ms`,
 					// don't animate unless we have to
 					transition: !isWordActive || isWordComplete ? "all 0s linear" : "",
 				},

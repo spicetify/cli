@@ -26,7 +26,11 @@ const ProviderLRCLIB = (() => {
 			};
 		}
 
-		return await body.json();
+		const data = await body.json();
+		const lyrics = data.lyricsfile
+			? await Lyricsfile.parseYaml(data.lyricsfile, info.duration)
+			: { karaoke: null, synced: getSynced(data), unsynced: getUnsynced(data) || getSynced(data) };
+		return { ...lyrics, uri: info.uri, provider: "LRCLIB", copyright: null };
 	}
 
 	function getUnsynced(body) {
@@ -49,5 +53,5 @@ const ProviderLRCLIB = (() => {
 		return Utils.parseLocalLyrics(syncedLyrics).synced;
 	}
 
-	return { findLyrics, getSynced, getUnsynced };
+	return { findLyrics };
 })();

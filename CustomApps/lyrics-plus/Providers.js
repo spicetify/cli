@@ -1,4 +1,5 @@
 const Providers = {
+	lrcred: (info) => ProviderLRCRed.findLyrics(info),
 	spotify: async (info) => {
 		const result = {
 			uri: info.uri,
@@ -34,90 +35,6 @@ const Providers = {
 			result.unsynced = lines.map((line) => ({
 				text: line.words,
 			}));
-		}
-
-		/**
-		 * to distinguish it from the existing Musixmatch, the provider will remain as Spotify.
-		 * if Spotify official lyrics support multiple providers besides Musixmatch in the future, please uncomment the under section. */
-		// result.provider = lyrics.provider;
-
-		return result;
-	},
-	musixmatch: async (info) => {
-		const result = {
-			error: null,
-			uri: info.uri,
-			karaoke: null,
-			synced: null,
-			unsynced: null,
-			musixmatchTranslation: null,
-			musixmatchAvailableTranslations: [],
-			musixmatchTrackId: null,
-			musixmatchTranslationLanguage: null,
-			provider: "Musixmatch",
-			copyright: null,
-		};
-
-		let list;
-		try {
-			list = await ProviderMusixmatch.findLyrics(info);
-			if (list.error) {
-				throw "";
-			}
-		} catch {
-			result.error = "No lyrics";
-			return result;
-		}
-
-		const karaoke = await ProviderMusixmatch.getKaraoke(list);
-		if (karaoke) {
-			result.karaoke = karaoke;
-			result.copyright = list["track.lyrics.get"].message?.body?.lyrics?.lyrics_copyright?.trim();
-		}
-		const synced = ProviderMusixmatch.getSynced(list);
-		if (synced) {
-			result.synced = synced;
-			result.copyright = list["track.subtitles.get"].message?.body?.subtitle_list?.[0]?.subtitle.lyrics_copyright.trim();
-		}
-		const unsynced = synced || ProviderMusixmatch.getUnsynced(list);
-		if (unsynced) {
-			result.unsynced = unsynced;
-			result.copyright = list["track.lyrics.get"].message?.body?.lyrics?.lyrics_copyright?.trim();
-		}
-		result.musixmatchAvailableTranslations = Array.isArray(list.__musixmatchTranslationStatus) ? list.__musixmatchTranslationStatus : [];
-		result.musixmatchTrackId = list.__musixmatchTrackId ?? null;
-
-		const selectedLanguage = CONFIG.visual["musixmatch-translation-language"];
-		const canRequestTranslation =
-			selectedLanguage && selectedLanguage !== "none" && result.musixmatchAvailableTranslations.includes(selectedLanguage);
-
-		const translation = canRequestTranslation ? await ProviderMusixmatch.getTranslation(result.musixmatchTrackId) : null;
-		if ((synced || unsynced) && Array.isArray(translation) && translation.length) {
-			const normalizeLyrics =
-				typeof Utils !== "undefined" && typeof Utils.processLyrics === "function"
-					? (value) => Utils.processLyrics(value ?? "")
-					: (value) =>
-							typeof value === "string" ? value.replace(/　| /g, "").replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~？！，。、《》【】「」]/g, "") : "";
-
-			const translationMap = new Map();
-			for (const entry of translation) {
-				const normalizedMatched = normalizeLyrics(entry.matchedLine);
-				if (!translationMap.has(normalizedMatched)) {
-					translationMap.set(normalizedMatched, entry.translation);
-				}
-			}
-
-			const baseLyrics = synced ?? unsynced;
-			result.musixmatchTranslation = baseLyrics.map((line) => {
-				const originalText = line.text;
-				const normalizedOriginal = normalizeLyrics(originalText);
-				return {
-					...line,
-					text: translationMap.get(normalizedOriginal) ?? line.text,
-					originalText,
-				};
-			});
-			result.musixmatchTranslationLanguage = selectedLanguage;
 		}
 
 		return result;
@@ -165,37 +82,7 @@ const Providers = {
 
 		return result;
 	},
-	lrclib: async (info) => {
-		const result = {
-			uri: info.uri,
-			karaoke: null,
-			synced: null,
-			unsynced: null,
-			provider: "lrclib",
-			copyright: null,
-		};
-
-		let list;
-		try {
-			list = await ProviderLRCLIB.findLyrics(info);
-		} catch {
-			result.error = "No lyrics";
-			return result;
-		}
-
-		const synced = ProviderLRCLIB.getSynced(list);
-		if (synced) {
-			result.synced = synced;
-		}
-
-		const unsynced = synced || ProviderLRCLIB.getUnsynced(list);
-
-		if (unsynced) {
-			result.unsynced = unsynced;
-		}
-
-		return result;
-	},
+	lrclib: (info) => ProviderLRCLIB.findLyrics(info),
 	genius: async (info) => {
 		const { lyrics, versions } = await ProviderGenius.fetchLyrics(info);
 

@@ -20,19 +20,6 @@ function getConfig(name, defaultVal = true) {
 }
 
 const APP_NAME = "lyrics-plus";
-const MUSIXMATCH_TRANSLATION_PREFIX_DEFAULT = "musixmatchTranslation:";
-const MUSIXMATCH_TRANSLATION_PREFIX_GLOBAL_KEY = "__lyricsPlusMusixmatchTranslationPrefix";
-const MUSIXMATCH_TRANSLATION_FETCH_MESSAGE = "Fetching translation...";
-const MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE = "Failed to fetch translation, please try again in a few minutes";
-const MUSIXMATCH_TRANSLATION_PREFIX =
-	typeof window !== "undefined" && typeof window[MUSIXMATCH_TRANSLATION_PREFIX_GLOBAL_KEY] === "string"
-		? window[MUSIXMATCH_TRANSLATION_PREFIX_GLOBAL_KEY]
-		: MUSIXMATCH_TRANSLATION_PREFIX_DEFAULT;
-
-if (typeof window !== "undefined") {
-	window[MUSIXMATCH_TRANSLATION_PREFIX_GLOBAL_KEY] = MUSIXMATCH_TRANSLATION_PREFIX;
-}
-
 const KARAOKE = 0;
 const SYNCED = 1;
 const UNSYNCED = 2;
@@ -62,7 +49,6 @@ const CONFIG = {
 		translate: getConfig("lyrics-plus:visual:translate", false),
 		"ja-detect-threshold": localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
 		"hans-detect-threshold": localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
-		"musixmatch-translation-language": localStorage.getItem("lyrics-plus:visual:musixmatch-translation-language") || "none",
 		"fade-blur": getConfig("lyrics-plus:visual:fade-blur"),
 		"fullscreen-key": localStorage.getItem("lyrics-plus:visual:fullscreen-key") || "f12",
 		"show-performers": getConfig("lyrics-plus:visual:show-performers", true),
@@ -74,13 +60,13 @@ const CONFIG = {
 	providers: {
 		lrclib: {
 			on: getConfig("lyrics-plus:provider:lrclib:on"),
-			desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
-			modes: [SYNCED, UNSYNCED],
+			desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider with Lyricsfile word timing.",
+			modes: [KARAOKE, SYNCED, UNSYNCED],
 		},
-		musixmatch: {
-			on: getConfig("lyrics-plus:provider:musixmatch:on"),
-			desc: "Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button. You may need to be forced to use your own CORS Proxy to use this provider.",
-			token: localStorage.getItem("lyrics-plus:provider:musixmatch:token") || "21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
+		lrcred: {
+			label: "lrc.red",
+			on: getConfig("lyrics-plus:provider:lrcred:on"),
+			desc: 'Lyrics from <a href="https://lrc.red" target="_blank" rel="noopener noreferrer">lrc.red</a>. Supports karaoke, synced and unsynced lyrics.',
 			modes: [KARAOKE, SYNCED, UNSYNCED],
 		},
 		spotify: {
@@ -111,13 +97,22 @@ const CONFIG = {
 
 try {
 	CONFIG.providersOrder = JSON.parse(CONFIG.providersOrder);
-	if (!Array.isArray(CONFIG.providersOrder) || Object.keys(CONFIG.providers).length !== CONFIG.providersOrder.length) {
-		throw "";
-	}
 } catch {
-	CONFIG.providersOrder = Object.keys(CONFIG.providers);
-	localStorage.setItem("lyrics-plus:services-order", JSON.stringify(CONFIG.providersOrder));
+	CONFIG.providersOrder = [];
 }
+const savedProviders = Array.isArray(CONFIG.providersOrder) ? CONFIG.providersOrder : [];
+const migratedProviders = savedProviders.map((id) => id === "musixmatch" ? "lrclib" : id);
+const providerOrder = [...new Set(migratedProviders)].filter((id) => Object.hasOwn(CONFIG.providers, id));
+if (savedProviders[0] === "musixmatch" && getConfig("lyrics-plus:provider:musixmatch:on")) {
+	CONFIG.providers.lrclib.on = true;
+	localStorage.setItem("lyrics-plus:provider:lrclib:on", "true");
+}
+CONFIG.providersOrder = [...providerOrder, ...Object.keys(CONFIG.providers).filter((id) => !providerOrder.includes(id))];
+localStorage.setItem("lyrics-plus:services-order", JSON.stringify(CONFIG.providersOrder));
+localStorage.removeItem("lyrics-plus:provider:musixmatch:on");
+localStorage.removeItem("lyrics-plus:provider:musixmatch:token");
+localStorage.removeItem("lyrics-plus:visual:musixmatch-translation-language");
+localStorage.removeItem("lyrics-plus:musixmatch-languages");
 
 CONFIG.locked = Number.parseInt(CONFIG.locked);
 CONFIG.visual["lines-before"] = Number.parseInt(CONFIG.visual["lines-before"]);
@@ -127,23 +122,9 @@ CONFIG.visual["romanization-font-size"] = Number.parseInt(CONFIG.visual["romaniz
 CONFIG.visual["ja-detect-threshold"] = Number.parseInt(CONFIG.visual["ja-detect-threshold"]);
 CONFIG.visual["hans-detect-threshold"] = Number.parseInt(CONFIG.visual["hans-detect-threshold"]);
 
-if (CONFIG.visual["translate:translated-lyrics-source"] === "musixmatchTranslation") {
-	const language = CONFIG.visual["musixmatch-translation-language"];
-	const normalizedLanguage = language && language !== "none" ? language : "none";
-	const upgradedValue = normalizedLanguage !== "none" ? `${MUSIXMATCH_TRANSLATION_PREFIX}${normalizedLanguage}` : "none";
-	CONFIG.visual["translate:translated-lyrics-source"] = upgradedValue;
-	localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, upgradedValue);
-}
-
-if (typeof CONFIG.visual["translate:translated-lyrics-source"] === "string") {
-	const sourceValue = CONFIG.visual["translate:translated-lyrics-source"];
-	if (sourceValue.startsWith(MUSIXMATCH_TRANSLATION_PREFIX)) {
-		const language = sourceValue.slice(MUSIXMATCH_TRANSLATION_PREFIX.length) || "none";
-		if (CONFIG.visual["musixmatch-translation-language"] !== language) {
-			CONFIG.visual["musixmatch-translation-language"] = language;
-			localStorage.setItem(`${APP_NAME}:visual:musixmatch-translation-language`, language);
-		}
-	}
+if (!["none", "neteaseTranslation"].includes(CONFIG.visual["translate:translated-lyrics-source"])) {
+	CONFIG.visual["translate:translated-lyrics-source"] = "none";
+	localStorage.setItem(APP_NAME + ":visual:translate:translated-lyrics-source", "none");
 }
 
 if (
@@ -164,31 +145,14 @@ const emptyState = {
 	genius: null,
 	genius2: null,
 	currentLyrics: null,
-	musixmatchAvailableTranslations: null,
-	musixmatchTrackId: null,
-	musixmatchTranslationLanguage: null,
 };
 
 let lyricContainerUpdate;
 let reloadLyrics;
-let refreshMusixmatchTranslation;
 
 const fontSizeLimit = { min: 16, max: 256, step: 4 };
 
 const thresholdSizeLimit = { min: 0, max: 100, step: 5 };
-
-function resolveTranslationSource(source) {
-	if (typeof source !== "string") {
-		return { key: source, language: null };
-	}
-
-	if (source.startsWith(MUSIXMATCH_TRANSLATION_PREFIX)) {
-		const language = source.slice(MUSIXMATCH_TRANSLATION_PREFIX.length) || null;
-		return { key: "musixmatchTranslation", language };
-	}
-
-	return { key: source, language: null };
-}
 
 class LyricsContainer extends react.Component {
 	constructor() {
@@ -210,10 +174,6 @@ class LyricsContainer extends react.Component {
 			hk: null,
 			tw: null,
 			pinyin: null,
-			musixmatchTranslation: null,
-			musixmatchTranslationLanguage: null,
-			musixmatchAvailableTranslations: [],
-			musixmatchTrackId: null,
 			neteaseTranslation: null,
 			uri: "",
 			provider: "",
@@ -248,8 +208,6 @@ class LyricsContainer extends react.Component {
 		this.translate = CONFIG.visual.translate;
 		this.reRenderLyricsPage = false;
 		this.displayMode = null;
-		this.currentMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"];
-		this._musixmatchTranslationRequestId = null;
 		this._romanizing = false;
 	}
 
@@ -262,9 +220,11 @@ class LyricsContainer extends react.Component {
 			duration: Number(meta.duration),
 			album: meta.album_title,
 			artist: meta.artist_name,
+			artists: Object.entries(meta).filter(([key]) => /^artist_name(?::\d+)?$/.test(key)).map(([, name]) => name),
 			title: meta.title,
 			uri: track.uri,
 			image: meta.image_url,
+			isrc: meta.isrc || track.external_ids?.isrc,
 		};
 	}
 
@@ -313,131 +273,6 @@ class LyricsContainer extends react.Component {
 		});
 	}
 
-	async refreshMusixmatchTranslation() {
-		const selectedLanguage = CONFIG.visual["musixmatch-translation-language"] || "none";
-		const availableTranslations = this.state.musixmatchAvailableTranslations || [];
-		const trackId = this.state.musixmatchTrackId;
-		const currentUri = this.state.uri;
-		const currentRequestId = Symbol("musixmatchTranslationRequest");
-		this._musixmatchTranslationRequestId = currentRequestId;
-		const isLatestRequest = () => this._musixmatchTranslationRequestId === currentRequestId;
-		const finishRequest = () => {
-			if (isLatestRequest()) {
-				this._musixmatchTranslationRequestId = null;
-			}
-		};
-
-		const clearTranslation = () => {
-			if (this.state.musixmatchTranslation !== null || this.state.musixmatchTranslationLanguage !== null) {
-				this.setState({
-					musixmatchTranslation: null,
-					musixmatchTranslationLanguage: null,
-				});
-			}
-			if (CACHE[currentUri]) {
-				CACHE[currentUri].musixmatchTranslation = null;
-				CACHE[currentUri].musixmatchTranslationLanguage = null;
-			}
-		};
-
-		if (!trackId || !selectedLanguage || selectedLanguage === "none") {
-			clearTranslation();
-			finishRequest();
-			return;
-		}
-
-		if (!availableTranslations.includes(selectedLanguage)) {
-			clearTranslation();
-			finishRequest();
-			return;
-		}
-
-		const baseLyrics = this.state.synced ?? this.state.unsynced;
-		if (!baseLyrics) {
-			finishRequest();
-			return;
-		}
-
-		const currentLanguage = selectedLanguage;
-
-		Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_MESSAGE, false, 1000);
-
-		this.setState({
-			musixmatchTranslation: null,
-			musixmatchTranslationLanguage: null,
-		});
-
-		let translation;
-		try {
-			translation = await ProviderMusixmatch.getTranslation(trackId);
-		} catch (error) {
-			console.error(error);
-			if (isLatestRequest()) {
-				Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
-				if (CACHE[currentUri]) {
-					CACHE[currentUri].musixmatchTranslation = null;
-					CACHE[currentUri].musixmatchTranslationLanguage = null;
-				}
-			}
-			finishRequest();
-			return;
-		}
-
-		if (!translation) {
-			if (isLatestRequest()) {
-				Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
-				if (CACHE[currentUri]) {
-					CACHE[currentUri].musixmatchTranslation = null;
-					CACHE[currentUri].musixmatchTranslationLanguage = null;
-				}
-			}
-			finishRequest();
-			return;
-		}
-
-		if (
-			currentLanguage !== CONFIG.visual["musixmatch-translation-language"] ||
-			trackId !== this.state.musixmatchTrackId ||
-			currentUri !== this.state.uri ||
-			!isLatestRequest()
-		) {
-			finishRequest();
-			return;
-		}
-
-		const latestBaseLyrics = this.state.synced ?? this.state.unsynced;
-		if (!latestBaseLyrics) {
-			finishRequest();
-			return;
-		}
-
-		const mappedTranslation = latestBaseLyrics.map((line) => {
-			const originalText = line.originalText ?? line.text;
-			const matched = translation.find((entry) => Utils.processLyrics(entry.matchedLine) === Utils.processLyrics(originalText));
-
-			return {
-				...line,
-				text: matched?.translation ?? line.text,
-				originalText,
-			};
-		});
-
-		if (!isLatestRequest()) {
-			finishRequest();
-			return;
-		}
-
-		this.setState({
-			musixmatchTranslation: mappedTranslation,
-			musixmatchTranslationLanguage: currentLanguage,
-		});
-		if (CACHE[currentUri]) {
-			CACHE[currentUri].musixmatchTranslation = mappedTranslation;
-			CACHE[currentUri].musixmatchTranslationLanguage = currentLanguage;
-		}
-		finishRequest();
-	}
-
 	async tryServices(trackInfo, mode = -1) {
 		const currentMode = CONFIG.modes[mode] || "";
 		let finalData = { ...emptyState, uri: trackInfo.uri };
@@ -479,14 +314,6 @@ class LyricsContainer extends react.Component {
 			if (data.provider !== "local" && finalData.provider && finalData.provider !== data.provider) {
 				const styledMode = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
 				finalData.copyright = `${styledMode} lyrics provided by ${data.provider}\n${finalData.copyright || ""}`.trim();
-			}
-
-			if (finalData.musixmatchTranslation && typeof finalData.musixmatchTranslation[0].startTime === "undefined" && finalData.synced) {
-				finalData.musixmatchTranslation = finalData.synced.map((line) => ({
-					...line,
-					text:
-						finalData.musixmatchTranslation.find((l) => Utils.processLyrics(l.originalText) === Utils.processLyrics(line.text))?.text ?? line.text,
-				}));
 			}
 
 			return finalData;
@@ -541,29 +368,6 @@ class LyricsContainer extends react.Component {
 			}
 		}
 
-		const selectedMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"] || "none";
-		const shouldRefreshMusixmatchTranslation =
-			tempState.musixmatchTrackId &&
-			selectedMusixmatchLanguage !== "none" &&
-			Array.isArray(tempState.musixmatchAvailableTranslations) &&
-			tempState.musixmatchAvailableTranslations.includes(selectedMusixmatchLanguage) &&
-			(tempState.musixmatchTranslationLanguage !== selectedMusixmatchLanguage || !tempState.musixmatchTranslation);
-		if (
-			selectedMusixmatchLanguage !== "none" &&
-			(!Array.isArray(tempState.musixmatchAvailableTranslations) || !tempState.musixmatchAvailableTranslations.includes(selectedMusixmatchLanguage))
-		) {
-			if (
-				typeof CONFIG.visual["translate:translated-lyrics-source"] === "string" &&
-				CONFIG.visual["translate:translated-lyrics-source"].startsWith(MUSIXMATCH_TRANSLATION_PREFIX)
-			) {
-				CONFIG.visual["translate:translated-lyrics-source"] = "none";
-				localStorage.setItem(`${APP_NAME}:visual:translate:translated-lyrics-source`, "none");
-			}
-			CONFIG.visual["musixmatch-translation-language"] = "none";
-			localStorage.setItem(`${APP_NAME}:visual:musixmatch-translation-language`, "none");
-		}
-		const translationOverrides = shouldRefreshMusixmatchTranslation ? { musixmatchTranslation: null, musixmatchTranslationLanguage: null } : {};
-
 		let finalMode = mode;
 		if (mode === -1) {
 			if (this.state.explicitMode !== -1) {
@@ -607,39 +411,25 @@ class LyricsContainer extends react.Component {
 			}
 
 			// reset and apply
-			this.setState(
-				{
-					furigana: null,
-					romaji: null,
-					hiragana: null,
-					katakana: null,
-					hangul: null,
-					romaja: null,
-					cn: null,
-					hk: null,
-					tw: null,
-					pinyin: null,
-					neteaseTranslation: null,
-					...tempState,
-					...translationOverrides,
-					language: defaultLanguage,
-				},
-				() => {
-					this.currentMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"];
-					if (shouldRefreshMusixmatchTranslation) {
-						this.refreshMusixmatchTranslation();
-					}
-				}
-			);
+			this.setState({
+				furigana: null,
+				romaji: null,
+				hiragana: null,
+				katakana: null,
+				hangul: null,
+				romaja: null,
+				cn: null,
+				hk: null,
+				tw: null,
+				pinyin: null,
+				neteaseTranslation: null,
+				...tempState,
+				language: defaultLanguage,
+			});
 			return;
 		}
 
-		this.setState({ ...tempState, ...translationOverrides }, () => {
-			this.currentMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"];
-			if (shouldRefreshMusixmatchTranslation) {
-				this.refreshMusixmatchTranslation();
-			}
-		});
+		this.setState(tempState);
 	}
 
 	lyricsSource(lyricsState, mode) {
@@ -654,25 +444,10 @@ class LyricsContainer extends react.Component {
 
 		// get original Lyrics
 		const lyrics = lyricsState[CONFIG.modes[mode]];
-		const translationSourceConfig = resolveTranslationSource(CONFIG.visual["translate:translated-lyrics-source"]);
-
-		if (translationSourceConfig.language) {
-			const translationLanguageKey = `${APP_NAME}:visual:musixmatch-translation-language`;
-			const storedLanguage = localStorage.getItem(translationLanguageKey);
-
-			if (storedLanguage !== translationSourceConfig.language) {
-				localStorage.setItem(translationLanguageKey, translationSourceConfig.language);
-			}
-
-			if (CONFIG.visual["musixmatch-translation-language"] !== translationSourceConfig.language) {
-				CONFIG.visual["musixmatch-translation-language"] = translationSourceConfig.language;
-			}
-		}
-
 		if (CONFIG.visual.translate) {
 			this.state.currentLyrics = lyricsState[CONFIG.visual[`translation-mode:${friendlyLanguage}`]] ?? lyrics;
 		} else {
-			this.state.currentLyrics = lyricsState[translationSourceConfig.key] ?? lyrics;
+			this.state.currentLyrics = lyricsState[CONFIG.visual["translate:translated-lyrics-source"]] ?? lyrics;
 		}
 
 		// Convert Mode re-fresh
@@ -981,14 +756,7 @@ class LyricsContainer extends react.Component {
 			this.reRenderLyricsPage = !this.reRenderLyricsPage;
 			this.updateVisualOnConfigChange();
 			this.forceUpdate();
-
-			if (this.currentMusixmatchLanguage !== CONFIG.visual["musixmatch-translation-language"]) {
-				this.currentMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"];
-				this.refreshMusixmatchTranslation();
-			}
 		};
-
-		refreshMusixmatchTranslation = this.refreshMusixmatchTranslation.bind(this);
 
 		reloadLyrics = () => {
 			CACHE = {};
@@ -1044,7 +812,6 @@ class LyricsContainer extends react.Component {
 		this.configButton.deregister();
 		this.mousetrap.reset();
 		window.removeEventListener("fad-request", lyricContainerUpdate);
-		refreshMusixmatchTranslation = null;
 	}
 
 	updateVisualOnConfigChange() {
@@ -1123,8 +890,7 @@ class LyricsContainer extends react.Component {
 		this.lyricsSource(this.state, mode);
 		const lang = this.provideLanguageCode(this.state.currentLyrics);
 		const friendlyLanguage = lang && new Intl.DisplayNames(["en"], { type: "language" }).of(lang.split("-")[0])?.toLowerCase();
-		const hasMusixmatchLanguages = Array.isArray(this.state.musixmatchAvailableTranslations) && this.state.musixmatchAvailableTranslations.length > 0;
-		const hasTranslation = this.state.neteaseTranslation !== null || this.state.musixmatchTranslation !== null || hasMusixmatchLanguages;
+		const hasTranslation = this.state.neteaseTranslation !== null;
 		const hasPerformer = !!this.state.currentLyrics?.some((line) => line.performer);
 		const romanizationLines = this.state.pinyin?.mode === mode ? this.state.pinyin.lines : null;
 
@@ -1218,11 +984,8 @@ class LyricsContainer extends react.Component {
 					react.createElement(TranslationMenu, {
 						friendlyLanguage,
 						hasTranslation: {
-							musixmatch: this.state.musixmatchTranslation !== null,
 							netease: this.state.neteaseTranslation !== null,
 						},
-						musixmatchLanguages: this.state.musixmatchAvailableTranslations || [],
-						musixmatchSelectedLanguage: this.state.musixmatchTranslationLanguage || CONFIG.visual["musixmatch-translation-language"],
 					}),
 				react.createElement(AdjustmentsMenu, { mode, hasPerformer }),
 				react.createElement(

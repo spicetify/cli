@@ -212,7 +212,7 @@ const Utils = {
 			let wordTime = startTime;
 			return text
 				.map((word) => {
-					wordTime += word.time;
+					wordTime = word.endTime ?? wordTime + word.time;
 					return `${word.word}<${this.formatTime(wordTime)}>`;
 				})
 				.join("");

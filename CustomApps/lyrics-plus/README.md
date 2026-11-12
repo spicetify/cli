@@ -6,14 +6,13 @@ Show current track lyrics. Current lyrics providers:
 
 - Internal Spotify lyrics service.
 - Netease: From Chinese developers and users. Provides karaoke and synced lyrics.
-- Musixmatch: A company from Italy. Provided synced lyrics.
+- [LRCLIB](https://lrclib.net): Default provider for synced and unsynced lyrics, with word timing when available.
+- [lrc.red](https://lrc.red): Provides karaoke, synced and unsynced lyrics.
 - Genius: Provides unsynced lyrics but with description/insight from artists themselves (Disabled and cannot be used as a provider on `1.2.31` and higher).
 
 ![kara](./kara.png)
 
 ![genius](./genius.png)
-
-Different lyrics modes: Karaoke, Synced, Unsynced and Genius. At the moment, only Netease provides karaoke-able lyrics. Mode is automatically falled back, from Karaoke, Synced, Unsynced to Genius when lyrics are not available in that mode.
 
 Right click or Double click at any mode tab to "lock in", so lyric mode won't auto switch. It should show a dot next to mode name when mode is locked. Right click or double click again to unlock
 

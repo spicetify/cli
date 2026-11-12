@@ -67,52 +67,6 @@ const CacheButton = () => {
 	);
 };
 
-const RefreshTokenButton = ({ setTokenCallback }) => {
-	const [buttonText, setButtonText] = useState("Refresh token");
-
-	useEffect(() => {
-		if (buttonText === "Refreshing token...") {
-			Spicetify.CosmosAsync.get("https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0", null, {
-				Host: "apic-appmobile.musixmatch.com",
-				authority: "apic-appmobile.musixmatch.com",
-				"X-Cookie": "x-mxm-token-guid=",
-				"x-mxm-app-version": "10.1.1",
-				"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
-				"Accept-Language": "en-US,en;q=0.9",
-				Connection: "keep-alive",
-				Accept: "application/json",
-			})
-				.then(({ message: response }) => {
-					if (response.header.status_code === 200 && response.body.user_token) {
-						setTokenCallback(response.body.user_token);
-						setButtonText("Token refreshed");
-					} else if (response.header.status_code === 401) {
-						setButtonText("Too many attempts");
-					} else {
-						setButtonText("Failed to refresh token");
-						console.error("Failed to refresh token", response);
-					}
-				})
-				.catch((error) => {
-					setButtonText("Failed to refresh token");
-					console.error("Failed to refresh token", error);
-				});
-		}
-	}, [buttonText]);
-
-	return react.createElement(
-		"button",
-		{
-			className: "btn",
-			onClick: () => {
-				setButtonText("Refreshing token...");
-			},
-			disabled: buttonText !== "Refresh token",
-		},
-		buttonText
-	);
-};
-
 const ConfigButton = ({ name, text, onChange = () => {} }) => {
 	return react.createElement(
 		"div",
@@ -378,28 +332,8 @@ const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }) => {
 	);
 };
 
-const ServiceAction = ({ item, setTokenCallback }) => {
-	switch (item.name) {
-		case "local":
-			return react.createElement(CacheButton);
-		case "musixmatch":
-			return react.createElement(RefreshTokenButton, { setTokenCallback });
-		default:
-			return null;
-	}
-};
-
-const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false, onTokenChange = null }) => {
-	const [token, setToken] = useState(item.token);
+const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false }) => {
 	const [active, setActive] = useState(item.on);
-
-	const setTokenCallback = useCallback(
-		(token) => {
-			setToken(token);
-			onTokenChange(item.name, token);
-		},
-		[item.token]
-	);
 
 	const toggleActive = useCallback(() => {
 		if (item.name === "genius" && spotifyVersion >= "1.2.31") return;
@@ -421,17 +355,14 @@ const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false
 				{
 					className: "col description",
 				},
-				item.name
+				item.label || item.name
 			),
 			react.createElement(
 				"div",
 				{
 					className: "col action",
 				},
-				react.createElement(ServiceAction, {
-					item,
-					setTokenCallback,
-				}),
+				item.name === "local" && react.createElement(CacheButton),
 				react.createElement(SwapButton, {
 					icon: Spicetify.SVGIcons["chart-up"],
 					onClick: () => onSwap(item.name, -1),
@@ -453,17 +384,11 @@ const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false
 			dangerouslySetInnerHTML: {
 				__html: item.desc,
 			},
-		}),
-		item.token !== undefined &&
-			react.createElement("input", {
-				placeholder: `Place your ${item.name} token here`,
-				value: token,
-				onChange: (event) => setTokenCallback(event.target.value),
-			})
+		})
 	);
 };
 
-const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {}, onTokenChange = () => {} }) => {
+const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {} }) => {
 	const [items, setItems] = useState(itemsList);
 	const maxIndex = items.length - 1;
 
@@ -487,7 +412,6 @@ const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {}, 
 			isFirst: index === 0,
 			isLast: index === maxIndex,
 			onSwap,
-			onTokenChange,
 			onToggle,
 		});
 	});
@@ -708,11 +632,6 @@ function openConfig() {
 			onToggle: (name, value) => {
 				CONFIG.providers[name].on = value;
 				localStorage.setItem(`${APP_NAME}:provider:${name}:on`, value);
-				reloadLyrics?.();
-			},
-			onTokenChange: (name, value) => {
-				CONFIG.providers[name].token = value;
-				localStorage.setItem(`${APP_NAME}:provider:${name}:token`, value);
 				reloadLyrics?.();
 			},
 		}),

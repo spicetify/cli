@@ -36,16 +36,6 @@ function PopupLyrics() {
 		return;
 	}
 
-	const musixmatchHeaders = {
-		Host: "apic-appmobile.musixmatch.com",
-		authority: "apic-appmobile.musixmatch.com",
-		"X-Cookie": "x-mxm-token-guid=",
-		"x-mxm-app-version": "10.1.1",
-		"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
-		Connection: "keep-alive",
-		Accept: "application/json",
-	};
-
 	const worker = new Worker("./extensions/popupLyrics.js");
 	worker.onmessage = (event) => {
 		if (event.data === "popup-lyric-update-ui") {
@@ -106,7 +96,79 @@ function PopupLyrics() {
 		},
 	};
 
+	const lrcRedHeaders = { "X-Client-ID": `Spicetify/${Spicetify.Config.version} (https://github.com/spicetify/cli)` };
+	async function requestLrcRed(path) {
+		const response = await fetch(`https://lrc.red${path}`, { headers: lrcRedHeaders, signal: AbortSignal.timeout(10000) });
+		if (response.status === 404) return null;
+		if (!response.ok) throw new Error(`lrc.red request failed: ${response.status}`);
+		return response;
+	}
+
+	function normalizeLrcRed(value) {
+		return (value || "").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+	}
+
+	function normalizeLrcRedTitle(value) {
+		return normalizeLrcRed((value || "")
+			.replace(/\s*[\[(](?:feat(?:uring)?|ft|with)\.?\s+[^)\]]*[\])]/gi, "")
+			.replace(/\s+(?:[-–—]\s*)?(?:feat(?:uring)?|ft)\.?\s+.+$/i, ""));
+	}
+
+	async function parseLyricsfile(text) {
+		if (typeof text !== "string" || text.length > 1048576) throw new Error("Invalid Lyricsfile size");
+		const yaml = await import("https://cdn.jsdelivr.net/npm/js-yaml@4.1.1/dist/js-yaml.mjs");
+		let depth = 0;
+		const data = yaml.load(text, {
+			schema: yaml.JSON_SCHEMA,
+			listener: (event) => {
+				depth += event === "open" ? 1 : -1;
+				if (depth > 32) throw new Error("Lyricsfile is nested too deeply");
+			},
+		});
+		if (!data || data.version !== "1.0") throw new Error("Unsupported Lyricsfile version");
+		if (!data.metadata || typeof data.metadata.title !== "string" || typeof data.metadata.artist !== "string")
+			throw new Error("Invalid Lyricsfile metadata");
+		if (data.metadata.instrumental) return { error: "Instrumental" };
+		if (data.lines !== undefined && !Array.isArray(data.lines)) throw new Error("Invalid Lyricsfile lines");
+		const lyrics = (data.lines || []).map((line) => {
+			if (!line || typeof line.text !== "string" || !Number.isSafeInteger(line.start_ms) || line.start_ms < 0)
+				throw new Error("Invalid Lyricsfile line");
+			return { text: line.text || "♪", startTime: line.start_ms / 1000 };
+		}).sort((a, b) => a.startTime - b.startTime);
+		return lyrics.length ? { lyrics } : { error: "No synced lyrics" };
+	}
+
 	const LyricProviders = {
+		async fetchLrcRed(info) {
+			let track;
+			if (/^[A-Z]{2}[A-Z0-9]{3}\d{7}$/i.test(info.isrc || "")) {
+				const response = await requestLrcRed(`/s/${info.isrc.toUpperCase()}.json`);
+				if (response) track = await response.json();
+			}
+			if (!track) {
+				const response = await requestLrcRed(`/search.json?q=${encodeURIComponent(`${info.title} ${info.artist}`)}`);
+				const search = response && await response.json();
+				const duration = info.duration / 1000;
+				const title = normalizeLrcRedTitle(info.title);
+				const artists = [...(info.artists || []), info.artist].map(normalizeLrcRed).filter(Boolean);
+				const matches = (search?.hits || []).filter((candidate) =>
+					normalizeLrcRedTitle(candidate.title) === title &&
+					artists.some((artist) => ` ${normalizeLrcRed(candidate.artist)} `.includes(` ${artist} `)) &&
+					(!duration || Math.abs(candidate.duration - duration) <= 5)
+				);
+				matches.sort((a, b) =>
+					Number(normalizeLrcRed(b.title) === normalizeLrcRed(info.title)) - Number(normalizeLrcRed(a.title) === normalizeLrcRed(info.title)) ||
+					Number(normalizeLrcRed(b.album) === normalizeLrcRed(info.album)) - Number(normalizeLrcRed(a.album) === normalizeLrcRed(info.album)) ||
+					Math.abs(a.duration - duration) - Math.abs(b.duration - duration)
+				);
+				track = matches[0];
+			}
+			if (!track) return { error: "No lyrics" };
+			const response = await requestLrcRed(`/s/${encodeURIComponent(track.isrc)}.lyricsfile.yaml`);
+			if (!response) return { error: "No synced lyrics" };
+			return { ...await parseLyricsfile(await response.text()), provider: "lrc.red" };
+		},
+
 		async fetchSpotify(info) {
 			const baseURL = "https://spclient.wg.spotify.com/color-lyrics/v2/track/";
 			const id = info.uri.split(":")[2];
@@ -124,64 +186,6 @@ function PopupLyrics() {
 			}));
 
 			return { lyrics };
-		},
-
-		async fetchMusixmatch(info) {
-			const baseURL =
-				"https://apic-appmobile.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=mac-ios-v2.0&";
-
-			const durr = info.duration / 1000;
-
-			const params = {
-				q_album: info.album,
-				q_artist: info.artist,
-				q_artists: info.artist,
-				q_track: info.title,
-				track_spotify_id: info.uri,
-				q_duration: durr,
-				f_subtitle_length: Math.floor(durr),
-				usertoken: userConfigs.services.musixmatch.token,
-			};
-
-			const finalURL =
-				baseURL +
-				Object.keys(params)
-					.map((key) => `${key}=${encodeURIComponent(params[key])}`)
-					.join("&");
-
-			try {
-				let body = await CosmosAsync.get(finalURL, null, musixmatchHeaders);
-
-				body = body.message.body.macro_calls;
-
-				if (body["matcher.track.get"].message.header.status_code !== 200) {
-					const head = body["matcher.track.get"].message.header;
-					return {
-						error: `Requested error: ${head.status_code}: ${head.hint} - ${head.mode}`,
-					};
-				}
-
-				const meta = body["matcher.track.get"].message.body;
-				const hasSynced = meta.track.has_subtitles;
-				const isRestricted = body["track.lyrics.get"].message.header.status_code === 200 && body["track.lyrics.get"].message.body.lyrics.restricted;
-				const isInstrumental = meta.track.instrumental;
-
-				if (isRestricted) return { error: "Unfortunately we're not authorized to show these lyrics." };
-				if (isInstrumental) return { error: "Instrumental" };
-				if (hasSynced) {
-					const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
-
-					const lyrics = JSON.parse(subtitle.subtitle_body).map((line) => ({
-						text: line.text || "♪",
-						startTime: line.time.total,
-					}));
-					return { lyrics };
-				}
-
-				return { error: "No lyrics" };
-			} catch (err) {
-				return { error: err.message };
-			}
 		},
 
 		async fetchNetease(info) {
@@ -299,6 +303,7 @@ function PopupLyrics() {
 			}
 
 			const meta = await body.json();
+			if (meta?.lyricsfile) return parseLyricsfile(meta.lyricsfile);
 			if (meta?.instrumental) {
 				return { error: "Instrumental" };
 			}
@@ -306,28 +311,12 @@ function PopupLyrics() {
 				return { error: "No synced lyrics" };
 			}
 
-			// Preprocess lyrics by removing [tags] and empty lines
-			const lines = meta?.syncedLyrics
-				.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
-				.trim()
-				.split("\n");
-
-			const syncedTimestamp = /\[([0-9:.]+)\]/;
-			const isSynced = lines[0].match(syncedTimestamp);
-
-			const lyrics = lines.map((line) => {
-				const time = line.match(syncedTimestamp)?.[1];
-				const lyricContent = line.replace(syncedTimestamp, "").trim();
-				const lyric = lyricContent.replaceAll(/<([0-9:.]+)>/g, "").trim();
-				const [min, sec] = time.replace(/\[\]<>/, "").split(":");
-
-				if (line.trim() !== "" && isSynced && time) {
-					return { text: lyric || "♪", startTime: Number(min) * 60 + Number(sec) };
-				}
-				return;
-			});
-
-			return { lyrics };
+			const lyrics = meta.syncedLyrics.split(/\r?\n/).flatMap((line) => {
+				const timestamps = [...line.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)];
+				const text = line.replace(/\[[^\]]*\]|<[^>]*>/g, "").trim() || "♪";
+				return timestamps.map((match) => ({ startTime: Number(match[1]) * 60 + Number(match[2]), text }));
+			}).sort((a, b) => a.startTime - b.startTime);
+			return lyrics.length ? { lyrics } : { error: "No synced lyrics" };
 		},
 	};
 
@@ -341,26 +330,26 @@ function PopupLyrics() {
 		ratio: LocalStorage.get("popup-lyrics:ratio") || "11",
 		delay: Number(LocalStorage.get("popup-lyrics:delay")),
 		services: {
+			lrclib: {
+				on: boolLocalStorage("popup-lyrics:services:lrclib:on"),
+				call: LyricProviders.fetchLrclib,
+				desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
+			},
+
+			lrcred: {
+				on: boolLocalStorage("popup-lyrics:services:lrcred:on"),
+				call: LyricProviders.fetchLrcRed,
+				desc: 'Synced lyrics from <a href="https://lrc.red" target="_blank" rel="noopener noreferrer">lrc.red</a>.',
+			},
 			netease: {
 				on: boolLocalStorage("popup-lyrics:services:netease:on"),
 				call: LyricProviders.fetchNetease,
 				desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
 			},
-			musixmatch: {
-				on: boolLocalStorage("popup-lyrics:services:musixmatch:on"),
-				call: LyricProviders.fetchMusixmatch,
-				desc: "Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button.",
-				token: LocalStorage.get("popup-lyrics:services:musixmatch:token") || "2005218b74f939209bda92cb633c7380612e14cb7fe92dcd6a780f",
-			},
 			spotify: {
 				on: boolLocalStorage("popup-lyrics:services:spotify:on"),
 				call: LyricProviders.fetchSpotify,
 				desc: "Lyrics sourced from official Spotify API.",
-			},
-			lrclib: {
-				on: boolLocalStorage("popup-lyrics:services:lrclib:on"),
-				call: LyricProviders.fetchLrclib,
-				desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
 			},
 		},
 		servicesOrder: [],
@@ -368,26 +357,21 @@ function PopupLyrics() {
 
 	userConfigs.fontSize = userConfigs.fontSize ? Number(userConfigs.fontSize) : 46;
 	try {
-		const rawServicesOrder = LocalStorage.get("popup-lyrics:services-order");
-		userConfigs.servicesOrder = JSON.parse(rawServicesOrder);
-
-		if (!Array.isArray(userConfigs.servicesOrder)) throw "";
-
-		userConfigs.servicesOrder = userConfigs.servicesOrder.filter((s) => userConfigs.services[s]); // Remove obsoleted services
-
-		const allServices = Object.keys(userConfigs.services);
-		if (userConfigs.servicesOrder.length !== allServices.length) {
-			for (const s of allServices) {
-				if (!userConfigs.servicesOrder.includes(s)) {
-					userConfigs.servicesOrder.push(s);
-				}
-			}
-			LocalStorage.set("popup-lyrics:services-order", JSON.stringify(userConfigs.servicesOrder));
-		}
+		userConfigs.servicesOrder = JSON.parse(LocalStorage.get("popup-lyrics:services-order"));
 	} catch {
-		userConfigs.servicesOrder = Object.keys(userConfigs.services);
-		LocalStorage.set("popup-lyrics:services-order", JSON.stringify(userConfigs.servicesOrder));
+		userConfigs.servicesOrder = [];
 	}
+	const savedServices = Array.isArray(userConfigs.servicesOrder) ? userConfigs.servicesOrder : [];
+	const migratedServices = savedServices.map((id) => id === "musixmatch" ? "lrclib" : id);
+	const serviceOrder = [...new Set(migratedServices)].filter((id) => Object.hasOwn(userConfigs.services, id));
+	if (savedServices[0] === "musixmatch" && boolLocalStorage("popup-lyrics:services:musixmatch:on")) {
+		userConfigs.services.lrclib.on = true;
+		LocalStorage.set("popup-lyrics:services:lrclib:on", "true");
+	}
+	userConfigs.servicesOrder = [...serviceOrder, ...Object.keys(userConfigs.services).filter((id) => !serviceOrder.includes(id))];
+	LocalStorage.set("popup-lyrics:services-order", JSON.stringify(userConfigs.servicesOrder));
+	LocalStorage.remove("popup-lyrics:services:musixmatch:on");
+	LocalStorage.remove("popup-lyrics:services:musixmatch:token");
 
 	const lyricVideo = document.createElement("video");
 	lyricVideo.muted = true;
@@ -466,8 +450,10 @@ function PopupLyrics() {
 			duration: Number(meta.duration),
 			album: meta.album_title,
 			artist: meta.artist_name,
+			artists: Object.entries(meta).filter(([key]) => /^artist_name(?::\d+)?$/.test(key)).map(([, name]) => name),
 			title: meta.title,
 			uri: Player.data.item.uri,
+			isrc: meta.isrc || Player.data.item.external_ids?.isrc,
 		};
 
 		if (CACHE?.[info.uri]?.lyrics?.length && !refresh) {
@@ -813,6 +799,16 @@ function PopupLyrics() {
 			drawText(lyricCtx, "No lyrics");
 		} else if (audio.duration && lyrics.length) {
 			renderLyrics(lyricCtx, lyrics, audio.currentTime);
+			if (sharedData.provider === "lrc.red") {
+				lyricCtx.save();
+				lyricCtx.fillStyle = "#000";
+				lyricCtx.fillRect(0, lyricCanvas.height - 24, lyricCanvas.width, 24);
+				lyricCtx.fillStyle = "#fff";
+				lyricCtx.font = "12px sans-serif";
+				lyricCtx.textAlign = "center";
+				lyricCtx.fillText("Lyrics: https://lrc.red", lyricCanvas.width / 2, lyricCanvas.height - 8);
+				lyricCtx.restore();
+			}
 		} else if (!audio.duration || lyrics.length === 0) {
 			drawText(lyricCtx, audio.currentSrc ? "Loading" : "Waiting");
 		}
@@ -837,10 +833,7 @@ function PopupLyrics() {
 	function openConfig(event) {
 		event.preventDefault();
 
-		// Reset on reopen
-		if (configContainer) {
-			resetTokenButton(configContainer);
-		} else {
+		if (!configContainer) {
 			configContainer = document.createElement("div");
 			configContainer.id = "popup-config-container";
 			const style = document.createElement("style");
@@ -1215,58 +1208,8 @@ button.btn:disabled {
 		return element;
 	}
 
-	function resetTokenButton(container) {
-		const button = container.querySelector("#popup-lyrics-refresh-token");
-		if (button) {
-			button.innerHTML = "Refresh token";
-			button.disabled = false;
-		}
-	}
-
-	function musixmatchTokenElements(defaultVal, id) {
-		const button = createButton(null, "Refresh token", clickRefresh);
-		button.className += "popup-config-col-margin";
-		button.id = "popup-lyrics-refresh-token";
-		const textfield = createTextfield(null, defaultVal.token, `Place your ${id} token here`, changeTokenfield);
-		textfield.className += "popup-config-col-margin";
-
-		function clickRefresh() {
-			button.innerHTML = "Refreshing token...";
-			button.disabled = true;
-
-			Spicetify.CosmosAsync.get("https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0", null, musixmatchHeaders)
-				.then(({ message: response }) => {
-					if (response.header.status_code === 200 && response.body.user_token) {
-						button.innerHTML = "Token refreshed";
-						textfield.value = response.body.user_token;
-						textfield.dispatchEvent(new Event("change"));
-					} else if (response.header.status_code === 401) {
-						button.innerHTML = "Too many attempts";
-					} else {
-						button.innerHTML = "Failed to refresh token";
-						console.error("Failed to refresh token", response);
-					}
-				})
-				.catch((error) => {
-					button.innerHTML = "Failed to refresh token";
-					console.error("Failed to refresh token", error);
-				});
-		}
-
-		function changeTokenfield(value) {
-			userConfigs.services.musixmatch.token = value;
-			LocalStorage.set("popup-lyrics:services:musixmatch:token", value);
-			updateTrack(true);
-		}
-
-		const container = document.createElement("div");
-		container.append(button);
-		container.append(textfield);
-		return container;
-	}
-
 	function createServiceOption(id, defaultVal, switchCallback, posCallback) {
-		const name = id.replace(/^./, (c) => c.toUpperCase());
+		const name = id === "lrcred" ? "lrc.red" : id.replace(/^./, (c) => c.toUpperCase());
 
 		const container = document.createElement("div");
 		container.dataset.id = id;
@@ -1292,10 +1235,6 @@ button.btn:disabled {
     </div>
 </div>
 <span>${defaultVal.desc}</span>`;
-
-		if (id === "musixmatch") {
-			container.append(musixmatchTokenElements(defaultVal));
-		}
 
 		const [up, down, slider] = container.querySelectorAll("button");
 

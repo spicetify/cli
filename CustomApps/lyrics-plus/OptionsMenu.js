@@ -86,40 +86,7 @@ const OptionsMenu = react.memo(({ options, onSelect, selected, defaultValue, bol
 	);
 });
 
-function getMusixmatchTranslationPrefix() {
-	if (typeof window !== "undefined" && typeof window.__lyricsPlusMusixmatchTranslationPrefix === "string") {
-		return window.__lyricsPlusMusixmatchTranslationPrefix;
-	}
-
-	return "musixmatchTranslation:";
-}
-
-const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmatchLanguages, musixmatchSelectedLanguage }) => {
-	const musixmatchTranslationPrefix = getMusixmatchTranslationPrefix();
-
-	const [languageMap, setLanguageMap] = react.useState({});
-
-	react.useEffect(() => {
-		let cancelled = false;
-
-		if (typeof ProviderMusixmatch !== "undefined" && ProviderMusixmatch && typeof ProviderMusixmatch.getLanguages === "function") {
-			(async () => {
-				try {
-					const languages = await ProviderMusixmatch.getLanguages();
-					if (!cancelled) {
-						setLanguageMap(languages);
-					}
-				} catch (error) {
-					console.error("Failed to fetch Musixmatch languages:", error);
-				}
-			})();
-		}
-
-		return () => {
-			cancelled = true;
-		};
-	}, []);
-
+const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation }) => {
 	const items = useMemo(() => {
 		let sourceOptions = {
 			none: "None",
@@ -143,40 +110,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 		};
 
 		let romanizationOptions = {};
-
-		const musixmatchDisplay = new Intl.DisplayNames(["en"], { type: "language" });
-		const availableMusixmatchLanguages = Array.isArray(musixmatchLanguages) ? [...new Set(musixmatchLanguages.filter(Boolean))] : [];
-		const activeMusixmatchLanguage = musixmatchSelectedLanguage && musixmatchSelectedLanguage !== "none" ? musixmatchSelectedLanguage : null;
-		if (hasTranslation.musixmatch && activeMusixmatchLanguage) {
-			availableMusixmatchLanguages.push(activeMusixmatchLanguage);
-		}
-
-		if (availableMusixmatchLanguages.length) {
-			const musixmatchOptionsArray = availableMusixmatchLanguages.map((code) => {
-				let label = "";
-				try {
-					if (languageMap && languageMap[code]) {
-						label = languageMap[code];
-					} else {
-						label = musixmatchDisplay.of(code) ?? code.toUpperCase();
-					}
-				} catch (e) {
-					label = code.toUpperCase();
-				}
-				return {
-					key: `${musixmatchTranslationPrefix}${code}`,
-					label: `${label} (Musixmatch)`,
-				};
-			});
-
-			musixmatchOptionsArray.sort((a, b) => a.label.localeCompare(b.label));
-
-			const musixmatchOptions = musixmatchOptionsArray.reduce((acc, { key, label }) => {
-				acc[key] = label;
-				return acc;
-			}, {});
-			sourceOptions = { ...sourceOptions, ...musixmatchOptions };
-		}
 
 		if (hasTranslation.netease) {
 			sourceOptions = {
@@ -270,15 +203,7 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 		];
 
 		return configItems;
-	}, [
-		friendlyLanguage,
-		hasTranslation.musixmatch,
-		hasTranslation.netease,
-		Array.isArray(musixmatchLanguages) ? musixmatchLanguages.join(",") : "",
-		musixmatchSelectedLanguage || "",
-		musixmatchTranslationPrefix,
-		languageMap,
-	]);
+	}, [friendlyLanguage, hasTranslation.netease]);
 
 	useEffect(() => {
 		// Currently opened Context Menu does not receive prop changes
@@ -324,15 +249,6 @@ const TranslationMenu = react.memo(({ friendlyLanguage, hasTranslation, musixmat
 										localStorage.setItem(`${APP_NAME}:visual:translate`, "false");
 									}
 
-									let nextMusixmatchLanguage = "none";
-									if (typeof value === "string" && value.startsWith(musixmatchTranslationPrefix)) {
-										nextMusixmatchLanguage = value.slice(musixmatchTranslationPrefix.length) || "none";
-									}
-
-									if (CONFIG.visual["musixmatch-translation-language"] !== nextMusixmatchLanguage) {
-										CONFIG.visual["musixmatch-translation-language"] = nextMusixmatchLanguage;
-										localStorage.setItem(`${APP_NAME}:visual:musixmatch-translation-language`, nextMusixmatchLanguage);
-									}
 								}
 
 								CONFIG.visual[name] = value;
