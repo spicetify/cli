@@ -23,6 +23,8 @@ func Apply(spicetifyVersion string) {
 		os.Exit(1)
 	}
 
+	checkSpotifyWriteAccess()
+
 	// Copy raw assets to Spotify Apps folder if Spotify is never applied
 	// before.
 	// extractedStock is for preventing copy raw assets 2 times when

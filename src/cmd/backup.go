@@ -155,6 +155,7 @@ func clearBackup() {
 // Restore uses backup to revert every changes made by Spicetify.
 func Restore() {
 	CheckStates()
+	checkSpotifyWriteAccess()
 	spinner, _ := utils.Spinner.Start("Restoring Spotify")
 	if err := os.RemoveAll(appDestPath); err != nil {
 		spinner.Fail("Failed to restore Spotify")

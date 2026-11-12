@@ -116,7 +116,9 @@ func InitPaths() {
 		appDestPath = appPath
 	}
 
-	utils.CheckExistAndCreate(appDestPath)
+	if err := os.MkdirAll(appDestPath, 0700); err != nil {
+		spotifyWriteError(err)
+	}
 }
 
 // InitSetting parses theme settings and gets color section.
