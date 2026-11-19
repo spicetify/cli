@@ -53,8 +53,11 @@ func WatchRecursive(root string, callbackEach func(fileName string, err error), 
 	for {
 		finalCallback := false
 
-		filepath.WalkDir(root, func(filePath string, info os.DirEntry, _ error) error {
-			if info.IsDir() {
+		filepath.WalkDir(root, func(filePath string, info os.DirEntry, walkErr error) error {
+			// info is nil when the root itself cannot be read (e.g. it was
+			// removed while watching). Skip and retry on the next tick
+			// instead of crashing.
+			if walkErr != nil || info == nil || info.IsDir() {
 				return nil
 			}
 
@@ -91,11 +94,24 @@ type debugger struct {
 	WebSocketDebuggerUrl string
 }
 
+const debuggerListURL = "http://localhost:9222/json/list"
+
+var debuggerClient = &http.Client{Timeout: 2 * time.Second}
+
 // GetDebuggerPath fetches opening debugger list from localhost and returns
 // the Spotify one.
 func GetDebuggerPath() string {
-	res, err := http.Get("http://localhost:9222/json/list")
+	return getDebuggerPath(debuggerListURL)
+}
+
+func getDebuggerPath(listURL string) string {
+	res, err := debuggerClient.Get(listURL)
 	if err != nil {
+		return ""
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
 		return ""
 	}
 
