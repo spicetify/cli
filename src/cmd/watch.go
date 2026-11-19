@@ -11,8 +11,6 @@ import (
 	"github.com/spicetify/cli/src/utils"
 )
 
-// debuggerStartTimeout is how long to wait for Spotify to expose its debugger
-// after being restarted with remote debugging enabled.
 const debuggerStartTimeout = 30 * time.Second
 
 var (
