@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 )
 
@@ -75,14 +76,34 @@ func MigrateFolders() {
 	}
 }
 
+// ReplaceEnvVarsInString replaces every "$NAME" occurrence for variables that
+// are set in the environment with their values. Unknown variables are left
+// untouched. When one variable name is a prefix of another (e.g. $HOME and
+// $HOME_DIR) the longest name wins, regardless of environment order.
 func ReplaceEnvVarsInString(input string) string {
-	var replacements []string
-	for _, v := range os.Environ() {
-		pair := strings.SplitN(v, "=", 2)
-		replacements = append(replacements, "$"+pair[0], pair[1])
+	env := os.Environ()
+	names := make([]string, 0, len(env))
+	values := make(map[string]string, len(env))
+	for _, v := range env {
+		name, value, _ := strings.Cut(v, "=")
+		if len(name) == 0 {
+			continue
+		}
+		if _, seen := values[name]; !seen {
+			names = append(names, name)
+		}
+		values[name] = value
 	}
-	replacer := strings.NewReplacer(replacements...)
-	return replacer.Replace(input)
+
+	// strings.NewReplacer prefers earlier pairs over later ones, so put the
+	// longest names first.
+	slices.SortStableFunc(names, func(a, b string) int { return len(b) - len(a) })
+
+	replacements := make([]string, 0, len(names)*2)
+	for _, name := range names {
+		replacements = append(replacements, "$"+name, values[name])
+	}
+	return strings.NewReplacer(replacements...).Replace(input)
 }
 
 func GetSpicetifyFolder() string {
