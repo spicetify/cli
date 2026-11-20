@@ -167,35 +167,38 @@ $parent.EnableRaisingEvents = $true
 Register-ObjectEvent -InputObject $parent -EventName Exited -SourceIdentifier 'SpicetifyParent' | Out-Null
 $spicetify = '__SPICETIFY_PATH__'
 $configFolder = if ($env:SPICETIFY_CONFIG) { $env:SPICETIFY_CONFIG } else { Join-Path $env:APPDATA 'spicetify' }
-$spotifyPath = Join-Path $env:APPDATA 'Spotify'
-foreach ($line in (Get-Content -LiteralPath (Join-Path $configFolder 'config-xpui.ini') -Encoding UTF8 -ErrorAction SilentlyContinue)) {
-  if ($line -match '^\s*spotify_path\s*=\s*(\S.*?)\s*$') {
-    $raw = $Matches[1]
-    $names = [string[]]@([Environment]::GetEnvironmentVariables().Keys)
-    [Array]::Sort($names, [StringComparer]::OrdinalIgnoreCase)
-    $builder = New-Object Text.StringBuilder
-    $index = 0
-    while ($index -lt $raw.Length) {
-      $hit = $null
-      if ($raw[$index] -eq '$') {
-        foreach ($name in $names) {
-          if ($raw.Length - $index - 1 -ge $name.Length -and [string]::CompareOrdinal($raw, $index + 1, $name, 0, $name.Length) -eq 0) { $hit = $name; break }
-        }
-      }
-      if ($hit) {
-        [void]$builder.Append([Environment]::GetEnvironmentVariable($hit))
-        $index += $hit.Length + 1
-      }
-      else {
-        [void]$builder.Append($raw[$index])
-        $index++
+function Expand-SpicetifyPath {
+  param ([string]$Raw)
+  $names = [string[]]@([Environment]::GetEnvironmentVariables().Keys)
+  [Array]::Sort($names, [StringComparer]::OrdinalIgnoreCase)
+  $builder = New-Object Text.StringBuilder
+  $index = 0
+  while ($index -lt $Raw.Length) {
+    $hit = $null
+    if ($Raw[$index] -eq '$') {
+      foreach ($name in $names) {
+        if ($Raw.Length - $index - 1 -ge $name.Length -and [string]::CompareOrdinal($Raw, $index + 1, $name, 0, $name.Length) -eq 0) { $hit = $name; break }
       }
     }
-    $spotifyPath = $builder.ToString()
-    break
+    if ($hit) {
+      [void]$builder.Append([Environment]::GetEnvironmentVariable($hit))
+      $index += $hit.Length + 1
+    }
+    else {
+      [void]$builder.Append($Raw[$index])
+      $index++
+    }
+  }
+  $builder.ToString()
+}
+$settings = @{}
+foreach ($line in (Get-Content -LiteralPath (Join-Path $configFolder 'config-xpui.ini') -Encoding UTF8 -ErrorAction SilentlyContinue)) {
+  if ($line -match '^\s*(spotify_path|prefs_path)\s*=\s*(\S.*?)\s*$' -and -not $settings.ContainsKey($Matches[1])) {
+    $settings[$Matches[1]] = Expand-SpicetifyPath -Raw $Matches[2]
   }
 }
-if ($spotifyPath -like '*SpotifyAB.SpotifyMusic*') { exit }
+$spotifyPath = if ($settings['spotify_path']) { $settings['spotify_path'] } else { Join-Path $env:APPDATA 'Spotify' }
+if ($spotifyPath -like '*SpotifyAB.SpotifyMusic*' -or $settings['prefs_path'] -like '*SpotifyAB.SpotifyMusic*') { exit }
 $appsPath = Join-Path $spotifyPath 'Apps'
 $archive = Join-Path $appsPath 'xpui.spa'
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
