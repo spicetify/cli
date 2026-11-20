@@ -160,20 +160,38 @@ function Get-SpicetifyAutoApplyCommand {
     $script = @'
 $mutex = New-Object Threading.Mutex($false, 'Local\SpicetifyAutoApply')
 if (-not $mutex.WaitOne(0)) { exit }
+$parentId = (Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = $PID").ParentProcessId
+$parent = Get-Process -Id $parentId -ErrorAction SilentlyContinue
+if (-not $parent) { exit }
+$parent.EnableRaisingEvents = $true
+Register-ObjectEvent -InputObject $parent -EventName Exited -SourceIdentifier 'SpicetifyParent' | Out-Null
 $spicetify = '__SPICETIFY_PATH__'
 $configFolder = if ($env:SPICETIFY_CONFIG) { $env:SPICETIFY_CONFIG } else { Join-Path $env:APPDATA 'spicetify' }
 $spotifyPath = Join-Path $env:APPDATA 'Spotify'
 foreach ($line in (Get-Content -LiteralPath (Join-Path $configFolder 'config-xpui.ini') -Encoding UTF8 -ErrorAction SilentlyContinue)) {
   if ($line -match '^\s*spotify_path\s*=\s*(\S.*?)\s*$') {
-    $spotifyPath = [regex]::Replace($Matches[1], '\$([A-Za-z_][A-Za-z0-9_]*)', {
-      param($match)
-      $name = $match.Groups[1].Value
-      for ($length = $name.Length; $length -gt 0; $length--) {
-        $value = [Environment]::GetEnvironmentVariable($name.Substring(0, $length))
-        if ($null -ne $value) { return $value + $name.Substring($length) }
+    $raw = $Matches[1]
+    $names = [string[]]@([Environment]::GetEnvironmentVariables().Keys)
+    [Array]::Sort($names, [StringComparer]::OrdinalIgnoreCase)
+    $builder = New-Object Text.StringBuilder
+    $index = 0
+    while ($index -lt $raw.Length) {
+      $hit = $null
+      if ($raw[$index] -eq '$') {
+        foreach ($name in $names) {
+          if ($raw.Length - $index - 1 -ge $name.Length -and [string]::CompareOrdinal($raw, $index + 1, $name, 0, $name.Length) -eq 0) { $hit = $name; break }
+        }
       }
-      $match.Value
-    })
+      if ($hit) {
+        [void]$builder.Append([Environment]::GetEnvironmentVariable($hit))
+        $index += $hit.Length + 1
+      }
+      else {
+        [void]$builder.Append($raw[$index])
+        $index++
+      }
+    }
+    $spotifyPath = $builder.ToString()
     break
   }
 }
@@ -185,34 +203,53 @@ $flags = @()
 if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { $flags += '--bypass-admin' }
 $watchers = @()
 $failedStamp = $null
+$failures = 0
+$retryAt = [DateTime]::MinValue
 function Reset-Watchers {
   foreach ($watcher in $script:watchers) { $watcher.Dispose() }
-  Get-EventSubscriber | Unregister-Event
+  Get-EventSubscriber | Where-Object { $_.SourceIdentifier -like 'SpicetifyWatch.*' } | Unregister-Event
   Get-Event | Remove-Event
   $script:watchers = @()
   foreach ($target in @(@($spotifyPath, 'Apps'), @($appsPath, 'xpui.spa'))) {
     if (-not (Test-Path -LiteralPath $target[0] -PathType Container)) { continue }
     $watcher = New-Object IO.FileSystemWatcher($target[0], $target[1])
     foreach ($eventName in 'Created', 'Changed', 'Renamed', 'Deleted', 'Error') {
-      Register-ObjectEvent -InputObject $watcher -EventName $eventName | Out-Null
+      Register-ObjectEvent -InputObject $watcher -EventName $eventName -SourceIdentifier "SpicetifyWatch.$([guid]::NewGuid())" | Out-Null
     }
     $watcher.EnableRaisingEvents = $true
     $script:watchers += $watcher
   }
 }
-while ($true) {
+while (-not $parent.HasExited) {
   Reset-Watchers
-  if ((Test-Path -LiteralPath $archive) -and (Get-Item -LiteralPath $archive).LastWriteTimeUtc -ne $failedStamp) {
-    while (Wait-Event -Timeout 5) { Get-Event | Remove-Event }
+  $item = Get-Item -LiteralPath $archive -ErrorAction SilentlyContinue
+  if ($item -and ($item.LastWriteTimeUtc -ne $failedStamp -or [DateTime]::UtcNow -ge $retryAt)) {
+    while ((Wait-Event -Timeout 5) -and -not $parent.HasExited) { Get-Event | Remove-Event }
+    if ($parent.HasExited) { break }
+    $ready = $false
     for ($i = 0; $i -lt 30; $i++) {
-      try { [IO.File]::Open($archive, 'Open', 'Read', 'None').Dispose(); break } catch { Start-Sleep -Seconds 2 }
+      try { [IO.File]::Open($archive, 'Open', 'Read', 'None').Dispose(); $ready = $true; break } catch { Start-Sleep -Seconds 2 }
     }
-    if (Test-Path -LiteralPath $archive) { & $spicetify auto @flags | Out-Null }
-    $failedStamp = if (Test-Path -LiteralPath $archive) { (Get-Item -LiteralPath $archive).LastWriteTimeUtc } else { $null }
+    $item = Get-Item -LiteralPath $archive -ErrorAction SilentlyContinue
+    if (-not $item) { continue }
+    $stamp = $item.LastWriteTimeUtc
+    if ($ready) { & $spicetify auto @flags | Out-Null }
+    $after = Get-Item -LiteralPath $archive -ErrorAction SilentlyContinue
+    if ($after -and $after.LastWriteTimeUtc -eq $stamp) {
+      $failures++
+      $failedStamp = $stamp
+      $retryAt = [DateTime]::UtcNow.AddMinutes([Math]::Min(60, [Math]::Pow(2, $failures)))
+    }
+    else {
+      $failures = 0
+      $failedStamp = $null
+    }
     continue
   }
-  if ($watchers.Count -eq 0) { Start-Sleep -Seconds 60; continue }
-  [void](Wait-Event -Timeout 600)
+  if ($watchers.Count -eq 0) { [void](Wait-Event -Timeout 60); continue }
+  $timeout = 600
+  if ($failedStamp) { $timeout = [int][Math]::Max(1, [Math]::Min(600, ($retryAt - [DateTime]::UtcNow).TotalSeconds)) }
+  [void](Wait-Event -Timeout $timeout)
 }
 '@
     $script = $script.Replace('__SPICETIFY_PATH__', ($SpicetifyPath -replace "'", "''"))
@@ -246,7 +283,6 @@ function Register-SpicetifyAutoApply {
       Force       = $true
     }
     Register-ScheduledTask @Parameters | Out-Null
-    Start-ScheduledTask -TaskName $autoApplyTaskName
   }
   end {
     Write-Success
@@ -261,7 +297,7 @@ function Request-SpicetifyAutoApply {
   )
   process {
     if (Get-ScheduledTask -TaskName $autoApplyTaskName -ErrorAction SilentlyContinue) {
-      return
+      return $false
     }
     $Host.UI.RawUI.Flushinputbuffer()
     $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
@@ -270,15 +306,17 @@ function Request-SpicetifyAutoApply {
     )
     $choice = $Host.UI.PromptForChoice('', "`nSpotify updates remove spicetify. Do you want spicetify to apply itself again automatically after an update?", $choices, 1)
     if ($choice -eq 1) {
-      return
+      return $false
     }
     try {
       Register-SpicetifyAutoApply -SpicetifyPath $SpicetifyPath
-      Write-Host -Object "To turn it off, run: Unregister-ScheduledTask -TaskName '$autoApplyTaskName' -Confirm:`$false"
+      Write-Host -Object "To turn it off, run: Stop-ScheduledTask -TaskName '$autoApplyTaskName'; Unregister-ScheduledTask -TaskName '$autoApplyTaskName' -Confirm:`$false"
+      return $true
     }
     catch {
       Write-Unsuccess
       Write-Warning -Message "Could not register the auto apply task: $($_.Exception.Message)"
+      return $false
     }
   }
 }
@@ -344,7 +382,9 @@ if ($installedSpicetify) {
     if ($LASTEXITCODE -ne 0) {
       throw "Spicetify update failed with exit code $LASTEXITCODE."
     }
-    Request-SpicetifyAutoApply -SpicetifyPath $installedSpicetify
+    if (Request-SpicetifyAutoApply -SpicetifyPath $installedSpicetify) {
+      Start-ScheduledTask -TaskName $autoApplyTaskName
+    }
     return
   }
 }
@@ -354,7 +394,7 @@ Install-Spicetify
 Write-Host -Object "`nRun" -NoNewline
 Write-Host -Object ' spicetify -h ' -NoNewline -ForegroundColor 'Cyan'
 Write-Host -Object 'to get started'
-Request-SpicetifyAutoApply -SpicetifyPath (Join-Path -Path $spicetifyFolderPath -ChildPath 'spicetify.exe')
+$autoApplyRegistered = Request-SpicetifyAutoApply -SpicetifyPath (Join-Path -Path $spicetifyFolderPath -ChildPath 'spicetify.exe')
 #endregion Spicetify
 
 #region Marketplace
@@ -376,4 +416,8 @@ else {
   Invoke-WebRequest @Parameters | Invoke-Expression
 }
 #endregion Marketplace
+
+if ($autoApplyRegistered) {
+  Start-ScheduledTask -TaskName $autoApplyTaskName
+}
 #endregion Main
