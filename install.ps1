@@ -5,6 +5,7 @@ $ProgressPreference = 'SilentlyContinue'
 #region Variables
 $spicetifyFolderPath = "$env:LOCALAPPDATA\spicetify"
 $spicetifyOldFolderPath = "$HOME\spicetify-cli"
+$autoApplyTaskName = 'Spicetify Auto Apply'
 #endregion Variables
 
 #region Functions
@@ -148,6 +149,91 @@ function Install-Spicetify {
     Write-Host -Object 'spicetify was successfully installed!' -ForegroundColor 'Green'
   }
 }
+
+function Get-SpicetifyAutoApplyCommand {
+  [CmdletBinding()]
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]$SpicetifyPath
+  )
+  process {
+    $escapedPath = $SpicetifyPath -replace "'", "''"
+    $script = @"
+`$configFolder = if (`$env:SPICETIFY_CONFIG) { `$env:SPICETIFY_CONFIG } else { Join-Path `$env:APPDATA 'spicetify' }
+`$spotifyPath = Join-Path `$env:APPDATA 'Spotify'
+foreach (`$line in (Get-Content -LiteralPath (Join-Path `$configFolder 'config-xpui.ini') -ErrorAction SilentlyContinue)) {
+  if (`$line -match '^\s*spotify_path\s*=\s*(\S.*?)\s*$') { `$spotifyPath = `$Matches[1]; break }
+}
+if (-not (Test-Path -LiteralPath (Join-Path `$spotifyPath 'Apps\xpui.spa'))) { exit }
+`$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if (`$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { & '$escapedPath' auto --bypass-admin } else { & '$escapedPath' auto }
+"@
+    [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
+  }
+}
+
+function Register-SpicetifyAutoApply {
+  [CmdletBinding()]
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]$SpicetifyPath
+  )
+  begin {
+    Write-Host -Object 'Registering the spicetify auto apply task...' -NoNewline
+    $userId = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+  }
+  process {
+    $encodedCommand = Get-SpicetifyAutoApplyCommand -SpicetifyPath $SpicetifyPath
+    $action = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\conhost.exe" -Argument "--headless powershell.exe -NoProfile -NonInteractive -EncodedCommand $encodedCommand"
+    $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
+    $trigger.Repetition = (New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 15)).Repetition
+    $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
+    $Parameters = @{
+      TaskName    = $autoApplyTaskName
+      Description = 'Applies spicetify again after a Spotify update replaces the patched files.'
+      Action      = $action
+      Trigger     = $trigger
+      Principal   = $principal
+      Settings    = $settings
+      Force       = $true
+    }
+    Register-ScheduledTask @Parameters | Out-Null
+  }
+  end {
+    Write-Success
+  }
+}
+
+function Request-SpicetifyAutoApply {
+  [CmdletBinding()]
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]$SpicetifyPath
+  )
+  process {
+    if (Get-ScheduledTask -TaskName $autoApplyTaskName -ErrorAction SilentlyContinue) {
+      return
+    }
+    $Host.UI.RawUI.Flushinputbuffer()
+    $choices = [System.Management.Automation.Host.ChoiceDescription[]] @(
+      (New-Object System.Management.Automation.Host.ChoiceDescription '&Yes', 'Apply spicetify again automatically after Spotify updates.'),
+      (New-Object System.Management.Automation.Host.ChoiceDescription '&No', 'Keep applying spicetify manually.')
+    )
+    $choice = $Host.UI.PromptForChoice('', "`nSpotify updates remove spicetify. Do you want spicetify to apply itself again automatically after an update?", $choices, 1)
+    if ($choice -eq 1) {
+      return
+    }
+    try {
+      Register-SpicetifyAutoApply -SpicetifyPath $SpicetifyPath
+      Write-Host -Object "To turn it off, run: Unregister-ScheduledTask -TaskName '$autoApplyTaskName' -Confirm:`$false"
+    }
+    catch {
+      Write-Unsuccess
+      Write-Warning -Message "Could not register the auto apply task: $($_.Exception.Message)"
+    }
+  }
+}
 #endregion Functions
 
 #region Main
@@ -210,6 +296,7 @@ if ($installedSpicetify) {
     if ($LASTEXITCODE -ne 0) {
       throw "Spicetify update failed with exit code $LASTEXITCODE."
     }
+    Request-SpicetifyAutoApply -SpicetifyPath $installedSpicetify
     return
   }
 }
@@ -219,6 +306,7 @@ Install-Spicetify
 Write-Host -Object "`nRun" -NoNewline
 Write-Host -Object ' spicetify -h ' -NoNewline -ForegroundColor 'Cyan'
 Write-Host -Object 'to get started'
+Request-SpicetifyAutoApply -SpicetifyPath (Join-Path -Path $spicetifyFolderPath -ChildPath 'spicetify.exe')
 #endregion Spicetify
 
 #region Marketplace
