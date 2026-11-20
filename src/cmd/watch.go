@@ -11,6 +11,8 @@ import (
 	"github.com/spicetify/cli/src/utils"
 )
 
+const debuggerStartTimeout = 30 * time.Second
+
 var (
 	debuggerURL    string
 	autoReloadFunc func()
@@ -237,8 +239,13 @@ func startDebugger() {
 		EnableDevTools()
 		SpotifyRestart("--remote-debugging-port=9222", "--remote-allow-origins=*")
 		utils.PrintInfo("Restarted Spotify with debugger on. Waiting...")
+		deadline := time.Now().Add(debuggerStartTimeout)
 		for len(utils.GetDebuggerPath()) == 0 {
-			// Wait until debugger is up
+			if time.Now().After(deadline) {
+				utils.PrintError("Timed out waiting for Spotify debugger on port 9222")
+				os.Exit(1)
+			}
+			time.Sleep(utils.INTERVAL)
 		}
 	}
 	autoReloadFunc = func() {
