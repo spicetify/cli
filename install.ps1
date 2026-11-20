@@ -5,7 +5,7 @@ $ProgressPreference = 'SilentlyContinue'
 #region Variables
 $spicetifyFolderPath = "$env:LOCALAPPDATA\spicetify"
 $spicetifyOldFolderPath = "$HOME\spicetify-cli"
-$autoApplyTaskName = 'Spicetify Auto Apply'
+$autoApplyTaskName = "Spicetify Auto Apply $([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)"
 #endregion Variables
 
 #region Functions
@@ -157,17 +157,65 @@ function Get-SpicetifyAutoApplyCommand {
     [string]$SpicetifyPath
   )
   process {
-    $escapedPath = $SpicetifyPath -replace "'", "''"
-    $script = @"
-`$configFolder = if (`$env:SPICETIFY_CONFIG) { `$env:SPICETIFY_CONFIG } else { Join-Path `$env:APPDATA 'spicetify' }
-`$spotifyPath = Join-Path `$env:APPDATA 'Spotify'
-foreach (`$line in (Get-Content -LiteralPath (Join-Path `$configFolder 'config-xpui.ini') -ErrorAction SilentlyContinue)) {
-  if (`$line -match '^\s*spotify_path\s*=\s*(\S.*?)\s*$') { `$spotifyPath = `$Matches[1]; break }
+    $script = @'
+$mutex = New-Object Threading.Mutex($false, 'Local\SpicetifyAutoApply')
+if (-not $mutex.WaitOne(0)) { exit }
+$spicetify = '__SPICETIFY_PATH__'
+$configFolder = if ($env:SPICETIFY_CONFIG) { $env:SPICETIFY_CONFIG } else { Join-Path $env:APPDATA 'spicetify' }
+$spotifyPath = Join-Path $env:APPDATA 'Spotify'
+foreach ($line in (Get-Content -LiteralPath (Join-Path $configFolder 'config-xpui.ini') -Encoding UTF8 -ErrorAction SilentlyContinue)) {
+  if ($line -match '^\s*spotify_path\s*=\s*(\S.*?)\s*$') {
+    $spotifyPath = [regex]::Replace($Matches[1], '\$([A-Za-z_][A-Za-z0-9_]*)', {
+      param($match)
+      $name = $match.Groups[1].Value
+      for ($length = $name.Length; $length -gt 0; $length--) {
+        $value = [Environment]::GetEnvironmentVariable($name.Substring(0, $length))
+        if ($null -ne $value) { return $value + $name.Substring($length) }
+      }
+      $match.Value
+    })
+    break
+  }
 }
-if (-not (Test-Path -LiteralPath (Join-Path `$spotifyPath 'Apps\xpui.spa'))) { exit }
-`$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-if (`$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { & '$escapedPath' auto --bypass-admin } else { & '$escapedPath' auto }
-"@
+if ($spotifyPath -like '*SpotifyAB.SpotifyMusic*') { exit }
+$appsPath = Join-Path $spotifyPath 'Apps'
+$archive = Join-Path $appsPath 'xpui.spa'
+$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+$flags = @()
+if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { $flags += '--bypass-admin' }
+$watchers = @()
+$failedStamp = $null
+function Reset-Watchers {
+  foreach ($watcher in $script:watchers) { $watcher.Dispose() }
+  Get-EventSubscriber | Unregister-Event
+  Get-Event | Remove-Event
+  $script:watchers = @()
+  foreach ($target in @(@($spotifyPath, 'Apps'), @($appsPath, 'xpui.spa'))) {
+    if (-not (Test-Path -LiteralPath $target[0] -PathType Container)) { continue }
+    $watcher = New-Object IO.FileSystemWatcher($target[0], $target[1])
+    foreach ($eventName in 'Created', 'Changed', 'Renamed', 'Deleted', 'Error') {
+      Register-ObjectEvent -InputObject $watcher -EventName $eventName | Out-Null
+    }
+    $watcher.EnableRaisingEvents = $true
+    $script:watchers += $watcher
+  }
+}
+while ($true) {
+  Reset-Watchers
+  if ((Test-Path -LiteralPath $archive) -and (Get-Item -LiteralPath $archive).LastWriteTimeUtc -ne $failedStamp) {
+    while (Wait-Event -Timeout 5) { Get-Event | Remove-Event }
+    for ($i = 0; $i -lt 30; $i++) {
+      try { [IO.File]::Open($archive, 'Open', 'Read', 'None').Dispose(); break } catch { Start-Sleep -Seconds 2 }
+    }
+    if (Test-Path -LiteralPath $archive) { & $spicetify auto @flags | Out-Null }
+    $failedStamp = if (Test-Path -LiteralPath $archive) { (Get-Item -LiteralPath $archive).LastWriteTimeUtc } else { $null }
+    continue
+  }
+  if ($watchers.Count -eq 0) { Start-Sleep -Seconds 60; continue }
+  [void](Wait-Event -Timeout 600)
+}
+'@
+    $script = $script.Replace('__SPICETIFY_PATH__', ($SpicetifyPath -replace "'", "''"))
     [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($script))
   }
 }
@@ -186,12 +234,11 @@ function Register-SpicetifyAutoApply {
     $encodedCommand = Get-SpicetifyAutoApplyCommand -SpicetifyPath $SpicetifyPath
     $action = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\conhost.exe" -Argument "--headless powershell.exe -NoProfile -NonInteractive -EncodedCommand $encodedCommand"
     $trigger = New-ScheduledTaskTrigger -AtLogOn -User $userId
-    $trigger.Repetition = (New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 15)).Repetition
     $principal = New-ScheduledTaskPrincipal -UserId $userId -LogonType Interactive -RunLevel Limited
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -DontStopOnIdleEnd -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
     $Parameters = @{
       TaskName    = $autoApplyTaskName
-      Description = 'Applies spicetify again after a Spotify update replaces the patched files.'
+      Description = 'Applies spicetify again as soon as a Spotify update replaces the patched files.'
       Action      = $action
       Trigger     = $trigger
       Principal   = $principal
@@ -199,6 +246,7 @@ function Register-SpicetifyAutoApply {
       Force       = $true
     }
     Register-ScheduledTask @Parameters | Out-Null
+    Start-ScheduledTask -TaskName $autoApplyTaskName
   }
   end {
     Write-Success
