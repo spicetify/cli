@@ -407,12 +407,12 @@ declare namespace Spicetify {
 			[key: string]: Array<(event?: Event) => void>;
 		};
 		/**
-		 * Convert milisecond to `mm:ss` format
-		 * @param milisecond
+		 * Convert millisecond to `mm:ss` format
+		 * @param millisecond
 		 */
-		function formatTime(milisecond: number): string;
+		function formatTime(millisecond: number): string;
 		/**
-		 * Return song total duration in milisecond.
+		 * Return song total duration in millisecond.
 		 */
 		function getDuration(): number;
 		/**
@@ -420,7 +420,7 @@ declare namespace Spicetify {
 		 */
 		function getMute(): boolean;
 		/**
-		 * Return elapsed duration in milisecond.
+		 * Return elapsed duration in millisecond.
 		 */
 		function getProgress(): number;
 		/**
@@ -478,7 +478,7 @@ declare namespace Spicetify {
 		function removeEventListener(type: string, callback: (event?: Event) => void): void;
 		/**
 		 * Seek track to position.
-		 * @param position can be in percentage (0 to 1) or in milisecond.
+		 * @param position can be in percentage (0 to 1) or in millisecond.
 		 */
 		function seek(position: number): void;
 		/**
@@ -502,13 +502,13 @@ declare namespace Spicetify {
 		 */
 		function setVolume(level: number): void;
 		/**
-		 * Seek to previous `amount` of milisecond
-		 * @param amount in milisecond. Default: 15000.
+		 * Seek to previous `amount` of millisecond
+		 * @param amount in millisecond. Default: 15000.
 		 */
 		function skipBack(amount?: number): void;
 		/**
-		 * Seek to next  `amount` of milisecond
-		 * @param amount in milisecond. Default: 15000.
+		 * Seek to next  `amount` of millisecond
+		 * @param amount in millisecond. Default: 15000.
 		 */
 		function skipForward(amount?: number): void;
 		/**
@@ -1034,7 +1034,7 @@ declare namespace Spicetify {
 		 *
 		 * @param baseUri The first URI to compare.
 		 * @param refUri The second URI to compare.
-		 * @return Whether they shared idenitity
+		 * @return Whether they shared identity
 		 */
 		static isSameIdentity(baseUri: URI | string, refUri: URI | string): boolean;
 
@@ -1380,11 +1380,11 @@ declare namespace Spicetify {
 			 */
 			renderInline?: boolean;
 			/**
-			 * Determins what will trigger the context menu. For example, a click, or a right-click
+			 * Determines what will trigger the context menu. For example, a click, or a right-click
 			 */
 			trigger?: "click" | "right-click";
 			/**
-			 * Determins is the context menu should open or toggle when triggered
+			 * Determines is the context menu should open or toggle when triggered
 			 */
 			action?: "toggle" | "open";
 			/**
@@ -2103,7 +2103,7 @@ declare namespace Spicetify {
 		function Request(query: (typeof Definitions)[Query | string], variables?: Record<string, any>, context?: Record<string, any>): Promise<any>;
 		/**
 		 * Context for GraphQL queries.
-		 * @description Used to set context for the handler and initialze it.
+		 * @description Used to set context for the handler and initialize it.
 		 */
 		const Context: Record<string, any>;
 		/**
