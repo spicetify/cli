@@ -169,7 +169,7 @@ func InitSetting() {
 	}
 
 	var err error
-	colorCfg, err = ini.InsensitiveLoad(colorPath)
+	colorCfg, err = utils.LoadColorConfig(colorPath)
 	if err != nil {
 		utils.PrintError("Cannot open file " + colorPath)
 		replaceColors = false

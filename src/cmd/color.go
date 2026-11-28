@@ -3,7 +3,6 @@ package cmd
 import (
 	"path/filepath"
 
-	"github.com/go-ini/ini"
 	"github.com/pterm/pterm"
 	"github.com/spicetify/cli/src/utils"
 )
@@ -53,7 +52,7 @@ func initCmdColor() bool {
 
 	colorPath := filepath.Join(themeFolder, "color.ini")
 
-	colorCfg, err = ini.InsensitiveLoad(colorPath)
+	colorCfg, err = utils.LoadColorConfig(colorPath)
 	if err != nil {
 		utils.PrintError("Cannot open file " + colorPath)
 		return false

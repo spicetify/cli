@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/go-ini/ini"
 )
 
 var (
@@ -58,6 +60,35 @@ var (
 		"misc",
 	}
 )
+
+// LoadColorConfig loads color.ini without treating "#" in hex values as comments:
+// "#" only starts an inline comment after a space, while ";" always does.
+func LoadColorConfig(path string) (*ini.File, error) {
+	cfg, err := ini.LoadSources(ini.LoadOptions{
+		Insensitive:              true,
+		SpaceBeforeInlineComment: true,
+	}, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// SpaceBeforeInlineComment misses a ";" with no space before it, as in
+	// "main = ; Base", and skips " ;" when " #" comes later on the line.
+	// Color values never contain ";", so cut them at the first one left.
+	for _, section := range cfg.Sections() {
+		for _, key := range section.Keys() {
+			value, comment, found := strings.Cut(key.Value(), ";")
+			if !found {
+				continue
+			}
+
+			key.SetValue(strings.TrimSpace(value))
+			key.Comment = strings.TrimSpace(key.Comment + ini.LineBreak + ";" + comment)
+		}
+	}
+
+	return cfg, nil
+}
 
 type color struct {
 	red, green, blue int64
