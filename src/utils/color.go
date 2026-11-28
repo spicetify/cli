@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/go-ini/ini"
 )
 
 var (
@@ -58,6 +60,14 @@ var (
 		"misc",
 	}
 )
+
+// LoadColorConfig loads color.ini without treating "#" in hex values as comments
+func LoadColorConfig(path string) (*ini.File, error) {
+	return ini.LoadSources(ini.LoadOptions{
+		Insensitive:              true,
+		SpaceBeforeInlineComment: true,
+	}, path)
+}
 
 type color struct {
 	red, green, blue int64
